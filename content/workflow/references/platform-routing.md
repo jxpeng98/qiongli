@@ -7,6 +7,12 @@ doing academic research lifecycle work.
 
 ## Cross-Platform Trigger Contract
 
+The shared Skill's reply-only choice takes precedence over the routing and
+connection checks here: answer from visible conversation material without tools,
+resource reads, agents or files. A request to explain installation checks in
+reply-only mode is not permission to run them. Do not turn missing evidence into
+a claimed connection, search, review or write result.
+
 When the user asks to verify a new installation, inspect the Qiongli tools
 actually visible in this Host session and call `qiongli_config_status` once.
 Report missing tools or a failed call directly; a CLI `mcp check` or a Plugin

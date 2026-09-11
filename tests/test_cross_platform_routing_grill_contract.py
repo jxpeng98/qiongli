@@ -222,6 +222,7 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
 
             plugin_skill = out / "plugins" / "qiongli" / "skills" / "qiongli-workflow"
             skill_text = read(plugin_skill / "SKILL.md")
+            self.assertEqual(skill_text, read(LAYOUT.workflow / "SKILL.md"))
             self.assertIn("references/platform-routing.md", skill_text)
             routing_text = read(plugin_skill / "references" / "platform-routing.md")
             boundary_text = read(plugin_skill / "skills" / "Z_cross_cutting" / "boundary-interviewer.md")
@@ -235,12 +236,16 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
                 writing_contract,
                 read(LAYOUT.workflow / "references" / "stage-F-writing.md"),
             )
-            for source in ("paper-read.md", "academic-write.md", "paper-write.md"):
+            for source in ("qiongli.md", "paper-read.md", "academic-write.md", "paper-write.md"):
                 with self.subTest(workflow=source):
                     self.assertEqual(
                         read(plugin_skill / "workflows" / source),
                         read(LAYOUT.workflow / "workflows" / source),
                     )
+            self.assertEqual(
+                read(plugin_skill / "references" / "codex-workflow-wrapper.md"),
+                read(LAYOUT.workflow / "references" / "codex-workflow-wrapper.md"),
+            )
 
         for phrase in (
             "Cross-Platform Trigger Contract",

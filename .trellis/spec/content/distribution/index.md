@@ -21,6 +21,13 @@ boundaries.
 
 ## Skill instruction ownership
 
+The root Skill owns the explicit conversational reply-only choice. Resolve it
+before any resource read, workflow or MCP check; the unified router and generated
+Codex entry template retain an inline guard so they need no read to honor it.
+It lasts until explicitly resumed unless scoped to one reply. This is not a Host
+tool lock, global setting or automatic Hook disablement. Keep ordinary routing and
+permission gates unchanged outside this choice; no extra runtime mode is required.
+
 The root Skill selects the requested outcome and relevant resources. Stage F
 writing workflows, cards and roles reference
 `content/workflow/references/stage-F-writing.md` for their shared writing

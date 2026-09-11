@@ -104,6 +104,10 @@ hooks (off by default). `install plugin --hooks context` includes them;
 
 ## Skills, MCP and research records
 
+Development builds after beta.5 support **“reply only” / “仅回复” / “no 处理”**:
+answer from the conversation without model-invoked tools, agents or file operations.
+See [reply-only scope and limits](docs/advanced/agent-skill-collaboration.md#reply-only).
+
 | Part | Purpose |
 |---|---|
 | Skills / Plugin | Route the requested reading, review, study design, writing, polish or stage summary through shared guidance |

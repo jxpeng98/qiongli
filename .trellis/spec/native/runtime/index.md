@@ -5,6 +5,9 @@ JSON and emits bounded context only for SessionStart resume/compact and
 SubagentStart. It runs before Host discovery/content/config loading, never reads
 transcripts or research files, invokes models, approves, writes or blocks a
 completed turn. Other events are inert; invalid input exits 1 without echo.
+The reminder respects an active conversational reply-only choice and does not
+authorize resource reads or resume execution. It neither detects nor stores that
+choice and cannot stop the Host from launching an already configured Hook.
 Local Plugin installation may include the fixed context Hook configuration after
 preview and confirmation. Host trust and live event delivery remain Host-owned. Both
 native adapters require actual independent results when independent review is

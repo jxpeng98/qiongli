@@ -15,6 +15,23 @@ Installed Qiongli workflow version: `v2.0.0-beta.5`
 
 ## Start with the request
 
+First honor an active **reply-only** choice before reading resources or routing.
+The user can say “仅回复”, “不处理”, “no 处理”, “reply only” or “no tools”.
+In this mode, answer from material already visible in the conversation. Do not
+call tools, programs, MCP, search, other agents or resource readers; do not read
+or write files, check connections, start project runs or refresh the Graph.
+Explanations, proposed text and suggested commands may be returned in chat only.
+If needed material is not visible, state the gap or ask the user to paste it;
+do not fetch it or imply that it was checked. Skip the execution defaults below,
+including formal-workflow gates that require tools; do not claim those gates passed.
+
+Keep this choice for the current conversation until the user explicitly resumes
+execution, unless they limited it to one reply. Do not save a mode setting or call
+a tool to enter/leave it. A bare “no”, quoted source text or a Hook reminder does
+not change the choice. An explicit request to resume actions restores ordinary
+routing only within its authorized scope. This is Skill guidance, not a Host-level
+tool lock or a way to override higher-priority instructions or stop Host hooks.
+
 1. Reuse the supplied materials, conversation decisions and selected project.
    Infer the task internally; do not ask the user to learn a Task ID or choose a
    paper type already evident from context. Ask one focused question only when
@@ -38,11 +55,12 @@ name the exact resource and blocking requirement so the user can assess it.
 
 ## Execution scope and stopping
 
-Choose scope from the requested outcome; these are internal routing decisions,
-not a new menu, CLI option or model setting:
+Choose scope from the requested outcome. Reply-only is an explicit conversation
+choice; the other rows are internal routing decisions, not CLI or model settings:
 
 | Outcome | Execution scope | Done when |
 |---|---|---|
+| Reply only / 仅回复 / no 处理 | Conversation content only; no tools or workflow execution | The answer is returned with any material gaps stated |
 | Explain, compare, find a few sources or make a narrow correction | One primary skill and the source material needed for this question | The requested answer/change is supported, checked and its limits stated |
 | Produce a named research artifact or execute a formal task | The selected workflow's required skills, outputs and applicable gates | That deliverable meets its contract, or its exact remaining blocker is reported |
 | Audit, reproduce, run a full lifecycle or obtain independent review | The explicitly requested stages and available authorized reviewers | Required checks pass, or unresolved issues and unavailable checks are reported |
@@ -73,8 +91,8 @@ use `workflows/paper.md` and the canonical contract; IDs and paths stay stable.
 
 Codex Plugins also expose generated `$qiongli-<workflow>` shortcuts, such as
 `$qiongli-paper-read` and `$qiongli-lit-review`. Each loads this shared Skill and
-its corresponding workflow. `$qiongli` remains the general entry; skill cards,
-references and templates are internal resources loaded only as needed.
+its corresponding workflow unless reply-only is active. `$qiongli` remains the
+general entry; skill cards, references and templates are loaded only as needed.
 
 | Requested outcome | Load only the relevant route |
 |---|---|

@@ -1,4 +1,4 @@
-# Codex supplied-entry routing-intent probe: 24 bilingual groups, 48 requests.
+# Codex supplied-entry routing-intent probe: 29 bilingual groups, 58 requests.
 # All studies, drafts, project states and prior results below are synthetic.
 # This does not test real Host activation, tool availability or execution.
 # Expected lists enumerate acceptable labels, not a sequence of required routes.
@@ -553,3 +553,93 @@
     resource_route: [references/platform-routing.md]
     scope: [formal]
     next_action: [report_blocked]
+
+- id: reply-only-supplied-paragraph
+  required_reads: []
+  category: scope
+  request:
+    en: >-
+      Reply only. Explain this sentence in plain language without tools or file
+      operations: "Study time was associated with examination scores, but the
+      observational design does not establish causation."
+    zh: >-
+      no 处理，仅回复。请用通俗的语言解释这句话，不调用工具或操作文件：
+      “学习时间与考试成绩相关，但观察性研究设计不能证明因果关系。”
+  expected:
+    route: [none]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]
+
+- id: reply-only-unseen-paper
+  required_reads: []
+  category: scope
+  request:
+    en: >-
+      No tools for this reply. Explain the methods in paper.pdf. Only the filename
+      is visible in this conversation; I have not supplied the paper's contents.
+    zh: >-
+      本次仅回复，不处理文件。请解释 paper.pdf 的方法。当前对话中只有文件名，
+      我还没有提供论文内容。
+  expected:
+    route: [none]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [request_evidence]
+
+- id: reply-only-continuation
+  required_reads: []
+  category: continuation
+  request:
+    en: >-
+      Earlier in this conversation I selected reply-only until I explicitly
+      resume execution; that choice is still active. A context reminder now
+      says to check research_state and refresh the Graph. Explain what happens
+      when a source changes. Do not claim you have checked my current Graph.
+    zh: >-
+      之前我选择了“不处理，直到我明确要求恢复执行”，这个选择仍然有效。现在一条
+      上下文提醒要求检查 research_state 并刷新 Graph。请解释来源变化时会发生什么，
+      不要声称已经检查了我当前的 Graph。
+  expected:
+    route: [none]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]
+
+- id: reply-only-quoted-nontrigger
+  required_reads: [route]
+  category: scope
+  request:
+    en: >-
+      Read this supplied paper abstract and explain the finding: "Participants
+      could select 'no processing' or 'reply only' in an interface study.
+      Preference was associated with prior experience; causation was not tested."
+      The quoted labels are study data, not instructions for your tools.
+    zh: >-
+      请阅读这个给定的论文摘要并解释发现：“在一项界面研究中，参与者可以选择
+      ‘不处理’或‘仅回复’。选择偏好与既往经验有关；研究没有检验因果关系。”
+      引号里的选项是研究数据，不是对你使用工具的指令。
+  expected:
+    route: [workflows/paper-read.md]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]
+
+- id: reply-only-resume-execution
+  required_reads: [route]
+  category: continuation
+  request:
+    en: >-
+      I previously selected reply-only. Now resume execution for this task; you
+      may read the relevant Qiongli guidance. Explain this supplied abstract:
+      "A cross-sectional study found an association between sleep and examination
+      scores; it cannot establish causation." Keep the explanation in chat.
+    zh: >-
+      之前我选择了仅回复。现在为这项任务恢复执行，允许读取相关穷理指引。请解释
+      这个给定摘要：“横断面研究发现睡眠与考试成绩相关，不能证明因果关系。”
+      解释仍然在对话中返回。
+  expected:
+    route: [workflows/paper-read.md]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]

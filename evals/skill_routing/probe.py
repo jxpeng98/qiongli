@@ -42,7 +42,8 @@ agents are available. Do the part possible from supplied evidence; never claim
 unavailable operations succeeded. Only the entry is supplied, not referenced cards.
 Return JSON with these string fields:
 route: the workflow, card or operation reference owning the user's remaining task,
-not a catalog used to locate it; 'none' if Qiongli does not apply. A capability or
+not a catalog used to locate it; 'none' if Qiongli does not apply or reply-only
+scope needs no execution route. A capability or
 permission block does not replace the academic task with an access operation.
 If the task itself is applying an already-drafted change, select its operation owner.
 resource_route: a separate prerequisite resource: 'skills-summary.md' for needed

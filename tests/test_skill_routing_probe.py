@@ -138,18 +138,19 @@ class SkillRoutingProbeTests(unittest.TestCase):
             self.assertFalse(probe.score(output, root / "legacy"))
             self.assertFalse(json.loads((root / "legacy/summary.json").read_text())[
                 "resource_reads"][selected[0]]["prerequisite"])
-            # Generic work requires no reads, even if an irrelevant call succeeds.
-            generic_id = "generic-mean-function-en"
-            generic, _, generic_response, _ = self.capture(
-                root / "generic", read_resources=True, selected=[generic_id])
-            self.assertTrue(probe.score(generic, root / "zero-reads"))
-            raw = read_trace(generic_response, json.loads(sources["resources"]), response["route"])
-            events = generic / generic_id / "events.jsonl"
-            events.write_text(raw)
-            receipt_path = events.with_name("capture.json")
-            receipt = json.loads(receipt_path.read_text())
-            probe.write_json(receipt_path, {**receipt, "events_sha256": probe.digest(events)})
-            self.assertFalse(probe.score(generic, root / "unnecessary-read"))
+            # Generic and reply-only work reject even successful guidance reads.
+            for case_id in ("generic-mean-function-en", "reply-only-supplied-paragraph-en",
+                            "reply-only-unseen-paper-zh", "reply-only-continuation-en"):
+                captured, _, answer, _ = self.capture(
+                    root / case_id, read_resources=True, selected=[case_id])
+                self.assertTrue(probe.score(captured, root / f"{case_id}-zero-reads"))
+                raw = read_trace(answer, json.loads(sources["resources"]), response["route"])
+                events = captured / case_id / "events.jsonl"
+                events.write_text(raw)
+                receipt_path = events.with_name("capture.json")
+                receipt = json.loads(receipt_path.read_text())
+                probe.write_json(receipt_path, {**receipt, "events_sha256": probe.digest(events)})
+                self.assertFalse(probe.score(captured, root / f"{case_id}-unnecessary-read"))
             # Missing/invalid policies fail before invoking even codex --version.
             for required in (None, ["scope"], ["route", "route"], [None], ["resource_route"]):
                 invalid = yaml.safe_load(probe.CORPUS.read_text())[:1]
@@ -336,7 +337,7 @@ class SkillRoutingProbeTests(unittest.TestCase):
 
     def test_corpus_and_traces_fail_closed_without_leaking_labels(self):
         cases = probe.load_cases()
-        self.assertEqual(48, len(cases))
+        self.assertEqual(58, len(cases))
         self.assertEqual({"en", "zh"}, {case["language"] for case in cases.values()})
         case = next(iter(cases.values()))
         response = {key: values[0] for key, values in case["expected"].items()}

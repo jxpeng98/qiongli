@@ -1,12 +1,13 @@
 # Codex routing intent probe
 
-Codex is the primary development and verification Host. The corpus contains 24
-paired English/Chinese requests (48 cases), covering applicability, adjacent
+Codex is the primary development and verification Host. The corpus contains 29
+paired English/Chinese requests (58 cases), covering applicability, adjacent
 intents, bounded scope and continuation. Inputs are synthetic and require neither
-private research nor Host registration. The current corpus retains 46 previous
-requests and replaces the ambiguous Claim C1 denial pair with explicitly named
-Academic Graph verification under new case IDs. Historical snapshots retain the
-old requests and scores; the new pair cannot regrade those old inputs.
+private research nor Host registration. The current corpus retains the previous
+48 requests and adds ten reply-only cases: supplied/unseen material, continuation,
+quoted non-triggers and explicit resumption. Reply-only cases require zero resource
+reads; quoted labels and resumed execution retain normal routing. Historical
+snapshots retain their original requests and scores.
 
 The probe supplies only `content/workflow/SKILL.md`, a preceding version of that
 entry, or no entry. Expected labels are held out of the prompt. V2 separates:
@@ -14,7 +15,8 @@ entry, or no entry. Expected labels are held out of the prompt. V2 separates:
 - `route`: primary execution workflow, card or operation reference for the work
   still needed; a capability/permission block does not replace that task with
   an access operation. Applying an already-drafted change is itself an operation.
-  A discovery index is not a primary task route.
+  A discovery index is not a primary task route. Reply-only uses `none` because
+  there is no execution route to load.
 - `resource_route`: a separate discovery/project-access prerequisite, or `none`.
   This includes currently blocked dependencies and does not authorize access or
   retry. These labels describe prerequisites, not observed resource reads.
@@ -42,7 +44,7 @@ automatic retries; unattempted selected cases stay in the denominator.
 # Offline checks; no model calls.
 .venv/bin/python -m unittest tests.test_skill_routing_probe tests.test_academic_quality_evals
 
-# Always use new capture/report directories. Omit --case to capture all 48.
+# Always use new capture/report directories. Omit --case to capture all 58.
 .venv/bin/python evals/skill_routing/probe.py capture /private/tmp/qiongli-intents \
   --case results-interpretation-boundary-en --case results-interpretation-boundary-zh
 

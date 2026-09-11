@@ -4,6 +4,26 @@ Current 2.x development keeps the model in its Host. Qiongli supplies research
 contracts, source-bound handoffs and project tools. Installing the Plugin gives
 you Skills and Full MCP; it does not create another agent or change your model.
 
+## Reply only
+
+In the development build after beta.5, say **“reply only”** or **“no tools”** to
+use Qiongli guidance without asking the model to run anything. For example:
+
+> Reply only for this conversation: explain the paragraph below. Do not use tools
+> or read or save files.
+
+The model answers from visible conversation content, skipping resource reads,
+search, MCP, agents, project checks and Graph updates. If material is missing,
+it asks for an excerpt or explains the limit. The choice stays active until you
+explicitly resume execution; “for this reply only” limits it to one response.
+It also applies when using a workflow shortcut. Ordinary requests keep their
+existing routing, and “no” in a quoted passage does not select this mode.
+
+This is a Skill instruction, not a CLI flag or a Host permission lock. It does
+not change higher-priority Host rules, cancel running work or disable automatic
+Host hooks. To remove this Plugin's context hooks, separately use
+`qiongli install plugin --hooks off` and complete its installation confirmations.
+
 ## Choose the smallest useful collaboration
 
 | Need | Use | Completion evidence |

@@ -3,6 +3,20 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Reply-only scope — September 12 follow-up
+
+Continue from `87a6ea7c` on `codex/reply-only-scope`. Add the maintainer's explicit
+“仅回复 / no 处理” choice before the existing root/shortcut resource reads and
+runtime routing. Use visible conversation material only; retain the choice until
+explicitly resumed unless limited to one reply. Hook reminders must not override
+it. No new Skill, runtime mode, config store, dependency or Host permission claim.
+
+Check zero-read evaluation traces, missing material, continuation, quoted
+non-triggers and resumption; retain ordinary routing and Hook protocol negatives.
+Verify generated content, update the embedded lock, archive checks in the existing
+outcome-guided review, then commit and fast-forward locally. No publication or
+acceptance promotion; installed-Host behavioral enforcement remains unqualified.
+
 ## Optional Hook installation — September 12 follow-up
 
 The maintainer requested adding context Hook setup to `install`. Continue from

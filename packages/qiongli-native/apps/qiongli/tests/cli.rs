@@ -5375,6 +5375,12 @@ fn context_hook_preserves_protocol_without_path_or_project_access() {
                         hook["additionalContext"]
                             .as_str()
                             .unwrap()
+                            .starts_with("Respect the user's active reply-only choice")
+                    );
+                    assert!(
+                        hook["additionalContext"]
+                            .as_str()
+                            .unwrap()
                             .contains("self-review")
                     );
                 }

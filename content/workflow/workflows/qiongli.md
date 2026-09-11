@@ -14,6 +14,11 @@ $ARGUMENTS
 
 ## Routing Contract
 
+Honor an active reply-only choice (仅回复 / 不处理 / no 处理 / no tools) first:
+answer from the conversation without tools, resource reads, agents or files.
+State missing material; skip routing below until the user explicitly resumes
+execution, unless they limited the choice to one reply.
+
 Read `references/platform-routing.md` and `references/workflow-contract.md`
 before choosing a route. Do not treat this file as a separate workflow contract;
 it is a thin entrypoint that delegates to the existing canonical workflows.
