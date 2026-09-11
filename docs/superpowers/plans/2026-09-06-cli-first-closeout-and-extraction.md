@@ -3,6 +3,47 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Native Codex workflow entry points — September 11
+
+Base `cbe499a6`; branch `codex/workflow-skill-wrappers`; implementation
+`8ba93234`. The maintainer requested convenient workflow Skills alongside the
+general Qiongli entry, without wrapping every internal card. Native local Codex
+exports and Marketplace projections now use one canonical wrapper template and
+the existing workflow descriptions. The current content generates 20 shortcuts
+plus `$qiongli`; the duplicate `qiongli-qiongli` entry is excluded and all 82
+cards remain internal. Each entry reads the shared Skill before its workflow,
+retaining tool availability, request scope and project-write authority.
+
+The existing receipts cover generated paths and bytes. Invalid slug/metadata,
+missing or changed wrappers, traversal, unexpected scripts and drift refuse.
+Historical packs without the template keep their original projection; Claude's
+single-Skill interface is unchanged. The resource lock was regenerated through
+its existing owner. Two old bundle test fixtures now select the current channel
+through the existing identity validator instead of hard-coding Alpha. Initial
+temporary-worktree tests hit the existing secure-parent refusal; the worktree
+was moved inside the repository without weakening that boundary.
+
+Validation with Rust 1.97.0: nine native bundle checks and one wrapper metadata/
+path check passed; the two opt-in real-Host tests were not run. Seventeen Python
+Marketplace/resource-link checks, the capability contract, formatting, platform
+all-target Clippy and app/bundle-test Clippy passed. An isolated CLI plan/apply
+export passed Plugin Creator validation with 21 Skill manifests; all 20 wrappers
+exactly match the Marketplace generator. The later CLI change `0457f56d` merged
+cleanly at `4f89c8e3`; its content-install/upgrade preview test passed, and an
+actual dry-run upgrade correctly bound the existing 21-entry export receipt.
+Unchanged bundle checks were reused across this app-only integration.
+
+Logs: `/private/tmp/qiongli-wrapper-bundles-final.log`, `qiongli-wrapper-unit.log`,
+`qiongli-wrapper-python-final.log`, `qiongli-wrapper-capability-final.log`,
+`qiongli-wrapper-clippy-platform.log`, `qiongli-wrapper-clippy-app.log`,
+`qiongli-wrapper-combined-cli.log`, `qiongli-wrapper-plugin-validation.log` and
+`qiongli-wrapper-parity.json` in the same directory. The isolated source and
+plans are in the feature worktree's ignored `dist/wrapper-review/` directory.
+Final review found no remaining actionable issue. Next qualify an updated Plugin
+in a new Codex session or include it in an authorized release. Existing personal
+Host caches, models and research files were not changed; no publication or new
+Windows/Linux/live-session acceptance is claimed.
+
 ## Direct bundled-content installation and Host registration — September 11
 
 Base `cbe499a6`; branch `codex/cli-content-install-upgrade`. The maintainer
