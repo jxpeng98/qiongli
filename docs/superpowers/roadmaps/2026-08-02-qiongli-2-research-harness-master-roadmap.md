@@ -159,6 +159,13 @@ comparisons, not performance results. Keep the existing 82-card library and
 CLI/Plugin/MCP owners while measuring outcome quality and avoidable operations.
 Do not add a new routing service, graph store or model manager for this increment.
 
+September 11 maintainer decision: refine Skills around outcomes and evidence.
+The current plan first trims reading, writing and review defaults plus their shared
+callers, retaining permission/CAS, source continuity and explicitly agreed research
+protocols. Archive decisions and isolated behavioral observations; do not infer
+quality gains from shorter prompts or model names. Keep the current architecture
+and evaluate before extending the same changes to other skill families.
+
 The new user outcome is: install a verified native package, use a chosen Host to
 compare sources and propose a note, approve through existing project owners,
 then recover or continue in another Host on the same device. Models/accounts and

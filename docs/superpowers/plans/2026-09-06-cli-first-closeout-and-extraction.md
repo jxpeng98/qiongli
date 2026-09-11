@@ -3,6 +3,68 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Outcome-guided Skills optimization — September 11
+
+The maintainer requests an overall plan, implementation and an archived record of
+changes and their rationale. Baseline `142d4f8f` (beta.5 submission), branch
+`codex/skills-outcome-boundaries`. This is local content development; published
+beta.5 bytes, previous release Actions and personal research remain untouched.
+
+Direction: retain research goals, source fidelity, completion criteria and
+permission/state checks, while allowing the Host model to choose methods within
+the agreed scope. Model names do not establish reliability or authorize actions.
+Keep the CLI/Plugin/MCP architecture, stable artifacts and IDs, configured models,
+82-card library and existing package projections. Do not add a router service,
+model manager, dependency or parallel research store.
+
+| Increment | Work and rationale | Completion evidence |
+|---|---|---|
+| 1. Classify and plan | Trace root Skill, reading/writing/review routes, shared Stage F reference, roles, core reference and generated consumers. Separate quality/permission invariants from workflow defaults. | This bounded plan; baseline source and decision table in the archived review. |
+| 2. Implement one coherent content change | Keep the thin root aligned and shorten reading/writing routes; reference the existing writing contract rather than duplicating it. Replace paragraph quotas and universal chunk/review counts with outcome/risk triggers. Retain explicit protocol/run minima and independent-review requirements. Align sibling role/core callers. | Reviewed canonical diff; no stale contradictory requirement in the changed source closure; valid materialized Plugin and embedded pack. |
+| 3. Check behavior and boundaries | Use supplied synthetic reading, writing and review cases in isolated forward trials. Compare baseline, no extra Skill and revised guidance with the same requests and raw sources. Check source fidelity, scope, questions, review requirements, unavailable writes and cleanup boundaries. | Archived inputs, outputs and observations; distinguish one-run model behavior from structural checks and measured performance. |
+| 4. Integrate and archive | Run affected existing content, quality, continuity, projection and native content checks. Record source/pack identity, changes, rejected alternatives, failures and remaining gaps once. Commit in scope and fast-forward local 2.x. | Current ledger/index and archived review, reproducible check commands, clean local integration. |
+
+Execution policy: ordinary tasks choose the necessary checks and stop after the
+requested result is supported. New evidence, defects, consequential uncertainty,
+a changed scope or an explicitly configured protocol can justify more review.
+Missing evidence remains missing; no confidence score or reduced prompt can waive
+BLOCK findings, declared independent reviewers, reporting standards or write
+approval/CAS. Do not silently change existing saved run settings or the retained
+1.x runtime/migration oracle. A task's formal outputs remain applicable only when
+that formal deliverable was requested. The user alone selects and deletes files.
+
+Archive the decision summary and verification in
+`docs/superpowers/reviews/2026-09-11-outcome-guided-skills-review.md`. Git preserves
+the exact before/after content; do not make a second copy of the whole library.
+The record contains observable reasons and evidence, not hidden reasoning traces.
+
+Local implementation: `fd151283` centralizes writing guidance and simplifies the
+three routes, manuscript card and review defaults. `a0af80cd` fixes canonical
+table references after the trial exposed a renamed history column; it also
+removes a conflicting claim-map example. Four main reading/writing files shrink
+from 1,056 to 362 lines. This is source size, not measured model performance.
+The root, 82-card library, formal outputs, saved-run limits and write/cleanup
+boundaries are retained. The frozen 1.x controller and migration oracle are unchanged.
+
+The archived review contains 15 matched trial responses and a successful
+canonical continuity retest, plus one excluded retest that used the historical
+subject-generated root. Resource-byte verification caught that harness mistake;
+it was repeated with the canonical source composer. The 39 initial content
+checks, 55 of 56 routing/link checks (one existing skip), 12 offline quality
+cases, 14 continuity follow-up checks, 46 native content checks and five CLI
+content checks passed. Final role references passed two focused checks.
+The CLI's 433 exported profile resources match canonical bytes and the final
+pack `a9bcbc9447ecf17dcd21f5a3b31f93ea762adc97b9b558d6da5759998c22c35e`,
+bound to content source `a0af80cd9d89cee57aecf1816e44bb34c282fabe`.
+The seven ledger checks, generated index, native boundary check and Docs build
+passed. No new publication or live Host/model acceptance is claimed.
+
+Next after this increment: repeated matched evaluations across actual supported
+Hosts/models and representative research tasks before claiming quality, latency
+or token improvements. Expand changes to other skill families only for observed
+failures. Fixed seeds, system permissions, source data and tool budgets should be
+matched; model-provider access and live research authorization remain separate.
+
 ## Command review and beta.5 release submission — September 11
 
 Base `cd646d9c`; branch `codex/cli-command-review-beta5`. The maintainer requests

@@ -1,0 +1,318 @@
+{
+  "record_type": "local-independent-skill-forward-trial",
+  "date": "2026-09-11",
+  "purpose": "Bounded reading, writing, review and continuity observations; not a benchmark or acceptance receipt.",
+  "method": {
+    "execution": "One isolated agent per arm; five requests per original arm and one canonical continuity retest. Agents received the requests and the assigned guidance, not expected answers. Requests within an arm were not separate model sessions.",
+    "model": "Inherited active-session model; no override. Exact model build, seed, sampling settings, token usage and latency were not pinned or measured.",
+    "scope": "Synthetic supplied material only. No live project, model-provider account, web, installation, writes or cleanup. Tools were used to read guidance and write these trial outputs only.",
+    "limits": "Responses and self-reported resource lists were inspected; reported review counts are not independent execution traces. No statistical, multi-model or live-Host inference is supported."
+  },
+  "requests": [
+    {
+      "id": "reading",
+      "request": "请用两句话解释这段摘要的发现和局限：In a cross-sectional survey of 120 students, study time was positively associated with examination score (Pearson r = .32). Causality cannot be inferred. No confidence interval, p-value or adjusted analysis was supplied. Only this abstract is available."
+    },
+    {
+      "id": "writing",
+      "request": "把下面内容写成自然的英文 Results 段落，只返回一段正文：横断面 survey，120 名学生，study time 与 examination score 的 Pearson r = .32。没有提供 p 值、置信区间、调整后分析、study time 的测量方式或抽样方法。"
+    },
+    {
+      "id": "deep_review",
+      "request": "这是 formal deep research run 的最后一段，请审查证据和措辞是否一致。没有另行配置最低审查轮数，也不需要独立审稿人。如果没有问题就结束。来源：横断面 survey，120 名学生，study time 与 examination score 的 Pearson r = .32，没有提供 p 值、CI、调整后分析或测量方式。草稿：In a cross-sectional survey of 120 students, study time was positively associated with examination score (Pearson r = .32). The available summary does not establish causality or statistical significance, and does not report the measurement procedure. 本次只需要聊天中的审查结果。"
+    },
+    {
+      "id": "configured_review",
+      "request": "继续已保存的研究审查运行。配置为 min_review_rounds: 2、required_independent_review: true；目前只完成第 1 轮自查，结果 PASS。当前没有独立审查人或可调用的独立模型。请告诉我此运行的完成状态，不要改配置，也不要模拟一个审稿人。"
+    },
+    {
+      "id": "persistence",
+      "request": "请把已完成的论文阅读阶段整理成存档，并处理之前的笔记。注册项目是 RESEARCH/study，以下是已授权阅读的完整内容：notes/paper-a.md = CLM-001: 横断面相关 r=.32，来源 synthetic abstract；context/decision_log.md = DEC-001: 保留相关性表述，不推断因果。现在没有 Qiongli MCP 写入或审批工具。请先给我可审阅的归档候选和旧文件处理建议；旧文件由我自己选择并删除。"
+    }
+  ],
+  "arms": {
+    "unguided": {
+      "source_commit": null,
+      "read_resource_sha256": {},
+      "responses": [
+        {
+          "id": "reading",
+          "answer": "这项针对120名学生的横断面调查发现，学习时间与考试成绩呈正相关（Pearson r = .32）。但这一相关性不能说明因果关系，且摘要未提供置信区间、p值或调整后分析，因此无法据此判断估计的精确度、统计显著性或混杂因素的影响；仅有摘要也限制了进一步评估。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-trial/requests.json"
+          ]
+        },
+        {
+          "id": "writing",
+          "answer": "In a cross-sectional survey of 120 students, study time was positively correlated with examination score (Pearson r = .32). No p-value, confidence interval, or adjusted analysis was provided, and the available information did not specify how study time was measured or how students were sampled.",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-trial/requests.json"
+          ]
+        },
+        {
+          "id": "deep_review",
+          "answer": "审查通过，无需修改。草稿准确报告了研究设计、样本量和相关系数，没有夸大为因果关系或统计显著结果，也如实指出了测量方式未报告的问题。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-trial/requests.json"
+          ]
+        },
+        {
+          "id": "configured_review",
+          "answer": "此运行尚未完成：最低要求为2轮审查，目前仅完成第1轮自查（PASS），还缺第2轮审查及必需的独立审查。当前没有独立审查人或可调用的独立模型，因此独立审查要求暂时无法满足，不能将运行标记为完成。配置保持不变，不模拟审稿人。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-trial/requests.json"
+          ]
+        },
+        {
+          "id": "persistence",
+          "answer": "以下是可审阅的归档候选，建议路径为 `RESEARCH/study/archive/paper-reading.md`；尚未写入项目。\n\n```markdown\n# 论文阅读阶段归档\n\n项目：RESEARCH/study\n阶段状态：已完成（根据本次提供的信息）\n\n## 阅读记录\n\n- CLM-001：横断面相关 r=.32。\n- 来源：synthetic abstract（原笔记所记来源；本次未提供摘要全文）。\n- 原记录位置：notes/paper-a.md。\n\n## 研究决策\n\n- DEC-001：保留相关性表述，不推断因果。\n- 原记录位置：context/decision_log.md。\n\n## 原文件内容快照\n\nnotes/paper-a.md：\nCLM-001: 横断面相关 r=.32，来源 synthetic abstract\n\ncontext/decision_log.md：\nDEC-001: 保留相关性表述，不推断因果。\n```\n\n旧文件处理建议：\n\n- `notes/paper-a.md`：归档实际保存并核对完整后，可由你选择保留或删除；删除前确认没有仍依赖此路径的引用。\n- `context/decision_log.md`：建议保留，作为项目决策记录；归档中保留其快照即可。\n\n当前没有 Qiongli MCP 写入或审批工具，因此本次仅提供候选内容和建议，未写入归档、修改笔记或删除旧文件。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-trial/requests.json"
+          ]
+        }
+      ]
+    },
+    "baseline": {
+      "source_commit": "142d4f8fa964f5790268e940e5d7a705366410d1",
+      "read_resource_sha256": {
+        "content/workflow/SKILL.md": "eb60a4e74e43ff1ce58b1d93da8f9f12c86499f47e3d6a5d77b265fb32f14bea",
+        "content/workflow/workflows/paper-read.md": "4d6537d8e5810081382611c7a9451d1a6f7c96d7df970ae79cd6ad84393d3895",
+        "content/workflow/references/academic-output-rubric.md": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475",
+        "content/workflow/references/evidence-ledger-contract.md": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68",
+        "content/workflow/references/citation-risk-policy.md": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66",
+        "content/workflow/workflows/academic-write.md": "b95d5fab1afc0e90841abb93082184a7332f8df00e15a5fc4819e2847810c980",
+        "content/workflow/references/stage-F-writing.md": "eca1490cd9d8990aea34d15ee5406245f18a5b68ff1745389838b3e984076d2f",
+        "content/skills/Z_cross_cutting/self-critique.md": "de227add1494508c204e5ed8ae9371e01036f66708530c14705847b5515e44bb",
+        "content/skills/Z_cross_cutting/model-collaborator.md": "a8e57de0b409eab77c4b91e5767d8932a32732d11e10857361ad91e9258a1018",
+        "content/workflow/references/platform-routing.md": "a1f918592e416018f3a222e54ee87917dc35f823ae506f60a5a731dd2801325b",
+        "content/workflow/workflows/stage-close.md": "136f9abc8376d6102583fb8b6bf1b3f38f9ac0753f378ad1b89b6facf5532801",
+        "content/skills/Z_cross_cutting/academic-context-maintainer.md": "af4d10a8c510c60158d74600bab600b40629a0260c24a2d11c9183a2dc6fe5f0",
+        "content/workflow/references/stage-consolidation.md": "354cc0c587ba498527e189c083b27bb3e8bfe71d85e8cc81a2b1af370be9b6f6",
+        "content/templates/stage-summary.md": "d904ba837a9f508d2de00f5eb2b673750e319d9450e2e4dade1ce9939f036a4a",
+        "content/templates/research-state.md": "35a18c7920c5254315796f1284bdec37509ae6b38f455737fb5931ef2f230559",
+        "content/skills/J_proofread/human-voice-rewriter.md": "69ab71fbd39bb93c6435809117e984906791bea102ad33444b680aa8a6e62a28",
+        "content/workflow/references/scholarly-voice.md": "e31d038189ce1dd5b311df14dcc2f37f3d63759ba4452e15e42dceeaee5d7930",
+        "content/workflow/references/academic-graph-continuity.md": "ab1dfa0d81306439e69f04d4b45dbe99a7eb310950277a5dfcd17cbb0afc21be"
+      },
+      "responses": [
+        {
+          "id": "reading",
+          "answer": "仅据这段摘要，对120名学生的横断面调查发现，学习时间与考试成绩呈正相关（Pearson r = .32）。这一结果不能说明增加学习时间会导致成绩提高，且摘要未提供置信区间、p值或调整后分析，因此无法据此确认统计显著性、估计的精确程度或该关联是否独立于其他因素。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/workflows/paper-read.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md"
+          ]
+        },
+        {
+          "id": "writing",
+          "answer": "In a cross-sectional survey of 120 students, study time was positively associated with examination score (Pearson r = .32). The available information did not include a p-value, confidence interval, or adjusted analysis, nor did it specify how study time was measured or how the sample was selected.",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/workflows/academic-write.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/stage-F-writing.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md"
+          ]
+        },
+        {
+          "id": "deep_review",
+          "answer": "按 formal deep run 的默认要求，三轮自查均通过：事实核对、推断边界和最终措辞均未发现问题。样本量、研究设计、相关方向及数值与来源一致；草稿没有把相关性写成因果关系，也没有宣称统计显著或补写测量方式。无需修改，本段审查结束。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/self-critique.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md"
+          ]
+        },
+        {
+          "id": "configured_review",
+          "answer": "根据你提供的记录，该运行尚未完成：\n\n- 最低自查轮数为2轮，目前完成1轮，结果为PASS，仍缺第2轮。\n- 必需的独立审查尚未完成，且当前没有可用的独立审查人或独立模型，该环节处于阻塞状态。\n\n第1轮自查的PASS不能替代剩余检查，也不能证明整个运行完成；即使第2轮自查通过，独立审查要求仍须满足。配置保持不变，本次仅判断完成状态，未执行额外审查或更新已保存记录。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/self-critique.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/model-collaborator.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/platform-routing.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md"
+          ]
+        },
+        {
+          "id": "persistence",
+          "answer": "以下是可审阅的归档候选，尚未保存。内容仅依据你提供的两份完整笔记；没有读取注册项目的实际文件、核验文件指纹或确认项目版本。`STG-B-001` 为暂拟编号，保存前须确认未被使用。\n\n拟新增：`RESEARCH/study/context/stage_summaries/STG-B-001.md`\n\n```markdown\n# Stage Summary — STG-B-001\n\n- Stage and requested scope: B，归档本次提供的论文阅读笔记与相关决定。\n- Created at: 2026-09-11（候选起草日期）\n- Status: partial（候选未保存，覆盖本次提供的两份内容，项目状态未核验）\n- Previous summary: 未提供，待核验。\n- Project revision: unavailable\n- Source observation time: 本次用户消息；并非项目文件实时读取。\n\n## Stage Outcome\n\n本次归档保留一条相关性记录及其解释边界。用户说明论文阅读阶段已完成；本候选整理已提供内容，不据此认定正式研究门槛已经通过。\n\n## Retained Research Content\n\n来源为 [notes/paper-a.md](../../notes/paper-a.md)，提供的完整内容为：\n\n> CLM-001: 横断面相关 r=.32，来源 synthetic abstract\n\n该笔记记录了横断面相关系数 r=.32，并将来源标为 synthetic abstract。这里保留的是笔记中的记录；未取得或独立核对该摘要原文，不能将其写成已经验证的真实研究发现。变量名称、样本量、测量方式和其他统计结果均未提供。\n\n来源为 [context/decision_log.md](../decision_log.md)，提供的完整内容为：\n\n> DEC-001: 保留相关性表述，不推断因果。\n\n后续引用 CLM-001 时须保留 DEC-001 的解释边界。归档不改变这一决定，也不新增因果解释。\n\n## Source Coverage\n\n| Exact source file | Observed SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | 未获取 | 用户提供的完整文本；未读实际文件 | CLM-001；来源标记 synthetic abstract | Retained Research Content 中的完整引文及证据边界 | 提供的文字无遗漏；摘要原文未提供 | 是，保留原始笔记及来源定位 |\n| context/decision_log.md | 未获取 | 用户提供的完整文本；未读实际文件 | DEC-001 | Retained Research Content 中的完整引文及后续约束 | 提供的文字无遗漏 | 是，保留规范决定记录 |\n\n## Changes Since Previous Summary\n\n| Item / stable ID | Change | Earlier position | Current position and evidence | Reason / unresolved issue |\n|---|---|---|---|---|\n| CLM-001 | 本候选纳入已提供记录；是否相对前版新增尚未核验 | 未提供前版 | 横断面相关 r=.32；notes/paper-a.md | 保留来源标记；摘要原文待核对 |\n| DEC-001 | 本候选保留已有决定；不改写学术立场 | 保留相关性表述，不推断因果 | 与提供的 context/decision_log.md 一致 | 继续约束后续写作 |\n\n## Decisions and Open Questions\n\n- DEC-001：保留相关性表述，不推断因果。来源为 context/decision_log.md；原记录未给出置信等级、其他备选解释或正式重访条件，归档不补造这些内容。\n- CLM-001：目前可核对的是提供的笔记文字；synthetic abstract 原文和研究元数据尚未提供。\n- main_question_or_thesis、contribution_claim：未提供，归档不自行填定。\n- 未提供既有归档、实际文件指纹、项目版本或依赖检查结果，不能声称已完成前后版本比较或排除其他引用依赖。\n\n## Next-Stage Handoff\n\n后续工作先沿用 DEC-001 的相关性边界。如需把 CLM-001 用作论文证据，应先取得并核对 synthetic abstract 的原文和来源性质。原始笔记与决定日志继续作为依赖保留；本候选不替代二者。\n\n## Optional Retention Review\n\n以下建议只针对本次提供的两个具体文件。实际文件指纹和项目内引用关系未检查；所有原件默认保留，用户尚未选择删除任何文件。\n\n| Exact regular file | Observed SHA-256 | Content retained where | References / dependency checks and scope | Loss risk / omissions | Recommendation | User selection / reported action |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | 未获取 | Retained Research Content；CLM-001 原文 | 仅查阅用户提供内容；本候选引用该路径，其他依赖未知 | 删除会失去原始笔记及来源定位；摘要原文也未提供 | keep | — |\n| context/decision_log.md | 未获取 | Retained Research Content；DEC-001 原文 | 仅查阅用户提供内容；本候选引用该路径，其他依赖未知 | 规范决定记录，后续解释须继续遵守 | keep | — |\n```\n\n拟向 `RESEARCH/study/context/research_state.md` 的 `Stage Summary History` 追加以下记录；现有状态文件未提供，实际合并位置、既有记录和文件版本须在保存前核验。保留其原有字段与历史，不覆盖整份文件。\n\n```markdown\n| Summary ID | Stage | Date | Document | Previous summary | Status |\n|---|---|---|---|---|---|\n| STG-B-001 | B | 2026-09-11 | [STG-B-001](stage_summaries/STG-B-001.md) | 未提供，待核验 | partial |\n```\n\n两份旧文件均建议保留，没有已确认冗余、可进入手动删除复核的文件。你仍自行选择和删除旧文件。\n\n实际存档目前受 `qiongli-mcp-unavailable` 阻塞。按所用 Skill 的 `references/platform-routing.md`，可启用已安装的 Qiongli Plugin 并重新连接 Host 的 Full MCP；恢复后须核验源文件与未占用的归档路径，经预览、明确审批及版本/摘要检查后保存。若涉及规范状态文件更新，再按正常项目刷新与验证流程处理。当前没有项目写入、历史追加或删除已经发生。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/workflows/stage-close.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/academic-context-maintainer.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/stage-consolidation.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/templates/stage-summary.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/templates/research-state.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/skills/J_proofread/human-voice-rewriter.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/scholarly-voice.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/platform-routing.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/academic-graph-continuity.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md"
+          ]
+        }
+      ],
+      "observed_canonical_history_header": true
+    },
+    "revised": {
+      "source_commit": "fd15128328534a71d67b4b9c85b22b682b1fb423",
+      "read_resource_sha256": {
+        "content/workflow/SKILL.md": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78",
+        "content/workflow/workflows/paper-read.md": "fe5598827ec6ef9a35b517843e67b7110724f021667f52537708e15a5a0fa473",
+        "content/workflow/references/academic-output-rubric.md": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475",
+        "content/workflow/references/evidence-ledger-contract.md": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68",
+        "content/workflow/references/citation-risk-policy.md": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66",
+        "content/workflow/workflows/academic-write.md": "bbd30ed9c53c71929418f88cab226a3ff1735aba05d8d77ea7e1e66128aa867f",
+        "content/workflow/references/stage-F-writing.md": "364f4c4472d1cc5a8cee0949749f6cf118584180406fff00b60b8348fe8ff290",
+        "content/skills/Z_cross_cutting/self-critique.md": "97f1e6b332d80d408627d11ad1a2488bb29d6d162e90239b9f900c164c8bf20c",
+        "content/skills/Z_cross_cutting/model-collaborator.md": "a8e57de0b409eab77c4b91e5767d8932a32732d11e10857361ad91e9258a1018",
+        "content/workflow/references/platform-routing.md": "a1f918592e416018f3a222e54ee87917dc35f823ae506f60a5a731dd2801325b",
+        "content/workflow/workflows/stage-close.md": "136f9abc8376d6102583fb8b6bf1b3f38f9ac0753f378ad1b89b6facf5532801",
+        "content/skills/Z_cross_cutting/academic-context-maintainer.md": "af4d10a8c510c60158d74600bab600b40629a0260c24a2d11c9183a2dc6fe5f0",
+        "content/workflow/references/stage-consolidation.md": "354cc0c587ba498527e189c083b27bb3e8bfe71d85e8cc81a2b1af370be9b6f6",
+        "content/templates/stage-summary.md": "d904ba837a9f508d2de00f5eb2b673750e319d9450e2e4dade1ce9939f036a4a",
+        "content/skills/J_proofread/human-voice-rewriter.md": "69ab71fbd39bb93c6435809117e984906791bea102ad33444b680aa8a6e62a28",
+        "content/workflow/references/scholarly-voice.md": "e31d038189ce1dd5b311df14dcc2f37f3d63759ba4452e15e42dceeaee5d7930",
+        "content/workflow/references/workflow-contract.md": "bbe2b515bafef51b10755d19e93c624b3c9b4afa8ddfd52e6afc47b51ed9a3d7",
+        "content/workflow/references/academic-graph-continuity.md": "ab1dfa0d81306439e69f04d4b45dbe99a7eb310950277a5dfcd17cbb0afc21be"
+      },
+      "responses": [
+        {
+          "id": "reading",
+          "answer": "这段摘要报告，在一项包含 120 名学生的横断面调查中，学习时间与考试成绩呈正相关（Pearson r = .32），即学习时间较长的学生往往成绩较高。由于仅有摘要，且未提供 p 值、置信区间或调整后分析，不能据此确认统计显著性、评估估计精度或判断控制其他因素后的关联，更不能推断增加学习时间会导致成绩提高。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/workflows/paper-read.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md"
+          ]
+        },
+        {
+          "id": "writing",
+          "answer": "In a cross-sectional survey of 120 students, study time was positively associated with examination score (Pearson r = .32). No p-value, confidence interval, or adjusted analysis was provided, and the available information did not specify how study time was measured or how participants were sampled.",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/workflows/academic-write.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/stage-F-writing.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md"
+          ]
+        },
+        {
+          "id": "deep_review",
+          "answer": "本段审查通过：横断面调查、120 名学生和 Pearson r = .32 均与所给来源一致；“positively associated”保留了相关性边界，未宣称因果关系、统计显著性或调整后关联。草稿也准确说明摘要未报告测量程序，没有将 survey 推断为自陈测量。未发现需要修改的问题，本段聊天审查到此结束。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/self-critique.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/stage-F-writing.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md"
+          ]
+        },
+        {
+          "id": "configured_review",
+          "answer": "根据你提供的已保存状态，此运行尚未完成：最低审查轮数为 2，目前仅完成第 1 轮自查并获得 PASS，第 2 轮仍未完成；必需的独立审查也尚未完成，且当前没有可用的独立审查人或模型。\n\n第 1 轮 PASS 不能代替剩余要求。配置保持不变，独立审查要求仍处于阻塞状态；本次仅报告状态，没有执行或模拟额外审查，也没有更新已保存运行。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/self-critique.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/model-collaborator.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/platform-routing.md"
+          ]
+        },
+        {
+          "id": "persistence",
+          "answer": "以下是可审阅的归档候选，尚未写入 RESEARCH/study；本次依据仅为你在聊天中提供的两个文件的完整文本。\n\n拟新建 `RESEARCH/study/context/stage_summaries/STG-B-001.md`。编号暂定，保存前需确认路径未占用并核验来源文件当前版本。\n\n```markdown\n# Stage Summary — STG-B-001\n\n- Stage and requested scope: B；整理用户说明已完成的论文阅读阶段，仅覆盖本次提供的两份文件。\n- Created at: 2026-09-11（候选编写日期，未保存）\n- Status: partial（已覆盖所给文本；实际项目版本、既有归档和依赖尚未核验）\n- Previous summary: 未提供，尚未核验\n- Project revision: unavailable\n- Source observation time: 本次对话；未读取实际文件或取得文件指纹\n\n## Stage Outcome\n\n本次整理保留一项阅读记录及其解释边界：CLM-001 记录横断面相关 r=.32，DEC-001 要求保留相关性表述，不推断因果。阅读阶段已完成是用户提供的状态；本候选不额外确认正式研究门槛、全文阅读或项目归档已完成。\n\n## Retained Research Content\n\n阅读笔记全文，来源 [notes/paper-a.md](../../notes/paper-a.md)，定位 CLM-001：\n\n> CLM-001: 横断面相关 r=.32，来源 synthetic abstract\n\n现有记录报告正相关，r=.32，来源标签为 synthetic abstract。本次未获得该摘要原文、变量名称、样本信息、测量方法、统计不确定性或完整文献元数据，因此不能据此补写这些细节，也不能将这条合成材料笔记当作已核验的真实文献证据。\n\n决策记录全文，来源 [context/decision_log.md](../decision_log.md)，定位 DEC-001：\n\n> DEC-001: 保留相关性表述，不推断因果。\n\n后续引用 CLM-001 时继续遵守这一边界。原记录未说明决策置信度、讨论过的替代方案或重启条件，本次不补写为既有决策。\n\n## Source Coverage\n\n| Exact source file | Observed SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | 不可用；未读取文件字节 | 用户提供的完整文本 | CLM-001；synthetic abstract | Retained Research Content：逐字引文及解释边界 | 所给文本无遗漏；摘要原文未提供 | 是；保留来源定位与证据链 |\n| context/decision_log.md | 不可用；未读取文件字节 | 用户提供的完整文本 | DEC-001 | Retained Research Content：逐字引文及决策边界 | 所给文本无遗漏 | 是；规范决策记录 |\n\n## Changes Since Previous Summary\n\n| Item / stable ID | Change | Earlier position | Current position and evidence | Reason / unresolved issue |\n|---|---|---|---|---|\n| CLM-001 | 纳入本归档候选，主张未改写 | 未提供前版归档 | 横断面相关 r=.32；notes/paper-a.md 中 CLM-001 | 无法判断相较前版是新增还是已收录 |\n| DEC-001 | 纳入本归档候选，决策不变 | 未提供前版归档 | 保留相关性表述，不推断因果；context/decision_log.md 中 DEC-001 | 未发生新的学术决策，无需为归档重复新增决策 |\n\n## Decisions and Open Questions\n\n- 已有决策 DEC-001：保留相关性表述，不推断因果。\n- CLM-001 的来源目前只有 synthetic abstract 标签，不能恢复未提供的文献身份或方法细节。\n- 当前项目版本、既有归档、文件指纹、研究问题和贡献主张未提供；本候选不改写这些项目状态。\n- 未提供争议、反证或零结果记录；这不表示已经排除这些情况。\n\n## Next-Stage Handoff\n\n后续综合或写作先阅读本归档，并保留 [原笔记](../../notes/paper-a.md) 和 [决策记录](../decision_log.md) 作为定位依据。任何超出相关性记录的解释都需要额外来源支持；如需将其用于真实文献论证，应先取得并核验相应原始材料。下一阶段尚未指定。\n\n## Optional Retention Review\n\n| Exact regular file | Observed SHA-256 | Content retained where | References / dependency checks and scope | Loss risk / omissions | Recommendation | User selection / reported action |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | 不可用 | Retained Research Content 中 CLM-001 原文 | 仅核对聊天所给内容；本候选继续引用此路径；实际文件类型及项目内其他依赖未核验 | 删除会失去原笔记定位；归档不能代替来源证据 | keep | |\n| context/decision_log.md | 不可用 | Retained Research Content 中 DEC-001 原文 | 仅核对聊天所给内容；本候选继续引用此路径；实际文件类型及其他依赖未核验 | 删除会失去规范决策记录和后续解释约束 | keep | |\n\n未发现具备充分依据的 manual review 候选。两份原文件均默认保留，用户选择为空。\n```\n\n拟在 `RESEARCH/study/context/research_state.md` 的 `Stage Summary History` 中追加以下记录；如果该节不存在才新增标题及表头。实际追加前需读取当前文件，保留其全部既有字段、正文和历史行；本次未预览或修改未知的现有正文。\n\n```markdown\n## Stage Summary History\n\n| Summary ID | Stage | Date | Document | Predecessor | Status |\n|---|---|---|---|---|---|\n| STG-B-001 | B | 2026-09-11 | [STG-B-001](stage_summaries/STG-B-001.md) | 未核验 | partial；候选未保存 |\n```\n\n当前保存操作为 `qiongli-mcp-unavailable`：缺少项目写入和审批工具。可启用已安装的 Qiongli Plugin 并重新连接 Host，或将 MCP 配置为通过已安装 CLI 的绝对路径启动 `mcp serve --profile full --transport stdio`；恢复后仍需按 preview → 明确批准 → revision/digest 校验的流程保存，再刷新并核验受影响的项目图谱。\n\n旧文件处理建议是两份均保留；当前没有可据以建议删除的冗余文件。之后由你逐个选择并自行删除，本次没有写入、移动、覆盖或删除任何项目文件。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/workflows/stage-close.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/academic-context-maintainer.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/stage-consolidation.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/templates/stage-summary.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/skills/J_proofread/human-voice-rewriter.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/scholarly-voice.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/workflow-contract.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/platform-routing.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/academic-graph-continuity.md"
+          ]
+        }
+      ],
+      "observed_canonical_history_header": false
+    },
+    "canonical-continuity-retest": {
+      "source_commit": "a0af80cd9d89cee57aecf1816e44bb34c282fabe",
+      "read_resource_sha256": {
+        "content/workflow/SKILL.md": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78",
+        "content/workflow/workflows/stage-close.md": "136f9abc8376d6102583fb8b6bf1b3f38f9ac0753f378ad1b89b6facf5532801",
+        "content/workflow/references/platform-routing.md": "a1f918592e416018f3a222e54ee87917dc35f823ae506f60a5a731dd2801325b",
+        "content/skills/Z_cross_cutting/academic-context-maintainer.md": "af4d10a8c510c60158d74600bab600b40629a0260c24a2d11c9183a2dc6fe5f0",
+        "content/workflow/references/stage-consolidation.md": "6cb1f23a69c035eebe94f255a09936c12384f9f4186963726d7275b7e1ecfc8a",
+        "content/templates/stage-summary.md": "d904ba837a9f508d2de00f5eb2b673750e319d9450e2e4dade1ce9939f036a4a",
+        "content/templates/research-state.md": "35a18c7920c5254315796f1284bdec37509ae6b38f455737fb5931ef2f230559",
+        "content/skills/J_proofread/human-voice-rewriter.md": "69ab71fbd39bb93c6435809117e984906791bea102ad33444b680aa8a6e62a28",
+        "content/workflow/references/scholarly-voice.md": "e31d038189ce1dd5b311df14dcc2f37f3d63759ba4452e15e42dceeaee5d7930",
+        "content/workflow/references/academic-output-rubric.md": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475",
+        "content/workflow/references/academic-graph-continuity.md": "ab1dfa0d81306439e69f04d4b45dbe99a7eb310950277a5dfcd17cbb0afc21be"
+      },
+      "responses": [
+        {
+          "id": "persistence",
+          "answer": "以下是可审阅的归档候选，尚未写入 `RESEARCH/study`。`qiongli-mcp-unavailable`：当前无法执行项目保存、审批或实时版本核验；本次仅使用你提供的两份完整文本。\n\n拟新增：`RESEARCH/study/context/stage_summaries/STG-B-001.md`。`STG-B-001` 暂作候选编号，尚未确认路径空闲或是否已有相同存档；已有存档和原文件均保留。\n\n```markdown\n# Stage Summary — STG-B-001\n\n- Stage and requested scope: B；整理用户报告已完成的论文阅读阶段，范围为下列两份已提供文本。\n- Created at: 2026-09-11（候选拟定日期，尚未保存）\n- Status: partial\n- Previous summary: 未提供，尚未核验\n- Project revision: unavailable\n- Source observation time: 本次请求中提供的文本；未读取实时项目文件\n\n## Stage Outcome\n\n本候选保留一条阅读记录 CLM-001 和一项解释决策 DEC-001。CLM-001 记录横断面相关 r=.32，来源标记为 synthetic abstract；DEC-001 要求保留相关性表述，不推断因果。\n\n你已说明论文阅读阶段完成。本候选覆盖此次提供的全部文本，但没有独立核验阶段完成情况、全文阅读情况或研究质量门槛。存档仍待项目版本和既有历史核验后保存。\n\n## Retained Research Content\n\n阅读记录原文，来自 notes/paper-a.md：\n\n> CLM-001: 横断面相关 r=.32，来源 synthetic abstract\n\n决策原文，来自 context/decision_log.md：\n\n> DEC-001: 保留相关性表述，不推断因果。\n\n发现：笔记记录了横断面相关 r=.32。该数值及其 synthetic abstract 来源标记均予保留。\n\n解释：该记录描述正相关，不支持把相关性改写成因果关系。未提供变量名称、样本信息、测量方式、统计显著性、置信区间或全文来源，不能补写这些细节。\n\n后续用途：继续沿用 CLM-001 和 DEC-001，表述为“笔记记录横断面相关 r=.32，来源为 synthetic abstract”。现有材料不足以将其当作已经核实的正式文献证据或因果结论。\n\n## Source Coverage\n\n| Exact source file | Observed SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | 未取得；未核验磁盘字节 | 用户提供的完整文本 | CLM-001；synthetic abstract | Retained Research Content：原文、数值、来源及解释限制 | 提供的文本无遗漏；实时文件状态未核验 | 是；保留原始阅读记录与来源定位 |\n| context/decision_log.md | 未取得；未核验磁盘字节 | 用户提供的完整文本 | DEC-001 | Retained Research Content：原文及下游解释边界 | 提供的文本无遗漏；实时文件状态未核验 | 是；规范决策记录继续作为依据 |\n\n## Changes Since Previous Summary\n\n| Item / stable ID | Change | Earlier position | Current position and evidence | Reason / unresolved issue |\n|---|---|---|---|---|\n| CLM-001 | 纳入本候选，未改变内容 | 前次存档未提供 | 横断面相关 r=.32；notes/paper-a.md，来源 synthetic abstract | 尚无法比较前次存档；不宣称这是新增研究发现 |\n| DEC-001 | 纳入本候选，延续原决策 | 前次存档未提供；本次提供的决策明确 | 保留相关性表述，不推断因果；context/decision_log.md | 未发生学术立场变更，无需另建同义决策 |\n\n## Decisions and Open Questions\n\n- 既有决策 DEC-001 保持有效：保留相关性表述，不推断因果。\n- 决策原文未记载置信程度、备选方案讨论或重新审议条件，本候选不将这些内容补写为既成事实。\n- 重新审议条件建议：若以后取得新的研究设计和识别证据，再单独审查是否需要调整解释边界；这只是建议，尚未成为新的项目决策。\n- 主研究问题、贡献主张、论文标识和 citekey 均未提供；不从文件名或相关系数推定。\n- 未提供矛盾或零结果记录；不能据此认定不存在这些证据。\n- 待核验：既有存档、当前项目版本、源文件字节及其他文件对这两条记录的引用关系。\n\n## Next-Stage Handoff\n\n本次未指定下一阶段，不额外宣布进入设计、综合或写作阶段。\n\n1. 后续使用该记录时继续保留 synthetic abstract 来源范围和非因果解释。\n2. 若要用于正式学术论证，再补充并核验对应原始文献、变量和方法信息；当前归档候选无需因此搁置。\n3. 正式保存前核验是否已有相同范围、相同源内容的存档；可复用时不重复创建，需修订时另建版本并链接前一版。\n\n保留源文件：[阅读笔记](../../notes/paper-a.md)；[决策记录](../decision_log.md)。以上为候选文档中的相对链接，尚未通过实时项目读取验证。\n\n## Optional Retention Review\n\n所有原文件默认保留。此表仅供逐项审阅；用户选择为空，删除由用户本人决定并操作。\n\n| Exact regular file | Observed SHA-256 | Content retained where | References / dependency checks and scope | Loss risk / omissions | Recommendation | User selection / reported action |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | 未取得 | Retained Research Content：CLM-001 全文 | 仅核对请求内文本；本候选继续引用此路径；未检查项目内其他依赖或文件类型 | 删除会丢失原阅读记录和候选的来源定位；摘要不能替代原始来源 | unresolved：维持保留，未完成文件与依赖核验 | 空；未报告操作 |\n| context/decision_log.md | 未取得 | Retained Research Content：DEC-001 全文 | 仅核对请求内文本；规范决策文件及本候选的依据；未检查项目内其他依赖或文件类型 | 删除会破坏决策连续性及来源定位 | keep：保留规范决策记录 | 空；未报告操作 |\n```\n\n同时拟在 `RESEARCH/study/context/research_state.md` 的历史中追加以下记录。若已有该表，仅追加行，保留既有行；现有 `main_question_or_thesis`、`contribution_claim` 和其他字段不据缺失信息改写。该记录与存档一起待保存，不能现在视为已入库。\n\n```markdown\n## Stage Summary History\n\n| Summary ID | Stage | Date | Document | Previous summary | Status |\n|---|---|---|---|---|---|\n| STG-B-001 | B | 2026-09-11 | [STG-B-001](stage_summaries/STG-B-001.md) | 未核验 | partial |\n```\n\n目前没有可确认冗余、适合进入手动清理审阅的文件：笔记仍是 CLM-001 的来源，决策日志应继续保留。归档候选不能替代这两份文件。\n\n恢复保存能力时，启用已安装的 Qiongli Plugin 并重新连接 Host，或将 MCP 配置为以已安装 CLI 的绝对路径运行 `mcp serve --profile full --transport stdio`。随后读取现有状态、核验源文件与候选编号，再经预览、明确审批和版本／摘要校验保存；若更新了规范连续性文件，还需正常刷新项目并核验图状态。本次未保存项目文件、修改决策、刷新图或执行清理。\n",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/workflows/stage-close.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/references/platform-routing.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/skills/Z_cross_cutting/academic-context-maintainer.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/references/stage-consolidation.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/templates/stage-summary.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/templates/research-state.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/skills/J_proofread/human-voice-rewriter.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/references/scholarly-voice.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/references/academic-graph-continuity.md"
+          ]
+        }
+      ],
+      "observed_canonical_history_header": true
+    }
+  },
+  "excluded_trial": {
+    "reason": "First continuity retest used the historical subject-core generator, which rewrites SKILL.md. Canonical byte comparison rejected it as evidence for the current root Skill. Repeated with the existing canonical source composer in a fresh agent.",
+    "root_sha256": "2aaf1d19adcdd63d942a9fa3f464b92c785dba426df5a143f815b3cf598811f6",
+    "responses": [
+      {
+        "id": "persistence",
+        "answer": "下面是按 Qiongli 阶段归档流程整理的可审阅候选。已完整纳入你提供的两段内容；尚未写入项目，也未更改旧文件。拟保存位置为 `RESEARCH/study/context/stage_summaries/STG-B-001.md`，编号是否可用及既有归档历史仍待核验。\n\n```markdown\n# Stage Summary — STG-B-001\n\n- Stage and requested scope: B / B2，已完成论文阅读的归档；范围为本次提供的两份完整文本。\n- Created at: 候选，待正式保存时记录。\n- Status: partial（所供内容已全部纳入；磁盘来源、项目版本及既有归档历史未核验）。\n- Previous summary: 未提供，待核验。\n- Project revision: unavailable。\n- Source observation time: 本次对话；观察对象为用户提供的文本，未读取项目磁盘文件。\n\n## Stage Outcome\n\n用户已说明论文阅读完成。本次保留 CLM-001 的横断面相关结果，以及 DEC-001 的解释边界。归档没有改变原有学术立场，也不代表整个 B 阶段或研究质量门禁已通过。\n\n## Retained Research Content\n\n来自 notes/paper-a.md 的完整原文：\n\n> CLM-001: 横断面相关 r=.32，来源 synthetic abstract\n\n来自 context/decision_log.md 的完整原文：\n\n> DEC-001: 保留相关性表述，不推断因果。\n\n发现：笔记记录了横断面相关 r=.32，来源标记为 synthetic abstract。这里保留的是所供笔记的记录，尚未独立核验其所指摘要。\n\n解释：沿用 DEC-001，保留相关性表述，不推断因果。现有材料未给出变量、样本量、研究对象、置信区间或显著性检验结果；这些信息保持缺失，不补写效应强弱、统计显著性或可推广性结论。\n\n后续用途：后续设计、综合或写作可引用 CLM-001 作为待核验的相关性记录，并同时携带 DEC-001 的限制。synthetic abstract 的来源属性须继续保留。\n\n## Source Coverage\n\n| Exact source file | Observed SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | unavailable；未观察文件字节 | 用户提供的完整文本 | CLM-001；来源标记 synthetic abstract | Retained Research Content：完整原文、发现及证据限制 | 所供文本无遗漏；摘要本身未提供 | 是；主张的原始项目定位及后续核验入口 |\n| context/decision_log.md | unavailable；未观察文件字节 | 用户提供的完整文本 | DEC-001 | Retained Research Content：完整原文；Decisions and Open Questions | 所供文本无遗漏；原决策的其他字段未提供 | 是；规范决策记录须保留 |\n\n## Changes Since Previous Summary\n\n| Item / stable ID | Change | Earlier position | Current position and evidence | Reason / unresolved issue |\n|---|---|---|---|---|\n| CLM-001 | 纳入本次归档候选；未改写结论 | 所供笔记：横断面相关 r=.32 | 保留原值与 synthetic abstract 来源标记 | 未提供前一归档，无法判断历史变化；摘要未独立核验 |\n| DEC-001 | 纳入本次归档候选；沿用原决定 | 所供日志：保留相关性表述，不推断因果 | 原文与解释边界均保留 | 学术立场未改变，无需新增实质决策 |\n\n## Decisions and Open Questions\n\nDEC-001 是已有决定，继续约束后续表述。原文未给出正式状态、置信度、决策理由、被否决方案或复议触发条件；这些字段不作为已知历史补写。因果表述在现有决定下不可使用，但不能据此断言此前讨论过哪些替代方案。\n\n待核验项：synthetic abstract 的具体来源及其与 CLM-001 的对应关系；变量、样本和不确定性信息。若以后取得新证据，应另行评估是否需要复议，并保留原决定和变更理由。\n\n本次材料没有报告矛盾或零结果，不能据此认定研究中不存在这些结果。研究问题、贡献和下一阶段目标也未提供。\n\n## Next-Stage Handoff\n\n后续首先保留 CLM-001、DEC-001 及其解释限制；需要将结果用于学术论证时，再核验来源与缺失信息。下一阶段尚未指定，本候选不宣告阶段移交完成。\n\n来源：\n- [论文笔记](../../notes/paper-a.md)\n- [决策日志](../decision_log.md)\n\n这些相对路径按候选文档的位置构造；实际文件存在性及链接有效性尚未核验。\n\n## Optional Retention Review\n\n所有旧文件默认保留；用户选择为空。建议范围仅为本次提供的两个文件，未扫描项目引用、检查文件类型或计算文件指纹。表中已知依赖来自所供内容及本归档候选，不能据此排除其他引用。\n\n| Exact regular file | Observed SHA-256 | Content retained where | References / dependency checks and scope | Loss risk / omissions | Recommendation | User selection / reported action |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | unavailable；文件类型未核验 | Retained Research Content：CLM-001 原文及解释限制 | 本候选仍以此路径定位主张来源；其他引用未检查 | 删除会失去原笔记定位；摘要核验与其他依赖尚未解决 | keep | |\n| context/decision_log.md | unavailable；文件类型未核验 | Retained Research Content 与 Decisions and Open Questions：DEC-001 | 规范决策记录；本候选仍引用此路径；其他引用未检查 | 删除会失去持续维护决定及追溯变更的原始位置 | keep | |\n```\n\n研究状态的历史记录可拟追加以下内容。正式保存时需读取 `context/research_state.md`，保留既有规范字段和全部历史行，再确定编号及前序归档：\n\n```markdown\n## Stage Summary History\n\n| Summary ID | Stage | Date | Document | Previous summary | Status |\n|---|---|---|---|---|---|\n| STG-B-001 | B / B2 | 待保存时记录 | [STG-B-001](stage_summaries/STG-B-001.md) | 待核验 | partial（候选，未保存） |\n```\n\n本次没有学术立场变化，`context/decision_log.md` 保留原记录。两个旧文件均建议保留，目前没有证据充分的手动清理候选；是否选择及删除始终由你逐文件操作。\n\n当前缺少 Qiongli 写入和审批工具，因此归档与历史追加均停留在候选状态。正式保存前需核验来源字节、既有历史、目标路径及当前文件版本，再通过项目原有预览、审批与版本检查流程应用；研究状态写入后还需显式刷新注册项目并检查图状态。目前未执行这些步骤，也没有图就绪结论。",
+        "resources_read": [
+          "/private/tmp/qiongli-outcome-final-skill/SKILL.md",
+          "/private/tmp/qiongli-outcome-final-skill/references/workflow-contract.md",
+          "/private/tmp/qiongli-outcome-final-skill/skills/registry.yaml",
+          "/private/tmp/qiongli-outcome-final-skill/skills-summary.md",
+          "/private/tmp/qiongli-outcome-final-skill/skills-core.md",
+          "/private/tmp/qiongli-outcome-final-skill/skills/Z_cross_cutting/academic-context-maintainer.md",
+          "/private/tmp/qiongli-outcome-final-skill/references/stage-consolidation.md",
+          "/private/tmp/qiongli-outcome-final-skill/templates/stage-summary.md",
+          "/private/tmp/qiongli-outcome-final-skill/references/academic-graph-continuity.md",
+          "/private/tmp/qiongli-outcome-final-skill/templates/research-state.md",
+          "/private/tmp/qiongli-outcome-final-skill/templates/decision-log.md",
+          "/private/tmp/qiongli-outcome-final-skill/references/academic-output-rubric.md",
+          "/private/tmp/qiongli-outcome-final-skill/skills/J_proofread/human-voice-rewriter.md",
+          "/private/tmp/qiongli-outcome-final-skill/references/scholarly-voice.md"
+        ]
+      }
+    ]
+  }
+}
