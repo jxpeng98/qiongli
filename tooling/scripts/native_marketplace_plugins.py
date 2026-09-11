@@ -213,6 +213,36 @@ def project(content: dict[str, bytes], platform: str, version: str,
         if target in files:
             raise ValueError('canonical resource projection collision')
         files[target] = data
+    if platform == 'codex':
+        files.update(workflow_wrapper_skills(content))
+    return files
+
+
+def workflow_wrapper_skills(content: dict[str, bytes]) -> dict[str, bytes]:
+    template = content.get('workflow/references/codex-workflow-wrapper.md')
+    if template is None:
+        # Preserve verification of immutable archives made before wrapper support.
+        return {}
+    template = template.decode('utf-8')
+    files = {}
+    for path, data in sorted(content.items()):
+        if not path.startswith('workflow/workflows/') or not path.endswith('.md'):
+            continue
+        slug = path.removeprefix('workflow/workflows/').removesuffix('.md')
+        if slug == 'qiongli' or '/' in slug:
+            continue
+        if len(slug) > 56 or slug == 'workflow' or not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', slug):
+            raise ValueError('invalid workflow skill name')
+        source = data.decode('utf-8')
+        description, separator, _ = source.removeprefix('---\n').partition('\n---\n')
+        value = description.removeprefix('description: ')
+        if (not source.startswith('---\n') or not separator
+                or not description.startswith('description: ') or not value.strip()
+                or any(ord(c) < 32 or 127 <= ord(c) <= 159 for c in value)
+                or value.strip() in ('|', '>', '|-', '>-', '|+', '>+')):
+            raise ValueError('workflow requires a single-line YAML description')
+        files[f'skills/qiongli-{slug}/SKILL.md'] = template.replace(
+            '{{workflow}}', slug).replace('{{description}}', description).encode()
     return files
 
 

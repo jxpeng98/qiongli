@@ -739,7 +739,79 @@ fn project_bundle_files(
     if !files.contains_key(SKILL_MANIFEST_PATH) {
         return Err(CodexPluginBundleError::ProjectionInvalid);
     }
+    add_workflow_wrapper_skills(&mut files)?;
     Ok(files)
+}
+
+fn workflow_slug_is_valid(slug: &str) -> bool {
+    slug.len() <= 56
+        && !matches!(slug, "qiongli" | "workflow")
+        && slug.split('-').all(|part| {
+            !part.is_empty()
+                && part
+                    .bytes()
+                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+        })
+}
+
+fn add_workflow_wrapper_skills(
+    files: &mut BTreeMap<String, BundleFile>,
+) -> Result<(), CodexPluginBundleError> {
+    let Some(template) = files.get(&format!(
+        "{SKILL_ROOT}/references/codex-workflow-wrapper.md"
+    )) else {
+        // Older verified packs predate workflow entry generation.
+        return Ok(());
+    };
+    let template = std::str::from_utf8(&template.bytes)
+        .map_err(|_| CodexPluginBundleError::ProjectionInvalid)?;
+    let mut wrappers = Vec::new();
+    for (path, file) in files.iter() {
+        let Some(slug) = path
+            .strip_prefix(&format!("{SKILL_ROOT}/workflows/"))
+            .and_then(|path| path.strip_suffix(".md"))
+        else {
+            continue;
+        };
+        if slug == "qiongli" || slug.contains('/') {
+            continue;
+        }
+        if !workflow_slug_is_valid(slug) {
+            return Err(CodexPluginBundleError::ProjectionInvalid);
+        }
+        let source = std::str::from_utf8(&file.bytes)
+            .map_err(|_| CodexPluginBundleError::ProjectionInvalid)?;
+        let (description, _) = source
+            .strip_prefix("---\n")
+            .and_then(|text| text.split_once("\n---\n"))
+            .ok_or(CodexPluginBundleError::ProjectionInvalid)?;
+        // Preserve the canonical single-line YAML description, including quoting.
+        let value = description
+            .strip_prefix("description: ")
+            .filter(|value| {
+                !value.trim().is_empty()
+                    && !value.chars().any(char::is_control)
+                    && !matches!(value.trim(), "|" | ">" | "|-" | ">-" | "|+" | ">+")
+            })
+            .ok_or(CodexPluginBundleError::ProjectionInvalid)?;
+        let bytes = template
+            .replace("{{workflow}}", slug)
+            .replace("{{description}}", &format!("description: {value}"))
+            .into_bytes();
+        wrappers.push((
+            format!("skills/qiongli-{slug}/SKILL.md"),
+            BundleFile {
+                mode: LogicalMode::Regular,
+                bytes,
+            },
+        ));
+    }
+    for (path, wrapper) in wrappers {
+        if files.insert(path, wrapper).is_some() {
+            return Err(CodexPluginBundleError::ProjectionInvalid);
+        }
+    }
+    Ok(())
 }
 
 fn generate_plugin_manifest(
@@ -1272,7 +1344,11 @@ fn validate_bundle_path(path: &str) -> Result<(), CodexPluginBundleError> {
         || path == MCP_MANIFEST_PATH
         || path == "bin/qiongli"
         || path == "bin/qiongli.exe"
-        || path.starts_with("skills/qiongli-workflow/");
+        || path.starts_with("skills/qiongli-workflow/")
+        || path
+            .strip_prefix("skills/qiongli-")
+            .and_then(|path| path.strip_suffix("/SKILL.md"))
+            .is_some_and(workflow_slug_is_valid);
     if !allowed {
         return Err(CodexPluginBundleError::ProjectionInvalid);
     }
@@ -1918,6 +1994,85 @@ impl Drop for DirectoryCleanup {
     fn drop(&mut self) {
         if self.armed {
             let _ = fs::remove_dir_all(&self.path);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn workflow_wrappers_preserve_metadata_and_reject_unsafe_entries() {
+        let mut files = BTreeMap::new();
+        add_workflow_wrapper_skills(&mut files).unwrap();
+        assert!(
+            files.is_empty(),
+            "old packs retain their original projection"
+        );
+        files.insert(
+            format!("{SKILL_ROOT}/references/codex-workflow-wrapper.md"),
+            BundleFile {
+                mode: LogicalMode::Regular,
+                bytes: b"---\nname: qiongli-{{workflow}}\n{{description}}\n---\n".to_vec(),
+            },
+        );
+        let path = format!("{SKILL_ROOT}/workflows/paper-read.md");
+        for source in [
+            "no metadata",
+            "---\ndescription: \n---\n",
+            "---\ndescription: >\n---\n",
+            "---\ndescription: Task\nname: injected\n---\n",
+        ] {
+            files.insert(
+                path.clone(),
+                BundleFile {
+                    mode: LogicalMode::Regular,
+                    bytes: source.as_bytes().to_vec(),
+                },
+            );
+            assert_eq!(
+                add_workflow_wrapper_skills(&mut files).unwrap_err(),
+                CodexPluginBundleError::ProjectionInvalid
+            );
+        }
+        files.insert(
+            path,
+            BundleFile {
+                mode: LogicalMode::Regular,
+                bytes: "---\ndescription: '论文阅读: evidence'\n---\n"
+                    .as_bytes()
+                    .to_vec(),
+            },
+        );
+        add_workflow_wrapper_skills(&mut files).unwrap();
+        assert_eq!(
+            files["skills/qiongli-paper-read/SKILL.md"].bytes,
+            "---\nname: qiongli-paper-read\ndescription: '论文阅读: evidence'\n---\n".as_bytes()
+        );
+        validate_bundle_path("skills/qiongli-paper-read/SKILL.md").unwrap();
+        for path in [
+            "skills/qiongli-../SKILL.md",
+            "skills/qiongli-bad/name/SKILL.md",
+            "skills/qiongli-paper-read/script.sh",
+            "skills/qiongli-/SKILL.md",
+            "skills/qiongli-bad--name/SKILL.md",
+            "skills/qiongli-qiongli/SKILL.md",
+        ] {
+            assert!(
+                validate_bundle_path(path).is_err(),
+                "unexpected path allowed: {path}"
+            );
+        }
+        for slug in [
+            "workflow",
+            "Bad",
+            "-bad",
+            "bad--name",
+            "bad\\name",
+            &"x".repeat(57),
+        ] {
+            assert!(!workflow_slug_is_valid(slug));
         }
     }
 }

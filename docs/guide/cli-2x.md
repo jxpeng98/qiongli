@@ -249,6 +249,14 @@ Plugin uses its own executable; check the Plugin version independently of PATH.
 The native Plugin source is projected from `content/`; installed caches are
 derived outputs and must not be edited as source.
 
+The next built Codex Plugin includes the general `$qiongli` entry and workflow
+shortcuts such as `$qiongli-paper-read`, `$qiongli-lit-review` and
+`$qiongli-academic-write`. These entries share the same research instructions;
+internal skill cards and templates are loaded as needed. CLI exports and
+Marketplace packages generate the shortcuts automatically. An already installed
+older Plugin gains them only after updating its source/package and refreshing
+it through Codex.
+
 For an explicit standalone MCP connection, configure the Host to launch the
 absolute installed `qiongli` path with these arguments:
 

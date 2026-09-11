@@ -96,6 +96,18 @@ maps all six archives to Host, target, digest, plugin path and immutable
 consume that mapping and present the platform choices before public rollout.
 Do not point an unqualified generic entry at one platform's binary.
 
+Native Codex local exports and Marketplace archives generate workflow Skills from
+`workflow/workflows/*.md` using the shared
+`workflow/references/codex-workflow-wrapper.md` template. Preserve each canonical
+single-line YAML description and the stable `qiongli-<workflow>` name. Exclude
+the duplicate `qiongli` router; the main `$qiongli` Skill remains available.
+Skill cards, references and templates do not get independent wrappers. Each
+entry loads the shared Skill before its workflow, preserving Host tool limits,
+request scope and preview/approval/CAS. Wrapper paths permit only bounded
+lowercase slug names and `SKILL.md`; receipt validation covers their bytes.
+Claude's single-Skill projection stays compatible. Old packs without the template
+retain their historical projection, so existing archives remain verifiable.
+
 Schema-2 archive receipts bind the target, executable and resource bytes. The
 release owner verifies the executable against the corresponding CLI/npm bytes,
 requires the same embedded pack across targets and binds target-native empty-PATH

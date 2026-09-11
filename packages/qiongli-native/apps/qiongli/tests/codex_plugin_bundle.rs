@@ -1,6 +1,6 @@
 #![allow(clippy::disallowed_methods)]
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -194,7 +194,7 @@ struct GrantFixture {
 
 fn grant_fixture(binary: &Path, pack_sha256: &str) -> GrantFixture {
     let binary_sha256 = sha256_file(binary);
-    let artifact = ArtifactIdentityV1 {
+    let mut artifact = ArtifactIdentityV1 {
         product: ProductId::Qiongli,
         version: env!("CARGO_PKG_VERSION").to_string(),
         channel: ReleaseChannel::Alpha,
@@ -203,6 +203,21 @@ fn grant_fixture(binary: &Path, pack_sha256: &str) -> GrantFixture {
         arch: Architecture::current().expect("test architecture must be supported"),
         installer_kind: InstallerKind::PluginBundle,
     };
+    artifact.channel = [
+        ReleaseChannel::Alpha,
+        ReleaseChannel::Beta,
+        ReleaseChannel::Stable,
+    ]
+    .into_iter()
+    .find(|channel| {
+        ArtifactIdentityV1 {
+            channel: *channel,
+            ..artifact.clone()
+        }
+        .validate()
+        .is_ok()
+    })
+    .expect("test artifact version must match a supported release channel");
     let grant = LaunchGrantV1 {
         schema_version: 1,
         generation: 11,
@@ -279,6 +294,44 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
     assert_eq!(manifest["version"], env!("CARGO_PKG_VERSION"));
     assert_eq!(manifest["skills"], "./skills/");
     assert_eq!(manifest["mcpServers"], "./.mcp.json");
+
+    let workflows = target_path.join("skills/qiongli-workflow/workflows");
+    let mut expected_entries = BTreeSet::from(["skills/qiongli-workflow/SKILL.md".to_string()]);
+    for workflow in fs::read_dir(&workflows).unwrap() {
+        let path = workflow.unwrap().path();
+        let slug = path.file_stem().unwrap().to_str().unwrap();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("md") || slug == "qiongli" {
+            continue;
+        }
+        let entry_path = format!("skills/qiongli-{slug}/SKILL.md");
+        let wrapper = fs::read_to_string(target_path.join(&entry_path)).unwrap();
+        assert!(wrapper.contains(&format!("name: qiongli-{slug}\n")));
+        assert!(wrapper.contains("../qiongli-workflow/SKILL.md"));
+        assert!(wrapper.contains(&format!("../qiongli-workflow/workflows/{slug}.md")));
+        assert!(!wrapper.contains("{{"));
+        assert!(wrapper.len() < 3000);
+        expected_entries.insert(entry_path);
+    }
+    let actual_entries = verified
+        .receipt()
+        .entries
+        .iter()
+        .filter(|entry| entry.path.ends_with("/SKILL.md"))
+        .map(|entry| entry.path.clone())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(actual_entries, expected_entries);
+    let wrapper_path = target_path.join("skills/qiongli-paper-read/SKILL.md");
+    let wrapper_bytes = fs::read(&wrapper_path).unwrap();
+    fs::write(&wrapper_path, b"Skip the shared workflow").unwrap();
+    assert_eq!(
+        verify_codex_plugin_bundle(&target).unwrap_err(),
+        CodexPluginBundleError::BundleDrift
+    );
+    assert_eq!(
+        remove_codex_plugin_bundle(&target).unwrap_err(),
+        CodexPluginBundleError::BundleDrift
+    );
+    fs::write(&wrapper_path, wrapper_bytes).unwrap();
 
     let mcp_bytes = fs::read(target_path.join(".mcp.json")).unwrap();
     let mcp: Value = serde_json::from_slice(&mcp_bytes).unwrap();

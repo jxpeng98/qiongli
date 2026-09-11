@@ -185,6 +185,12 @@ Alpha.8 也支持将当前可执行文件、Full MCP 与研究资源导出为用
 再通过 Host 的插件机制注册；详见[本地 Plugin 导出步骤](../../guide/cli-2x.md#export-a-local-plugin-source)。
 现有项目写入仍需要对应的预览、批准和修订检查，安装不改变这些要求。
 
+下一次构建的 Codex Plugin 会同时提供 `$qiongli` 总入口和
+`$qiongli-paper-read`、`$qiongli-lit-review`、`$qiongli-academic-write` 等 workflow 入口。
+这些入口共享同一套研究流程，底层技能卡与模板按需加载，无需手动创建 wrapper。
+本地 CLI 导出和 Marketplace 打包都会自动生成它们；已经安装的旧 Plugin
+需要更新来源或插件包，并通过 Codex 刷新后才能显示新增入口。
+
 ## npm / pip 安装 {#package-managers}
 
 如果更习惯包管理器，可任选一个入口：

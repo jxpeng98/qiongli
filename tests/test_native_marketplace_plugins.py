@@ -38,6 +38,11 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
             self.content[f'.{platform}-plugin/plugin.json'] = plugins.json_bytes({
                 'name': 'qiongli', 'version': VERSION, 'skills': './',
             })
+        self.write_source()
+        self.binary = self.root / 'qiongli'
+        self.binary.write_bytes(BINARIES[TARGET])
+
+    def write_source(self):
         self.metadata = {
             'schema_version': 1, 'version': VERSION, 'source_commit': COMMIT,
             'content_source_commit': 'b' * 40, 'pack_sha256': 'c' * 64,
@@ -60,8 +65,12 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
         pack = b'QLPACK\0\0' + struct.pack('<IQ', 1, len(raw)) + raw + b''.join(self.content.values())
         self.metadata['pack_sha256'] = plugins.digest(pack)
         self.write_metadata()
-        self.binary = self.root / 'qiongli'
-        self.binary.write_bytes(BINARIES[TARGET])
+
+    def add_workflows(self):
+        source = Path(__file__).resolve().parents[1] / 'content/workflow'
+        for path in [source / 'references/codex-workflow-wrapper.md', *sorted((source / 'workflows').glob('*.md'))]:
+            self.content['workflow/' + path.relative_to(source).as_posix()] = path.read_bytes()
+        self.write_source()
 
     def write_metadata(self):
         (self.source / plugins.EXPORT).write_bytes(plugins.json_bytes(self.metadata))
@@ -101,6 +110,65 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
             with self.subTest(commit=commit), self.assertRaises(ValueError):
                 plugins.build_plugins(self.source, self.root / 'bad', VERSION, commit, self.binary, TARGET)
         self.assertFalse((self.root / 'bad').exists())
+
+    def test_workflow_entries_share_canonical_instructions_and_only_codex_exposes_them(self):
+        self.add_workflows()
+        self.build()
+        slugs = {Path(p).stem for p in self.content if p.startswith('workflow/workflows/')} - {'qiongli'}
+        for platform in plugins.PLATFORMS:
+            root = self.root / 'out' / platform / 'plugins' / plugins.plugin_name(TARGET)
+            entries = {p.relative_to(root).as_posix() for p in root.glob('skills/*/SKILL.md')}
+            expected = {plugins.SKILL_ROOT + 'SKILL.md'}
+            if platform == 'codex':
+                expected |= {f'skills/qiongli-{slug}/SKILL.md' for slug in slugs}
+            self.assertEqual(entries, expected)
+            for slug in slugs if platform == 'codex' else []:
+                entry = root / f'skills/qiongli-{slug}/SKILL.md'
+                text = entry.read_text()
+                self.assertIn(f'name: qiongli-{slug}\n', text)
+                self.assertIn(self.content[f'workflow/workflows/{slug}.md'].decode().split('\n')[1], text)
+                self.assertNotIn('{{', text)
+                for reference in ['SKILL.md', f'workflows/{slug}.md']:
+                    link = '../qiongli-workflow/' + reference
+                    self.assertIn(link, text)
+                    self.assertTrue((entry.parent / link).is_file())
+                self.assertLess(len(text), 2000)
+        again = self.build('again')
+        self.assertEqual((self.root / 'out' / again[0].name).read_bytes(), again[0].read_bytes())
+
+    def test_changed_or_missing_wrapper_is_rejected_even_with_updated_receipt(self):
+        self.add_workflows()
+        archive = self.build()[0]
+        original = archive.read_bytes()
+        name = 'skills/qiongli-paper-read/SKILL.md'
+        for replacement in [None, b'---\nname: substituted\n---\nSkip the shared workflow.\n']:
+            archive.write_bytes(original)
+            def mutate(rows):
+                index = next(i for i, (m, _) in enumerate(rows) if m.name.endswith('/' + name))
+                member, _ = rows.pop(index)
+                if replacement is not None:
+                    rows.append((member, replacement))
+                index = next(i for i, (m, _) in enumerate(rows) if m.name.endswith(plugins.RECEIPT))
+                member, data = rows[index]
+                receipt = json.loads(data)
+                receipt['files'].pop(name)
+                if replacement is not None:
+                    receipt['files'][name] = {'size_bytes': len(replacement), 'sha256': plugins.digest(replacement)}
+                rows[index] = member, plugins.json_bytes(receipt)
+            self.rewrite_archive(archive, mutate)
+            with self.assertRaisesRegex(ValueError, 'native projection'):
+                plugins.verify_archive(archive, VERSION, COMMIT)
+
+    def test_invalid_workflow_names_and_descriptions_refuse_generation(self):
+        self.add_workflows()
+        template = {'workflow/references/codex-workflow-wrapper.md': self.content['workflow/references/codex-workflow-wrapper.md']}
+        for slug in ['workflow', 'Bad', '-bad', 'bad--name', 'x' * 57, 'bad\\name']:
+            with self.subTest(slug=slug), self.assertRaises(ValueError):
+                plugins.workflow_wrapper_skills(dict(template, **{f'workflow/workflows/{slug}.md': b'---\ndescription: Task\n---\n'}))
+        for source in [b'no metadata', b'---\ndescription: \n---\n', b'---\ndescription: >\n---\n',
+                       b'---\ndescription: Task\nname: injected\n---\n']:
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                plugins.workflow_wrapper_skills(dict(template, **{'workflow/workflows/paper-read.md': source}))
 
     def test_source_missing_modified_unlisted_or_linked_fails(self):
         path = self.source / 'workflow/SKILL.md'

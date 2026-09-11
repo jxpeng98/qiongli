@@ -71,6 +71,11 @@ Workflow names below are optional Host shortcuts, not native `qiongli` CLI
 subcommands. For an explicit workflow, read `workflows/<name>.md`. For a Task ID,
 use `workflows/paper.md` and the canonical contract; IDs and paths stay stable.
 
+Codex Plugins also expose generated `$qiongli-<workflow>` shortcuts, such as
+`$qiongli-paper-read` and `$qiongli-lit-review`. Each loads this shared Skill and
+its corresponding workflow. `$qiongli` remains the general entry; skill cards,
+references and templates are internal resources loaded only as needed.
+
 | Requested outcome | Load only the relevant route |
 |---|---|
 | Topic, question, gap, theory or journal fit | `workflows/paper.md`, `workflows/find-gap.md` or `workflows/build-framework.md` |
