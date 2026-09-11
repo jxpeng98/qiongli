@@ -111,6 +111,36 @@ fn run_without_path(args: &[&str]) -> Output {
 }
 
 #[test]
+fn content_install_upgrade_aliases_preview_without_writing_or_prompting_in_scripts() {
+    let fixture = Fixture::new("content-install-shortcuts");
+    for prefix in ["install", "upgrade", "update"] {
+        let preview = run_configured(&fixture, &[prefix, "skills", "--dry-run"]);
+        assert!(preview.status.success(), "{}", public_output(&preview));
+        let plan = parse_json(&preview);
+        assert_eq!(plan["operation"]["kind"], "skills-reconcile-preset");
+        assert_eq!(plan["operation"]["profile"], "full");
+        assert!(!fixture.config_root.exists());
+        assert!(!fixture.home.join(".qiongli-skills").exists());
+        let redirected = run_configured(&fixture, &[prefix, "skills"]);
+        assert_eq!(redirected.status.code(), Some(2));
+        assert!(public_output(&redirected).contains("requires a terminal"));
+        let help = run_configured(&fixture, &[prefix, "plugin", "--help"]);
+        assert!(help.status.success());
+        assert!(public_output(&help).contains("--destination"));
+    }
+    for args in [
+        vec!["install", "skills", "--dry-run", "--dry-run"],
+        vec!["upgrade", "skills", "--profile", "invalid"],
+        vec!["upgrade", "plugin", "--target", "codex"],
+        vec!["install", "skills", "--json"],
+        vec!["install", "skills", "--yes"],
+    ] {
+        assert_eq!(run_configured(&fixture, &args).status.code(), Some(2));
+    }
+    assert!(!fixture.config_root.exists());
+}
+
+#[test]
 fn installation_review_rejects_redirected_input_without_writes() {
     let fixture = Fixture::new("installation-review");
     let output = fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), &fixture)

@@ -169,6 +169,57 @@ pip 和 Cargo 用户也在安装完成后运行向导。脚本、帮助与版本
 才适合另行复制完整备份并校验。归档副本本身不会停用旧命令。
 
 
+## 安装和升级随包 Plugin、Skills（2.x 开发版）
+
+当前开发版新增以下入口，尚未包含在 beta.3 发布标签中。以 Codex 为例：
+
+```sh
+mkdir -p "$HOME/qiongli-plugins/codex"
+qiongli install plugin --target codex \
+  --destination "$HOME/qiongli-plugins/codex/qiongli-next"
+```
+
+命令先显示文件变更，确认后导出当前 CLI 的原生二进制、研究 Skills 和 Full MCP。
+随后单独显示 Host 操作，再次确认后，调用 Codex 官方插件命令完成注册和启用。
+Plugin 本身无需 Python、Node 或 Cargo 运行时；Codex 仍需事先安装。
+Claude Code 使用 `--target claude`，并另建一个导出父目录，例如
+`$HOME/qiongli-plugins/claude`。
+
+通过原安装渠道更新 CLI 后，刷新同一个 Plugin 目录：
+
+```sh
+qiongli upgrade plugin --target codex \
+  --destination "$HOME/qiongli-plugins/codex/qiongli-next"
+```
+
+`update plugin` 与 `upgrade plugin` 等效。重复运行 `install plugin` 也会核对并更新
+已有的完整导出。更新 Host 缓存前会校验收据，只有完全匹配的旧插件才会通过官方命令
+移除并重装，具体命令会列在确认页。其他来源的已启用穷理插件、被修改的文件、来源路径
+冲突或意外的安装范围会阻止注册，需要你在 Host 中自行处理。
+
+每次确认直接按回车都表示取消。取消 Host 注册或 Host 命令失败时，已导出的文件会保留；
+解决问题后，以同一目标和路径重新运行 `upgrade plugin` 即可。成功提示表示官方安装状态
+和缓存文件已核对，请开启新的 Host 会话加载 Skills 和 Full MCP。实际工具调用仍需在
+新会话中检查，安装过程不会更换模型。
+
+只需要独立内容文件时：
+
+```sh
+qiongli install skills
+qiongli upgrade skills --preset current-project --profile full
+```
+
+默认安装完整内容到 `$HOME/.qiongli-skills`；`current-project` 使用当前目录中的
+`.qiongli-skills`。这一步不会把文件自动注册为 Host Plugin。更新已有内容时需指定
+原来的 profile，避免无意切换配置档。
+
+脚本可加 `--dry-run --json` 生成文件计划，审查后用 `qiongli app apply` 和对应摘要、
+批准参数执行。该方式只导出文件；Host 注册使用交互入口或手动执行官方命令。
+管道输入不能代替交互确认。
+
+`qiongli upgrade cli` 会列出 npm、pip、Cargo 和 GitHub 二进制包的升级方式，
+不会自行调用包管理器。Plugin 和 Skills 更新的是当前 CLI 内置内容，不会下载新版 CLI。
+
 ## 接入 MCP 与 Plugin
 
 在 Host 的 MCP 配置中，将 command 设为 `qiongli` 可执行文件的**绝对路径**，参数设为：

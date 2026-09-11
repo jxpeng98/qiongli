@@ -80,6 +80,11 @@ or signed products. Their `user-local-host-full-mcp` receipts contain no signed
 grant digest; signed bundle APIs reject them. Source updates/removal require the
 expected receipt inside the existing bundle transaction. Host registration,
 cache refresh and live readiness remain separately observed actions.
+ADR 0224's terminal `install/upgrade plugin` flow now offers official Codex/Claude
+registration after a second, exact-plan confirmation. It may replace only the
+selected local Plugin's completely verified cache; unrelated enabled Qiongli
+Plugins and changed files block that step. Lower-level source plan/apply commands
+still only export files. CLI package updates stay with the original installer.
 
 Public Marketplace Plugins (ADR 0223) use `native_marketplace_plugins.py` and
 the CLI's `export_marketplace_content` example. Shared research resources retain

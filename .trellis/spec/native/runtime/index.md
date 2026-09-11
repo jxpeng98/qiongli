@@ -19,6 +19,14 @@ into reviewed records; no new graph store, raw-PDF scanner or write owner exists
   short entry pages and selects detailed syntax from the command owners.
   `cli_presentation.rs` formats their results for terminal users without owning
   project writes, Host configuration or MCP dispatch.
+- `cli_content.rs` exposes interactive `install/upgrade/update plugin|skills`.
+  The exact file preview goes through the existing managed apply validation;
+  redirected input cannot approve it. `--dry-run` retains the file-plan schema.
+  `plugin_host.rs` adds a separate confirmation over a fixed official Host plan,
+  using the existing bounded process runner. It rechecks executable/source/cache
+  hashes and official inventories before executing, stops on the first failure,
+  and verifies enabled registration plus matching cached files afterward.
+  Live session tools remain a separate check. See ADR 0224.
 - `apps/qiongli/src/desktop.rs` owns the shared App service; Tauri commands in
   `desktop/tauri_adapter.rs` adapt it instead of duplicating product logic.
 - `crates/qiongli-runtime/src/contract.rs` and `apps/qiongli/src/mcp.rs` own the

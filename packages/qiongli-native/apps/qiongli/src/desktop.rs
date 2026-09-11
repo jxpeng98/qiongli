@@ -3350,7 +3350,7 @@ fn prepare_host_plugin_plan(
     )
 }
 
-fn resolve_host_plugin_executable(
+pub(crate) fn resolve_host_plugin_executable(
     home: &Path,
     name: &str,
     discovered: &Path,
@@ -10849,7 +10849,7 @@ fn bounded_host_command_result(
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum HostCommandFailure {
+pub(crate) enum HostCommandFailure {
     Spawn,
     Timeout,
     Wait,
@@ -10861,7 +10861,7 @@ enum HostCommandFailure {
 }
 
 impl HostCommandFailure {
-    const fn reason_code(self) -> &'static str {
+    pub(crate) const fn reason_code(self) -> &'static str {
         match self {
             Self::Spawn => "host-command-spawn-failed",
             Self::Timeout => "host-command-timeout",
@@ -10893,7 +10893,7 @@ fn bounded_host_command_with_timeout(
     clippy::disallowed_methods,
     reason = "ARC-213 permits only resolved official Host CLIs, the managed CLI, or a fixed login shell through this bounded launcher"
 )]
-fn bounded_host_os_command_with_timeout(
+pub(crate) fn bounded_host_os_command_with_timeout(
     environment: &CommandEnvironment,
     executable: &Path,
     arguments: &[OsString],

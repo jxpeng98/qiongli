@@ -53,6 +53,11 @@ pub fn prepare_cli_action(
         ));
     }
     match crate::prepare_action(args, environment, content) {
+        ProductAction::ReviewBundledContent(_) if text_mode.is_some() => {
+            ProductAction::Output(CliOutput::usage_text(
+                "interactive installation does not accept output options; use --dry-run --json for a file plan",
+            ))
+        }
         ProductAction::Output(output) if readable => ProductAction::Output(readable_output(output)),
         action => action,
     }
@@ -325,7 +330,7 @@ fn label(value: &str) -> String {
 
 // Preserve every field of plans, receipts and less common results. Only known
 // read-only overviews above are summarized; approval IDs/digests are never cut.
-fn fields(text: &mut String, value: &Value, indent: usize) {
+pub(crate) fn fields(text: &mut String, value: &Value, indent: usize) {
     match value {
         Value::Object(values) => {
             for (key, value) in values {
