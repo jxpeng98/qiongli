@@ -244,18 +244,20 @@ binary targets are macOS Apple Silicon, Windows x64 and Linux x64 (glibc 2.35+).
 
 ```sh
 qiongli --version
-qiongli install --interactive
+qiongli install
 qiongli mcp check
 qiongli doctor
 qiongli content
 qiongli help install plugin
 ```
 
-`install plugin` exports the bundled Plugin and offers official Host registration
-after separate file and trust confirmations. `upgrade plugin` refreshes it from
-this installed CLI. `install skills` exports the selected content to `.qiongli-skills`.
-Restart the Host to load updated Skills and MCP tools; registration alone does not
-prove a live session is ready.
+In a terminal, `install` opens the guide. `install plugin` installs or refreshes
+the bundled Plugin using its registered source directory. File changes and official
+Host registration require separate confirmations; `upgrade plugin` is an alias.
+The Host loads Skills and Full MCP from its Plugin cache, with no copy into
+`.agents/skills`. `install skills` only exports guidance to `.qiongli-skills`.
+Start a new Host session after updating; registration alone does not prove its
+tools are available.
 
 Use `--json` for scripts. Scripts and MCP never prompt. `qiongli setup` reviews
 visible installations without deleting files, changing PATH or replacing model settings.
@@ -263,7 +265,7 @@ If another CLI takes precedence, invoke the selected executable by its full path
 Research writes retain preview, explicit approval and revision checks. Keep earlier
 research records and backups when migrating; upgrading a package does not authorize cleanup.
 
-[Command and installation guide](https://github.com/jxpeng98/qiongli/blob/2.x/docs/guide/cli-2x.md)
+[Command and installation guide](https://github.com/jxpeng98/qiongli/blob/{identity.repo_tag}/docs/guide/cli-2x.md)
 """
 
 

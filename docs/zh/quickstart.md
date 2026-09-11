@@ -22,9 +22,9 @@ qiongli project
 
 ## 在 Host 中使用
 
-运行 `qiongli install --interactive`。推荐的 Plugin 已包含 Skills、原生程序与
+在终端运行 `qiongli install`。推荐的 Plugin 已包含 Skills、原生程序与
 Full MCP，无需重复安装独立 Skills 或另找 MCP 包。选择 Host 后审阅目标目录，
-再分别确认文件和注册操作；以后升级沿用这个目录。详见[完整示例](guide/cli-2x.md#install-and-upgrade-bundled-content)。
+再分别确认文件和注册操作；以后用 `install plugin` 自动发现并更新已登记的源目录。详见[完整示例](guide/cli-2x.md#install-and-upgrade-bundled-content)。
 
 `qiongli mcp check` 检查当前 CLI 的本地协议，不代表 Host 已经加载 Plugin。
 

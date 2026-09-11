@@ -27,7 +27,7 @@ features:
 
 ## Start here
 
-These entry pages cover **2.0.0-beta.4**, including guided Plugin installation and
+These entry pages cover **2.0.0-beta.5**, including guided Plugin installation and
 local MCP checks. Older packages may not expose these commands.
 
 | What you need | Entry |

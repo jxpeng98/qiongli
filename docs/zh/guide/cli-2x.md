@@ -4,9 +4,9 @@ Qiongli 2 以原生 CLI 为入口，不需要打开或安装 Qiongli App。
 同一版本、同一平台的 GitHub 二进制包、npm 和 PyPI 包使用相同的原生可执行文件。
 
 
-## beta.4 之后的开发版改进
+## beta.5 的安装与命令改进
 
-开发版在终端中运行 `qiongli install` 或 `qiongli upgrade` 即可打开向导。
+在终端中运行 `qiongli install` 或 `qiongli upgrade` 即可打开向导。
 `qiongli install plugin` 同时负责安装和更新，`upgrade plugin`、`update plugin`
 使用相同流程。向导选择 Host，并复用它已经登记的源目录。也可以加
 `--target codex`、`--target claude` 或 `--target all`。all 对两个 Host 分别确认，
@@ -22,14 +22,17 @@ Plugin 缓存中加载 Skills 和 MCP。如果已启用另一个 Qiongli Plugin�
 
 用 `qiongli doctor` 和 `qiongli install list` 检查注册，再开新会话验证实际工具。
 独立 Skills 仍导出到 `.qiongli-skills`，不会接入 Host；需要自动注册时选 Plugin。
-以上改进尚未包含在 beta.4 发布二进制中。
+
+在终端中直接运行 `config backend`、`project graph`、`project capture`、
+`project portfolio` 或 `app plan`，会显示该命令组的用法。脚本保留原有错误码；
+项目写入仍需明确的预览和批准参数。
 
 
 ## 从安装到首次使用 {#first-use}
 
-推荐运行 `qiongli install --interactive`。先选择 Plugin，再选择 Codex 或 Claude。
+在终端运行 `qiongli install`（仍支持 `--interactive`）。先选择 Plugin，再选择 Codex 或 Claude。
 默认导出目录是用户主目录下的 `qiongli-next`，可填写其他绝对路径；父目录必须已存在。
-升级时填写原导出目录，第二个 Host 使用单独的目录。选择菜单不会写文件，后续仍需
+升级时自动复用已登记且通过核验的源目录，第二个 Host 使用单独的目录。选择菜单不会写文件，后续仍需
 分别确认文件计划和 Host 注册。只需要指导文件时选 Skills；已有接入时可查看 MCP 配置。
 
 | 入口 | 内容与接入 |
@@ -41,7 +44,8 @@ Plugin 缓存中加载 Skills 和 MCP。如果已启用另一个 Qiongli Plugin�
 
 MCP 已编译进 `qiongli`，无需另装服务包。Host 根据 Plugin 的配置启动 stdio 子进程，
 通常不需要另开终端运行 `mcp serve`。`install skills --profile full` 中的 full 是内容范围，
-不代表安装或启动了 Full MCP。裸命令 `qiongli install` 仍只显示安装清单。
+不代表安装或启动了 Full MCP。用 `qiongli install list` 查看只读清单；
+重定向输出时，裸命令 `install` 也保留原来的清单输出。
 
 安装完成后分三步检查：
 
@@ -54,13 +58,13 @@ MCP 已编译进 `qiongli`，无需另装服务包。Host 根据 Plugin 的配�
 然后用一份你提供的材料试运行：阅读并保留来源位置、提出规范研究记录、审阅后保存，
 再检查 Graph 和阶段总结。保存走原有批准流程，总结不删除原文件。
 
-升级 CLI 后，运行 `qiongli doctor` 检查 Plugin 是否需要刷新，再用原目标与目录执行
-`qiongli upgrade plugin`。Plugin 保存自己的程序副本；版本号相同也需要核对收据和摘要。
+升级 CLI 后，运行 `qiongli doctor` 检查 Plugin 是否需要刷新，再执行
+`qiongli install plugin` 选择 Host，或用 `--target` 指定。Plugin 保存自己的程序副本；版本号相同也需要核对收据和摘要。
 CLI 的多版本清理仍由 `qiongli setup` 提供建议，由用户自行操作。
 
-## 常用命令（beta.3）
+## 常用命令
 
-Beta.3 提供更短的命令入口、按操作显示的帮助，以及易读的终端输出。
+常用操作有简短入口，帮助按操作显示，终端查询提供易读输出。
 `ql` 是 `qiongli` 的短名称，两者用法相同。
 
 | 要做什么 | 简短入口 | 此前 beta.2 的写法 |
@@ -68,7 +72,7 @@ Beta.3 提供更短的命令入口、按操作显示的帮助，以及易读的�
 | 查看常用命令 | `qiongli` | `qiongli --help` |
 | 检查本地状态和问题 | `qiongli doctor` | 命令相同，输出为 JSON |
 | 审查已安装的 CLI 版本 | `qiongli setup` | `qiongli install migrate --interactive` |
-| 查看 CLI 安装和 Host | `qiongli install` | `qiongli install inventory` |
+| 查看 CLI 安装和 Host | `qiongli install list` | `qiongli install inventory` |
 | 列出研究项目 | `qiongli project` | `qiongli project list` |
 | 查看一个项目 | `qiongli project show <id>` | `qiongli project show --project-id <id>` |
 | 查看配置 | `qiongli config` | `qiongli config show` |
@@ -98,14 +102,14 @@ qiongli doctor --text > qiongli-doctor.txt
 **推荐直接下载：解压后就能运行，不用先安装 Python、Node.js、Rust 或包管理器。**
 你可以直接在解压目录使用，PATH 配置是可选项。
 
-从 [GitHub Release v2.0.0-beta.4](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.4)
+从 [GitHub Release v2.0.0-beta.5](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.5)
 选择与你的操作系统和 CPU 对应的压缩包：
 
 | 平台 | 完整 CLI 二进制包 |
 |---|---|
-| macOS Apple Silicon / ARM64 | [qiongli-2.0.0-beta.4-aarch64-apple-darwin.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.4/qiongli-2.0.0-beta.4-aarch64-apple-darwin.tar.gz) |
-| Windows x64 | [qiongli-2.0.0-beta.4-x86_64-pc-windows-msvc.zip](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.4/qiongli-2.0.0-beta.4-x86_64-pc-windows-msvc.zip) |
-| Linux x64 / glibc 2.35+ | [qiongli-2.0.0-beta.4-x86_64-unknown-linux-gnu.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.4/qiongli-2.0.0-beta.4-x86_64-unknown-linux-gnu.tar.gz) |
+| macOS Apple Silicon / ARM64 | [qiongli-2.0.0-beta.5-aarch64-apple-darwin.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-aarch64-apple-darwin.tar.gz) |
+| Windows x64 | [qiongli-2.0.0-beta.5-x86_64-pc-windows-msvc.zip](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-x86_64-pc-windows-msvc.zip) |
+| Linux x64 / glibc 2.35+ | [qiongli-2.0.0-beta.5-x86_64-unknown-linux-gnu.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-x86_64-unknown-linux-gnu.tar.gz) |
 
 Windows beta 版本已将 C 运行库编入程序，不需要另装 Visual C++ 运行库。
 Linux 使用系统自带库，要求 glibc 2.35+。
@@ -120,19 +124,19 @@ Linux 使用系统自带库，要求 glibc 2.35+。
 
 ### 1. 校验下载文件
 
-下载同一 Release 的 [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.4/SHA256SUMS)。
+下载同一 Release 的 [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/SHA256SUMS)。
 在下载目录中，运行与你的平台对应的命令，将结果与 `SHA256SUMS` 中该文件名对应的摘要比较；一致后再继续。
 
 ```sh
 # macOS
-shasum -a 256 qiongli-2.0.0-beta.4-aarch64-apple-darwin.tar.gz
+shasum -a 256 qiongli-2.0.0-beta.5-aarch64-apple-darwin.tar.gz
 # Linux
-sha256sum qiongli-2.0.0-beta.4-x86_64-unknown-linux-gnu.tar.gz
+sha256sum qiongli-2.0.0-beta.5-x86_64-unknown-linux-gnu.tar.gz
 ```
 
 ```powershell
 # Windows
-Get-FileHash .\qiongli-2.0.0-beta.4-x86_64-pc-windows-msvc.zip -Algorithm SHA256
+Get-FileHash .\qiongli-2.0.0-beta.5-x86_64-pc-windows-msvc.zip -Algorithm SHA256
 ```
 
 ### 2. 解压后直接运行
@@ -140,9 +144,9 @@ Get-FileHash .\qiongli-2.0.0-beta.4-x86_64-pc-windows-msvc.zip -Algorithm SHA256
 使用一个新目录，保留已有安装和研究文件。在 macOS 终端中：
 
 ```sh
-mkdir qiongli-2.0.0-beta.4-macos-arm64
-tar -xzf qiongli-2.0.0-beta.4-aarch64-apple-darwin.tar.gz -C qiongli-2.0.0-beta.4-macos-arm64
-cd qiongli-2.0.0-beta.4-macos-arm64
+mkdir qiongli-2.0.0-beta.5-macos-arm64
+tar -xzf qiongli-2.0.0-beta.5-aarch64-apple-darwin.tar.gz -C qiongli-2.0.0-beta.5-macos-arm64
+cd qiongli-2.0.0-beta.5-macos-arm64
 ./qiongli --version
 ./qiongli --help
 ./qiongli content list
@@ -151,9 +155,9 @@ cd qiongli-2.0.0-beta.4-macos-arm64
 在 Linux 终端中：
 
 ```sh
-mkdir qiongli-2.0.0-beta.4-linux-x64
-tar -xzf qiongli-2.0.0-beta.4-x86_64-unknown-linux-gnu.tar.gz -C qiongli-2.0.0-beta.4-linux-x64
-cd qiongli-2.0.0-beta.4-linux-x64
+mkdir qiongli-2.0.0-beta.5-linux-x64
+tar -xzf qiongli-2.0.0-beta.5-x86_64-unknown-linux-gnu.tar.gz -C qiongli-2.0.0-beta.5-linux-x64
+cd qiongli-2.0.0-beta.5-linux-x64
 ./qiongli --version
 ./qiongli --help
 ./qiongli content list
@@ -162,14 +166,14 @@ cd qiongli-2.0.0-beta.4-linux-x64
 Windows 用户在下载目录打开 PowerShell：
 
 ```powershell
-Expand-Archive -Path .\qiongli-2.0.0-beta.4-x86_64-pc-windows-msvc.zip -DestinationPath .\qiongli-2.0.0-beta.4-windows-x64
-Set-Location .\qiongli-2.0.0-beta.4-windows-x64
+Expand-Archive -Path .\qiongli-2.0.0-beta.5-x86_64-pc-windows-msvc.zip -DestinationPath .\qiongli-2.0.0-beta.5-windows-x64
+Set-Location .\qiongli-2.0.0-beta.5-windows-x64
 .\qiongli.exe --version
 .\qiongli.exe --help
 .\qiongli.exe content list
 ```
 
-版本应显示 `qiongli 2.0.0-beta.4`。独立包只提供 `qiongli` 可执行文件；`ql` 别名由 npm / PyPI / Cargo 安装提供。
+版本应显示 `qiongli 2.0.0-beta.5`。独立包只提供 `qiongli` 可执行文件；`ql` 别名由 npm / PyPI / Cargo 安装提供。
 
 ### 3. 可选：加入 PATH
 
@@ -224,9 +228,9 @@ pip 和 Cargo 用户也在安装完成后运行向导。脚本、帮助与版本
 才适合另行复制完整备份并校验。归档副本本身不会停用旧命令。
 
 
-## 安装和升级随包 Plugin、Skills（beta.4） {#install-and-upgrade-bundled-content}
+## 安装和升级随包 Plugin、Skills（beta.5） {#install-and-upgrade-bundled-content}
 
-Beta.4 可直接安装并注册随包 Plugin。以 Codex 为例：
+可以直接安装并注册随包 Plugin；目标和目录也可交给向导选择。以 Codex 为例：
 
 ```sh
 mkdir -p "$HOME/qiongli-plugins/codex"
@@ -240,12 +244,14 @@ Plugin 本身无需 Python、Node 或 Cargo 运行时；Codex 仍需事先安装
 Claude Code 使用 `--target claude`，并另建一个导出父目录，例如
 `$HOME/qiongli-plugins/claude`。
 
-通过原安装渠道更新 CLI 后，刷新同一个 Plugin 目录：
+通过原安装渠道更新 CLI 后，刷新已登记的 Plugin：
 
 ```sh
-qiongli upgrade plugin --target codex \
-  --destination "$HOME/qiongli-plugins/codex/qiongli-next"
+qiongli install plugin --target codex
 ```
+
+命令会从 Host 中发现源目录，无需重新填写。`--target all` 分别处理两个 Host，
+每个新 Host 使用独立目录；此时不要指定 `--destination`。
 
 `update plugin` 与 `upgrade plugin` 等效。重复运行 `install plugin` 也会核对并更新
 已有的完整导出。更新 Host 缓存前会校验收据，只有完全匹配的旧插件才会通过官方命令
@@ -253,7 +259,7 @@ qiongli upgrade plugin --target codex \
 冲突或意外的安装范围会阻止注册，需要你在 Host 中自行处理。
 
 每次确认直接按回车都表示取消。取消 Host 注册或 Host 命令失败时，已导出的文件会保留；
-解决问题后，以同一目标和路径重新运行 `upgrade plugin` 即可。成功提示表示官方安装状态
+解决问题后，对同一 Host 重新运行 `install plugin` 即可。成功提示表示官方安装状态
 和缓存文件已核对，请开启新的 Host 会话加载 Skills 和 Full MCP。实际工具调用仍需在
 新会话中检查，安装过程不会更换模型。
 
@@ -291,7 +297,7 @@ Alpha.8 也支持将当前可执行文件、Full MCP 与研究资源导出为用
 再通过 Host 的插件机制注册；详见[本地 Plugin 导出步骤](../../guide/cli-2x.md#export-a-local-plugin-source)。
 现有项目写入仍需要对应的预览、批准和修订检查，安装不改变这些要求。
 
-Beta.4 的 Codex Plugin 同时提供 `$qiongli` 总入口和
+Codex Plugin 同时提供 `$qiongli` 总入口和
 `$qiongli-paper-read`、`$qiongli-lit-review`、`$qiongli-academic-write` 等 workflow 入口。
 这些入口共享同一套研究流程，底层技能卡与模板按需加载，无需手动创建 wrapper。
 本地 CLI 导出和 Marketplace 打包都会自动生成它们；已经安装的旧 Plugin
@@ -308,7 +314,7 @@ npm install --global qiongli@next
 或者在 Python 虚拟环境中运行：
 
 ```sh
-python -m pip install --upgrade "qiongli==2.0.0b4"
+python -m pip install --upgrade "qiongli==2.0.0b5"
 ```
 
 npm 需要 Node 18+，PyPI 需要 Python 3.9+；两者都提供 `qiongli` 和 `ql`。
@@ -317,7 +323,7 @@ npm 需要 Node 18+，PyPI 需要 Python 3.9+；两者都提供 `qiongli` 和 `q
 Cargo 从源码构建同一个 CLI，需要 Rust 1.97+ 和本机链接器。
 
 ```sh
-cargo install qiongli --version 2.0.0-beta.4 --locked
+cargo install qiongli --version 2.0.0-beta.5 --locked
 ```
 
 安装后可使用 `qiongli` 和 `ql`。Cargo 没有 `next` 渠道，预发布版需指定完整版本号。
@@ -326,9 +332,9 @@ cargo install qiongli --version 2.0.0-beta.4 --locked
 更多命令边界见[英文 CLI 指南](../../guide/cli-2x.md#which-surface-owns-which-command)。
 旧版 `qiongli setup`、`check`、`project init` 等命令属于 1.x，不能直接套用到原生 2.x。
 
-## 安装状态与版本一致性（beta.4） {#installation-state}
+## 安装状态与版本一致性（beta.5） {#installation-state}
 
-`qiongli install` 和 `qiongli doctor` 读取官方 Host 库存，并复用安装时的本地
+`qiongli install list` 和 `qiongli doctor` 读取官方 Host 库存，并复用安装时的本地
 Plugin 收据校验。来源、缓存、版本或启用状态不能确认时，诊断会说明需要刷新或无法确认，
 不再一律要求重新安装。只读库存命令有时间和输出限制，不会自动重试写入。
 

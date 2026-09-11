@@ -71,7 +71,7 @@ into a new directory. Open a terminal there (PowerShell on Windows) and run:
 {command} --help
 {command} content list
 {command} setup
-{command} install --interactive
+{command} install
 {command} mcp check
 ```
 
@@ -83,13 +83,14 @@ or uninstall guidance. Enter keeps your setup; it never changes files or setting
 
 You can run the executable by absolute path, or add its directory to your user
 PATH. This archive supplies `{executable}`; `ql` is a package-manager alias.
-For MCP, configure your Host with the absolute executable path and arguments
-`mcp serve --profile full` (or `--profile lite`). Downloading
-the CLI does not automatically register a Host Plugin or change its models.
-Run `{command} install plugin` to export the bundled Plugin and review official
-Host registration. File changes and Host trust require separate confirmations.
-After replacing the CLI, `upgrade plugin` refreshes that export; restart the Host
-to load the updated Skills and MCP tools. Research writes retain their preview,
+Run `{command} install plugin` to install Skills, the native program and Full MCP
+through official Host registration. File changes and Host trust require separate
+confirmations. Later runs discover and update the registered source directory;
+`upgrade plugin` is an alias. The Host loads its Plugin cache, so nothing needs
+copying to `.agents/skills`. Start a new Host session after updating.
+For manual MCP configuration, use the absolute executable path with arguments
+`mcp serve --profile full` (or `--profile lite`). Downloading the CLI does not
+automatically register a Host or change its models. Research writes retain their preview,
 approval and revision checks.
 
 To upgrade, extract a newer release into another directory and test its version

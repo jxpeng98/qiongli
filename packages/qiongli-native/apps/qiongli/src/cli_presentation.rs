@@ -58,6 +58,21 @@ pub fn prepare_cli_action(
     {
         return ProductAction::GuideInstallation(Default::default());
     }
+    if terminal
+        && text_mode.is_none()
+        && matches!(
+            args.iter()
+                .filter_map(|arg| arg.to_str())
+                .collect::<Vec<_>>()
+                .as_slice(),
+            ["config", "backend"]
+                | ["project", "graph" | "capture" | "portfolio"]
+                | ["app", "plan"]
+        )
+        && let Some(help) = crate::cli_help::topic(&args)
+    {
+        return ProductAction::Output(CliOutput::success_text(help));
+    }
     match crate::prepare_action(args, environment, content) {
         ProductAction::ReviewBundledContent(_) | ProductAction::GuideInstallation(_)
             if text_mode.is_some() =>
@@ -136,7 +151,7 @@ fn readable_output(output: CliOutput) -> CliOutput {
                 if check["id"] == "full-runtime"
                     && check["remediation"] == "upgrade-to-r4-full-runtime"
                 {
-                    text.push_str("  [deferred    ] Legacy in-process runtime\n      Models run in your Host. Connect Full MCP: qiongli mcp serve --profile full\n");
+                    text.push_str("  [deferred    ] Legacy in-process runtime\n      Models run in your Host. Install the Plugin with Full MCP: qiongli install plugin\n");
                     continue;
                 }
                 text.push_str(&format!(
@@ -186,7 +201,7 @@ fn readable_output(output: CliOutput) -> CliOutput {
                 );
                 row(&mut text, "    Reason", &client["reason_code"]);
             }
-            text.push_str("\nNext: qiongli setup  |  qiongli install list --paths exact\n");
+            text.push_str("\nInstall or update content: qiongli install\nReview CLI versions: qiongli setup  |  qiongli install list --paths exact\n");
         }
         "project-list" => {
             let library = &value["library"];
@@ -227,12 +242,15 @@ fn readable_output(output: CliOutput) -> CliOutput {
                 };
                 text.push_str(&format!("  {id:<18} {purpose}\n"));
             }
-            text.push_str("\nConnect a Host: qiongli mcp --help\n");
+            text.push_str("\nInstall Plugin with Skills and MCP: qiongli install plugin\nExport standalone Skills: qiongli install skills\n");
         }
         "paths" => paths_text(&mut text, &value["paths"]),
         _ => {
             text.push_str(&format!("{}\n\n", label(command)));
             fields(&mut text, &value, 0);
+            if command == "update-status" {
+                text.push_str("\nThis is the managed CLI updater status.\nFor package or archive upgrades: qiongli upgrade cli\nRefresh Plugin/Skills from this CLI: qiongli install\n");
+            }
         }
     }
     text.push_str("\nUse --json for the complete structured result.\n");
@@ -371,6 +389,52 @@ pub(crate) fn fields(text: &mut String, value: &Value, indent: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn empty_command_groups_offer_terminal_help_and_preserve_script_errors() {
+        let environment = CommandEnvironment::with_paths(None, None, None);
+        let content = crate::embedded_content().unwrap();
+        for words in [
+            ["config", "backend"],
+            ["project", "graph"],
+            ["project", "capture"],
+            ["project", "portfolio"],
+            ["app", "plan"],
+        ] {
+            for (terminal, explicit_json, expected) in
+                [(true, false, 0), (false, false, 2), (true, true, 2)]
+            {
+                let mut args = words.map(OsString::from).to_vec();
+                if explicit_json {
+                    args.insert(0, "--json".into());
+                }
+                let ProductAction::Output(output) =
+                    prepare_cli_action(args, &environment, &content, terminal)
+                else {
+                    panic!("command group must not execute an operation")
+                };
+                assert_eq!(output.exit_code(), expected, "{words:?}");
+                if expected == 0 {
+                    assert!(
+                        output
+                            .stdout()
+                            .contains(&format!("qiongli {}", words.join(" ")))
+                    );
+                }
+            }
+        }
+        for words in [["project", "create"], ["mcp", "serve"], ["app", "apply"]] {
+            let ProductAction::Output(output) = prepare_cli_action(
+                words.map(OsString::from).to_vec(),
+                &environment,
+                &content,
+                true,
+            ) else {
+                panic!("missing mutation or server arguments must refuse")
+            };
+            assert_eq!(output.exit_code(), 2);
+        }
+    }
 
     #[test]
     fn installation_shortcuts_select_guides_without_changing_script_queries() {

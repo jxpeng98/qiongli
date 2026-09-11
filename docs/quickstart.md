@@ -24,10 +24,10 @@ Removing an application package is not research-data cleanup.
 
 ## Use a Host
 
-Run `qiongli install --interactive`. The recommended Plugin includes Skills,
+In a terminal, run `qiongli install`. The recommended Plugin includes Skills,
 the native program and Full MCP; no separate Skills or MCP package is needed.
 Choose the Host and review the destination, file plan and separate registration
-confirmation. Keep the same destination for future upgrades. See the
+confirmation. Later `install plugin` runs discover the registered source. See the
 [complete example](guide/cli-2x.md#install-and-upgrade-bundled-content).
 
 Run `qiongli mcp check` for a local protocol check. This does not verify that the

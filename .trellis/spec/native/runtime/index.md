@@ -142,6 +142,9 @@ list/show/inventory/status operations. `project ls`, `project show <id>` and
 `install list` reuse existing parsers and services. `mcp serve` still requires an
 explicit profile and defaults its only supported transport to stdio. `help <topic>`
 and `<topic> -h|--help` display scoped help; `help all` retains the full reference.
+Bare config backend, project graph/capture/portfolio and app plan show the existing
+scoped help in a terminal without output flags. Redirected/explicit-format calls
+retain their usage errors. Incomplete mutations and MCP serve remain explicit.
 Usage failures remain exit 2 without echoing private arguments or a full reference.
 
 The executable formats terminal queries as readable summaries. Redirected output,

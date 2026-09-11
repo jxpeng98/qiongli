@@ -24,8 +24,9 @@ Keep your chosen Codex or Claude Code Host and model settings. Qiongli supplies
 research records, source links, reviewable changes and stage handoffs; no Qiongli
 desktop App is required.
 
-Beta.4 adds guided installation with `qiongli install --interactive` and a local
-MCP check with `qiongli mcp check`. A Plugin includes the research Skills and its
+Beta.5 unifies installation and updates: run `qiongli install` in a terminal,
+or `qiongli install plugin` to reuse an existing Host registration. Check the local
+MCP protocol with `qiongli mcp check`. A Plugin includes the research Skills and its
 MCP runtime; standalone Skills are an optional export. The [2.x guide](docs/guide/cli-2x.md)
 explains the choices and how to verify the first Host session.
 
@@ -33,21 +34,21 @@ explains the choices and how to verify the first Host session.
 
 **Download, extract, and run. You do not need Python, Node.js, Rust or a package manager.**
 
-Choose the complete CLI from [GitHub Release v2.0.0-beta.4](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.4).
+Choose the complete CLI from [GitHub Release v2.0.0-beta.5](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.5).
 After extraction, run `./qiongli --help` (PowerShell: `.\qiongli.exe --help`).
 The program already includes the research Skills, templates and Lite/Full MCP
 resources. You can use it from that folder; installing an App or changing PATH is optional.
 
 | Platform | Binary archive |
 |---|---|
-| macOS Apple Silicon (ARM64) | [Download `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.4/qiongli-2.0.0-beta.4-aarch64-apple-darwin.tar.gz) |
-| Windows x64 | [Download `.zip`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.4/qiongli-2.0.0-beta.4-x86_64-pc-windows-msvc.zip) |
-| Linux x64 (glibc 2.35+) | [Download `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.4/qiongli-2.0.0-beta.4-x86_64-unknown-linux-gnu.tar.gz) |
+| macOS Apple Silicon (ARM64) | [Download `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-aarch64-apple-darwin.tar.gz) |
+| Windows x64 | [Download `.zip`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-x86_64-pc-windows-msvc.zip) |
+| Linux x64 (glibc 2.35+) | [Download `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-x86_64-unknown-linux-gnu.tar.gz) |
 
 Windows beta releases include the C runtime in the executable; no Visual C++ runtime
 installation is needed. Linux uses system libraries with glibc 2.35+.
 
-Verify with the release's [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.4/SHA256SUMS)
+Verify with the release's [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/SHA256SUMS)
 before running. See [extraction, PATH and MCP setup](docs/guide/cli-2x.md#standalone-binary-download)
 for step-by-step instructions. Choose these platform archives from **Assets**, rather than
 GitHub's automatic **Source code** downloads. Host applications and online services remain separate.
@@ -58,7 +59,7 @@ Both distribute the native executable. Cargo builds it from source with Rust 1.9
 and a native linker.
 
 ```sh
-cargo install qiongli --version 2.0.0-beta.4 --locked
+cargo install qiongli --version 2.0.0-beta.5 --locked
 ```
 
 Cargo provides `qiongli` and `ql`. Choose the archives above to skip compilation.
@@ -69,15 +70,14 @@ CLI versions and manual archive/uninstall steps. npm can show the review during
 a foreground install; pip and Cargo users run it afterward. No files or settings are changed. See the
 [installation review guide](docs/guide/cli-2x.md#review-existing-cli-installations).
 
-Beta.4 includes `qiongli install plugin`, `upgrade plugin`
-and `install skills`, with file previews and separate confirmation for official
-Codex/Claude registration. See [bundled content installation](docs/guide/cli-2x.md#install-and-upgrade-bundled-content).
+`install plugin` and `upgrade plugin` use the same flow, with file previews
+and separate confirmation for official Codex/Claude registration. See [bundled content installation](docs/guide/cli-2x.md#install-and-upgrade-bundled-content).
 
 ## After installation
 
 ```sh
 qiongli --version
-qiongli install --interactive
+qiongli install
 qiongli mcp check
 qiongli doctor
 qiongli setup
@@ -90,10 +90,10 @@ It does not uninstall programs, move files or change PATH. `qiongli` and `ql` us
 the same commands; direct downloads provide `qiongli`, while package-manager
 installs also provide `ql`. Use `--json` in scripts.
 
-`install plugin` exports bundled content, then asks separately
-for file changes and official Host registration. `upgrade plugin` refreshes the same
-export from the running CLI. `install skills` exports `.qiongli-skills`; use the Plugin
-installation path to load the workflow in a Host. `upgrade cli` explains how to update
+`install plugin` previews bundled files and asks for confirmation before exporting.
+It then asks separately for official Host registration. Later runs discover and
+refresh that source; `upgrade plugin` is an alias. `install skills` exports
+`.qiongli-skills`; use the Plugin installation path to load the workflow in a Host. `upgrade cli` explains how to update
 through the original channel without running a package manager.
 
 Follow the [installation and upgrade examples](docs/guide/cli-2x.md#install-and-upgrade-bundled-content).
