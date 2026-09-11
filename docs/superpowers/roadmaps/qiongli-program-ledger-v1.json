@@ -267,7 +267,7 @@
       "commit": "",
       "run": "",
       "updated_at": "2026-09-11",
-      "blocker": "Direct Plugin/Skills installation and separate official Host registration retain their existing approval owners. The 07489049 follow-up fixes R1 local Plugin doctor/inventory mismatch, R2 ADR indexing and R3 deferred Skill guidance checks. All 38 CLI checks, focused migration/Graph/MCP checks and local macOS package/Host trials pass; current English/Chinese docs and channel-specific package descriptions are aligned. Checks and remaining gaps are recorded once in the current plan. This increment is unpublished at the beta.3 baseline; Windows/Linux Host execution, fresh workflow-entry research-session observation and measured performance/maintenance comparisons remain open. No push/publication or prior Release Action tracking is requested."
+      "blocker": "The current plan records the coherence fixes and beta.4 guided-installation/local-MCP-check increment at 0cd875d8. Existing file and Host approval owners remain intact. Local macOS release qualification and real-terminal Codex/Claude install, repeat and beta.3 upgrade trials pass; model/original canaries remain intact. The maintainer authorizes candidate/tag push and Release Automation dispatch, then no tracking. Final-tag three-platform/public-channel results, Docs deployment, fresh research-session observation and measured Graph/performance/maintenance comparisons remain separate; no new acceptance is claimed."
     },
     {
       "id": "CLI-403",
@@ -1361,7 +1361,7 @@
       "commit": "ca0a4a5d530cf53c14d51968387a2aefe19dc630",
       "run": "33311931096",
       "updated_at": "2026-08-30",
-      "blocker": ""
+      "blocker": " Beta.4 guided installation and MCP checks at 0cd875d8 passed local macOS release qualification and isolated real-Host terminal install/upgrade trials. The current plan owns the evidence. Candidate/tag push and Release Automation dispatch are authorized; stop after dispatch without tracking. Final-tag CI and public publication results remain unobserved."
     },
     {
       "id": "REL-914",

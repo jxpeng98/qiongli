@@ -3,6 +3,65 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Guided installation and beta.4 release submission — September 11
+
+Base `44e78eb2`; branch `codex/install-journey-beta4`; content/version commit
+`65be64a7`, implementation `0cd875d8`. The maintainer authorizes the next Beta
+through Release Automation and requests that the Agent stop after dispatch.
+
+`install --interactive` now recommends a local Plugin and guides Host/destination
+selection, Skills-only export, manual MCP configuration or existing-version review.
+It reuses the existing file preview/approval/CAS and separate official Host
+registration owners. Menus grant no write authority. Results distinguish files,
+registration and the untested session; upgrades show previous/current versions and
+reuse the original export directory. No dependency, installer framework, background
+service, automatic cleanup or new research-write authority was added.
+
+`mcp check` uses the existing Full/Lite protocol handlers for initialization, tool
+listing and one read-only config call. It explicitly excludes Host-session and
+provider connectivity. Canonical first-use guidance asks the Host to check actually
+visible tools and preserves research scope. README, bilingual Docs, package help
+and reviewed beta.4 notes explain CLI/Plugin/Skills/MCP contents and upgrade order.
+Humanizer review retained platform/runtime requirements and evidence limits.
+
+Validation: one terminal-review unit test (including cancel/EOF/CAS/drift cases),
+39 CLI and seven MCP integration tests passed. All 38 packaging/version/docs checks
+and 48 content-contract checks passed, with one existing skipped check. The first
+Python run preceded the beta.4 release-note file; its four missing-note errors were
+resolved by adding the reviewed notes and rerunning the two affected modules.
+Formatting, workspace CLI Clippy, the frozen-source guard and Docs build passed.
+Seven program-ledger checks passed and the generated index is current.
+
+Clean local `2.x` at `0cd875d8ab0d23580b94dceee73bb6b615669c33` passed the
+existing release-ready owner on macOS ARM64. The first attempt hit sandbox denial
+at the test fixture's loopback bind; the authorized rerun passed all checks without
+source changes. Standalone empty-PATH execution, actual npm/wheel installations,
+both command aliases and native Codex/Claude Marketplace Plugin archives passed.
+They share content pack SHA-256
+`a0e9b1d2e12a1a95472928db04e3dcebbed997a013e42303bf2f0818d87510bf`.
+
+An isolated real-terminal trial passed fresh and repeated Plugin installation in
+Codex and Claude, and both Hosts' beta.3-to-beta.4 upgrades. Doctor/inventory report
+current registration and matching versions; model and synthetic-original canaries
+are intact. File cancellation, registration cancellation/retry, manual MCP output
+and Skills-only cancellation/export passed. No personal Host configuration or
+research was accessed; live model sessions remain untested.
+
+Logs are `/private/tmp/qiongli-beta4-` plus `release-final.log`, `terminal.log`,
+`content-test.log`, `guided-test.log`, `python.log`, `release-contracts.log`,
+`content-python.log`, `docs.log` and `ledger.log`. Package receipts/assets are in
+`/private/tmp/qiongli-beta4-release-final/`; Host receipts are in
+`packages/qiongli-native/target/content-real-hosts/beta4-receipt.json`.
+These are local validation evidence, not public acceptance receipts.
+
+The final evidence-only integration retains these tested runtime/package inputs.
+Next push the candidate branch and immutable `v2.0.0-beta.4` tag, then dispatch
+Release Automation at that tag. Its existing three-platform and exact-source gates
+own GitHub/npm/PyPI/Cargo publication. Do not push protected remote `2.x`, weaken
+gates, publish Cargo locally or track the run after accepted dispatch. Public
+publication, Docs deployment, fresh research-session acceptance, Graph semantic
+quality and measured performance remain unclaimed; accepted task states stay intact.
+
 ## Product coherence fixes and current documentation — September 11
 
 Base `07489049`; branch `codex/2x-product-coherence`. This implements the
