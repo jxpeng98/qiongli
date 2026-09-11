@@ -33,6 +33,9 @@ required and no reviewer can execute, leave that requirement unresolved.
 
 Keep one coordinator for canonical research writes. Other agents return findings
 or candidate edits in their assigned scope; review never grants apply approval.
+The coordinator also owns the Full MCP checkpoint sequence and authenticates
+supporting reads through its own MCP process. Children return proposals instead
+of starting or advancing another run; their file hashes cannot replace those reads.
 Cross-Host packets use `templates/agent-handoff.md` and
 `templates/agent-review-packet.md`. Existing Full MCP checkpoints remain bound to
 the starting Host; neither a portable packet nor a hook transfers that authority.

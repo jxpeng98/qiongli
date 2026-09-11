@@ -56,6 +56,10 @@ in one conversation are useful self-review but are not independent execution.
    and follow the returned Full MCP sequence: select project/revision, run
    `qiongli_orchestration_doctor`, start, read evidence, submit the bounded
    candidate, then obtain the next handoff. A Lite preview cannot execute a run.
+   The coordinator owns this sequence. A delegated participant returns its
+   proposal instead of starting or advancing another run. Before submission,
+   the coordinator checks it against authenticated reads from its own MCP
+   process; a child's file hash is not an authenticated MCP evidence reference.
 4. If authorized native subagents exist, give each a bounded packet with the
    same source revision, question, evidence anchors, output contract and allowed
    actions. Independent first-pass reviewers should not receive the other's
