@@ -269,7 +269,7 @@
       "commit": "",
       "run": "",
       "updated_at": "2026-09-11",
-      "blocker": "Local follow-up at d21cd570 shares Stage C design guidance across cards, roles, templates and workflows, removes generic quotas and preserves method/protocol, evidence and permission gates. C5 routing and prior-access/registration status are corrected; review scope follows coverage diagnostics rather than result counts. Canonical checks and 14 isolated synthetic responses are archived; both baseline and revised guidance handled the supplied requests, so no measured performance or quality gain is claimed. No new release was submitted. Prior beta.5 publication remains unobserved; repeated live Host/model research trials, non-macOS execution and measured Graph/performance/maintenance acceptance remain outstanding. Next use representative long C-to-F tasks and stage-summary/Graph continuity to locate remaining method-entry conflicts before expanding changes."
+      "blocker": "Local follow-up at baa892dc adds bounded Host-native delegation, source/candidate-bound review and edit handoffs, and optional dependency-free context hooks. Three real child tasks preserve C-to-F claims, method limits, stale-review disagreements and additive stage-summary history in an isolated synthetic preview; ten originals remain unchanged. The coordinator retains Full MCP checkpoint control and process-authenticated reads. Source checks, native protocol and bundle tests, final content projection and trial evidence are archived. No release or acceptance change. Real cross-Host transport/identity, live Hook delivery, non-macOS execution, migrated Graph semantics and measured performance/maintenance acceptance remain open. Next validate an authorized live Hook and one source-bound cross-Host review before automatic claim/review/recovery work."
     },
     {
       "id": "CLI-403",
@@ -327,11 +327,15 @@
       "dependencies": [
         "CLI-405"
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/superpowers/plans/2026-09-06-cli-first-closeout-and-extraction.md",
+        "docs/superpowers/reviews/2026-09-11-outcome-guided-skills-review.md",
+        "docs/superpowers/reviews/2026-09-11-outcome-guided-skills-trial.json"
+      ],
       "commit": "",
       "run": "",
-      "updated_at": "2026-09-06",
-      "blocker": ""
+      "updated_at": "2026-09-11",
+      "blocker": "Preliminary delegation and portable proposal guidance is locally implemented at baa892dc; this does not implement or accept atomic cross-Host task claims, checkpoint transfer or concurrent canonical writes. CLI-406 remains proposed under ADR 0218 and its existing dependencies."
     },
     {
       "id": "CLI-407",

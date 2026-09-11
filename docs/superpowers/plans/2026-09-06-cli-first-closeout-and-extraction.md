@@ -28,6 +28,21 @@ Automatic cross-Host concurrent writes require the separate claim/review/recover
 work of CLI-406–CLI-408. This increment delivers delegated work and portable
 review/edit handoff, not a new coordinator or cross-device transport.
 
+Implemented in `d4818ab5` and `baa892dc`: bounded native delegation, source-bound
+cross-Host review/edit packets and optional native context hooks. Three isolated
+child-agent trials carry C-to-F evidence and review findings into an additive
+stage-summary preview; all ten raw files remain unchanged. The final review
+keeps Full MCP checkpoint control and authenticated reads with the coordinator.
+The existing outcome-guided review/JSON archive records source hashes, actual
+outputs, checks, the sandbox loopback retry and remaining live-Host limits.
+The final pack has 433 resources, each byte-matched against canonical source,
+and is bound to `baa892dc099762f6beefbab0fb3d3f17a01ff1bf` with SHA-256
+`ad484826415de40435e9dbd961d9ddcf35c30a83cf978202366b39bf800e2119`.
+No dependency, coordinator service, model replacement, personal Host change or
+release is added. CLI-406–408 remain proposed: packet guidance is not automatic
+cross-Host claim/review/recovery. Next: authorized live Hook delivery and one
+source-bound cross-Host review, then the existing bounded coordination work.
+
 ## Design and role boundaries — September 11 follow-up
 
 Continue the recorded next increment from `37386173` on
