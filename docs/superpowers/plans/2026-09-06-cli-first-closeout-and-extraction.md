@@ -17,6 +17,13 @@ Verify generated content, update the embedded lock, archive checks in the existi
 outcome-guided review, then commit and fast-forward locally. No publication or
 acceptance promotion; installed-Host behavioral enforcement remains unqualified.
 
+Implemented in `8ed5b39b`. Content/routing checks (35), native content checks (46),
+Hook protocol (1), CLI content checks (5), wrapper validation (1) and ledger
+checks (7) pass. The resource lock binds all 433 entries to that source. The
+[existing review](../reviews/2026-09-11-outcome-guided-skills-review.md) records
+the scope, pack identity and limits. Next observe reply-only/resumption alongside
+automatic Hooks in an authorized live Host; CLI-402 remains active.
+
 ## Optional Hook installation — September 12 follow-up
 
 The maintainer requested adding context Hook setup to `install`. Continue from

@@ -269,7 +269,7 @@
       "commit": "",
       "run": "",
       "updated_at": "2026-09-12",
-      "blocker": "The September 12 local follow-up adds optional context Hook selection to Plugin install/upgrade/update, with per-Host inline manifests, approval-bound plan/receipt digests, retained choices and legacy default-off bytes. Native checks, isolated warning-free Claude validation and real Codex registration/cache observation passed; the existing review records the schema correction and evidence. Earlier bounded delegation and source/candidate-bound handoffs remain in place. No release or acceptance change. Live Hook trust/delivery, non-macOS execution, cross-Host transport/identity, migrated Graph semantics and measured performance/maintenance acceptance remain open. Next observe an authorized live Hook and one source-bound cross-Host review before automatic claim/review/recovery work."
+      "blocker": "The September 12 local follow-up adds an explicit conversational reply-only choice before resource reads, workflow routing and context reminders. It adds no runtime mode or Host tool lock; the existing review records source, pack and local checks. Earlier optional Hook installation, bounded delegation and source-bound handoffs remain in place. No release or acceptance change. Live reply-only behavior with automatic Hooks, Hook trust/delivery, non-macOS execution, cross-Host transport/identity, migrated Graph semantics and measured performance/maintenance acceptance remain open. Next observe an authorized live Host reply-only/resumption sequence and one source-bound cross-Host review before automatic claim/review/recovery work."
     },
     {
       "id": "CLI-403",

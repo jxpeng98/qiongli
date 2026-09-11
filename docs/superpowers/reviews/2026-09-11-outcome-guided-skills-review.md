@@ -386,3 +386,49 @@ Hook 信任与事件协议按 [Codex Hooks](https://learn.chatgpt.com/docs/hooks
 实际会话中的 Hook 信任、事件触发和重复提醒检查，以及 Windows／Linux 现场执行
 仍需单独验证；安装清单与本地协议检查不能替代这些证据。跨 Host 审查及 CLI-406
 的领取／恢复工作仍按原有计划推进。
+
+## 后续调整：仅回复，不执行操作（2026-09-12）
+
+来源提交：`8ed5b39baa69e46d310b6eac54745f9b7fb933a9`。
+用户希望在保留现有能力的同时，明确选择只在对话中回答。原来的“小任务可以在聊天中
+完成”仍要求先读取工作流，连接和连续性规则也可能触发工具，因此将选择放在根 Skill、
+统一路由和 Codex 快捷入口的资源读取之前，并让原生 Hook 提醒尊重该选择。
+
+“仅回复／不处理／no 处理／reply only／no tools”使用已经可见的对话材料；缺少原文时
+说明缺口，不检索、不调用 MCP 或代理、不读写文件，也不声称搜索、审查或保存完成。
+默认持续到用户明确恢复执行，也可只限定一次回复。引用文本和普通的“no”不切换模式。
+原来的工作流、正式任务要求和写入审批在恢复执行后继续适用；暂停执行不代表质量门通过。
+
+没有增加 Skill、CLI 参数、依赖或持久配置。它是行为指引，不是 Host 工具权限锁，
+不能取消已运行的任务或关闭 Host 自动触发的 Hook。文档说明了这一界限，并指向既有
+`install plugin --hooks off` 安装选择。没有更改个人 Host 设置或已发布版本。
+
+本轮检查：
+
+- `python3 -m unittest tests.test_skill_routing_probe tests.test_cross_platform_routing_grill_contract tests.test_skill_structure_lint tests.test_command_workflow_alignment tests.test_skill_resource_links`：35 项通过。
+  复用既有评测器，新增 10 个中英文样例；合成轨迹检查确认“仅回复”中即使成功读取
+  指引也不能计为通过。样例覆盖缺少原文、继续会话、引文不触发和明确恢复执行。
+  这是离线评测约束检查，没有运行新的模型会话，不能当作模型遵循率或真实 Host 验收。
+- `python3 scripts/validate_capability_contract.py` 与 skill-creator 的
+  `quick_validate.py content/workflow` 通过。
+- `cargo +1.97.0 fmt --all --check`、原生快捷入口元数据／路径检查（1 项）和
+  `cargo +1.97.0 test -p qiongli-content --tests`（46 项）通过。
+  Cargo 检查均使用 native workspace、`--offline --locked`。
+- CLI 的 `context_hook_preserves_protocol_without_path_or_project_access`（1 项）
+  和 `content`（5 项）通过，覆盖两个命令入口、空 PATH、错误／超限输入、无副作用
+  事件以及仓库外独立二进制。Hook 输出包含仅回复边界，仍不回显输入或写入状态。
+  程序台账检查 7 项通过，249 项任务的状态未改变。
+- 通过 `export_marketplace_content` 在仓库外、空 PATH 下导出实际内嵌资源，433 项
+  全部与 `content/` 源文件逐字节一致，收据哈希也一致。Docs 构建通过；保留既有
+  语法高亮和包体积提示。临时检查记录使用 `/private/tmp/qiongli-reply-only-` 前缀，
+  包括 `content.log`、`pack.log`、`hook.log`、`cli-content.log`、`wrapper.log`、
+  `ledger.log`、`docs.log` 和 `export-check.json`；本节保留可独立阅读的结论。
+
+通过既有 `update_qiongli_core_lock` 更新资源锁，仍含 433 项资源；版本保持
+`2.0.0-beta.5`，来源绑定上面的提交。Content root SHA-256 为
+`6119b241821413afb3d3974d8715c35cce3dbb7d14e2b7bb84255b9a918fc490`，pack SHA-256 为
+`8995d4d502c9f7e1829a70f3b15a42dc88c37085ec9a63e18d6f1c192533688a`。
+
+CLI-402 保持 active。下一步在获授权的真实 Host 会话中观察仅回复、恢复执行和 Hook
+共存，分别记录模型实际调用与 Host 自动事件；继续保留跨 Host、非 macOS 和研究质量
+验收缺口。本轮只做本地集成，不发布，也不把静态指引称为工具执行拦截。
