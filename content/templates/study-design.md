@@ -1,7 +1,8 @@
 # Study Design Template
 
 <!--
-Usage: Draft a protocol-style study design document.
+Usage: Draft a protocol-style study design document using references/stage-C-design.md.
+Use applicable sections; explain N/A without inventing procedures or study facts.
 Save to: RESEARCH/[topic]/study_design.md
 -->
 
@@ -38,8 +39,8 @@ Save to: RESEARCH/[topic]/study_design.md
 - **Recruitment channels**:
 - **Compensation**:
 - **Sample size plan**:
-  - Quant: power/MDE rationale (or feasibility-based)
-  - Qual: saturation / theoretical sufficiency plan + sampling logic
+  - Quant: rationale for the intended inference (power, precision, MDE or fixed-data limits)
+  - Qual: sampling logic, material adequacy and limits consistent with the analytic tradition
 
 ## 5) Measures / Instruments
 ### Key constructs and operationalization
@@ -98,7 +99,7 @@ Full plan: `RESEARCH/[topic]/data_management_plan.md`
 | `data_management_plan.md` | Governance, storage, retention | `study-designer` |
 | `instruments/` | Collection instruments | `study-designer` |
 
-## 11) Preregistration (Optional)
+## 11) Preregistration (When Requested or Required)
 - Registry (OSF/AsPredicted/etc.):
 - What will be pre-specified:
 - Deviation logging plan:

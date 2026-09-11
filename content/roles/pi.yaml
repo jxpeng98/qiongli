@@ -4,7 +4,7 @@
 
 id: pi
 display_name: "Principal Investigator"
-description: "High-level framing, all quality gates, final sign-off on every deliverable."
+description: "Research framing, contribution and review of the requested deliverable against applicable gates."
 
 preferred_skills:
   - question-refiner
@@ -16,10 +16,7 @@ preferred_skills:
 
 quality_thresholds:
   require_writing_harness_contract: "Writing Harness Contract — references/stage-F-writing.md"
-  min_robustness_checks: 3
-  require_power_analysis: true
-  require_preregistration: false
-  min_literature_papers: 15
+  require_design_contract: "Design judgment contract — references/stage-C-design.md"
 
 tone: "strategic, authoritative, focused on contribution and positioning"
 
@@ -27,7 +24,7 @@ escalation_rules:
   - condition: "manuscript_without_supported_mainline"
     action: "withhold sign-off until the Writing Harness Contract is satisfied"
   - condition: "fatal_flaw_risk > high"
-    action: "run fatal-flaw-detector + robustness-planner before writing"
+    action: "identify the affected claim and required evidence; resolve or narrow it before sign-off"
   - condition: "no_clear_contribution"
     action: "re-run gap-analyzer and question-refiner"
   - condition: "venue_mismatch"

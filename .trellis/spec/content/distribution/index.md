@@ -29,6 +29,14 @@ contract; they must not duplicate mandatory chunk sequences or paragraph quotas.
 impose a minimum pass count. Explicit protocols, saved-run limits and required
 independent review remain binding; the retained 1.x controller is unchanged.
 
+Stage C design cards, workflows, role perspectives and the core digest share
+`content/workflow/references/stage-C-design.md`. They retain method/protocol
+requirements without imposing generic sample, rival or robustness quotas. The
+preregistration card owns C5 and truthful collection/access/registration status;
+a draft never establishes registration or access permission. Literature review
+guidance retains the existing search-quality contract and protocol boundaries;
+record counts alone do not justify broadening a search.
+
 Preserve canonical artifact paths, evidence anchors, stable IDs and formal gates.
 A narrow chat answer need not generate the full formal artifact set. Writing
 freedom does not waive tool availability, preview/approval/CAS or user-only file

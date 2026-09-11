@@ -11,12 +11,12 @@ outputs:
   - type: RivalHypotheses
     artifact: "design/rival_hypotheses.md"
 constraints:
-  - "Must produce at least 3 plausible rival explanations for the main effect"
-  - "Must specify observable implications that distinguish the focal from each rival"
-  - "Must link to design controls or empirical tests"
+  - "Must ground consequential rivals in theory or available evidence"
+  - "Must state possible distinguishing evidence or explain why a rival remains unresolved"
+  - "Must link feasible controls or tests to the claim and disclose their assumptions"
 failure_modes:
   - "Rivals are straw men (no one would actually propose them)"
-  - "Rivals cannot be distinguished from the focal hypothesis with available data"
+  - "Unresolvable rivals are hidden or described as ruled out"
   - "Only statistical threats listed; no substantive theoretical alternatives"
 tools: [filesystem]
 tags: [design, rival-hypotheses, threats-to-validity, competing-theories]
@@ -25,7 +25,10 @@ domain_aware: false
 
 # Rival Hypothesis Designer Skill
 
-Proactively construct the alternative explanations reviewers will raise — and design tests to address them.
+Identify credible competing explanations and what the available evidence can distinguish.
+Follow the **Design judgment contract** in `references/stage-C-design.md`; preserve
+explicit protocol requirements without adding rivals to meet a default count.
+A narrow chat request does not imply a formal C1_5 write or downstream execution.
 
 ## Purpose
 
@@ -57,7 +60,8 @@ Construct competing theories and rival explanations to strengthen design by pre-
 
 ### Step 1: Identify Rival Sources
 
-Rivals come from four sources — check all four:
+Consider sources relevant to the focal claim; the categories below are prompts,
+not a quota. Record consequential unresolved rivals even when no test is feasible:
 
 | Source | What to Ask | Example |
 |--------|-------------|---------|
@@ -74,7 +78,8 @@ For qualitative research, add:
 
 ### Step 2: Construct Each Rival in Detail
 
-For each rival, specify all four elements:
+For each grounded rival, specify these elements where supported. State unavailable
+evidence or an unresolved limitation instead of inventing a discriminating test:
 
 ```
 Rival R[n]: [name]
@@ -88,43 +93,14 @@ Empirical Test:  What additional test could distinguish focal from rival
                  (interaction term, instrumental variable, disconfirming case)
 ```
 
-**Example — Quantitative**:
-
-```
-Rival R1: Selection (productive workers self-select into remote work)
-
-Mechanism:       High-performers negotiate remote arrangements, creating
-                 selection bias in cross-sectional estimates
-Observable       Pre-remote productivity should differ between treatment
-Implication:     and control groups (if selection is driving the result)
-Design Control:  Individual fixed effects absorb time-invariant ability
-Empirical Test:  Event study around remote policy change (exogenous shock);
-                 test for parallel pre-trends
-```
-
-**Example — Qualitative**:
-
-```
-Rival R1: Retrospective rationalization (managers construct coherent
-          narratives post-hoc rather than reporting actual process)
-
-Mechanism:       Interview accounts reflect sensemaking norms rather than
-                 real-time governance practices
-Observable       Real-time observations would show messier, less coherent
-Implication:     governance practices than interviews suggest
-Design Control:  Triangulate with meeting minutes and contemporaneous documents
-Empirical Test:  Compare interview accounts with archival records of the
-                 same events; code for consistency/discrepancy
-```
-
 ### Step 3: Build the Rival Comparison Matrix
 
 | ID | Rival | Mechanism | Observable Difference | Design Control | Empirical Test | Status |
 |----|-------|-----------|----------------------|----------------|----------------|--------|
-| R1 | Selection | Self-selection into treatment | Pre-trends differ | FE | Event study | Planned |
-| R2 | Reverse causality | DV drives IV | Temporal sequence reversed | Lagged IV | Granger test | Planned |
-| R3 | Omitted variable (firm size) | Spurious correlation via firm size | Effect vanishes when controlling | Control variable | Oster (2019) δ | Planned |
-| R4 | Hawthorne effect | Novelty, not treatment | Effect decays | Time interaction | Cohort-by-time analysis | Nice-to-have |
+
+Use stable rival IDs. Explain any assumptions needed to distinguish the focal
+claim from each rival. A pre-trend test, lagged variable or added control alone
+does not rule out an alternative explanation.
 
 ### Step 4: Assess Rival Quality
 
@@ -133,7 +109,7 @@ Evaluate each rival against these criteria:
 | Criterion | Question | Good Rival | Bad Rival |
 |-----------|----------|-----------|-----------|
 | **Plausible** | Would a reasonable reviewer propose this? | "Selection effects are common in observational studies" | "Aliens influenced the data" |
-| **Distinguishable** | Can you design a test to tell them apart? | Pre-trend test distinguishes selection from treatment | Both predict identical data patterns |
+| **Informative** | What could distinguish them under stated assumptions? | Feasible evidence or a clearly unresolved limitation | A test is claimed decisive without supporting assumptions |
 | **Non-trivial** | Does it challenge the core claim, not a peripheral detail? | Challenges the identification strategy | Questions a control variable's coding |
 | **Grounded** | Is there theory or evidence behind the rival? | Cites prior work showing this rival matters | Pure speculation |
 
@@ -141,13 +117,16 @@ Evaluate each rival against these criteria:
 
 ### Step 5: Feed Downstream
 
+For the agreed formal scope, propose these links and retain existing write
+approval/CAS. Do not silently amend an approved design, run tests or collect data.
+
 - Each rival with a planned test → add to `C3` analysis plan and `C3_5` robustness plan
 - Each rival with a design control → verify the control is in `C1` study design
 - Each rival without a test → acknowledge explicitly as a limitation in `F3` discussion
 
 ## Output Contract
 
-- `RivalHypotheses`: write `RESEARCH/[topic]/design/rival_hypotheses.md`.
+- For formal C1_5, `RivalHypotheses`: write `RESEARCH/[topic]/design/rival_hypotheses.md`.
 - Separate finding, interpretation, and implication in the final artifact.
 - Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
 - Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
@@ -156,11 +135,10 @@ Evaluate each rival against these criteria:
 
 The rival hypothesis set is **ready** when:
 
-- [ ] At least 3 substantive rivals (not just statistical estimation concerns)
-- [ ] Each rival has all 4 elements: mechanism, observable implication, design control, empirical test
-- [ ] At least 2 rivals are empirically distinguishable with available data
-- [ ] Rivals span different sources (not all "omitted variable" variants)
-- [ ] Traceability downstream: each test appears in C3 or C3_5; unresolvable rivals appear in planned limitations
+- [ ] Rivals are substantive, consequential and grounded; no filler to meet a count
+- [ ] Mechanisms, possible distinguishing evidence and assumptions are explicit
+- [ ] Infeasible tests and unresolved rivals remain visible with consequences for claims
+- [ ] Agreed tests/controls have downstream links; chat proposals do not claim those files were updated
 
 ## Minimal Output Format
 
@@ -183,13 +161,10 @@ The rival hypothesis set is **ready** when:
 - **Design control**: ...
 - **Empirical test**: ...
 
-### R2: [Name]
-...
-
 ## Assessment
-- Rivals addressed by design: R1, R3
-- Rivals testable empirically: R2, R4
-- Rivals acknowledged as limitations: R5
+- Rivals addressed by design: [IDs and supporting assumptions]
+- Rivals testable empirically: [IDs and available evidence]
+- Rivals acknowledged as limitations: [IDs and claim consequences]
 
 ## Downstream Links
 - Analysis plan additions: [tests to add to C3]
@@ -202,7 +177,7 @@ The rival hypothesis set is **ready** when:
 | Pitfall | Problem | Fix |
 |---------|---------|-----|
 | 只考虑稻草人替代 | 竞争假设太弱不构成威胁 | 找该理论的 strongest advocate 论文 |
-| 未连接到测试 | 列出竞争解释但不设计区分检验 | 每个 rival 附带 discriminating test |
+| 未连接到测试 | 列出竞争解释但不设计区分检验 | 说明可行的区分证据；无法区分时保留解释边界 |
 | 遗漏内生性 | 反向因果或遗漏变量 | 系统检查 endogeneity threats |
-| 只考虑理论竞争 | 忽视方法论替代（不同估计方法） | 同时考虑 method-driven rivals |
-| 数量太多 | 无法全部回应 | 按 plausibility 排序 top 3 |
+| 只考虑理论竞争 | 忽视方法论替代（不同估计方法） | 区分实质竞争解释与估计方法诊断 |
+| 数量太多 | 无法全部回应 | 按证据、后果与可行性排序，不凑数量 |

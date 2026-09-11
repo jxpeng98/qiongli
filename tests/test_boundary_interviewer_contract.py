@@ -244,7 +244,10 @@ class BoundaryInterviewerContractTests(unittest.TestCase):
 
         for path in workflow_paths:
             content = path.read_text(encoding="utf-8")
-            self.assertIn("Academic Boundary Review Trigger", content, path.as_posix())
+            if path.name == "academic-write.md":
+                self.assertIn("references/stage-F-writing.md", content)
+            else:
+                self.assertIn("Academic Boundary Review Trigger", content, path.as_posix())
             self.assertIn("boundary-interviewer", content, path.as_posix())
             self.assertIn("claim strength", content, path.as_posix())
             self.assertIn("evidence threshold", content, path.as_posix())

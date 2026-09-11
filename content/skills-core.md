@@ -41,10 +41,13 @@ Optional consolidated digest. Prefer the relevant `skills/*/*.md` card for execu
 
 **Purpose:** Turn RQ → executable empirical study design
 
+Use the Design judgment contract in `references/stage-C-design.md`. Work at the
+requested scope; formal C tasks keep their outputs, Q1/Q4 and protocol requirements.
+
 **Process:**
 1. Choose study type (experiment/quasi/observational/qual/mixed) based on claims + constraints
 2. Define constructs → operationalization (IV/DV/measures or qualitative codes)
-3. Specify sampling/recruitment + sample size strategy (power/MDE or saturation)
+3. Justify sampling adequacy for the intended inference, method and available material
 4. Draft data collection instruments and procedures
 5. Pre-specify analysis plan (primary outcomes, models, missingness, robustness)
 6. Plan validity/rigor + reproducibility (DMP + prereg optional)

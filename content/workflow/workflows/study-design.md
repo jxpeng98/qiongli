@@ -1,16 +1,19 @@
 ---
-description: 从研究问题到可执行的研究设计（study_design + analysis_plan + instruments + DMP + prereg 草案）
+description: 根据研究问题、可用材料和协议要求，制定或评估研究设计
 ---
 
 # Study Design (Empirical)
 
-Design an empirical study (quant/qual/mixed) and produce protocol-style artifacts.
+Use the **Design judgment contract** in `references/stage-C-design.md`. Deliver the
+requested design decision or formal artifact, using the existing project context.
 
-Canonical Task IDs (from the globally installed `qiongli-workflow` skill):
+Canonical Task IDs:
 - `C1` study design
+- `C1_5` rival hypotheses
 - `C2` instruments
-- `C3` analysis plan
-- `C4` data management plan
+- `C3` analysis plan and variable specification
+- `C3_5` robustness plan
+- `C4` data management and dataset plan
 - `C5` preregistration draft
 
 ## Topic / Project
@@ -19,61 +22,40 @@ $ARGUMENTS
 
 ## Workflow
 
-### Step 0: Select/Create Project Folder
+### Establish the requested scope
 
-Ask the user:
-> "Which `RESEARCH/[topic]/` folder should this design live in?"
-> - Existing projects: [List folders under `RESEARCH/`]
-> - Create new: `RESEARCH/[new-topic]/`
-
-Normalize `[topic]` (lowercase, hyphens).
-
-Ensure structure exists:
-```
-RESEARCH/[topic]/
-├── study_design.md
-├── analysis_plan.md
-├── data_management_plan.md
-├── preregistration.md              # optional
-├── ethics_irb.md                   # optional / depends on study
-├── instruments/                    # optional
-│   ├── survey.md
-│   ├── interview_guide.md
-│   ├── consent_form.md
-│   └── recruitment_script.md
-└── analysis/                        # optional (code + logs)
-```
-
-### Step 1: Clarify Research Question & Constraints
-
-Use **question-refiner** to confirm:
-1. RQ(s) + goal type (causal/descriptive/predictive)
-2. Unit of analysis + setting
-3. Constraints (data access, population access, timeline)
-4. What claims are acceptable (strong causal vs association)
+Reuse known questions, project root, method, evidence and constraints. A narrow
+question can be answered in chat. For a formal task, use its existing canonical
+project paths; ask for a destination only when a required write target is unknown.
+Do not rename an existing project or create unrelated empty artifacts.
 
 ### Academic Boundary Review Trigger (MVP)
 
-Before drafting `C1` through `C5`, use `boundary-interviewer` when the design still has unresolved scholarly boundaries around claim strength, evidence threshold, unit of analysis, population or case boundary, construct operationalization, identification logic, sampling, saturation, data access, analysis strategy, rival hypotheses, validity, trustworthiness, ethics constraints, or preregistration commitments.
+Use `boundary-interviewer` for unresolved choices that change claim strength,
+the evidence threshold, unit/case boundary, sampling adequacy, identification/analytic logic,
+access, ethics or protocol commitments. Reuse resolved decisions. State whether
+the design supports descriptive, interpretive, associative, causal, predictive,
+methodological or exploratory claims, and what evidence would narrow them.
 
-The boundary question must identify what kind of claim the design can support: descriptive, interpretive, associative, causal, predictive, methodological, or exploratory. It must also state what evidence would weaken the design enough to narrow the claim.
+### Develop the design
 
-### Step 2: Produce Study Design + Analysis Plan
+Use `skills/C_design/study-designer.md` for the selected C tasks and the canonical
+paths in Stage C. Retain Q1/Q4, selected method diagnostics and explicit protocol
+requirements. Choose feasible methods and checks without a generic quota.
 
-Use **study-designer** to draft:
-- `RESEARCH/[topic]/study_design.md` (use `templates/study-design.md`)
-- `RESEARCH/[topic]/analysis_plan.md` (use `templates/analysis-plan.md`)
-- `RESEARCH/[topic]/data_management_plan.md` (use `templates/data-management-plan.md`)
-- Optional `RESEARCH/[topic]/preregistration.md` (use `templates/preregistration-template.md`)
-- Optional instruments under `RESEARCH/[topic]/instruments/`
-  - Survey: `templates/survey-instrument.md`
-  - Interview guide: `templates/interview-guide.md`
+For formal C1 use `templates/study-design.md`; C3 uses
+`templates/analysis-plan.md` and `design/variable_spec.md`; C4 uses
+`templates/data-management-plan.md` and `design/dataset_plan.md`. Produce C2
+instruments or C5 via `skills/C_design/prereg-writer.md` when in scope. Follow the
+existing preview/approval/CAS owner for actual writes and preserve earlier decisions.
 
-### Step 3: Ethics Gate (If Human Data)
+### Check readiness
 
-**STOP & CONFIRM**:
-> "Does this study involve human participants or sensitive data requiring IRB/ethics review? (Y/N)"
+Reuse evidenced ethics and access decisions for the exact proposed use. Unresolved
+required approval blocks affected access, collection or analysis; authorized
+planning can continue. Use `ethics-irb-helper` when an ethics assessment is needed.
+Do not infer approval or repeat a question already answered by the record.
 
-If yes, run `/ethics-check [topic]`.
-
-Begin study design now.
+Report the supported design, unresolved gaps and next required action. Distinguish
+advice, a drafted artifact, a passed gate and an actual registration. A formal
+package is complete only when its required outputs and evidence are present.

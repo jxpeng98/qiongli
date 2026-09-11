@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+import yaml
 
 from qiongli.source_layout import RepoLayout
 
@@ -106,6 +109,42 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
             for instruction in retired:
                 with self.subTest(consumer=path, instruction=instruction):
                     self.assertNotIn(instruction, text)
+
+    def test_design_consumers_resolve_the_shared_contract(self) -> None:
+        reference = "references/stage-C-design.md"
+        self.assertTrue((LAYOUT.workflow / reference).is_file())
+        paths = (
+            REPO_ROOT / "content" / "skills-core.md",
+            LAYOUT.workflow / "workflows" / "study-design.md",
+            *(LAYOUT.skills / "C_design" / name for name in (
+                "study-designer.md", "rival-hypothesis-designer.md",
+                "robustness-planner.md", "prereg-writer.md",
+            )),
+            *(LAYOUT.roles / name for name in (
+                "pi.yaml", "methods-lead.yaml", "statistician.yaml",
+                "compliance-officer.yaml",
+            )),
+            *(LAYOUT.templates / name for name in (
+                "study-design.md", "preregistration-template.md",
+            )),
+        )
+        for path in paths:
+            with self.subTest(consumer=path):
+                self.assertIn(reference, read(path))
+
+    def test_preregistration_card_routes_to_its_contract_output(self) -> None:
+        card = read(LAYOUT.skills / "C_design" / "prereg-writer.md")
+        metadata = yaml.safe_load(card.split("---", 2)[1])
+        task_ids = re.findall(
+            r"`(C[0-9_]+)`",
+            card.split("## Related Task IDs", 1)[1].split("## ", 1)[0],
+        )
+        contract = yaml.safe_load(read(LAYOUT.standards / "research-workflow-contract.yaml"))
+        self.assertEqual(len(task_ids), 1)
+        self.assertEqual(
+            [output["artifact"] for output in metadata["outputs"]],
+            contract["task_catalog"][task_ids[0]]["outputs"],
+        )
 
     def test_structured_writing_and_history_tables_resolve_canonical_templates(self) -> None:
         for reference, template in (

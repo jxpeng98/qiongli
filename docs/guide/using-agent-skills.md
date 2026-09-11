@@ -12,6 +12,13 @@ sources and changes.” A narrow request loads the relevant guidance; having a
 project does not start the entire lifecycle. J2 polish preserves numbers,
 citations, terminology and causal limits.
 
+The current development source also makes design guidance depend on the study's
+method and agreed protocol. Roles no longer impose a fixed number of papers,
+rivals or robustness checks. State the decision you need, the available material
+and any requirements that must stay in force. Formal deliverables still require
+their evidence and checks; a preregistration draft is not a registered study.
+These changes follow beta.5 and require a build containing the updated content.
+
 New Codex Plugin builds expose `$qiongli` and 20 workflow shortcuts, including
 `$qiongli-paper-read`, `$qiongli-lit-review` and `$qiongli-stage-close`. Each reads
 the shared Skill before its workflow. The 82 internal skill cards are not wrapped

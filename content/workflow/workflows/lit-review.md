@@ -1,10 +1,12 @@
 ---
-description: 执行系统性文献综述，遵循 PRISMA 2020 方法论
+description: 执行系统性文献综述，保留协议边界并按 PRISMA 2020 报告方法和结果
 ---
 
 # Systematic Literature Review
 
-Execute a systematic literature review following PRISMA 2020 methodology.
+Execute the agreed systematic review and report its methods and results using
+[PRISMA 2020](https://www.prisma-statement.org/prisma-2020). This is a reporting
+guideline; a complete checklist alone does not establish methodological quality.
 
 Use this full workflow for a requested systematic review or formal B1 run. For
 "find a few papers", use `skills/B_literature/academic-searcher.md` at the
@@ -22,13 +24,19 @@ $ARGUMENTS
 
 ## Academic Boundary Review
 
-Before drafting this stage's checkpoint outputs, use `boundary-interviewer` when `context/boundary_review.md` is missing, stale, or contradicted by the current task. Continue within the locked boundary when the artifact already answers the stage question. Narrowing is allowed; broadening requires a new boundary review entry with a revisit trigger.
+Before drafting checkpoint outputs, use `boundary-interviewer` for unresolved or
+contradicted decisions that change the review question, protocol or evidence
+threshold. Continue within the locked boundary and record known answers in
+`context/boundary_review.md` through the existing write owner. Do not reopen settled questions just because a
+file is absent. Scope changes require authorization and a dated amendment; do not
+silently narrow or broaden an approved review protocol.
 
 For literature work, lock search boundary, inclusion/exclusion rules, contrary literature, corpus limits, and evidence threshold before synthesis.
 
 ### Phase 0: Project Scaffolding
 
-Create the project directory structure:
+Reuse the existing project root. For a new formal review, establish the required
+outputs through preview/approval/CAS; optional artifacts depend on the agreed work:
 
 ```
 RESEARCH/[topic]/
@@ -52,12 +60,13 @@ RESEARCH/[topic]/
 └── bibliography.bib
 ```
 
-**Naming Convention:** Convert topic to lowercase, replace spaces with hyphens (e.g., "AI in Education" → `ai-in-education`).
+For a new project, a lowercase hyphenated topic is a useful default. Preserve an
+existing project's path and known destination.
 
 ### Phase 1: Research Question Scoping
 
 Use the **question-refiner** skill to:
-1. Ask clarifying questions about the research focus
+1. Reuse the research focus; ask only about consequential gaps
 2. Apply PICO (intervention) or PEO (non-intervention) framework
 3. Generate a structured research question
 4. Define inclusion/exclusion criteria
@@ -66,13 +75,12 @@ Output: Structured RQ and protocol draft → `RESEARCH/[topic]/protocol.md`
 
 ### Phase 1.5: Protocol Registration & Governance
 
-**STOP & CONFIRM**: Before proceeding, ask the user:
-> "Do you want to register this protocol on PROSPERO/OSF for transparency? (Y/N)"
-
-If yes:
-1. Generate protocol using **templates/protocol-template.md**
-2. Include registration ID field for later completion
-3. Document any planned deviations from standard PRISMA
+Retain the agreed registration decision and applicable requirements. If that
+decision is missing and affects the work, clarify it; an optional registration
+question need not stop independently authorized planning. For a requested draft,
+use **templates/protocol-template.md**, leave the registration ID unfilled until
+verified, and record actual prior search/data access. External registration is
+a separate authorized action. Do not describe a draft as registered.
 
 Establish amendment tracking:
 - All protocol changes must be logged in `RESEARCH/[topic]/protocol.md` with date and rationale
@@ -114,10 +122,11 @@ Develop comprehensive search strategy:
 
 Output: Search strategy document → `RESEARCH/[topic]/search_strategy.md`
 
-**STOP & CONFIRM**: Present the search strategy to the user:
-> "Please review the search strategy above. Proceed with execution? (Y/N)"
-
-Wait for explicit user approval before proceeding to Phase 3.
+Present a new search strategy for approval before execution. Reuse an already
+approved strategy and execution scope; ask again only for material changes or
+actions requiring separate access/payment/tool authorization. If a named MCP
+tool is unavailable, use the documented mode and available tools; do not claim
+that a missing tool ran or fabricate its response.
 
 ### Phase 3: Literature Search Execution
 
@@ -143,12 +152,13 @@ Use the **academic-searcher** skill to:
 
 Output: Raw search results with counts
 
-**Iteration Check:** If total unique results < 20, consider:
-- Broadening search terms
-- Adding synonyms
-- Expanding date range
-- Searching additional databases
-Then return to Phase 2 to refine strategy.
+**Iteration Check:** Apply `references/literature-search-quality-contract.md`.
+Formal systematic/review-grade searches retain its two-productive-provider gate,
+known-item checks, concept diagnostics and unresolved-gap rules. A small result
+count alone is not evidence of a poor search. Investigate actual coverage gaps or
+failed providers; propose a justified strategy revision when needed. Changes to
+population, concepts, dates or other protocol boundaries require authorization
+and a dated amendment, not automatic expansion to reach a record quota.
 
 ### Phase 3.5: Citation Snowballing & Grey Literature
 
