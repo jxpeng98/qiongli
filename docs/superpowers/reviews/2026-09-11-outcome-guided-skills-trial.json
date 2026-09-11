@@ -314,5 +314,821 @@
         ]
       }
     ]
+  },
+  "design_role_followup": {
+    "date": "2026-09-11",
+    "baseline_commit": "37386173fbd89c0e150da267d717427e60d70d12",
+    "source_commit": "d21cd570d467b17ac585d1440675689d10a50ada",
+    "method": {
+      "kind": "isolated synthetic forward trials",
+      "execution": "One independent agent per arm, with six separate-project requests processed sequentially. Two affected routes repeated in a third independent agent after final boundary-contract wording changes.",
+      "model": "Inherited active session model; no provider override or external account used.",
+      "limits": [
+        "No fixed seed, repeated sampling or cross-Host/model benchmark.",
+        "No real research files, network, registration, analysis execution or project writes.",
+        "Responses and reported resource reads are observable evidence, not proof that research actions ran.",
+        "Baseline already handled all six explicit requests well; no demonstrated quality, latency or token improvement."
+      ]
+    },
+    "requests": [
+      {
+        "id": "interpretive-design",
+        "resources": [
+          "roles/methods-lead.yaml",
+          "workflows/study-design.md",
+          "skills/C_design/study-designer.md",
+          "skills/C_design/robustness-planner.md"
+        ],
+        "request": "以 Methods Lead 的角度帮我确定这项研究的设计是否合理，只在聊天中给出设计建议和必要缺口。我们用 Braun 和 Clarke 的 reflexive thematic analysis，研究夜班护士如何理解团队支持。已有 14 份访谈且不再招募；伦理批准覆盖这批访谈的当前用途，知情同意已核对。本次不建立项目文件、不做量化推断，也没有注册协议。现有材料只有访谈和研究者现场备忘，没有第二编码者。请说明抽样充分性、分析质量和可以支持的主张。"
+      },
+      {
+        "id": "fixed-data",
+        "resources": [
+          "roles/pi.yaml",
+          "roles/statistician.yaml",
+          "skills/C_design/study-designer.md"
+        ],
+        "request": "请评估一个有限的描述性设计，只给分析计划建议。数据为已授权的某组织现有全部 120 份服务记录；目标是描述这一批记录的等待时间分布，不外推总体，也不估计因果效应。记录没有缺失，样本无法增加，目前没有等待时间数值可供计算。请说明还需要哪些信息和检查，以及是否能开始起草计划。没有预注册要求。"
+      },
+      {
+        "id": "explicit-protocol",
+        "resources": [
+          "roles/methods-lead.yaml",
+          "skills/C_design/study-designer.md",
+          "skills/C_design/robustness-planner.md",
+          "skills/C_design/prereg-writer.md"
+        ],
+        "request": "请检查我们的正式 C1/C3/C3_5/C5 设计包能否签收。已批准协议要求五项指定稳健性检查、预先功效分析、预注册和独立方法审查。这些要求不能修改。五项检查仅完成两项；功效计算缺少协议要求的效应值依据；预注册是未提交草稿；独立审查人暂不可用。研究是两组随机干预，主要连续结局和分配方法已有说明。请给当前结论和接下来的处理，不执行注册，不改文件。"
+      },
+      {
+        "id": "rivals",
+        "resources": [
+          "roles/pi.yaml",
+          "skills/C_design/rival-hypothesis-designer.md",
+          "skills/C_design/robustness-planner.md"
+        ],
+        "request": "请整理这项研究的竞争解释，暂只在聊天交付。观察：一家工厂采用排班 App 后，自报疲劳下降。只有一次实施后的员工访谈和排班记录，没有基线、对照组或追加采集权限。已有两种有材料依据的解释：同期夜班减少（排班记录），以及受访者担心批评管理层（访谈备忘）。没有其他来源。请列出竞争解释、可区分证据及解释边界。"
+      },
+      {
+        "id": "review-scope",
+        "resources": [
+          "roles/literature-ra.yaml",
+          "roles/compliance-officer.yaml",
+          "workflows/lit-review.md"
+        ],
+        "request": "请审查我们已批准的系统综述检索和筛选状态，并建议下一步，不重跑检索或写文件。协议固定人群、主题和 2018–2025 年区间；两名独立筛选者要求已落实。两个协议要求的数据库都成功执行并产生有效记录，合并去重后 9 条。检索日志和查询式齐全，无未命中概念；3 篇已知相关文献全部找回。标题摘要纳入 6 条，其中全文可得 4 条，另 2 条尚未取得、尚未作全文排除；4 条中有 1 条筛选分歧待裁决。我们没有要改变协议范围。"
+      },
+      {
+        "id": "prereg-status",
+        "resources": [
+          "roles/compliance-officer.yaml",
+          "skills/C_design/prereg-writer.md"
+        ],
+        "request": "帮我准备正式 C5 预注册的状态说明和缺口清单，只在聊天起草。今天是 2026-09-11；数据在 2025 年已收集，我在 2026-09-01 看过主要结局的描述统计。拟定的模型尚未运行。没有注册记录，也没有确认原同意是否覆盖本次二次分析；现在只允许使用上述描述信息，不能访问原始记录。请使用准确的时间线，并说明何时能开始后续分析。"
+      }
+    ],
+    "arms": {
+      "baseline": {
+        "snapshot": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow",
+        "resource_hashes_verified": true,
+        "distinct_skill_resources_read": 20,
+        "differences_from_bound_source": [],
+        "responses": [
+          {
+            "id": "interpretive-design",
+            "answer": "这个设计与“夜班护士如何理解团队支持”的解释性问题基本匹配。现有14份访谈可以构成一个有明确边界的分析语料库，但仅凭数量不能判断抽样充分性，也不能确认分析质量。以下判断依据你提供的研究说明；我没有阅读访谈全文或现场备忘。\n\n抽样充分性应围绕研究问题、材料深度和情境范围说明：这14人如何进入研究，来自怎样的科室或团队，夜班经验与工作位置有哪些差异，访谈是否包含足够具体的支持或不支持情境。需要交代哪些经验得到呈现、哪些声音缺席，以及为何不再招募。对 reflexive thematic analysis，不宜把“新增编码为零”、固定人数门槛或统计功效当作充分性的硬指标，也不应为了符合模板补写一个并未实际实施的饱和判断。若某一子问题只有零散描述，应收窄该子问题或降低相应主题的概括程度。\n\n分析质量可以在现有材料内这样加强：\n\n- 明确分析立场与目标：团队支持是作为受访者经验、情境中的意义建构，还是其他取向来理解；说明归纳与理论引导、语义与潜在意义分析如何使用，避免把主题直接等同于访谈提纲标题。\n- 反复阅读、编码和发展主题，持续回到完整访谈检查主题的中心意义、内部连贯性及主题间区别。保留关键解释如何形成和改变的备忘，而不是追求一个永远不变的代码本。\n- 主动寻找不符合主导解释的片段和不同声音。若这些材料挑战主题，就重写主题边界或保留矛盾，不把它们当作需要清除的噪声。少数经验也可能具有分析价值，不以出现频率决定重要性。\n- 说明研究者与护士或组织的关系、预设及其对提问和解释的影响。现场备忘可帮助理解访谈情境和研究者参与，但不能自动算作独立来源对同一主张的验证。成稿中用去标识化引文支撑分析，并保留必要的上下文。\n\n没有第二编码者本身不构成这一方法的缺陷；编码一致率、共识编码或把研究者影响消除掉，不应成为 reflexive thematic analysis 的强制质量门槛。若以后有合适同事讨论解释，可将其用于拓展反思，而非认证唯一正确的编码。本次没有必要为 Methods Lead 的通用偏好硬凑五项量化稳健性检查、功效分析或预注册。\n\n可以支持的主张是：在这批受访护士及其具体工作情境中，团队支持如何被理解、赋予意义，哪些共同模式与差异由分析者从材料中建构出来。当前尚不能给出任何实际主题。研究不能据此估计某种看法的总体比例、推断所有夜班护士的经验，或证明团队支持导致某项健康或工作结果；读者能否迁移这些解释，取决于情境描述是否充分。\n\n必要缺口是招募与场景边界、访谈材料的深度和覆盖情况、研究者立场、具体分析过程及主题—引文对应关系。你已确认本次用途的伦理批准和同意核对，这些无需重新开启确认。可以继续既定的解释性分析；充分性仍需由实际语料支撑，不能在聊天中直接认证。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/methods-lead.yaml",
+                "sha256": "d0621c6d479c1e57332a83fcbbc1a5dfa80333907afa8c986c5a42b76918ede9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "5b87fbcfc4c0afb5ba87253678169aa643921bad67f6d51e27577fb8c5ed150c"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/study-designer.md",
+                "sha256": "9cb63776f141586f8b970af937db6d7df8b8293540acee2a1733490d7b055d09"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/robustness-planner.md",
+                "sha256": "0a67592d681a04e1ae911208257fe552353139357d6429cedad06b04fd6f5d9b"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "639dd63c670d76676d7906a4f3daa531e72354ef920402a77d72bee846336832"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              }
+            ]
+          },
+          {
+            "id": "fixed-data",
+            "answer": "可以开始起草分析计划。目标明确限定为这120份已授权服务记录的等待时间分布，这是对固定记录集合的描述，设计与目标相符。记录不能增加并不妨碍这一目标；无需为了通用角色门槛加入功效分析、效应量、显著性检验、抽样置信区间或预注册。此时要解决的是“这120份记录是否准确界定、等待时间是否一致计算”，而非样本是否足以外推。\n\n还需要以下信息，才能把草稿变成可执行计划：\n\n| 信息 | 需要明确的内容 |\n|---|---|\n| 记录集合 | 组织、覆盖日期、纳入规则和数据版本；“全部120份”具体对应哪个业务范围 |\n| 统计单位 | 每行是一项服务、一段等待还是一个人；同一人多次服务是否均属于目标集合 |\n| 等待时间定义 | 起点、终点、单位，按自然时间还是营业时间计算，暂停和取消如何处理 |\n| 时间来源 | 已有时长字段还是由两个时间戳派生；精度、时区及跨日处理规则 |\n| 等待是否结束 | 是否全部存在已完成等待；“没有缺失”不等于“没有仍在等待或被截断的记录” |\n| 输出需求 | 需要哪些分位数；是否存在预先指定的服务时间阈值，若没有则不临时创造达标标准 |\n\n最小分析计划草稿可以写为：以经核对的这120份服务记录为唯一描述对象；按明确的起止事件和统一单位计算等待时间；报告记录数、中位数、四分位数、最小值和最大值，并以经验累积分布图展示整批分布。如业务问题需要平均耗时，再补充均值和标准差；如需要尾部等待，再事先选定相应分位数及计算方法。所有比例均注明分母，只有在全部120份记录均满足该指标定义时才统一使用120。\n\n运行前检查记录数与纳入清单一致，区分重复录入和真实重复服务；检查时间顺序、单位、精度、负时长、零时长及异常长等待。真实的长等待应保留，只有确认的录入错误才按可追溯规则更正，不因数值大而删除或缩尾。既然目前报告没有缺失，无需设置插补程序，但仍需验证导出后相关字段的完整性。若发现等待未结束，需先明确如何描述其当前等待时长和完成状态，不能当作已完成等待混入同一分布。\n\n草稿现在即可形成，上述定义可以明确标为待补。没有实际等待时间值，当前无法计算分布、判断偏态或离群情况，也不能确认120份记录确实无错误。最终结论仅描述该组织这批记录；完整覆盖这一批记录不会自动消除测量误差，也不构成总体推断或因果证据。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/pi.yaml",
+                "sha256": "33e3fe5432c97a53d3884f21c401c6122becae9fc4f81d2711b2e11e2c23f4d2"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/statistician.yaml",
+                "sha256": "44e5779f66dc1eea197351ee4e9fefd814a196a8872815f796600fda62f983ef"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/study-designer.md",
+                "sha256": "9cb63776f141586f8b970af937db6d7df8b8293540acee2a1733490d7b055d09"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "5b87fbcfc4c0afb5ba87253678169aa643921bad67f6d51e27577fb8c5ed150c"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "639dd63c670d76676d7906a4f3daa531e72354ef920402a77d72bee846336832"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              }
+            ]
+          },
+          {
+            "id": "explicit-protocol",
+            "answer": "当前结论：正式 C1/C3/C3_5/C5 设计包不能签收，整体应保持 BLOCKED。依据是你明确说明且不可修改的已批准协议，而不是一般建议性门槛。两组随机干预、主要连续结局和分配方法已有说明，只能证明部分设计要素已提供，不能抵消以下缺口。\n\n| 协议要求 | 目前证据 | 当前处理与解除条件 |\n|---|---|---|\n| 五项指定稳健性检查 | 仅完成两项；未提供名称、结果和判定记录 | 保留已完成两项的证据与结果，完成其余三项指定检查，并按原定标准逐项判定和完整报告。完成不等于通过，不能另挑容易通过的检查替代 |\n| 预先功效分析 | 缺少协议要求的效应值依据 | 补齐符合协议的效应值来源和适用性说明，核对功效分析所需参数及计算记录。不能任填一个常见效应值或使用事后观察功效代替 |\n| 预注册 | 只有未提交草稿 | 核对方案完整性与实际时间线；只有按授权完成正式登记并取得可核验记录后，才可能满足注册要求。草稿不能标成已注册 |\n| 独立方法审查 | 审查人暂不可用 | 等待或安排符合协议独立性要求的审查人，并保留审查意见、问题处理和结论；本次聊天、自审或模拟角色不能替代 |\n\n接下来可先整理现有证据的对应关系：研究问题、主要结局与测量时点、分析目标、分配方式、主要分析及五项指定检查应能相互对应。检查名称、原定通过标准和两项已完成检查的结果尚未提供，因此我不会猜测具体检查，也不会把它们标成通过。功效分析还应核对效应值之外的协议参数是否完整，例如变异程度、显著性水平、目标功效、分配比例及适用调整；这些目前是待核对项，不是已知缺失。\n\n特别需要确认“预先”的真实时序：研究何时开始招募、收集数据、查看结局和开展分析，功效方案与注册草稿分别何时形成。若相关事前要求的时间窗口已经错过，补算或后补注册不能倒填为事前完成；须如实报告协议要求未满足。既然本次不允许修改要求，不能靠降低标准或改称探索性研究来获得这份设计包的签收。\n\n可以推进不依赖独立审查结果的证据核对和剩余工作准备；独立审查缺位这一分支需保留阻塞。待所有不可变要求都有真实证据、完成相应判定并处理未解决问题后，再重新评估签收。\n\n本次仅依据状态摘要进行判断，没有审阅正式设计文件、核验实际检查结果或运行质量门工具，因此不授予任何分项 PASS；也不执行注册或修改文件。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/methods-lead.yaml",
+                "sha256": "d0621c6d479c1e57332a83fcbbc1a5dfa80333907afa8c986c5a42b76918ede9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/study-designer.md",
+                "sha256": "9cb63776f141586f8b970af937db6d7df8b8293540acee2a1733490d7b055d09"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/robustness-planner.md",
+                "sha256": "0a67592d681a04e1ae911208257fe552353139357d6429cedad06b04fd6f5d9b"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/prereg-writer.md",
+                "sha256": "137042bd0ca7d84040faaca975386e05afa9e4d8792946d3d2d2e070517d92ce"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "5b87fbcfc4c0afb5ba87253678169aa643921bad67f6d51e27577fb8c5ed150c"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/workflows/paper.md",
+                "sha256": "db7e67e1d666c8d5b8adbf9ecfc73b717d73af2abad629dd5c482ce5950b2702"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/workflow-contract.md",
+                "sha256": "bbe2b515bafef51b10755d19e93c624b3c9b4afa8ddfd52e6afc47b51ed9a3d7"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "639dd63c670d76676d7906a4f3daa531e72354ef920402a77d72bee846336832"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/standards/quality-gate-contract.yaml",
+                "sha256": "d6bbe6f0e76396af184e206d3fbdd154a84963130329fa9fad9ebc6c0d2598d9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              }
+            ]
+          },
+          {
+            "id": "rivals",
+            "answer": "应先收窄待解释的观察：现有证据是实施后的受访者报告疲劳下降，并非由基线与随访测量确认的疲劳变化。下面保留两种有材料依据的竞争解释；现有来源不足以补出第三种，也不足以证明哪一种解释成立。\n\n| 解释 | 为什么可能产生这种观察 | 现有材料内可以检查的区分证据 | 解释边界 |\n|---|---|---|---|\n| R1：同期夜班减少 | 较少夜班可能降低疲劳，使下降被归因于排班 App | 排班记录已支持夜班减少；进一步核对其时间与访谈所说改善时间是否对应，以及受访者是否把改善具体归因于夜班安排。若既有资料允许合法、可靠地对应个人，也可比较夜班变化与疲劳叙述是否一致 | 没有基线疲劳或对照，不能分离 App 与夜班变化的作用。排班记录证明安排发生变化，不证明疲劳因而下降。还需区别夜班减少是否由 App 引起：若是，它可能属于 App 的作用路径；若是同期独立改变，才更接近竞争解释，当前不能认定 |\n| R2：担心批评管理层影响表达 | 受访者可能减少负面评价，导致访谈呈现较积极的疲劳叙述 | 访谈备忘已记录这种担忧；可在已有访谈中检查担忧出现的语境、表达保留或自相矛盾的段落，以及正面总体评价是否与具体疲劳经历不一致。也应保留坦率批评或复杂评价，避免只寻找符合偏差解释的片段 | 有顾虑不等于虚假报告，也不能量化偏差大小。表达与叙述的差异只能作为解释线索，不能证明真实疲劳未改善；缺少独立疲劳测量或其他可区分资料 |\n\n现有设计没有基线和对照，因此两种解释尚未被设计控制排除，也可能同时存在。材料内部的比较、反例查找和排班—访谈对应，有助于说明哪一种解释更贴近某些叙述，但不是消除混杂或报告偏差的因果检验。不能用回归、固定效应或额外“稳健性次数”补出不存在的对照与时间资料。\n\n可支持的表述是：“在该工厂实施排班 App 后的访谈中，受访者描述了疲劳减轻；现有排班记录显示同期夜班减少，访谈备忘提示部分表达可能受到批评管理层的顾虑影响。资料不足以将疲劳改善归因于 App，亦不足以排除这些解释。”其中“受访者描述”的范围还需与实际访谈内容核对，不可写成全体员工均改善。\n\n没有追加采集权限，所以本轮只提出已有材料内的核对，不安排新访谈、问卷或测量。对无法区分的部分，应保留为明确局限；我尚未看到原始访谈和排班记录，以上是比较框架，而非已执行检验的结果。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/pi.yaml",
+                "sha256": "33e3fe5432c97a53d3884f21c401c6122becae9fc4f81d2711b2e11e2c23f4d2"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/rival-hypothesis-designer.md",
+                "sha256": "6733c2141d6629b53342a87b2f7fbbc845d0ddefdd63dff24737131e18fa272b"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/robustness-planner.md",
+                "sha256": "0a67592d681a04e1ae911208257fe552353139357d6429cedad06b04fd6f5d9b"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              }
+            ]
+          },
+          {
+            "id": "review-scope",
+            "answer": "根据你提供的状态，检索阶段目前没有显示必须重跑或扩大范围的理由；筛选阶段尚未完成。两个协议要求的数据库均执行成功、日志与查询式齐全、没有未命中概念，并找回全部3篇已知相关文献，这支持继续按已批准范围推进。去重后只有9条本身不是检索失败证据，也不是扩展2018–2025年区间、主题或人群的理由；已知文献全部找回仍不能单独证明检索绝对完整。\n\n当前数量应这样区分：\n\n| 环节 | 可确认的状态 |\n|---|---|\n| 合并去重后待筛记录 | 9条 |\n| 标题摘要后进入全文阶段 | 6条；据此该阶段未纳入3条，具体排除理由需与日志对应 |\n| 已取得全文 | 4条 |\n| 未取得全文 | 2条，占进入全文阶段6条的33.3%；这是检索获取状态，不是全文排除理由 |\n| 全文筛选待裁决 | 已取得的4条中有1条存在分歧 |\n| 最终纳入数量 | 尚不能确定；其余3条全文的具体决定也未在摘要中说明 |\n\n下一步应优先处理两个独立事项：\n\n1. 按既定合法获取渠道追踪那2篇全文，记录每篇的尝试、结果和未取得原因。若最终仍无法获取，按流程保留为“未获取报告”，在综述局限中讨论潜在影响；不能仅凭拿不到全文把它们记为不符合纳入标准。本次仅提出此建议，不执行获取。\n2. 按协议的分歧处理机制裁决那1篇，保留两名筛选者的原始独立决定、分歧点、裁决结果和依据。不能由多数倾向或助手判断直接替代既定裁决。\n\n随后核对记录与报告/研究的对应关系、其余全文决定、排除理由及流程图计数。当前只给出去重后的数目，不能反推两个数据库的原始命中数和去重数；若多篇报告对应同一研究，也须避免把报告数直接当研究数。协议规定的双人独立筛选已落实，不需重新设置这一要求；如需计算一致率，应使用完整的独立判定记录，而不能从“1篇待裁决”推算总体一致性。\n\n对已经取得且最终确认符合标准的文献，可以在既定流程内推进提取与质量评价；最终纳入集合和总体综合结论应等获取状态、分歧及各全文决定得到明确处理后再锁定。不能凭角色中的全文缺失比例阈值自行扩大研究范围或宣告整个综述失败。\n\n这是一份基于状态摘要的审查建议；我未直接查阅日志、查询式或筛选表，因此没有完成逐条审计，也不宣称系统综述已完成或全部报告要求已通过。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/literature-ra.yaml",
+                "sha256": "fe3f5e2fc8533133c78338e288434008a5caeed1e9487d02de44cfee1d3d091c"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/compliance-officer.yaml",
+                "sha256": "a3976357287d54850f3374cc7942d54efe7a52bea999199fa00d3d5d350359b7"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/workflows/lit-review.md",
+                "sha256": "1c3ddfe2b2d86469c59642b49b081064c28dfbde4aefb2f79323be4e571be894"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              }
+            ]
+          },
+          {
+            "id": "prereg-status",
+            "answer": "可直接使用以下状态说明草稿：\n\n“截至2026-09-11，本研究的数据已于2025年收集完成，具体收集日期尚未列明。研究者于2026-09-01查看过主要结局的描述统计；拟定分析模型尚未运行。目前没有注册记录，也没有可引用的注册编号或时间戳。原知情同意是否覆盖本次二次分析尚未确认，现阶段仅获准使用上述描述信息，不得访问原始记录。因此，本次产出为 C5 预注册状态说明草稿，不能表述为已预注册、在数据收集前注册，或在未接触相关结局信息前制定分析方案。”\n\n时间线必须保留为：\n\n| 时间 | 已知事实及含义 |\n|---|---|\n| 2025年，具体日期未提供 | 数据已经收集；现在无法再完成发生在这批数据收集之前的注册 |\n| 2026-09-01 | 已查看主要结局描述统计；不能声称未查看相关变量或未接触任何结果 |\n| 2026-09-11 | 尚无注册记录，拟定模型未运行；同意适用范围待确认，原始记录访问未获授权 |\n| 未来，日期待实际发生 | 如后续获准登记，应采用真实时间戳，说明登记晚于数据收集和描述统计查看，并如实交代登记时模型是否仍未运行 |\n\n缺口清单如下：\n\n- **二次分析权限与同意范围**：由有权限的人核对原同意文件、原伦理批准或其他有关记录，确认本次问题、数据用途和访问安排是否覆盖；如不覆盖或仍不明确，由负责的伦理与数据管理方确定必要的进一步处理。不能由助手推定免审或批准，也不能为核对此事自行读取原始记录。\n- **既往接触记录**：补充2026-09-01具体查看了哪些主要结局、哪些描述统计，是否存在分组结果，以及谁查看过。只记录能确认的事实；已有信息不能支持“只看过样本量”或“未看过有关变量”等说法。\n- **方案形成时间与受影响程度**：交代研究问题、假设和模型何时提出，是否受到已见描述统计影响。模型尚未运行并不能把此前的信息接触消除；也不能倒填事前假设或排除标准。\n- **可锁定的分析细节**：补充研究问题、分析单位、样本范围、结局与变量定义、具体模型、估计方法、协变量依据、排除与转换规则、缺失处理、多重比较及有依据的敏感性检查。仅据现有摘要无法判定这些内容是否完备，也无法确认数据可支持拟定模型。\n- **登记与偏离记录**：确定适合的登记形式并完整披露已有数据和已看结果；未来只对尚未实施的分析作透明承诺，保留后续修改及理由。未真实提交前继续写“未注册”。不能自动把后来登记的所有分析称为在未见数据条件下预设的确证分析。\n\n现在可以继续起草状态说明、缺口清单和不需要接触原始数据的分析方案文字。后续数据访问、处理和模型分析须等本次二次使用所需的同意/伦理依据及数据访问授权明确，并在许可范围内开展。若希望形成对尚未运行分析的预先承诺，还应在运行之前完成方案锁定和真实登记，披露已经查看过的描述统计；注册本身不能替代使用许可。\n\n若权限问题无法解决，就停止依赖原始数据的分析分支。现有事实也不足以追认或裁定2026-09-01访问的合规性。本次不读取原始记录、不注册、不修改项目文件；上述草稿不构成正式 C5 已完成或已获分析许可的证明。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/compliance-officer.yaml",
+                "sha256": "a3976357287d54850f3374cc7942d54efe7a52bea999199fa00d3d5d350359b7"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/prereg-writer.md",
+                "sha256": "137042bd0ca7d84040faaca975386e05afa9e4d8792946d3d2d2e070517d92ce"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/workflows/paper.md",
+                "sha256": "db7e67e1d666c8d5b8adbf9ecfc73b717d73af2abad629dd5c482ce5950b2702"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "5b87fbcfc4c0afb5ba87253678169aa643921bad67f6d51e27577fb8c5ed150c"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/workflow-contract.md",
+                "sha256": "bbe2b515bafef51b10755d19e93c624b3c9b4afa8ddfd52e6afc47b51ed9a3d7"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "639dd63c670d76676d7906a4f3daa531e72354ef920402a77d72bee846336832"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/standards/quality-gate-contract.yaml",
+                "sha256": "d6bbe6f0e76396af184e206d3fbdd154a84963130329fa9fad9ebc6c0d2598d9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/D_ethics/ethics-irb-helper.md",
+                "sha256": "59a0d292b0ad9103c4647345c6268f47b87dadf10dd56aee3397ef21fdae0fd1"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              }
+            ]
+          }
+        ]
+      },
+      "revised": {
+        "snapshot": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow",
+        "resource_hashes_verified": true,
+        "distinct_skill_resources_read": 22,
+        "differences_from_bound_source": [
+          "workflows/lit-review.md",
+          "workflows/study-design.md"
+        ],
+        "responses": [
+          {
+            "id": "interpretive-design",
+            "answer": "这项设计与“夜班护士如何理解团队支持”的解释性问题相容，可以继续利用现有访谈和现场备忘开展 reflexive thematic analysis。但仅凭“14 份访谈”还不能确认材料充分，也不能判断分析质量已经达标。你已说明当前用途的伦理批准和知情同意均已核对，这部分无需重新作为分析的阻断条件。\n\n抽样充分性应围绕研究范围和材料能够支持的解释来论证。需要说明研究场域与夜班情境、受访者如何选入、14 份访谈对应多少人及是否有重复访谈、相关经历的差异，以及访谈中关于团队支持的叙述是否具体、丰富，能否支撑有层次的主题发展。固定停止招募是现实边界，不是充分性的证明；如果某些经历或情境材料薄弱，应收窄相关主张并明确缺口。这里无需功效计算，也不应以达到某个访谈数量、编码频率稳定或“饱和”作为统一验收标准。\n\n分析质量可从现有材料中这样检查：\n\n- 明确分析立场，以及主要关注语义层面的表达还是潜在意义；说明研究者与护士、团队或场域的关系如何影响访谈与解释。\n- 反复熟悉材料、编码并发展主题，保留从原文片段到编码、再到主题解释的依据及修订理由。主题应围绕一个可说明的核心意义展开，而不只是把访谈提纲重列为分类标题。\n- 回到完整访谈语境检查主题，寻找与当前解释不一致的片段和受访者间差异。若某主题只适用于特定情境，就调整其范围；不要为了主题整齐而抹去矛盾。\n- 用现场备忘和反思记录说明研究者如何形成、修订解释。备忘能提供情境与反思线索，但它们来自研究者，不能自动视为独立验证。引文选择应体现主题依据及差异，而不只展示最顺畅的例子。\n\n没有第二编码者本身不是这一路径的缺陷；独立双重编码、编码一致性系数或成员核对不是 reflexive thematic analysis 的普遍必需条件。质量判断的重点是解释是否连贯、有材料依据，并清楚呈现研究者的分析作用。\n\n可以支持的主张是：对这些访谈所处情境中，受访夜班护士如何赋予团队支持意义、其中存在哪些差异或张力，提出有证据的解释。具体主题仍需分析后确定。不能由此估计所有护士持某观点的比例、声称代表夜班护士总体，或证明团队支持导致某种工作或健康结局。必要缺口是场域与选样说明、材料丰富度、研究者位置及实际主题—材料对应证据；这些影响解释范围，但不要求你现在新增招募或建立项目文件。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "9ab042863cf77e52d4bedfae1d38494b4feb6e647fd1a7359cafd1c68e255b5d"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/methods-lead.yaml",
+                "sha256": "e428842c86714b2284e6006aa98b4473cad96170bd46dcf93598413403f9ad20"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "06cfeaafe7f9851d30820c2fd5e4d14ef32995ee3ad57e5befe1f998b6ae05ca"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/study-designer.md",
+                "sha256": "c0fcdc622596117717edaff14e4562646c524a82d36198d9baf14342d2c077ff"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/robustness-planner.md",
+                "sha256": "efe6b03a20c8a8bfcaec7be3aa5a6b25ad86bc4b182531b66531baebf24e20ec"
+              }
+            ]
+          },
+          {
+            "id": "fixed-data",
+            "answer": "这个有限的描述性设计合理，已经可以起草分析计划。分析对象是已授权的这批全部 120 份服务记录；目标是准确描述这批记录的等待时间，而不是估计更大总体或因果效应。因此，120 是分析对象的既定规模，无需为它追加招募、做功效分析或事后“达成功效”计算，也不因没有预注册要求而暂停起草。\n\n在计划定稿前，需要补明以下信息：\n\n- 这批记录对应的服务类型、日期区间和纳入边界；一份记录代表一次服务、一个等待阶段还是一名服务对象。同一人若有多次服务，应按既定“记录”单位计数，不能把 120 份记录写成 120 人。\n- 等待从哪个事件开始、在哪个事件结束，按自然时间还是工作时间计算，单位与时间精度是什么；等待时间是现成字段还是由两个时间戳相减得到。\n- 是否存在仍在等待、取消或未发生服务的记录。“字段无缺失”不等于每份记录都有已完成的等待时长；这会改变分布的解释，不能把截至导出日的等待自动当成最终等待。\n- 是否有已确定的报告用途，例如需要展示的时间单位或业务阈值。未给定阈值时不自行创造达标标准。\n\n计划可先写为：在确认记录单位和等待时间定义后，对这批 120 份记录报告记录数、最小值、最大值、中位数、四分位数及四分位距，并报告均值和标准差以补充平均水平与离散程度；用经验累积分布图展示完整分布。说明所用分位数计算规则及单位。结果仅适用于这批记录，不作显著性检验、因果建模或面向总体的置信区间解释。\n\n实际计算前，检查记录数及唯一标识、重复导入、起止时间顺序、负值或异常零值、单位和时区是否一致、异常长等待是否为真实服务经历。真实极端值应保留；疑似错误须核对来源，不能为使分布好看而删去。现有“无缺失”无需衍生插补方案，但若核对发现问题，应记录其来源及对描述范围的影响。\n\n目前可以完成方法与检查规则的草稿；由于没有等待时间数值，不能报告任何分位数、均值或分布形状。等待定义、记录边界及未完成等待的状态确认后，计划才具备直接执行的条件。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "9ab042863cf77e52d4bedfae1d38494b4feb6e647fd1a7359cafd1c68e255b5d"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/pi.yaml",
+                "sha256": "69bea867be8bcc1b8660fb053c872804414ff135f722e7162502fc4c53cc79ef"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/statistician.yaml",
+                "sha256": "13d6ec994d47db693d564915de686bdec987811515d9a7a34325ede26933d4cb"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/study-designer.md",
+                "sha256": "c0fcdc622596117717edaff14e4562646c524a82d36198d9baf14342d2c077ff"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "06cfeaafe7f9851d30820c2fd5e4d14ef32995ee3ad57e5befe1f998b6ae05ca"
+              }
+            ]
+          },
+          {
+            "id": "explicit-protocol",
+            "answer": "当前结论：正式 C1/C3/C3_5/C5 设计包不能签收，应保持 BLOCKED。两组随机干预、主要连续结局和分配方法已有说明，是已具备的设计信息，但不能抵消已批准协议中尚未满足的要求。本次结论依据你提供的状态，尚未逐项核验设计包原件。\n\n| 签收要求 | 当前证据与结论 | 接下来处理 |\n|---|---|---|\n| 五项指定稳健性检查 | 仅完成两项，另外三项未完成；已完成也不等于已通过 | 保留全部五项及其原定判据，列明每项对应的威胁、执行状态、结果和解释。完成剩余三项，并报告不利结果、失败与无法执行的原因；不以其他检查替代或减少数量。 |\n| 预先功效分析 | 缺少协议要求的效应值依据，计算依据不完整 | 补齐可追溯的效应值来源及其与主要结局、研究情境的适用性；核对协议指定模型、变异假设、分配比例、检验设定及其他必要参数。不能套用默认效应值、编造来源或以事后功效替代。 |\n| 预注册 | 只有未提交草稿，没有实际注册证据 | 核对草稿与原协议的一致性，并如实记录数据收集、访问和分析历史。按协议规定的顺序完成审查后，由有权限者完成注册，取得可核验的实际时间戳和记录；本次不执行注册。 |\n| 独立方法审查 | 审查人暂不可用，要求尚未满足 | 等待该审查人，或依原协议允许的方式安排具有独立性的替代审查者。自审或同一对话中切换角色不能充当独立审查。 |\n\nC1/C3 的完整性还需要在现有文件中核验：研究问题、主要结局和测量时点、分析目标、随机化单位、拟用模型与分析人群是否对应；变量定义、缺失与排除规则、适用诊断及决策依据是否明确。现有叙述不足以把这些项目判为缺失，也不足以宣告通过。正式签收应有 Q1 问题—方法对应证据和 Q4 输入、决策与复现限制的可追溯依据，并保留各选定方法的原有要求。\n\n处理顺序应遵守协议本身的时序。先核对已发生的数据访问及上述两项检查的时间和所用材料，再补足可独立推进的依据、核对工作和审查材料。若剩余检查依赖协议尚不允许开展的分析，就保留为待执行，不能为了凑齐签收项目提前运行。若要求“预先”完成的环节已经错过时间窗口，应如实报告偏离，由协议负责方处理；现在补做不能改写历史。\n\n在五项检查满足既定验收要求、功效依据完整、预注册状态得到实际验证、独立审查及所需修订完成，并且设计包的对应文件和门槛证据可核查后，才能重新申请签收。当前可以继续授权范围内的准备工作，不能将整个包改标为通过。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "9ab042863cf77e52d4bedfae1d38494b4feb6e647fd1a7359cafd1c68e255b5d"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/methods-lead.yaml",
+                "sha256": "e428842c86714b2284e6006aa98b4473cad96170bd46dcf93598413403f9ad20"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/study-designer.md",
+                "sha256": "c0fcdc622596117717edaff14e4562646c524a82d36198d9baf14342d2c077ff"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/robustness-planner.md",
+                "sha256": "efe6b03a20c8a8bfcaec7be3aa5a6b25ad86bc4b182531b66531baebf24e20ec"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/prereg-writer.md",
+                "sha256": "e34a828d231eca1fba20f2e0492ea460b769d7f66a876f8a11997200d374f6b9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "06cfeaafe7f9851d30820c2fd5e4d14ef32995ee3ad57e5befe1f998b6ae05ca"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/workflow-contract.md",
+                "sha256": "bbe2b515bafef51b10755d19e93c624b3c9b4afa8ddfd52e6afc47b51ed9a3d7"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/standards/quality-gate-contract.yaml",
+                "sha256": "d6bbe6f0e76396af184e206d3fbdd154a84963130329fa9fad9ebc6c0d2598d9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/templates/preregistration-template.md",
+                "sha256": "c8fac758d99cae883907497ada820e76445b0f1876370175c644db385865d1b1"
+              }
+            ]
+          },
+          {
+            "id": "rivals",
+            "answer": "应把当前观察写成“实施后的访谈中出现了疲劳减轻的自我报告”。因为没有基线或对照，这还不能证明疲劳相较实施前客观下降，更不能归因于排班 App。现有材料支持认真处理以下两种竞争解释，无需再凑其他解释。\n\n| ID | 竞争解释及材料依据 | 可区分的证据与当前可做的核查 | 尚不能区分的部分 |\n|---|---|---|---|\n| R1 | 同期夜班减少，可能通过减少夜班暴露而降低疲劳。夜班减少已有排班记录依据。 | 在现有记录覆盖范围内核对夜班减少的时间和幅度；若已有记录及授权允许对照到受访者，可比较其排班经历与访谈中归因于夜班、休息机会或 App 功能的叙述。若减轻疲劳的叙述主要对应夜班减少，且受访者直接将二者联系起来，会使这一解释更有材料支持。 | 没有基线疲劳和对照，不能估计排班变化的独立效应。还不知道夜班减少是 App 的结果还是同期独立变化：前者可能是作用路径，后者才是竞争性的同期因素。现有材料未必能判定这一因果顺序。 |\n| R2 | 受访者担心批评管理层，可能倾向呈现较正面的疲劳叙述。依据是访谈备忘。 | 回看备忘所对应的访谈情境与原话，检查顾虑、回避、限定表达，以及正面总结与具体疲劳经历之间是否有张力；也保留愿意表达批评或没有报告改善的材料（若存在）。这些可说明访谈表达受情境影响的可能性。 | 备忘提示的是风险，不足以证明某段自报不真实。缺少独立的疲劳测量或其他访谈情境，无法量化这种影响，也不能据此“校正”疲劳下降幅度。 |\n\n上述核查只使用已有且获准使用的访谈、备忘和排班记录，结果目前尚未执行或看到。夜班记录即使包含排班变动信息，也不能补出缺失的基线疲劳；若记录时间范围或人员对应关系不足，相应比较就不可行。没有追加采集权限时，基线、对照或独立疲劳证据只能列为当前无法获得的区分证据。\n\n解释规则是：有直接支持就说明支持哪个机制、适用于哪些叙述；材料矛盾就保留矛盾；无法区分时把两种解释都保留。它们也可能并存，不能通过选择几段有利引文排除其中一种。\n\n现阶段可形成的结论是：员工在 App 实施后的访谈中报告疲劳减轻；同期夜班减少及对管理层批评的顾虑分别构成排班机制和访谈表达层面的解释线索。材料允许分析这些叙述及其情境，不能识别 App 的因果效应、计算改善幅度，或声称已排除竞争解释。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "9ab042863cf77e52d4bedfae1d38494b4feb6e647fd1a7359cafd1c68e255b5d"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/pi.yaml",
+                "sha256": "69bea867be8bcc1b8660fb053c872804414ff135f722e7162502fc4c53cc79ef"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/rival-hypothesis-designer.md",
+                "sha256": "43c6a6224258af0cc45af8be00b19749c243561ed54a48c5a0a75b85966e3fc9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/robustness-planner.md",
+                "sha256": "efe6b03a20c8a8bfcaec7be3aa5a6b25ad86bc4b182531b66531baebf24e20ec"
+              }
+            ]
+          },
+          {
+            "id": "review-scope",
+            "answer": "根据你提供的状态，检索没有显示需要因记录数量而重跑或扩大范围的问题；筛选尚未完成，暂不能确定最终纳入集或宣告整个综述完成。此次是对所述状态的审查，我没有读取日志原件或重跑检索。\n\n检索部分已有两项协议数据库成功执行并产生有效记录，已知相关文献找回 3/3，查询式与日志齐全，也没有未命中的必需概念。这些是支持检索覆盖与可追溯性的证据。去重后仅 9 条，本身不是检索失败的理由；已知文献全部找回也不能证明找全所有合格研究。继续保持协议固定的人群、主题和 2018–2025 年区间。\n\n| 环节 | 当前可报告的状态 |\n|---|---|\n| 合并去重后 | 9 条记录 |\n| 标题摘要阶段进入全文 | 6 条；若 9 条均已完成该阶段筛选，则该阶段排除 3 条，应与日志核对 |\n| 取得全文 | 4 条 |\n| 尚未取得全文 | 2 条，仍是待获取状态，不能记作不符合纳入标准的全文排除 |\n| 已取得全文中的分歧 | 1 条待按协议裁决 |\n| 最终纳入研究数 | 尚不能确定；其余 3 条没有报告分歧，并不自动说明它们均已纳入，报告数也不必然等于研究数 |\n\n建议下一步按现有协议处理：\n\n1. 对那 1 条分歧保留两名独立筛选者的原始判断、依据及全文定位，走协议规定的裁决流程；裁决完成前保持待定。\n2. 对未取得的 2 篇逐项保留标识、获取尝试、状态和真实原因，在既有权限内安排合法的替代获取途径。未取得原因目前没有提供，不能擅自写成付费墙或“未找到”。不通过全文摘要推定最终合格性。\n3. 核对各阶段计数、去重记录、具体排除理由以及报告—研究对应关系。检索诊断中应能追溯上述数据库、概念与已知文献结果；未在本次材料中展示的记录只列为待核查，不能反推其不存在。\n4. 对已经完成全文资格判定并确认纳入的研究，可以按协议继续提取和质量评价；对待获取或待裁决条目保留明确状态。最终流程图、纳入集及综合结论须反映这些问题的实际处理结果。\n\n无需为了增加条目数增加年份、改主题或再找数据库。若后续发现具体检索遗漏，再提出有依据且符合协议的修正；现阶段的明确待办是全文获取、分歧裁决与记录核对。PRISMA 的完整报告也不能替代这些实际方法步骤。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "9ab042863cf77e52d4bedfae1d38494b4feb6e647fd1a7359cafd1c68e255b5d"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/literature-ra.yaml",
+                "sha256": "80b1101b2988b3f2cdee3ba2f75607ea2f93540df82a2c6ea953bec943cd923b"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/compliance-officer.yaml",
+                "sha256": "471458184aeabee3bba9f2a064f517a957f550043d808a734cac76a897b4546f"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/workflows/lit-review.md",
+                "sha256": "a2cea5936d1110d17f007600a87499b144409087041cd1fb5ac636dbaee27d50"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/literature-search-quality-contract.md",
+                "sha256": "5c6af018065af58adc4ea8b437854f507060bf849a5e0d61044cd7a13bfa0a72"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/workflow-contract.md",
+                "sha256": "bbe2b515bafef51b10755d19e93c624b3c9b4afa8ddfd52e6afc47b51ed9a3d7"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/B_literature/paper-screener.md",
+                "sha256": "896533151712560dcd236817440de2c5419f54642d5d223254af801544971474"
+              }
+            ]
+          },
+          {
+            "id": "prereg-status",
+            "answer": "可使用以下状态说明草稿：\n\n“截至 2026-09-11，本研究尚无注册记录。本次拟对 2025 年已收集的数据开展二次分析。研究者已于 2026-09-01 查看主要结局的描述统计，因此相关结局信息并非未曾查看；拟定模型尚未运行。目前尚未确认原知情同意是否覆盖本次二次分析。本次仅获准使用上述描述信息进行状态说明和计划起草，未获准访问原始记录。注册平台、注册编号和实际注册时间戳均未确定或核验。本说明是聊天中的 C5 状态草稿，不代表已提交、已注册或获得后续分析许可。”\n\n时间线应保持为：\n\n| 日期 | 已知事件 | 应如何表述 |\n|---|---|---|\n| 2025 年，具体日期未提供 | 数据已经收集 | 属于既有数据；不填写推测的起止日期 |\n| 2026-09-01 | 你查看了主要结局描述统计 | 已有相关结果知识；不能写“数据未见”或“未查看结局” |\n| 2026-09-11 | 起草本次状态说明；没有注册记录，拟定模型未运行 | 当前是已收集数据且已有结局描述信息之后的计划阶段 |\n| 将来，尚无日期 | 获得所需授权、定稿及可能的注册或分析 | 只在实际发生后填写日期及可核验记录，不倒填 |\n\n需要补齐的缺口是：\n\n- **二次使用权限**：由有权限的负责人核对原同意文本、当前研究用途及适用的伦理与访问决定，提供可以覆盖本次分析的依据；如不能覆盖，须由相应治理程序确定补充批准、重新同意或其他适用处理。现有信息不足以判断豁免或批准，也不应为核对而擅自打开原始数据。\n- **既有知识记录**：说明 2026-09-01 看过哪些结局、总体或分组摘要以及具体信息；补充其他分析人员的相关访问历史和已有计划形成时间。不能从“你看过描述统计”推断所有人都看过原始记录，也不能从“模型未运行”推断此前没有任何分析。\n- **可执行的计划**：明确研究问题、主要与次要结局、分析单位、纳入排除、变量与协变量、模型与估计方法、缺失处理、适用的多重比较和诊断/敏感性规则。需要研究信息才能确定的参数暂留缺口，不填示例数值。\n- **注册要求与偏离规则**：确定目标平台并核验其对既有数据及先前结果知识的披露、时间和模板要求；当前只能起草通用说明，不能确认平台合规。后续变更记录实际日期、原计划、修改及理由，并注明发生在何种数据查看或分析之前或之后。\n\n现在可以继续基于已获准的描述信息完善状态说明和计划草稿。后续分析须等到本次二次使用的同意/伦理依据及实际数据访问权限得到确认，并完成适用的分析前要求；如果届时确定注册是分析前的必要步骤，还须取得实际注册证据。不能把草稿写好或模型尚未运行当成开始分析的许可。\n\n即使以后成功登记，也不能称为数据收集前或未见主要结局信息前的预注册。可以如实说明哪些后续模型决策是在运行前固定的，并披露已有描述统计可能影响这些决定；后续新增探索与偏离另行标注，登记不会消除已有知识对确认性主张的限制。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "9ab042863cf77e52d4bedfae1d38494b4feb6e647fd1a7359cafd1c68e255b5d"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/compliance-officer.yaml",
+                "sha256": "471458184aeabee3bba9f2a064f517a957f550043d808a734cac76a897b4546f"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/prereg-writer.md",
+                "sha256": "e34a828d231eca1fba20f2e0492ea460b769d7f66a876f8a11997200d374f6b9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/workflow-contract.md",
+                "sha256": "bbe2b515bafef51b10755d19e93c624b3c9b4afa8ddfd52e6afc47b51ed9a3d7"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/templates/preregistration-template.md",
+                "sha256": "c8fac758d99cae883907497ada820e76445b0f1876370175c644db385865d1b1"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/D_ethics/ethics-irb-helper.md",
+                "sha256": "59a0d292b0ad9103c4647345c6268f47b87dadf10dd56aee3397ef21fdae0fd1"
+              }
+            ]
+          }
+        ]
+      },
+      "final": {
+        "snapshot": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow",
+        "resource_hashes_verified": true,
+        "distinct_skill_resources_read": 16,
+        "differences_from_bound_source": [],
+        "responses": [
+          {
+            "id": "interpretive-design",
+            "answer": "从 Methods Lead 的角度看，研究问题与 reflexive thematic analysis（反思性主题分析，RTA）相符：你们要解释夜班护士如何赋予“团队支持”意义，访谈能够提供相关叙述，研究者备忘能够帮助追踪解释过程。当前可以支持继续开展这项有边界的解释性研究；仅凭“14 份访谈”还不能确认材料充分或分析质量已经达标。我没有看到访谈正文、备忘或主题分析结果。\n\n**抽样充分性。** 14 份访谈是既定材料边界，不是充分性的自动证明，也不构成自动否决。应根据问题范围、访谈的丰富程度、相关经验的差异以及分析能否形成有解释力的主题来论证。必要缺口是：这些访谈对应多少参与者、如何选取、来自哪些工作场景，以及哪些夜班经验得到或未得到呈现。这些信息用于界定结论适用的情境，不要求重新招募。若某类经验缺失，或材料只够回答问题的一部分，就收窄问题和主张，并如实说明固定样本的限制。不要用统一样本数、事后功效或“编码不再增加”替代 RTA 的材料充分性论证，也不应补写未实际建立的“已达饱和”结论。\n\n**分析质量。** 没有第二编码者本身不是 RTA 的设计缺陷；不必为满足一般质量清单增加独立双重编码、编码一致率或强制成员核查。关键是解释过程是否连贯、反思是否实际影响分析、主题是否由充分材料支撑：\n\n- 交代研究者与护理工作、受访者及研究场景的关系，以及如何理解访谈叙述与研究者解释的关系；说明归纳／理论引导、语义／潜在意义等分析取向，使取向与研究问题一致。\n- 从熟悉材料、编码到主题发展反复回看完整访谈，说明主题的中心意义及主题间关系，避免仅把访谈问题改成主题标题。保留引文上下文，让读者能追踪叙述、编码、备忘与解释之间的联系。\n- 针对选择性取例，检查现有材料中不符合初步主题的叙述。若出现实质差异，就修订主题边界或呈现张力，而非删除不合叙述的材料；如果某个解释只由个别访谈支撑，应准确呈现其范围。\n- 针对研究者既有期待，回看备忘中哪些预设影响了注意、编码和主题修改。备忘支持反思过程，但不能自动算作独立观察证据，也不能据此宣称完成了多来源验证。\n\n这里的质量目标是解释透明、方法一致且证据充分；其他研究者产生完全相同的代码或主题不是必要标准。上述检查是建议，尚不能称为已经通过。\n\n**可以支持的主张。** 完成分析后，可以提出“在这批访谈所涵盖的情境中，参与者如何理解、表达和协商团队支持”的情境化解释，并用具体叙述呈现共同意义及差异。可迁移性需要足够的场景说明，让读者判断其他情境的相似性。现有材料不能支持团队支持在夜班护士总体中的比例、不同群体的统计差异，或团队支持导致某种健康／工作结果的因果结论。关于实际团队行为或支持机制的解释，也要区分访谈中的叙述与尚未被独立观察或检验的推断。\n\n伦理批准和知情同意已覆盖当前用途，可直接沿用这一已确认边界。没有注册协议不自动阻断本次分析，也无需补造预注册；如现在补充分析决策，应明确其发生在访谈收集之后，并如实交代已有的资料接触和分析进度。本次只给出聊天中的设计建议，未建立项目文件。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-final-cases.json",
+                "sha256": "9e31f25aa8930c7497143659f9be94876285e98a5772b0310885a3388eb0e556"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/roles/methods-lead.yaml",
+                "sha256": "e428842c86714b2284e6006aa98b4473cad96170bd46dcf93598413403f9ad20"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "a84e48744131bd05ba67327214b96acbede1404448f09d369a0522a4ddf0abf8"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/skills/C_design/study-designer.md",
+                "sha256": "c0fcdc622596117717edaff14e4562646c524a82d36198d9baf14342d2c077ff"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/skills/C_design/robustness-planner.md",
+                "sha256": "efe6b03a20c8a8bfcaec7be3aa5a6b25ad86bc4b182531b66531baebf24e20ec"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "9ab042863cf77e52d4bedfae1d38494b4feb6e647fd1a7359cafd1c68e255b5d"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/skills/Z_cross_cutting/boundary-interviewer.md",
+                "sha256": "3fc1317ccf7d185f2cdbdd65afa2e0aae9b49b1f3ab5d882d7a1e8a4b926415b"
+              }
+            ]
+          },
+          {
+            "id": "review-scope",
+            "answer": "按你提供的状态，检索已有继续推进筛选的依据；当前最需要完成的是两篇全文的获取和一项筛选分歧的裁决。\n\n两个协议要求的数据库均成功产生有效记录，无未命中概念，且三篇已知相关文献全部找回。这些信息支持保留现有检索策略。去重后只有 9 条并不单独说明检索质量差，也没有据此扩大人群、主题或 2018–2025 年区间的理由。已知文献找回率在这三个核查对象中是 3/3，不能据此推断所有相关文献均已找全。两名独立筛选者的要求已经落实，无需重复建立筛选安排。\n\n目前计数应这样理解：\n\n| 环节 | 已知状态 | 报告边界 |\n|---|---|---|\n| 合并去重后 | 9 条记录 | 各数据库原始数量和去重数量未在本次材料中提供 |\n| 标题摘要进入全文阶段 | 6 条 | 若全部 9 条已完成决策且没有待定记录，标题摘要排除数为 3；仍应与原决策日志一致 |\n| 全文可得 | 4 条 | “全文可得”不等于最终纳入，全文评估完成数应按实际记录填写 |\n| 全文尚未取得 | 2 条 | 保留为未取得／待获取，不能列为全文资格排除，也不能计作已完成全文评估 |\n| 筛选分歧 | 4 条全文可得记录中有 1 条 | 在协议规定的裁决完成前，最终纳入状态未定 |\n| 最终纳入研究数 | 目前不能确定 | 另外 3 条的最终决定未提供，记录／报告与独立研究也需按实际对应关系区分 |\n\n建议按以下顺序收尾：\n\n1. 对两篇未取得全文保留记录标识、检索来源、获取尝试和实际未取得原因。按现有授权规划开放获取版本、机构订阅或馆际互借等替代途径；当前没有原因证据，就注明原因待查，不能猜成付费墙。未取得全文不能改写为“不符合纳入标准”。如果最终仍无法取得，应在流程图中单列，并说明资格尚未核实及可能的证据缺口。\n2. 对一项分歧保留两位筛选者的原始决定、所依据的协议条款和全文位置，按既定裁决程序处理。裁决前保持待定；无需修改标准来获得一致结论。\n3. 获取或处理完上述状态后，再核对标题摘要、全文、排除理由及 PRISMA 流程计数。不能把 6 条全文候选直接当成 6 项纳入研究，也不能把 4 条可得全文直接当成 4 项纳入研究。已明确纳入的研究可继续协议允许的提取与质量评价；最终纳入数及综合结论仍需反映未决状态。\n\n本次是依据你提供信息进行的状态审查，未逐条核验原始日志、诊断记录或全文，因此不声称完成了正式检索审计或完整 PRISMA 合规检查。现有描述没有显示需要重跑检索或改变协议的覆盖缺口；PRISMA 报告完整本身也不等于方法质量已经得到证明。本次未执行检索、获取全文或写入项目文件。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-final-cases.json",
+                "sha256": "9e31f25aa8930c7497143659f9be94876285e98a5772b0310885a3388eb0e556"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/roles/literature-ra.yaml",
+                "sha256": "80b1101b2988b3f2cdee3ba2f75607ea2f93540df82a2c6ea953bec943cd923b"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/roles/compliance-officer.yaml",
+                "sha256": "471458184aeabee3bba9f2a064f517a957f550043d808a734cac76a897b4546f"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/workflows/lit-review.md",
+                "sha256": "32b1125eb227ae46d6cb7a38c8bdb6b0e0496d23dc5b47e472420458f87bc6b1"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/literature-search-quality-contract.md",
+                "sha256": "5c6af018065af58adc4ea8b437854f507060bf849a5e0d61044cd7a13bfa0a72"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/skills/B_literature/paper-screener.md",
+                "sha256": "896533151712560dcd236817440de2c5419f54642d5d223254af801544971474"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/skills/G_compliance/prisma-checker.md",
+                "sha256": "47041307f7a19a2d01b86fa4a5d2669d65f65eb4eacac6c1b7091ee29cbaf89b"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "observations": [
+      {
+        "case": "interpretive-design",
+        "finding": "Both arms preserve fixed material, reject universal saturation/power/coding-agreement requirements, and qualify adequacy and claims."
+      },
+      {
+        "case": "fixed-data",
+        "finding": "Both arms permit a descriptive draft, ask about record/time definitions and make no calculation or generalization from missing values."
+      },
+      {
+        "case": "explicit-protocol",
+        "finding": "Both arms retain all five checks, prospective power evidence, actual registration and independent review as unmet requirements; neither grants PASS."
+      },
+      {
+        "case": "rivals",
+        "finding": "Both arms keep two evidence-grounded rivals, distinguish possible mediation from a competing explanation and do not invent a third rival or causal identification."
+      },
+      {
+        "case": "review-scope",
+        "finding": "Both arms retain protocol dates and scope, distinguish missing full text from exclusion and keep adjudication/final inclusion unresolved."
+      },
+      {
+        "case": "prereg-status",
+        "finding": "Both arms disclose prior outcome inspection and missing permission, do not backdate registration, and allow only authorized planning."
+      }
+    ]
   }
 }

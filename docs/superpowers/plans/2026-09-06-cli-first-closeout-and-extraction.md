@@ -3,6 +3,41 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Design and role boundaries — September 11 follow-up
+
+Continue the recorded next increment from `37386173` on
+`codex/design-role-boundaries`. Reuse Stage C as the shared design contract.
+Remove role-imposed quotas, universal power/saturation requirements and generic
+robustness recipes; retain design-specific evidence, explicit protocols, Q1/Q4,
+reporting obligations and permission gates. Align the design workflow, its cards,
+core digest and template. Correct preregistration timing/status guidance and the
+literature workflow's record-count trigger without changing the formal search
+quality gate. No new framework, dependency, runtime policy or publication.
+
+Archive reasons, primary methodological sources, matched synthetic forward trials,
+affected checks and pack identity in the existing outcome-guided Skills review.
+Check the canonical source and actual embedded exports, then integrate locally.
+Live Host/model performance and external program acceptance remain separate.
+
+Implemented in `d21cd570`: four design cards, five role perspectives, shared Stage C,
+design/review routes and templates are aligned. The four cards shrink from 1,022 to
+619 lines; no model-performance benefit is inferred. Fourteen synthetic responses
+and verified resource hashes are appended to the existing trial archive. Both
+baseline and revised guidance handled the supplied requests; two final route
+retests retain the corrected boundary references.
+
+The content/projection checks (28), continuity/quality checks (62 plus one existing
+skip), final boundary/search/reference checks (21), offline quality cases (12),
+native content tests (46), CLI content tests (5), wrapper check (1) and ledger
+checks (7) pass. Initial boundary omissions and a stale writing-title test were
+corrected and rechecked. Docs and the frozen-source guard pass. All 433 actual CLI
+exports match canonical bytes. Pack
+`5d626cdc8e25c3cc357b2c8f24e1d498c8f5e8c4320e4229ffeb8e0032776958`
+is bound to `d21cd570d467b17ac585d1440675689d10a50ada`. The review records source
+rationale, check commands and remaining gaps. No release or acceptance-state change.
+Next: representative long C-to-F tasks and stage-summary/Graph continuity, then
+change other method entries only for observed failures.
+
 ## Outcome-guided Skills optimization — September 11
 
 The maintainer requests an overall plan, implementation and an archived record of

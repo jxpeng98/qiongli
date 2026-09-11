@@ -1,4 +1,4 @@
-# Skills：按结果约束的首轮改造
+# Skills：按结果约束的改造记录
 
 日期：2026-09-11。基线：`142d4f8f`。工作分支：
 `codex/skills-outcome-boundaries`。
@@ -131,3 +131,108 @@ cargo +1.97.0 test --manifest-path packages/qiongli-native/Cargo.toml --offline 
 方向参考：OpenAI 关于[强模型下 Skills 和提示设计](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra)
 的建议，以及 Anthropic 的[Skills 编写实践](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)。
 本轮把这些建议转化为局部实现与可观察试验，没有用型号名称代替可靠性证据。
+
+## 后续调整：研究设计与角色边界
+
+继续已记录的下一步，基线 `37386173`，分支 `codex/design-role-boundaries`。
+源码提交 `d21cd570`。这次把同样的原则用于研究设计、角色默认要求和综述入口，
+没有改动原生执行逻辑、模型配置、冻结的 1.x 运行时或既有研究记录。
+
+### 发现与处理
+
+| 发现 | 调整 | 保留的要求 |
+|---|---|---|
+| PI、Methods Lead 和 Statistician 给所有研究设置文献或检验数量、功效分析等默认门槛 | 复用 Stage C 的 Design judgment contract，让要求取决于问题、方法和已批准协议 | 指定的检查数量、功效依据、独立审查与方法诊断仍须满足 |
+| 定性研究统一套用饱和、双人编码和一致率 | 按分析传统说明材料充分性及解释过程，不替 reflexive thematic analysis 增加不相容的默认检验 | 材料依据、反思、研究范围、协议冲突及未解决问题 |
+| 稳健性卡按符号和显著性“投票”，并提供缺少条件的因果补救与参数示例 | 删除通用检验配方，要求说明威胁、假设、能检验什么及什么结果会改变主张 | 必须检查的项目、失败和未运行项目、预先承诺及偏离记录 |
+| 竞争解释卡至少三项，无法区分就被视为不合格 | 保留有依据的重要解释；无法区分时明确限制，不补造解释或决定性检验 | 稳定 rival ID、原有表头、实际证据与下游联系 |
+| 预注册卡误标 C4，并可能把看过的数据说成未看过 | 改回 C5；复用已有模板，补充收集、访问、分析、注册状态和真实时间线 | 既有注册规则、实际权限、原始协议和修订历史；草稿不等于注册 |
+| 综述不足 20 条就建议扩大检索，角色按不一致的全文缺失比例升级 | 依据覆盖诊断及具体缺口决定是否修订；保留未获取全文与待裁决状态 | 正式检索的两个有效提供方门槛、协议边界、独立筛选与 PRISMA 计数 |
+| 工作流重复询问已知项目、伦理和协议信息 | 复用已知上下文，仅询问改变决定的缺口；窄请求可留在聊天中 | 正式 C/B 产物、Q1/Q4、实际工具与 preview/approval/CAS |
+
+四张修改的设计卡合计从 1,022 行、50,501 字节降至 619 行、29,395 字节。
+共享 Stage C 参考承接规则，角色、工作流、核心摘要和模板指向该参考。包内容仍由
+既有生成器处理；没有新配置层、依赖或研究存储。中英文使用说明明确这些内容属于
+beta.5 之后的开发构建，未宣称已进入公开包。文字按 Humanizer 检查了语气与事实边界。
+
+方法依据使用一手来源，而非模型品牌或通用模板：
+
+- [Lakens：Sample Size Justification](https://online.ucpress.edu/collabra/article/8/1/33267/120491/Sample-Size-Justification)：样本量论证应对应推断目的和实际约束。
+- [Braun 与 Clarke：To saturate or not to saturate?](https://uwe-repository.worktribe.com/output/4820803/to-saturate-or-not-to-saturate-questioning-data-saturation-as-a-useful-concept-for-thematic-analysis-and-sample-size-rationales)及[One size fits all?](https://www.tandfonline.com/doi/abs/10.1080/14780887.2020.1769238)：主题分析有不同方法立场，不宜统一套用饱和与编码一致性。
+- [Center for Open Science：Preregistration](https://www.cos.io/initiatives/prereg)：既有数据需要披露先前接触和知识，注册不能消除已知结果的影响。
+- [PRISMA 2020](https://www.prisma-statement.org/prisma-2020)：用于透明报告综述的方法和结果，不单凭清单证明研究质量。
+
+### 行为观察
+
+同一组六个合成请求分别交给基线和修订快照下的独立代理执行，不提供预期答案。
+包括 reflexive thematic analysis、固定数据描述、不可改动的明确协议、两种竞争解释、
+小规模系统综述及已看过结局的预注册状态。输入、完整回答和读取资源的 SHA-256
+追加在[原试验档案](./2026-09-11-outcome-guided-skills-trial.json)的
+`design_role_followup` 中。试验不访问私人研究、不联网、不执行分析或注册。
+
+两组都给出了可用的回答，均拒绝把未知或未执行工作标为通过。基线模型已能根据
+明确请求避开旧配额和不合适的方法要求，因此这次不能据此宣称回答质量、时延或
+token 使用已经改善。确定的变化是源码中的矛盾要求已移除，不再依赖模型自行纠正。
+修订回复保留五项指定检查、功效依据、真实注册和独立审查的阻塞状态；两种有依据
+的竞争解释没有被扩成三种，9 条综述记录没有触发扩大协议范围。
+
+每个代理连续处理其六个独立项目，使用同一会话环境，没有固定随机种子，也未覆盖
+其他实际 Host 或外部模型。记录的是回复及资源读取证据，不是实际研究执行或平台
+性能基准。后续应在代表性的长任务中观察 C→F 的证据交接和阶段归档，并检查真实
+问题出现在哪个方法入口，再决定是否继续修改该入口。
+
+### 验证与集成
+
+先完成的六例修订快照与最终源码只有两个工作流的边界说明不同：研究设计补回
+明确的 claim strength／evidence threshold 提示，综述补回
+`context/boundary_review.md` 路径及已锁定边界。随后用最终快照对这两个入口独立
+复测，回答仍保留材料、协议与正式完成的界限。基线、修订和最终复测的所有读取
+资源均核对 SHA-256；两例最终快照与源码字节完全一致。
+
+| 检查 | 实际结果 |
+|---|---|
+| Skill 结构、入口投影、引用链接、综述检索质量 | 首组 28 项通过 |
+| 连续性、Graph 内容、阶段交接、学术质量与能力契约 | 62 项通过，1 项既有跳过 |
+| 最终边界、共享参考、C5 路由与检索质量检查 | 21 项通过（包括重复核验的检索用例） |
+| 离线学术质量案例 | 12 项通过；这是断言检查，不是模型表现测量 |
+| 原生内容包 | 46 项通过 |
+| CLI content 集成检查 | 5 项通过，含无 PATH 运行与写入边界负例 |
+| Codex workflow wrapper 元数据与不安全入口拒绝 | 1 项通过 |
+| CLI 实际导出的 profile | 433 项与规范内容逐字节相同；尺寸和 SHA-256 一致 |
+| Skill quick validation、能力契约、冻结源码检查 | 通过 |
+| 台账与生成索引 | 7 项通过，249 项任务的索引已更新，接受状态未改变 |
+| Docs 构建 | 通过；保留既有高亮语言与大 chunk 提示 |
+
+初次边界检查发现两个入口遗漏明确的契约提示，已补回。修正后检查继续发现上一轮
+写作入口已改用共享参考，而测试仍要求旧标题；测试改为验证共享参考可达，同时保留
+边界工具、主张强度和证据门槛断言。这三处均已复测，没有通过删除实际要求来放行。
+
+内容提交：`d21cd570d467b17ac585d1440675689d10a50ada`。
+内嵌 pack SHA-256：
+`5d626cdc8e25c3cc357b2c8f24e1d498c8f5e8c4320e4229ffeb8e0032776958`；
+content root SHA-256：
+`9b811dd6a586035a952143d0985a062f52e3531c6a04a2767adddb7cb92d2e97`。
+公开版本号保持 `2.0.0-beta.5`，这是新的本地开发内容身份；未覆盖公开包。
+
+复现使用现有测试与生成器：Python 检查见 `tests/test_skill_structure_lint.py`、
+`test_cross_platform_routing_grill_contract.py`、`test_command_workflow_alignment.py`、
+`test_skill_resource_links.py`、`test_literature_search_quality_audit.py`、
+`test_academic_context_continuity.py`、`test_academic_graph_content_contracts.py`、
+`test_boundary_interviewer_contract.py`、`test_stage_handoff_contract.py`、
+`test_academic_quality_evals.py`、`test_capability_contract_v2.py` 与 `test_program_roadmap.py`。
+原生检查用 `cargo +1.97.0`、`--offline --locked` 和上述源码提交设置
+`QIONGLI_NATIVE_SOURCE_COMMIT`，运行 `qiongli-content --tests`、`qiongli --test cli content`、
+`qiongli-platform codex_bundle::tests::workflow_wrappers_preserve_metadata_and_reject_unsafe_entries`，
+再运行 CLI 的 `export_marketplace_content` 示例。先用
+`qiongli-content --example update_qiongli_core_lock` 生成锁文件。
+
+本次本地日志统一位于 `/private/tmp/qiongli-design-` 前缀下：`content.log`、
+`safety.log`（保留最初失败）、`boundary-final.log`、`contracts-final.log`、
+`capability.log`、`evals.log`、`native-content.log`、`native-cli.log`、
+`native-wrapper.log`、`native-export.log`、`export-check.json`、`ledger.log`、
+`native-boundary.log`、`docs.log` 与 `docs-final.log`。临时文件不是长期存储承诺；
+本记录、完整试验 JSON、源码提交和资源锁是仓库内的可追踪依据。
+
+本轮只进行本地提交与合并，不推送、不发布、不跟踪此前的发布任务。下一步是用
+代表性的长研究任务验证 C→F 的证据联系、Graph 和阶段总结的连续性，再据实际
+失败修改其他方法入口。跨 Host／模型及非 macOS 的验收与性能结论仍未建立。
