@@ -170,6 +170,13 @@
       "title": "CLI local Plugin registration",
       "path": "docs/architecture/decisions/0224-cli-local-plugin-registration.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-402",
+      "adr_number": "0225",
+      "title": "Discoverable CLI content upserts",
+      "path": "docs/architecture/decisions/0225-discoverable-cli-content-upserts.md",
+      "status": "Accepted"
     }
   ]
 }

@@ -3,6 +3,57 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Discoverable install/update follow-up — September 11
+
+Base `5f792d1c`; branch `codex/install-upsert-discovery`. The maintainer's beta.4
+terminal report identifies an exported source blocked by another enabled Qiongli
+Plugin and mandatory upgrade flags. The source folder is valid; Host registration,
+not copying into `.agents`, owns Plugin Skill/MCP discovery. The guide also missed
+the direct command's existing error hint. These are installation-flow defects,
+not evidence that the bundled MCP or Skill content is missing.
+
+Bare terminal install/upgrade now open the same guide; redirected/explicit-format
+queries retain their contracts. Interactive install/upgrade/update plugin share an
+upsert, discover the selected Host's registered source and verify its existing
+receipt. --target all processes both Hosts separately and stops on cancellation or
+failure. Conflicting explicit paths and foreign enabled Plugins are reported before
+source writes. The latter includes exact Plugin names and manual Host guidance.
+Codex 0.153.4 has no standalone Plugin-disable command; the implementation does not
+substitute cache-deleting remove. No unrelated Plugin, personal configuration or
+research file was changed. Registration remains separately confirmed and verified;
+its success output identifies both source and cache and explains Skill discovery.
+
+ADR 0225 narrowly supersedes 0224's mandatory interactive destination and bare
+terminal entry rules. Existing full file/Host previews, CAS, expiration, output
+escaping, unknown-file refusal and verified local-cache replacement remain. The
+bounded input reader now accepts up to 4096 bytes for absolute source paths.
+Bilingual guides label this as development work after the published beta.4 binary;
+CLI help is aligned. No dependency or new storage/write owner was added.
+
+Validation: all 39 CLI integration tests, five focused presentation/content/Host
+unit tests and 30 documentation/ADR tests passed. Seven ledger checks passed and
+the generated index is current. App all-target Clippy, formatting,
+the frozen-source guard and Docs build passed. The first compile needed the new
+parsed guide's Debug/Eq derives; Clippy then requested folding one nested guard.
+Both were corrected; affected Host checks passed again after the equivalent fold.
+Isolated real Codex and Claude trials passed bare-command cancellation, initial
+--target all installation, repeated upgrade, update alias, discovered paths,
+conflicting-destination refusal and cancellation before subsequent Hosts. A
+foreign enabled Codex Plugin refused before export and its cache bytes were
+unchanged. Existing beta.4 sources in both Hosts also updated to the new binary
+without destination flags. Model and synthetic-original canaries remain intact.
+No live research session or non-macOS execution is claimed.
+
+Logs use `/private/tmp/qiongli-install-` with `discovery-cli.log`,
+`discovery-tests.log`, `discovery-unit-final.log`, `discovery-host-final.log`,
+`discovery-clippy-final.log`, `discovery-python.log`, `discovery-docs.log`,
+`upsert-terminal.log`, `existing-beta4.log` and `discovery-ledger.log`.
+The two local Host receipts are under
+`packages/qiongli-native/target/content-real-hosts/install-upsert/`.
+Next publish only if separately requested and observe tools in a fresh authorized
+research session. Accepted program states and the prior no-release-tracking request
+remain unchanged; this increment performs local integration only.
+
 ## Guided installation and beta.4 release submission — September 11
 
 Base `44e78eb2`; branch `codex/install-journey-beta4`; content/version commit

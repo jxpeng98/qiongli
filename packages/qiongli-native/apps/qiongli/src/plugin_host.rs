@@ -40,7 +40,7 @@ pub(crate) fn register(
     source: &PluginSourcePlan,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
-) -> Result<(), &'static str> {
+) -> Result<bool, &'static str> {
     line(
         writer,
         "\nPlugin files are ready. Checking official Host registration…\n",
@@ -74,8 +74,8 @@ pub(crate) fn register(
         )? {
             return line(
                 writer,
-                "Host registration: skipped; exported files remain available.\nSession tools: not checked. Rerun upgrade plugin with the same target/destination to finish registration.\n",
-            );
+                "Host registration: skipped; exported files remain available.\nSession tools: not checked. Rerun qiongli install plugin to finish registration.\n",
+            ).map(|_| false);
         }
         if reviewed_at.elapsed() > Duration::from_secs(600) {
             return Err("local-host-precondition-changed");
@@ -99,10 +99,16 @@ pub(crate) fn register(
     if !verified.commands.is_empty() {
         return Err("local-host-registration-not-verified");
     }
+    show_json(writer, &serde_json::json!({
+        "plugin": PLUGIN,
+        "registered_source": source.destination,
+        "host_cache": verified.config_root.join("plugins/cache").join(MARKETPLACE).join("qiongli-next").join(env!("CARGO_PKG_VERSION")),
+        "skills": "loaded by the Host from this Plugin; no ~/.agents/skills copy is needed",
+    }).to_string())?;
     line(
         writer,
-        "Plugin registration, enabled state and cached files verified.\nHost registration: verified. Session tools: not checked.\nStart a new Host session; the Host launches Full MCP from this Plugin automatically.\nNo separate MCP install or background terminal is needed.\nFirst ask the Host to list Qiongli tools and call qiongli_config_status. Check literature provider setup separately with qiongli_literature_status.\nThen try: read a supplied paper, keep source locations, propose research records for review, and continue through Graph and a stage summary. Saving still requires approval.\nAfter updating the CLI, run upgrade plugin with this same target/destination; the Plugin keeps its own executable.\n",
-    )
+        "Plugin registration, enabled state and cached files verified.\nHost registration: verified. Session tools: not checked.\nStart a new Host session; the Host launches Full MCP from this Plugin automatically.\nNo separate MCP install or background terminal is needed.\nFirst ask the Host to list Qiongli tools and call qiongli_config_status. Check literature provider setup separately with qiongli_literature_status.\nThen try: read a supplied paper, keep source locations, propose research records for review, and continue through Graph and a stage summary. Saving still requires approval.\nAfter updating the CLI, rerun qiongli install plugin. It reuses the registered directory and refreshes this Plugin. Verify with qiongli doctor and qiongli install list.\n",
+    ).map(|_| true)
 }
 
 fn run(
@@ -224,13 +230,6 @@ fn inspect_registration(
     let (executable, root) = host_context(environment, target)?;
     let (marketplaces, plugins) = read_inventory(environment, &executable, Duration::from_secs(5))?;
     let codex = target == ManagedIntegrationTargetV1::Codex;
-    let markets = if codex {
-        &marketplaces["marketplaces"]
-    } else {
-        &marketplaces
-    }
-    .as_array()
-    .ok_or("local-host-inventory-invalid")?;
     let entries = if codex {
         &plugins["installed"]
     } else {
@@ -238,7 +237,7 @@ fn inspect_registration(
     }
     .as_array()
     .ok_or("local-host-inventory-invalid")?;
-    let Some(market) = markets.iter().find(|m| m["name"] == MARKETPLACE) else {
+    let Some(destination) = registered_destination(target, &marketplaces)? else {
         if entries
             .iter()
             .any(|p| p[if codex { "pluginId" } else { "id" }] == PLUGIN)
@@ -247,24 +246,18 @@ fn inspect_registration(
         }
         return Ok(None);
     };
-    let path = if codex {
-        &market["marketplaceSource"]["source"]
-    } else {
-        &market["path"]
-    };
-    let destination = Path::new(path.as_str().ok_or("local-host-inventory-invalid")?);
     let source = crate::plugin_source::plan(
         environment,
         content,
         crate::plugin_source::PluginSourceAction::Update,
         target,
-        destination,
+        &destination,
     )?;
     let current: Value = serde_json::from_str(&crate::plugin_source::status(
         environment,
         content,
         target,
-        destination,
+        &destination,
     )?)
     .map_err(|_| "plugin-source-status-invalid")?;
     let (actions, _) = commands(&source, &root, &current, &marketplaces, &plugins)?;
@@ -366,6 +359,120 @@ fn prepare(
     })
 }
 
+/// Discover only through the selected Host; unknown exports never become update targets.
+pub(crate) fn installation_source(
+    environment: &CommandEnvironment,
+    target: ManagedIntegrationTargetV1,
+    requested: Option<&Path>,
+    writer: &mut impl Write,
+) -> Result<Option<PathBuf>, &'static str> {
+    let (executable, _) = host_context(environment, target)?;
+    let (marketplaces, plugins) =
+        read_inventory(environment, &executable, Duration::from_secs(30))?;
+    let destination = registered_destination(target, &marketplaces)?;
+    if let (Some(requested), Some(registered)) = (requested, &destination)
+        && requested != registered
+        && !same_path(requested, &serde_json::json!(registered))
+    {
+        show_json(
+            writer,
+            &serde_json::json!({"registered_source": registered}).to_string(),
+        )?;
+        return Err("local-host-marketplace-conflict");
+    }
+    let conflicts = enabled_conflicts(target, &plugins)?;
+    if !conflicts.is_empty() {
+        show_json(
+            writer,
+            &serde_json::json!({"enabled_qiongli_plugins":conflicts}).to_string(),
+        )?;
+        line(
+            writer,
+            "Installation is not complete. Another Qiongli Plugin is enabled. No source files have been changed by this attempt.\n",
+        )?;
+        line(
+            writer,
+            if target == ManagedIntegrationTargetV1::Codex {
+                "In Codex, open Plugins and disable the listed Qiongli Plugin, then rerun qiongli install plugin --target codex. This Codex CLI has no standalone Plugin disable command; removing it would also delete its cache.\n"
+            } else {
+                "Disable the listed Plugin through Claude Code's Plugin manager, then rerun qiongli install plugin --target claude. Keep its files if you want to switch back.\n"
+            },
+        )?;
+        return Err("local-host-other-qiongli-enabled");
+    }
+    Ok(destination)
+}
+
+fn registered_destination(
+    target: ManagedIntegrationTargetV1,
+    marketplaces: &Value,
+) -> Result<Option<PathBuf>, &'static str> {
+    let codex = target == ManagedIntegrationTargetV1::Codex;
+    let markets = if codex {
+        &marketplaces["marketplaces"]
+    } else {
+        marketplaces
+    }
+    .as_array()
+    .ok_or("local-host-inventory-invalid")?;
+    let mut destination = None;
+    for market in markets {
+        let name = market["name"]
+            .as_str()
+            .ok_or("local-host-inventory-invalid")?;
+        if name != MARKETPLACE {
+            continue;
+        }
+        let (kind, path) = if codex {
+            (
+                &market["marketplaceSource"]["sourceType"],
+                &market["marketplaceSource"]["source"],
+            )
+        } else {
+            (&market["source"], &market["path"])
+        };
+        if destination.is_some() || kind != if codex { "local" } else { "directory" } {
+            return Err("local-host-marketplace-conflict");
+        }
+        let path = PathBuf::from(path.as_str().ok_or("local-host-inventory-invalid")?);
+        if !path.is_absolute() {
+            return Err("local-host-marketplace-conflict");
+        }
+        destination = Some(path);
+    }
+    Ok(destination)
+}
+
+fn enabled_conflicts(
+    target: ManagedIntegrationTargetV1,
+    plugins: &Value,
+) -> Result<Vec<String>, &'static str> {
+    let codex = target == ManagedIntegrationTargetV1::Codex;
+    let entries = if codex {
+        &plugins["installed"]
+    } else {
+        plugins
+    }
+    .as_array()
+    .ok_or("local-host-inventory-invalid")?;
+    let mut conflicts = Vec::new();
+    for plugin in entries {
+        let id = plugin[if codex { "pluginId" } else { "id" }]
+            .as_str()
+            .ok_or("local-host-inventory-invalid")?;
+        let enabled = plugin["enabled"]
+            .as_bool()
+            .ok_or("local-host-inventory-invalid")?;
+        if id != PLUGIN
+            && matches!(id.split('@').next(), Some("qiongli" | "qiongli-next"))
+            && enabled
+        {
+            conflicts.push(id.to_owned());
+        }
+    }
+    Ok(conflicts)
+}
+
 fn commands(
     source: &PluginSourcePlan,
     root: &Path,
@@ -374,13 +481,17 @@ fn commands(
     plugins: &Value,
 ) -> Result<(Vec<Vec<String>>, Option<String>), &'static str> {
     let codex = source.target == ManagedIntegrationTargetV1::Codex;
-    let markets = if codex {
-        &marketplaces["marketplaces"]
-    } else {
-        marketplaces
+    let registered_path = registered_destination(source.target, marketplaces)?;
+    if registered_path
+        .as_ref()
+        .is_some_and(|path| !same_path(&source.destination, &serde_json::json!(path)))
+    {
+        return Err("local-host-marketplace-conflict");
     }
-    .as_array()
-    .ok_or("local-host-inventory-invalid")?;
+    let registered = registered_path.is_some();
+    if !enabled_conflicts(source.target, plugins)?.is_empty() {
+        return Err("local-host-other-qiongli-enabled");
+    }
     let entries = if codex {
         &plugins["installed"]
     } else {
@@ -388,29 +499,6 @@ fn commands(
     }
     .as_array()
     .ok_or("local-host-inventory-invalid")?;
-    let mut registered = false;
-    for market in markets {
-        let name = market["name"]
-            .as_str()
-            .ok_or("local-host-inventory-invalid")?;
-        if name == MARKETPLACE {
-            let (kind, path) = if codex {
-                (
-                    &market["marketplaceSource"]["sourceType"],
-                    &market["marketplaceSource"]["source"],
-                )
-            } else {
-                (&market["source"], &market["path"])
-            };
-            if registered
-                || kind != if codex { "local" } else { "directory" }
-                || !same_path(&source.destination, path)
-            {
-                return Err("local-host-marketplace-conflict");
-            }
-            registered = true;
-        }
-    }
     let mut installed = None;
     for plugin in entries {
         let id = plugin[if codex { "pluginId" } else { "id" }]
@@ -419,16 +507,13 @@ fn commands(
         if plugin["enabled"].as_bool().is_none() {
             return Err("local-host-inventory-invalid");
         }
-        if id == PLUGIN {
-            if installed.replace(plugin).is_some() || (!codex && plugin["scope"] != "user") {
-                return Err("local-host-plugin-scope-conflict");
-            }
-        } else if matches!(id.split('@').next(), Some("qiongli" | "qiongli-next"))
-            && plugin["enabled"] != false
+        if id == PLUGIN
+            && (installed.replace(plugin).is_some() || (!codex && plugin["scope"] != "user"))
         {
-            return Err("local-host-other-qiongli-enabled");
+            return Err("local-host-plugin-scope-conflict");
         }
     }
+
     let mut commands = Vec::new();
     let mut cached_receipt = None;
     if let Some(plugin) = installed {
@@ -678,6 +763,23 @@ mod tests {
                 commands(&source, &root, &Value::Null, &empty_markets, &plugins).unwrap_err(),
                 "local-host-other-qiongli-enabled"
             );
+            assert_eq!(
+                enabled_conflicts(target, &plugins).unwrap(),
+                vec!["qiongli-next@personal"]
+            );
+            let mut disabled = plugins.clone();
+            if codex {
+                disabled["installed"][0]["enabled"] = json!(false);
+            } else {
+                disabled[0]["enabled"] = json!(false);
+            }
+            assert!(enabled_conflicts(target, &disabled).unwrap().is_empty());
+            assert!(commands(&source, &root, &Value::Null, &empty_markets, &disabled).is_ok());
+            assert_eq!(
+                registered_destination(target, &empty_markets).unwrap(),
+                None
+            );
+
             let market = if codex {
                 json!({"name": MARKETPLACE, "marketplaceSource": {"sourceType":"local", "source":root}})
             } else {
@@ -697,6 +799,10 @@ mod tests {
             } else {
                 json!([market])
             };
+            assert_eq!(
+                registered_destination(target, &markets).unwrap(),
+                Some(root.clone())
+            );
             let (registered, _) =
                 commands(&source, &root, &Value::Null, &markets, &empty_plugins).unwrap();
             assert_eq!(registered.len(), 1);

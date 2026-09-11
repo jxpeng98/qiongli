@@ -38,23 +38,45 @@ pub struct BundledContentReview {
     pub(crate) plan_json: String,
 }
 
+#[derive(Default, Debug, Eq, PartialEq)]
+pub struct InstallationGuide {
+    pub(crate) plugin: bool,
+    pub(crate) targets: Vec<crate::managed_operation::ManagedIntegrationTargetV1>,
+    pub(crate) destination: Option<std::path::PathBuf>,
+}
+
 pub fn guide_installation(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
 ) -> CliOutput {
-    if !io::stdin().is_terminal() || !io::stdout().is_terminal() {
-        return CliOutput::usage_text(
-            "interactive installation requires a terminal; use install --help",
-        );
-    }
-    match guide(
-        environment,
-        content,
-        &mut io::stdin().lock(),
-        &mut io::stdout().lock(),
-    ) {
-        Ok(()) => CliOutput::success_text(""),
-        Err(code) => CliOutput::operation_failure(code),
+    InstallationGuide::default().run(environment, content)
+}
+
+impl InstallationGuide {
+    pub fn run(self, environment: &CommandEnvironment, content: &EmbeddedContent) -> CliOutput {
+        if !io::stdin().is_terminal() || !io::stdout().is_terminal() {
+            return CliOutput::usage_text(
+                "installation requires a terminal; use --dry-run with an explicit target/destination for scripts",
+            );
+        }
+        let reader = &mut io::stdin().lock();
+        let writer = &mut io::stdout().lock();
+        let result = if self.plugin {
+            install_plugins(
+                environment,
+                content,
+                self.targets,
+                self.destination,
+                reader,
+                writer,
+            )
+        } else {
+            guide(environment, content, reader, writer)
+        };
+        match result {
+            Ok(()) => CliOutput::success_text(""),
+            Err(code) => installation_failure(code),
+        }
     }
 }
 
@@ -64,7 +86,7 @@ fn guide(
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> Result<(), &'static str> {
-    use crate::managed_operation::{ManagedIntegrationTargetV1 as Host, ManagedSkillsPresetV1};
+    use crate::managed_operation::ManagedSkillsPresetV1;
     let inventory = crate::cli_inventory::discover(environment);
     line(
         writer,
@@ -101,64 +123,133 @@ fn guide(
             preset: ManagedSkillsPresetV1::QiongliManaged,
             profile: qiongli_content::ProfileId::Full,
         },
-        "" | "1" => {
-            let default = if environment.client_executable("codex").is_none()
-                && environment.client_executable("claude").is_some()
-            {
-                "2"
-            } else {
-                "1"
-            };
-            let selection = crate::cli_inventory::choice(
-                reader,
-                writer,
-                &format!("Host: 1 Codex, 2 Claude Code, 0 cancel [{default}]: "),
-            )
-            .map_err(|_| "installation-input-failed")?;
-            let target = match if selection.is_empty() {
-                default
-            } else {
-                &selection
-            } {
-                "1" => Host::Codex,
-                "2" => Host::ClaudeCode,
-                "0" => return line(writer, "Cancelled; no changes made.\n"),
-                _ => return Err("installation-selection-invalid"),
-            };
-            let destination = environment
-                .platform_home()
-                .ok_or("plugin-source-home-unavailable")?
-                .join("qiongli-next");
-            line(
-                writer,
-                "For an upgrade, use the original export directory. A second Host needs a separate directory.\nThe destination must end in qiongli-next and its parent must already exist.\n",
-            )?;
-            let selected = crate::cli_inventory::choice(
-                reader,
-                writer,
-                &format!(
-                    "Absolute destination [{}]: ",
-                    serde_json::to_string(&destination)
-                        .map_err(|_| "installation-preview-invalid")?
-                ),
-            )
-            .map_err(|_| "installation-input-failed")?;
-            ManagedOperationCliCommand::PlanPluginSource {
-                action: crate::plugin_source::PluginSourceAction::Install,
-                target,
-                destination: if selected.is_empty() {
-                    destination
-                } else {
-                    selected.into()
-                },
-            }
-        }
+        "" | "1" => return install_plugins(environment, content, Vec::new(), None, reader, writer),
         _ => return Err("installation-selection-invalid"),
     };
     BundledContentReview {
         plan_json: prepare_plan(&command, environment, content)?,
     }
     .review(environment, content, reader, writer)
+    .map(|_| ())
+}
+
+fn install_plugins(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    mut targets: Vec<crate::managed_operation::ManagedIntegrationTargetV1>,
+    destination: Option<std::path::PathBuf>,
+    reader: &mut impl BufRead,
+    writer: &mut impl Write,
+) -> Result<(), &'static str> {
+    use crate::managed_operation::ManagedIntegrationTargetV1 as Host;
+    if targets.is_empty() {
+        let default = if environment.client_executable("codex").is_none()
+            && environment.client_executable("claude").is_some()
+        {
+            "2"
+        } else {
+            "1"
+        };
+        let selection = crate::cli_inventory::choice(
+            reader,
+            writer,
+            &format!("Host: 1 Codex, 2 Claude Code, 3 both, 0 cancel [{default}]: "),
+        )
+        .map_err(|_| "installation-input-failed")?;
+        targets = match if selection.is_empty() {
+            default
+        } else {
+            &selection
+        } {
+            "1" => vec![Host::Codex],
+            "2" => vec![Host::ClaudeCode],
+            "3" => vec![Host::Codex, Host::ClaudeCode],
+            "0" => return line(writer, "Cancelled; no changes made.\n"),
+            _ => return Err("installation-selection-invalid"),
+        };
+    }
+    let multiple = targets.len() > 1;
+    for target in targets {
+        let host = if target == Host::Codex {
+            "Codex"
+        } else {
+            "Claude Code"
+        };
+        line(writer, &format!("\n{host} Plugin — install or update\n"))?;
+        let registered = crate::plugin_host::installation_source(
+            environment,
+            target,
+            destination.as_deref(),
+            writer,
+        )?;
+        let path = if let Some(path) = &destination {
+            path.clone()
+        } else if let Some(path) = registered {
+            line(
+                writer,
+                "Using the source directory registered with this Host.\n",
+            )?;
+            path
+        } else {
+            let default = environment
+                .platform_home()
+                .ok_or("plugin-source-home-unavailable")?
+                .join("qiongli-next");
+            line(
+                writer,
+                "Plugin source files stay here. The Host loads its registered cache, including Skills and MCP; no copy to ~/.agents/skills is needed.\n",
+            )?;
+            let usable_default =
+                crate::plugin_source::status(environment, content, target, &default).is_ok();
+            if !usable_default {
+                line(
+                    writer,
+                    "The default directory belongs to another Host or has unverified files. Enter a different path ending in qiongli-next with an existing parent; Enter cancels.\n",
+                )?;
+            }
+            let selected = crate::cli_inventory::choice(
+                reader,
+                writer,
+                &format!(
+                    "Source directory (absolute, existing parent; 0 cancels) [{}]: ",
+                    serde_json::to_string(&default).map_err(|_| "installation-preview-invalid")?
+                ),
+            )
+            .map_err(|_| "installation-input-failed")?;
+            if selected == "0" || (selected.is_empty() && !usable_default) {
+                return line(
+                    writer,
+                    "Cancelled this installation. Previously completed Host steps remain installed.\n",
+                );
+            }
+            if selected.is_empty() {
+                default
+            } else {
+                selected.into()
+            }
+        };
+        if !path.is_absolute() {
+            return Err("plugin-source-destination-invalid");
+        }
+        let command = ManagedOperationCliCommand::PlanPluginSource {
+            action: crate::plugin_source::PluginSourceAction::Install,
+            target,
+            destination: path,
+        };
+        let review = BundledContentReview {
+            plan_json: prepare_plan(&command, environment, content)?,
+        };
+        if !review.review(environment, content, reader, writer)? {
+            break;
+        }
+        if multiple {
+            line(
+                writer,
+                &format!("{host} step finished. Each Host uses its own source and confirmation.\n"),
+            )?;
+        }
+    }
+    Ok(())
 }
 
 impl BundledContentReview {
@@ -174,27 +265,8 @@ impl BundledContentReview {
             &mut io::stdin().lock(),
             &mut io::stdout().lock(),
         ) {
-            Ok(()) => CliOutput::success_text(""),
-            Err(code) => {
-                let hint = match code {
-                    "local-host-other-qiongli-enabled" => {
-                        "Disable the other Qiongli Plugin in the Host, then retry this command."
-                    }
-                    "local-host-marketplace-conflict" => {
-                        "Review the Host's qiongli-cli-local marketplace path; choose the matching export destination."
-                    }
-                    "host-plugin-executable-unavailable" | "local-host-version-unsupported" => {
-                        "Install or update the selected Codex/Claude CLI, then retry this command."
-                    }
-                    "local-host-plugin-scope-conflict" => {
-                        "Review duplicate or project-scoped Qiongli Plugins in the Host; this command uses user scope."
-                    }
-                    _ => {
-                        "Review the reported step and retained files before retrying. Use --help for the installation workflow."
-                    }
-                };
-                CliOutput::operation_failure(code).with_stderr(format!("error: {code}\n{hint}\n"))
-            }
+            Ok(_) => CliOutput::success_text(""),
+            Err(code) => installation_failure(code),
         }
     }
 
@@ -204,7 +276,7 @@ impl BundledContentReview {
         content: &EmbeddedContent,
         reader: &mut impl BufRead,
         writer: &mut impl Write,
-    ) -> Result<(), &'static str> {
+    ) -> Result<bool, &'static str> {
         let value: serde_json::Value =
             serde_json::from_str(&self.plan_json).map_err(|_| "managed-operation-plan-invalid")?;
         if value["operation"]["kind"] == "plugin-source" {
@@ -247,7 +319,8 @@ impl BundledContentReview {
             writer,
             "Apply these bundled-content file changes? [y/N] ",
         )? {
-            return line(writer, "Cancelled; no changes made.\n");
+            line(writer, "Cancelled; no changes made.\n")?;
+            return Ok(false);
         }
         let result =
             crate::managed_operation::apply_reviewed_plan(environment, content, &self.plan_json)?;
@@ -257,14 +330,16 @@ impl BundledContentReview {
             let source: crate::plugin_source::PluginSourcePlan =
                 serde_json::from_value(value["operation"]["source"].clone())
                     .map_err(|_| "managed-operation-plan-invalid")?;
-            if let Err(code) =
-                crate::plugin_host::register(environment, content, &source, reader, writer)
-            {
-                line(
-                    writer,
-                    "Host registration did not finish. Exported files remain available; resolve the reported conflict or Host error, then rerun upgrade plugin with the same target/destination. Other Plugins are not removed automatically.\n",
-                )?;
-                return Err(code);
+            match crate::plugin_host::register(environment, content, &source, reader, writer) {
+                Ok(true) => {}
+                Ok(false) => return Ok(false),
+                Err(code) => {
+                    line(
+                        writer,
+                        "Host registration did not finish. Exported files remain available. Resolve the reported Host error, then rerun qiongli install plugin; other Plugins are kept.\n",
+                    )?;
+                    return Err(code);
+                }
             }
         } else {
             line(
@@ -272,8 +347,36 @@ impl BundledContentReview {
                 "Skills: exported to .qiongli-skills under the selected home/project.\nHost registration: not performed. MCP: not installed by this export.\nUse install plugin to load the workflow and Full MCP together in a Host.\n",
             )?;
         }
-        Ok(())
+        Ok(true)
     }
+}
+
+fn installation_failure(code: &'static str) -> CliOutput {
+    let hint = match code {
+        "plugin-source-destination-invalid" => {
+            "Choose an absolute directory ending in qiongli-next with an existing parent, or omit --destination to reuse the registered source."
+        }
+        "plugin-source-destination-reserved" => {
+            "Keep Plugin source files outside ~/.agents, Host configuration/cache directories and Qiongli's private state. The Host discovers Skills through Plugin registration."
+        }
+
+        "local-host-other-qiongli-enabled" => {
+            "Disable the other Qiongli Plugin in the Host, then retry this command."
+        }
+        "local-host-marketplace-conflict" => {
+            "Review the Host's qiongli-cli-local marketplace path; choose the matching export destination."
+        }
+        "host-plugin-executable-unavailable" | "local-host-version-unsupported" => {
+            "Install or update the selected Codex/Claude CLI, then retry this command."
+        }
+        "local-host-plugin-scope-conflict" => {
+            "Review duplicate or project-scoped Qiongli Plugins in the Host; this command uses user scope."
+        }
+        _ => {
+            "Review the reported step and retained files before retrying. Use --help for the installation workflow."
+        }
+    };
+    CliOutput::operation_failure(code).with_stderr(format!("error: {code}\n{hint}\n"))
 }
 
 pub(crate) fn show_json(writer: &mut impl Write, json: &str) -> Result<(), &'static str> {

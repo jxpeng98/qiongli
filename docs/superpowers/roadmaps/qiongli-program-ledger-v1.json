@@ -267,7 +267,7 @@
       "commit": "",
       "run": "",
       "updated_at": "2026-09-11",
-      "blocker": "The current plan records the coherence fixes and beta.4 guided-installation/local-MCP-check increment at 0cd875d8. Existing file and Host approval owners remain intact. Local macOS release qualification and real-terminal Codex/Claude install, repeat and beta.3 upgrade trials pass; model/original canaries remain intact. The maintainer authorizes candidate/tag push and Release Automation dispatch, then no tracking. Final-tag three-platform/public-channel results, Docs deployment, fresh research-session observation and measured Graph/performance/maintenance comparisons remain separate; no new acceptance is claimed."
+      "blocker": "The current plan records the beta.4 installation report follow-up from 5f792d1c. Terminal install/upgrade and plugin upserts discover registered source directories; all Hosts retain separate confirmations. Foreign enabled Plugins and conflicting paths refuse before export, with explicit manual Host guidance. Local CLI, ownership/approval, documentation and isolated real Codex/Claude install/update tests pass; models and synthetic originals are preserved. This follow-up is unreleased local work. New live research-session, non-macOS execution and measured Graph/performance/maintenance acceptance remain separate; previous release Actions are not tracked."
     },
     {
       "id": "CLI-403",

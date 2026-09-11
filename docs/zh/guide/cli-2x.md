@@ -4,6 +4,27 @@ Qiongli 2 以原生 CLI 为入口，不需要打开或安装 Qiongli App。
 同一版本、同一平台的 GitHub 二进制包、npm 和 PyPI 包使用相同的原生可执行文件。
 
 
+## beta.4 之后的开发版改进
+
+开发版在终端中运行 `qiongli install` 或 `qiongli upgrade` 即可打开向导。
+`qiongli install plugin` 同时负责安装和更新，`upgrade plugin`、`update plugin`
+使用相同流程。向导选择 Host，并复用它已经登记的源目录。也可以加
+`--target codex`、`--target claude` 或 `--target all`。all 对两个 Host 分别确认，
+取消或失败就停止后续步骤；新源目录必须各自独立，且父目录已经存在。
+单个 Host 仍可指定 `--destination`。脚本保留参数明确的 `--dry-run` 预览，
+重定向输出时的裸 `install` 仍返回只读清单。
+
+Plugin 源文件不需要放进 `~/.agents/skills`。完成官方注册后，Host 会从自己的
+Plugin 缓存中加载 Skills 和 MCP。如果已启用另一个 Qiongli Plugin，新流程会在
+导出前列出它的名称。请先在 Host 中停用，再重试；旧插件文件不会被删除。
+当前 Codex CLI 没有单独的 Plugin 停用命令，请使用 Codex 的插件开关；
+`remove` 会删除缓存，不能当作停用使用。仅导出成功，不能算安装完成。
+
+用 `qiongli doctor` 和 `qiongli install list` 检查注册，再开新会话验证实际工具。
+独立 Skills 仍导出到 `.qiongli-skills`，不会接入 Host；需要自动注册时选 Plugin。
+以上改进尚未包含在 beta.4 发布二进制中。
+
+
 ## 从安装到首次使用 {#first-use}
 
 推荐运行 `qiongli install --interactive`。先选择 Plugin，再选择 Codex 或 Claude。

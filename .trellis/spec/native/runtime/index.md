@@ -34,7 +34,14 @@ into reviewed records; no new graph store, raw-PDF scanner or write owner exists
   These observations confer no write authority or live-session readiness.
   `install --interactive` guides Plugin, Skills-export, manual MCP configuration
   and version-review choices through these same owners. Menu choices do not
-  approve writes. Bare install and setup keep their existing query/review behavior.
+  approve writes. Bare install/upgrade open the guide only in a terminal without
+  output flags;
+  redirected/explicit-format queries and setup retain their existing behavior.
+  Plugin install/upgrade/update share one upsert path, discover the registered
+  source through the official Host inventory and validate its receipt before
+  updating. Optional --target all visits each Host with separate approval and
+  stops on cancellation/failure. Foreign enabled Plugins refuse before export
+  with their exact names and manual disable guidance. See ADR 0225.
   `mcp check` exercises the existing stdio handlers in-process (initialize, tools
   and config status); its result explicitly excludes Host sessions and online
   provider connectivity. It adds no daemon, registration or persisted readiness.
@@ -130,7 +137,7 @@ CLI-only empty arguments show help on both terminals and redirected streams.
 `install migrate --interactive` remains supported. All reject non-terminal
 input/output. npm's optional terminal-only installation hook retains its route.
 
-Bare `project`, `config`, `content`, `install` and `update` select their read-only
+Bare `project`, `config`, `content` and `update` select their read-only
 list/show/inventory/status operations. `project ls`, `project show <id>` and
 `install list` reuse existing parsers and services. `mcp serve` still requires an
 explicit profile and defaults its only supported transport to stdio. `help <topic>`

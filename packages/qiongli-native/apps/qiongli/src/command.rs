@@ -284,7 +284,7 @@ pub struct CliOutput {
 
 pub enum ProductAction {
     ReviewCliInstallations,
-    GuideInstallation,
+    GuideInstallation(crate::cli_content::InstallationGuide),
     ReviewBundledContent(crate::cli_content::BundledContentReview),
     Output(CliOutput),
     ServeLiteMcpStdio,
@@ -368,7 +368,7 @@ pub fn run_cli(
     match prepare_action(args, environment, content) {
         ProductAction::Output(output) => output,
         ProductAction::ReviewCliInstallations
-        | ProductAction::GuideInstallation
+        | ProductAction::GuideInstallation(_)
         | ProductAction::ReviewBundledContent(_) => {
             CliOutput::operation_failure("interactive-command-requires-product-entrypoint")
         }
@@ -579,7 +579,7 @@ pub(crate) fn prepare_action_with_release_authority(
             install_inventory(environment, content, exact_paths)
         }
         Command::InstallMigrateInteractive => return ProductAction::ReviewCliInstallations,
-        Command::InstallInteractive => return ProductAction::GuideInstallation,
+        Command::InstallInteractive(options) => return ProductAction::GuideInstallation(options),
         Command::InstallCodexStatus => install_codex_status(environment),
         Command::InstallClaudeStatus => install_claude_status(environment),
         Command::InstallCandidate(command) => {
@@ -684,7 +684,7 @@ enum Command {
     McpCheck {
         full: bool,
     },
-    InstallInteractive,
+    InstallInteractive(crate::cli_content::InstallationGuide),
     McpServeLiteStdio,
     McpServeFullStdio,
     Status,
@@ -1186,6 +1186,54 @@ fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Comman
             ));
         }
     };
+    if surface == Some("plugin") && !args.iter().any(|arg| arg == "--dry-run") {
+        let mut options = crate::cli_content::InstallationGuide {
+            plugin: true,
+            ..Default::default()
+        };
+        if !(args.len() - 1).is_multiple_of(2) {
+            return Err(install_usage_error("install option value is required"));
+        }
+        for pair in args[1..].chunks_exact(2) {
+            match pair[0].to_str() {
+                Some("--target") if options.targets.is_empty() => {
+                    options.targets = match pair[1].to_str() {
+                        Some("codex") => vec![ManagedIntegrationTargetV1::Codex],
+                        Some("claude") => vec![ManagedIntegrationTargetV1::ClaudeCode],
+                        Some("all") => vec![
+                            ManagedIntegrationTargetV1::Codex,
+                            ManagedIntegrationTargetV1::ClaudeCode,
+                        ],
+                        _ => {
+                            return Err(install_usage_error(
+                                "Plugin target must be codex, claude or all",
+                            ));
+                        }
+                    };
+                }
+                Some("--destination") if options.destination.is_none() => {
+                    let path = PathBuf::from(&pair[1]);
+                    if !path.is_absolute() {
+                        return Err(install_usage_error(
+                            "Plugin source destination must be absolute",
+                        ));
+                    }
+                    options.destination = Some(path);
+                }
+                _ => {
+                    return Err(install_usage_error(
+                        "Plugin option is unexpected or duplicated",
+                    ));
+                }
+            }
+        }
+        if options.targets.len() > 1 && options.destination.is_some() {
+            return Err(install_usage_error(
+                "all Hosts need separate directories; omit --destination or install each Host separately",
+            ));
+        }
+        return Ok(Command::InstallInteractive(options));
+    }
     let mut plan_args = vec![OsString::from(operation)];
     let mut dry_run = false;
     let mut index = 1;
@@ -1225,7 +1273,7 @@ fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
     };
     match subcommand {
         "plugin" | "skills" => parse_content_install_args(args, false),
-        "--interactive" if args.len() == 1 => Ok(Command::InstallInteractive),
+        "--interactive" if args.len() == 1 => Ok(Command::InstallInteractive(Default::default())),
         "--help" if args.len() == 1 => Ok(Command::InstallHelp),
         "status" if args.len() == 1 => Ok(Command::InstallStatus),
         "list" | "inventory" if args.len() == 1 => {

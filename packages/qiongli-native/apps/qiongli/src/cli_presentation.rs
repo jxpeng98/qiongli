@@ -52,8 +52,14 @@ pub fn prepare_cli_action(
             "output options apply to queries, not interactive or streaming commands",
         ));
     }
+    if terminal
+        && text_mode.is_none()
+        && (args == [OsString::from("install")] || args == [OsString::from("upgrade")])
+    {
+        return ProductAction::GuideInstallation(Default::default());
+    }
     match crate::prepare_action(args, environment, content) {
-        ProductAction::ReviewBundledContent(_) | ProductAction::GuideInstallation
+        ProductAction::ReviewBundledContent(_) | ProductAction::GuideInstallation(_)
             if text_mode.is_some() =>
         {
             ProductAction::Output(CliOutput::usage_text(
@@ -365,6 +371,73 @@ pub(crate) fn fields(text: &mut String, value: &Value, indent: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn installation_shortcuts_select_guides_without_changing_script_queries() {
+        let environment = CommandEnvironment::with_paths(None, None, None);
+        let content = crate::embedded_content().unwrap();
+        let action = |args: &[&str], terminal| {
+            prepare_cli_action(
+                args.iter().map(OsString::from).collect(),
+                &environment,
+                &content,
+                terminal,
+            )
+        };
+        for command in ["install", "upgrade"] {
+            assert!(matches!(
+                action(&[command], true),
+                ProductAction::GuideInstallation(_)
+            ));
+            assert!(matches!(
+                action(&[command], false),
+                ProductAction::Output(_)
+            ));
+            assert!(matches!(
+                action(&[command, "--json"], true),
+                ProductAction::Output(_)
+            ));
+        }
+        for command in ["install", "upgrade", "update"] {
+            let ProductAction::GuideInstallation(guide) = action(&[command, "plugin"], true) else {
+                panic!("plugin guide required")
+            };
+            assert!(guide.plugin && guide.targets.is_empty() && guide.destination.is_none());
+            let ProductAction::GuideInstallation(guide) =
+                action(&[command, "plugin", "--target", "all"], true)
+            else {
+                panic!("both Hosts required")
+            };
+            assert_eq!(guide.targets.len(), 2);
+        }
+        for args in [
+            vec!["install", "plugin", "--target", "unknown"],
+            vec![
+                "install", "plugin", "--target", "codex", "--target", "claude",
+            ],
+            vec![
+                "install",
+                "plugin",
+                "--target",
+                "all",
+                "--destination",
+                "/shared/qiongli-next",
+            ],
+            vec![
+                "install",
+                "plugin",
+                "--destination",
+                "relative/qiongli-next",
+            ],
+            vec!["install", "plugin", "--dry-run"],
+            vec!["install", "plugin", "--target", "all", "--dry-run"],
+        ] {
+            let ProductAction::Output(output) = action(&args, true) else {
+                panic!("invalid invocation must refuse")
+            };
+            assert_eq!(output.exit_code(), 2);
+        }
+    }
 
     #[test]
     fn readable_results_preserve_exit_status_redaction_and_approval_values() {

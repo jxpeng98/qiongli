@@ -355,7 +355,7 @@ pub(crate) fn choice(
     write!(writer, "{prompt}")?;
     writer.flush()?;
     let mut line = String::new();
-    reader.take(128).read_line(&mut line)?;
+    reader.take(4096).read_line(&mut line)?;
     if !line.ends_with('\n') {
         return Err(io::Error::other("selection-cancelled; no changes made"));
     }

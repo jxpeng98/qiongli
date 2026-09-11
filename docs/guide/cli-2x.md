@@ -4,6 +4,30 @@ Qiongli 2 is CLI-first. GitHub binary archives, npm and PyPI distribute the same
 native executable for a given version and target. No Qiongli App is required.
 
 
+## Development update after beta.4
+
+The development CLI lets terminal users run `qiongli install` or `qiongli upgrade`
+to open the guide. `qiongli install plugin` installs or updates; `upgrade plugin`
+and `update plugin` use that same flow. The guide selects the Host and reuses its
+registered directory. Use `--target codex`, `--target claude` or `--target all` to
+skip Host selection. All handles each Host separately, stopping on cancellation
+or failure; each new source needs its own directory with an existing parent.
+`--destination` remains available for a single Host. Scripts keep the explicit
+`--dry-run` plan, and redirected bare install keeps its read-only inventory.
+
+Plugin source files do not belong in `~/.agents/skills`. Official registration
+lets the Host load Skills and MCP from its Plugin cache. If another Qiongli Plugin
+is enabled, the new flow names it before exporting. Disable it in the Host and
+retry; no old Plugin files are removed. Codex's current CLI has no standalone
+Plugin-disable command. Use the Plugin control in Codex rather than remove, which
+would delete its cache. A completed export alone is not installation success.
+
+Check `qiongli doctor` and `qiongli install list` for verified registration, then
+start a new session and check actual tools. Skills-only installation still exports
+`.qiongli-skills`; it does not connect a Host. Choose Plugin for automatic Host
+registration. This update is not included in the beta.4 release binary.
+
+
 ## From installation to first use {#first-use}
 
 Run `qiongli install --interactive`. Choose the recommended Plugin, then Codex or
