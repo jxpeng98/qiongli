@@ -3,6 +3,53 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Zotero 10.0.2 Companion compatibility — September 11
+
+Base `9b436bd3`; branch `codex/zotero10-companion-compatibility`. The maintainer
+reported that Companion no longer works with Zotero 10.0.2. The installed macOS
+application identifies itself as 10.0.2. In a new temporary HOME/profile/data
+folder, the old 0.3.0 XPI was discovered but marked `appDisabled: true`; its
+endpoint returned 404. Both the extension and package validators capped support
+at `9.0.*`, and the native install eligibility helper also rejected Zotero 10.
+The official Zotero 10 developer notes require a verified `10.0.*` declaration.
+
+Companion 0.3.1 keeps endpoint contract 2 and synchronizes the XPI, update manifest,
+Python builder, Rust artifact validator and native eligibility through Zotero
+10.0.x. Actual approved-write testing also exposed two existing runtime gaps:
+`qiongli_notes` reached the ordinary Zotero item-field setter, and collection
+reads omitted descendants because `getByLibrary` defaults to nonrecursive.
+The shared field adapter now leaves notes to the child-note writer, and the shared
+collection reader requests descendants. Browser-origin protections, preview-bound
+one-shot approvals and unsupported-version refusal remain intact.
+
+Validation: 29 JavaScript checks, 23 Python artifact/download/upload checks, five
+native artifact/staging checks, three Zotero service checks and the separate
+snapshot/legacy-endpoint checks passed. Clippy for the affected native packages
+and all targets, formatting and the frozen-source guard passed. A stale current-
+version fixture initially expected incompatibility instead of an available update;
+its version was aligned with the new embedded Companion, preserving the negative
+protocol assertion. Temporary live-test assertions were corrected to use the
+existing approval status field; no production approval rule was relaxed.
+
+The final XPI was installed in an isolated Zotero 10.0.2 profile on macOS. Ping,
+empty-library search, approved synthetic item and child-note creation, nested
+collection listing/filtering and search after write passed. Direct unapproved
+writes, receipt replay and browser-origin requests were refused. The retained
+beta.3 binary connected through both Lite and Full MCP without a CLI upgrade.
+The Python-built XPI and manifest exactly match the Rust-embedded output; XPI
+SHA-256 is `a1c716100b9ad1d2d3fa59fd49bb54df18194d9fcdff922194b2c306b78cd4c2`.
+
+Receipts: `/private/tmp/qiongli-zotero10-baseline/receipt.json`,
+`/private/tmp/qiongli-zotero10-final-host/receipt.json`,
+`/private/tmp/qiongli-zotero10-live.py`, and the `qiongli-zotero10-*` test/parity
+logs in that directory. The exact tested XPI is available at
+`dist/zotero-companion-0.3.1/qiongli-zotero-companion-0.3.1.xpi`.
+No existing Zotero profile or research library was read or modified. Local
+integration is authorized; this request does not publish a release or change
+public update feeds. Next install the XPI through Zotero's user-confirmed plugin
+manager, or include it in a subsequently authorized release. This macOS
+observation does not claim Windows/Linux Host or overall program acceptance.
+
 ## Beta.3 release submission — September 11
 
 The maintainer explicitly requested pushing the command improvements and releasing

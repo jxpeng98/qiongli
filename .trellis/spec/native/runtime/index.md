@@ -29,6 +29,10 @@ into reviewed records; no new graph store, raw-PDF scanner or write owner exists
   checks; App, CLI, and Full MCP route through that service.
 - `crates/qiongli-runtime/src/zotero/companion.rs` owns the loopback Companion
   boundary. Only loopback endpoints may be contacted.
+- Companion `0.3.1` retains endpoint contract `2` and supports Zotero 8 through
+  10.0.x. XPI/update manifests, native artifact validation and installation
+  eligibility must agree on that range. `qiongli_notes` uses the child-note
+  writer, never ordinary item fields; collection reads include nested paths.
 - [All Chat State v1](./all-chat-state-v1.md) is the bounded, provider-neutral
   ACP collaboration projection; existing orchestration and project services
   retain scheduling and mutation authority.

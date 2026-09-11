@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "Qiongli Zotero Companion",
-  "version": "0.3.0",
-  "description": "Local Zotero Desktop companion for Qiongli reference database sync. Tested with Zotero 9.0.4.",
+  "version": "0.3.1",
+  "description": "Local Zotero Desktop companion for Qiongli reference database sync. Compatible with Zotero 8 through 10.",
   "author": "Jiaxin Peng",
   "homepage_url": "https://github.com/jxpeng98/qiongli",
   "applications": {
@@ -10,7 +10,7 @@
       "id": "qiongli-zotero-companion@qiongli.local",
       "update_url": "https://github.com/jxpeng98/qiongli/releases/latest/download/qiongli-zotero-companion-updates.json",
       "strict_min_version": "8.0",
-      "strict_max_version": "9.0.*"
+      "strict_max_version": "10.0.*"
     }
   }
 }

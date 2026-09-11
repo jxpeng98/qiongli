@@ -19,7 +19,7 @@ export function qiongliPingResponse({ zoteroVersion = "" } = {}) {
   return {
     status: "ok",
     companion: "qiongli-zotero-companion",
-    version: "0.3.0",
+    version: "0.3.1",
     endpoint_version: "2",
     zotero_version: zoteroVersion,
     endpoints: ENDPOINTS

@@ -9118,7 +9118,7 @@ fn zotero_version_is_incompatible(version: Option<&str>) -> bool {
     let Some(version) = version.and_then(|value| semver::Version::parse(value).ok()) else {
         return false;
     };
-    version.major < 8 || version.major > 9 || version.major == 9 && version.minor > 0
+    version.major < 8 || version.major > 10 || version.major == 10 && version.minor > 0
 }
 
 #[cfg(target_os = "macos")]
@@ -12510,7 +12510,7 @@ mod tests {
         assert!(snapshot.zotero.fallback_import_available);
         assert_eq!(
             snapshot.zotero.available_companion_version.as_deref(),
-            Some("0.3.0")
+            Some("0.3.1")
         );
         assert!(snapshot.zotero.can_prepare_install);
         assert!(!config.exists());
@@ -12587,8 +12587,11 @@ mod tests {
         assert!(!zotero_version_is_incompatible(Some("8.0.0")));
         assert!(!zotero_version_is_incompatible(Some("8.9.1")));
         assert!(!zotero_version_is_incompatible(Some("9.0.12")));
-        assert!(zotero_version_is_incompatible(Some("9.1.0")));
-        assert!(zotero_version_is_incompatible(Some("10.0.0")));
+        assert!(!zotero_version_is_incompatible(Some("9.1.0")));
+        assert!(!zotero_version_is_incompatible(Some("10.0.0")));
+        assert!(!zotero_version_is_incompatible(Some("10.0.2")));
+        assert!(zotero_version_is_incompatible(Some("10.1.0")));
+        assert!(zotero_version_is_incompatible(Some("11.0.0")));
     }
 
     #[test]
@@ -12681,7 +12684,7 @@ mod tests {
         let mut incompatible = zotero_integration_snapshot();
         apply_zotero_live_observation(
             &mut incompatible,
-            &observed("ok", true, true, Some("0.3.0"), Some("1")),
+            &observed("ok", true, true, Some("0.3.1"), Some("1")),
         );
         assert_eq!(
             incompatible.state,
@@ -12710,7 +12713,7 @@ mod tests {
         let mut ready = zotero_integration_snapshot();
         apply_zotero_live_observation(
             &mut ready,
-            &observed("ok", true, true, Some("0.3.0"), Some("2")),
+            &observed("ok", true, true, Some("0.3.1"), Some("2")),
         );
         assert_eq!(ready.state, ZoteroIntegrationStateView::Ready);
 

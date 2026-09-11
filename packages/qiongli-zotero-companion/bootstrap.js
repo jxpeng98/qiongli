@@ -30,7 +30,7 @@ var QiongliZoteroCompanion = {
       sendJson(sendResponse, 200, {
         status: "ok",
         companion: "qiongli-zotero-companion",
-        version: "0.3.0",
+        version: "0.3.1",
         endpoint_version: "2",
         zotero_version: Zotero.version ?? "",
         endpoints: this.endpoints
@@ -254,7 +254,7 @@ async function ensureCollectionPath(Zotero, collectionPath) {
 async function listPlainCollections(Zotero) {
   const libraryID = Zotero.Libraries?.userLibraryID;
   const rawCollections = typeof Zotero.Collections?.getByLibrary === "function"
-    ? await Zotero.Collections.getByLibrary(libraryID)
+    ? await Zotero.Collections.getByLibrary(libraryID, true)
     : [];
   const plain = asArray(rawCollections).map((collection) => plainCollection(collection));
   const byID = new Map(plain.map((collection) => [collection.id, collection]).filter(([id]) => id !== null));
@@ -446,7 +446,7 @@ async function getAttachmentItem(Zotero, id) {
 
 function applyItemData(item, data) {
   for (const [field, value] of Object.entries(data)) {
-    if (["itemType", "creators", "tags", "collections"].includes(field)) {
+    if (["itemType", "creators", "tags", "collections", "qiongli_notes"].includes(field)) {
       continue;
     }
     if (value !== undefined && value !== null && typeof item.setField === "function") {

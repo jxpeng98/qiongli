@@ -692,11 +692,11 @@ test("companion package declares Zotero install metadata and qiongli endpoints",
   const readme = await readFile(path.join(PACKAGE_ROOT, "README.md"), "utf8");
 
   assert.equal(manifest.name, "Qiongli Zotero Companion");
-  assert.match(manifest.description, /Zotero 9\.0\.4/);
-  assert.equal(manifest.version, "0.3.0");
+  assert.match(manifest.description, /Zotero 8 through 10/);
+  assert.equal(manifest.version, "0.3.1");
   assert.equal(manifest.applications.zotero.update_url, ZOTERO_UPDATE_URL);
   assert.equal(manifest.applications.zotero.strict_min_version, "8.0");
-  assert.equal(manifest.applications.zotero.strict_max_version, "9.0.*");
+  assert.equal(manifest.applications.zotero.strict_max_version, "10.0.*");
   assert.equal(Object.hasOwn(manifest, "browser_specific_settings"), false);
   for (const endpoint of ["/qiongli/ping", "/qiongli/search", "/qiongli/upsertItems", "/qiongli/collections"]) {
     assert.ok(bootstrap.includes(endpoint), `${endpoint} missing from bootstrap.js`);
@@ -707,7 +707,31 @@ test("companion package declares Zotero install metadata and qiongli endpoints",
   assert.match(readme, /local reference database/);
 });
 
-test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", async () => {
+test("bootstrap keeps child note requests out of Zotero item fields", async () => {
+  const bootstrap = await readFile(path.join(PACKAGE_ROOT, "bootstrap.js"), "utf8");
+  const context = vm.createContext({});
+  vm.runInContext(bootstrap, context);
+  const fields = {};
+  const item = {
+    setField(field, value) {
+      if (!["title", "DOI"].includes(field)) {
+        throw new Error(`Invalid Zotero field: ${field}`);
+      }
+      fields[field] = value;
+    }
+  };
+  context.applyItemData(item, {
+    itemType: "journalArticle",
+    title: "Synthetic paper",
+    DOI: "10.5555/synthetic",
+    qiongli_notes: [{ html: "<p>Child note.</p>" }]
+  });
+  assert.deepEqual(fields, { title: "Synthetic paper", DOI: "10.5555/synthetic" });
+  assert.throws(() => context.applyItemData(item, { unknown_field: "invalid" }), /Invalid Zotero field/);
+});
+
+for (const zoteroVersion of ["8.0", "9.0.4", "10.0.2"]) {
+test(`bootstrap endpoints preserve reads and approved writes on Zotero ${zoteroVersion}`, async () => {
   const bootstrap = await readFile(path.join(PACKAGE_ROOT, "bootstrap.js"), "utf8");
   const itemCollections = [];
   const noteItems = [];
@@ -745,7 +769,7 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
   };
   const collections = [{ id: 1, key: "COLL1", name: "Qiongli", parentID: null }];
   const Zotero = {
-    version: "9.0.4",
+    version: zoteroVersion,
     Server: { Endpoints: {} },
     Libraries: { userLibraryID: 1 },
     Item: class {
@@ -816,7 +840,10 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
       getAll: async () => [libraryItem],
       getAsync: async (id) => id === 123 ? attachmentItem : null
     },
-    Collections: { getByLibrary: async () => collections }
+    Collections: {
+      getByLibrary: async (_libraryID, recursive = false) =>
+        collections.filter((collection) => recursive || collection.parentID === null)
+    }
   };
   const context = vm.createContext({
     Zotero,
@@ -841,8 +868,8 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
   assert.equal(response.status, 200);
   assert.equal(response.contentType, "application/json");
   assert.equal(response.body.status, "ok");
-  assert.equal(response.body.version, "0.3.0");
-  assert.equal(response.body.zotero_version, "9.0.4");
+  assert.equal(response.body.version, "0.3.1");
+  assert.equal(response.body.zotero_version, zoteroVersion);
 
   await Zotero.Server.Endpoints["/qiongli/search"].prototype.init({ title: "platform" }, (status, contentType, body) => {
     response = { status, contentType, body: JSON.parse(body) };
@@ -916,6 +943,19 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
   assert.equal(noteItems[0].parentItemID, 10);
   assert.equal(noteItems[0].note, "<p>Key finding.</p>");
 
+  await Zotero.Server.Endpoints["/qiongli/collections"].prototype.init("", (status, contentType, body) => {
+    response = { status, contentType, body: JSON.parse(body) };
+  });
+  assert.equal(response.body.collections.length, 2);
+  assert.equal(response.body.collections[1].path, "Qiongli/platform-governance");
+  await Zotero.Server.Endpoints["/qiongli/search"].prototype.init({
+    collection_path: "Qiongli/platform-governance"
+  }, (status, contentType, body) => {
+    response = { status, contentType, body: JSON.parse(body) };
+  });
+  assert.equal(response.body.results.length, 1);
+
   context.shutdown({}, 4);
   assert.deepEqual(Object.keys(Zotero.Server.Endpoints), []);
 });
+}
