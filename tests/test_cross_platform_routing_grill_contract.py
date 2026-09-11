@@ -62,45 +62,50 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
 
         self.assertNotIn("Future trigger stages", boundary_text)
 
-    def test_direct_workflow_skill_and_agent_usage_declares_writing_harness(self) -> None:
+    def test_writing_consumers_resolve_the_shared_contract(self) -> None:
+        reference = "references/stage-F-writing.md"
+        self.assertTrue((LAYOUT.workflow / reference).is_file())
         paths = (
             REPO_ROOT / "content" / "skills-core.md",
             LAYOUT.workflow / "SKILL.md",
             LAYOUT.workflow / "workflows" / "paper-write.md",
             LAYOUT.workflow / "workflows" / "academic-write.md",
-            LAYOUT.workflow / "references" / "stage-F-writing.md",
             LAYOUT.skills / "F_writing" / "manuscript-architect.md",
-            LAYOUT.roles / "science-writer.yaml",
+            *(LAYOUT.roles / name for name in (
+                "science-writer.yaml", "research-orchestrator.yaml", "pi.yaml"
+            )),
         )
-        combined = "\n".join(read(path) for path in paths)
+        for path in paths:
+            with self.subTest(consumer=path):
+                self.assertIn(reference, read(path))
 
-        for phrase in (
-            "Writing Harness Contract",
-            "Story Spine",
-            "write -> review -> confirm",
+    def test_writing_consumers_do_not_restore_retired_process_requirements(self) -> None:
+        # These are the retired instructions, not desired prose to reproduce.
+        paths = (
+            REPO_ROOT / "content" / "skills-core.md",
+            LAYOUT.workflow / "SKILL.md",
+            LAYOUT.workflow / "references" / "stage-F-writing.md",
+            LAYOUT.workflow / "workflows" / "paper-write.md",
+            LAYOUT.workflow / "workflows" / "academic-write.md",
+            LAYOUT.skills / "F_writing" / "manuscript-architect.md",
+            LAYOUT.skills / "Z_cross_cutting" / "self-critique.md",
+            *(LAYOUT.roles / name for name in (
+                "science-writer.yaml", "research-orchestrator.yaml", "pi.yaml"
+            )),
+        )
+        retired = (
             "do not draft the whole artifact in one uninterrupted pass",
-            "mainline drift",
-            "generic or vague claims",
-            "next blocking boundary/grill question",
-        ):
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, combined)
-
-        skills_core = read(REPO_ROOT / "content" / "skills-core.md")
-        for phrase in (
-            "Writing Harness Contract",
-            "Story Spine",
-            "write -> review -> confirm",
-            "mainline drift",
-        ):
-            with self.subTest(skills_core_phrase=phrase):
-                self.assertIn(phrase, skills_core)
-
-        for role_name in ("science-writer.yaml", "research-orchestrator.yaml", "pi.yaml"):
-            role_text = read(LAYOUT.roles / role_name)
-            with self.subTest(role=role_name):
-                self.assertIn("Writing Harness Contract", role_text)
-                self.assertIn("write -> review -> confirm", role_text)
+            "require_chunk_level_confirmation: true",
+            "every substantive paragraph must advance at least two",
+            "every substantive paragraph must move beyond description into at least two",
+            "standard runs require at least 2 review passes",
+            "standard 2 passes, deep 3",
+        )
+        for path in paths:
+            text = read(path).lower()
+            for instruction in retired:
+                with self.subTest(consumer=path, instruction=instruction):
+                    self.assertNotIn(instruction, text)
 
     def test_writing_role_uses_academic_writer_name_with_legacy_alias(self) -> None:
         role_text = read(LAYOUT.roles / "science-writer.yaml")
@@ -174,6 +179,17 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
             science_writer_text = read(plugin_skill / "roles" / "science-writer.yaml")
             orchestrator_role_text = read(plugin_skill / "roles" / "research-orchestrator.yaml")
             pi_role_text = read(plugin_skill / "roles" / "pi.yaml")
+            writing_contract = read(plugin_skill / "references" / "stage-F-writing.md")
+            self.assertEqual(
+                writing_contract,
+                read(LAYOUT.workflow / "references" / "stage-F-writing.md"),
+            )
+            for source in ("paper-read.md", "academic-write.md", "paper-write.md"):
+                with self.subTest(workflow=source):
+                    self.assertEqual(
+                        read(plugin_skill / "workflows" / source),
+                        read(LAYOUT.workflow / "workflows" / source),
+                    )
 
         for phrase in (
             "Cross-Platform Trigger Contract",
@@ -181,7 +197,6 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
             "Stage-Aware Grill Contract",
             "Cross-Stage Grill Memory",
             "Writing Harness Contract",
-            "write -> review -> confirm",
             "mainline drift",
         ):
             with self.subTest(phrase=phrase):
@@ -197,6 +212,7 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
                             science_writer_text,
                             orchestrator_role_text,
                             pi_role_text,
+                            writing_contract,
                         ]
                     ),
                 )

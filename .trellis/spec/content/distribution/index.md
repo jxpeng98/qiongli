@@ -19,6 +19,23 @@ User-edited Plugin/Skill variants are managed project/user outputs. They do not
 replace canonical content and must retain preview, receipt, and exact-removal
 boundaries.
 
+## Skill instruction ownership
+
+The root Skill selects the requested outcome and relevant resources. Stage F
+writing workflows, cards and roles reference
+`content/workflow/references/stage-F-writing.md` for their shared writing
+contract; they must not duplicate mandatory chunk sequences or paragraph quotas.
+`self-critique.md` owns review convergence. A standard/deep label alone does not
+impose a minimum pass count. Explicit protocols, saved-run limits and required
+independent review remain binding; the retained 1.x controller is unchanged.
+
+Preserve canonical artifact paths, evidence anchors, stable IDs and formal gates.
+A narrow chat answer need not generate the full formal artifact set. Writing
+freedom does not waive tool availability, preview/approval/CAS or user-only file
+deletion. Validate shared-reference reachability and projection bytes; use
+isolated behavioral trials for response quality, since text assertions alone
+cannot establish model behavior or cross-model performance.
+
 ## Pre-Development Checklist
 
 - Identify the canonical source and every generated consumer.

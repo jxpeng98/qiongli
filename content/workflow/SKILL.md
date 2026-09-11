@@ -188,10 +188,9 @@ append safely or propose a diff, and verify the actual write result.
   `references/evidence-ledger-contract.md` and `references/citation-risk-policy.md`.
   Missing evidence is a gap, not a reason to manufacture a completed artifact.
 - Stage F uses the Writing Harness Contract in `references/stage-F-writing.md`:
-  lock the Story Spine, then write -> review -> confirm in bounded chunks.
-  Confirm means decide continue/revise/ask after checking support. Within approved
-  scope, continue without a new user approval for every chunk; pause for an
-  unresolved scholarly boundary, changed scope or an actual write approval.
+  preserve a coherent Story Spine and evidence limits; choose structure and
+  drafting granularity for the task. Check the result, fix concrete defects and
+  continue within approved scope. A short edit needs no checkpoint transcript.
 - Use `self-critique` when required by the task. Preserve
   `review/self_critique_log.md`, configured minimum passes and unresolved BLOCK
   findings; confidence alone cannot turn BLOCK into PASS.

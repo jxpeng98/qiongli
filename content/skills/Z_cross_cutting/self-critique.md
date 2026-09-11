@@ -9,7 +9,7 @@ outputs:
   - type: CritiqueLog
     artifact: "review/self_critique_log.md"
 constraints:
-  - "Must apply structured questioning protocol"
+  - "Must check the applicable evidence and output contract without inventing critique issues"
   - "Must preserve unresolved blockers and stop when the applicable review contract is satisfied or progress needs unavailable evidence"
 failure_modes:
   - "Circular critique without convergence"
@@ -33,7 +33,7 @@ checking does not require a reviewer persona or additional model.
 ## Inputs
 
 - `AnyArtifact`: Any output requiring quality assurance
-- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
+- If a required input is missing, report the affected check as incomplete. For project work, propose the gap for `context/gap_notes.md` through the existing write owner; a direct review can report it in chat.
 - Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
 
 ## Process
@@ -54,16 +54,20 @@ checking does not require a reviewer persona or additional model.
 
 ## Multi-Round Self-Loop Contract
 
-When this skill is active inside orchestrated research runs, treat critique as a stateful loop rather than isolated review comments.
+Review depth follows the requested risk and evidence, not a fixed count attached
+to a label such as standard or deep. When a protocol, user instruction or saved
+run supplies minimum passes, consecutive passes, revision limits or independent
+review requirements, honor them. Do not silently reduce an existing run's limits.
 
-The minimum counts below apply to those formal runs, not every mention of
-critique, every small edit or every loaded skill. Honor the run's configured
-limits; reaching a limit with unresolved issues means blocked or incomplete.
-
-- Run a draft -> review -> targeted revision -> review loop until the reviewer passes after the minimum review count or the maximum revision count is reached.
-- Standard runs require at least 2 review passes before convergence when revision rounds are available; deep runs require at least 3 review passes.
-- A `BLOCK` verdict always remains blocking, even with high confidence. Confidence records certainty; it does not convert a blocker into a pass.
-- A `PASS` before the minimum review count triggers a stability review of the same current draft, not immediate termination.
+- Review the current artifact against its applicable checks. Revise concrete
+  defects, then verify the affected work; do not manufacture a revision to
+  justify another round.
+- If an explicit minimum remains after a `PASS`, complete the required stability
+  review of the same draft. Report only reviews actually performed.
+- A required independent review cannot be replaced by role-play or another pass
+  in the same conversation. Report unavailable reviewers as an unmet requirement.
+- A `BLOCK` verdict remains blocking regardless of confidence. Reaching a review
+  or resource limit with unresolved issues means blocked or incomplete.
 - Carry unresolved issues forward into the next round.
 - Mark each issue as `open`, `partial`, `resolved`, or `superseded`.
 - Reuse existing issue IDs when the same problem persists.
@@ -94,8 +98,8 @@ light automatic grill and deep grill distinction as `boundary-interviewer`.
 
 ## Cross-Stage Grill Memory
 
-Self-critique issues are part of the cross-stage grill memory. Before starting a
-new critique loop, inspect:
+Self-critique issues are part of the cross-stage grill memory. For a project review, inspect the relevant existing records before starting a
+new critique loop:
 
 - `context/boundary_review.md`
 - `context/decision_log.md`
@@ -103,8 +107,8 @@ new critique loop, inspect:
 - `review/self_critique_log.md`
 
 If a prior issue affects the current artifact, keep the same issue ID and update
-its status instead of creating a duplicate. Open issues that cannot be resolved in
-the current stage must be copied into `context/stage_handoff.md` under `Open
+its status instead of creating a duplicate. At a formal handoff, open issues that cannot be resolved in
+the current stage must be carried through the approved write owner into `context/stage_handoff.md` under `Open
 Grill Issues` with a concrete `Revisit Trigger`.
 
 ## Stage-Specific Critique Questions
@@ -197,14 +201,14 @@ This skill is injected into tasks by the `mcp-agent-capability-map.yaml` and sho
 
 ## Output Contract
 
-- `CritiqueLog`: write `RESEARCH/[topic]/review/self_critique_log.md`.
+- `CritiqueLog`: for formal persistence, update `RESEARCH/[topic]/review/self_critique_log.md` through preview/approval/CAS; a chat review need not create a file.
 - Separate finding, interpretation, and implication in the final artifact.
 - Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
 - Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
 
 ## Quality Bar
 
-- [ ] 已完成当前任务适用的检查；正式编排运行满足其最低复核轮数
+- [ ] 已完成当前任务适用的检查；保留协议或已有运行明确配置的复核轮数和独立审查要求
 - [ ] 每个 critique 点附带具体修正建议
 - [ ] 每轮保留并更新 issue lineage，而不是把 critique 重置
 - [ ] Overclaiming 已被识别并降级表述

@@ -18,7 +18,7 @@ Optional consolidated digest. Prefer the relevant `skills/*/*.md` card for execu
 - Final writing, proofread, submission, rebuttal, and presentation-facing outputs should apply `references/citation-risk-policy.md`.
 - High-risk stage transitions should write `context/stage_handoff.md` using `references/stage-handoff-contract.md`.
 - Stage C design work should produce or consume `design/method-diagnostic-report.md` and `design/validity-threat-matrix.md`.
-- Writing Harness Contract applies to Stage F writing even when using only this core reference: lock the Story Spine before prose, then write in section or paragraph-cluster chunks with a write -> review -> confirm checkpoint. Do not draft the whole artifact in one uninterrupted pass; stop for the next blocking boundary/grill question when there is mainline drift, missing support, generic or vague claims, or an unsettled evidence threshold.
+- Stage F uses the shared Writing Harness Contract in `references/stage-F-writing.md`: preserve the Story Spine and evidence boundaries; choose structure and review granularity for the requested task.
 
 ---
 
@@ -390,12 +390,10 @@ required fields, and write export-ready `bibliography.bib`
 **Purpose:** Draft and revise a full research paper (outline → draft → integrity passes)
 
 **Process:**
-1. Create manuscript workspace (`manuscript/outline.md`, `manuscript/manuscript.md`)
-2. Establish the Story Spine: central claim, argumentative mainline, section jobs, non-goals, and evidence threshold
-3. Draft sections iteratively (Intro → Related work → Methods → Results → Discussion → Limitations → Conclusion)
-4. For each section or paragraph-cluster, run write -> review -> confirm and check for mainline drift, missing support, generic or vague claims, and logic jumps
-5. Run claim–evidence integrity pass + figures/tables pass
-6. Prepare for readiness checks (reporting/PRISMA) and submission packaging
+1. Reuse the requested scope, source artifacts and outline; ask only for a consequential missing decision.
+2. Follow `references/stage-F-writing.md` for structure, evidence, review and completion. Do not expand a section edit into the full-paper artifact set.
+3. Use the canonical claim map and stable IDs for formal claims; preserve source anchors and unresolved gaps.
+4. Apply the required reporting and quality gates before claiming formal readiness. Submission packaging is a separate requested outcome.
 
 **Templates:** `templates/manuscript-outline.md`, `templates/manuscript-skeleton.md`, `templates/claim-evidence-map.md`, `templates/figures-tables-plan.md`
 
@@ -590,7 +588,7 @@ legacy Python controller commands are not native 2.x dependencies.
 **Process:**
 1. Identify the requested artifact and applicable checks; use only relevant stage lenses.
 2. Review an ordinary answer once. Fix concrete defects and recheck affected work; no findings is a valid result, and no question quota applies.
-3. Formal orchestrated runs retain configured limits and the minimum review contract: standard 2 passes, deep 3 when revision rounds are available. An early PASS receives the required stability review; it does not require inventing revisions.
+3. Follow `skills/Z_cross_cutting/self-critique.md` for review convergence. Preserve explicit protocol and saved-run limits, required independence and any remaining stability review; a standard/deep label alone adds no minimum count.
 4. Reuse issue IDs and keep unresolved blockers. Stop a blocked branch when progress requires unavailable evidence or a decision; reaching a limit does not turn BLOCK into PASS.
 5. Keep `review/self_critique_log.md` for formal runs. A direct answer can report its check in chat. Do not start another model or persona merely because this card was loaded.
 
