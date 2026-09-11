@@ -3,6 +3,58 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Command review and beta.5 release submission — September 11
+
+Base `cd646d9c`; branch `codex/cli-command-review-beta5`. The maintainer requests
+review of remaining command usability, fixes where needed and the next Beta,
+then termination immediately after Release Automation dispatch without tracking.
+Version/content identity is `3cfca114`; final runtime source is
+`c04d0f9dd439eebd4c22f97578ea7c77dca5318d`. This release includes the preceding
+install/source-discovery follow-up below; the published beta.4 lacks that work.
+
+A read-only audit of 19 command invocations found empty command groups returning
+usage errors and stale installation/update hints. It created no local state.
+Terminal-only config backend, project graph/capture/portfolio and app plan now
+reuse existing scoped help. Redirected/explicit-format errors remain unchanged;
+incomplete writes and MCP serve retain required arguments. Install help remains
+23 lines, and content/doctor/update explain the corresponding install or package
+upgrade entry. No new dependency, parser framework, write owner or cleanup action
+was added. Bilingual Docs/README and channel-specific generated instructions are
+aligned with beta.5; registry documentation links now select the immutable tag.
+Humanizer review preserved Host, runtime and verification boundaries.
+
+Validation: three presentation unit tests, all 39 CLI and seven MCP integration
+tests passed. The 38 packaging/version/docs tests and 62 content/ADR tests passed
+(one existing skip); nine affected package-documentation checks passed again after
+the README template edits. Docs build, formatting, workspace CLI Clippy and the
+frozen-source guard passed. Early checks caught the lock/version staging order and
+an overlong install help page; regenerating the lock and compacting help while
+retaining setup resolved them. The focused help check and final release suite pass.
+
+The existing release-ready owner qualified clean local 2.x at `c04d0f9d` on macOS
+ARM64. Standalone empty-PATH execution, actual npm/wheel installations, both aliases
+and Codex/Claude Marketplace Plugin archives passed. They share content pack
+SHA-256 `61645aaade3ebc3be82136b8ec76a08c4892feeee719f8b50a355048bb8a15ae`.
+Packages and manifests remain in `/private/tmp/qiongli-beta5-release-final/`.
+Isolated real Codex and Claude terminals updated their existing beta.4 sources to
+beta.5 without destination flags. Doctor/inventory verified current registration;
+cancellation preserved files and model/original canaries remained unchanged.
+Five empty command groups displayed help without query writes in a real terminal.
+No personal Host configuration, research access, live model session, non-macOS
+execution or new Graph/performance/maintenance acceptance is claimed.
+
+Logs use `/private/tmp/qiongli-beta5-` with `command-audit.json`,
+`presentation-final.log`, `packaging-final.log`, `package-docs.log`,
+`content-tests.log`, `docs.log`, `help-compact.log`, `release-final.log`,
+`terminal.log` and `ledger.log`. The Host receipt is
+`packages/qiongli-native/target/content-real-hosts/beta5-terminal-receipt.json`.
+Seven ledger checks pass and the generated index is current. This final bookkeeping
+does not change qualified runtime inputs. Push the candidate branch and immutable
+`v2.0.0-beta.5` tag, then dispatch Release Automation at that tag; protected remote
+2.x is not pushed. Final-tag CI, public assets and registry uploads remain
+unobserved. The next increment is fresh authorized Host research-session evidence;
+accepted program states and managed/Desktop gates are unchanged.
+
 ## Discoverable install/update follow-up — September 11
 
 Base `5f792d1c`; branch `codex/install-upsert-discovery`. The maintainer's beta.4
