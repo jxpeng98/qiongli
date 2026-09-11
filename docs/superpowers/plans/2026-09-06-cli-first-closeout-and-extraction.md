@@ -3,6 +3,23 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Current 2.x coherence review — September 11
+
+Base `bb668f08`; branch `codex/2x-coherence-review`. The maintainer clarified
+that the review targets current 2.x, using retained 1.x outcomes as comparison.
+The [review](../reviews/2026-09-11-qiongli-2x-coherence-review.md) consolidates
+thin Skill entries, migration boundaries and the four intended architecture
+benefits, with reusable existing checks. It records fresh local results and
+three confirmed gaps: successful local Plugin registration is absent from doctor
+inventory; ADRs 0219–0224 are absent from the current registry; the old domain
+guidance lint still requires deferred reference text in the main Skill.
+
+This increment adds review content only; no runtime fixes, new dependencies,
+private research access or publication. CLI-402 remains active; accepted rows
+are unchanged. Next fix the diagnostic mismatch, repair the existing review
+checks, then observe the new workflow entries with the existing synthetic Codex
+journey. Do not treat local checks as fresh installed-session acceptance.
+
 ## Native Codex workflow entry points — September 11
 
 Base `cbe499a6`; branch `codex/workflow-skill-wrappers`; implementation
