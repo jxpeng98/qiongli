@@ -144,12 +144,9 @@ This is the anti-overclaim tool: every major claim must trace to evidence (data,
 - Each claim has at least one evidence pointer
 - Claims are typed (novelty / mechanism / empirical effect / robustness / synthesis)
 
-Suggested table: `manuscript/claims_evidence_map.md`
-
-```markdown
-| claim_id | claim | claim_type | evidence | citation_keys | status (ok/weak/missing) | fix |
-|---|---|---|---|---|---|---|
-```
+Use `templates/claim-evidence-map.md` for `manuscript/claims_evidence_map.md`.
+Preserve its exact headers, stable claim IDs and distinction between evidence
+pointers and citation keys. Do not substitute a differently shaped summary table.
 
 ---
 

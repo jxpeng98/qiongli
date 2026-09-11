@@ -107,6 +107,18 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
                 with self.subTest(consumer=path, instruction=instruction):
                     self.assertNotIn(instruction, text)
 
+    def test_structured_writing_and_history_tables_resolve_canonical_templates(self) -> None:
+        for reference, template in (
+            ("stage-F-writing.md", "claim-evidence-map.md"),
+            ("stage-consolidation.md", "research-state.md"),
+        ):
+            with self.subTest(reference=reference):
+                self.assertIn(
+                    f"templates/{template}",
+                    read(LAYOUT.workflow / "references" / reference),
+                )
+                self.assertTrue((LAYOUT.templates / template).is_file())
+
     def test_writing_role_uses_academic_writer_name_with_legacy_alias(self) -> None:
         role_text = read(LAYOUT.roles / "science-writer.yaml")
         capability_text = read(LAYOUT.standards / "mcp-agent-capability-map.yaml")

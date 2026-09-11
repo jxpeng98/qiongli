@@ -12,9 +12,11 @@ context load while retaining evidence. Disk cleanup is optional and separate.
   Choose an unused stage/revision ID such as `STG-B-001`; never replace an earlier
   summary. A reopened stage or correction gets a new ID and predecessor link.
 - In `context/research_state.md`, append a row to `Stage Summary History` with
-  summary ID, stage, date, document link, predecessor and status. Preserve old
-  rows and the existing canonical research fields. The current state may evolve;
-  earlier stage documents preserve what was known at the time.
+  the exact table headers from `templates/research-state.md`, including
+  `Previous summary`. Read that template before proposing a new history table;
+  do not rename columns from their prose descriptions. Preserve old rows and the
+  existing canonical research fields. The current state may evolve; earlier
+  stage documents preserve what was known at the time.
 - Reuse a matching existing summary if the requested scope and source bytes have
   not changed. Do not create another copy merely because the request was repeated.
 - Each new document records added, revised, superseded, missing and unresolved
