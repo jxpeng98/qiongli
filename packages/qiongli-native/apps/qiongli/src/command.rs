@@ -289,6 +289,7 @@ pub enum ProductAction {
     Output(CliOutput),
     ServeLiteMcpStdio,
     ServeFullMcpStdio,
+    ServeContextHook,
     LaunchDesktop,
     LaunchDesktopWithCandidate(Box<crate::DesktopCandidateSession>),
 }
@@ -378,6 +379,9 @@ pub fn run_cli(
         ProductAction::ServeFullMcpStdio => {
             CliOutput::operation_failure("streaming-command-requires-product-entrypoint")
         }
+        ProductAction::ServeContextHook => {
+            CliOutput::operation_failure("streaming-command-requires-product-entrypoint")
+        }
         ProductAction::LaunchDesktop => {
             CliOutput::operation_failure("desktop-command-requires-product-entrypoint")
         }
@@ -416,6 +420,7 @@ pub(crate) fn prepare_action_with_release_authority(
 
     let output = match command {
         Command::Help => CliOutput::success_text(USAGE),
+        Command::ContextHook => return ProductAction::ServeContextHook,
         Command::TopicHelp(text) => CliOutput::success_text(text),
         Command::Version => {
             CliOutput::success_text(format!("qiongli {}\n", env!("CARGO_PKG_VERSION")))
@@ -624,6 +629,7 @@ pub(crate) fn prepare_action_with_release_authority(
 #[derive(Debug, Eq, PartialEq)]
 enum Command {
     Help,
+    ContextHook,
     TopicHelp(String),
     Version,
     Ui,
@@ -756,7 +762,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
                 ));
             }
             "update" => return Ok(Command::Update(UpdateCliCommand::Status)),
-            "mcp" | "app" | "migrate-1x" | "upgrade" => {
+            "mcp" | "app" | "migrate-1x" | "upgrade" | "hooks" => {
                 return Ok(Command::TopicHelp(crate::cli_help::topic(&args).unwrap()));
             }
             _ => {}
@@ -772,6 +778,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "install" => parse_install_args(&args[1..]),
         "migrate-1x" => parse_migration_args(&args[1..]),
         "mcp" => parse_mcp_args(&args[1..]),
+        "hooks" if args.len() == 2 && args[1] == OsStr::new("context") => Ok(Command::ContextHook),
         "project" => crate::project_cli::parse(&args[1..])
             .map(Command::Project)
             .map_err(project_usage_error),

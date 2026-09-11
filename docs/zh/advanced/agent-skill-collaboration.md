@@ -1,3 +1,107 @@
+# Agent 协作与可选 Hook
+
+当前 2.x 开发版让模型留在自己的 Host 中运行。穷理提供研究规范、可核对来源的
+交接材料和项目工具。Plugin 包含 Skills 与 Full MCP，但安装 Plugin 本身不会
+创建其他 Agent，也不会更换你选择的模型。
+
+## 按任务选择协作方式
+
+| 任务需要 | 建议方式 | 怎样判断完成 |
+|---|---|---|
+| 独立的方法或证据判断 | 让新的原生子代理阅读限定来源，先独立给出意见 | 收到真实审查结果、执行身份和阅读范围 |
+| 写作后复核 | 先写作，再审查这一份具体候选稿 | 候选稿身份、审查意见和主代理的处理记录一致 |
+| 可拆开的工作 | 子代理分别负责不同产物或文件 | 收齐结果，再检查整合后的内容 |
+| 请另一个 Host 审查或修改 | 交接任务包，收回审查报告或修改提案 | 任务、来源版本和候选稿对应；分歧有明确记录 |
+
+可以直接说：“请用一个独立 Agent 检查这段结果是否符合研究设计，先返回意见，
+不要直接改正文。”普通小修改仍可由当前会话完成，不必固定安排几个 Agent 或几轮讨论。
+
+`model-collaborator` 会使用当前 Host 实际提供的代理工具。主代理说明目标、允许
+阅读的材料、文件分工和返回要求，再收集真实结果。角色名称或已排队任务不能证明
+独立审查完成。没有可用审查者时，这项要求保持未完成；同一会话切换角色只能算自查。
+
+是否能调用子代理，取决于运行中的 Host、配置和模型接入能力。沿用用户的模型设置。
+平台能力可参考 [Codex 子代理文档](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+和 [Claude Code 子代理文档](https://code.claude.com/docs/en/sub-agents)。
+
+## 与另一个 Host 协作
+
+使用随包的 `templates/agent-handoff.md`，交接目标、允许共享的材料、实际观察到的
+来源哈希或修订号、候选稿身份和允许操作。对方用 `templates/agent-review-packet.md`
+返回意见，或提交候选修改。已有并获授权的通信工具可以传递任务包；也可以手动转交。
+仅准备好材料时，应记录为“等待外部审查”。
+
+收到结果后，主代理先核对它是否针对当前来源和候选稿，再根据证据处理分歧、预览修改。
+过期审查需要重新核对，必要时重审。正式研究文件由一个协调者整合；其他代理使用
+各自的候选文件或工作树，避免覆盖彼此的工作。交接要保留 claim/decision ID、citekey、
+来源位置、方法限制及前一份阶段总结。审查意见不能直接成为 Graph 的原始支持证据。
+
+不要转交私人聊天记录、凭据或审批令牌。当前 Full MCP 运行绑定启动它的 Host 和
+已认证读取，任务包不能接管这个检查点或继承审批权限。自动领取跨 Host 任务、并发
+修改正式文件及崩溃恢复仍按 ADR 0218 后续实现；目前可以先进行审查和修改提案的交接。
+
+## 可选的上下文 Hook
+
+Hook 适合在压缩上下文、恢复会话或启动子代理时，提醒模型重新核对研究状态。
+开发版新增 `qiongli hooks context`：从标准输入接收事件 JSON，返回简短提示。
+它是原生命令，不依赖 Python、Node、MCP 连接或额外模型调用，不读取项目文件和聊天
+记录，也不保存总结、批准写入或强迫已经结束的任务继续运行。不启用 Hook 也可正常使用 Skills。
+
+确认 Host 支持这些事件后，再手动添加下面的配置。把路径替换成实际原生二进制的绝对
+路径，保留命令引号。Windows 使用 `qiongli.exe` 的绝对路径，并按 Host 的命令 shell
+和 JSON 规则处理引号及转义。
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "resume|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/absolute/path/qiongli\" hooks context",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/absolute/path/qiongli\" hooks context",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Codex 将这些条目合入相应的 `.codex/hooks.json`，然后在 `/hooks` 中审阅并信任；
+项目配置还需要项目受信任。Claude Code 将 `hooks` 条目合入相应的
+`.claude/settings.json`。保留已有条目，避免在用户级和项目级重复添加同一提示。
+安装 Plugin 不会自动启用这个 Hook。具体配置和事件支持以
+[Codex Hook 文档](https://learn.chatgpt.com/docs/hooks)和
+[Claude Code Hook 文档](https://code.claude.com/docs/en/hooks)为准。
+
+先运行 `qiongli hooks context --help`，旧的已发布 CLI 可能还没有这个命令。
+本地检查时，向命令传入 `source: "resume"` 的 SessionStart JSON 并关闭标准输入，
+应收到 `hookSpecificOutput.additionalContext`。不支持的事件返回 `{}`；无效或超过
+64 KiB 的输入以退出码 1 结束，不回显输入内容。返回提示不代表审查通过或研究已保存。
+
+这里只使用 command Hook，不能假定各 Host 的 prompt、agent、MCP Hook 行为一致。
+还需在实际 Host 中确认提示是否送达；协议测试不能证明真实安装已通过验证。
+[历史实测矩阵](/zh/guide/agent-host-capability-matrix)继续保留原有证据范围。
+
+<details>
+<summary>历史 1.x 增强指南</summary>
+
+以下命令和固定角色建议属于保留的 Python 实现，不是原生 2.x 的安装或执行说明。
+
 # Agent + Skill 协同增强指南
 
 本指南用于在 `qiongli` 中系统增强某一能力（不仅限代码），并保持跨模型一致性。
@@ -221,3 +325,5 @@ python -m bridges.orchestrator parallel \
 - **本地映射与约束**：负责研究场景一致性与可控性（Task ID、质量门、产物路径、技能约束）。
 
 也就是：把“能力”交给外部，把“标准”留在本地。
+
+</details>

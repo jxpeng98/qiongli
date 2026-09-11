@@ -79,8 +79,8 @@ For registered project orchestration, when the bundled Full MCP tools are visibl
    hashes, ToolHost audits, completed gates, or persisted artifact claims.
 6. Use the newly returned generation and document digest with
    `qiongli_orchestration_next`, and repeat until the run is terminal or Qiongli
-   reports a blocker. If native subagents are unavailable, execute every role
-   sequentially in the truthful single-agent flow.
+   reports a blocker. Follow the collaboration rules below: sequential
+   self-review cannot satisfy a required independent review.
 
 A submitted candidate is not an artifact mutation. Keep preview and apply
 separate and show the proposed artifact change. Request explicit artifact apply approval before

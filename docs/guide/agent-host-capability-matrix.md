@@ -1,5 +1,7 @@
 # Observed Agent Host capability matrix
 
+Current development guidance for native subagents, cross-Host proposals and optional hooks is in [Agent collaboration](/advanced/agent-skill-collaboration). This historical matrix does not qualify those newer changes.
+
 This page reports what accepted Qiongli receipts directly observed as of
 August 30, 2026. It is not a vendor comparison, a model ranking, or a promise
 that one Host behaves like another.

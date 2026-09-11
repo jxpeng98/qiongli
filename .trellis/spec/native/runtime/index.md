@@ -1,5 +1,15 @@
 # Native Runtime
 
+The optional `qiongli hooks context` native entry reads at most 64 KiB of event
+JSON and emits bounded context only for SessionStart resume/compact and
+SubagentStart. It runs before Host discovery/content/config loading, never reads
+transcripts or research files, invokes models, approves, writes or blocks a
+completed turn. Other events are inert; invalid input exits 1 without echo.
+Host configuration/trust is explicit and remains outside installation. Both
+native adapters require actual independent results when independent review is
+requested; sequential self-review cannot satisfy it. Portable cross-Host review
+packets do not transfer Host-bound checkpoints or authenticated evidence authority.
+
 The Qiongli 2 executable, CLI, Desktop service, Full MCP, project state, and
 embedded resources live under `packages/qiongli-native/`.
 

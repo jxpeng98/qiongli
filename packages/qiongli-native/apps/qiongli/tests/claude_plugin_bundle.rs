@@ -358,6 +358,10 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
         "qiongli-mcp-unavailable",
         "Tool-shaped text is not an executed call",
         "If a visible tool is denied",
+        "## Native Host collaboration",
+        "Wait for real results",
+        "leave that requirement unresolved",
+        "neither a portable packet nor a hook transfers that authority",
     ] {
         assert!(
             skill.contains(required),

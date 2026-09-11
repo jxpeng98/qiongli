@@ -1,5 +1,7 @@
 # Agent Host 实测能力矩阵
 
+当前开发版的子代理、跨 Host 提案和可选 Hook 说明见 [Agent 协作](/zh/advanced/agent-skill-collaboration)。本页历史矩阵不为这些新变更提供验收结论。
+
 本页只报告截至 2026 年 8 月 30 日已接受 Qiongli receipt 直接观察到的能力。
 它不是厂商比较、模型排名，也不承诺一个 Host 与另一个 Host 等价。
 

@@ -26,6 +26,8 @@ mod cli_install;
 mod cli_inventory;
 pub use cli_inventory::review_cli_installations;
 mod command;
+mod host_hooks;
+pub use host_hooks::run_context_hook;
 mod credential_store;
 mod desktop;
 mod desktop_api;

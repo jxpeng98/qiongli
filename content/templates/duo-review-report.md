@@ -14,4 +14,4 @@
 
 ## Adjudication
 
-- Document how Codex and Claude disagreements were resolved, including references to the disagreement matrix when applicable.
+- Document how the participating agents’ disagreements were resolved, including references to the disagreement matrix when applicable.

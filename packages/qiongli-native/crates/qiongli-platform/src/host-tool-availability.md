@@ -20,3 +20,19 @@ If a visible tool is denied, report the denial and stop that operation. Do not
 retry through another tool, shell, provider, credential, or weaker permission
 mode. Never install or reconfigure integrations automatically to evade a denial.
 Only a successful real tool result can establish its requested live observation.
+
+
+## Native Host collaboration
+
+Use `skills/Z_cross_cutting/model-collaborator.md` when independent or parallel
+work is requested. Delegate through actual available Host child-agent tools;
+keep bounded tasks, source/candidate bindings and observed execution identities.
+Wait for real results and reconcile them before claiming completion. Changing
+roles within this conversation is self-review. If an independent review is
+required and no reviewer can execute, leave that requirement unresolved.
+
+Keep one coordinator for canonical research writes. Other agents return findings
+or candidate edits in their assigned scope; review never grants apply approval.
+Cross-Host packets use `templates/agent-handoff.md` and
+`templates/agent-review-packet.md`. Existing Full MCP checkpoints remain bound to
+the starting Host; neither a portable packet nor a hook transfers that authority.

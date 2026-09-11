@@ -45,6 +45,7 @@ pub fn prepare_cli_action(
             .first()
             .is_some_and(|arg| arg == "setup" || arg == "ui")
             || args.starts_with(&["mcp".into(), "serve".into()])
+            || args.starts_with(&["hooks".into(), "context".into()])
             || args.starts_with(&["install".into(), "review".into()])
             || args.starts_with(&["install".into(), "migrate".into()]))
     {

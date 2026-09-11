@@ -190,17 +190,19 @@ coordination:
 
 ## Worker Adapter Routing
 
-When a handoff includes worker orchestration, use the canonical `worker_plan`.
-Adapters only change dispatch mechanics:
+Use `skills/Z_cross_cutting/model-collaborator.md` for bounded native delegation
+and cross-Host review or candidate edits. The Host supplies actual child-agent
+and communication tools; a Plugin or MCP connection does not create them.
+Historical `worker_plan` labels (`codex_subagent`, `claude_cowork`,
+`generic_prompt`) describe adapter intent, not an available dispatcher.
 
-- `generic_prompt`: portable packet for any runtime or manual dispatch.
-- `codex_subagent`: Codex native subagent dispatch when available.
-- `claude_cowork`: Claude native cowork dispatch when available.
-
-If native dispatch is unavailable, record the degradation and prepare the same
-packet through `generic_prompt` for an authorized reviewer. Work performed by the
-same conversation remains self-review, not an independently executed packet. Do not change Task IDs, outputs, quality gates,
-required skills, or MCP evidence when switching adapters.
+When native dispatch is unavailable, prepare the existing `agent-handoff.md`
+packet for an authorized reviewer. Report it as awaiting external review until
+an actual result returns. Sequential roles in one conversation are self-review;
+leave a required independent review unresolved. Preserve Task IDs, outputs,
+quality gates and source bindings when moving between Hosts. Native Full MCP
+checkpoints remain bound to their starting Host: another Host can return a
+proposal, but cannot take over that checkpoint or reuse its approval authority.
 
 ## Portable Skill Installs
 

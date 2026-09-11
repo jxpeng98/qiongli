@@ -3,6 +3,31 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Collaboration and continuity — September 11 follow-up
+
+Continue from `a1a5861d` on `codex/collaboration-continuity`. The maintainer adds
+Sub-Agent, cross-Agent collaboration/chat strategy and Hook assessment to the
+planned long-task C-to-F/Graph/stage-summary observation. Reuse ADR 0218 and
+the existing model-collaborator, handoff/review templates and native owners.
+
+1. Trace actual Host delegation, bound Full MCP runs and retained worker/App
+   code. Distinguish working capabilities from dormant or unqualified paths.
+2. Strengthen bounded delegation, source-bound cross-Host review/edit proposals,
+   result collection and conflict handling. Preserve configured models and one
+   canonical write owner; do not impersonate another Host or copy private chats.
+3. Add an opt-in native context Hook for resume/compaction and subagent starts.
+   It returns bounded guidance only, never reads transcripts, approves, writes,
+   launches models or blocks completion. Hosts own installation/trust; no personal
+   configuration is changed. Keep unsupported events inert.
+4. Exercise synthetic C-to-F and stage-summary continuity with real independent
+   subagent outputs, including stale/conflicting evidence and unavailable peers.
+   Check Hook protocol/negative cases and actual content projections; archive
+   observations and limitations, then commit and integrate locally without release.
+
+Automatic cross-Host concurrent writes require the separate claim/review/recovery
+work of CLI-406–CLI-408. This increment delivers delegated work and portable
+review/edit handoff, not a new coordinator or cross-device transport.
+
 ## Design and role boundaries — September 11 follow-up
 
 Continue the recorded next increment from `37386173` on
