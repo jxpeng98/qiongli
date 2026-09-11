@@ -18,7 +18,7 @@ mod capture_delivery_cli;
 mod capture_resolution_cli;
 mod cli_content;
 mod cli_help;
-pub use cli_content::BundledContentReview;
+pub use cli_content::{BundledContentReview, guide_installation};
 mod cli_presentation;
 mod plugin_host;
 pub use cli_presentation::prepare_cli_action;

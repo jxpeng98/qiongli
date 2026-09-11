@@ -244,6 +244,8 @@ binary targets are macOS Apple Silicon, Windows x64 and Linux x64 (glibc 2.35+).
 
 ```sh
 qiongli --version
+qiongli install --interactive
+qiongli mcp check
 qiongli doctor
 qiongli content
 qiongli help install plugin

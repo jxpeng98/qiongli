@@ -23,29 +23,29 @@
 你可以继续使用自己的 Codex、Claude Code 和模型设置，穷理负责研究记录、来源、
 可审阅的修改以及阶段交接。使用 CLI 不需要安装穷理桌面 App。
 
-本分支以 `2.0.0-beta.3` 为版本基线。下文标注“开发版”的安装整合和 Skills 入口
-尚未包含在该发布标签中；下载旧包不会自动获得本地尚未发布的修改。
-[完整 2.x 使用指南](docs/zh/guide/cli-2x.md)区分了已发布命令与开发版功能。
+Beta.4 新增 `qiongli install --interactive` 交互安装和 `qiongli mcp check` 本地检查。
+推荐安装的 Plugin 已包含研究 Skills 和 MCP；独立 Skills 是可选的文件导出。
+[2.x 使用指南](docs/zh/guide/cli-2x.md)说明了各入口与首次 Host 会话的检查方法。
 
 ## Qiongli 2.x 独立二进制下载
 
 **下载、解压、运行。不用先安装 Python、Node.js、Rust 或包管理器。**
 
-在 [GitHub Release v2.0.0-beta.3](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.3)
+在 [GitHub Release v2.0.0-beta.4](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.4)
 中选择对应平台的完整 CLI，解压后运行 `./qiongli --help`（Windows PowerShell 使用 `.\qiongli.exe --help`）。
 研究 Skills、模板和 Lite/Full MCP 资源都在程序里，不需要额外安装。
 你可以直接在解压目录使用，安装 App 或配置 PATH 都不是前提。
 
 | 平台 | 二进制压缩包 |
 |---|---|
-| macOS Apple Silicon（ARM64） | [下载 `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.3/qiongli-2.0.0-beta.3-aarch64-apple-darwin.tar.gz) |
-| Windows x64 | [下载 `.zip`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.3/qiongli-2.0.0-beta.3-x86_64-pc-windows-msvc.zip) |
-| Linux x64（glibc 2.35+） | [下载 `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.3/qiongli-2.0.0-beta.3-x86_64-unknown-linux-gnu.tar.gz) |
+| macOS Apple Silicon（ARM64） | [下载 `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.4/qiongli-2.0.0-beta.4-aarch64-apple-darwin.tar.gz) |
+| Windows x64 | [下载 `.zip`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.4/qiongli-2.0.0-beta.4-x86_64-pc-windows-msvc.zip) |
+| Linux x64（glibc 2.35+） | [下载 `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.4/qiongli-2.0.0-beta.4-x86_64-unknown-linux-gnu.tar.gz) |
 
 Windows beta 版本已将 C 运行库编入程序，无需另外安装 Visual C++ 运行库。
 Linux 使用系统自带库，要求 glibc 2.35+。
 
-运行前使用同一 Release 的 [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.3/SHA256SUMS)
+运行前使用同一 Release 的 [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.4/SHA256SUMS)
 核对文件；[完整指南](docs/zh/guide/cli-2x.md)说明解压、PATH 和 MCP 接入步骤。
 请在 **Assets** 中选择上述平台包，GitHub 自动生成的 **Source code** 是源码。
 模型 Host 和在线文献服务仍需单独配置。
@@ -55,7 +55,7 @@ Linux 使用系统自带库，要求 glibc 2.35+。
 这两个渠道都自带原生程序。已有 Rust 1.97+ 和本机链接器时，也可以通过 Cargo 从源码安装。
 
 ```sh
-cargo install qiongli --version 2.0.0-beta.3 --locked
+cargo install qiongli --version 2.0.0-beta.4 --locked
 ```
 
 Cargo 提供 `qiongli` 和 `ql`。如果不想编译，直接下载上方二进制包即可。
@@ -69,6 +69,8 @@ pip 和 Cargo 在安装后运行。向导不会删除文件或修改设置。
 
 ```sh
 qiongli --version
+qiongli install --interactive
+qiongli mcp check
 qiongli doctor
 qiongli setup
 qiongli content
@@ -79,7 +81,7 @@ qiongli help install plugin
 它不会卸载程序、移动文件或改动 PATH。`qiongli` 和 `ql` 使用同一套命令；独立下载包
 直接提供 `qiongli`，包管理器安装同时提供 `ql`。脚本请使用 `--json`。
 
-开发版的 `install plugin` 先导出随包内容，再分别确认文件变更与官方 Host 注册；
+`install plugin` 先导出随包内容，再分别确认文件变更与官方 Host 注册；
 `upgrade plugin` 用当前 CLI 刷新同一导出目录。`install skills` 只导出
 `.qiongli-skills` 内容，加载到 Host 请使用 Plugin 安装入口。
 `upgrade cli` 给出原渠道升级方法，不替你执行包管理器。

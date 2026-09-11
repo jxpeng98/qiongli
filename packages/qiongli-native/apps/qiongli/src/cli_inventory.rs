@@ -347,7 +347,11 @@ pub fn review_cli_installations(environment: &CommandEnvironment) -> io::Result<
     )
 }
 
-fn choice(reader: &mut impl BufRead, writer: &mut impl Write, prompt: &str) -> io::Result<String> {
+pub(crate) fn choice(
+    reader: &mut impl BufRead,
+    writer: &mut impl Write,
+    prompt: &str,
+) -> io::Result<String> {
     write!(writer, "{prompt}")?;
     writer.flush()?;
     let mut line = String::new();
@@ -363,7 +367,7 @@ fn display(path: &Path) -> String {
     serde_json::to_string(&path.to_string_lossy()).unwrap_or_default()
 }
 
-fn review(
+pub(crate) fn review(
     inventory: &CliInventory,
     reader: &mut impl BufRead,
     writer: &mut impl Write,

@@ -32,6 +32,12 @@ into reviewed records; no new graph store, raw-PDF scanner or write owner exists
   cache receipts distinguish current, refresh-required and unavailable states;
   cache versions must match their receipts. Unconfigured Hosts are not probed.
   These observations confer no write authority or live-session readiness.
+  `install --interactive` guides Plugin, Skills-export, manual MCP configuration
+  and version-review choices through these same owners. Menu choices do not
+  approve writes. Bare install and setup keep their existing query/review behavior.
+  `mcp check` exercises the existing stdio handlers in-process (initialize, tools
+  and config status); its result explicitly excludes Host sessions and online
+  provider connectivity. It adds no daemon, registration or persisted readiness.
 - `apps/qiongli/src/desktop.rs` owns the shared App service; Tauri commands in
   `desktop/tauri_adapter.rs` adapt it instead of duplicating product logic.
 - `crates/qiongli-runtime/src/contract.rs` and `apps/qiongli/src/mcp.rs` own the

@@ -25,6 +25,9 @@ fn main() -> ExitCode {
         qiongli::ProductAction::ReviewBundledContent(review) => {
             render_output(review.run(&environment, &content))
         }
+        qiongli::ProductAction::GuideInstallation => {
+            render_output(qiongli::guide_installation(&environment, &content))
+        }
         qiongli::ProductAction::ReviewCliInstallations => {
             match qiongli::review_cli_installations(&environment) {
                 Ok(()) => ExitCode::SUCCESS,

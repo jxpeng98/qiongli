@@ -27,15 +27,14 @@ features:
 
 ## Start here
 
-These entry pages describe **2.x**, with `2.0.0-beta.3` as the version baseline.
-Development features are marked separately in the guide; a published download
-under that tag does not include subsequent local changes.
+These entry pages cover **2.0.0-beta.4**, including guided Plugin installation and
+local MCP checks. Older packages may not expose these commands.
 
 | What you need | Entry |
 |---|---|
 | Download, extract and run | [Standalone binary](guide/cli-2x.md#standalone-binary-download) |
 | Install through npm, PyPI or Cargo | [Installation and commands](guide/cli-2x.md) |
-| Install or refresh bundled Plugins and Skills | [Development installation flow](guide/cli-2x.md#install-and-upgrade-bundled-content) |
+| Install or refresh bundled Plugins and Skills | [Plugin installation flow](guide/cli-2x.md#install-and-upgrade-bundled-content) |
 | Review CLI copies and integration state | `qiongli setup`, `qiongli install`, `qiongli doctor` |
 | Understand the research Graph | [Graph scope and checks](guide/cli-2x.md#research-graph) |
 | Maintain an older Python/npm installation | [1.x reference](reference/cli.md) |

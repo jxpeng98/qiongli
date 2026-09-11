@@ -71,6 +71,8 @@ into a new directory. Open a terminal there (PowerShell on Windows) and run:
 {command} --help
 {command} content list
 {command} setup
+{command} install --interactive
+{command} mcp check
 ```
 
 Running without arguments shows help. Terminal queries display readable summaries;

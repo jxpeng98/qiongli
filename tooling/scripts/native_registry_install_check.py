@@ -38,6 +38,9 @@ def check_cli(executable, *, version, root, env):
     assert invalid.returncode != 0 and not invalid.stdout and 'error:' in invalid.stderr
     tools = {}
     for profile, expected_count in [('lite', 14), ('full', 32)]:
+        local = json.loads(run(command + ['mcp', 'check', '--profile', profile, '--json'], root=root, env=env).stdout)
+        assert local['scope'] == 'local-in-process-protocol' and local['tool_count'] == expected_count
+        assert local['read_only_call'] == 'passed' and local['host_session'] == 'not-checked'
         requests = [
             {'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {}},
             {'jsonrpc': '2.0', 'id': 2, 'method': 'tools/list', 'params': {}},

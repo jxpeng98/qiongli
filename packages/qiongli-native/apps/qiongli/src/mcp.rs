@@ -77,6 +77,61 @@ pub fn serve_full_mcp<R: BufRead, W: Write>(
     full_server(environment, content)?.serve(reader, writer)
 }
 
+/// Exercise the real protocol handlers locally; this cannot attest a Host connection.
+pub(crate) fn check_local(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    full: bool,
+) -> Result<String, &'static str> {
+    let requests = [
+        json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}),
+        json!({"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}),
+        json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{
+            "name":"qiongli_config_status","arguments":{}}}),
+    ];
+    let input = requests
+        .iter()
+        .map(|v| format!("{v}\n"))
+        .collect::<String>();
+    let mut reader = input.as_bytes();
+    let mut output = Vec::new();
+    if full {
+        serve_full_mcp(&mut reader, &mut output, environment, content)
+    } else {
+        serve_lite_mcp(&mut reader, &mut output, environment, content)
+    }
+    .map_err(|_| "local-mcp-check-failed")?;
+    let replies = output
+        .split(|b| *b == b'\n')
+        .filter(|line| !line.is_empty())
+        .map(serde_json::from_slice::<Value>)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| "local-mcp-check-failed")?;
+    let tools = replies
+        .get(1)
+        .and_then(|r| r.pointer("/result/tools"))
+        .and_then(Value::as_array)
+        .ok_or("local-mcp-check-failed")?;
+    if replies.len() != 3
+        || replies[0]["result"]["serverInfo"]["version"] != env!("CARGO_PKG_VERSION")
+        || !tools.iter().any(|t| t["name"] == "qiongli_config_status")
+        || replies[2].get("error").is_some()
+        || replies[2]["result"].is_null()
+        || replies[2]["result"]["isError"] == true
+    {
+        return Err("local-mcp-check-failed");
+    }
+    Ok(
+        json!({"schema_version":1,"command":"mcp-check","version":env!("CARGO_PKG_VERSION"),
+            "profile":if full {"full"} else {"lite"},"scope":"local-in-process-protocol",
+            "initialize":"passed","tool_count":tools.len(),"read_only_call":"passed",
+            "host_session":"not-checked","provider_connectivity":"not-checked",
+            "next_step":"In a new Host session, list Qiongli tools and call qiongli_config_status."
+        })
+        .to_string(),
+    )
+}
+
 pub(crate) fn full_server(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,

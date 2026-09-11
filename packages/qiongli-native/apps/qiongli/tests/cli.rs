@@ -111,6 +111,40 @@ fn run_without_path(args: &[&str]) -> Output {
 }
 
 #[test]
+fn guided_installation_requires_a_terminal_and_local_mcp_checks_do_not_claim_host_readiness() {
+    let fixture = Fixture::new("guided-install-mcp-check");
+    for args in [
+        vec!["install", "--interactive"],
+        vec!["install", "--interactive", "--json"],
+    ] {
+        let result = fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), &fixture)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(!result.status.success());
+        assert!(result.stdout.is_empty());
+    }
+    for (profile, count) in [("full", 32), ("lite", 14)] {
+        let result = fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), &fixture)
+            .env("PATH", "")
+            .args(["mcp", "check", "--profile", profile, "--json"])
+            .output()
+            .unwrap();
+        assert!(result.status.success(), "{}", public_output(&result));
+        let checked = parse_json(&result);
+        assert_eq!(checked["scope"], "local-in-process-protocol");
+        assert_eq!(checked["tool_count"], count);
+        assert_eq!(checked["read_only_call"], "passed");
+        assert_eq!(checked["host_session"], "not-checked");
+        assert_eq!(checked["provider_connectivity"], "not-checked");
+        assert!(!output_contains_path(&result, &fixture.home));
+    }
+    assert!(!fixture.config_root.exists());
+    assert!(!fixture.home.join("qiongli-next").exists());
+    assert!(!fixture.home.join(".qiongli-skills").exists());
+}
+
+#[test]
 fn content_install_upgrade_aliases_preview_without_writing_or_prompting_in_scripts() {
     let fixture = Fixture::new("content-install-shortcuts");
     for prefix in ["install", "upgrade", "update"] {

@@ -27,14 +27,14 @@ features:
 
 ## 从这里开始
 
-本站当前入口面向 **2.x**，版本基线为 `2.0.0-beta.3`。开发版新增功能在指南中单独标注，
-不代表该版本的已发布下载包已经包含这些修改。
+本站当前入口面向 **2.0.0-beta.4**，包含交互安装与本地 MCP 检查。
+旧包可能不提供这些命令，请先核对当前运行版本。
 
 | 你想做什么 | 入口 |
 |---|---|
 | 下载、解压后直接使用 | [独立二进制下载](guide/cli-2x.md#standalone-binary-download) |
 | 通过 npm、PyPI 或 Cargo 安装 | [安装和命令指南](guide/cli-2x.md) |
-| 安装、更新随包 Plugin 与 Skills | [开发版安装整合](guide/cli-2x.md#install-and-upgrade-bundled-content) |
+| 安装、更新随包 Plugin 与 Skills | [Plugin 安装整合](guide/cli-2x.md#install-and-upgrade-bundled-content) |
 | 查看 CLI 副本和集成状态 | `qiongli setup`、`qiongli install`、`qiongli doctor` |
 | 理解 Graph 如何使用证据 | [Graph 使用与检查](guide/cli-2x.md#research-graph) |
 | 查看旧 Python/npm 命令 | [1.x 历史参考](reference/cli.md) |

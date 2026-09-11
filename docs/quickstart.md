@@ -24,11 +24,14 @@ Removing an application package is not research-data cleanup.
 
 ## Use a Host
 
-Development builds offer `qiongli install plugin` to export bundled content and
-register it through official Codex or Claude commands. Follow the
-[complete example](guide/cli-2x.md#install-and-upgrade-bundled-content) to choose an
-export directory, then approve the file and Host operations separately. These
-shortcuts are not included in the beta.3 release tag.
+Run `qiongli install --interactive`. The recommended Plugin includes Skills,
+the native program and Full MCP; no separate Skills or MCP package is needed.
+Choose the Host and review the destination, file plan and separate registration
+confirmation. Keep the same destination for future upgrades. See the
+[complete example](guide/cli-2x.md#install-and-upgrade-bundled-content).
+
+Run `qiongli mcp check` for a local protocol check. This does not verify that the
+Host has loaded the Plugin.
 
 Start a new Host session after updating and confirm that its tools are available.
 Then ask for the work directly, such as “Read this paper and explain its findings

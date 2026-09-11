@@ -74,7 +74,7 @@ pub(crate) fn register(
         )? {
             return line(
                 writer,
-                "Host registration skipped; exported files remain available.\n",
+                "Host registration: skipped; exported files remain available.\nSession tools: not checked. Rerun upgrade plugin with the same target/destination to finish registration.\n",
             );
         }
         if reviewed_at.elapsed() > Duration::from_secs(600) {
@@ -101,7 +101,7 @@ pub(crate) fn register(
     }
     line(
         writer,
-        "Plugin registration, enabled state and cached files verified. Start a new Host session to load the Skills and Full MCP. Live tools have not been checked here.\n",
+        "Plugin registration, enabled state and cached files verified.\nHost registration: verified. Session tools: not checked.\nStart a new Host session; the Host launches Full MCP from this Plugin automatically.\nNo separate MCP install or background terminal is needed.\nFirst ask the Host to list Qiongli tools and call qiongli_config_status. Check literature provider setup separately with qiongli_literature_status.\nThen try: read a supplied paper, keep source locations, propose research records for review, and continue through Graph and a stage summary. Saving still requires approval.\nAfter updating the CLI, run upgrade plugin with this same target/destination; the Plugin keeps its own executable.\n",
     )
 }
 

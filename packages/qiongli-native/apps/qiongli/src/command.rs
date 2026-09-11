@@ -48,7 +48,7 @@ pub(crate) const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongl
 
 pub(crate) const UPDATE_USAGE: &str = "Qiongli native update\n\nUsage:\n  qiongli update status\n  qiongli update recovery-preview\n  qiongli update recover --expected-marker-digest <sha256> --approve-filesystem-write\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli update --help\n";
 
-pub(crate) const MCP_USAGE: &str = "Qiongli MCP connection\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite|full> [--transport stdio]\n  qiongli mcp --help\n\nstdio is the default transport. Lite exposes literature tools; Full also provides\nResearch Library, capture, academic graph, and local checkpoint controls. The connected host owns model execution and returns revision-bound candidates through the host handoff contract.\n";
+pub(crate) const MCP_USAGE: &str = "Qiongli MCP connection\n\nUsage:\n  qiongli mcp check [--profile <lite|marketplace-lite|full>] [--json]\n  qiongli mcp serve --profile <lite|marketplace-lite|full> [--transport stdio]\n  qiongli install --interactive\n\nMCP is built into qiongli; there is no separate server package to install.\nRecommended: install a Plugin (Skills + native program + Full MCP, 32 tools).\nNative Marketplace platform Plugins start Lite MCP (14 tools). Skills exports\nalone do not connect MCP. A Host starts the configured stdio process automatically;\nyou normally do not keep a separate terminal running mcp serve.\n\ncheck defaults to Full and exercises initialization, tool discovery and one\nread-only call in this CLI process. It does not verify a Host session, Plugin\ncache or online provider connection. In a new Host session, list the Qiongli tools\nand call qiongli_config_status; use qiongli_literature_status for provider setup.\nModels remain owned by the Host. Project writes retain preview and approval.\n";
 
 pub(crate) const INSTALL_USAGE: &str = "Qiongli native payload inspection and release engineering\n\nUsage:\n\nRead-only observation:\n  qiongli install status\n  qiongli install inventory [--paths exact]\n  qiongli install migrate --interactive\n  qiongli install codex status\n  qiongli install claude status\n\nRelease-engineering payload commands:\n  qiongli install candidate activate --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --previous-install-id <native-payload-id> --transaction-id <update-id> --expected-journal-digest <sha256> --expected-approval-digest <sha256> --approve-filesystem-write --approve-client-config-change --approve-host-trust\n  qiongli install candidate activate-recover --transaction-id <update-id> --expected-journal-digest <sha256> --approve-filesystem-write\n  qiongli install candidate activate-discard --transaction-id <update-id> --expected-journal-digest <sha256> --approve-filesystem-write\n  qiongli install candidate activate-prepare --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --previous-install-id <native-payload-id> --expected-preflight-digest <preflight-sha256> --approve-filesystem-write\n  qiongli install candidate activate-preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --previous-install-id <native-payload-id>\n  qiongli install candidate stage-preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli install candidate stage --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --expected-approval-digest <sha256> --approve-filesystem-write\n  qiongli install candidate preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli install candidate apply --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --expected-approval-digest <sha256> --approve-filesystem-write --approve-client-config-change --approve-host-trust\n  qiongli install candidate verify --target <codex|claude> --install-id <native-payload-id>\n  qiongli install candidate remove --target <codex|claude> --install-id <native-payload-id> --approve-filesystem-write --approve-client-config-change\n  qiongli install native preview --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude>\n  qiongli install native apply --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli install native verify --managed-root <absolute-path> --install-id <native-payload-id>\n  qiongli install native remove --managed-root <absolute-path> --install-id <native-payload-id> --approve-filesystem-write\n  qiongli install --help\n\nCandidate activate-preview only checks installed identities; its preflight digest does not authorize activation.\n\nCross-channel migration is a read-only interactive review. Select a preferred CLI and request manual archive/uninstall guidance; no files, PATH or Host settings are changed. Unknown executables are never launched during discovery.\n\nNormal managed Qiongli CLI, Plugin, and standalone Skills lifecycle uses `qiongli app plan` followed by `qiongli app apply`. The candidate/native commands above are retained for signed payload release engineering and are not a second end-user integration installer.\n";
 
@@ -284,6 +284,7 @@ pub struct CliOutput {
 
 pub enum ProductAction {
     ReviewCliInstallations,
+    GuideInstallation,
     ReviewBundledContent(crate::cli_content::BundledContentReview),
     Output(CliOutput),
     ServeLiteMcpStdio,
@@ -366,7 +367,9 @@ pub fn run_cli(
 ) -> CliOutput {
     match prepare_action(args, environment, content) {
         ProductAction::Output(output) => output,
-        ProductAction::ReviewCliInstallations | ProductAction::ReviewBundledContent(_) => {
+        ProductAction::ReviewCliInstallations
+        | ProductAction::GuideInstallation
+        | ProductAction::ReviewBundledContent(_) => {
             CliOutput::operation_failure("interactive-command-requires-product-entrypoint")
         }
         ProductAction::ServeLiteMcpStdio => {
@@ -576,6 +579,7 @@ pub(crate) fn prepare_action_with_release_authority(
             install_inventory(environment, content, exact_paths)
         }
         Command::InstallMigrateInteractive => return ProductAction::ReviewCliInstallations,
+        Command::InstallInteractive => return ProductAction::GuideInstallation,
         Command::InstallCodexStatus => install_codex_status(environment),
         Command::InstallClaudeStatus => install_claude_status(environment),
         Command::InstallCandidate(command) => {
@@ -604,6 +608,10 @@ pub(crate) fn prepare_action_with_release_authority(
             }
         }
         Command::McpHelp => CliOutput::success_text(MCP_USAGE),
+        Command::McpCheck { full } => match crate::mcp::check_local(environment, content, full) {
+            Ok(output) => CliOutput::success_text(output),
+            Err(code) => CliOutput::operation_failure(code),
+        },
         Command::McpServeLiteStdio => return ProductAction::ServeLiteMcpStdio,
         Command::McpServeFullStdio => return ProductAction::ServeFullMcpStdio,
         Command::Status => status(environment, content),
@@ -673,6 +681,10 @@ enum Command {
     MigrationHelp,
     Migrate1x(LegacyMigrationCliCommand),
     McpHelp,
+    McpCheck {
+        full: bool,
+    },
+    InstallInteractive,
     McpServeLiteStdio,
     McpServeFullStdio,
     Status,
@@ -1213,6 +1225,7 @@ fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
     };
     match subcommand {
         "plugin" | "skills" => parse_content_install_args(args, false),
+        "--interactive" if args.len() == 1 => Ok(Command::InstallInteractive),
         "--help" if args.len() == 1 => Ok(Command::InstallHelp),
         "status" if args.len() == 1 => Ok(Command::InstallStatus),
         "list" | "inventory" if args.len() == 1 => {
@@ -2068,13 +2081,25 @@ fn parse_mcp_args(args: &[OsString]) -> Result<Command, UsageError> {
     };
     match subcommand {
         "--help" if args.len() == 1 => Ok(Command::McpHelp),
-        "serve"
+        "serve" | "check"
             if args.get(1).and_then(|value| value.to_str()) == Some("--help")
                 && args.len() == 2 =>
         {
             Ok(Command::McpHelp)
         }
         "serve" => parse_mcp_serve_options(&args[1..]),
+        "check" => {
+            let options = if args.len() == 1 {
+                vec!["--profile".into(), "full".into()]
+            } else {
+                args[1..].to_vec()
+            };
+            match parse_mcp_serve_options(&options)? {
+                Command::McpServeFullStdio => Ok(Command::McpCheck { full: true }),
+                Command::McpServeLiteStdio => Ok(Command::McpCheck { full: false }),
+                _ => unreachable!(),
+            }
+        }
         "--help" => Err(mcp_usage_error("unexpected extra argument")),
         _ => Err(mcp_usage_error("unknown MCP subcommand")),
     }

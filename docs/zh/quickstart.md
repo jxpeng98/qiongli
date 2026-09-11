@@ -22,9 +22,11 @@ qiongli project
 
 ## 在 Host 中使用
 
-当前开发版可用 `qiongli install plugin` 导出随包 Plugin，再调用 Codex 或 Claude
-的官方命令注册。先按[完整示例](guide/cli-2x.md#install-and-upgrade-bundled-content)
-选择导出目录，再分别确认文件和 Host 操作。这些快捷命令尚未包含在 beta.3 发布标签中。
+运行 `qiongli install --interactive`。推荐的 Plugin 已包含 Skills、原生程序与
+Full MCP，无需重复安装独立 Skills 或另找 MCP 包。选择 Host 后审阅目标目录，
+再分别确认文件和注册操作；以后升级沿用这个目录。详见[完整示例](guide/cli-2x.md#install-and-upgrade-bundled-content)。
+
+`qiongli mcp check` 检查当前 CLI 的本地协议，不代表 Host 已经加载 Plugin。
 
 更新后新开 Host 会话，确认实际工具可用。然后直接提出请求，例如“阅读这篇论文，
 说明主要结果和证据局限”；新构建的 Codex Plugin 也可以用 `$qiongli-paper-read`。
