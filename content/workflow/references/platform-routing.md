@@ -7,6 +7,15 @@ doing academic research lifecycle work.
 
 ## Cross-Platform Trigger Contract
 
+When the user asks to verify a new installation, inspect the Qiongli tools
+actually visible in this Host session and call `qiongli_config_status` once.
+Report missing tools or a failed call directly; a CLI `mcp check` or a Plugin
+receipt does not prove this session is connected. Check literature provider
+configuration separately with `qiongli_literature_status`; do not infer online
+access from a successful local call. A connection check does not authorize a
+search, project creation or research-file changes. Continue the requested
+research task only within its existing scope and write approvals.
+
 Route to Qiongli when the user request involves academic research artifacts,
 judgment, or outputs:
 
