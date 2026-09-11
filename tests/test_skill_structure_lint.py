@@ -384,10 +384,12 @@ class SkillStructureLintTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn("subject-installed domain profile", text)
-        self.assertIn("canonical_references", text)
-        self.assertIn("diagnostic_artifacts", text)
-        self.assertIn("failure_triggers", text)
+        self.assertIn("references/platform-routing.md", text)
+        guidance = (RepoLayout(Path(__file__).resolve().parents[1]).workflow
+                    / "references/platform-routing.md").read_text(encoding="utf-8")
+        for required in ("subject-installed domain profile", "canonical_references",
+                         "diagnostic_artifacts", "failure_triggers"):
+            self.assertIn(required, guidance)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,13 @@
 # Architecture
 
-Qiongli 2 is a Rust-native product moving to standalone CLI/Plugin/Skills/MCP
-delivery without a Qiongli App window. The current package still combines the
-CLI with Tauri 2 / Svelte 5 presentation and App-based installation trust;
-independent CLI build/package acceptance remains open. Existing desktop support,
-embedded content and Zotero Companion are retained during the split.
+Qiongli 2 is a Rust-native product delivered through CLI, Plugin/Skills and
+Lite/Full MCP. The default CLI build excludes the graphical stack and runs without
+a Qiongli App. Tauri 2 / Svelte 5 desktop support is retained for maintenance.
+Shared services own embedded content, research state and Zotero integration.
+
+GitHub archives, npm and PyPI carry the same native binary for each target; Cargo
+builds the CLI from source. Package metadata and content versions must agree.
+Host registration and live-session qualification remain distinct from packaging.
 
 ## Decision Boundary
 
@@ -18,8 +21,9 @@ precedes any optional cross-device synchronization.
 
 ADR 0210 still owns the retained Tauri/Svelte presentation. Existing ACP/All Chat
 source and schemas are preserved as deferred development work. ADR 0218 does not
-qualify a standalone package or retire published GUI support. Earlier accepted
-ADRs and evidence are not rewritten; implementation must preserve package trust,
+qualify a standalone package or retire published GUI support. ADRs 0219–0223 define standalone and registry distribution; ADR 0224 adds separately
+approved official Host registration to CLI exports. Earlier accepted ADRs and
+evidence are not rewritten; implementation must preserve package trust,
 preview/approval/CAS and recovery while removing the mandatory App dependency.
 
 ## Editable Source Boundaries

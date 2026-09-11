@@ -60,6 +60,14 @@ npm package and three wheels, and tests the combined package on each target.
 changed bytes. Registry jobs reuse existing workflow filenames/environments and
 require a successful exact-source distribution run. No App upload is part of this lane; product approval/CAS and managed trust remain unchanged.
 
+The CLI Cargo manifest owns the shared product description. Generated standalone,
+npm, PyPI and Cargo READMEs reuse it while keeping channel-specific installation,
+runtime prerequisites and removal instructions. npm carries its Node launcher,
+wheels their Python launcher, and Cargo its Rust source closure; none packages
+another channel's launcher. Build/staging rejects mixed workspace, executable or
+embedded-content versions. SemVer and PEP 440 spellings remain distinct projections
+of one release; channel tags do not identify immutable bytes.
+
 Cargo uses the staged workspace and existing archive install checker (ADR 0221).
 `publish-cargo.yml` runs native source verification on three systems, publishes
 only on a qualified native GitHub Release, and checks public registry installs.

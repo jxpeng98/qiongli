@@ -57,6 +57,10 @@ def copy_tree(source: Path, destination: Path) -> None:
 
 def stage_cargo(out: Path, version: str) -> Path:
     """Cargo owns archive normalization and dependency ordering after staging."""
+    manifest_data = tomllib.loads(regular_bytes(NATIVE / 'Cargo.toml').decode())
+    lock = json.loads(regular_bytes(NATIVE / 'crates/qiongli-content/resources/qiongli-core.lock.json'))
+    if manifest_data['workspace']['package']['version'] != version or lock['content_version'] != version:
+        raise ValueError('Cargo, content and requested versions must match')
     workspace = out / 'cargo-source'
     workspace.mkdir()
     manifest = regular_bytes(NATIVE / 'Cargo.toml').decode().replace('\r\n', '\n')
@@ -78,7 +82,10 @@ def stage_cargo(out: Path, version: str) -> Path:
         if (source / 'build.rs').exists():
             shutil.copyfile(source / 'build.rs', dest / 'build.rs')
         shutil.copyfile(ROOT / 'LICENSE', dest / 'LICENSE')
-        (dest / 'README.md').write_text(f'# {source.name}\n\nQiongli {version} native CLI source. See https://github.com/jxpeng98/qiongli.\n\nCargo installation builds the CLI from source; desktop packaging is maintained separately.\n')
+        readme = package_readme(version, 'cargo') if member == 'apps/qiongli' else (
+            f'# {source.name} {version}\n\nInternal Rust library for the Qiongli research CLI.\n'
+            'Install the `qiongli` crate for the command-line application.\n')
+        (dest / 'README.md').write_text(readme)
     assets = workspace / 'apps/qiongli/package-assets'
     copy_tree(ROOT / 'content', assets / 'content')
     # Keep the Rust composer's declared source list as the authority.
@@ -139,7 +146,7 @@ def wheel(out: Path, version: str, platform_tag: str, binary: bytes, readme: str
     files = {
         'qiongli_native/__init__.py': PYTHON_LAUNCHER.encode(),
         f'qiongli_native/bin/{binary_name}': binary,
-        f'{dist}/METADATA': (f'Metadata-Version: 2.4\nName: qiongli\nVersion: {version}\nSummary: Native academic research CLI\nRequires-Python: >=3.9\nLicense-Expression: MIT\nLicense-File: LICENSE\nDescription-Content-Type: text/markdown\n\n{readme}').encode(),
+        f'{dist}/METADATA': (f'Metadata-Version: 2.4\nName: qiongli\nVersion: {version}\nSummary: {cli_description()}\nRequires-Python: >=3.9\nLicense-Expression: MIT\nLicense-File: LICENSE\nDescription-Content-Type: text/markdown\n\n{readme}').encode(),
         f'{dist}/WHEEL': f'Wheel-Version: 1.0\nGenerator: qiongli-native-registry-packages\nRoot-Is-Purelib: false\nTag: py3-none-{platform_tag}\n'.encode(),
         f'{dist}/entry_points.txt': b'[console_scripts]\nqiongli = qiongli_native:main\nql = qiongli_native:main\n',
         f'{dist}/licenses/LICENSE': regular_bytes(ROOT / 'LICENSE'),
@@ -177,42 +184,84 @@ def validate_binary(binary: bytes, target: str) -> None:
         raise ValueError(f'executable format/architecture does not match {target}')
 
 
-def package_readme(version: str) -> str:
-    return f"""# Qiongli {version}
+def cli_description() -> str:
+    return tomllib.loads(regular_bytes(NATIVE / 'apps/qiongli/Cargo.toml').decode())['package']['description']
 
-Native CLI for macOS Apple Silicon, Windows x64, and Linux x64 (glibc 2.35+).
-Includes embedded research content and Lite/Full MCP. No App is required.
-The Host owns models and credentials. No executable download runs at install time.
-Run the newly installed command by its full path if another version is on PATH.
-Run `qiongli setup` to choose a preferred installation and
-review manual archive/uninstall guidance. Nothing is deleted or moved, and PATH,
-Host settings and research data stay unchanged. Empty-argument launches show help.
-Use `qiongli project`, `qiongli config`, and `qiongli install` for common queries.
-`qiongli help project create` shows focused help; `qiongli help all` shows every command.
-Terminal queries show readable summaries; redirected output retains its original
-format. Use `--json` explicitly for scripts or `--text` for readable redirected output.
-Existing command forms, approvals and MCP protocols remain supported.
-Scripts and MCP never prompt. For review during npm install:
+
+def package_readme(version: str, channel: str) -> str:
+    identity = parse_release_version(version)
+    instructions = {
+        'npm': f"""Requires Node.js 18+. The package includes the native executables; installation
+and first launch do not download another runtime.
 
 ```sh
-npm install -g qiongli@next --allow-scripts=qiongli --foreground-scripts
+npm install --global qiongli@{identity.npm_version}
 ```
 
-The first flag explicitly allows Qiongli's script for this invocation without
-changing saved npm settings; the second connects it to the terminal. Both stdin
-and stdout must be terminals. Recent npm versions warn about unreviewed scripts;
-the warning alone does not mean installation failed or scripts were blocked.
-Strict script policy can turn that warning into an error. See
-[npm's script settings](https://docs.npmjs.com/cli/v11/commands/npm-install/#allow-scripts).
-Skipping scripts with `--ignore-scripts` does not affect the CLI. After installation,
-run the review directly without reinstalling. pip and Cargo users also run it
-after installation. `install inventory --paths exact` lists visible CLI entries;
-`doctor` includes a redacted overview.
-Research writes retain preview, explicit approval and revision checks.
-Managed Plugin/Skill activation, automatic migration and signed self-update still
-require their existing product authority; a registry install does not grant it.
-Use your package manager to pin, upgrade or remove this prerelease; preserve data
-and backups. Full 1.x replacement and other CPU architectures are not claimed.
+To follow the {identity.npm_dist_tag} channel, use `npm install --global qiongli@{identity.npm_dist_tag}`.
+The optional installation review needs a terminal. Allow it for one invocation
+with `--allow-scripts=qiongli --foreground-scripts`, or use `--ignore-scripts`
+and run `qiongli setup` afterward. Skipping this review does not disable the CLI.
+Use `npm uninstall --global qiongli` to remove this package.
+""",
+        'pypi': f"""Requires Python 3.9+. The wheel includes the native executable and a small
+Python launcher; no additional Python packages are required.
+
+```sh
+python -m pip install --upgrade "qiongli=={identity.package_version}"
+```
+
+Use `python -m pip uninstall qiongli` to remove this package. Run `qiongli setup`
+after installation to review other CLI copies visible on this computer.
+""",
+        'cargo': f"""Builds the CLI from source with Rust 1.97+ and a native linker.
+The compiled executable includes its research resources and needs no Rust runtime.
+
+```sh
+cargo install qiongli --version {version} --locked
+```
+
+Prereleases use an exact version; Cargo has no dist-tags. Use `cargo uninstall qiongli`
+to remove this package. Run `qiongli setup` after installation to review other CLI copies.
+""",
+    }
+    if channel not in instructions:
+        raise ValueError('unknown package documentation channel')
+    return f"""# Qiongli {version}
+
+{cli_description()}
+
+Qiongli includes research Skills, templates and Lite/Full MCP. Your Host supplies
+the model and its credentials; no Qiongli desktop App is required. The supported
+binary targets are macOS Apple Silicon, Windows x64 and Linux x64 (glibc 2.35+).
+
+## Install and update
+
+{instructions[channel]}
+## Use the CLI
+
+`qiongli` and `ql` share the same commands. Start with:
+
+```sh
+qiongli --version
+qiongli doctor
+qiongli content
+qiongli help install plugin
+```
+
+`install plugin` exports the bundled Plugin and offers official Host registration
+after separate file and trust confirmations. `upgrade plugin` refreshes it from
+this installed CLI. `install skills` exports the selected content to `.qiongli-skills`.
+Restart the Host to load updated Skills and MCP tools; registration alone does not
+prove a live session is ready.
+
+Use `--json` for scripts. Scripts and MCP never prompt. `qiongli setup` reviews
+visible installations without deleting files, changing PATH or replacing model settings.
+If another CLI takes precedence, invoke the selected executable by its full path.
+Research writes retain preview, explicit approval and revision checks. Keep earlier
+research records and backups when migrating; upgrading a package does not authorize cleanup.
+
+[Command and installation guide](https://github.com/jxpeng98/qiongli/blob/2.x/docs/guide/cli-2x.md)
 """
 
 
@@ -230,11 +279,11 @@ def npm_package(out: Path, binaries: dict[str, Path], version: str) -> Path:
         dest.parent.mkdir(parents=True)
         dest.write_bytes(data)
         dest.chmod(0o755)
-    (npm / 'README.md').write_text(package_readme(version))
+    (npm / 'README.md').write_text(package_readme(version, 'npm'))
     shutil.copyfile(ROOT / 'LICENSE', npm / 'LICENSE')
     # ponytail: bundle three binaries in one package; split only if download size becomes a problem.
     (npm / 'package.json').write_text(json.dumps({
-        'name': 'qiongli', 'version': identity.npm_version, 'description': 'Native academic research CLI',
+        'name': 'qiongli', 'version': identity.npm_version, 'description': cli_description(),
         'type': 'module', 'license': 'MIT',
         'repository': {'type': 'git', 'url': 'git+https://github.com/jxpeng98/qiongli.git'},
         'bin': {'qiongli': 'bin/qiongli.mjs', 'ql': 'bin/qiongli.mjs'},
@@ -261,6 +310,9 @@ def binary_packages(out: Path, binary_path: Path, version: str,
     reported = subprocess.check_output([str(binary_path), '--version'], text=True).strip()
     if reported != f'qiongli {version}':
         raise ValueError('executable version does not match the native workspace')
+    content = json.loads(subprocess.check_output([str(binary_path), 'content', 'list', '--json'], text=True))
+    if content['content_version'] != version:
+        raise ValueError('embedded content version does not match the executable')
     if target == 'aarch64-apple-darwin':
         commands = subprocess.check_output(['otool', '-l', str(binary_path)], text=True)
         versions = re.findall(r'^\s*minos (\d+)\.(\d+)(?:\.\d+)?$', commands, re.M)
@@ -271,7 +323,7 @@ def binary_packages(out: Path, binary_path: Path, version: str,
     else:
         platform_tag = 'win_amd64' if target.endswith('msvc') else 'linux_x86_64'
     identity = parse_release_version(version)
-    whl = wheel(out, identity.package_version, platform_tag, binary, package_readme(version))
+    whl = wheel(out, identity.package_version, platform_tag, binary, package_readme(version, 'pypi'))
     if platform_tag == 'linux_x86_64':
         repaired = out / 'manylinux'
         subprocess.run(['auditwheel', 'repair', '--only-plat', '--plat', 'manylinux_2_35_x86_64',

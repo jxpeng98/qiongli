@@ -20,11 +20,11 @@ import tomllib
 try:
     from .native_registry_install_check import check_cli
     from .native_marketplace_plugins import archive_name, check_plugins
-    from .native_registry_packages import NATIVE, ROOT, TARGETS, binary_packages, regular_bytes, parse_release_version
+    from .native_registry_packages import NATIVE, ROOT, TARGETS, binary_packages, cli_description, regular_bytes, parse_release_version
 except ImportError:
     from native_registry_install_check import check_cli
     from native_marketplace_plugins import archive_name, check_plugins
-    from native_registry_packages import NATIVE, ROOT, TARGETS, binary_packages, regular_bytes, parse_release_version
+    from native_registry_packages import NATIVE, ROOT, TARGETS, binary_packages, cli_description, regular_bytes, parse_release_version
 
 
 def check_windows_imports(binary: Path) -> list[str]:
@@ -49,6 +49,8 @@ def archive_readme(version: str, target: str, commit: str) -> bytes:
     executable = TARGETS[target][2]
     command = f'.\\{executable}' if target.endswith('msvc') else f'./{executable}'
     return f"""# Qiongli {version} — standalone CLI
+
+{cli_description()}
 
 Target: {target}
 Source commit: {commit}
@@ -82,7 +84,11 @@ PATH. This archive supplies `{executable}`; `ql` is a package-manager alias.
 For MCP, configure your Host with the absolute executable path and arguments
 `mcp serve --profile full` (or `--profile lite`). Downloading
 the CLI does not automatically register a Host Plugin or change its models.
-Research writes retain their preview, approval and revision checks.
+Run `{command} install plugin` to export the bundled Plugin and review official
+Host registration. File changes and Host trust require separate confirmations.
+After replacing the CLI, `upgrade plugin` refreshes that export; restart the Host
+to load the updated Skills and MCP tools. Research writes retain their preview,
+approval and revision checks.
 
 To upgrade, extract a newer release into another directory and test its version
 before changing PATH or the Host command. Keep the previous binary and research

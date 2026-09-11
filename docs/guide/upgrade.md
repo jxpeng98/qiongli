@@ -1,5 +1,7 @@
 # Upgrade / Auto-Upgrade Guide (No Fork Required)
 
+> This page retains 1.x behavior. For native 2.x, use the [current guide](cli-2x.md).
+
 This guide explains how to:
 1) Check for new versions.
 2) Automate the upgrade process.

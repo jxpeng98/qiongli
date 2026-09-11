@@ -6,7 +6,7 @@ import zipfile
 from unittest.mock import patch
 
 from tooling.scripts.native_cli_release import archive_cli, archive_readme, check_windows_imports
-from tooling.scripts.native_registry_packages import TARGETS
+from tooling.scripts.native_registry_packages import TARGETS, cli_description
 
 
 class NativeCliReleaseTests(unittest.TestCase):
@@ -30,6 +30,7 @@ class NativeCliReleaseTests(unittest.TestCase):
                 binary = root / 'candidate'
                 binary.write_bytes(b'candidate executable')
                 readme = archive_readme('2.0.0-beta.2', target, 'a' * 40)
+                self.assertIn(cli_description().encode(), readme)
                 windows = target.endswith('msvc')
                 path = root / ('cli.zip' if windows else 'cli.tar.gz')
                 archive_cli(path, binary, readme, target)

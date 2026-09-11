@@ -1,10 +1,9 @@
 ---
 layout: home
-
 hero:
   name: Qiongli
-  text: "Use AI agents for academic research without losing the evidence trail."
-  tagline: "Turn a topic into a paper route, task IDs, quality gates, literature and citation evidence, writing and code outputs, and review handoffs."
+  text: "Research with an evidence trail."
+  tagline: "A Rust-native CLI, Skills and MCP sharing research records and sources. Keep your chosen Host and model."
   actions:
     - theme: brand
       text: Download 2.x CLI
@@ -13,70 +12,44 @@ hero:
       text: Quickstart
       link: /quickstart
     - theme: alt
-      text: Install
-      link: /guide/install
-    - theme: alt
-      text: Choose A Workflow
+      text: Choose a workflow
       link: /guide/task-recipes
-
 features:
-  - title: "Start Small"
-    details: "Use a native plugin, Desktop ZIP, bootstrap, npm, or pipx path based on the task instead of installing every runtime up front."
-  - title: "Route The Work"
-    details: "Map research goals to paper types, stages, Task IDs, expected outputs, and quality gates."
-  - title: "Keep Evidence Visible"
-    details: "Track claims, citations, search logs, diagnostics, methods, code, review status, and handoffs under predictable paths."
-  - title: "Separate Update From Refresh"
-    details: "`qiongli update` upgrades the package; `qiongli upgrade` refreshes local assets. The boundary is explicit."
+  - title: Extract and run
+    details: "The standalone binary includes research resources and needs no separate Python, Node.js or Rust runtime."
+  - title: Start with your task
+    details: "Shared Skills cover reading, reviews, design, writing and polish. Load only the guidance the request needs."
+  - title: Follow the sources
+    details: "Graph connects claims, sources and locations in canonical records. Stage summaries retain findings and changes."
+  - title: Review before writing
+    details: "Project changes require previews, explicit approval and revision checks. Summaries never automatically delete source files."
 ---
 
-## Choose Your Entry Point
+## Start here
 
-| You want to... | Start here |
+These entry pages describe **2.x**, with `2.0.0-beta.3` as the version baseline.
+Development features are marked separately in the guide; a published download
+under that tag does not include subsequent local changes.
+
+| What you need | Entry |
 |---|---|
-| Download the complete 2.x binary without npm or Python | [GitHub binary downloads and setup](/guide/cli-2x#standalone-binary-download) |
-| Try Qiongli in one client | [Install](/guide/install) |
-| Get from no setup to a first workspace | [Quickstart](/quickstart) |
-| Know what to type after install | [Using Agent Skills](/guide/using-agent-skills) |
-| Check what each model/Host has actually proven | [Observed Agent Host capability matrix](/guide/agent-host-capability-matrix) |
-| Choose a paper workflow | [Task Recipes](/guide/task-recipes) |
-| Run validators, `doctor`, or orchestrated tasks | [Multi-Agent Runtime](/guide/multi-agent) |
-| Automate installs, checks, updates, or release work | [CLI Reference](/reference/cli) |
+| Download, extract and run | [Standalone binary](guide/cli-2x.md#standalone-binary-download) |
+| Install through npm, PyPI or Cargo | [Installation and commands](guide/cli-2x.md) |
+| Install or refresh bundled Plugins and Skills | [Development installation flow](guide/cli-2x.md#install-and-upgrade-bundled-content) |
+| Review CLI copies and integration state | `qiongli setup`, `qiongli install`, `qiongli doctor` |
+| Understand the research Graph | [Graph scope and checks](guide/cli-2x.md#research-graph) |
+| Maintain an older Python/npm installation | [1.x reference](reference/cli.md) |
 
-## Latest Stable Downloads
+## Runtime boundaries
 
-Current stable release: [v1.17.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.17.0). These direct links cover the common install paths; use the download guide for subject-specific Desktop ZIPs and maintainer artifacts.
+The 2.x CLI, Lite/Full MCP and exported native Plugins need no additional language
+runtime. The npm entry needs Node, PyPI needs Python, and Cargo needs Rust build
+tools. Choose the standalone binary to avoid those installation prerequisites.
+Configure Host applications and online service accounts when the task requires them.
 
-| Need | Link or command |
-|---|---|
-| npm CLI | [`qiongli@1.17.0`](https://www.npmjs.com/package/qiongli/v/1.17.0): `npm install -g qiongli@latest` |
-| PyPI CLI | [`qiongli 1.17.0`](https://pypi.org/project/qiongli/1.17.0/): `pipx install qiongli` |
-| Claude Desktop recommended plugin | [`qiongli-claude-desktop-plugin-v1.17.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.17.0/qiongli-claude-desktop-plugin-v1.17.0.zip) |
-| Claude Desktop/Web fallback skill ZIP | [`qiongli-claude-desktop-skill-core-v1.17.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.17.0/qiongli-claude-desktop-skill-core-v1.17.0.zip) |
-| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.5.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.17.0/qiongli-literature-provider-0.1.5.mcpb) |
-| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.17.0/qiongli-zotero-companion-0.2.2.xpi) |
-| All release assets | [Download guide](https://github.com/jxpeng98/qiongli/releases/download/v1.17.0/qiongli-downloads-v1.17.0.md) and [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.17.0) |
+Update packages through their original channel. `upgrade plugin` refreshes content
+from the running CLI; `upgrade cli` explains the package update commands. After
+registration, start a new Host session to check actual tools. Native Marketplace
+platform packages use Lite MCP; local CLI-exported Plugins use Full MCP.
 
-## What The System Covers
-
-Qiongli ships the portable `qiongli-workflow` package plus optional local runtimes for literature search and orchestration.
-
-- **Framing:** questions, gaps, contribution claims, venues, and boundaries.
-- **Literature:** provider-aware searches, diagnostics, bundles, screening, extraction, and snowballing.
-- **Design:** variables, datasets, robustness, preregistration, ethics, and data management.
-- **Writing:** claim-evidence mapping, tables, figures, limitations, proofreading, submission, and rebuttal.
-- **Code:** Stage-I specification, planning, execution, and review for methods-heavy work.
-- **Coordination:** solo, duo, or triad roles across local agent tools with recorded handoffs.
-
-## Runtime Boundary
-
-Installing workflow assets does not imply local agent execution. You can use Qiongli as a skill/plugin without Python. Python 3.12+, model CLIs, and matching authentication are only required for `doctor`, validators, MCP orchestration, or actual task execution.
-
-## Documentation Map
-
-- [Guide](/guide/): install, usage, upgrades, troubleshooting, and runtime choices.
-- [Examples](/examples/): paper-type playbooks.
-- [Reference](/reference/): CLI behavior and skill catalog.
-- [Architecture](/architecture): package surfaces, contracts, roles, and bridges.
-- [Advanced](/advanced/): MCP providers, Zotero, subject packaging, and plugin-first distribution.
-- [Maintainer](/maintainer/): release policy, naming policy, and contributor guidance.
+[Research workflows](guide/task-recipes.md) · [Architecture](architecture.md) · [Observed Host capabilities](guide/agent-host-capability-matrix.md)

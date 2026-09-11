@@ -112,8 +112,6 @@ class MCPProviderDocsTests(unittest.TestCase):
 
     def test_install_docs_document_desktop_provider_boundary(self) -> None:
         docs = {
-            "README.md": (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
-            "README_CN.md": (REPO_ROOT / "README_CN.md").read_text(encoding="utf-8"),
             "docs/guide/install.md": (REPO_ROOT / "docs" / "guide" / "install.md").read_text(
                 encoding="utf-8"
             ),

@@ -1,5 +1,48 @@
 # Using Agent Skills
 
+This page's current entry targets 2.x. Follow the
+[installation guide](cli-2x.md#install-and-upgrade-bundled-content), then start a
+new Host session and check the tools actually available.
+
+## Ask for the research task
+
+Try “Read this paper and explain its findings and evidence limits,” “Build a
+literature review from these sources,” or “Summarize this completed stage with
+sources and changes.” A narrow request loads the relevant guidance; having a
+project does not start the entire lifecycle. J2 polish preserves numbers,
+citations, terminology and causal limits.
+
+New Codex Plugin builds expose `$qiongli` and 20 workflow shortcuts, including
+`$qiongli-paper-read`, `$qiongli-lit-review` and `$qiongli-stage-close`. Each reads
+the shared Skill before its workflow. The 82 internal skill cards are not wrapped
+separately. Claude retains one main Skill and also accepts natural-language
+requests. Update an older cache before expecting the new entries to appear.
+
+## Tools and saved changes
+
+| Entry | Boundary |
+|---|---|
+| Standalone Skills | Use the Host's available tools and authorized materials; do not assume MCP is connected |
+| Native Marketplace Plugin | Starts bundled Lite MCP with 14 tools |
+| CLI-exported local Plugin | Starts bundled Full MCP with 32 tools; the user retains their Host and model |
+| CLI | `qiongli doctor`, `qiongli project` and `qiongli help`; no Python runtime is needed |
+
+Registration and cache verification do not prove that session tools have loaded.
+If required MCP tools are missing, check the connection. Continue independent
+work supported by available materials, but never imitate tool results or bypass
+approval by directly editing a registered project. Writes retain previews,
+explicit approval and current revision checks. Stage summaries preserve original
+files; any deletion remains the user's own action.
+
+[Graph and research continuity](cli-2x.md#research-graph) · [Task recipes](task-recipes.md)
+
+<details>
+<summary>Legacy 1.x client and runtime instructions</summary>
+
+The retained instructions below apply to older installations. Their Python,
+bootstrap and CLI requirements do not apply to native 2.x.
+
+
 Qiongli installs one agent-facing skill system, but each client exposes it differently. Use this page after installation when you need to know what to type inside Codex, Claude Code, Antigravity, Hermes, or the shell.
 
 ## Naming Model
@@ -192,3 +235,4 @@ python3 -m bridges.orchestrator task-run \
 5. For repeatable task execution, use `qiongli doctor` and `python3 -m bridges.orchestrator task-plan|task-run`.
 
 Qiongli writes research artifacts under `RESEARCH/[topic]/` when a workflow or orchestrator task produces durable outputs. Project-local integration files are only written when you explicitly run `qiongli init` or choose project install parts.
+</details>

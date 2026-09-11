@@ -128,6 +128,48 @@
       "title": "CLI-First Delivery And Local Host Collaboration",
       "path": "docs/architecture/decisions/0218-cli-first-local-host-collaboration.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0219",
+      "title": "CLI GitHub Release Distribution",
+      "path": "docs/architecture/decisions/0219-cli-github-release-distribution.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0220",
+      "title": "Three-platform CLI Registry Distribution",
+      "path": "docs/architecture/decisions/0220-three-platform-cli-registry-distribution.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0221",
+      "title": "Cargo CLI publication",
+      "path": "docs/architecture/decisions/0221-cargo-cli-publication.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-403 / CLI-405",
+      "adr_number": "0222",
+      "title": "User-approved local Plugin sources",
+      "path": "docs/architecture/decisions/0222-user-approved-local-plugin-sources.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0223",
+      "title": "Platform-specific Marketplace Plugins with bundled native MCP",
+      "path": "docs/architecture/decisions/0223-bundled-marketplace-native-mcp.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-402",
+      "adr_number": "0224",
+      "title": "CLI local Plugin registration",
+      "path": "docs/architecture/decisions/0224-cli-local-plugin-registration.md",
+      "status": "Accepted"
     }
   ]
 }

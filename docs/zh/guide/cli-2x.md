@@ -169,7 +169,7 @@ pip 和 Cargo 用户也在安装完成后运行向导。脚本、帮助与版本
 才适合另行复制完整备份并校验。归档副本本身不会停用旧命令。
 
 
-## 安装和升级随包 Plugin、Skills（2.x 开发版）
+## 安装和升级随包 Plugin、Skills（2.x 开发版） {#install-and-upgrade-bundled-content}
 
 当前开发版新增以下入口，尚未包含在 beta.3 发布标签中。以 Codex 为例：
 
@@ -253,7 +253,7 @@ npm install --global qiongli@next
 或者在 Python 虚拟环境中运行：
 
 ```sh
-python -m pip install --pre qiongli==2.0.0b2
+python -m pip install --upgrade "qiongli==2.0.0b3"
 ```
 
 npm 需要 Node 18+，PyPI 需要 Python 3.9+；两者都提供 `qiongli` 和 `ql`。
@@ -270,3 +270,40 @@ cargo install qiongli --version 2.0.0-beta.3 --locked
 
 更多命令边界见[英文 CLI 指南](../../guide/cli-2x.md#which-surface-owns-which-command)。
 旧版 `qiongli setup`、`check`、`project init` 等命令属于 1.x，不能直接套用到原生 2.x。
+
+## 安装状态与版本一致性（开发版） {#installation-state}
+
+`qiongli install` 和 `qiongli doctor` 读取官方 Host 库存，并复用安装时的本地
+Plugin 收据校验。来源、缓存、版本或启用状态不能确认时，诊断会说明需要刷新或无法确认，
+不再一律要求重新安装。只读库存命令有时间和输出限制，不会自动重试写入。
+
+“已注册且缓存一致”只说明安装状态；新会话是否加载了 Skills 和 MCP 工具仍需实际检查。
+CLI 与 Plugin 使用各自随包的程序，升级 CLI 后要刷新原 Plugin 目录。检查版本时同时看
+`qiongli --version`、`qiongli content --json` 和 Host 的 Plugin 库存。
+
+包构建绑定 CLI、内容版本和平台。npm / PyPI 的入口分别只携带各自的启动包装，
+Cargo 携带可构建的 Rust 源码；共同的 CLI 描述来自同一份包元数据。
+原生文件与资源摘要、发布收据用于追踪对应构建。版本号相同并不足以证明缓存字节一致。
+
+## Research Graph：如何判断比以前更好 {#research-graph}
+
+1.x 的 citation graph 用于从文献种子扩展引用与参考文献，并去重候选文献。
+2.x 的本地 Research Graph 增加了研究记录之间的联系：论点使用稳定标识，
+证据关联来源和具体位置，写作记录与文献记录可以沿同一来源继续追踪。
+这两种图的用途不同；不能用增加的节点数量声称文献检索效果或运行速度已经提高。
+
+| 检查目标 | 通过标准 |
+|---|---|
+| 一个论点使用多项证据 | 保留一个 claim ID 和多条独立支持记录，不丢失来源或位置 |
+| 追踪来源 | 每条支持边可回到当前记录；CSV 行顺序改变后仍能定位 |
+| 重复导入与重建 | 去重后节点和边一致，不产生重复论点 |
+| 避免虚假支持 | 缺少位置、待补证据、身份冲突和越界路径不能生成已确认支持 |
+| 跨阶段继续 | 沿用论点 ID、citekey、前序总结和来源记录；总结不替代原始证据 |
+| 防止读取旧状态 | CLI/MCP 共用项目 revision，过期读取和未授权修改被拒绝 |
+
+这些标准由现有 Graph、项目服务和 Full MCP 测试检查。原始笔记或 PDF 仍需要 Host
+在授权范围内读取、提出规范记录、供你审阅并保存，再重建 Graph。可用
+`qiongli project graph --help` 查看当前操作；工具缺失时，不能通过直接改文件绕过审批。
+
+结构测试证明记录和来源关系正确，不能代替研究语义判断。下一步比较同一份材料在新 Host
+会话中的提取保真度、未解决证据和操作步骤；没有相同任务的前后测量，就不宣称速度提升。

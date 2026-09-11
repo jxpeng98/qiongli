@@ -1,9 +1,11 @@
 # 系统架构
 
-Qiongli 2 是一个自包含的 Rust 原生产品，桌面表现层采用 Tauri 2 / Svelte 5。
-打包后的 App 同时携带原生 CLI、内嵌 Skills、Lite/Full MCP、受管理的
-Codex/Claude 集成 payload 和 Zotero Companion；运行时不要求用户另装 Python
-或 Node。
+Qiongli 2 通过 Rust 原生 CLI、Plugin/Skills 和 Lite/Full MCP 交付。
+默认 CLI 构建不包含图形栈，运行时无需穷理桌面 App 或额外的语言运行时。
+Tauri 2 / Svelte 5 桌面代码保留维护；共享服务负责研究记录、内嵌资源和 Zotero 集成。
+
+GitHub、npm 与 PyPI 按平台分发同一原生程序，Cargo 从源码构建 CLI。
+包版本、内容版本和入口需要匹配；打包成功、Host 注册和实际会话工具可用分别验证。
 
 ## 决策边界
 
@@ -12,7 +14,8 @@ Tauri/Svelte 取代早期的 AccessKit/egui 表现层选择；ADR 0211 规定模
 对话和执行由受支持的 Host 持有，Qiongli 负责确定性内容、项目状态、工具、
 handoff、安装收据和发布身份。
 
-与已接受 ADR 冲突的改变必须先提交替代 ADR。生成 payload 和历史迁移计划不能
+ADR 0218 明确了 CLI 优先和 Host 持有模型的方向；ADR 0219–0223 定义独立发布渠道，
+ADR 0224 增加分别确认后的官方 Host 注册。与已接受 ADR 冲突的改变必须先提交替代 ADR。生成 payload 和历史迁移计划不能
 覆盖当前决策。
 
 ## 可编辑源边界

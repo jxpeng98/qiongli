@@ -37,7 +37,7 @@ class Arc201DecisionTests(unittest.TestCase):
             "ADR 0211",
             "ADR 0217",
             "ADR 0218",
-            "independent CLI build/package acceptance remains open",
+            "default CLI build excludes the graphical stack",
             "Same-device collaboration precedes any optional cross-device synchronization",
         ):
             with self.subTest(statement=statement):
@@ -79,7 +79,7 @@ class Arc201DecisionTests(unittest.TestCase):
         record["decisions"][1]["task_id"] = "ARC-201A"
         errors = validate_current_record(REPO_ROOT, record)
         self.assertTrue(any("duplicate ADR number 0201" in error for error in errors))
-        self.assertTrue(any("duplicate task ID ARC-201A" in error for error in errors))
+        self.assertTrue(any("task metadata" in error for error in errors))
 
     def test_current_registry_reordered_decisions_are_rejected(self) -> None:
         record = copy.deepcopy(load_record(DEFAULT_CURRENT_RECORD))

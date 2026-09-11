@@ -27,6 +27,11 @@ into reviewed records; no new graph store, raw-PDF scanner or write owner exists
   hashes and official inventories before executing, stops on the first failure,
   and verifies enabled registration plus matching cached files afterward.
   Live session tools remain a separate check. See ADR 0224.
+  `doctor` and `install inventory` reuse this registration owner for configured
+  `qiongli-cli-local` sources. Bounded official inventories and verified source/
+  cache receipts distinguish current, refresh-required and unavailable states;
+  cache versions must match their receipts. Unconfigured Hosts are not probed.
+  These observations confer no write authority or live-session readiness.
 - `apps/qiongli/src/desktop.rs` owns the shared App service; Tauri commands in
   `desktop/tauri_adapter.rs` adapt it instead of duplicating product logic.
 - `crates/qiongli-runtime/src/contract.rs` and `apps/qiongli/src/mcp.rs` own the

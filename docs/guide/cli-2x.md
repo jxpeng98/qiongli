@@ -198,7 +198,7 @@ npm install --global qiongli@next
 Or install in a Python virtual environment:
 
 ```sh
-python -m pip install --pre qiongli==2.0.0b2
+python -m pip install --upgrade "qiongli==2.0.0b3"
 ```
 
 Both expose `qiongli` and `ql`. Check both with `--version` before comparing
@@ -377,11 +377,59 @@ codex plugin marketplace add "$HOME/qiongli-plugins/codex/qiongli-next"
 codex plugin add qiongli-next@qiongli-cli-local
 ```
 
-For Claude Code, validate the export with `claude plugin validate <export-path>`
-before the Host registration increment. Its actual session activation is still
-unqualified.
+For Claude Code, validate the export with `claude plugin validate <export-path>`.
+The interactive installation flow has been checked against isolated Codex and Claude
+configurations on macOS. Loading the Plugin in an actual research session remains
+a separate check.
 Source updates require a Host refresh/new session; deleting a source does not
 unregister its Host Plugin. `source-current` and `source-ready-host-action-required`
 only describe the exported files. The interactive shortcuts above now offer separately approved Host registration.
 The lower-level source commands still only export files; actual session tool
 visibility/read/handoff/approved-write checks remain separate.
+
+## Installation state and version identity (development builds) {#installation-state}
+
+`qiongli install` and `qiongli doctor` read official Host inventories and reuse
+the local source/cache receipts checked during registration. Uncertain source,
+cache, version or enabled state is reported as requiring refresh or unavailable;
+it is not automatically turned into an installation suggestion. Read-only Host
+commands have time and output limits and never retry a write.
+
+Registered state and matching cache bytes describe installation, not live tools.
+Start a new Host session to check Skills and MCP. CLI and Plugin installations
+carry separate executables, so refresh the original Plugin directory after updating
+the CLI. Compare `qiongli --version`, `qiongli content --json` and the Host's Plugin inventory.
+
+Package builds bind CLI and content versions to the target. npm and PyPI carry
+their respective launchers; Cargo carries buildable Rust source. Their shared CLI
+description comes from one package metadata field. Executable/resource hashes and
+release receipts identify the build; an equal version string alone does not prove
+that cached bytes match.
+
+## Research Graph: checking the improvement {#research-graph}
+
+The 1.x citation graph expands references and citations from literature seeds and
+deduplicates candidate papers. The 2.x local Research Graph adds relationships
+within research records: stable claim identities, source locations and continuity
+between literature and manuscript records. These graphs serve different purposes.
+More nodes do not demonstrate better literature search or faster execution.
+
+| Quality check | Required outcome |
+|---|---|
+| Multiple sources for a claim | One claim ID retains every distinct support record and location |
+| Source navigation | Each support resolves to its current record, even after CSV rows are reordered |
+| Repeated import and rebuild | Deduplicated nodes and edges stay identical |
+| Unsupported relationships | Missing locations, unreviewed support, identity conflicts and unsafe paths never create reviewed support |
+| Continuation across stages | Reuse claim IDs, citekeys, predecessors and source records; a summary does not replace evidence |
+| Freshness and write permission | Shared project revisions reject stale reads and unapproved changes across CLI/MCP |
+
+Existing Graph, project-service and Full MCP tests check these outcomes. Raw notes
+and PDFs still need Host-assisted reading and proposed canonical records within
+an authorized scope. Review and save those records before rebuilding Graph.
+Use `qiongli project graph --help` for available operations; missing tools do not
+permit bypassing approval with direct file edits.
+
+Structural checks establish record and source consistency, not semantic research
+quality. Compare the same corpus in a fresh Host session for extraction fidelity,
+unresolved evidence and user steps. Speed claims require a measured comparison of
+the same task and environment.

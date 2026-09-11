@@ -1,5 +1,41 @@
 # 使用 Agent Skills
 
+本页当前入口面向 2.x。先按[安装指南](cli-2x.md#install-and-upgrade-bundled-content)
+更新并注册 Plugin，再新开 Host 会话检查实际工具。
+
+## 直接提出研究请求
+
+你可以说“阅读这篇论文，列出主要发现和证据局限”“把这些来源整理成文献综述”，
+或“总结已经完成的阶段，保留来源和变化”。窄任务只读取相关指导，不会因为项目存在
+就启动全部研究阶段。稿件润色沿用 J2，保留数字、引用、术语和因果限制。
+
+新构建的 Codex Plugin 提供 `$qiongli` 和 20 个 workflow 快捷入口，例如
+`$qiongli-paper-read`、`$qiongli-lit-review`、`$qiongli-stage-close`。
+这些入口先读取共享 Skill，再读取对应工作流；82 张内部技能卡不单独包装。
+Claude 保留一个主 Skill，也可以直接用自然语言调用。旧缓存需要更新才会出现新入口。
+
+## 工具与保存
+
+| 使用方式 | 边界 |
+|---|---|
+| 独立 Skills | 使用 Host 现有工具和授权材料；不假定已经连接 MCP |
+| 原生 Marketplace Plugin | 启动随包 Lite MCP，提供 14 个工具 |
+| CLI 导出的本地 Plugin | 启动随包 Full MCP，提供 32 个工具；Host 和模型由用户选择 |
+| CLI | `qiongli doctor`、`qiongli project` 和 `qiongli help`；不需要 Python 运行时 |
+
+注册和缓存校验通过不等于会话工具已加载。需要的 MCP 工具缺失时，先检查连接；
+可继续独立完成有材料支持的工作，但不能伪造工具调用或直接修改已登记项目来绕过审批。
+项目写入沿用预览、明确授权和当前 revision 校验。阶段总结保留原文件，清理由用户亲自操作。
+
+[Graph 与研究连续性](cli-2x.md#research-graph) · [任务场景](task-recipes.md)
+
+<details>
+<summary>1.x 的旧客户端与运行时说明</summary>
+
+以下说明仅适用于旧版本，保留用于迁移对照；其中的 Python、bootstrap 和旧 CLI
+命令不适用于原生 2.x。
+
+
 Qiongli 安装的是一套 agent-facing skill 系统，但不同客户端暴露入口的方式不一样。安装之后，如果你不知道在 Codex、Claude Code、Antigravity、Hermes 或 shell 里该输入什么，先看这一页。
 
 ## 名称模型
@@ -187,3 +223,4 @@ python3 -m bridges.orchestrator task-run \
 5. 需要可重复 task execution 时，用 `qiongli doctor` 和 `python3 -m bridges.orchestrator task-plan|task-run`。
 
 当 workflow 或 orchestrator task 产生持久产物时，Qiongli 会把研究产物写到 `RESEARCH/[topic]/` 下。只有在你明确运行 `qiongli init` 或选择 project install parts 时，才会写入项目本地集成文件。
+</details>

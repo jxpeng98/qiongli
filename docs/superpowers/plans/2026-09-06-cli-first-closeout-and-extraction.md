@@ -3,6 +3,81 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Product coherence fixes and current documentation — September 11
+
+Base `07489049`; branch `codex/2x-product-coherence`. This implements the
+maintainer's follow-up to R1–R3 using the existing registration, package and
+review owners. `doctor` and `install inventory` now verify configured local
+Plugins through bounded official inventories and source/cache receipts. They
+separate current registration, required refresh and unavailable observation;
+none claims live-session readiness. Unconfigured Hosts are not probed. Cache
+versions must match their receipts. Registration still requires its separate
+terminal confirmation; observation adds no write authority.
+
+The current ADR registry now includes 0219–0224. Its validator allows a task to
+own several decisions and accepts the metadata spellings in those accepted ADRs;
+number/path uniqueness, complete indexing and the frozen ARC-201 checks remain.
+Skill checks follow deferred guidance, tolerate Markdown line wrapping, and
+preserve the distinction between formal boundary review and a direct prose edit.
+No canonical Skill or frozen 1.x runtime was changed.
+
+README, English/Chinese Docs entry pages, navigation, architecture and Plugin
+instructions now lead with native 2.x. Historical commands remain labeled 1.x.
+Humanizer review preserved the release/development distinction and research
+claims while removing stale installation advice. Package READMEs use the CLI
+Cargo description but retain only their channel's install/update/removal commands.
+Standalone, npm, wheel and Cargo payloads keep their existing owners; build and
+staging reject mismatched executable/content/workspace versions. Native archives
+need no separately installed language runtime; Node, Python and Rust requirements
+belong to their respective package-manager channels.
+
+Validation: 91 Python package/documentation/ADR/Skill checks passed (90 in the
+combined run plus the content-version mismatch negative case); all 38 CLI
+integration checks passed. Two Host cache tests, one REL-902 migration/rollback
+check covering both predecessors, 23 Graph checks and one Full MCP project/Graph/
+stale-revision check passed. Formatting, app all-target Clippy and ADR validation
+passed. The Docs build and seven program-ledger tests passed; the generated
+index is current. Actual macOS ARM64 npm and wheel installs and a Cargo install built from
+all nine checked archives passed CLI/alias and Lite 14 / Full 32 protocol checks.
+All channels reported resource SHA-256
+`9f59b8c6735dbc6313a77f599e879a97642a44b4494dd0e911917e9e8d20b772`.
+The extracted standalone archive passed the same CLI/MCP check with empty PATH.
+These local packages are unpublished trials at the beta.3 version baseline.
+
+Fresh isolated Codex 0.153.4 and Claude Code 2.1.263 installations on macOS
+verified official registration, matching doctor/inventory results and preserved
+model canaries. Existing tests cover changed cache refusal, user-file retention,
+unknown/conflicting inventory, repeated operations and approval boundaries.
+No personal Host configuration or research data was used. The first CLI run
+exposed probes initializing unrelated Hosts; the configured-source guard fixed
+both regressions. The first docs build found one incorrect Chinese link; it was
+fixed. Four content checks initially failed: README line wrapping was corrected,
+and the existing thin-entry/formal-proofreading assertions were aligned with
+their retained contracts. A trial harness initially read the wrong inventory
+JSON level; only the harness changed before the successful Host rerun. The
+ledger test command initially used a nonexistent module name; the existing
+`tests.test_program_roadmap` suite then passed. Final documentation review also
+corrected the retained beta.2 pip example to the beta.3 baseline.
+
+Logs use `/private/tmp/qiongli-coherence-` with suffixes `cli-final.log`,
+`python-pass.log`, `content-lints-final.log`, `native-focused.log`, `clippy.log`,
+`stage.log`, `install.log`, `hosts-final.log` and `docs-integrated.log`.
+Package receipts are in `/private/tmp/qiongli-coherence-packages/`,
+`qiongli-coherence-installed/` and `qiongli-coherence-standalone/`; Host receipts
+are under `packages/qiongli-native/target/content-real-hosts/coherence-receipt.json`.
+They are local reproducibility aids, not public acceptance evidence.
+
+Graph documentation now gives explicit structural comparison criteria against
+the retained 1.x citation-expansion implementation. Existing tests establish
+multiple sources, stable anchors, deterministic rebuilding, no fabricated support
+and stale-read refusal; no second graph store or extraction framework was added.
+Next observe the thin workflow entry and source-to-record-to-Graph-to-stage-summary
+path in an authorized fresh Codex research session, and measure the same task
+before claiming better semantic results, runtime speed or maintenance cost.
+Windows/Linux execution, public registry installation and fresh live-session
+acceptance remain separate. CLI-402/403/405 and accepted task states are unchanged.
+No push, tag, publication or tracking of the previous Release Action is requested.
+
 ## Current 2.x coherence review — September 11
 
 Base `bb668f08`; branch `codex/2x-coherence-review`. The maintainer clarified

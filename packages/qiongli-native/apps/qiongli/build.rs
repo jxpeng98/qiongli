@@ -179,6 +179,13 @@ fn build_embedded_pack() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-changed={}", lock_path.display());
 
     let lock = ResourcePackLockV1::from_json(QIONGLI_CORE_RESOURCE_PACK_LOCK_V1)?;
+    if lock.content_version != env!("CARGO_PKG_VERSION") {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "embedded content version must match the CLI package version",
+        )
+        .into());
+    }
     if lock.to_canonical_json()?.as_slice() != QIONGLI_CORE_RESOURCE_PACK_LOCK_V1.as_bytes() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,

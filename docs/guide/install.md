@@ -4,9 +4,8 @@
 > or follow the [CLI package-manager installation guide](cli-2x.md#package-managers).
 > The npm/Python differences and installer commands below describe legacy 1.x.
 
-> **Product-line notice:** This page documents the npm, Python, marketplace, and bootstrap/shell
-> installers for Qiongli 1.x. The retained App/Community Alpha lane has separate
-> [historical installation instructions](../alpha/install-2x.md); it is not required for the 2.x CLI.
+> This page retains the 1.x installation reference. For current native installation
+> and commands, use the [2.x CLI guide](cli-2x.md).
 
 Qiongli has several installation surfaces because users need different levels of runtime control. Start with the smallest surface that gives you the workflow you need.
 

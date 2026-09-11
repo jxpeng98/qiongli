@@ -572,7 +572,9 @@ pub(crate) fn prepare_action_with_release_authority(
         }
         Command::InstallHelp => CliOutput::success_text(INSTALL_USAGE),
         Command::InstallStatus => install_status(authority),
-        Command::InstallInventory { exact_paths } => install_inventory(environment, exact_paths),
+        Command::InstallInventory { exact_paths } => {
+            install_inventory(environment, content, exact_paths)
+        }
         Command::InstallMigrateInteractive => return ProductAction::ReviewCliInstallations,
         Command::InstallCodexStatus => install_codex_status(environment),
         Command::InstallClaudeStatus => install_claude_status(environment),
@@ -2663,7 +2665,11 @@ fn install_codex_status(environment: &CommandEnvironment) -> CliOutput {
     )
 }
 
-fn install_inventory(environment: &CommandEnvironment, exact_paths: bool) -> CliOutput {
+fn install_inventory(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    exact_paths: bool,
+) -> CliOutput {
     let Some(inventory) = environment.client_inventory() else {
         return CliOutput::operation_failure("client-inventory-home-unavailable");
     };
@@ -2671,7 +2677,7 @@ fn install_inventory(environment: &CommandEnvironment, exact_paths: bool) -> Cli
         &InstallInventoryOutput {
             schema_version: OUTPUT_SCHEMA_VERSION,
             command: "install-inventory",
-            inventory: inventory.summary(),
+            inventory: &crate::plugin_host::inspect_inventory(environment, content, &inventory),
             cli: cli_inventory(environment, exact_paths),
         },
         0,

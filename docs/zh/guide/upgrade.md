@@ -1,5 +1,7 @@
 # Upgrade / Auto-Upgrade Guide (No Fork Required)
 
+> 本页保留 1.x 的操作方式。原生 2.x 请使用[当前指南](cli-2x.md)。
+
 本指南说明如何在使用 `qiongli` 时：
 1) 检测是否有新版本；2) 自动化升级；3) 在不 fork、不 git clone 的情况下完成升级。
 

@@ -1,6 +1,6 @@
 //! Terminal-approved local sources registered exclusively through official Host commands.
 use std::ffi::OsString;
-use std::io::{BufRead, Write};
+use std::io::{BufRead, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -119,23 +119,204 @@ fn run(
     .map_err(|e| e.reason_code())
 }
 
-fn prepare(
+/// Observe the same local source/cache contract used during registration. Never apply its commands.
+pub(crate) fn inspect_inventory(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
-    source: &PluginSourcePlan,
-) -> Result<HostPlan, &'static str> {
+    inventory: &qiongli_platform::ClientInventory,
+) -> qiongli_platform::ClientInventorySummaryV1 {
+    use qiongli_platform::{
+        ClientActionReadiness as Readiness, ClientComponentState as State, ClientHostPresence,
+        ClientKind, ClientOwnershipState,
+    };
+    let mut summary = inventory.summary().clone();
+    for entry in &mut summary.clients {
+        if entry.host_presence != ClientHostPresence::Observed {
+            continue;
+        }
+        let target = match entry.client {
+            ClientKind::Codex => ManagedIntegrationTargetV1::Codex,
+            ClientKind::ClaudeCode => ManagedIntegrationTargetV1::ClaudeCode,
+        };
+        match inspect_registration(environment, content, target) {
+            Ok(None) => {}
+            Ok(Some((version, current, cached))) => {
+                entry.installed_plugin_version = cached.then_some(version);
+                entry.ownership = ClientOwnershipState::QiongliManaged;
+                entry.components.plugin_source = State::Ready;
+                entry.components.marketplace = State::Ready;
+                entry.components.registration = if cached { State::Ready } else { State::Missing };
+                entry.components.skills = if cached { State::Ready } else { State::Missing };
+                entry.components.full_mcp = entry.components.skills;
+                entry.readiness = if current && cached {
+                    Readiness::Current
+                } else {
+                    Readiness::RepairReady
+                };
+                entry.reason_code = if current && cached {
+                    "local-host-registered-session-unchecked"
+                } else {
+                    "local-host-refresh-required"
+                }
+                .into();
+            }
+            Err(_) => {
+                // Do not turn an unsupported, failed or ambiguous observation into an install suggestion.
+                entry.readiness = Readiness::Unavailable;
+                entry.reason_code = "local-host-observation-unavailable".into();
+            }
+        }
+    }
+    summary
+}
+
+fn inspect_registration(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    target: ManagedIntegrationTargetV1,
+) -> Result<Option<(String, bool, bool)>, &'static str> {
     let home = environment
         .platform_home()
         .ok_or("host-plugin-home-unavailable")?;
-    let (name, configured_root) = match source.target {
-        ManagedIntegrationTargetV1::Codex => ("codex", environment.codex_config_root()),
-        ManagedIntegrationTargetV1::ClaudeCode => ("claude", environment.claude_config_root()),
+    let root = match target {
+        ManagedIntegrationTargetV1::Codex => environment
+            .codex_config_root()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| home.join(".codex")),
+        ManagedIntegrationTargetV1::ClaudeCode => environment
+            .claude_config_root()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| home.join(".claude")),
     };
-    let client = match source.target {
-        ManagedIntegrationTargetV1::Codex => qiongli_platform::ClientActivationTarget::Codex,
-        ManagedIntegrationTargetV1::ClaudeCode => {
-            qiongli_platform::ClientActivationTarget::ClaudeCode
+    // A read-only command must not initialize an unrelated Host. This bounded
+    // hint only selects a probe; official inventories and receipts still verify it.
+    let probe_config = match std::fs::symlink_metadata(root.join("plugins/cache").join(MARKETPLACE))
+    {
+        Ok(_) => false,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => true,
+        Err(_) => return Err("local-host-config-unavailable"),
+    };
+    if probe_config {
+        let registration = root.join(if target == ManagedIntegrationTargetV1::Codex {
+            "config.toml"
+        } else {
+            "plugins/known_marketplaces.json"
+        });
+        match std::fs::symlink_metadata(&registration) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Ok(meta) if meta.is_file() && meta.len() <= 1_048_576 => {
+                let mut text = String::new();
+                std::fs::File::open(registration)
+                    .map_err(|_| "local-host-config-unavailable")?
+                    .take(1_048_577)
+                    .read_to_string(&mut text)
+                    .map_err(|_| "local-host-config-unavailable")?;
+                if text.len() > 1_048_576 {
+                    return Err("local-host-config-unavailable");
+                }
+                if !text.contains(MARKETPLACE) {
+                    return Ok(None);
+                }
+            }
+            _ => return Err("local-host-config-unavailable"),
         }
+    }
+    let (executable, root) = host_context(environment, target)?;
+    let (marketplaces, plugins) = read_inventory(environment, &executable, Duration::from_secs(5))?;
+    let codex = target == ManagedIntegrationTargetV1::Codex;
+    let markets = if codex {
+        &marketplaces["marketplaces"]
+    } else {
+        &marketplaces
+    }
+    .as_array()
+    .ok_or("local-host-inventory-invalid")?;
+    let entries = if codex {
+        &plugins["installed"]
+    } else {
+        &plugins
+    }
+    .as_array()
+    .ok_or("local-host-inventory-invalid")?;
+    let Some(market) = markets.iter().find(|m| m["name"] == MARKETPLACE) else {
+        if entries
+            .iter()
+            .any(|p| p[if codex { "pluginId" } else { "id" }] == PLUGIN)
+        {
+            return Err("local-host-marketplace-conflict");
+        }
+        return Ok(None);
+    };
+    let path = if codex {
+        &market["marketplaceSource"]["source"]
+    } else {
+        &market["path"]
+    };
+    let destination = Path::new(path.as_str().ok_or("local-host-inventory-invalid")?);
+    let source = crate::plugin_source::plan(
+        environment,
+        content,
+        crate::plugin_source::PluginSourceAction::Update,
+        target,
+        destination,
+    )?;
+    let current: Value = serde_json::from_str(&crate::plugin_source::status(
+        environment,
+        content,
+        target,
+        destination,
+    )?)
+    .map_err(|_| "plugin-source-status-invalid")?;
+    let (actions, _) = commands(&source, &root, &current, &marketplaces, &plugins)?;
+    let version = current["source"]["version"]
+        .as_str()
+        .ok_or("plugin-source-status-invalid")?;
+    Ok(Some((
+        version.into(),
+        current["state"] == "source-current",
+        actions.is_empty(),
+    )))
+}
+
+fn read_inventory(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    timeout: Duration,
+) -> Result<(Value, Value), &'static str> {
+    let read = |args: &[&str]| {
+        let output = crate::desktop::bounded_host_os_command_with_timeout(
+            environment,
+            executable,
+            &args.iter().map(OsString::from).collect::<Vec<_>>(),
+            timeout,
+        )
+        .map_err(|e| e.reason_code())?;
+        serde_json::from_str(&output).map_err(|_| "local-host-inventory-invalid")
+    };
+    Ok((
+        read(&["plugin", "marketplace", "list", "--json"])?,
+        read(&["plugin", "list", "--json"])?,
+    ))
+}
+
+fn host_context(
+    environment: &CommandEnvironment,
+    target: ManagedIntegrationTargetV1,
+) -> Result<(PathBuf, PathBuf), &'static str> {
+    let home = environment
+        .platform_home()
+        .ok_or("host-plugin-home-unavailable")?;
+    let (name, configured_root, client) = match target {
+        ManagedIntegrationTargetV1::Codex => (
+            "codex",
+            environment.codex_config_root(),
+            qiongli_platform::ClientActivationTarget::Codex,
+        ),
+        ManagedIntegrationTargetV1::ClaudeCode => (
+            "claude",
+            environment.claude_config_root(),
+            qiongli_platform::ClientActivationTarget::ClaudeCode,
+        ),
     };
     if crate::desktop::managed_integration_version_is_unsupported(environment, client) {
         return Err("local-host-version-unsupported");
@@ -144,11 +325,23 @@ fn prepare(
         .client_executable(name)
         .ok_or("host-plugin-executable-unavailable")?;
     let executable = crate::desktop::resolve_host_plugin_executable(home, name, &executable)?;
-    let config_root = configured_root
+    let root = configured_root
         .map(Path::to_path_buf)
         .unwrap_or_else(|| home.join(format!(".{name}")));
-    qiongli_content::approve_materialization_target(&config_root)
+    qiongli_content::approve_materialization_target(&root)
         .map_err(|_| "local-host-config-root-unsafe")?;
+    Ok((executable, root))
+}
+
+fn prepare(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    source: &PluginSourcePlan,
+) -> Result<HostPlan, &'static str> {
+    let home = environment
+        .platform_home()
+        .ok_or("host-plugin-home-unavailable")?;
+    let (executable, config_root) = host_context(environment, source.target)?;
     let source_status =
         crate::plugin_source::status(environment, content, source.target, &source.destination)?;
     let current: Value =
@@ -156,18 +349,8 @@ fn prepare(
     if current["state"] != "source-current" {
         return Err("local-host-source-not-current");
     }
-    let marketplaces = serde_json::from_str(&run(
-        environment,
-        &executable,
-        &words(&["plugin", "marketplace", "list", "--json"]),
-    )?)
-    .map_err(|_| "local-host-inventory-invalid")?;
-    let plugins = serde_json::from_str(&run(
-        environment,
-        &executable,
-        &words(&["plugin", "list", "--json"]),
-    )?)
-    .map_err(|_| "local-host-inventory-invalid")?;
+    let (marketplaces, plugins) =
+        read_inventory(environment, &executable, Duration::from_secs(30))?;
     let (commands, cache_receipt_sha256) =
         commands(source, &config_root, &current, &marketplaces, &plugins)?;
     Ok(HostPlan {
@@ -269,7 +452,7 @@ fn commands(
         if !codex && !same_path(&cache, &plugin["installPath"]) {
             return Err("local-host-cache-conflict");
         }
-        let receipt = cache_receipt(source.target, &cache)?;
+        let receipt = cache_receipt(source.target, &cache, version)?;
         if current["source"]["receipt_sha256"] == receipt && plugin["enabled"] == true {
             return Ok((commands, Some(receipt)));
         }
@@ -301,19 +484,33 @@ fn commands(
     Ok((commands, cached_receipt))
 }
 
-fn cache_receipt(target: ManagedIntegrationTargetV1, path: &Path) -> Result<String, &'static str> {
+fn cache_receipt(
+    target: ManagedIntegrationTargetV1,
+    path: &Path,
+    version: &str,
+) -> Result<String, &'static str> {
     match target {
         ManagedIntegrationTargetV1::Codex => {
             let target = approve_codex_plugin_bundle_target(path).map_err(|e| e.reason_code())?;
             verify_local_codex_plugin_source(&target)
-                .map(|v| v.receipt_sha256().to_owned())
                 .map_err(|e| e.reason_code())
+                .and_then(|v| {
+                    if v.receipt().artifact.version != version {
+                        return Err("local-host-cache-version-mismatch");
+                    }
+                    Ok(v.receipt_sha256().to_owned())
+                })
         }
         ManagedIntegrationTargetV1::ClaudeCode => {
             let target = approve_claude_plugin_bundle_target(path).map_err(|e| e.reason_code())?;
             verify_local_claude_plugin_source(&target)
-                .map(|v| v.receipt_sha256().to_owned())
                 .map_err(|e| e.reason_code())
+                .and_then(|v| {
+                    if v.receipt().artifact.version != version {
+                        return Err("local-host-cache-version-mismatch");
+                    }
+                    Ok(v.receipt_sha256().to_owned())
+                })
         }
     }
 }
@@ -389,7 +586,11 @@ mod tests {
                 .unwrap();
             }
             std::fs::rename(exported, &cache).unwrap();
-            let receipt = cache_receipt(target, &cache).unwrap();
+            let receipt = cache_receipt(target, &cache, env!("CARGO_PKG_VERSION")).unwrap();
+            assert_eq!(
+                cache_receipt(target, &cache, "2.0.0-beta.999").unwrap_err(),
+                "local-host-cache-version-mismatch"
+            );
             let mut source = crate::plugin_source::contract_source();
             source.target = target;
             source.destination = base.clone();

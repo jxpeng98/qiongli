@@ -4970,6 +4970,101 @@ fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
         assert_eq!(parse_json(&status())["host_state"], "not-verified");
         assert!(!fixture.home.join(".codex").exists());
         assert!(!fixture.home.join(".claude").exists());
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fn copy_tree(from: &Path, to: &Path) {
+                fs::create_dir_all(to).unwrap();
+                for entry in fs::read_dir(from).unwrap() {
+                    let path = entry.unwrap().path();
+                    let target = to.join(path.file_name().unwrap());
+                    if path.is_dir() {
+                        copy_tree(&path, &target);
+                    } else {
+                        fs::copy(path, target).unwrap();
+                    }
+                }
+            }
+            let codex = host == "codex";
+            let config = fixture.home.join(if codex { ".codex" } else { ".claude" });
+            let cache = config
+                .join("plugins/cache/qiongli-cli-local/qiongli-next")
+                .join(env!("CARGO_PKG_VERSION"));
+            copy_tree(&destination, &cache);
+            let bins = fixture.home.join(".local/bin");
+            fs::create_dir_all(&bins).unwrap();
+            let market = if codex {
+                serde_json::json!({"marketplaces":[{"name":"qiongli-cli-local","marketplaceSource":{"sourceType":"local","source":destination}}]})
+            } else {
+                serde_json::json!([{"name":"qiongli-cli-local","source":"directory","path":destination}])
+            };
+            let entry = if codex {
+                serde_json::json!({"pluginId":"qiongli-next@qiongli-cli-local","version":env!("CARGO_PKG_VERSION"),"installed":true,"enabled":true,"source":{"source":"local","path":destination}})
+            } else {
+                serde_json::json!({"id":"qiongli-next@qiongli-cli-local","version":env!("CARGO_PKG_VERSION"),"scope":"user","enabled":true,"installPath":cache})
+            };
+            let plugins = if codex {
+                serde_json::json!({"installed":[entry]})
+            } else {
+                serde_json::json!([entry])
+            };
+            fs::write(config.join("markets.json"), market.to_string()).unwrap();
+            fs::write(config.join("entries.json"), plugins.to_string()).unwrap();
+            let fake = bins.join(if codex { "codex" } else { "claude" });
+            fs::write(&fake, format!(
+                "#!/bin/sh\ncase \"$*\" in\n--version) printf '%s\\n' '{}' ;;\n'plugin marketplace list --json') /bin/cat '{}' ;;\n'plugin list --json') /bin/cat '{}' ;;\n*) exit 91 ;;\nesac\n",
+                if codex { "codex 0.153.4" } else { "2.1.263 (Claude Code)" },
+                config.join("markets.json").display(), config.join("entries.json").display()
+            )).unwrap();
+            fs::set_permissions(&fake, fs::Permissions::from_mode(0o700)).unwrap();
+            let inspect = |args: &[&str]| {
+                fixture_command(&executable, &fixture)
+                    .env("PATH", &bins)
+                    .env_remove("CODEX_HOME")
+                    .env_remove("CLAUDE_CONFIG_DIR")
+                    .args(args)
+                    .output()
+                    .unwrap()
+            };
+            let check = |value: &serde_json::Value| {
+                value["checks"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|row| {
+                        row["id"]
+                            == if codex {
+                                "codex-local"
+                            } else {
+                                "claude-code-local"
+                            }
+                    })
+                    .unwrap()
+                    .clone()
+            };
+            let doctor = inspect(&["doctor", "--json"]);
+            assert!(doctor.status.success(), "{}", public_output(&doctor));
+            assert_eq!(
+                check(&parse_json(&doctor))["code"],
+                "local-host-registered-session-unchecked"
+            );
+            let inventory = parse_json(&inspect(&["install", "inventory"]));
+            let observed = &inventory["inventory"]["clients"][if codex { 0 } else { 1 }];
+            assert_eq!(observed["readiness"], "current");
+            assert_eq!(
+                observed["installed_plugin_version"],
+                env!("CARGO_PKG_VERSION")
+            );
+            fs::write(cache.join("user-notes.txt"), "retain cache note").unwrap();
+            assert_eq!(
+                check(&parse_json(&inspect(&["doctor", "--json"])))["code"],
+                "local-host-observation-unavailable"
+            );
+            assert_eq!(
+                fs::read_to_string(cache.join("user-notes.txt")).unwrap(),
+                "retain cache note"
+            );
+        }
         assert!(!run(&approved).status.success());
         let binary = destination.join(if cfg!(windows) {
             "bin/qiongli.exe"
