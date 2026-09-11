@@ -6,7 +6,7 @@ use qiongli_config::WorkflowVariantStore;
 use qiongli_content::EmbeddedContent;
 use qiongli_platform::{
     approve_claude_plugin_bundle_target, approve_codex_plugin_bundle_target,
-    compose_local_claude_plugin_source, compose_local_codex_plugin_source,
+    compose_local_claude_plugin_source_with_hooks, compose_local_codex_plugin_source_with_hooks,
     remove_local_claude_plugin_source, remove_local_codex_plugin_source,
     verify_local_claude_plugin_source, verify_local_codex_plugin_source,
 };
@@ -34,6 +34,8 @@ pub(crate) struct PluginSourcePlan {
     pub binary_sha256: String,
     pub expected_receipt_sha256: Option<String>,
     pub workflow_variant_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub context_hooks: bool,
 }
 
 impl PluginSourcePlan {
@@ -78,6 +80,7 @@ struct SourceObservation {
     content_pack_sha256: String,
     workflow_variant_sha256: Option<String>,
     version: String,
+    context_hooks: bool,
 }
 
 fn validate_destination(
@@ -154,6 +157,7 @@ fn observe(
                 content_pack_sha256: r.resource_pack_sha256.clone(),
                 workflow_variant_sha256: r.workflow_variant_sha256.clone(),
                 version: r.artifact.version.clone(),
+                context_hooks: r.context_hooks,
             }
         }
         ManagedIntegrationTargetV1::ClaudeCode => {
@@ -168,6 +172,7 @@ fn observe(
                 content_pack_sha256: r.resource_pack_sha256.clone(),
                 workflow_variant_sha256: r.workflow_variant_sha256.clone(),
                 version: r.artifact.version.clone(),
+                context_hooks: r.context_hooks,
             }
         }
     }))
@@ -179,6 +184,7 @@ pub(crate) fn plan(
     action: PluginSourceAction,
     target: ManagedIntegrationTargetV1,
     destination: &Path,
+    context_hooks: Option<bool>,
 ) -> Result<PluginSourcePlan, &'static str> {
     let observed = observe(environment, target, destination)?;
     if (action == PluginSourceAction::Install) != observed.is_none() {
@@ -198,6 +204,8 @@ pub(crate) fn plan(
         target,
         destination: destination.to_owned(),
         binary_sha256: crate::cli_install::regular_file_sha256(&executable)?,
+        context_hooks: context_hooks
+            .unwrap_or_else(|| observed.as_ref().is_some_and(|o| o.context_hooks)),
         expected_receipt_sha256: observed.map(|o| o.receipt_sha256),
         workflow_variant_sha256: variant.variant_sha256().map(str::to_owned),
     };
@@ -217,6 +225,7 @@ pub(crate) fn apply(
         expected.action,
         expected.target,
         &expected.destination,
+        Some(expected.context_hooks),
     )?;
     if &current != expected {
         return Err("managed-operation-precondition-changed");
@@ -240,13 +249,14 @@ pub(crate) fn apply(
                     prior.ok_or("plugin-source-plan-invalid")?,
                 )
             } else {
-                compose_local_codex_plugin_source(
+                compose_local_codex_plugin_source_with_hooks(
                     content.pack(),
                     &binary,
                     &expected.binary_sha256,
                     &target,
                     variant.overrides(),
                     prior,
+                    expected.context_hooks,
                 )
             }
             .map_err(|e| e.reason_code())?;
@@ -261,13 +271,14 @@ pub(crate) fn apply(
                     prior.ok_or("plugin-source-plan-invalid")?,
                 )
             } else {
-                compose_local_claude_plugin_source(
+                compose_local_claude_plugin_source_with_hooks(
                     content.pack(),
                     &binary,
                     &expected.binary_sha256,
                     &target,
                     variant.overrides(),
                     prior,
+                    expected.context_hooks,
                 )
             }
             .map_err(|e| e.reason_code())?;
@@ -343,6 +354,7 @@ pub(crate) fn contract_source() -> PluginSourcePlan {
         binary_sha256: "3".repeat(64),
         expected_receipt_sha256: None,
         workflow_variant_sha256: None,
+        context_hooks: false,
     }
 }
 

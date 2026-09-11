@@ -156,6 +156,8 @@ pub struct CodexPluginBundleReceiptV1 {
     pub resource_content_root_sha256: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub workflow_variant_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub context_hooks: bool,
     pub package_content_root_sha256: String,
     pub binary_path: String,
     pub binary_sha256: String,
@@ -314,6 +316,7 @@ pub fn compose_codex_plugin_bundle_with_overrides(
         overrides,
         false,
         None,
+        None,
     )
 }
 
@@ -332,6 +335,7 @@ pub fn replace_codex_plugin_bundle_with_overrides(
         target,
         overrides,
         true,
+        None,
         None,
     )
 }
@@ -355,6 +359,30 @@ pub fn compose_local_codex_plugin_source(
         overrides,
         expected_receipt_sha256.is_some(),
         expected_receipt_sha256,
+        None,
+    )
+}
+
+/// As the local source composer, with an explicit, approval-bound Hook selection.
+pub fn compose_local_codex_plugin_source_with_hooks(
+    pack: &LoadedResourcePack<'_>,
+    source_binary: &Path,
+    expected_binary_sha256: &str,
+    target: &CodexPluginBundleTarget,
+    overrides: Option<&WorkflowOverrides>,
+    expected_receipt_sha256: Option<&str>,
+    context_hooks: bool,
+) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
+    compose_codex_plugin_bundle_internal(
+        pack,
+        None,
+        expected_binary_sha256,
+        source_binary,
+        target,
+        overrides,
+        expected_receipt_sha256.is_some(),
+        expected_receipt_sha256,
+        Some(context_hooks),
     )
 }
 
@@ -390,6 +418,7 @@ fn compose_codex_plugin_bundle_internal(
     overrides: Option<&WorkflowOverrides>,
     replace: bool,
     expected_receipt_sha256: Option<&str>,
+    context_hooks: Option<bool>,
 ) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
     let (artifact, kind, signed_digest) = if let Some(grant) = grant {
         validate_composition_identity(pack, grant)?;
@@ -422,6 +451,11 @@ fn compose_codex_plugin_bundle_internal(
         None
     };
 
+    let context_hooks = context_hooks.unwrap_or_else(|| {
+        existing
+            .as_ref()
+            .is_some_and(|bundle| bundle.receipt.context_hooks)
+    });
     let binary_bytes = read_source_binary(source_binary)?;
     let binary_sha256 = sha256_hex(&binary_bytes);
     if binary_sha256 != expected_binary_sha256 {
@@ -429,7 +463,7 @@ fn compose_codex_plugin_bundle_internal(
     }
 
     let binary_path = binary_relative_path(artifact.os).to_string();
-    let mut files = project_bundle_files(pack, &artifact, &binary_path, overrides)?;
+    let mut files = project_bundle_files(pack, &artifact, &binary_path, overrides, context_hooks)?;
     if files
         .insert(
             binary_path.clone(),
@@ -470,6 +504,7 @@ fn compose_codex_plugin_bundle_internal(
         resource_pack_sha256: pack.pack_sha256().to_string(),
         resource_content_root_sha256: manifest.content_root_sha256.clone(),
         workflow_variant_sha256: overrides.map(|value| value.variant_sha256().to_owned()),
+        context_hooks,
         package_content_root_sha256,
         binary_path,
         binary_sha256,
@@ -684,6 +719,7 @@ fn project_bundle_files(
     artifact: &ArtifactIdentityV1,
     binary_path: &str,
     overrides: Option<&WorkflowOverrides>,
+    context_hooks: bool,
 ) -> Result<BTreeMap<String, BundleFile>, CodexPluginBundleError> {
     let resources = project_profile(pack, "marketplace-lite", overrides)
         .map_err(|_| CodexPluginBundleError::ResourcePackMismatch)?;
@@ -691,7 +727,8 @@ fn project_bundle_files(
         .iter()
         .find(|resource| resource.path() == PLUGIN_MANIFEST_PATH)
         .ok_or(CodexPluginBundleError::ManifestInvalid)?;
-    let manifest_bytes = generate_plugin_manifest(manifest_resource.bytes(), artifact)?;
+    let manifest_bytes =
+        generate_plugin_manifest(manifest_resource.bytes(), artifact, context_hooks)?;
     let mcp_bytes = generate_mcp_manifest(binary_path)?;
 
     let mut files = BTreeMap::new();
@@ -817,6 +854,7 @@ fn add_workflow_wrapper_skills(
 fn generate_plugin_manifest(
     template: &[u8],
     artifact: &ArtifactIdentityV1,
+    context_hooks: bool,
 ) -> Result<Vec<u8>, CodexPluginBundleError> {
     if template.len() as u64 > MAX_MANIFEST_BYTES {
         return Err(CodexPluginBundleError::ManifestInvalid);
@@ -839,6 +877,13 @@ fn generate_plugin_manifest(
         "mcpServers".to_string(),
         Value::String("./.mcp.json".to_string()),
     );
+    object.remove("hooks");
+    if context_hooks {
+        object.insert(
+            "hooks".to_string(),
+            crate::plugin_context_hooks(crate::ClientKind::Codex, artifact.os),
+        );
+    }
     canonical_json(&value)
 }
 
@@ -1027,7 +1072,10 @@ fn validate_receipt_shape(
     if !matches!(
         receipt.schema_version,
         2 | CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION
-    ) || (receipt.schema_version == 2 && receipt.workflow_variant_sha256.is_some())
+    ) || (receipt.schema_version == 2
+        && (receipt.workflow_variant_sha256.is_some() || receipt.context_hooks))
+        || (receipt.context_hooks
+            && receipt.package_kind != CodexPluginBundleKind::UserLocalHostFullMcp)
         || !matches!(
             receipt.package_kind,
             CodexPluginBundleKind::NativeHostFullMcp | CodexPluginBundleKind::UserLocalHostFullMcp
@@ -1150,6 +1198,11 @@ fn verify_manifest_contract(
         || value.get("version").and_then(Value::as_str) != Some(receipt.artifact.version.as_str())
         || value.get("skills").and_then(Value::as_str) != Some("./skills/")
         || value.get("mcpServers").and_then(Value::as_str) != Some("./.mcp.json")
+        || value.get("hooks")
+            != receipt
+                .context_hooks
+                .then(|| crate::plugin_context_hooks(crate::ClientKind::Codex, receipt.artifact.os))
+                .as_ref()
     {
         return Err(CodexPluginBundleError::ManifestInvalid);
     }

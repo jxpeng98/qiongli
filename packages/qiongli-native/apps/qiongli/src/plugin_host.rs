@@ -252,6 +252,7 @@ fn inspect_registration(
         crate::plugin_source::PluginSourceAction::Update,
         target,
         &destination,
+        None,
     )?;
     let current: Value = serde_json::from_str(&crate::plugin_source::status(
         environment,
@@ -326,11 +327,27 @@ fn host_context(
     Ok((executable, root))
 }
 
+pub(crate) fn check_context_hook_support(
+    environment: &CommandEnvironment,
+    source: &PluginSourcePlan,
+) -> Result<(), &'static str> {
+    if source.context_hooks
+        && source.target == ManagedIntegrationTargetV1::ClaudeCode
+        && !environment
+            .claude_host_version()
+            .is_some_and(|v| (v.major, v.minor, v.patch) >= (2, 1, 139))
+    {
+        return Err("local-host-context-hooks-unsupported");
+    }
+    Ok(())
+}
+
 fn prepare(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
     source: &PluginSourcePlan,
 ) -> Result<HostPlan, &'static str> {
+    check_context_hook_support(environment, source)?;
     let home = environment
         .platform_home()
         .ok_or("host-plugin-home-unavailable")?;
@@ -339,7 +356,9 @@ fn prepare(
         crate::plugin_source::status(environment, content, source.target, &source.destination)?;
     let current: Value =
         serde_json::from_str(&source_status).map_err(|_| "plugin-source-status-invalid")?;
-    if current["state"] != "source-current" {
+    if current["state"] != "source-current"
+        || current["source"]["context_hooks"] != source.context_hooks
+    {
         return Err("local-host-source-not-current");
     }
     let (marketplaces, plugins) =
@@ -618,6 +637,36 @@ fn words(values: &[&str]) -> Vec<String> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn context_hooks_require_claude_exec_form_support_without_changing_off_installs() {
+        let mut source = crate::plugin_source::contract_source();
+        source.target = ManagedIntegrationTargetV1::ClaudeCode;
+        for (version, supported) in [
+            (None, false),
+            (Some((2, 1, 138)), false),
+            (Some((2, 1, 139)), true),
+            (Some((3, 0, 0)), true),
+        ] {
+            let environment = CommandEnvironment::default().with_client_versions(
+                None,
+                version.map(
+                    |(major, minor, patch)| crate::command::DetectedClientVersion {
+                        major,
+                        minor,
+                        patch,
+                    },
+                ),
+            );
+            source.context_hooks = true;
+            assert_eq!(
+                check_context_hook_support(&environment, &source).is_ok(),
+                supported
+            );
+            source.context_hooks = false;
+            assert!(check_context_hook_support(&environment, &source).is_ok());
+        }
+    }
 
     #[test]
     fn local_host_cache_replacement_requires_a_complete_matching_local_receipt() {

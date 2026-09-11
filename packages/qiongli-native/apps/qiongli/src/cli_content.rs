@@ -16,6 +16,7 @@ pub(crate) fn prepare_plan(
         ManagedOperationCliCommand::PlanPluginSource {
             target,
             destination,
+            context_hooks,
             ..
         },
         Err("plugin-source-already-exists"),
@@ -26,6 +27,7 @@ pub(crate) fn prepare_plan(
                 action: crate::plugin_source::PluginSourceAction::Update,
                 target: *target,
                 destination: destination.clone(),
+                context_hooks: *context_hooks,
             },
             environment,
             content,
@@ -43,6 +45,7 @@ pub struct InstallationGuide {
     pub(crate) plugin: bool,
     pub(crate) targets: Vec<crate::managed_operation::ManagedIntegrationTargetV1>,
     pub(crate) destination: Option<std::path::PathBuf>,
+    pub(crate) context_hooks: Option<bool>,
 }
 
 pub fn guide_installation(
@@ -67,6 +70,7 @@ impl InstallationGuide {
                 content,
                 self.targets,
                 self.destination,
+                self.context_hooks,
                 reader,
                 writer,
             )
@@ -123,7 +127,9 @@ fn guide(
             preset: ManagedSkillsPresetV1::QiongliManaged,
             profile: qiongli_content::ProfileId::Full,
         },
-        "" | "1" => return install_plugins(environment, content, Vec::new(), None, reader, writer),
+        "" | "1" => {
+            return install_plugins(environment, content, Vec::new(), None, None, reader, writer);
+        }
         _ => return Err("installation-selection-invalid"),
     };
     BundledContentReview {
@@ -138,6 +144,7 @@ fn install_plugins(
     content: &EmbeddedContent,
     mut targets: Vec<crate::managed_operation::ManagedIntegrationTargetV1>,
     destination: Option<std::path::PathBuf>,
+    context_hooks: Option<bool>,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> Result<(), &'static str> {
@@ -231,14 +238,35 @@ fn install_plugins(
         if !path.is_absolute() {
             return Err("plugin-source-destination-invalid");
         }
-        let command = ManagedOperationCliCommand::PlanPluginSource {
+        let mut command = ManagedOperationCliCommand::PlanPluginSource {
             action: crate::plugin_source::PluginSourceAction::Install,
             target,
             destination: path,
+            context_hooks,
         };
-        let review = BundledContentReview {
-            plan_json: prepare_plan(&command, environment, content)?,
-        };
+        let mut plan_json = prepare_plan(&command, environment, content)?;
+        if context_hooks.is_none() {
+            let value: serde_json::Value =
+                serde_json::from_str(&plan_json).map_err(|_| "managed-operation-plan-invalid")?;
+            let current = value["operation"]["source"]["context_hooks"]
+                .as_bool()
+                .unwrap_or(false);
+            let Some(selected) = choose_context_hooks(current, reader, writer)? else {
+                return line(
+                    writer,
+                    "Cancelled this installation; no files changed for this Host.\n",
+                );
+            };
+            if selected != current {
+                if let ManagedOperationCliCommand::PlanPluginSource { context_hooks, .. } =
+                    &mut command
+                {
+                    *context_hooks = Some(selected);
+                }
+                plan_json = prepare_plan(&command, environment, content)?;
+            }
+        }
+        let review = BundledContentReview { plan_json };
         if !review.review(environment, content, reader, writer)? {
             break;
         }
@@ -250,6 +278,34 @@ fn install_plugins(
         }
     }
     Ok(())
+}
+
+fn choose_context_hooks(
+    current: bool,
+    reader: &mut impl BufRead,
+    writer: &mut impl Write,
+) -> Result<Option<bool>, &'static str> {
+    line(
+        writer,
+        "Optional context hooks: remind the model after resume/compaction or child-agent startup. First install defaults to off; updates keep the existing choice.\n",
+    )?;
+    let default = if current { "1" } else { "2" };
+    let selected = crate::cli_inventory::choice(
+        reader,
+        writer,
+        &format!("Hooks: 1 context reminders, 2 off, 0 cancel [{default}]: "),
+    )
+    .map_err(|_| "installation-input-failed")?;
+    match if selected.is_empty() {
+        default
+    } else {
+        &selected
+    } {
+        "1" => Ok(Some(true)),
+        "2" => Ok(Some(false)),
+        "0" => Ok(None),
+        _ => Err("installation-selection-invalid"),
+    }
 }
 
 impl BundledContentReview {
@@ -283,6 +339,7 @@ impl BundledContentReview {
             let source: crate::plugin_source::PluginSourcePlan =
                 serde_json::from_value(value["operation"]["source"].clone())
                     .map_err(|_| "managed-operation-plan-invalid")?;
+            crate::plugin_host::check_context_hook_support(environment, &source)?;
             let previous: serde_json::Value = serde_json::from_str(&crate::plugin_source::status(
                 environment,
                 content,
@@ -293,11 +350,44 @@ impl BundledContentReview {
             show_json(writer, &serde_json::json!({"installation":"Plugin (Skills included)",
                 "host":source.target,"destination":source.destination,"cli_version":env!("CARGO_PKG_VERSION"),
                 "previous_export_version":previous["source"]["version"],"export_state":previous["state"],
+                "context_hooks": if source.context_hooks {"include context reminders; Host trust and execution not verified"} else {"off in this Plugin"},
                 "mcp":"Full, 32 tools; started by the Host from the bundled native program"}).to_string())?;
             line(
                 writer,
                 "This also installs the research Skills. A separate Skills installation or MCP package is unnecessary.\nFile changes and Host registration are confirmed separately below.\n",
             )?;
+            if source.context_hooks {
+                use qiongli_platform::{ClientKind, OperatingSystem, plugin_context_hooks};
+                let host = match source.target {
+                    crate::managed_operation::ManagedIntegrationTargetV1::Codex => {
+                        ClientKind::Codex
+                    }
+                    crate::managed_operation::ManagedIntegrationTargetV1::ClaudeCode => {
+                        ClientKind::ClaudeCode
+                    }
+                };
+                line(
+                    writer,
+                    "Hook configuration in the Plugin manifest (uses the bundled binary):\n",
+                )?;
+                line(
+                    writer,
+                    &serde_json::to_string_pretty(&plugin_context_hooks(
+                        host,
+                        OperatingSystem::current().ok_or("plugin-source-platform-unsupported")?,
+                    ))
+                    .map_err(|_| "installation-preview-invalid")?,
+                )?;
+                line(
+                    writer,
+                    "\nOnly context reminders; no project reads, writes or approval decisions. Host/global hook settings are kept. Existing manual Qiongli hooks may produce duplicate reminders.\n",
+                )?;
+            } else {
+                line(
+                    writer,
+                    "This export will contain no context hooks. Existing Host/global hooks are kept.\n",
+                )?;
+            }
         } else {
             line(
                 writer,
@@ -330,6 +420,12 @@ impl BundledContentReview {
             let source: crate::plugin_source::PluginSourcePlan =
                 serde_json::from_value(value["operation"]["source"].clone())
                     .map_err(|_| "managed-operation-plan-invalid")?;
+            if source.context_hooks {
+                line(
+                    writer,
+                    "Hooks: Plugin configuration exported and verified; Host loading/trust/execution still requires verification.\n",
+                )?;
+            }
             match crate::plugin_host::register(environment, content, &source, reader, writer) {
                 Ok(true) => {}
                 Ok(false) => return Ok(false),
@@ -340,6 +436,21 @@ impl BundledContentReview {
                     )?;
                     return Err(code);
                 }
+            }
+            if source.context_hooks {
+                let hint = match source.target {
+                    crate::managed_operation::ManagedIntegrationTargetV1::Codex => {
+                        "Hooks: in Codex, open /hooks (or Hook settings) and review/trust the Qiongli commands; a changed definition may need trust again."
+                    }
+                    crate::managed_operation::ManagedIntegrationTargetV1::ClaudeCode => {
+                        "Hooks: use Claude Code 2.1.139 or newer; open /hooks and check the Qiongli Plugin entries."
+                    }
+                };
+                line(writer, hint)?;
+                line(
+                    writer,
+                    "\nReload the Plugin/start a new Host session, then verify a resume/compact or child-start event delivers the reminder. CLI checks do not prove Host execution.\n",
+                )?;
             }
         } else {
             line(
@@ -365,6 +476,9 @@ fn installation_failure(code: &'static str) -> CliOutput {
         }
         "local-host-marketplace-conflict" => {
             "Review the Host's qiongli-cli-local marketplace path; choose the matching export destination."
+        }
+        "local-host-context-hooks-unsupported" => {
+            "Context hooks need Claude Code 2.1.139 or newer. Update Claude Code, or rerun install plugin --hooks off."
         }
         "host-plugin-executable-unavailable" | "local-host-version-unsupported" => {
             "Install or update the selected Codex/Claude CLI, then retry this command."
@@ -412,6 +526,25 @@ mod tests {
     use super::*;
     use crate::managed_operation::ManagedSkillsPresetV1;
     use qiongli_content::ProfileId;
+
+    #[test]
+    fn context_hook_choice_preserves_defaults_and_requires_complete_input() {
+        for (current, input, expected) in [
+            (false, "\n", Some(false)),
+            (true, "\n", Some(true)),
+            (false, "1\n", Some(true)),
+            (true, "2\n", Some(false)),
+            (true, "0\n", None),
+        ] {
+            assert_eq!(
+                choose_context_hooks(current, &mut input.as_bytes(), &mut Vec::new()).unwrap(),
+                expected
+            );
+        }
+        for input in ["", "1", "yes\n", "3\n"] {
+            assert!(choose_context_hooks(false, &mut input.as_bytes(), &mut Vec::new()).is_err());
+        }
+    }
 
     #[test]
     fn content_review_requires_confirmation_and_revalidates_the_original_plan() {
@@ -490,6 +623,37 @@ mod tests {
         let displayed = String::from_utf8(output).unwrap();
         assert!(displayed.contains("Plan digest sha256"));
         assert!(displayed.contains(".qiongli-skills"));
+        for target in [
+            crate::managed_operation::ManagedIntegrationTargetV1::Codex,
+            crate::managed_operation::ManagedIntegrationTargetV1::ClaudeCode,
+        ] {
+            let command = ManagedOperationCliCommand::PlanPluginSource {
+                action: crate::plugin_source::PluginSourceAction::Install,
+                target,
+                destination: root.join("qiongli-next"),
+                context_hooks: Some(true),
+            };
+            let review = BundledContentReview {
+                plan_json: prepare_plan(&command, &environment, &content).unwrap(),
+            };
+            let mut output = Vec::new();
+            let result = review.review(&environment, &content, &mut "n\n".as_bytes(), &mut output);
+            if target == crate::managed_operation::ManagedIntegrationTargetV1::Codex {
+                assert!(!result.unwrap());
+                let text = String::from_utf8(output).unwrap();
+                assert!(
+                    text.find("SessionStart").unwrap()
+                        < text
+                            .find("Apply these bundled-content file changes?")
+                            .unwrap()
+                );
+                assert!(text.contains("hooks context"));
+            } else {
+                assert_eq!(result.unwrap_err(), "local-host-context-hooks-unsupported");
+                assert!(output.is_empty());
+            }
+            assert!(!root.join("qiongli-next").exists());
+        }
         std::fs::remove_dir_all(root).unwrap();
     }
 }

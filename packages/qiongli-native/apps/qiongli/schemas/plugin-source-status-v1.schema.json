@@ -85,13 +85,17 @@
         },
         "version": {
           "type": "string"
+        },
+        "context_hooks": {
+          "type": "boolean"
         }
       },
       "required": [
         "receipt_sha256",
         "binary_sha256",
         "content_pack_sha256",
-        "version"
+        "version",
+        "context_hooks"
       ]
     }
   }

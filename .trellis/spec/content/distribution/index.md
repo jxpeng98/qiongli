@@ -118,6 +118,11 @@ registration after a second, exact-plan confirmation. It may replace only the
 selected local Plugin's completely verified cache; unrelated enabled Qiongli
 Plugins and changed files block that step. Lower-level source plan/apply commands
 still only export files. CLI package updates stay with the original installer.
+Optional local context hooks are projected inline into the selected Host manifest
+and bound to its receipt and native binary. Installation previews the configuration
+and preserves the choice on updates. No Python/Node wrapper, global settings edit
+or automatic Hook trust is added. Public Marketplace and signed bundles keep their
+existing defaults; standalone Skills exports do not install Hook configuration.
 
 Public Marketplace Plugins (ADR 0223) use `native_marketplace_plugins.py` and
 the CLI's `export_marketplace_content` example. Shared research resources retain

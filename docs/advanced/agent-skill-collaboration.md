@@ -61,8 +61,34 @@ It needs no Python, Node, MCP connection or model call. It does not read project
 files or transcripts, save summaries, approve writes or keep a completed task
 running. Hooks are optional; ordinary Skill routing remains sufficient.
 
-Enable it manually only in a Host that supports these events. The following
-example uses an absolute native binary path; replace it with yours, preserving
+In the development build after beta.5, `qiongli install` offers context hooks
+when you choose Plugin. They default to off on first install; later installs and
+upgrades preserve your choice. You can also choose explicitly:
+
+```sh
+qiongli install plugin --hooks context
+qiongli install plugin --hooks off
+```
+
+The preview shows the events and command before you confirm file changes. The
+configuration lives in the Plugin manifest and calls its bundled native binary;
+no separate script runtime or MCP service is needed. Each Host has its own
+choice and installation. `--hooks off` removes this Plugin's reminder entries.
+It leaves manual Host settings intact. Avoid enabling the same reminder through
+both the Plugin and a manual configuration.
+
+After registration, Codex still requires you to review and trust the commands in
+`/hooks` or its Hook settings. A changed definition can require trust again.
+Claude Code needs 2.1.139 or newer for command hooks with `args`; the guide
+checks this before writing files. Check the Plugin entries in `/hooks`. Reload the Plugin or start a new session, then
+verify that resume/compaction or child startup delivers a reminder. Export and
+registration checks do not prove event delivery. To inspect exported configuration,
+use `qiongli app plugin-source-status --target codex --destination /absolute/path/qiongli-next`:
+`source.context_hooks` reports the receipt-verified choice; `host_state` remains
+`not-verified`. Use `--target claude` for Claude Code.
+
+If you prefer manual Host configuration, the following example uses an absolute
+native binary path; replace it with yours, preserving
 shell quoting. On Windows use the absolute `qiongli.exe` path and quote/escape it
 for the Host's command shell and JSON.
 
@@ -100,8 +126,7 @@ For Codex, merge these entries into the appropriate `.codex/hooks.json` and
 review/trust them in `/hooks`; project-local configuration also needs project
 trust. For Claude Code, merge the `hooks` entries into the appropriate
 `.claude/settings.json`. Keep other entries intact and avoid registering this
-same reminder at both user and project scope. Plugin installation does not
-activate this hook. Configuration and event support follow the Host's own
+same reminder at multiple scopes. Configuration and event support follow the Host's own
 [Codex hooks documentation](https://learn.chatgpt.com/docs/hooks) or
 [Claude Code hooks documentation](https://code.claude.com/docs/en/hooks).
 

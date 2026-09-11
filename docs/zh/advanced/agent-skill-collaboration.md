@@ -47,8 +47,29 @@ Hook 适合在压缩上下文、恢复会话或启动子代理时，提醒模型
 它是原生命令，不依赖 Python、Node、MCP 连接或额外模型调用，不读取项目文件和聊天
 记录，也不保存总结、批准写入或强迫已经结束的任务继续运行。不启用 Hook 也可正常使用 Skills。
 
-确认 Host 支持这些事件后，再手动添加下面的配置。把路径替换成实际原生二进制的绝对
-路径，保留命令引号。Windows 使用 `qiongli.exe` 的绝对路径，并按 Host 的命令 shell
+beta.5 之后的开发构建已将 Hook 加入安装向导：运行 `qiongli install` 并选择 Plugin，
+就可以选择是否加入上下文提醒。首次安装默认关闭，重新安装和升级时保留已有选择。
+也可以直接指定：
+
+```sh
+qiongli install plugin --hooks context
+qiongli install plugin --hooks off
+```
+
+确认文件修改前，CLI 会显示 Hook 的事件和命令。配置保存在 Plugin 清单中，调用同包
+的原生程序，不需要另外安装脚本运行环境或启动 MCP。每个 Host 分别选择、分别安装。
+`--hooks off` 只移除这份 Plugin 中的提醒配置，保留手动添加的 Host 配置。
+如果之前已手动配置同一提醒，请在 Host 中检查重复条目，避免收到两次提醒。
+
+注册完成后，Codex 仍需在 `/hooks` 或 Hook 设置中审阅并信任命令；定义变化后可能
+需要重新信任。Claude Code 需要 2.1.139 或更新版本以支持 command Hook 的 `args`
+字段，安装向导会在写入前检查这一点。可以在 `/hooks` 中核对 Plugin 条目。重新加载 Plugin 或开启新会话后，再通过恢复会话、
+压缩上下文或启动子代理确认提醒确实送达。文件导出和注册检查不代表 Hook 已经触发。
+查看导出状态可运行 `qiongli app plugin-source-status --target codex --destination /absolute/path/qiongli-next`：
+`source.context_hooks` 表示经过收据校验的配置选择，`host_state` 仍为 `not-verified`。
+Claude Code 改用 `--target claude`。
+
+如果希望手动配置 Host，可以使用下面的示例。把路径替换成实际原生二进制的绝对路径，保留命令引号。Windows 使用 `qiongli.exe` 的绝对路径，并按 Host 的命令 shell
 和 JSON 规则处理引号及转义。
 
 ```json
@@ -84,7 +105,7 @@ Hook 适合在压缩上下文、恢复会话或启动子代理时，提醒模型
 Codex 将这些条目合入相应的 `.codex/hooks.json`，然后在 `/hooks` 中审阅并信任；
 项目配置还需要项目受信任。Claude Code 将 `hooks` 条目合入相应的
 `.claude/settings.json`。保留已有条目，避免在用户级和项目级重复添加同一提示。
-安装 Plugin 不会自动启用这个 Hook。具体配置和事件支持以
+具体配置和事件支持以
 [Codex Hook 文档](https://learn.chatgpt.com/docs/hooks)和
 [Claude Code Hook 文档](https://code.claude.com/docs/en/hooks)为准。
 

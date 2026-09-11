@@ -40,7 +40,7 @@ const MAX_CLIENT_METADATA_BYTES: u64 = 256 * 1_024;
 
 const USAGE: &str = crate::cli_help::HOME;
 
-pub(crate) const APP_USAGE: &str = "Qiongli App control contract\n\nUsage:\n  qiongli app snapshot\n  qiongli app plugin-source-status --target <codex|claude> --destination <absolute-path/qiongli-next>\n  qiongli app plan plugin-source-install --target <codex|claude> --destination <absolute-path/qiongli-next>\n  qiongli app plan plugin-source-update --target <codex|claude> --destination <absolute-path/qiongli-next>\n  qiongli app plan plugin-source-remove --target <codex|claude> --destination <absolute-path/qiongli-next>\n  qiongli app read-project-artifact --project-id <prj_id> --expected-project-revision <revision> --expected-projection-id <grp_id> <--node-id <nod_id>|--edge-id <edg_id>>\n  qiongli app verify-integrations --target <codex|claude|all>\n  qiongli app verify-skills --preset <qiongli-managed|current-project>\n  qiongli app verify-skills --target-id <skills-target-sha256>\n  qiongli app plan cli-install\n  qiongli app plan cli-remove\n  qiongli app plan cli-path-configure\n  qiongli app plan skills-reconcile --preset <qiongli-managed|current-project> --profile <profile>\n  qiongli app plan skills-update --target-id <skills-target-sha256>\n  qiongli app plan skills-remove --target-id <skills-target-sha256>\n  qiongli app plan skills-detach --target-id <skills-target-sha256>\n  qiongli app plan integrations-install --target <codex|claude|all>\n  qiongli app plan integrations-reconcile --target <codex|claude|all>\n  qiongli app plan integrations-remove --target <codex|claude|all>\n  qiongli app apply --plan <absolute-plan.json> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change --approve-host-trust]\n  qiongli app --help\n\nPlugin source operations export a user-approved local Plugin with a bundled binary; they do not register a Host or confer signed release authority. The destination parent must already exist and be secure.\n\nRead-only commands use the same native DesktopService and versioned App event contract as the GUI. Project artifact reads are revision-, projection-, and entity-bound and return only a bounded, path-redacted App event. CLI install, PATH configuration, remove or predecessor restoration, and integration repair are separate state-bound plans. Drifted Skills can be detached without changing their retained files. All mutations use a canonical, expiring, digest-bound plan and the same receipt-bound native transaction authority as the App.\n";
+pub(crate) const APP_USAGE: &str = "Qiongli App control contract\n\nUsage:\n  qiongli app snapshot\n  qiongli app plugin-source-status --target <codex|claude> --destination <absolute-path/qiongli-next>\n  qiongli app plan plugin-source-install --target <codex|claude> --destination <absolute-path/qiongli-next>\n  qiongli app plan plugin-source-update --target <codex|claude> --destination <absolute-path/qiongli-next>\n  qiongli app plan plugin-source-remove --target <codex|claude> --destination <absolute-path/qiongli-next>\n  qiongli app read-project-artifact --project-id <prj_id> --expected-project-revision <revision> --expected-projection-id <grp_id> <--node-id <nod_id>|--edge-id <edg_id>>\n  qiongli app verify-integrations --target <codex|claude|all>\n  qiongli app verify-skills --preset <qiongli-managed|current-project>\n  qiongli app verify-skills --target-id <skills-target-sha256>\n  qiongli app plan cli-install\n  qiongli app plan cli-remove\n  qiongli app plan cli-path-configure\n  qiongli app plan skills-reconcile --preset <qiongli-managed|current-project> --profile <profile>\n  qiongli app plan skills-update --target-id <skills-target-sha256>\n  qiongli app plan skills-remove --target-id <skills-target-sha256>\n  qiongli app plan skills-detach --target-id <skills-target-sha256>\n  qiongli app plan integrations-install --target <codex|claude|all>\n  qiongli app plan integrations-reconcile --target <codex|claude|all>\n  qiongli app plan integrations-remove --target <codex|claude|all>\n  qiongli app apply --plan <absolute-plan.json> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change --approve-host-trust]\n  qiongli app --help\n\nPlugin source install/update accept --hooks <context|off>; omission preserves the existing choice (off for a new source). Hooks are included in the Plugin manifest, not global Host settings.\n\nPlugin source operations export a user-approved local Plugin with a bundled binary; they do not register a Host or confer signed release authority. The destination parent must already exist and be secure.\n\nRead-only commands use the same native DesktopService and versioned App event contract as the GUI. Project artifact reads are revision-, projection-, and entity-bound and return only a bounded, path-redacted App event. CLI install, PATH configuration, remove or predecessor restoration, and integration repair are separate state-bound plans. Drifted Skills can be detached without changing their retained files. All mutations use a canonical, expiring, digest-bound plan and the same receipt-bound native transaction authority as the App.\n";
 
 pub(crate) const CONTENT_USAGE: &str = "Qiongli embedded content (read only)\n\nUsage:\n  qiongli content list\n  qiongli content --help\n\nInstall or refresh standalone Skills with `qiongli install skills`. For Skills with automatic MCP connection, use `qiongli install plugin`. Advanced Skills plans use `qiongli app plan skills-reconcile|skills-update|skills-remove|skills-detach` followed by `qiongli app apply`. The CLI supports the declared presets; a custom destination is not currently a CLI option. The `app` namespace uses the native service without opening a GUI. The retired `content materialize` syntax returns `managed-skills-plan-required` without writing.\n";
 
@@ -863,7 +863,7 @@ fn parse_app_args(args: &[OsString]) -> Result<Command, UsageError> {
             Ok(Command::AppVerifyManagedSkillsTarget { target_id })
         }
         "plugin-source-status" => {
-            let (target, destination) = parse_plugin_source_target(&args[1..])?;
+            let (target, destination, _) = parse_plugin_source_target(&args[1..], false)?;
             Ok(Command::AppManaged(
                 ManagedOperationCliCommand::PluginSourceStatus {
                     target,
@@ -972,7 +972,8 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
     };
     match operation {
         "plugin-source-install" | "plugin-source-update" | "plugin-source-remove" => {
-            let (target, destination) = parse_plugin_source_target(&args[1..])?;
+            let (target, destination, context_hooks) =
+                parse_plugin_source_target(&args[1..], operation != "plugin-source-remove")?;
             let action = match operation {
                 "plugin-source-install" => crate::plugin_source::PluginSourceAction::Install,
                 "plugin-source-update" => crate::plugin_source::PluginSourceAction::Update,
@@ -982,6 +983,7 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
                 action,
                 target,
                 destination,
+                context_hooks,
             })
         }
         "cli-install" if args.len() == 1 => Ok(ManagedOperationCliCommand::PlanCliInstall),
@@ -1070,10 +1072,12 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
 
 fn parse_plugin_source_target(
     args: &[OsString],
-) -> Result<(ManagedIntegrationTargetV1, PathBuf), UsageError> {
+    allow_hooks: bool,
+) -> Result<(ManagedIntegrationTargetV1, PathBuf, Option<bool>), UsageError> {
     let mut target = None;
     let mut destination = None;
-    if args.len() != 4 {
+    let mut context_hooks = None;
+    if args.len() != 4 && !(allow_hooks && args.len() == 6) {
         return Err(app_usage_error(
             "Plugin source requires --target and --destination",
         ));
@@ -1089,6 +1093,9 @@ fn parse_plugin_source_target(
             }
             Some("--destination") if destination.is_none() => {
                 destination = Some(PathBuf::from(&pair[1]))
+            }
+            Some("--hooks") if allow_hooks && context_hooks.is_none() => {
+                context_hooks = Some(parse_context_hooks(&pair[1])?);
             }
             _ => {
                 return Err(app_usage_error(
@@ -1107,7 +1114,16 @@ fn parse_plugin_source_target(
     Ok((
         target.ok_or_else(|| app_usage_error("Plugin source target is required"))?,
         destination,
+        context_hooks,
     ))
+}
+
+fn parse_context_hooks(value: &OsStr) -> Result<bool, UsageError> {
+    match value.to_str() {
+        Some("context") => Ok(true),
+        Some("off") => Ok(false),
+        _ => Err(app_usage_error("--hooks must be context or off")),
+    }
 }
 
 fn parse_app_apply_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, UsageError> {
@@ -1217,6 +1233,9 @@ fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Comman
                             ));
                         }
                     };
+                }
+                Some("--hooks") if options.context_hooks.is_none() => {
+                    options.context_hooks = Some(parse_context_hooks(&pair[1])?);
                 }
                 Some("--destination") if options.destination.is_none() => {
                     let path = PathBuf::from(&pair[1]);
@@ -3403,6 +3422,48 @@ fn windows_drive_home() -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn plugin_hook_options_are_explicit_and_scoped_to_install_update() {
+        for upgrade in [false, true] {
+            for (value, expected) in [("context", true), ("off", false)] {
+                let args: Vec<OsString> = ["plugin", "--target", "all", "--hooks", value]
+                    .map(Into::into)
+                    .to_vec();
+                assert!(matches!(parse_content_install_args(&args, upgrade),
+                    Ok(Command::InstallInteractive(crate::cli_content::InstallationGuide { context_hooks: Some(selected), .. })) if selected == expected));
+            }
+        }
+        for args in [
+            vec!["plugin", "--hooks", "bad"],
+            vec!["plugin", "--hooks", "context", "--hooks", "off"],
+            vec!["skills", "--hooks", "context", "--dry-run"],
+            vec!["plugin", "--hooks"],
+        ] {
+            let args: Vec<OsString> = args.into_iter().map(Into::into).collect();
+            assert!(parse_content_install_args(&args, false).is_err());
+        }
+        let path = std::env::current_dir().unwrap().join("qiongli-next");
+        for action in [
+            "plugin-source-install",
+            "plugin-source-update",
+            "plugin-source-remove",
+        ] {
+            let args = vec![
+                action.into(),
+                "--target".into(),
+                "codex".into(),
+                "--destination".into(),
+                path.clone().into_os_string(),
+                "--hooks".into(),
+                "context".into(),
+            ];
+            assert_eq!(
+                parse_app_plan_args(&args).is_ok(),
+                action != "plugin-source-remove"
+            );
+        }
+    }
 
     #[test]
     fn activation_discard_requires_exact_transaction_digest_and_approval() {

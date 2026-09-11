@@ -244,6 +244,12 @@ Plugin 本身无需 Python、Node 或 Cargo 运行时；Codex 仍需事先安装
 Claude Code 使用 `--target claude`，并另建一个导出父目录，例如
 `$HOME/qiongli-plugins/claude`。
 
+beta.5 之后的开发构建会在安装 Plugin 时提供可选的上下文提醒。首次默认关闭，
+更新时保留已有选择。运行 `qiongli install plugin --hooks context` 可加入提醒，
+`--hooks off` 可移除 Plugin 内的提醒配置。确认页会显示具体命令，Host 信任和实际触发
+仍需分别核对，详见 [Hook 安装与验证](/zh/advanced/agent-skill-collaboration#可选的上下文-hook)。
+独立 Skills 导出不安装 Hook。
+
 通过原安装渠道更新 CLI 后，刷新已登记的 Plugin：
 
 ```sh

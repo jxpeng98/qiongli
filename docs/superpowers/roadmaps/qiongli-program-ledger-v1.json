@@ -268,8 +268,8 @@
       ],
       "commit": "",
       "run": "",
-      "updated_at": "2026-09-11",
-      "blocker": "Local follow-up at baa892dc adds bounded Host-native delegation, source/candidate-bound review and edit handoffs, and optional dependency-free context hooks. Three real child tasks preserve C-to-F claims, method limits, stale-review disagreements and additive stage-summary history in an isolated synthetic preview; ten originals remain unchanged. The coordinator retains Full MCP checkpoint control and process-authenticated reads. Source checks, native protocol and bundle tests, final content projection and trial evidence are archived. No release or acceptance change. Real cross-Host transport/identity, live Hook delivery, non-macOS execution, migrated Graph semantics and measured performance/maintenance acceptance remain open. Next validate an authorized live Hook and one source-bound cross-Host review before automatic claim/review/recovery work."
+      "updated_at": "2026-09-12",
+      "blocker": "The September 12 local follow-up adds optional context Hook selection to Plugin install/upgrade/update, with per-Host inline manifests, approval-bound plan/receipt digests, retained choices and legacy default-off bytes. Native checks, isolated warning-free Claude validation and real Codex registration/cache observation passed; the existing review records the schema correction and evidence. Earlier bounded delegation and source/candidate-bound handoffs remain in place. No release or acceptance change. Live Hook trust/delivery, non-macOS execution, cross-Host transport/identity, migrated Graph semantics and measured performance/maintenance acceptance remain open. Next observe an authorized live Hook and one source-bound cross-Host review before automatic claim/review/recovery work."
     },
     {
       "id": "CLI-403",

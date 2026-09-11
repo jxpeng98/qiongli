@@ -317,3 +317,72 @@ Host 阅读和规范化、原生服务确定性提取的现有分工，不需要
 真实会话送达或非 macOS 的新验收，也不能证明比 1.x 更快或质量更高。下一步先在获准
 的真实 Host 中验证 Hook 恢复与一次来源绑定的跨 Host 审查交接；自动领取、独立审查
 绑定和并发恢复继续按 CLI-406–408 的现有边界逐步实现。本轮本地集成，不推送或发布。
+
+
+## 后续调整：安装时选择上下文 Hook（2026-09-12）
+
+基线 `cb6685c3`，分支 `codex/install-context-hooks`。用户确认将可选 Hook 加入
+`install`。本轮复用 Plugin 的预览、批准、收据和原子更新流程，没有增加全局配置
+写入器、脚本运行环境或新的研究记录存储。
+
+### 选择与边界
+
+- `qiongli install` 的 Plugin 向导增加上下文提醒选择；首次默认关闭，更新时保留
+  当前收据中的选择。`install/upgrade/update plugin --hooks context|off` 使用同一流程，
+  `app plan plugin-source-install|plugin-source-update` 也支持这个参数。
+- 选择写入安装计划及收据，受摘要、过期时间、文件批准和 CAS 检查约束。关闭时省略
+  新字段，保持旧计划及收据的规范化表示；旧的本地导出 API 在更新时保留已有选择。
+- 配置只包含恢复／压缩后的 SessionStart 和 SubagentStart，调用同包原生程序，
+  超时为 5 秒。安装前展示具体配置；`--hooks off` 只移除这份 Plugin 的提醒条目，
+  不更改其他 Host 或用户／项目层的手动 Hook。独立 Skills 导出不安装 Hook。
+- Codex 的信任和实际事件送达仍由 Host 确认。Claude Code 的原生参数启动方式要求
+  2.1.139 或更新版本，向导在文件写入前检查；未知或更旧的版本仍可选择关闭 Hook。
+  纯导出命令保留不依赖 Host 的用途。
+
+### Host 格式验证发现的问题
+
+首次真实 Claude Code 校验虽然退出码为 0，却报告 `hooks.hooks` 是未知事件，会在
+运行时忽略。这一结果没有被计为成功。修正后，Codex 内联一个 HooksFile，清单路径为
+`hooks.hooks.SessionStart`；Claude Code 直接内联事件表，路径为 `hooks.SessionStart`。
+同一个原生生成函数按 Host 返回这两种结构，预览、投影和验证共用它；回归检查分别
+断言结构，防止再次把两个 Host 的格式混用。
+
+规则来源是 [Codex Plugin 指南](https://developers.openai.com/plugins/build/plugins)、
+[Codex 内联 Hook 解析器](https://github.com/openai/codex/blob/main/codex-rs/core-plugins/src/manifest.rs)、
+[Claude Code Plugin 文档](https://code.claude.com/docs/en/plugins-reference)及
+[Claude Code 2.1.139 变更记录](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md#21139)。
+Hook 信任与事件协议按 [Codex Hooks](https://learn.chatgpt.com/docs/hooks)和
+[Claude Code Hooks](https://code.claude.com/docs/en/hooks)处理。
+
+### 验证结果
+
+- 初轮原生应用单元测试：225 项通过，1 项既有容量测试跳过。最终版本的 Hook
+  选择／版本检查 2 项、交互预览／取消检查 2 项通过；这些数量包含重叠检查。
+- CLI 集成测试 40 项通过。修正 Host 配置后，重新运行覆盖两个 Host 的本地 Plugin
+  生命周期检查，通过旧批准失效、安装／升级别名、保留选择、清单篡改拒绝和用户文件
+  保留检查；生成的命令在带空格的路径与空 PATH 下返回预期上下文。
+- Codex bundle 4 项通过、1 项真实 Host 测试既有跳过；Claude bundle 5 项通过、
+  1 项真实 Host 测试既有跳过。结构修正后的 Claude 本地来源检查另行复跑通过，
+  包含开启、重复更新、关闭、收据绑定和有签名／本地来源隔离。
+- 在独立 HOME／配置目录中，Claude Code 2.1.263 对最终导出的
+  `.claude-plugin/plugin.json` 校验通过，没有警告。Codex 0.153.4 的本地 marketplace
+  添加、Plugin 添加和官方 JSON 清单检查通过，缓存包含两个预期 Hook 事件。
+  这些操作没有修改个人 Host 配置，也没有启动模型会话或授予 Hook 信任。
+- 最终 Clippy（全部 targets、警告视为错误）、Desktop feature 编译检查通过。
+  派生 schema 已由 `plugin_source_contract` 示例更新，默认关闭的旧计划 fixture 未变。
+  公共 schema／程序台账检查共 19 项通过。Docs 构建通过，保留既有高亮和包体积提示。
+
+检查使用 `cargo +1.97.0`、`--offline --locked`。临时日志前缀为
+`/private/tmp/qiongli-install-hooks-`，关键后缀为 `unit.log`、`integration.log`、
+`cli-final.log`、`claude-final.log`、`hook-unit-final.log`、`preview-final.log`、
+`host-validation-final.log`、`codex-validation.log`、`clippy-final.log`、
+`desktop-final.log`、`policy.log` 和 `docs.log`。本节保留可跨机器阅读的结果，
+临时日志不作为唯一证据，也不把多轮检查数量相加当成独立测试数。
+
+### 保留的后续工作
+
+本轮只做本地集成，不发布、不提升台账验收状态。公共 Marketplace 和有签名包保持
+原来的默认配置。Skills 规范内容没有变化，因此沿用上一轮资源锁。
+实际会话中的 Hook 信任、事件触发和重复提醒检查，以及 Windows／Linux 现场执行
+仍需单独验证；安装清单与本地协议检查不能替代这些证据。跨 Host 审查及 CLI-406
+的领取／恢复工作仍按原有计划推进。

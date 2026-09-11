@@ -1140,8 +1140,8 @@ fn set_executable_mode(_path: &Path) {}
 #[test]
 fn user_local_source_cannot_be_adopted_as_signed_and_binds_update_receipts() {
     use qiongli_platform::{
-        compose_local_claude_plugin_source, remove_local_claude_plugin_source,
-        verify_local_claude_plugin_source,
+        compose_local_claude_plugin_source, compose_local_claude_plugin_source_with_hooks,
+        remove_local_claude_plugin_source, verify_local_claude_plugin_source,
     };
     let fixture = Fixture::new("user-local-source");
     let content = qiongli::embedded_content().unwrap();
@@ -1161,6 +1161,14 @@ fn user_local_source_cannot_be_adopted_as_signed_and_binds_update_receipts() {
     )
     .unwrap();
     assert!(first.receipt().signed_grant_payload_sha256.is_empty());
+    assert!(!first.receipt().context_hooks);
+    assert!(
+        !serde_json::to_value(first.receipt())
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .contains_key("context_hooks")
+    );
     assert_eq!(first, verify_local_claude_plugin_source(&target).unwrap());
     assert!(verify_claude_plugin_bundle(&target).is_err());
     assert!(remove_claude_plugin_bundle(&target).is_err());
@@ -1212,18 +1220,53 @@ fn user_local_source_cannot_be_adopted_as_signed_and_binds_update_receipts() {
     )
     .unwrap()
     .unwrap();
-    let updated = compose_local_claude_plugin_source(
+    let updated = compose_local_claude_plugin_source_with_hooks(
         content.pack(),
         &fixture.source_binary,
         &hash,
         &target,
         Some(&overrides),
         Some(first.receipt_sha256()),
+        true,
     )
     .unwrap();
     assert_ne!(updated.receipt_sha256(), first.receipt_sha256());
+    assert!(updated.receipt().context_hooks);
+    let manifest_path = path.join(".claude-plugin/plugin.json");
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    assert_eq!(manifest["hooks"].as_object().unwrap().len(), 2);
+    assert_eq!(
+        manifest["hooks"]["SessionStart"][0]["matcher"],
+        "resume|compact"
+    );
+    let repeated = compose_local_claude_plugin_source(
+        content.pack(),
+        &fixture.source_binary,
+        &hash,
+        &target,
+        Some(&overrides),
+        Some(updated.receipt_sha256()),
+    )
+    .unwrap();
+    assert_eq!(repeated, updated);
+    let disabled = compose_local_claude_plugin_source_with_hooks(
+        content.pack(),
+        &fixture.source_binary,
+        &hash,
+        &target,
+        Some(&overrides),
+        Some(updated.receipt_sha256()),
+        false,
+    )
+    .unwrap();
+    assert!(!disabled.receipt().context_hooks);
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    assert!(manifest.get("hooks").is_none());
     assert!(remove_local_claude_plugin_source(&target, first.receipt_sha256()).is_err());
-    assert!(remove_local_claude_plugin_source(&target, updated.receipt_sha256()).is_ok());
+    assert!(remove_local_claude_plugin_source(&target, updated.receipt_sha256()).is_err());
+    assert!(remove_local_claude_plugin_source(&target, disabled.receipt_sha256()).is_ok());
     assert!(!path.exists());
     let signed = compose_claude_plugin_bundle(
         content.pack(),

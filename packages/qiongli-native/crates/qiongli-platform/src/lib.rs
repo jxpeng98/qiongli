@@ -8,6 +8,7 @@ mod codex;
 mod codex_bundle;
 mod community_alpha;
 mod community_alpha_integrity;
+mod context_hooks;
 mod desktop_package;
 mod distribution;
 mod error;
@@ -26,6 +27,8 @@ mod release_candidate;
 mod transaction;
 mod zotero_companion;
 mod zotero_companion_stage;
+
+pub use context_hooks::plugin_context_hooks;
 
 const HOST_TOOL_AVAILABILITY_GUIDANCE: &str = include_str!("host-tool-availability.md");
 
@@ -75,9 +78,9 @@ pub use claude_bundle::{
     ClaudePluginBundleReceiptV1, ClaudePluginBundleTarget, VerifiedClaudePluginBundle,
     approve_claude_plugin_bundle_target, compose_claude_plugin_bundle,
     compose_claude_plugin_bundle_with_overrides, compose_local_claude_plugin_source,
-    remove_claude_plugin_bundle, remove_local_claude_plugin_source,
-    replace_claude_plugin_bundle_with_overrides, verify_claude_plugin_bundle,
-    verify_local_claude_plugin_source,
+    compose_local_claude_plugin_source_with_hooks, remove_claude_plugin_bundle,
+    remove_local_claude_plugin_source, replace_claude_plugin_bundle_with_overrides,
+    verify_claude_plugin_bundle, verify_local_claude_plugin_source,
 };
 pub use client_inventory::{
     CLIENT_INVENTORY_SCHEMA_VERSION, ClientActionReadiness, ClientComponentInventoryV1,
@@ -105,9 +108,9 @@ pub use codex_bundle::{
     CodexPluginBundleReceiptV1, CodexPluginBundleTarget, VerifiedCodexPluginBundle,
     approve_codex_plugin_bundle_target, compose_codex_plugin_bundle,
     compose_codex_plugin_bundle_with_overrides, compose_local_codex_plugin_source,
-    remove_codex_plugin_bundle, remove_local_codex_plugin_source,
-    replace_codex_plugin_bundle_with_overrides, verify_codex_plugin_bundle,
-    verify_local_codex_plugin_source,
+    compose_local_codex_plugin_source_with_hooks, remove_codex_plugin_bundle,
+    remove_local_codex_plugin_source, replace_codex_plugin_bundle_with_overrides,
+    verify_codex_plugin_bundle, verify_local_codex_plugin_source,
 };
 pub use community_alpha::{
     MAX_NATIVE_COMMUNITY_ALPHA_CANDIDATE_SET_BYTES, MAX_NATIVE_COMMUNITY_ALPHA_PROMOTION_BYTES,

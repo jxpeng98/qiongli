@@ -98,6 +98,9 @@ through the original channel without running a package manager.
 
 Follow the [installation and upgrade examples](docs/guide/cli-2x.md#install-and-upgrade-bundled-content).
 After a Plugin update, start a new Host session and check that its tools are available.
+In development builds after beta.5, the Plugin guide also offers optional context
+hooks (off by default). `install plugin --hooks context` includes them;
+`--hooks off` removes their Plugin configuration. See [Hook setup and verification](docs/advanced/agent-skill-collaboration.md#optional-context-hooks).
 
 ## Skills, MCP and research records
 

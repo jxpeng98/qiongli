@@ -3,6 +3,31 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Optional Hook installation — September 12 follow-up
+
+The maintainer requested adding context Hook setup to `install`. Continue from
+`cb6685c3` on `codex/install-context-hooks`. Reuse the local Plugin plan, bundle
+receipt, filesystem transaction and official Host registration owners.
+
+1. Offer context reminders before file confirmation, defaulting new installs to
+   off and preserving each Host's existing choice on update. Expose the same
+   choice through install/upgrade/update and lower-level plan commands.
+2. Project only the fixed native context command into the Plugin manifest. Bind
+   the selection to plan and receipt digests; preserve legacy default-off bytes.
+   Keep global Hook settings, Host trust and live execution separate.
+3. Check cancellation, tampering, update preservation, disabling, legacy receipts,
+   quoted native paths and empty-PATH execution. Update help and bilingual docs.
+4. Review and archive local evidence, then commit and fast-forward locally. No
+   release, personal Host configuration changes or acceptance promotion.
+
+Implemented and locally checked: per-Host selection, digest-bound inline manifests,
+legacy defaults, cancellation and source lifecycle regressions. Real isolated
+Claude validation is warning-free; Codex registration/cache observation passed.
+The [existing review](../reviews/2026-09-11-outcome-guided-skills-review.md) records
+checks and the Host-specific schema correction. CLI-402 remains active; live Hook
+trust/delivery and non-macOS qualification remain separate evidence gaps. Next
+observe an authorized live Hook before continuing the source-bound cross-Host review.
+
 ## Collaboration and continuity — September 11 follow-up
 
 Continue from `a1a5861d` on `codex/collaboration-continuity`. The maintainer adds

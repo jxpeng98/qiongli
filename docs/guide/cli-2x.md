@@ -332,6 +332,13 @@ MCP; it needs no Python, Node or Cargo runtime. Codex itself must be installed.
 For Claude Code, use `--target claude` and a separate directory, such as
 `$HOME/qiongli-plugins/claude/qiongli-next`, with its parent created first.
 
+Development builds after beta.5 also offer optional context reminders during
+Plugin installation. First install defaults to off; updates preserve your choice.
+Use `qiongli install plugin --hooks context` to include them or `--hooks off` to
+remove their Plugin configuration. The preview shows the exact commands; Host
+trust and live delivery remain separate checks. See [Hook setup and verification](/advanced/agent-skill-collaboration#optional-context-hooks).
+Standalone Skills exports do not install hooks.
+
 After updating your CLI through its original channel, refresh the registered source:
 
 ```sh

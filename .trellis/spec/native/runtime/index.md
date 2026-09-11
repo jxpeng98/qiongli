@@ -5,7 +5,8 @@ JSON and emits bounded context only for SessionStart resume/compact and
 SubagentStart. It runs before Host discovery/content/config loading, never reads
 transcripts or research files, invokes models, approves, writes or blocks a
 completed turn. Other events are inert; invalid input exits 1 without echo.
-Host configuration/trust is explicit and remains outside installation. Both
+Local Plugin installation may include the fixed context Hook configuration after
+preview and confirmation. Host trust and live event delivery remain Host-owned. Both
 native adapters require actual independent results when independent review is
 requested; sequential self-review cannot satisfy it. Portable cross-Host review
 packets do not transfer Host-bound checkpoints or authenticated evidence authority.
@@ -489,7 +490,8 @@ power-loss durability or deletion interrupted inside every application tree.
 existing `app apply` owner. `app plugin-source-status` is read-only. Both require
 `--target codex|claude --destination <absolute-path/qiongli-next>` under an existing
 secure parent. Host roots and `.qiongli` paths are reserved for their existing
-owners. Plans bind source binary, content, workflow variant, path and receipt;
+owners. Plans bind source binary, content, workflow variant, path, receipt and
+the optional `context_hooks` choice (omitted false preserves legacy digest bytes);
 apply retains expiry, exact digest, filesystem approval, Home/config exclusion
 and target transaction locks. Unknown/drifted/signed exports refuse adoption.
 
@@ -497,6 +499,23 @@ The local bundle receipt kind is separate from signed products (ADR 0222).
 `source-current` means the export matches the running CLI; Host state remains
 `not-verified`. Export does not register a client or mutate private Host caches.
 Source removal preserves Host state, so unregister through the Host first.
+
+Plugin install/update accepts `--hooks context|off`. The terminal guide defaults
+new sources to off and preserves receipt-verified choices on updates; each Host
+is selected independently. Plans preview the fixed inline Hook configuration
+before filesystem confirmation. Both bundle projectors and verifiers bind exactly
+SessionStart resume/compact and SubagentStart to the bundled native `hooks context`
+command; no arbitrary commands, global Hook writes or trust grants are supported.
+Old APIs preserve this choice when updating a local source. False is omitted from
+receipts to retain predecessor canonical bytes; signed bundles remain Hook-free.
+Source status exposes `source.context_hooks` separately from unverified Host state.
+Codex embeds a HooksFile (`hooks.hooks` in the manifest) with command/commandWindows
+shell forms; Claude embeds the event map directly (`hooks.SessionStart`) with
+native exec args. Their inline schemas are not interchangeable.
+The terminal review and registration reject enabled context hooks on Claude
+versions before 2.1.139 or when the version is unknown; source-only export stays
+Host-independent. Disabling hooks remains available.
+Host configuration support and live delivery require separate qualification.
 
 Source plans emit managed-plan v2; legacy operations retain v1. The consumer
 accepts only each operation's own schema version, keeping old digest bytes and

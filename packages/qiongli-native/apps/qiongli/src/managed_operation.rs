@@ -191,6 +191,7 @@ pub(crate) enum ManagedOperationCliCommand {
         action: crate::plugin_source::PluginSourceAction,
         target: ManagedIntegrationTargetV1,
         destination: PathBuf,
+        context_hooks: Option<bool>,
     },
     PluginSourceStatus {
         target: ManagedIntegrationTargetV1,
@@ -275,9 +276,16 @@ pub(crate) fn execute(
             action,
             target,
             destination,
+            context_hooks,
         } => {
-            let source =
-                crate::plugin_source::plan(environment, content, *action, *target, destination)?;
+            let source = crate::plugin_source::plan(
+                environment,
+                content,
+                *action,
+                *target,
+                destination,
+                *context_hooks,
+            )?;
             let semantic = source.digest()?;
             ManagedOperationPlanV1::new(
                 content,

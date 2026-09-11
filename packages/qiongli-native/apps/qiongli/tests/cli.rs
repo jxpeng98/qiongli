@@ -4923,7 +4923,7 @@ fn native_activation_public_entry_refuses_source_authority_without_writes() {
 #[test]
 fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
     for host in ["codex", "claude"] {
-        let fixture = Fixture::new(&format!("plugin-source-{host}"));
+        let fixture = Fixture::new(&format!("plugin-source {host} space"));
         // Cargo may hard-link its build outputs. Exercise an installed copy,
         // while the source-bundle owner keeps rejecting hard-linked binaries.
         let executable = fixture
@@ -4973,7 +4973,28 @@ fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
             assert!(out.status.success(), "{}", public_output(&out));
             out
         };
-        let install = preview("plugin-source-install");
+        let default_install = preview("plugin-source-install");
+        assert!(
+            parse_json(&default_install)["operation"]["source"]
+                .get("context_hooks")
+                .is_none()
+        );
+        let install = run(&[
+            "install",
+            "plugin",
+            "--target",
+            host,
+            "--destination",
+            path,
+            "--hooks",
+            "context",
+            "--dry-run",
+        ]);
+        assert!(install.status.success(), "{}", public_output(&install));
+        assert_eq!(
+            parse_json(&install)["operation"]["source"]["context_hooks"],
+            true
+        );
         assert!(!destination.exists());
         assert!(!fixture.config_root.exists());
         let plan_path = fixture.root.join("source-plan.json");
@@ -4994,6 +5015,12 @@ fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
         assert!(!destination.exists());
         let mut approved = base.to_vec();
         approved.push("--approve-filesystem-write");
+        let mut tampered = value.clone();
+        tampered["operation"]["source"]["context_hooks"] = false.into();
+        fs::write(&plan_path, tampered.to_string()).unwrap();
+        assert!(!run(&approved).status.success());
+        assert!(!destination.exists());
+        fs::write(&plan_path, &install.stdout).unwrap();
         let installed = run(&approved);
         assert!(installed.status.success(), "{}", public_output(&installed));
         assert_eq!(
@@ -5002,6 +5029,7 @@ fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
         );
         assert_eq!(parse_json(&status())["state"], "source-current");
         assert_eq!(parse_json(&status())["host_state"], "not-verified");
+        assert_eq!(parse_json(&status())["source"]["context_hooks"], true);
         assert!(!fixture.home.join(".codex").exists());
         assert!(!fixture.home.join(".claude").exists());
         #[cfg(unix)]
@@ -5114,10 +5142,105 @@ fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
             version.stdout,
             format!("qiongli {}\n", env!("CARGO_PKG_VERSION")).as_bytes()
         );
+        // Exercise the generated command from a source path containing spaces with no PATH tools.
+        let manifest_path = destination.join(format!(".{host}-plugin/plugin.json"));
+        let manifest_bytes = fs::read(&manifest_path).unwrap();
+        let manifest: Value = serde_json::from_slice(&manifest_bytes).unwrap();
+        let events = if host == "codex" {
+            &manifest["hooks"]["hooks"]
+        } else {
+            &manifest["hooks"]
+        };
+        let handler = &events["SessionStart"][0]["hooks"][0];
+        let mut hook = if host == "claude" {
+            let program = handler["command"]
+                .as_str()
+                .unwrap()
+                .replace("${CLAUDE_PLUGIN_ROOT}", path);
+            let mut command = fixture_command(Path::new(&program), &fixture);
+            command.args(
+                handler["args"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|arg| arg.as_str().unwrap()),
+            );
+            command
+        } else {
+            #[cfg(unix)]
+            let command = {
+                let mut command = fixture_command(Path::new("/bin/sh"), &fixture);
+                command.args(["-c", handler["command"].as_str().unwrap()]);
+                command
+            };
+            #[cfg(windows)]
+            let command = {
+                use std::os::windows::process::CommandExt;
+                let shell = std::env::var_os("COMSPEC").unwrap_or_else(|| "cmd.exe".into());
+                let mut command = fixture_command(Path::new(&shell), &fixture);
+                command.arg("/C").raw_arg(format!(
+                    "\"{}\"",
+                    handler["commandWindows"].as_str().unwrap()
+                ));
+                command
+            };
+            command
+        };
+        let mut child = hook
+            .env("PATH", "")
+            .env("CLAUDE_PLUGIN_ROOT", &destination)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        {
+            use std::io::Write;
+            child
+                .stdin
+                .take()
+                .unwrap()
+                .write_all(br#"{"hook_event_name":"SessionStart","source":"resume"}"#)
+                .unwrap();
+        }
+        let output = child.wait_with_output().unwrap();
+        assert!(output.status.success(), "{}", public_output(&output));
+        assert_eq!(
+            parse_json(&output)["hookSpecificOutput"]["hookEventName"],
+            "SessionStart"
+        );
+        let mut tampered = manifest.clone();
+        let events = if host == "codex" {
+            &mut tampered["hooks"]["hooks"]
+        } else {
+            &mut tampered["hooks"]
+        };
+        events["SessionStart"][0]["hooks"][0]["command"] = "unapproved".into();
+        fs::write(&manifest_path, tampered.to_string()).unwrap();
+        assert!(!status().status.success());
+        fs::write(&manifest_path, &manifest_bytes).unwrap();
+        for alias in ["install", "upgrade", "update"] {
+            let off = run(&[
+                alias,
+                "plugin",
+                "--target",
+                host,
+                "--destination",
+                path,
+                "--hooks",
+                "off",
+                "--dry-run",
+            ]);
+            assert!(off.status.success(), "{}", public_output(&off));
+            let plan = parse_json(&off);
+            assert_eq!(plan["operation"]["source"]["action"], "update");
+            assert!(plan["operation"]["source"].get("context_hooks").is_none());
+        }
         // Update keeps exactly matching sources idempotent, without touching Host state.
         let update = preview("plugin-source-update");
         fs::write(&plan_path, &update.stdout).unwrap();
         let update_value = parse_json(&update);
+        assert_eq!(update_value["operation"]["source"]["context_hooks"], true);
         approved[5] = update_value["plan_digest_sha256"].as_str().unwrap();
         assert!(run(&approved).status.success());
         let removal = preview("plugin-source-remove");

@@ -375,6 +375,9 @@
             "string",
             "null"
           ]
+        },
+        "context_hooks": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false,
