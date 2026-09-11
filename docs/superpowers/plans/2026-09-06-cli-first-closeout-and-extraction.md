@@ -3,6 +3,59 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Direct bundled-content installation and Host registration — September 11
+
+Base `cbe499a6`; branch `codex/cli-content-install-upgrade`. The maintainer
+requested usable CLI installation/upgrades like 1.x and explicitly selected
+export followed by official Codex/Claude registration. `install plugin|skills`,
+`upgrade plugin|skills` and `update plugin|skills` now expose the existing native
+owners. Bare install/update retain their query contracts. `upgrade cli` explains
+original-channel upgrades and never invokes a package manager.
+
+The terminal confirms the exact file plan in memory through the same canonical
+apply validation. Plugin export is followed by a separate digest-bound Host
+confirmation. The fixed official command plan binds the resolved executable and
+hash, selected home/configuration root, source/cache receipts and fresh official
+inventories. Revalidation runs under the existing content-write guard. Only the
+selected local Plugin's fully verified cache can be replaced; unrelated enabled
+Qiongli Plugins, conflicting sources/scopes, unknown files and drift refuse.
+Host failure stops the sequence and preserves exported files for a fresh retry.
+`--dry-run` and scripted app apply retain file-only authority. ADR 0224 records
+this bounded extension; README and both language guides label it unreleased.
+
+Validation: all 38 CLI integration checks, nine existing managed-operation
+checks, one terminal Skills confirmation/CAS check and two Host inventory/cache
+checks passed. Formatting, all-target app Clippy and the docs build passed; the
+existing highlighting/chunk-size notices remain. No dependencies were added.
+The optimized macOS ARM64 CLI was exercised through real pseudo-terminals with
+Codex 0.153.4 and Claude Code 2.1.263, using only newly created isolated homes and
+configuration roots. Both Hosts passed fresh registration, upgrade from the
+retained beta.2 source, same-version refresh, repeat install, first/second-step
+cancellation, write-denied failure and retry. Model canaries were preserved;
+modified cache notes survived refusal. Registered/enabled state and exact cache
+receipts matched after success. No actual research data or personal Host
+configuration was accessed by these installation trials.
+
+Receipts and logs: `packages/qiongli-native/target/content-real-hosts/receipt.json`
+and `negative-receipt.json`, `/private/tmp/qiongli-content-terminal-final.log`,
+`/private/tmp/qiongli-content-negative-hosts.log`,
+`/private/tmp/qiongli-content-cli-final.log`,
+`/private/tmp/qiongli-content-managed.log`,
+`/private/tmp/qiongli-content-host-unit-final2.log`,
+`/private/tmp/qiongli-content-unit-final.log`,
+`/private/tmp/qiongli-content-clippy-last.log` and
+`/private/tmp/qiongli-content-docs-final.log`. The first debug-binary terminal
+trial exceeded its 100-second harness bound; the optimized build passed. An
+initial cache fixture used a version-named export target and was rejected by the
+existing source owner; the corrected fixture exports under qiongli-next before
+simulating the Host cache copy. Those failed attempts remain in the earlier logs.
+
+This is local implementation and macOS Host evidence, not publication or live
+research-session acceptance. The next increment is an explicitly authorized
+release and separately scoped live-session tool verification; Linux/Windows
+Host execution remains unqualified here. No push, tag, publication or follow-up
+tracking of the previous Release Action is authorized by this increment.
+
 ## Zotero 10.0.2 Companion compatibility — September 11
 
 Base `9b436bd3`; branch `codex/zotero10-companion-compatibility`. The maintainer

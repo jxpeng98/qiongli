@@ -3,7 +3,13 @@ use std::ffi::OsString;
 
 use crate::{command, project_cli};
 
-pub(crate) const HOME: &str = "Qiongli — research from your terminal\n\nUsage: qiongli [command] [--json | --text]\n       ql is the same command\n\nStart here:\n  status                 Show version, content and configuration status\n  doctor                 Check the installation and explain problems\n  setup                  Review installed CLI versions interactively\n\nResearch and configuration:\n  project                List your registered research projects\n  project show <id>       Show one project\n  content                List embedded research content profiles\n  config                 Show current configuration\n  install                List detected CLI installations and Hosts\n  paths                  Show resolved file locations\n  mcp                    Show how to connect an AI Host\n\nMore commands:\n  app                    Manage Plugin, Skills and CLI installation plans\n  update                 Inspect managed update status\n  migrate-1x             Preview and migrate legacy configuration\n\nHelp and output:\n  help <command>         Show help, e.g. qiongli help project create\n  help all               Show the complete command reference\n  -h, --help             Show help for a command\n  -V, --version          Show the installed version\n  --json                 Keep structured output for scripts\n  --text                 Show readable output even when redirected\n\nTerminal queries show summaries; redirected queries retain their existing output.\nProject changes still require preview and explicit approval.\n";
+pub(crate) const CONTENT_INSTALL: &str = "Install or refresh bundled content\n\nUsage:\n  qiongli install plugin --target <codex|claude> --destination <absolute-path/qiongli-next> [--dry-run]\n  qiongli upgrade plugin --target <codex|claude> --destination <absolute-path/qiongli-next> [--dry-run]\n  qiongli update plugin --target <codex|claude> --destination <absolute-path/qiongli-next> [--dry-run]\n  qiongli install skills [--preset <qiongli-managed|current-project>] [--profile <skill-only|lite|full>] [--dry-run]\n  qiongli upgrade skills [--preset <qiongli-managed|current-project>] [--profile <skill-only|lite|full>] [--dry-run]\n  qiongli update skills [--preset <qiongli-managed|current-project>] [--profile <skill-only|lite|full>] [--dry-run]\n\nPlugin: export this CLI's binary, workflow Skills and Full MCP, then separately\nconfirm official Host registration. The destination parent must already exist\nand be secure; use separate destinations for Codex and Claude. Only verified\nlocal sources/caches can be updated. Other enabled Qiongli Plugins are reported\nas conflicts; manage them through the Host yourself. Restart your Host session.\n\nSkills: reconcile .qiongli-skills under your home (default) or current project.\nThe default profile is full. This exports content; it does not register a Host.\n\nTerminal commands show the exact plan and ask before writes. Enter cancels.\n--dry-run emits only the canonical file plan and does not register a Host.\nScripts: review that plan, then use qiongli app apply with its digest/approval.\n\nThese commands use content embedded in the running CLI; they do not download\na newer CLI. Upgrade your CLI through its original installation channel first.\n";
+
+pub(crate) const UPGRADE: &str = "Upgrade Qiongli\n\n  upgrade plugin         Refresh bundled files and official Host registration\n  upgrade skills         Refresh standalone Skills in the selected preset\n  upgrade cli            Show CLI package upgrade commands\n\nUse qiongli upgrade plugin --help for destinations, previews and confirmation.\nupdate plugin/skills are aliases. Bare update and update status keep their\nmanaged-installation meaning; registry packages use their own package manager.\n";
+
+pub(crate) const CLI_UPGRADE: &str = "Upgrade the CLI using its original installation channel:\n\n  npm (2.x prerelease):   npm install --global qiongli@next\n  pip (same environment): python -m pip install --upgrade --pre qiongli\n  Cargo:                 cargo install qiongli --version <2.x-version> --locked --force\n  GitHub Release:        Download/extract the new archive and switch PATH to it\n\nUse qiongli install list --paths exact to check which executable is active.\nThen rerun upgrade plugin or upgrade skills to refresh the bundled content.\nNo package manager has been invoked by this command.\n";
+
+pub(crate) const HOME: &str = "Qiongli — research from your terminal\n\nUsage: qiongli [command] [--json | --text]\n       ql is the same command\n\nStart here:\n  status                 Show version, content and configuration status\n  doctor                 Check the installation and explain problems\n  setup                  Review installed CLI versions interactively\n\nResearch and configuration:\n  project                List your registered research projects\n  project show <id>       Show one project\n  content                List embedded research content profiles\n  config                 Show current configuration\n  install                Install Plugin/Skills; list existing CLI versions\n  paths                  Show resolved file locations\n  mcp                    Show how to connect an AI Host\n\nMore commands:\n  app                    Manage Plugin, Skills and CLI installation plans\n  upgrade                Refresh Plugin/Skills or show CLI upgrade steps\n  update                 Managed status; update plugin/skills aliases\n  migrate-1x             Preview and migrate legacy configuration\n\nHelp and output:\n  help <command>         Show help, e.g. qiongli help project create\n  help all               Show the complete command reference\n  -h, --help             Show help for a command\n  -V, --version          Show the installed version\n  --json                 Keep structured output for scripts\n  --text                 Show readable output even when redirected\n\nTerminal queries show summaries; redirected queries retain their existing output.\nProject changes still require preview and explicit approval.\n";
 
 const PROJECT: &str = "Research projects\n\nUsage: qiongli project [command]\n\n  list, ls               List registered projects (default)\n  show <id>              Show one project\n  create                 Preview creating a project, then apply it\n  register               Preview registering an existing project\n  doctor                 Check project health and repair options\n  graph                  Inspect source-linked research relationships\n  capture                Review research notes and capture proposals\n  portfolio              Query research across projects\n  import, export         Preview and transfer portable projects\n  migrate                Copy legacy research into a new project\n  archive, restore       Change a project's library lifecycle\n  refresh, unregister    Refresh or remove a library registration\n\nExample: qiongli project create --help\nWrites retain their preview, digest and approval requirements.\n";
 
@@ -21,6 +27,7 @@ fn reference() -> String {
         command::UPDATE_USAGE,
         command::MCP_USAGE,
         command::INSTALL_USAGE,
+        CONTENT_INSTALL,
         command::MIGRATION_USAGE,
         project_cli::PROJECT_USAGE,
         project_cli::GRAPH_NEIGHBOURHOOD_USAGE,
@@ -43,7 +50,14 @@ pub(crate) fn topic(args: &[OsString]) -> Option<String> {
         [] => HOME,
         ["all"] => return Some(format!("{HOME}\n{}", reference())),
         ["project"] => PROJECT,
-        ["install"] => INSTALL,
+        ["install"] => {
+            return Some(format!(
+                "{INSTALL}\nInstall bundled Plugin/Skills: qiongli install plugin --help\nRefresh bundled content: qiongli upgrade --help\n"
+            ));
+        }
+        ["install" | "upgrade" | "update", "plugin" | "skills"] => CONTENT_INSTALL,
+        ["upgrade"] => UPGRADE,
+        ["upgrade" | "update", "cli"] => CLI_UPGRADE,
         ["app"] => APP,
         ["setup"] | ["install", "review"] => SETUP,
         ["install", "list"] | ["install", "inventory"] => {
@@ -66,7 +80,7 @@ pub(crate) fn topic(args: &[OsString]) -> Option<String> {
         }
         ["content"] => command::CONTENT_USAGE,
         ["config"] => command::CONFIG_USAGE,
-        ["update"] => command::UPDATE_USAGE,
+        ["update"] => return Some(format!("{UPGRADE}\n{}", command::UPDATE_USAGE)),
         ["mcp"] => command::MCP_USAGE,
         ["migrate-1x"] => command::MIGRATION_USAGE,
         _ => "",

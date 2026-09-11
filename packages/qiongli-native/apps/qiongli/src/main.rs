@@ -22,6 +22,9 @@ fn main() -> ExitCode {
     };
     match qiongli::prepare_cli_action(args, &environment, &content, io::stdout().is_terminal()) {
         qiongli::ProductAction::Output(output) => render_output(output),
+        qiongli::ProductAction::ReviewBundledContent(review) => {
+            render_output(review.run(&environment, &content))
+        }
         qiongli::ProductAction::ReviewCliInstallations => {
             match qiongli::review_cli_installations(&environment) {
                 Ok(()) => ExitCode::SUCCESS,

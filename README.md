@@ -84,6 +84,10 @@ CLI versions and manual archive/uninstall steps. npm can show the review during
 a foreground install; pip and Cargo users run it afterward. No files or settings are changed. See the
 [installation review guide](docs/guide/cli-2x.md#review-existing-cli-installations).
 
+The unreleased 2.x build also adds `qiongli install plugin`, `upgrade plugin`
+and `install skills`, with file previews and separate confirmation for official
+Codex/Claude registration. See [bundled content installation](docs/guide/cli-2x.md#install-and-upgrade-bundled-content).
+
 ## Latest Stable Downloads
 
 Current stable release: [v1.17.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.17.0). These direct links cover the common install paths; use the download guide for subject-specific Desktop ZIPs and maintainer artifacts.

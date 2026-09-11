@@ -238,9 +238,68 @@ configuration before changing a prefix shared by other globally installed tools.
 | Inspect/update a managed installation | `qiongli update --help`, `migrate-1x --help` | Managed authority remains required; use the package manager to upgrade a registry-installed CLI |
 
 Use `--help` on the owning command group for exact arguments. Legacy commands
-such as `qiongli setup`, `check`, `provider setup`, `provider doctor`,
+such as `check`, `provider setup`, `provider doctor`,
 `install --target ... --parts mcp`, and `project init` are not the native 2.x
 contract. They remain documented in the explicitly labeled 1.x reference.
+
+## Install and upgrade bundled content
+
+The current development build can install its bundled Plugin and standalone Skills
+without an App package. These shortcuts are not included in the beta.3 release tag.
+For Codex, choose an export directory and run:
+
+```sh
+mkdir -p "$HOME/qiongli-plugins/codex"
+qiongli install plugin --target codex \
+  --destination "$HOME/qiongli-plugins/codex/qiongli-next"
+```
+
+First confirm the displayed file plan. Then review and confirm the separate Host
+plan: Qiongli calls Codex's official Plugin commands to register and enable the
+local Plugin. The export contains the native executable, workflow Skills and Full
+MCP; it needs no Python, Node or Cargo runtime. Codex itself must be installed.
+For Claude Code, use `--target claude` and a separate directory, such as
+`$HOME/qiongli-plugins/claude/qiongli-next`, with its parent created first.
+
+After updating your CLI through its original channel, refresh the same destination:
+
+```sh
+qiongli upgrade plugin --target codex \
+  --destination "$HOME/qiongli-plugins/codex/qiongli-next"
+```
+
+`update plugin` is an alias. Repeating `install plugin` reconciles an existing
+verified export. Before replacing an old Plugin cache, Qiongli verifies its
+receipt and shows the exact Host remove/install sequence for confirmation. Other
+enabled Qiongli Plugins, a marketplace pointing elsewhere, changed files or an
+unexpected scope stop registration. Resolve those conflicts in the Host yourself.
+
+Enter declines each confirmation. Declining the second step leaves the exported
+files in place. A Host failure also retains the files and stops at that step;
+after resolving it, rerun `upgrade plugin` with the same target and destination.
+Success means the official inventory and cached files match. Start a new Host
+session to load Skills and Full MCP; live research-tool readiness is separate.
+
+For standalone content files:
+
+```sh
+qiongli install skills
+qiongli upgrade skills --preset current-project --profile full
+```
+
+The default is the full profile under `$HOME/.qiongli-skills`. The
+`current-project` preset uses `.qiongli-skills` in the current directory.
+These files are not automatically registered as a Host Plugin. An existing
+profile is preserved; specify that same profile when refreshing it.
+
+For scripts, add `--dry-run --json` to produce the canonical file plan, review it,
+then use `qiongli app apply` with its exact digest and filesystem approval.
+This scripted path exports files only. Host registration requires the interactive
+shortcut or explicit official Host commands. Piped input never grants approval.
+
+`qiongli upgrade cli` shows upgrade commands for npm, pip, Cargo and GitHub
+archives. It does not run a package manager. The Plugin/Skills commands refresh
+content from the running CLI; they do not download a newer CLI release.
 
 ## Connect a Host
 
@@ -315,5 +374,6 @@ before the Host registration increment. Its actual session activation is still
 unqualified.
 Source updates require a Host refresh/new session; deleting a source does not
 unregister its Host Plugin. `source-current` and `source-ready-host-action-required`
-only describe the exported files. Automatic Host registration and real tool
-visibility/read/handoff/approved-write checks are the next increment.
+only describe the exported files. The interactive shortcuts above now offer separately approved Host registration.
+The lower-level source commands still only export files; actual session tool
+visibility/read/handoff/approved-write checks remain separate.

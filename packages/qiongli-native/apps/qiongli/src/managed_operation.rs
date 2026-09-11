@@ -961,11 +961,42 @@ fn apply_plan(
     expected_plan_digest: &str,
     approvals: &[(ManagedOperationApprovalV1, bool)],
 ) -> Result<String, &'static str> {
+    apply_prepared_plan(
+        environment,
+        content,
+        &read_plan(plan_path)?,
+        expected_plan_digest,
+        approvals,
+    )
+}
+
+/// Terminal approval applies the exact preview, through the same write owner.
+pub(crate) fn apply_reviewed_plan(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    json: &str,
+) -> Result<String, &'static str> {
+    let plan = parse_plan(json.as_bytes())?;
+    apply_prepared_plan(
+        environment,
+        content,
+        &plan,
+        &plan.plan_digest_sha256,
+        &[(ManagedOperationApprovalV1::FilesystemWrite, true)],
+    )
+}
+
+fn apply_prepared_plan(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    plan: &ManagedOperationPlanV1,
+    expected_plan_digest: &str,
+    approvals: &[(ManagedOperationApprovalV1, bool)],
+) -> Result<String, &'static str> {
     if !valid_sha256(expected_plan_digest) {
         return Err("managed-operation-plan-digest-invalid");
     }
     let validation_now_unix = now_unix()?;
-    let plan = read_plan(plan_path)?;
     plan.validate(validation_now_unix)?;
     if plan.plan_digest_sha256 != expected_plan_digest {
         return Err("managed-operation-plan-digest-mismatch");
@@ -1472,7 +1503,18 @@ fn observe_preset(
     content: &EmbeddedContent,
     preset: ManagedSkillsPresetV1,
 ) -> Result<ManagedSkillsObservation, &'static str> {
-    let path = match preset {
+    observe_path(
+        environment,
+        content,
+        &skills_preset_path(environment, preset)?,
+    )
+}
+
+pub(crate) fn skills_preset_path(
+    environment: &CommandEnvironment,
+    preset: ManagedSkillsPresetV1,
+) -> Result<PathBuf, &'static str> {
+    Ok(match preset {
         ManagedSkillsPresetV1::QiongliManaged => environment
             .platform_home()
             .ok_or("managed-skills-home-unavailable")?
@@ -1481,8 +1523,7 @@ fn observe_preset(
             .project_root()
             .ok_or("managed-skills-project-unavailable")?
             .join(".qiongli-skills"),
-    };
-    observe_path(environment, content, &path)
+    })
 }
 
 fn observe_registered_target(
@@ -1794,8 +1835,15 @@ fn read_plan(path: &Path) -> Result<ManagedOperationPlanV1, &'static str> {
     if bytes.len() as u64 > MAX_PLAN_BYTES {
         return Err("managed-operation-plan-invalid");
     }
+    parse_plan(&bytes)
+}
+
+fn parse_plan(bytes: &[u8]) -> Result<ManagedOperationPlanV1, &'static str> {
+    if bytes.len() as u64 > MAX_PLAN_BYTES {
+        return Err("managed-operation-plan-invalid");
+    }
     let plan: ManagedOperationPlanV1 =
-        serde_json::from_slice(&bytes).map_err(|_| "managed-operation-plan-invalid")?;
+        serde_json::from_slice(bytes).map_err(|_| "managed-operation-plan-invalid")?;
     let canonical =
         serde_json_canonicalizer::to_vec(&plan).map_err(|_| "managed-operation-plan-invalid")?;
     if bytes != canonical && bytes != [canonical.as_slice(), b"\n"].concat() {

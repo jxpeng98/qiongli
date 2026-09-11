@@ -284,6 +284,7 @@ pub struct CliOutput {
 
 pub enum ProductAction {
     ReviewCliInstallations,
+    ReviewBundledContent(crate::cli_content::BundledContentReview),
     Output(CliOutput),
     ServeLiteMcpStdio,
     ServeFullMcpStdio,
@@ -365,7 +366,7 @@ pub fn run_cli(
 ) -> CliOutput {
     match prepare_action(args, environment, content) {
         ProductAction::Output(output) => output,
-        ProductAction::ReviewCliInstallations => {
+        ProductAction::ReviewCliInstallations | ProductAction::ReviewBundledContent(_) => {
             CliOutput::operation_failure("interactive-command-requires-product-entrypoint")
         }
         ProductAction::ServeLiteMcpStdio => {
@@ -516,6 +517,18 @@ pub(crate) fn prepare_action_with_release_authority(
                 Err(reason_code) => CliOutput::operation_failure(reason_code),
             }
         }
+        Command::InstallContent {
+            plan_command,
+            dry_run,
+        } => match crate::cli_content::prepare_plan(&plan_command, environment, content) {
+            Ok(plan_json) if dry_run => CliOutput::success_text(plan_json),
+            Ok(plan_json) => {
+                return ProductAction::ReviewBundledContent(
+                    crate::cli_content::BundledContentReview { plan_json },
+                );
+            }
+            Err(code) => CliOutput::operation_failure(code),
+        },
         Command::AppManaged(command) => {
             match crate::managed_operation::execute(&command, environment, content) {
                 Ok(output) => CliOutput::success_text(output),
@@ -625,6 +638,10 @@ enum Command {
         target_id: String,
     },
     AppManaged(ManagedOperationCliCommand),
+    InstallContent {
+        plan_command: ManagedOperationCliCommand,
+        dry_run: bool,
+    },
     Project(crate::project_cli::ProjectCliCommand),
     ContentHelp,
     ContentList,
@@ -725,7 +742,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
                 ));
             }
             "update" => return Ok(Command::Update(UpdateCliCommand::Status)),
-            "mcp" | "app" | "migrate-1x" => {
+            "mcp" | "app" | "migrate-1x" | "upgrade" => {
                 return Ok(Command::TopicHelp(crate::cli_help::topic(&args).unwrap()));
             }
             _ => {}
@@ -737,6 +754,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "content" => parse_content_args(&args[1..]),
         "config" => parse_config_args(&args[1..]),
         "update" => parse_update_args(&args[1..]),
+        "upgrade" => parse_content_install_args(&args[1..], true),
         "install" => parse_install_args(&args[1..]),
         "migrate-1x" => parse_migration_args(&args[1..]),
         "mcp" => parse_mcp_args(&args[1..]),
@@ -1139,11 +1157,60 @@ fn parse_managed_skills_preset(value: &OsStr) -> Result<ManagedSkillsPresetV1, U
     }
 }
 
+fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Command, UsageError> {
+    if upgrade && args == [OsString::from("cli")] {
+        return Ok(Command::TopicHelp(crate::cli_help::CLI_UPGRADE.to_owned()));
+    }
+    let surface = args.first().and_then(|value| value.to_str());
+    let operation = match surface {
+        Some("plugin") if upgrade => "plugin-source-update",
+        Some("plugin") => "plugin-source-install",
+        Some("skills") => "skills-reconcile",
+        _ => {
+            return Err(install_usage_error(
+                "choose plugin or skills; see qiongli upgrade --help",
+            ));
+        }
+    };
+    let mut plan_args = vec![OsString::from(operation)];
+    let mut dry_run = false;
+    let mut index = 1;
+    while index < args.len() {
+        if args[index] == "--dry-run" {
+            if dry_run {
+                return Err(install_usage_error("duplicate --dry-run option"));
+            }
+            dry_run = true;
+            index += 1;
+        } else {
+            let value = args
+                .get(index + 1)
+                .ok_or_else(|| install_usage_error("install option value is required"))?;
+            plan_args.extend([args[index].clone(), value.clone()]);
+            index += 2;
+        }
+    }
+    if surface == Some("skills") {
+        for (option, default) in [("--preset", "qiongli-managed"), ("--profile", "full")] {
+            if !plan_args[1..].chunks(2).any(|pair| pair[0] == option) {
+                plan_args.extend([option.into(), default.into()]);
+            }
+        }
+    }
+    let plan_command =
+        parse_app_plan_args(&plan_args).map_err(|error| install_usage_error(error.message))?;
+    Ok(Command::InstallContent {
+        plan_command,
+        dry_run,
+    })
+}
+
 fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
     let Some(subcommand) = args.first().and_then(|value| value.to_str()) else {
         return Err(install_usage_error("an install subcommand is required"));
     };
     match subcommand {
+        "plugin" | "skills" => parse_content_install_args(args, false),
         "--help" if args.len() == 1 => Ok(Command::InstallHelp),
         "status" if args.len() == 1 => Ok(Command::InstallStatus),
         "list" | "inventory" if args.len() == 1 => {
@@ -2170,6 +2237,7 @@ fn parse_update_args(args: &[OsString]) -> Result<Command, UsageError> {
         return Err(update_usage_error("an update subcommand is required"));
     };
     match subcommand {
+        "plugin" | "skills" | "cli" => parse_content_install_args(args, true),
         "--help" if args.len() == 1 => Ok(Command::UpdateHelp),
         "status" if args.len() == 1 => Ok(Command::Update(UpdateCliCommand::Status)),
         "recovery-preview" if args.len() == 1 => {
