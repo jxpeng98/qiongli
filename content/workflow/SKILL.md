@@ -99,7 +99,7 @@ general entry; skill cards, references and templates are loaded only as needed.
 
 | Requested outcome | Load only the relevant route |
 |---|---|
-| Topic, question, gap, theory or journal fit | `workflows/paper.md`, `workflows/find-gap.md` or `workflows/build-framework.md` |
+| Topic, question, gap or theory | `workflows/paper.md`, `workflows/find-gap.md` or `workflows/build-framework.md` |
 | Whole paper lifecycle | `workflows/paper-lifecycle.md` |
 | Consolidate a completed stage, track progress, or review files for manual cleanup | `workflows/stage-close.md`; only the user selects and deletes files |
 | Read a paper, PDF or DOI | `workflows/paper-read.md` (B2) |
@@ -113,6 +113,7 @@ general entry; skill cards, references and templates are loaded only as needed.
 | Build, debug or review analysis code | `workflows/code-build.md` (tasks I1–I9) |
 | Proofread scholarly prose | `workflows/proofread.md` (J); preserve meaning, citations and required disclosure |
 | Submission package or rebuttal | `workflows/submission-prep.md` or `workflows/rebuttal.md` (H) |
+| Explore venues early or adapt to a chosen journal/conference | `skills/A_framing/venue-analyzer.md` (A5) |
 | Recommend a journal from an existing draft | `skills/H_submission/journal-fit-recommender.md` (H5) |
 | Academic talk or slides | `workflows/academic-present.md` (K) |
 | Assignment brief, rubric or coursework | `workflows/coursework.md` (L) |

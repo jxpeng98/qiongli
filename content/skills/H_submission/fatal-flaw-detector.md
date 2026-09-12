@@ -1,7 +1,7 @@
 ---
 id: fatal-flaw-detector
 stage: H_submission
-description: "Constructive desk-reject analysis identifying critical flaws that would prevent publication."
+description: "Identify evidenced submission blockers and material risks with proportionate remedies."
 inputs:
   - type: Manuscript
     description: "Draft manuscript"
@@ -23,11 +23,11 @@ domain_aware: true
 
 # Fatal Flaw Detector Skill
 
-Pre-submission desk-reject analysis: identify flaws likely to cause immediate rejection and propose mitigations before a reviewer sees them.
-
 ## Purpose
 
-Constructive desk-reject analysis identifying critical flaws that would prevent publication.
+Identify demonstrated blockers and material risks before submission. Explain
+whether they concern scientific validity, missing reporting or fit to the chosen
+venue, and what would resolve them. Do not predict the editor's decision.
 
 ## Related Task IDs
 
@@ -39,173 +39,83 @@ Constructive desk-reject analysis identifying critical flaws that would prevent 
 
 ## When to Use
 
-- Before final submission (last quality gate)
-- After major revisions (verify new flaws weren't introduced)
-- When an author is unsure whether a paper is "ready"
+- The user requests a submission-blocker check or formal H4 analysis.
+- A substantive revision needs targeted verification of earlier issues.
+- A readiness assessment needs to distinguish repairable presentation from a
+  central claim that the research cannot support.
 
 ## Inputs
 
-- `Manuscript`: Draft manuscript
-- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
-- Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
+Use the current manuscript, relevant evidence/supplements and supplied target
+requirements. Identify what was inspected. Without a target, assess validity and
+reporting within scope, but leave venue eligibility open. Missing facts require
+clarification, not assumed ethical violations or a fabricated gap report.
 
 ## Process
 
-### Step 1: Run the Fatal Flaw Checklist
+Follow `references/stage-H-submission.md` for severity, applicable sources, review
+permission and formal write boundaries. Use its criteria for the actual article
+type and design; no minimum flaw count or universal rejection thresholds.
 
-Check each category systematically. A single "fatal" finding means the paper should NOT be submitted until it is fixed.
+1. Check the central claims against the design, analysis or argument and available
+   evidence. Trace contradictions through the manuscript and supplements before
+   declaring a finding. A concern about an assumption is not proof it fails.
+2. Check the chosen venue's eligibility and applicable requirements. Separate a
+   venue mismatch from scientific invalidity. Flexible initial formatting,
+   nonapplicable declarations and restricted data must not become automatic flaws.
+3. Test the strongest supported objections. Consider defensible methodological
+   choices and counterevidence. Distinguish missing reporting from work demonstrably
+   not done; neither missing data access nor an unexplained omission proves misconduct.
+4. Classify actual findings as `fatal`, `major` or `minor` using the shared severity
+   definitions. State the affected claim or submission requirement and consequence.
+   Unknown checks remain unresolved rather than automatically fatal.
+5. Propose the smallest adequate remedy. A wording fix is sufficient only if the
+   retained claim is supported; narrowing a claim may require changes throughout
+   the paper. New experiments, reanalysis, approval or target changes remain
+   explicit work/decisions, not silently completed tasks.
 
-#### Category 1: Scope & Positioning
+Use only relevant checks, for example:
 
-| Flaw | What to Check | Fatal? |
-|------|--------------|--------|
-| Out of scope | Does the RQ/topic match the venue's published scope? | Yes — desk reject |
-| No clear contribution | Can you state what's new in 1 sentence by end of page 2? | Yes — "so what?" rejection |
-| Contribution overclaimed | Does the paper claim "first" or "prove" without support? | Major |
-| Not positioned against latest work | Missing citations from last 2–3 years in the field? | Major |
-| Wrong paper type for venue | Submitting a methods paper to a theory journal? | Yes — desk reject |
-
-#### Category 2: Method & Design
-
-| Flaw | What to Check | Fatal? |
-|------|--------------|--------|
-| RQ-method mismatch | Does the method answer the stated RQ? (e.g., correlational method for causal claim) | Yes |
-| Identification strategy absent | For causal claims: where is the exogenous variation? | Yes (for quant causal papers) |
-| Sample too small, no power justification | Is there a power analysis or sample size rationale? | Major |
-| Data quality undocumented | Missing data, selection into sample, measurement validity? | Major |
-| Validity threats unaddressed | Known threats mentioned but not mitigated? | Major to Fatal |
-| Ethics/IRB not mentioned | Human subjects without ethics clearance? | Yes — desk reject at many venues |
-
-#### Category 3: Results & Analysis
-
-| Flaw | What to Check | Fatal? |
-|------|--------------|--------|
-| Claims exceed evidence | Discussion claims stronger than Results support? | Major to Fatal |
-| P-hacking signals | Many analyses, only significant ones reported? | Major |
-| No effect sizes | Only p-values reported? | Major (increasingly required) |
-| No robustness checks | Single specification, no sensitivity analysis? | Major |
-| Contradictory results not discussed | Null or opposite findings hidden? | Fatal — reviewers will find them |
-
-#### Category 4: Writing & Structure
-
-| Flaw | What to Check | Fatal? |
-|------|--------------|--------|
-| Abstract doesn't match results | Abstract says "significant" but results are marginal? | Major |
-| Introduction >5 pages | Rambling intro that doesn't reach the RQ quickly? | Major |
-| Missing sections | No limitation section? No data availability? | Major |
-| Figures/tables not self-explanatory | Can you understand the table without reading the text? | Minor |
-| Inconsistent terminology | Same concept called different names? | Minor |
-
-#### Category 5: Formatting & Compliance
-
-| Flaw | What to Check | Fatal? |
-|------|--------------|--------|
-| Over word/page limit | Exceeds by >10%? | Yes — administrative desk reject |
-| Author info in blind submission | Names in headers, tracked changes metadata, or self-citations identifying authors? | Yes — desk reject |
-| Wrong reference format | APA when venue requires Vancouver? | Minor but sloppy → bad first impression |
-| Reporting checklist not included | Venue requires CONSORT/STROBE/PRISMA? | Major to Fatal |
-| Supplementary materials missing | Referenced in text but not included? | Major |
-
-#### Category 6: Reproducibility
-
-| Flaw | What to Check | Fatal? |
-|------|--------------|--------|
-| No data availability statement | Required by venue? | Major |
-| Code not shared | Claims computational contribution but no code? | Major |
-| Results not reproducible from methods | Could another researcher replicate from what's written? | Fatal (in principle; hard to catch pre-submission) |
-
-### Step 2: Simulate Reviewer Objections
-
-For each potential flaw, think like a hostile-but-fair reviewer:
-
-```
-If I were reviewing this paper and skeptical of the contribution, what would I attack first?
-```
-
-Common reviewer attack patterns:
-1. "Why should I care?" → Gap not established or contribution unclear
-2. "This has been done before" → Literature review incomplete
-3. "This doesn't prove what you claim" → Method-claim mismatch
-4. "But what about X?" → Omitted variable / rival explanation
-5. "The sample is too [small/biased/specific]" → External validity
-6. "I'm not convinced by the data" → Measurement, missing data, outliers
-
-### Step 3: Classify and Prioritize
-
-| Severity | Definition | Action |
-|----------|-----------|--------|
-| **Fatal** | Would cause desk reject or guaranteed rejection | Must fix before submission |
-| **Major** | Likely to cause "reject" recommendation from ≥1 reviewer | Should fix before submission |
-| **Minor** | Would be mentioned in review but not fatal | Fix if time allows |
-
-### Step 4: Propose Specific Remediation
-
-For each flaw, specify a concrete fix:
-
-```
-Flaw:        Claims exceed evidence (Major)
-Location:    Discussion § 5.2, paragraph 3
-Evidence:    "Our results prove that remote work increases productivity"
-             but the design is observational (no causal identification)
-Fix:         Replace "prove" with "our results are consistent with";
-             add "we cannot rule out [specific alternative]" caveat
-Effort:      Low (wording change)
-```
+| Concern | Evidence needed before classifying it |
+|---|---|
+| Claim/design mismatch | Exact claim plus the design's justified inferential limits |
+| Unsupported result | Result/analysis/source discrepancy and effect on the conclusion |
+| Missing methodological detail | What cannot be evaluated, where it is absent, and what would clarify it |
+| Ethics or access obligation | Applicable obligation and actual status; no approval number invented from a template |
+| Out-of-scope article | Official scope/article-type rule and the manuscript's actual contribution |
+| Incomplete submission | Applicable stage requirement plus the missing file or unresolved fact |
+| Reproducibility concern | Needed evidence/steps and permitted access conditions; public release is not always required |
 
 ## Output Contract
 
-- `FatalFlawAnalysis`: write `RESEARCH/[topic]/revision/fatal_flaw_analysis.md`.
-- Separate finding, interpretation, and implication in the final artifact.
-- Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
-- Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
+Formal H4 writes `RESEARCH/[topic]/revision/fatal_flaw_analysis.md`. A focused
+answer may stay in chat. Include inspected scope, sources, actual findings and
+unresolved checks. Follow the shared contract for central claim-ledger and material
+citation-risk updates; apply `references/academic-output-rubric.md`.
 
-### Evidence Ledger and Source Integrity
+| Issue ID | Kind | Location and evidence | Criterion / consequence | Severity | Remedy / new work | Uncertainty |
+|---|---|---|---|---|---|---|
 
-- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when producing, revising, or validating central scholarly claims.
-- Follow `references/evidence-ledger-contract.md`: supported claims need source pointers; unsupported central claims become `gap_note` rows and `RESEARCH/[topic]/context/gap_notes.md` entries.
-- For final writing, proofread, submission, rebuttal, citation, or presentation-facing outputs, apply `references/citation-risk-policy.md` and write or update `RESEARCH/[topic]/proofread/citation-risk-report.md` when citation risk is material.
+Use a scoped recommendation: `Submit`, `Fix-then-submit` or `Do-not-submit`, only
+when the necessary checks support it. Otherwise state that readiness is unresolved.
+`Submit` means no blocker found within the completed checks, not guaranteed
+acceptance or permission to submit. Retain previous IDs and existing BLOCK findings.
+Zero findings is valid; never invent flaws, citations, results or reviewer comments.
 
 ## Quality Bar
 
-The fatal flaw analysis is **ready** when:
-
-- [ ] All 6 categories checked systematically
-- [ ] Every finding classified as Fatal / Major / Minor
-- [ ] Fatal and major findings have specific remediation with location
-- [ ] At least 3 potential reviewer objections simulated
-- [ ] Overall recommendation: Submit / Fix-then-submit / Do-not-submit
-
-## Minimal Output Format
-
-```markdown
-# Fatal Flaw Analysis
-
-## Overall Recommendation: [Submit / Fix-then-submit / Do-not-submit]
-
-## Findings
-
-| # | Category | Flaw | Severity | Location | Fix | Effort |
-|---|----------|------|----------|----------|-----|--------|
-| 1 | Method | RQ-method mismatch | Fatal | § 3.1 | ... | High |
-| 2 | Results | No effect sizes | Major | § 4 | ... | Medium |
-
-## Simulated Reviewer Objections
-
-| Objection | Likely Reviewer [1/2/3]| Pre-emptive Defense |
-|-----------|----------------------|---------------------|
-
-## Summary
-- Fatal flaws: [n] — [list]
-- Major flaws: [n] — [list]
-- Minor flaws: [n]
-```
+- [ ] Relevant validity, reporting and venue constraints checked within stated scope.
+- [ ] Each finding has a source, consequence and justified severity.
+- [ ] Fatal/major findings have specific remedies or explicit new-work decisions.
+- [ ] Unavailable evidence and unresolved checks are distinct from demonstrated flaws.
+- [ ] Readiness preserves formal gates and independence requirements.
 
 ## Common Pitfalls
 
-| Pitfall | Problem | Fix |
-|---------|---------|-----|
-| 只看表面 | 格式/字数/引文数量 | 深入检查方法论和论证逻辑 |
-| 过度敏感 | 每个潜在问题都标为 fatal | 区分 fatal vs. major vs. minor |
-| 忽视 scope match | 论文本身好但不适合目标期刊 | 交叉引用 venue-analyzer 结论 |
-| 无优先级 | 列出 20 个问题同等对待 | 按 desk-reject probability 排序 |
-| 未考虑领域惯例 | 某些做法在该领域是 acceptable | 检查目标期刊近期发表的类似论文 |
+| Pitfall | Correction |
+|---|---|
+| Call a long introduction fatal | Check its actual effect and the applicable requirement |
+| Require power or robustness for every design | Use the method's justified evidence standard |
+| Infer no ethics approval from an absent statement | Request status; do not invent approval or misconduct |
+| List imagined objections to meet a quota | Report only supported risks and open questions |
+| Repair an invalid causal claim with a hedge | Check whether the revised claim and whole argument are supportable |

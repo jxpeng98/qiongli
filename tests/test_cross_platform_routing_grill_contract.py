@@ -132,6 +132,25 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
             with self.subTest(consumer=path):
                 self.assertIn(reference, read(path))
 
+    def test_venue_review_consumers_resolve_contract_and_keep_task_outputs(self) -> None:
+        reference = "references/stage-H-submission.md"
+        self.assertTrue((LAYOUT.workflow / reference).is_file())
+        contract = yaml.safe_load(read(LAYOUT.standards / "research-workflow-contract.yaml"))
+        cards = (
+            ("A5", "A_framing/venue-analyzer.md"),
+            ("H1", "H_submission/submission-packager.md"),
+            ("H3", "H_submission/peer-review-simulation.md"),
+            ("H4", "H_submission/fatal-flaw-detector.md"),
+            ("H5", "H_submission/journal-fit-recommender.md"),
+        )
+        for task, card in cards:
+            with self.subTest(card=card):
+                text = read(LAYOUT.skills / card)
+                self.assertIn(reference, text)
+                metadata = yaml.safe_load(text.split("---", 2)[1])
+                self.assertTrue({item["artifact"] for item in metadata["outputs"]}
+                                <= set(contract["task_catalog"][task]["outputs"]))
+
     def test_preregistration_card_routes_to_its_contract_output(self) -> None:
         card = read(LAYOUT.skills / "C_design" / "prereg-writer.md")
         metadata = yaml.safe_load(card.split("---", 2)[1])
@@ -236,6 +255,18 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
                 writing_contract,
                 read(LAYOUT.workflow / "references" / "stage-F-writing.md"),
             )
+            for relative in (
+                "references/stage-H-submission.md",
+                "skills/A_framing/venue-analyzer.md",
+                *(f"skills/H_submission/{name}.md" for name in (
+                    "submission-packager", "peer-review-simulation",
+                    "fatal-flaw-detector", "journal-fit-recommender",
+                )),
+            ):
+                with self.subTest(venue_review_resource=relative):
+                    canonical = (LAYOUT.workflow if relative.startswith("references/")
+                                 else REPO_ROOT / "content") / relative
+                    self.assertEqual((plugin_skill / relative).read_bytes(), canonical.read_bytes())
             for source in ("qiongli.md", "paper-read.md", "academic-write.md", "paper-write.md"):
                 with self.subTest(workflow=source):
                     self.assertEqual(

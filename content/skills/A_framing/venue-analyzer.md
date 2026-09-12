@@ -11,9 +11,9 @@ outputs:
   - type: VenueAnalysis
     artifact: "framing/venue_analysis.md"
 constraints:
-  - "Must extract length, format, citation style, anonymization requirements"
+  - "Must verify applicable venue requirements with sources and uncertainty"
   - "Must identify must-not-fail items for the chosen venue"
-  - "Must assess reviewer reward function (novelty vs rigor vs artifact)"
+  - "Must distinguish official criteria from inferred expectations"
 failure_modes:
   - "Venue information not publicly available"
   - "Paper type mismatch with venue scope"
@@ -25,11 +25,10 @@ domain_aware: true
 
 # Venue Analyzer Skill
 
-Analyze venue fit and constraints so the paper is scoped and written to match reviewer expectations before a word is written.
-
 ## Purpose
 
-Analyze venue fit, formatting constraints, and reviewer expectations to scope and position a paper for a target publication.
+Help the author explore a venue direction or adapt a paper to a chosen journal or
+conference, using its actual requirements and the research that can be supported.
 
 ## Related Task IDs
 
@@ -41,169 +40,73 @@ Analyze venue fit, formatting constraints, and reviewer expectations to scope an
 
 ## When to Use
 
-- At the very start of a project (affects RQ scope, methods choice, page limits)
-- When deciding between 2–4 candidate venues
-- After a rejection — to reposition for a different venue
+- A target is chosen and the user wants to understand or meet its requirements.
+- Early framing needs venue/audience options before a manuscript exists.
+- A rejection or change of target requires a fresh fit and adaptation check.
+
+For journal recommendations driven by an existing draft without a chosen target,
+use `skills/H_submission/journal-fit-recommender.md` (H5).
 
 ## Inputs
 
-- `UserQuery`: Candidate venue(s) and paper type
-- `RQSet`: Research questions or contribution type
-- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
-- Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
+Reuse the supplied target, article type, stage, question/contribution and any draft.
+Ask for only what changes the requested decision. Research not yet performed is
+planned work, not evidence. A narrow answer may stay in chat; formal A5 retains its
+artifact. Missing information stays explicit without inventing a project or policy.
 
 ## Process
 
-### Step 1: Collect Venue Intelligence
+Follow `references/stage-H-submission.md` for shared venue evidence, fit and
+modification boundaries before making a recommendation.
 
-For each candidate venue, extract:
-
-#### Basic Profile
-
-| Dimension | What to Find | Where to Look |
-|-----------|-------------|---------------|
-| **Scope & Aims** | Topics, methods, disciplinary focus | "About" / "Aims & Scope" page |
-| **Paper types accepted** | Full paper, short paper, research letter, review, methods paper | Author guidelines |
-| **Impact metrics** | JIF, CiteScore, h-index, acceptance rate | Journal website, Scopus, Google Scholar Metrics |
-| **Review model** | Single-blind, double-blind, open review | Author guidelines |
-| **Turnaround** | Desk-reject rate, time to first decision | Editorial reports, Publons, peer reports |
-| **OA policy** | Gold OA, hybrid, green, APC cost | Sherpa/RoMEO, journal website |
-| **Indexing** | WoS, Scopus, SSCI, SCI, ESCI, ABDC, ABS, FT50, CNKI | Multiple databases |
-
-#### Formatting Constraints
-
-| Constraint | Details | Impact on Writing |
-|-----------|---------|-------------------|
-| **Page/word limit** | e.g., 12,000 words / 40 pages / 8 pages + refs | Determines depth of each section |
-| **Abstract format** | Structured (Background/Methods/Results/Conclusions) vs narrative | Affects `/paper-write` F6 output |
-| **Reference style** | APA 7th, Chicago, Vancouver, IEEE, numbered | Set before writing → feeds `citation-formatter` |
-| **Figure/table policy** | Max count, resolution, color charges, format | Affects figure-specifier decisions |
-| **Anonymization** | Double-blind: remove author info, self-citation handling | Must scrub before submission |
-| **Data/code policy** | Required, encouraged, or optional | Feeds D3 + I4 decisions |
-| **Supplementary materials** | Format, page limit, separate file requirements | Plan appendix content early |
-| **Section structure** | Required sections (e.g., IMRAD, or custom) | Must match expected layout |
-| **Ethics statement** | Required, recommended, or field-specific | Feeds D1 ethics check |
-| **AI disclosure** | Required, recommended, or no policy yet | Draft early; requirements are expanding |
-
-### Step 2: Analyze the Reviewer Reward Function
-
-Different venues reward different strengths. Infer the reward function from recent publications:
-
-| Dimension | Weight | How to Infer |
-|-----------|--------|-------------|
-| **Novelty** | High / Medium / Low | Do published papers emphasize "first to show" or "better understanding"? |
-| **Methodological rigor** | High / Medium / Low | Do papers have extensive robustness sections? Are null results published? |
-| **Theoretical contribution** | High / Medium / Low | Are papers expected to extend or build theory, or can they be empirical-only? |
-| **Practical relevance** | High / Medium / Low | Are managerial/policy implications required or perfunctory? |
-| **Artifact quality** | High / Medium / Low | Does the venue require code, data, replication packages? |
-| **Writing quality** | High / Medium / Low | Is "well-written" a frequent review criterion? |
-
-**Method**: Read 3–5 recent papers in the venue similar to your topic. Note:
-- How long is each section (proportional emphasis)?
-- What do Discussion sections emphasize?
-- Are limitations perfunctory or substantial?
-- How theoretical vs empirical are the contributions?
-
-### Step 3: Identify Must-Not-Fail Items
-
-Every venue has implicit "desk-reject triggers." Common ones:
-
-| Must-Not-Fail | How to Check | Consequence |
-|---------------|-------------|-------------|
-| **Scope match** | Your RQ fits the published scope statement | Desk reject if out of scope |
-| **Contribution clarity** | First 2 pages clearly state what's new | Reviewer confusion → reject |
-| **Method appropriateness** | Method fits venue norms (e.g., MIS Quarterly expects rigorous quantitative or well-justified qualitative) | "Wrong venue" verdict |
-| **Length compliance** | Within word/page limits | Administrative desk reject |
-| **Anonymization** | No author-identifying information in blind review | Administrative desk reject |
-| **Reference recency** | Cites recent work (last 2–3 years) in the venue | "Not current" verdict |
-| **Self-citation ratio** | Not excessive (<15% of references typically) | May break anonymization |
-| **Reporting guideline** | Venue-required checklist submitted (CONSORT, PRISMA, etc.) | Administrative desk reject |
-
-### Step 4: Rank and Recommend
-
-For 2–4 candidate venues, fill in the comparison:
-
-| Dimension | Venue A | Venue B | Venue C |
-|-----------|---------|---------|---------|
-| Scope fit | ✅ Core | ⚠️ Peripheral | ✅ Core |
-| Method fit | ✅ Strong | ✅ Strong | ⚠️ Theory-heavy |
-| Reviewer reward | Rigor | Novelty | Theory |
-| Acceptance rate | ~15% | ~8% | ~20% |
-| Turnaround (months) | 3–4 | 6–8 | 2–3 |
-| Word limit | 12,000 | 8,000 | 15,000 |
-| Impact | JIF 5.2 | FT50 | ABDC A |
-| Recommendation | **Primary** | Backup | Backup |
-
-Justify the recommendation by connecting scope + method + reward function + your paper's strengths.
+1. Establish the direction and constraints. For a chosen venue, assess that venue;
+   do not require alternatives. For early exploration, choose a useful candidate
+   set from the research question, evidence plan and intended audience. Use known
+   budget, OA, timing, language or institutional requirements where relevant.
+2. Verify applicable scope, article type, editorial criteria and initial/revision
+   requirements. Record official sources, checked dates and applicability using
+   the shared requirement table. Local profiles and recent papers can guide
+   discovery, but inferred practice must not be labeled an official rule.
+3. Explain fit and conflicts. Connect the actual contribution and method to readers
+   and published criteria. Separate eligibility, scientific fit and optional
+   presentation advice. Leave unknown fees, policies or expectations unresolved.
+4. Build a target-specific adaptation map. Link each requirement or supported
+   concern to the current manuscript location, proposed change and source. Separate
+   wording, structure and reporting from new analysis/data or author decisions.
+   Do not strengthen claims simply to match perceived venue prestige.
+5. Return the next useful action. If compatible, pass confirmed constraints into
+   the relevant writing task under `references/stage-F-writing.md`; package files
+   through H1 only when requested. If incompatible, explain why and offer feasible
+   alternatives. A plan does not itself authorize file changes or submission.
 
 ## Output Contract
 
-- `VenueAnalysis`: write `RESEARCH/[topic]/framing/venue_analysis.md`.
-- Separate finding, interpretation, and implication in the final artifact.
-- Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
-- Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
+Formal A5 writes `RESEARCH/[topic]/framing/venue_analysis.md`. Include:
+
+- Direction, target/candidate set, article type/stage and author constraints.
+- Source-backed requirement table, distinguishing facts, inferences and unknowns.
+- Fit rationale and unresolved eligibility or evidence conflicts.
+- Adaptation map with manuscript anchors, changes, work needed and decision owner.
+- Selected direction or provisional options, coverage limits and next action.
+
+Keep findings, interpretation and implications distinct. Do not invent citations,
+metrics, policy, results or reviewer comments. Apply
+`references/academic-output-rubric.md` to the requested scholarly output.
 
 ## Quality Bar
 
-The venue analysis is **ready** when:
-
-- [ ] At least 2 venues compared with full profiles
-- [ ] Formatting constraints extracted and documented
-- [ ] Reviewer reward function inferred from reading recent publications
-- [ ] Must-not-fail items identified per venue
-- [ ] Clear recommendation with justification
-- [ ] Formatting decisions (reference style, abstract format, section structure) propagated to downstream skills
-
-## Minimal Output Format
-
-```markdown
-# Venue Analysis
-
-## Candidate Venues
-
-### Venue A: [Name]
-- **Scope fit**: ...
-- **Paper type**: ...
-- **Review model**: ...
-- **Impact**: JIF = ..., acceptance rate = ...
-
-#### Formatting Constraints
-| Dimension | Requirement |
-|-----------|-------------|
-
-#### Reviewer Reward Function
-| Dimension | Weight |
-|-----------|--------|
-
-#### Must-Not-Fail Items
-1. ...
-2. ...
-
-### Venue B: [Name]
-...
-
-## Comparison Matrix
-
-| Dimension | Venue A | Venue B | Venue C |
-|-----------|---------|---------|---------|
-
-## Recommendation
-**Primary venue**: [name] — [justification]
-**Backup venue**: [name] — [rationale for backup]
-
-## Downstream Propagation
-- Citation style: [APA 7th / ...]
-- Abstract format: [structured / narrative]
-- Section structure: [IMRAD / custom]
-- Word limit: [n]
-```
+- [ ] The chosen target or useful candidate set is assessed without a quota.
+- [ ] Decision-relevant rules identify their source and applicable type/stage.
+- [ ] Inferred audience/presentation patterns are distinguished from requirements.
+- [ ] Each proposed adaptation preserves research evidence and exposes new work.
+- [ ] Missing information limits conclusions; no acceptance outcome is promised.
 
 ## Common Pitfalls
 
-| Pitfall | Problem | Fix |
-|---------|---------|-----|
-| 只关注 IF | 忽视了 scope match 和 audience | 并行评估 fit / format / reputation |
-| 格式要求遗漏 | 被要求大改格式 | 投稿前完整核查 author guidelines |
-| 忽视审稿速度 | 项目 deadline 前无法完成 R&R | 考虑 first-decision turnaround |
-| 过度乐观定级 | 方法/数据撑不住 top journal | 用 desk-reject 风险评估 |
-| 忽视 OA 费用 | 预算不够 APC | 预先核查 OA 政策和费用 |
+| Pitfall | Correction |
+|---|---|
+| Rank by prestige or keyword overlap | Compare question, evidence, article type and readers |
+| Copy last year's profile as current policy | Verify applicable official instructions or mark unknown |
+| Invent implicit rejection rules | Cite the rule or label a supported fit concern as an inference |
+| Rewrite the study to satisfy a target | Preserve results; expose the mismatch and author decision |
+| Treat a quick question as submission packaging | Return the requested analysis; retain H1 for packaging |

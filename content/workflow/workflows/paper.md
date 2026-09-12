@@ -194,7 +194,8 @@ Pick one:
 **Routing:**
 - H3 → use `peer-review-simulation`
 - H4 → use `fatal-flaw-detector`
-- H5 → use `venue-analyzer` + manuscript evidence checks
+- H5 → use `journal-fit-recommender` + manuscript evidence checks; A5 remains the target-first route
+- A5/H1/H3/H4/H5 share `references/stage-H-submission.md` for applicable venue evidence and review boundaries
 - H2_5 → use `reviewer-empathy-checker`
 - H1 → `/submission-prep`
 - H2 → `/rebuttal`

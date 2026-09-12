@@ -17,10 +17,15 @@ $ARGUMENTS
 
 ### Step 0: Select Project Folder
 
-Ask the user:
-> "Which `RESEARCH/[topic]/` folder is this submission for?"
+Follow `references/stage-H-submission.md` for applicable venue requirements,
+source verification, author confirmations and formal write boundaries. This workflow
+packages files; a request only to adapt to a chosen target uses A5, while a request
+to recommend venues from a draft uses H5. Do not launch H1 for either by default.
 
-Ensure output structure exists:
+Reuse the selected `RESEARCH/[topic]/` folder. Ask for a destination only when
+saving is requested and none is known. A narrow answer can stay in chat.
+Formal H1 retains this structure through the existing preview/approval/CAS owner;
+mark nonapplicable items with reasons and unresolved items as pending:
 ```
 RESEARCH/[topic]/submission/
 ├── cover_letter.md
@@ -36,21 +41,18 @@ RESEARCH/[topic]/submission/
 └── supplementary_inventory.md
 ```
 
-Also ensure reporting artifacts exist at project root:
+For formal H1, account for applicable reporting obligations at project root:
 ```
 RESEARCH/[topic]/reporting_checklist.md
 ```
 
 ### Step 1: Collect Submission Requirements
 
-Ask:
-1. Target venue + manuscript type
-2. Double-blind? (Y/N)
-3. Word/page limits + formatting constraints
-4. Required statements (ethics, COI, funding, data/code availability)
-5. Any required reporting guideline checklist upload? (Y/N)
-
-Also ask where the current manuscript draft lives (path or paste).
+Reuse the manuscript, target, article type and submission stage. Verify applicable
+official instructions and exceptions; record source URLs/titles and checked dates
+in the submission checklist. Ask only for missing facts that change the package,
+such as author approval or data access status. Do not ask the user to reconstruct
+public requirements that can be checked with available authorized tools.
 
 ### Academic Boundary Review Trigger (MVP)
 
@@ -60,7 +62,7 @@ The boundary pass must ask one academic question at a time. The answer must stat
 
 ### Step 2: Reporting Compliance Check
 
-Use **reporting-checker** to generate:
+Use **reporting-checker** for the applicable design and formal Q3 gate:
 - `RESEARCH/[topic]/reporting_checklist.md` (use `templates/reporting-checklist.md`)
 
 If this is a systematic review, run **prisma-checker** instead (or in addition).

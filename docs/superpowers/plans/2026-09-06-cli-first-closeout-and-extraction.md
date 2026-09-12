@@ -3,6 +3,26 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Venue fit and review boundaries — September 12 follow-up
+
+Continue from `f6487a43` on `codex/venue-review-boundaries`. The maintainer requests
+more accurate journal recommendations and review guidance for two directions:
+adapt to a selected venue, or select venues from an existing manuscript. Reuse
+A5/H5 and Stage H as the shared evidence and judgment owner; keep task IDs,
+canonical artifacts, configured models and write/permission boundaries.
+
+Replace local-profile certainty, invented reviewer preferences and generic quotas
+with applicable official sources, manuscript evidence, proportional changes and
+explicit unknowns. Align H1/H3/H4 and their callers so narrower judgment does not
+inherit contradictory checklists. Retain formal gates and independent-review
+requirements; no new catalog service, coordinator, dependency or runtime policy.
+
+Check canonical links, output contracts, generated Plugin bytes and embedded
+resources. Add bilingual cases to the existing routing corpus without claiming
+unrun model trials as evidence. Record sources, checks and remaining gaps once in
+the existing outcome-guided review, then commit and fast-forward locally.
+No publication or program acceptance promotion is requested.
+
 ## Reply-only scope — September 12 follow-up
 
 The maintainer's next request adds a separately discoverable `no-qiongli` Skill

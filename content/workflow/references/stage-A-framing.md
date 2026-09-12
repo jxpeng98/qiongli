@@ -268,26 +268,20 @@ Gap ≠ “no one has studied this exact combination”. Gap must be *meaningful
 
 ## A5 — Venue Analysis
 
-Venue choice determines *what reviewers reward* (novelty vs rigor vs artifact quality).
+For early venue exploration or adaptation to a chosen journal/conference, use
+`skills/A_framing/venue-analyzer.md`. Follow `references/stage-H-submission.md`
+for shared evidence, fit and modification boundaries. For recommendations driven
+by an existing draft without a chosen target, use H5 instead.
 
 **Definition of done**
 
-- 2–5 candidate venues, with:
-  - fit statement (topic + method + contribution)
-  - formatting + length constraints
-  - typical paper structure expectations
-  - “desk reject” risk factors for your paper type
+- The target or candidate set reflects the research question and author constraints.
+- Decision-relevant requirements have sources, checked dates and applicable
+  article type/stage; local profiles and inferred practices are labeled as such.
+- Fit and conflicts are explained using the actual contribution and evidence.
+- Proposed adaptations connect requirements to manuscript locations and distinguish
+  presentation/reporting changes from new research or author decisions.
+- Missing evidence limits conclusions; no arbitrary candidate quota or promised outcome.
 
-**Recommended structure: `framing/venue_analysis.md`**
-
-```markdown
-# Venue Analysis
-
-| Venue | Fit | Key expectations | Word/page limits | Evidence expectations | Notes |
-|---|---|---|---|---|---|
-
-## Chosen target (current)
-- Venue:
-- Why:
-- Must-not-fail items:
-```
+Formal output: `framing/venue_analysis.md`. Include the requirement and adaptation
+tables from the shared Stage H reference, chosen direction and unresolved checks.

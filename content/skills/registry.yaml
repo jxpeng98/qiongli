@@ -108,12 +108,12 @@ skills:
     version: "2.0.0-beta.5"
     file: skills/A_framing/venue-analyzer.md
     canonical: true
-    summary: "Analyze venue fit, formatting constraints, and reviewer expectations."
+    summary: "Explore venues or adapt to a chosen target using verified requirements and research evidence."
     display_name: "Venue Analyzer"
-    when_to_use: "At the very start of a project (affects RQ scope, methods choice, page limits)"
-    summary_zh: "分析目标期刊或会议的匹配度、格式约束和审稿预期。"
+    when_to_use: "Explore venues before a draft or adapt a manuscript to a chosen journal or conference."
+    summary_zh: "探索投稿方向，或依据已核验的期刊要求制定稿件调整方案。"
     display_name_zh: "期刊匹配分析"
-    when_to_use_zh: "当研究方向已较清楚，需要判断目标期刊或会议匹配度时使用。"
+    when_to_use_zh: "研究初期需要探索投稿方向，或已选定期刊、会议并需要调整稿件时使用。"
     inputs: [UserQuery, RQSet]
     outputs: [VenueAnalysis]
     tags: [framing, venue, journal-selection, formatting]

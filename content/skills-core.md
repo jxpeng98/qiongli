@@ -452,9 +452,9 @@ required fields, and write export-ready `bibliography.bib`
 **Purpose:** Submission-ready packaging (cover letter + statements + final checklist)
 
 **Process:**
-1. Confirm target venue constraints + anonymization needs
+1. Follow `references/stage-H-submission.md`; verify exact venue/type/stage requirements and sources
 2. Run reporting checks (and PRISMA if SR)
-3. Draft submission auxiliary materials + assemble submission checklist
+3. Draft applicable materials from confirmed author facts; mark unresolved items and unchecked files as pending
 
 **Templates:** `templates/cover-letter.md`, `templates/submission-checklist.md`, `templates/title-page.md`, `templates/highlights.md`, `templates/suggested-reviewers.md`, `templates/author-contributions-credit.md`, `templates/funding-statement.md`, `templates/coi-statement.md`, `templates/data-availability.md`, `templates/ai-disclosure.md`, `templates/supplementary-inventory.md`
 

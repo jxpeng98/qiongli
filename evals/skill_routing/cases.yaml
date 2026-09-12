@@ -1,4 +1,4 @@
-# Codex supplied-entry routing-intent probe: 30 bilingual groups, 60 requests.
+# Codex supplied-entry routing-intent probe: 36 bilingual groups, 72 requests.
 # All studies, drafts, project states and prior results below are synthetic.
 # This does not test real Host activation, tool availability or execution.
 # Expected lists enumerate acceptable labels, not a sequence of required routes.
@@ -653,6 +653,130 @@
       does not establish causation." Keep this conversation in reply-only mode.
     zh: >-
       接下来用 NoQ问理，仅回复。请用一句话解释这句话：“相关不代表因果。”
+  expected:
+    route: [none]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]
+
+- id: venue-target-type-stage
+  required_reads: [route]
+  category: adjacent
+  request:
+    en: >-
+      I have chosen the fictional Journal A for my systematic review. Its supplied
+      initial-submission instructions say: "Narrative reviews are invitation-only;
+      systematic reviews are welcome. Initial submissions may use any consistent
+      reference style; revisions must use numbered references." My draft is a
+      systematic review with author-date citations. Explain the needed changes,
+      using only these supplied facts; do not write files or invent a word limit.
+    zh: >-
+      我已选定虚构期刊 A，准备投系统综述。给定的初投稿说明是：“叙述性综述仅接受约稿；
+      系统综述可以自由投稿。初稿引文格式统一即可；返修稿必须使用数字编号。”我的稿件
+      是系统综述，使用作者年份引文。仅根据这些信息说明需要改什么，不写文件，也不要
+      假定字数限制。
+  expected:
+    route: [skills/A_framing/venue-analyzer.md]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]
+
+- id: manuscript-first-uncatalogued-fit
+  required_reads: [route]
+  category: adjacent
+  request:
+    en: >-
+      Recommend between fictional journals A and B for this supplied manuscript
+      summary, without files. The paper interprets archival letters, compares two
+      rival readings, states source gaps and makes no causal or statistical claim.
+      Supplied official excerpts say A publishes interpretive archival studies;
+      B accepts only clinical trials. Neither journal has a local profile. Assess
+      these options provisionally from the summary, not an unseen full draft.
+    zh: >-
+      请根据给定稿件概要，在虚构期刊 A、B 中推荐合适选项，不写文件。论文解释档案信件，
+      比较两种竞争性解读，说明史料缺口，不作因果或统计主张。给定的官方说明是：A 接收
+      解释性档案研究，B 仅接收临床试验。两者都没有本地期刊档案。请根据概要给出暂定
+      判断，不要假装已经看过全文。
+  expected:
+    route: [skills/H_submission/journal-fit-recommender.md]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]
+
+- id: venue-unverified-required-cost
+  required_reads: [route]
+  category: scope
+  request:
+    en: >-
+      I have selected fictional Journal C and need its exact current publication
+      charge before committing to submission. A local profile says 500 USD but has
+      no date, official URL or waiver conditions. No web tool or current source is
+      available. Tell me whether that amount can be confirmed; do not guess or
+      change files.
+    zh: >-
+      我已选定虚构期刊 C，在决定投稿前需要确认目前准确的发表费用。本地档案写了
+      500 美元，但没有日期、官方链接或减免条件。目前没有联网工具或现行来源。
+      请说明能否确认这个数额，不要猜测，也不修改文件。
+  expected:
+    route: [skills/A_framing/venue-analyzer.md]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [request_evidence]
+
+- id: review-reporting-versus-validity
+  required_reads: [route]
+  category: scope
+  request:
+    en: >-
+      Give a focused referee-style critique of this fictional qualitative draft
+      excerpt in chat: "We interviewed 12 participants and developed an interpretive
+      thematic analysis. We do not claim population prevalence or causality. This
+      excerpt does not state consent procedures." No supplement, ethics policy or
+      other manuscript section is supplied. Separate what is known from what needs
+      clarification; do not launch reviewers or propose a full redesign.
+    zh: >-
+      请在聊天里对这段虚构质性研究稿件作局部审稿：“我们访谈了12名参与者，开展解释性
+      主题分析。不推断总体发生率，也不主张因果。该摘录未说明知情同意流程。”目前没有
+      提供补充材料、伦理规定或其他章节。请区分已知情况与需要澄清的问题，不启动其他
+      审稿代理，也不提出整项研究重做的方案。
+  expected:
+    route: [skills/H_submission/peer-review-simulation.md]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]
+
+- id: confidential-review-permission-unknown
+  required_reads: [route]
+  category: scope
+  request:
+    en: >-
+      I was invited to review a confidential journal submission. I have not supplied
+      the manuscript or the journal's AI-use rules. Can I send it here for a full
+      scientific review simply because I received the invitation? Clarify the next
+      prerequisite without handling confidential content or contacting the editor.
+    zh: >-
+      我收到了一份保密的期刊审稿邀请，还没有提供稿件或该刊的 AI 使用规定。仅凭收到
+      邀请，就可以把稿件发到这里做完整科学审稿吗？请说明下一步需要确认什么，不处理
+      保密内容，也不联系编辑。
+  expected:
+    route: [skills/H_submission/peer-review-simulation.md]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer, request_evidence]
+
+- id: reply-only-venue-rule
+  required_reads: []
+  category: scope
+  request:
+    en: >-
+      no-qiongli, reply only. The supplied fictional journal rule says its 300-word
+      abstract limit applies to revised articles. My initial abstract has 310 words,
+      and no initial-submission rule is supplied. Does this prove I violate the
+      initial-submission limit? Answer in one sentence without tools or reading skills.
+    zh: >-
+      NoQ问理，仅回复。给定的虚构期刊规定说，300词摘要上限适用于返修稿。我的初投稿
+      摘要有310词，没有提供初投稿规定。这能证明我违反初投稿字数限制吗？一句话回答，
+      不调用工具或读取 Skills。
   expected:
     route: [none]
     resource_route: [none]

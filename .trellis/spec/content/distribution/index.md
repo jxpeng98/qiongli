@@ -50,6 +50,14 @@ a draft never establishes registration or access permission. Literature review
 guidance retains the existing search-quality contract and protocol boundaries;
 record counts alone do not justify broadening a search.
 
+A5 venue analysis and H1/H3/H4/H5 share
+`content/workflow/references/stage-H-submission.md` for venue evidence, manuscript
+fit, adaptation and review boundaries. Verify requirements for the actual venue,
+article type and submission stage; local profiles remain discovery aids. Preserve
+uncertainty, source locations and proportionate remedies rather than universal
+candidate/flaw quotas or assumed reviewer preferences. A5 adapts to a selected
+target; H5 inspects an existing draft before recommending targets.
+
 Preserve canonical artifact paths, evidence anchors, stable IDs and formal gates.
 A narrow chat answer need not generate the full formal artifact set. Writing
 freedom does not waive tool availability, preview/approval/CAS or user-only file

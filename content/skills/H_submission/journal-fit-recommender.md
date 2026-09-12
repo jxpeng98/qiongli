@@ -23,120 +23,108 @@ domain_aware: true
 
 # Journal Fit Recommender
 
-Recommend journals for an existing manuscript. This is a manuscript-first H5
-skill: read the draft, contribution, methods or evidence design, limitations,
-claim-evidence map, and venue profiles before ranking venues.
-
 ## Purpose
 
-Identify realistic submission targets from the manuscript that exists now,
-while blocking unsupported best-journal claims when evidence, methods, claim
-support, or venue-profile information is missing.
+Recommend journals or conferences from the manuscript that exists now. This
+manuscript-first H5 task explains fit, evidence gaps and revision costs without
+promising acceptance or letting prestige determine the result.
+
+## Related Task IDs
+
+- `H5` (reverse journal-fit recommendation)
 
 ## When to Use
 
-- The user has an existing manuscript and asks which journal fits best.
-- Stage H needs `H5` reverse journal-fit recommendation before submission.
-- A target venue is uncertain and the manuscript should drive venue selection.
+- An existing manuscript needs suitable submission targets.
+- A rejected draft needs a fresh comparison against its current evidence.
+- A formal lifecycle reaches H5.
 
-Do not use this as an early target-first venue scan. For early framing before a
-manuscript exists, use `A5` venue analysis instead.
+For early exploration without a draft, or adaptation to an already chosen target,
+use `skills/A_framing/venue-analyzer.md` (A5). A5 assumptions alone do not establish
+H5 fit; read the manuscript before making a definitive recommendation.
 
 ## Inputs
 
-- `RESEARCH/[topic]/manuscript/manuscript.md` or structured manuscript
-  sections.
-- `RESEARCH/[topic]/framing/research_question.md`.
-- `RESEARCH/[topic]/framing/contribution_statement.md`.
-- Methods, data, or evidence design summary.
-- `RESEARCH/[topic]/manuscript/claims_evidence_map.md` or
-  `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv`.
-- Limitations audit or fatal flaw report when available.
-- Venue profiles or prior venue evidence.
+Use the current draft or supplied sections, question/contribution, methods or
+argument/evidence design, limitations and claim support. Reuse the claim map,
+evidence ledger, previous reviews and venue analysis when available. Their
+information may be supplied in chat; a particular filename is not a prerequisite
+for a narrow answer. Local venue profiles are discovery aids, not verified policy.
 
-If a required input is missing or insufficient, write a gap note under
-`RESEARCH/[topic]/context/gap_notes.md` and block any best-journal claim
-instead of inventing fit evidence.
+If only an abstract or partial draft is available, name provisional candidates
+where support permits, state what was inspected and request the missing material
+needed to rank them. Do not claim to have read an unseen full manuscript. A gap
+blocks the affected conclusion, not every useful part of the answer.
 
 ## Process
 
-1. Confirm manuscript readiness.
-   Check that the manuscript has a clear research question, contribution,
-   methods or evidence design, and claim-evidence support.
-2. Build candidate venue evidence.
-   Use local venue profiles, subject-specific venue profiles, and any prior
-   venue analysis. If the catalog is too thin, mark coverage limits.
-3. Score fit dimensions.
-   Assess scope fit, contribution fit, method/evidence fit, article type fit,
-   audience fit, reporting/data-policy fit, reviewer risk, desk-reject risk,
-   and required revisions.
-4. Classify each venue.
-   Use only `primary`, `stretch`, `safe`, `fallback`, or `do_not_submit`.
-5. Check overreach.
-   If a high-status venue is attractive but the manuscript evidence does not
-   meet its threshold, classify it as `stretch` or `do_not_submit`, not
-   `primary`.
-6. State next revisions.
-   For every viable venue, list the concrete revisions needed before
-   submission.
+Follow `references/stage-H-submission.md` for source verification, fit, adaptation,
+review boundaries and formal write requirements.
+
+1. Read the manuscript. Summarize its actual question, contribution, design,
+   evidence strength, limitations and article type with source locations. Identify
+   central issues that changing the journal would not solve.
+2. Establish the author's relevant constraints, reusing supplied preferences.
+   Separate hard limits (for example, budget or a required publication route)
+   from preferences. Ask only when the distinction changes the recommendation.
+3. Find plausible venues. Use the local/subject catalog and official discovery
+   outside it as needed. Verify each decision-relevant rule for the exact venue,
+   article type, track/year and submission stage. Do not fill a candidate quota.
+4. Check eligibility and hard constraints before comparing scope, contribution,
+   evidence/method and audience fit. Record unknowns and disqualifying conflicts.
+   Cite both venue sources and manuscript locations; explain uncertainty rather
+   than fabricating scores, acceptance probabilities or reviewer preferences.
+5. Classify assessed venues using the stable classes below. With missing decisive
+   evidence, keep a lead explicitly provisional and unranked until checked; do
+   not convert unknown eligibility to either a confirmed fit or a rejection.
+6. Explain the smallest required revisions per viable candidate, distinguishing
+   presentation/reporting from new research and author commitments. State what
+   would change the ranking. Transfer the selected target and requirements to A5
+   adaptation or H1 packaging only within the user's requested scope.
 
 ## Output Contract
 
-- `JournalFitRecommendation`: write `RESEARCH/[topic]/submission/journal_fit_recommendation.md`.
-- Also write `RESEARCH/[topic]/submission/journal_fit_recommendation.json` when
-  machine-readable output is requested.
-- Separate finding, interpretation, and implication in the final artifact.
-- Do not invent citations, data, sample sizes, venue policies, acceptance
-  probabilities, or reviewer comments.
-- Apply `references/academic-output-rubric.md` before finalizing scholarly
-  prose or review artifacts.
-
-Use this table in the markdown report:
+Formal H5 writes `RESEARCH/[topic]/submission/journal_fit_recommendation.md` and
+also `RESEARCH/[topic]/submission/journal_fit_recommendation.json` when requested
+by the caller or formal contract. Preserve the existing structured-output schema.
+A focused answer may stay in chat. Include review scope, manuscript version or
+anchors, author constraints, candidate coverage and source/checked-date table.
 
 | Venue | Class | Scope fit | Contribution fit | Method/evidence fit | Reviewer risk | Desk-reject risk | Required revision |
 |---|---|---|---|---|---|---|---|
 
-Use these classes exactly:
+For each assessed venue, link to applicable sources and manuscript evidence.
+Use these classes exactly; no need to populate all five:
 
-- `primary`
-- `stretch`
-- `safe`
-- `fallback`
-- `do_not_submit`
+- `primary`: strongest supported fit among the evaluated, eligible options.
+- `stretch`: potentially eligible but a documented fit/evidence gap needs work;
+  not a label for an unmet hard requirement.
+- `safe`: comparatively conservative fit; never guaranteed acceptance.
+- `fallback`: viable alternative with an explained tradeoff.
+- `do_not_submit`: demonstrated scope/eligibility/constraint conflict for this
+  manuscript or unresolved substantiated blocker, with its reason.
 
-When evidence is incomplete, produce a blocked report with missing inputs and
-next collection steps. Do not name a single best journal.
-
-### Evidence Ledger and Source Integrity
-
-- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when producing,
-  revising, or validating central scholarly claims.
-- Follow `references/evidence-ledger-contract.md`: supported claims need source
-  pointers; unsupported central claims become `gap_note` rows and
-  `RESEARCH/[topic]/context/gap_notes.md` entries.
-- For final writing, proofread, submission, rebuttal, citation, or
-  presentation-facing outputs, apply `references/citation-risk-policy.md` and
-  write or update `RESEARCH/[topic]/proofread/citation-risk-report.md` when
-  citation risk is material.
+Keep provisional leads and open checks separate from a definitive ranking. If
+no candidate can be assessed, return the missing evidence and next checks rather
+than a best-journal claim. Preserve facts, inferences and uncertainties; apply
+`references/academic-output-rubric.md`. Never invent policies, citations, data,
+metrics, acceptance probabilities or reviewer comments.
 
 ## Quality Bar
 
-- [ ] Manuscript, contribution, methods/evidence design, and claim-evidence map
-  were inspected.
-- [ ] At least three candidate venues were assessed when the venue catalog
-  permits.
-- [ ] Every venue has one of the five allowed classes.
-- [ ] The report explains why any higher-status journal is not primary when
-  the manuscript does not support it.
-- [ ] Missing evidence blocks best-journal claims instead of producing a false
-  ranking.
+- [ ] The actual manuscript scope and claim support were inspected and identified.
+- [ ] Candidate coverage and source currency are explicit; the catalog is not a whitelist.
+- [ ] Hard constraints precede fit; unknowns remain open checks.
+- [ ] Each assessed venue has a justified class, evidence and specific revision needs.
+- [ ] Provisional leads cannot be mistaken for submission-ready recommendations.
+- [ ] Missing evidence blocks definitive ranking; `safe` promises no outcome.
 
 ## Common Pitfalls
 
-| Pitfall | Problem | Fix |
-|---|---|---|
-| Ranking by prestige | Ignores scope, evidence, and manuscript maturity | Start from manuscript fit and reviewer risk |
-| Target-first shortcut | Reuses A5 venue analysis without reading the draft | Read manuscript and claim map first |
-| Unsupported best-journal claim | Names one venue despite missing methods or evidence | Return a blocked H5 report |
-| No do-not-submit class | Leaves poor fits looking viable | Use `do_not_submit` for venues outside scope or evidence threshold |
-| Generic revision advice | Does not tell the author what must change | Tie revisions to venue policy, reviewer risk, or claim support |
+| Pitfall | Correction |
+|---|---|
+| Rank a draft by title or abstract alone | Bound the answer to what was supplied |
+| Reuse an early target preference as a result | Compare the manuscript's actual contribution and evidence |
+| Treat all reviews or methods papers alike | Verify the exact article type and any exceptions |
+| Exclude a field because no profile exists | Discover official criteria and expose coverage limits |
+| Make every fit issue a scientific flaw | Separate venue mismatch from validity and reporting |

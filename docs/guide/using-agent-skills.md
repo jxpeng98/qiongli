@@ -206,6 +206,31 @@ Claude Code can expose Qiongli through workflow entry markdowns. The common user
 
 These slash workflows are convenience entrypoints. They all route into the same Qiongli task contract and skill package.
 
+## Journal fit and pre-submission review
+
+Tell Qiongli which decision you need:
+
+- “I have chosen this journal. Check the requirements for an initial research
+  article and suggest changes to this draft.” A5 verifies the applicable rules
+  and maps them to manuscript locations and proposed changes.
+- “Read this draft and recommend suitable journals.” H5 starts with the paper's
+  contribution, methods and evidence, then compares eligibility, readers, costs
+  and other constraints that matter to you.
+- “Review this manuscript's methods and claims.” H3 provides a critique; H4
+  focuses on supported blockers. Neither automatically rewrites or submits it.
+
+Decision-relevant journal rules include their sources, checked dates and article
+type/stage. Local profiles help discovery but do not establish current policy.
+With only an abstract or unavailable sources, the answer stays provisional and
+identifies what is missing. There is no fixed number of recommendations, no
+promised acceptance, and no scientific flaw inferred merely from a venue mismatch.
+
+Proposed edits separate presentation and reporting from new analysis, data or
+author commitments. You can request a short answer without creating a project;
+formal work retains the existing artifacts and write confirmations. Multiple
+review lenses in one model are self-review, not independent reviewers. Confidential
+journal assignments also depend on that journal's AI-use and confidentiality rules.
+
 ## Shell And Orchestrator Usage
 
 Use the shell CLI when you need to inspect, upgrade, validate, or run explicit task IDs:

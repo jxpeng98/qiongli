@@ -338,7 +338,7 @@ class SkillRoutingProbeTests(unittest.TestCase):
 
     def test_corpus_and_traces_fail_closed_without_leaking_labels(self):
         cases = probe.load_cases()
-        self.assertEqual(60, len(cases))
+        self.assertEqual(72, len(cases))
         self.assertEqual({"en", "zh"}, {case["language"] for case in cases.values()})
         case = next(iter(cases.values()))
         response = {key: values[0] for key, values in case["expected"].items()}
