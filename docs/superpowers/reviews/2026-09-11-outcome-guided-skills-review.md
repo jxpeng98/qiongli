@@ -537,3 +537,60 @@ pack SHA-256：`58af00b3ac474ce57b94013ceb52e153f63433265f0f6316ce63edeb54706331
 后续需要在获授权的实际 Host 中运行这些选刊／审稿案例，记录所读来源、建议依据、
 未知信息和越界行为，再评估真实效果。此前独立 no-qiongli、Hook、跨 Host 和 Graph
 的现场证据缺口仍保留。本轮不更新个人安装，不发布，不提升程序验收状态。
+
+## September 12 — Research Graph evidence, views and review decisions
+
+来源提交：`76cdc7f333eab2c10ee6073b9d6a40ab353b87c2`，从 `39c25b81` 在
+`codex/research-graph-views` 继续维护者批准的顺序。沿用同一原生投影和规范记录，
+不增加图数据库、服务、运行时依赖或写入权限。
+
+- 证据链：支持关系显示台账中的实际限制；过长或多行限制保留在来源记录，并明确提示
+  读取完整记录，避免丢掉原有支持边。修复 `decision:<id>` 无法定位表格行的问题；
+  重复 ID 不会得到一个貌似精确的来源定位。
+- 呈现：`graph snapshot --text` 给出记录、关系、来源缺口和论点摘要；`graph view`
+  向 stdout 输出自包含 HTML。搜索最多显示 100 条结果，局部图最多显示 12 个邻居和
+  40 条关系，并显示截断数量。来源、限制、状态和诊断使用 DOM 文本；内嵌 JSON 转义
+  script 结束标记，CSP 禁止联网。新 `graph source` 复用原来的版本绑定读取接口。
+- 审稿与选刊：决策日志新增可选 `Related Claims`，兼容已有 Markdown/CSV。明确的
+  `locked` 决策生成已审阅 `informs`，暂定、受阻或待重审的决定仍是 proposed。
+  决策不是支持证据；缺失论点、无效状态或引用、重复决策不会生成已确认关系。
+  原报告与稿件位置保留在决策记录中；没有另建审稿数据库。
+- 阶段记录：用户可保存 HTML 或从页面下载同一份 JSON 快照。它们不自动刷新、不
+  代替原始材料，也不执行删除或回滚。Skills、模板和中英文 CLI 文档已同步这些边界。
+
+最终源码的检查使用 `cargo +1.97.0`、native workspace、`--offline --locked`：
+
+| 检查 | 本地结果 |
+|---|---|
+| `-p qiongli-project academic_graph` | 52 通过；覆盖来源定位、稳定身份、重复/冲突、过期读取、限制文本及旧记录兼容 |
+| `-p qiongli --lib` | 227 通过，1 项原有三平台容量手动观察被忽略 |
+| `-p qiongli --test cli project_graph_cli` | 1 通过；HTML、摘要、来源别名、错误输出参数、旧 revision 拒绝及无索引写入 |
+| `-p qiongli --test mcp_stdio full_profile_reuses_redacted_project_state_and_accepts_connected_capture` | 1 通过；保留 Full MCP 的绑定、捕获和 Graph 查询路径 |
+| `-p qiongli-content --tests` | 46 通过 |
+| Python：Academic Graph、证据台账、阶段交接、原生 Marketplace 投影、资源链接 | 27 通过 |
+| VitePress 文档构建 | 最终构建通过，15.60 秒；保留原有高亮回退和 chunk 提示 |
+| 内联脚本 `node --check` | 通过；只是开发期语法检查，运行 Graph 不依赖 Node |
+| 程序台账与格式检查 | 7 项台账检查、`cargo fmt --check` 和 `git diff --check` 通过；249 项任务状态不变 |
+
+另用合成项目复制二进制到仓库外，在空 PATH、独立 HOME/config 下执行 snapshot、view、
+source。HTML 数据与快照/readiness 完全一致；支持边能回到含原文件和 Table 2 的台账行；
+前后所有项目文件哈希不变。该项目有 7 个语义节点、4 条非结构关系、1 项证据缺口诊断，
+状态保持 sparse，没有因为连了边而声称完整。它是已提供规范记录的合成用例，不能证明
+模型能够自动、准确地从任意 PDF 提取事实，也不是与 1.x 的性能比较。
+
+复制二进制 SHA-256：`1c9520ca2ad392109037fe3ee3ea917b86dd806b756c5454040a9a599655951d`。
+资源版本保持 `2.0.0-beta.5`，434 项；资源锁绑定上述来源提交。
+Content root SHA-256：`30615b153f55c0084de0089957793e5c71dc8b7dca8d957331fd6fe8c05b79af`；
+pack SHA-256：`2bf43ed9ac70a98470aa62082f68714ea3ca16c1fcee59be5f56dc1941dda1d0`。
+临时日志为 `/private/tmp/qiongli-graph-views-*.log`；合成页面在
+`/private/tmp/qiongli-graph-view-ndg0fy0v/graph.html`，未放入发布资源。
+
+浏览器安全策略拒绝打开本地 `file://` 页面，未尝试绕过。真实渲染、键盘交互和 JSON
+下载因此尚未验收，语法/序列化检查不能替代它们。另一次包含旧版
+`test_plugin_distribution_contract` 的扩大检查在 materializer 中出现错误，随后被中止；
+没有得到完整结果，不计为通过。本轮改用当前 2.x 的原生 Marketplace 投影检查；此前
+已记录的三项基线失败仍保留，并未在本轮重跑或放宽标准。
+
+下一步先在允许的浏览器中验收该离线视图，再用获授权材料在真实 Host 中观察规范化、
+证据追踪和审稿/选刊决策质量。阶段快照沿用既有归档规则；自动历史合并、自动删除和
+新的协调服务没有必要。CLI-402 继续 active，其他现场验证与性能缺口不变。

@@ -24,6 +24,24 @@ source-bound readers and the existing CLI/Full MCP boundaries.
    local evidence and limits, refresh the content lock, commit and merge locally.
    No model replacement, new database/service, personal-project access or release.
 
+Implemented in `76cdc7f3`. The native evidence-chain checks pass with actual
+ledger limits, exact decision source anchors, stable Markdown/CSV identities and
+stale/conflicting/missing source negatives. CLI gains `graph view`, `graph source`
+and a compact snapshot summary. Optional decision-log claim links use `informs`;
+the shared Stage H reference and bilingual docs describe their limits.
+
+Local checks: 52 Graph, 227 app (one manual capacity check ignored), one CLI
+end-to-end, one Full MCP continuity, 46 native content and 27 canonical/Plugin
+checks pass. Docs build and inline JavaScript syntax check pass. A copied native
+binary works outside the checkout with empty PATH and isolated config/home;
+snapshot, HTML and source reads leave synthetic project files unchanged.
+The 434-entry pack binds this source. Browser policy refused the local file URL,
+so actual rendering, keyboard operation and JSON download remain unverified.
+The existing review records this limit and the incomplete legacy distribution
+suite; neither counts as passed. Next inspect the offline page in an authorized
+browser and observe supplied-material normalization in a real Host. CLI-402 stays
+active; no publication or research-quality/performance acceptance is implied.
+
 ## Venue fit and review boundaries — September 12 follow-up
 
 Continue from `f6487a43` on `codex/venue-review-boundaries`. The maintainer requests
