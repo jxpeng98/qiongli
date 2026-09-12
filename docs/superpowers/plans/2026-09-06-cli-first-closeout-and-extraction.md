@@ -18,6 +18,14 @@ browser policy refusal still applies: DOM checks do not establish rendering,
 real keyboard navigation or file download acceptance. Update bilingual usage and
 archive evidence once before local integration; no publication is requested.
 
+Implemented in `6c21b543`. Three DOM checks, two native view checks, the existing
+CLI Graph integration, 46 embedded-content checks, 21 content/Plugin checks and
+seven ledger checks pass. Docs build passes. The existing review records source,
+pack identity, interaction boundaries and the static detector's mixed-palette
+warnings. Next inspect the real offline page at desktop/mobile widths in an
+allowed browser, then observe authorized material normalization in the Host.
+CLI-402 stays active; this increment does not qualify semantic quality or speed.
+
 ## Graph quick opening and collaboration receipts — September 12 follow-up
 
 Continue from `3d95a68a` on `codex/graph-open-collaboration`. The maintainer asks
