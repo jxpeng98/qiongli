@@ -3,6 +3,27 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Research Graph evidence and views — September 12 follow-up
+
+Continue from `39c25b81` on `codex/research-graph-views`. The maintainer approved
+the preceding sequence: evidence continuity, everyday presentation, then review
+and venue decisions. Reuse Academic Graph v1, registered canonical artifacts,
+source-bound readers and the existing CLI/Full MCP boundaries.
+
+1. Exercise the supplied-material → reviewed record → graph → source chain on
+   synthetic research. Preserve IDs across reorder/rebuild, show evidence limits,
+   and retain missing/conflicting/stale source negatives.
+2. Present a compact CLI graph summary and a self-contained, offline HTML view
+   emitted on stdout. Reuse the existing artifact reader for source inspection;
+   expose provenance, diagnostics and export revision rather than treating a
+   saved page as live state. Keep project writes and browser opening explicit.
+3. Link review/venue decisions to existing claims through an optional field in
+   the decision log; do not turn reviewer opinions into supporting evidence.
+   Align shared Skills guidance, templates and bilingual usage docs.
+4. Check affected native/CLI/content paths and the rendered view, archive exact
+   local evidence and limits, refresh the content lock, commit and merge locally.
+   No model replacement, new database/service, personal-project access or release.
+
 ## Venue fit and review boundaries — September 12 follow-up
 
 Continue from `f6487a43` on `codex/venue-review-boundaries`. The maintainer requests

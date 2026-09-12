@@ -39,7 +39,7 @@ const MAX_LABEL_BYTES: usize = 1_024;
 const MAX_PATH_BYTES: usize = 512;
 const MAX_ANCHOR_BYTES: usize = 512;
 const MAX_RATIONALE_BYTES: usize = 4 * 1024;
-const MAX_EVIDENCE_LIMIT_BYTES: usize = 2 * 1024;
+pub(crate) const MAX_EVIDENCE_LIMIT_BYTES: usize = 2 * 1024;
 const MAX_GRAPH_SNAPSHOT_BYTES: usize = 4 * 1024 * 1024;
 const MAX_GRAPH_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
 
@@ -1225,6 +1225,10 @@ fn locate_project_artifact_anchor(
     format: ProjectArtifactFormat,
     anchor: &str,
 ) -> Option<usize> {
+    if let Some(id) = anchor.strip_prefix("decision:") {
+        return crate::academic_graph_extract::decision_log_anchor_line(source, id)
+            .and_then(|line| project_artifact_line_offset(source, line));
+    }
     let structured = (|| {
         if format == ProjectArtifactFormat::Csv
             && let Some(line) =
@@ -1527,7 +1531,7 @@ fn parse_semantic_records_inner(
     })
 }
 
-fn node_id(
+pub(crate) fn node_id(
     project_id: &ProjectId,
     node_type: AcademicGraphNodeType,
     identity_scope: AcademicGraphIdentityScope,
@@ -2055,6 +2059,198 @@ mod tests {
             assert_eq!(edge.status, AcademicGraphEdgeStatus::Observed);
             assert_eq!(edge.created_from_capture, None);
         }
+    }
+
+    #[test]
+    fn reviewed_evidence_chain_preserves_limits_sources_and_revision_boundaries() {
+        let fixture = Fixture::new();
+        fs::create_dir_all(fixture.project_root.join("notes")).unwrap();
+        fs::create_dir_all(fixture.project_root.join("evidence")).unwrap();
+        let original =
+            "# Reading note\nTable 2: a positive association in one setting, not causality.\n";
+        let note_path = fixture.project_root.join("notes/source.md");
+        fs::write(&note_path, original).unwrap();
+        // Supplied synthetic normalization, not a claimed automatic semantic reading.
+        let header = "claim_id,claim_text,claim_type,evidence_type,source_id,source_location,artifact_path,confidence,limitations,status";
+        let support = "C1,A positive association,finding,paper,Example2026,Table 2,notes/source.md,medium,One setting; not causality,supported";
+        let gap = "C2,Causality is unresolved,limitation,gap_note,,,context/gap_notes.md,low,No identification,needs_evidence";
+        let ledger = fixture
+            .project_root
+            .join("evidence/claim-evidence-ledger.csv");
+        fs::write(&ledger, format!("{header}\n{support}\n{gap}\n{support}\n")).unwrap();
+        let decisions = fixture.project_root.join("context/decision_log.md");
+        fs::write(&decisions, "| Decision ID | Status | Decision | Related Claims |\n|---|---|---|---|\n| DEC-1 | locked | Retain the association limit | C1 |\n").unwrap();
+        fixture.refresh(2);
+        let first = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        let edges = first
+            .edges
+            .iter()
+            .filter(|edge| edge.relation == AcademicGraphRelation::Supports)
+            .collect::<Vec<_>>();
+        assert_eq!(edges.len(), 1);
+        let support_id = edges[0].edge_id.clone();
+        assert_eq!(edges[0].evidence_limit, "One setting; not causality");
+        let read = |graph: &AcademicGraphSnapshotV1, kind, id: &str| {
+            fixture.graph.read_graph_artifact(
+                &fixture.project_id,
+                graph.project_revision,
+                &graph.projection_id,
+                kind,
+                id,
+                1024,
+            )
+        };
+        let evidence = read(&first, AcademicGraphEntityKind::Edge, &support_id).unwrap();
+        assert!(evidence.anchor_matched);
+        assert!(evidence.content.contains(support));
+        assert_eq!(evidence.anchor_line, Some(2));
+        let decision = first
+            .nodes
+            .iter()
+            .find(|node| node.canonical_id == "DEC-1")
+            .unwrap();
+        let view = read(&first, AcademicGraphEntityKind::Node, &decision.node_id).unwrap();
+        assert!(view.anchor_matched);
+        assert_eq!(view.anchor_line, Some(3));
+        let decision_edge = first
+            .edges
+            .iter()
+            .find(|edge| edge.relation == AcademicGraphRelation::Informs)
+            .unwrap();
+        assert_eq!(decision_edge.source_node_id, decision.node_id);
+        assert_eq!(decision_edge.status, AcademicGraphEdgeStatus::Reviewed);
+        assert!(
+            decision_edge
+                .evidence_limit
+                .contains("not supporting evidence")
+        );
+        assert_eq!(
+            read(
+                &first,
+                AcademicGraphEntityKind::Edge,
+                &decision_edge.edge_id
+            )
+            .unwrap()
+            .anchor_line,
+            Some(3)
+        );
+        assert!(
+            first
+                .diagnostics
+                .iter()
+                .any(|item| item.related_id.as_deref() == Some("C2"))
+        );
+        fs::write(&ledger, format!("{header}\n{gap}\n{support}\n")).unwrap();
+        // Markdown and CSV use the same identities and exact decision locator.
+        fs::write(&decisions, "decision_id,status,decision,related_claims\nDEC-1,locked,Retain the association limit,C1\n").unwrap();
+        assert!(matches!(
+            read(&first, AcademicGraphEntityKind::Edge, &support_id),
+            Err(ProjectError::RevisionConflict)
+        ));
+        fixture.refresh(3);
+        let second = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        assert!(second.edges.iter().any(|edge| edge.edge_id == support_id));
+        assert!(
+            second
+                .edges
+                .iter()
+                .any(|edge| edge.edge_id == decision_edge.edge_id)
+        );
+        assert_eq!(
+            read(
+                &second,
+                AcademicGraphEntityKind::Edge,
+                &decision_edge.edge_id
+            )
+            .unwrap()
+            .anchor_line,
+            Some(2)
+        );
+        let reordered = read(&second, AcademicGraphEntityKind::Edge, &support_id).unwrap();
+        assert_eq!(reordered.anchor_line, Some(3));
+        assert!(reordered.content.contains(support));
+        assert!(matches!(
+            read(&first, AcademicGraphEntityKind::Edge, &support_id),
+            Err(ProjectError::RevisionConflict)
+        ));
+        assert_eq!(fs::read_to_string(note_path).unwrap(), original);
+        // A long or multiline limit stays in the source; it must not erase valid support.
+        for (index, limit) in [
+            "x".repeat(MAX_EVIDENCE_LIMIT_BYTES + 1),
+            "Line one\nLine two".to_string(),
+        ]
+        .iter()
+        .enumerate()
+        {
+            fs::write(&ledger, format!("{header}\nC1,A positive association,finding,paper,Example2026,Table 2,notes/source.md,medium,\"{limit}\",supported\n")).unwrap();
+            fixture.refresh(4 + index as u64);
+            let graph = fixture.graph.rebuild(&fixture.project_id).unwrap();
+            let edge = graph
+                .edges
+                .iter()
+                .find(|edge| edge.edge_id == support_id)
+                .unwrap();
+            assert!(edge.evidence_limit.contains("full source record"));
+        }
+    }
+
+    #[test]
+    fn decision_claim_links_reject_ambiguity_and_keep_tentative_decisions_proposed() {
+        let fixture = Fixture::new();
+        fs::create_dir_all(fixture.project_root.join("evidence")).unwrap();
+        fs::write(fixture.project_root.join("evidence/claim-evidence-ledger.csv"), "claim_id,claim_text,claim_type,evidence_type,source_id,source_location,artifact_path,confidence,limitations,status\nC1,An unresolved claim,finding,gap_note,,,notes/gap.md,unknown,No evidence,needs_evidence\n").unwrap();
+        fs::write(fixture.project_root.join("context/decision_log.md"), "decision_id,status,decision,related_claims\nD1,tentative,Consider narrowing,C1\nD2,blocked,Await author response,C1\nD3,revisit-after-H,Recheck venue fit,C1\nD4,unknown,Invalid status,C1\nD5,,Unrecorded status,C1\nD6,locked,Duplicate decision,C1\nD6,locked,Conflicting decision,C1\nD7,locked,Invalid claim reference,../C1\nD8,locked,Missing claim,ABSENT\nD9,locked,Legacy decision,\n").unwrap();
+        fixture.refresh(2);
+        let graph = fixture.graph.rebuild(&fixture.project_id).unwrap();
+        let links = graph
+            .edges
+            .iter()
+            .filter(|edge| edge.relation == AcademicGraphRelation::Informs)
+            .collect::<Vec<_>>();
+        assert_eq!(links.len(), 3);
+        assert!(
+            links
+                .iter()
+                .all(|edge| edge.status == AcademicGraphEdgeStatus::Proposed)
+        );
+        assert!(
+            !graph
+                .edges
+                .iter()
+                .any(|edge| edge.relation == AcademicGraphRelation::Supports)
+        );
+        for id in ["D4", "D5", "D6", "D7"] {
+            assert!(
+                graph
+                    .diagnostics
+                    .iter()
+                    .any(|item| item.related_id.as_deref() == Some(id)),
+                "missing diagnostic for {id}"
+            );
+        }
+        assert!(
+            graph
+                .diagnostics
+                .iter()
+                .any(|item| item.code == AcademicGraphDiagnosticCode::DanglingNode)
+        );
+        let duplicate = graph
+            .nodes
+            .iter()
+            .find(|node| node.canonical_id == "D6")
+            .unwrap();
+        let read = fixture
+            .graph
+            .read_graph_artifact(
+                &fixture.project_id,
+                graph.project_revision,
+                &graph.projection_id,
+                AcademicGraphEntityKind::Node,
+                &duplicate.node_id,
+                1024,
+            )
+            .unwrap();
+        assert!(!read.anchor_matched);
     }
 
     #[test]

@@ -47,7 +47,7 @@ complete. Never widen access to other projects or private libraries implicitly.
 | Literature synthesis | Concept Streams, Evidence Gaps and Inter-Cluster Relationships in the same map; leave inferred relations `proposed` |
 | Findings, theory and analysis outputs | `evidence/claim-evidence-ledger.csv`; one row per claim/source/location, retaining the source artifact |
 | Manuscript claims and citations | `manuscript/claims_evidence_map.md`; reuse ledger claim IDs and the same atomic claim wording |
-| Research framing and decisions | Stable fields/tables in research state, idea funnel, decision log or boundary review |
+| Research framing and decisions | Stable fields/tables in research state, idea funnel, decision log or boundary review; optional decision-log `Related Claims` links existing claims with `informs` |
 
 Reuse project-wide claim IDs: a reading note's local `C1` is not automatically
 the manuscript's `C1`. Match the actual claim before reusing an ID; allocate a
@@ -139,3 +139,27 @@ Report:
 Do not call the graph connected when it contains only structural nodes or
 `contains` edges. If diagnostics remain, identify the next minimum canonical
 repair instead of silently broadening or fabricating the research record.
+
+## Present and inspect the result
+
+Use `graph snapshot --text` for a concise chat/terminal summary; retain `--json`
+when another Agent needs the complete revision-bound projection. For visual
+inspection, `qiongli project graph view --project-id <prj_id>` emits a standalone
+offline HTML page on stdout. Saving it is an explicit export: choose a new file
+and use the authorized file-write path. The CLI does not launch a server or
+browser, overwrite project records, or keep the page live.
+
+The page offers record search, a bounded local neighborhood, relation status,
+evidence limits and diagnostics. Selecting a node or edge gives an exact
+`qiongli project graph source` command with project revision, projection ID and
+entity ID. It reuses the bounded registered-artifact reader; it does not silently
+open every raw note or PDF. Inspect the returned record, then follow its original
+file/section/page reference within the authorized scope. Stale commands require
+refresh/rebuild, not a bypass of the source check.
+
+Keep stage snapshots alongside the existing handoff/summary when requested. The
+HTML's explicit JSON download retains this projection; it does not replace the
+canonical records, preserve all raw material, or implement project rollback.
+Keep earlier snapshots and their source records. Graph export grants no deletion
+authority. Neither a count of reviewed edges nor a connected diagram proves the
+research claim; report the actual evidence and remaining limits.

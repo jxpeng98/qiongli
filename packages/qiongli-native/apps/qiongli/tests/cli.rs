@@ -1528,6 +1528,52 @@ fn project_graph_cli_rebuilds_and_queries_without_writing_index_state() {
         .unwrap();
     assert_eq!(snapshot_json["command"], "project-graph-snapshot");
 
+    let summary = run_configured(
+        &fixture,
+        &[
+            "project",
+            "graph",
+            "snapshot",
+            "--project-id",
+            project_id.as_str(),
+            "--text",
+        ],
+    );
+    assert!(summary.status.success(), "{}", public_output(&summary));
+    assert!(String::from_utf8_lossy(&summary.stdout).contains("Research Graph — revision"));
+    assert!(String::from_utf8_lossy(&summary.stdout).contains("graph view"));
+    let html = fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), &fixture)
+        .env("PATH", "")
+        .args([
+            "project",
+            "graph",
+            "view",
+            "--project-id",
+            project_id.as_str(),
+        ])
+        .output()
+        .unwrap();
+    assert!(html.status.success(), "{}", public_output(&html));
+    let html_text = String::from_utf8(html.stdout).unwrap();
+    assert!(html_text.starts_with("<!doctype html>"));
+    assert!(html_text.contains(projection_id));
+    assert!(html_text.contains("Which exposure changes returns?"));
+    assert!(html_text.contains("connect-src 'none'"));
+    for flag in ["--json", "--text"] {
+        let invalid = run_configured(
+            &fixture,
+            &[
+                "project",
+                "graph",
+                "view",
+                "--project-id",
+                project_id.as_str(),
+                flag,
+            ],
+        );
+        assert!(!invalid.status.success());
+    }
+
     let artifact = run_configured(
         &fixture,
         &[
@@ -1567,6 +1613,36 @@ fn project_graph_cli_rebuilds_and_queries_without_writing_index_state() {
     );
     assert_eq!(artifact_json["artifact"]["anchorLine"], 1);
     assert_eq!(artifact_json["artifact"]["anchorMatched"], true);
+    let source_args = [
+        "project",
+        "graph",
+        "source",
+        "--project-id",
+        project_id.as_str(),
+        "--expected-project-revision",
+        &project_revision_text,
+        "--expected-projection-id",
+        projection_id,
+        "--node-id",
+        node_id,
+    ];
+    let source = run_configured(&fixture, &source_args);
+    assert!(source.status.success(), "{}", public_output(&source));
+    assert_eq!(parse_json(&source), artifact_json);
+    let mut text_args = source_args.to_vec();
+    text_args.push("--text");
+    let text_source = run_configured(&fixture, &text_args);
+    assert!(
+        text_source.status.success(),
+        "{}",
+        public_output(&text_source)
+    );
+    assert!(
+        String::from_utf8_lossy(&text_source.stdout).contains("    1  - main_question_or_thesis:")
+    );
+    let mut invalid_args = source_args.to_vec();
+    invalid_args.extend(["--edge-id", node_id]);
+    assert!(!run_configured(&fixture, &invalid_args).status.success());
     assert!(
         artifact_json["artifact"]["content"]
             .as_str()
@@ -1578,8 +1654,9 @@ fn project_graph_cli_rebuilds_and_queries_without_writing_index_state() {
     let stale_artifact = run_configured(
         &fixture,
         &[
-            "app",
-            "read-project-artifact",
+            "project",
+            "graph",
+            "source",
             "--project-id",
             project_id.as_str(),
             "--expected-project-revision",

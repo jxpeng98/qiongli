@@ -241,8 +241,12 @@ fn extract_decision_log(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAcadem
             return projection;
         }
     };
+    let mut counts = BTreeMap::new();
+    for row in &rows {
+        *counts.entry(row.decision_id.trim()).or_insert(0) += 1;
+    }
     let mut seen = BTreeMap::new();
-    for row in rows {
+    for row in &rows {
         let decision_id = row.decision_id.trim();
         let decision = row.decision.trim();
         let anchor = format!("row:{}", row.line_number);
@@ -270,7 +274,9 @@ fn extract_decision_log(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAcadem
             ));
             continue;
         }
-        if !row.status.is_empty() && !valid_decision_status(&row.status) {
+        if (!row.status.is_empty() || !row.related_claims.is_empty())
+            && !valid_decision_status(&row.status)
+        {
             projection.diagnostics.push(diagnostic(
                 AcademicGraphDiagnosticCode::AmbiguousRelation,
                 DECISION_LOG_PATH,
@@ -291,6 +297,70 @@ fn extract_decision_log(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAcadem
             DECISION_LOG_PATH,
             format!("decision:{decision_id}"),
         );
+        // Ambiguous identities and statuses must never produce reviewed relations.
+        if counts[decision_id] != 1 || !valid_decision_status(&row.status) {
+            continue;
+        }
+        let claims = match reference_list(&row.related_claims) {
+            Ok(claims) => claims,
+            Err(()) => {
+                projection.diagnostics.push(diagnostic(
+                    AcademicGraphDiagnosticCode::AmbiguousRelation,
+                    DECISION_LOG_PATH,
+                    Some(&anchor),
+                    Some(decision_id),
+                ));
+                continue;
+            }
+        };
+        for claim in claims {
+            let edge = (|| {
+                let source = crate::academic_graph::node_id(
+                    project_id,
+                    AcademicGraphNodeType::Decision,
+                    AcademicGraphIdentityScope::Project,
+                    decision_id,
+                )?;
+                let target = crate::academic_graph::node_id(
+                    project_id,
+                    AcademicGraphNodeType::Claim,
+                    AcademicGraphIdentityScope::Project,
+                    &claim,
+                )?;
+                AcademicGraphEdgeV1::new(
+                    project_id,
+                    &source,
+                    AcademicGraphRelation::Informs,
+                    &target,
+                    vec![
+                        AcademicGraphLayer::IdeaDecision,
+                        AcademicGraphLayer::Argument,
+                        AcademicGraphLayer::Combined,
+                    ],
+                    "The decision log explicitly identifies this claim as affected by the decision.",
+                    DECISION_LOG_PATH,
+                    format!("decision:{decision_id}"),
+                    "A review or venue decision is not supporting evidence. Inspect its rationale, evidence basis and manuscript impact in the decision log.",
+                    AcademicInferenceStrength::ReasonableInference,
+                    AcademicGraphConfidence::Unknown,
+                    if row.status.trim().eq_ignore_ascii_case("locked") {
+                        AcademicGraphEdgeStatus::Reviewed
+                    } else {
+                        AcademicGraphEdgeStatus::Proposed
+                    },
+                    None,
+                )
+            })();
+            match edge {
+                Ok(edge) => projection.edges.push(edge),
+                Err(_) => projection.diagnostics.push(diagnostic(
+                    AcademicGraphDiagnosticCode::UnsupportedRelation,
+                    DECISION_LOG_PATH,
+                    Some(&anchor),
+                    Some(decision_id),
+                )),
+            }
+        }
     }
     projection
 }
@@ -300,6 +370,7 @@ struct DecisionRow {
     decision_id: String,
     status: String,
     decision: String,
+    related_claims: String,
 }
 
 fn decision_rows(text: &str) -> Result<Vec<DecisionRow>, &'static str> {
@@ -319,6 +390,7 @@ fn decision_rows(text: &str) -> Result<Vec<DecisionRow>, &'static str> {
             continue;
         };
         let status_index = normalized.iter().position(|cell| cell == "status");
+        let claims_index = normalized.iter().position(|cell| cell == "related_claims");
         let mut rows = Vec::new();
         for (row_index, line) in lines.iter().enumerate().skip(index + 1) {
             let Some(cells) = markdown_cells(line) else {
@@ -341,6 +413,9 @@ fn decision_rows(text: &str) -> Result<Vec<DecisionRow>, &'static str> {
                     .cloned()
                     .unwrap_or_default(),
                 decision: cells[decision_index].clone(),
+                related_claims: claims_index
+                    .map(|position| cells[position].clone())
+                    .unwrap_or_default(),
             });
         }
         return Ok(rows);
@@ -364,6 +439,9 @@ fn decision_rows(text: &str) -> Result<Vec<DecisionRow>, &'static str> {
         .position(|field| field == "decision")
         .ok_or("header")?;
     let status_index = normalized.iter().position(|field| field == "status");
+    let claims_index = normalized
+        .iter()
+        .position(|field| field == "related_claims");
     let header_len = header.fields.len();
     let mut rows = Vec::new();
     for record in records.into_iter().skip(1) {
@@ -378,9 +456,19 @@ fn decision_rows(text: &str) -> Result<Vec<DecisionRow>, &'static str> {
                 .cloned()
                 .unwrap_or_default(),
             decision: record.fields[decision_index].clone(),
+            related_claims: claims_index
+                .map(|position| record.fields[position].clone())
+                .unwrap_or_default(),
         });
     }
     Ok(rows)
+}
+
+pub(crate) fn decision_log_anchor_line(text: &str, id: &str) -> Option<usize> {
+    let rows = decision_rows(text).ok()?;
+    let mut matches = rows.iter().filter(|row| row.decision_id.trim() == id);
+    let line = matches.next()?.line_number;
+    matches.next().is_none().then_some(line)
 }
 
 fn extract_idea_funnel(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAcademicGraph {
@@ -1651,7 +1739,13 @@ fn extract_evidence_ledger(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAca
             "The canonical claim-evidence ledger records this source as supporting evidence.",
             EVIDENCE_LEDGER_PATH,
             &support_anchor,
-            "Evidence limitations remain authoritative in the claim-evidence ledger.",
+            if fields[8].is_empty() {
+                "No evidence limitations recorded; inspect the source before generalizing."
+            } else if valid_text(fields[8], crate::academic_graph::MAX_EVIDENCE_LIMIT_BYTES) {
+                fields[8]
+            } else {
+                "Evidence limitations need the full source record; inspect it before interpreting this relation."
+            },
             AcademicInferenceStrength::DirectEvidence,
             graph_confidence,
             AcademicGraphEdgeStatus::Reviewed,

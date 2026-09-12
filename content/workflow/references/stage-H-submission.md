@@ -85,6 +85,16 @@ the research, explain the conflict and offer re-scoping or venue alternatives.
 Carry the chosen venue and source basis into the existing writing and H1 artifacts;
 recheck affected requirements when target/type/stage changes or before submission.
 
+When a formal review or venue choice changes an existing project's claims,
+follow [Academic Graph continuity](academic-graph-continuity.md). Propose the
+smallest decision-log update: stable decision ID, current status, report and
+issue/section locator, rationale, manuscript impact, and optional `Related Claims`
+using existing claim IDs. A `locked` decision means the choice is confirmed;
+finishing a review does not lock its recommendations. Unresolved choices remain
+tentative, blocked or revisit-after-stage. The Graph relation is `informs`, never
+supporting evidence. Use the existing preview/approval path for any saved change;
+a narrow chat answer does not require a graph update.
+
 ### Review against evidence and consequences
 
 For each issue record manuscript location, evidence, applicable methodological or

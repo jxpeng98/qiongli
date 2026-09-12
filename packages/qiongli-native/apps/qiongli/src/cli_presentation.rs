@@ -34,6 +34,11 @@ pub fn prepare_cli_action(
     if text_mode.is_some() && args.is_empty() {
         args.push("--help".into());
     }
+    if text_mode.is_some() && args.starts_with(&["project".into(), "graph".into(), "view".into()]) {
+        return ProductAction::Output(CliOutput::usage_text(
+            "graph view emits HTML; use graph snapshot for --json or --text",
+        ));
+    }
     let readable = text_mode.unwrap_or(terminal);
     if args == [OsString::from("paths")] && (readable || text_mode == Some(false)) {
         args.push("--json".into());
@@ -120,9 +125,87 @@ fn readable_output(output: CliOutput) -> CliOutput {
     let Ok(value) = serde_json::from_str::<Value>(output.stdout()) else {
         return output;
     };
+    if value["artifact"]["documentKind"] == "qiongli-project-artifact-view" {
+        let artifact = &value["artifact"];
+        let mut text = format!(
+            "{} — revision {}\n",
+            scalar(&artifact["artifactPath"]),
+            scalar(&artifact["projectRevision"])
+        );
+        row(&mut text, "Anchor matched", &artifact["anchorMatched"]);
+        row(&mut text, "Source digest", &artifact["contentDigest"]);
+        if artifact["truncatedBefore"] == true || artifact["truncatedAfter"] == true {
+            text.push_str("Bounded excerpt; some source content is omitted.\n");
+        }
+        let start = artifact["startLine"].as_u64().unwrap_or(1);
+        for (offset, line) in artifact["content"]
+            .as_str()
+            .unwrap_or("")
+            .lines()
+            .enumerate()
+        {
+            text.push_str(&format!("{:>5}  {}\n", start + offset as u64, safe(line)));
+        }
+        return output.with_stdout(text);
+    }
     let command = value["command"].as_str().unwrap_or("result");
     let mut text = String::new();
     match command {
+        "project-graph-snapshot" => {
+            let graph = &value["snapshot"];
+            let readiness = &value["readiness"];
+            text.push_str(&format!(
+                "Research Graph — revision {}\n\n",
+                scalar(&graph["projectRevision"])
+            ));
+            row(&mut text, "Projection state", &readiness["state"]);
+            row(
+                &mut text,
+                "Semantic records",
+                &readiness["semanticNodeCount"],
+            );
+            row(
+                &mut text,
+                "Sources present",
+                &readiness["presentSourceCount"],
+            );
+            row(
+                &mut text,
+                "Sources missing",
+                &readiness["missingSourceCount"],
+            );
+            let edges = array(&graph["edges"]);
+            let semantic = edges
+                .iter()
+                .filter(|edge| edge["relation"] != "contains")
+                .count();
+            text.push_str(&format!(
+                "  Scholarly relations: {semantic}\n  Diagnostics: {}\n",
+                array(&graph["diagnostics"]).len()
+            ));
+            text.push_str("\nClaims (up to 5; counts are recorded relationships, not scientific validation):\n");
+            for node in array(&graph["nodes"])
+                .iter()
+                .filter(|node| node["nodeType"] == "claim")
+                .take(5)
+            {
+                let supports = edges
+                    .iter()
+                    .filter(|edge| {
+                        edge["targetNodeId"] == node["nodeId"]
+                            && edge["relation"] == "supports"
+                            && edge["status"] == "reviewed"
+                    })
+                    .count();
+                text.push_str(&format!(
+                    "  {}: {}\n    Reviewed support records: {supports}\n",
+                    scalar(&node["canonicalId"]),
+                    scalar(&node["label"])
+                ));
+            }
+            row(&mut text, "Projection", &graph["projectionId"]);
+            text.push_str(&format!("\nView: qiongli project graph view --project-id {} > research-graph.html\nUse a new output file. --json retains the complete snapshot; source commands are available in the view.\n", scalar(&graph["projectId"])));
+        }
         "status" => {
             text.push_str(&format!(
                 "Qiongli {}\n\n",

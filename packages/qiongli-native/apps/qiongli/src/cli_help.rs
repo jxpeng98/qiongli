@@ -121,7 +121,11 @@ pub(crate) fn topic(args: &[OsString]) -> Option<String> {
     }
     // Graph query help also needs the filter names and limits.
     let mut output = format!("Usage:\n{}\n", lines.join("\n"));
-    if words.starts_with(&["project", "graph"]) {
+    if words == ["project", "graph", "view"] {
+        output.push_str("\nEmits a self-contained offline HTML snapshot to stdout. Save it to a new .html file\nand open it in a browser. No project writes, server, or extra runtime.\nRe-export after source changes. Use graph snapshot for --json or --text.\n");
+        return Some(output);
+    }
+    if words == ["project", "graph"] || words == ["project", "graph", "query"] {
         output.push_str("\nGraph filters:\n  --focus-node-id <nod_id> --direction <incoming|outgoing|both>\n  --max-depth <1..3> (requires --focus-node-id)\n  --node-type <type> --relation <relation> --layer <layer>\n  --canonical-id <id> --text <text> --max-nodes <1..256> --max-edges <1..512>\n");
     }
     output.push_str("\nUse --json for complete structured results. Preview and approval requirements still apply.\n");

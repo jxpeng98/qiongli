@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Qiongli · Research Graph</title>
+<style>
+:root{color-scheme:light dark;--paper:#f6f5f1;--panel:#fff;--ink:#242c29;--muted:#5d6863;--line:#d9ddd7;--accent:#28644c;--tint:#eaf1e9}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 system-ui,sans-serif}header,main,footer{max-width:1380px;margin:auto;padding:24px 32px}header{border-bottom:1px solid var(--line)}h1{font-size:30px;letter-spacing:-.7px;margin:4px 0}h2{font-size:18px;margin:0 0 12px}h3{font-size:15px}p{margin:8px 0}.muted,small{color:var(--muted)}.eyebrow{font-size:12px;letter-spacing:1.6px;text-transform:uppercase}#metrics{display:flex;gap:12px 24px;flex-wrap:wrap;margin-top:18px}#metrics span{border-left:2px solid var(--accent);padding-left:10px}
+main{display:grid;grid-template-columns:260px minmax(0,1fr);gap:24px}section,aside{min-width:0}input,button{font:inherit;color:inherit}input{width:100%;padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:5px}button{cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:8px 12px;text-align:left}button:hover{border-color:var(--accent)}:focus-visible{outline:3px solid var(--accent);outline-offset:3px}#nodes{list-style:none;margin:12px 0;padding:0;max-height:690px;overflow:auto}#nodes li{margin-bottom:6px}#nodes button{width:100%;overflow-wrap:anywhere}#nodes button[aria-pressed=true]{background:var(--tint);border-color:var(--accent)}#nodes small{display:block}.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px;margin-bottom:16px}.title-row{display:flex;gap:12px;align-items:center;justify-content:space-between}svg{width:100%;height:auto;min-height:200px}svg line{stroke:var(--line);stroke-width:2}svg circle{fill:var(--tint);stroke:var(--accent);stroke-width:1.5}svg text{fill:var(--ink);font-size:12px;text-anchor:middle}svg [role=button]{cursor:pointer}dl{display:grid;grid-template-columns:135px minmax(0,1fr);gap:8px 12px}dt{color:var(--muted)}dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}#relations{display:grid;gap:6px}code{font:12px/1.7 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;display:block;background:var(--paper);padding:12px;border-radius:5px}#diagnostics li{margin-bottom:8px;overflow-wrap:anywhere}footer{font-size:13px;border-top:1px solid var(--line)}[hidden]{display:none!important}
+@media(max-width:760px){header,main,footer{padding:18px}main{grid-template-columns:1fr}#nodes{max-height:230px}dl{grid-template-columns:1fr;gap:2px}dd{margin-bottom:8px}.title-row{align-items:flex-start}}
+@media(prefers-color-scheme:dark){:root{--paper:#181e1b;--panel:#222a25;--ink:#e6ece6;--muted:#b0bdb3;--line:#47534b;--accent:#95c6a8;--tint:#2f4436}}
+</style>
+<header>
+  <div class="eyebrow">Qiongli / local research record</div>
+  <h1>Research Graph</h1>
+  <p id="project"></p>
+  <p class="muted">An exported snapshot, not a live view. Re-export after changing sources. Nothing on this page writes to your project.</p>
+  <div id="metrics"></div>
+</header>
+<main>
+  <aside aria-label="Research records">
+    <h2>Explore records</h2>
+    <label for="search">Find a claim, source or decision</label>
+    <input id="search" type="search" placeholder="Search label, ID or type">
+    <p id="count" class="muted" aria-live="polite"></p>
+    <ul id="nodes"></ul>
+  </aside>
+  <section aria-label="Selected record">
+    <div class="panel">
+      <div class="title-row"><h2 id="selected" tabindex="-1">Select a record</h2><button id="download" type="button">Save snapshot JSON</button></div>
+      <p id="scope" class="muted"></p>
+      <svg id="map" viewBox="0 0 760 400" role="group" aria-label="Selected record and its neighbors"></svg>
+      <div id="relations" aria-label="Relations"></div>
+    </div>
+    <div class="panel" id="detail" aria-live="polite">
+      <h2 id="detail-title">Record details</h2>
+      <dl id="fields"></dl>
+      <h3>Inspect the recorded source</h3>
+      <p class="muted">Run this command in Qiongli. It reads a bounded excerpt from the registered project record and checks its revision. Follow the record’s file and location references to the original material within your authorized scope.</p>
+      <code id="source"></code>
+      <p class="muted">A reviewed relation records a workflow decision; it does not prove that a claim is true. Decisions inform claims and do not count as supporting evidence.</p>
+    </div>
+    <details class="panel" open>
+      <summary id="diagnostic-title">Source checks</summary>
+      <ul id="diagnostics"></ul>
+      <p class="muted">Missing records and unsupported claims stay visible. A complete source set alone does not establish research quality.</p>
+    </details>
+  </section>
+</main>
+<footer><p id="identity"></p><p>This file contains project labels, relations and source pointers. Share it only with people allowed to see those records. No external scripts, fonts or services are loaded.</p></footer>
+<script id="graph-data" type="application/json">__QIONGLI_GRAPH_DATA__</script>
+<script>
+'use strict';
+const {snapshot:g,readiness:r}=JSON.parse(document.getElementById('graph-data').textContent);
+const $=id=>document.getElementById(id);
+const el=(tag,text)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node};
+const svg=(tag,attrs,text)=>{const node=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,String(value));if(text!==undefined)node.textContent=text;return node};
+const nodes=new Map(g.nodes.map(n=>[n.nodeId,n]));
+const semantic=g.nodes.filter(n=>!['project','artifact'].includes(n.nodeType));
+const edges=g.edges.filter(e=>e.relation!=='contains');
+const adjacency=new Map();
+for(const edge of edges)for(const id of new Set([edge.sourceNodeId,edge.targetNodeId])){if(!adjacency.has(id))adjacency.set(id,[]);adjacency.get(id).push(edge)}
+let selected=null;
+$('project').textContent=`${g.nodes.find(n=>n.nodeType==='project')?.label||g.projectId} · Revision ${g.projectRevision} · ${r.state}`;
+for(const text of [`${semantic.length} research records`,`${edges.length} relations`,`${g.presentSourceCount}/${g.sourceCount} source records present`,`${g.diagnosticCount} diagnostics`])$('metrics').append(el('span',text));
+$('identity').textContent=`Snapshot ${g.projectionId}`;
+$('diagnostic-title').textContent=`Source checks · ${g.diagnosticCount} diagnostics`;
+for(const d of g.diagnostics)$('diagnostics').append(el('li',[d.code,d.artifactPath,d.sourceAnchor,d.relatedId].filter(Boolean).join(' · ')));
+for(const source of r.sources)if(source.state!=='present'||source.freshness!=='fresh')$('diagnostics').append(el('li',`${source.artifactPath} · ${source.state} · ${source.freshness}`));
+if(!g.diagnostics.length)$('diagnostics').append(el('li','No projection diagnostics. Check the underlying evidence before drawing conclusions.'));
+function detail(record,isEdge=false){
+  $('detail-title').textContent=isEdge?'Relation details':'Record details';
+  const fields=isEdge?[['Relation',record.relation],['From',nodes.get(record.sourceNodeId)?.label],['To',nodes.get(record.targetNodeId)?.label],['Status',record.status],['Rationale',record.rationale],['Evidence limit',record.evidenceLimit],['Inference',record.inferenceStrength],['Confidence',record.confidence]]:[['Type',record.nodeType],['ID',record.canonicalId],['Label',record.label]];
+  fields.push(['Source record',record.artifactPath],['Anchor',record.sourceAnchor]);
+  $('fields').replaceChildren();
+  for(const [key,value] of fields){$('fields').append(el('dt',key),el('dd',value||'Not recorded'))}
+  const id=isEdge?record.edgeId:record.nodeId;
+  // Only validated identifiers enter the command; labels and file paths never do.
+  const valid=/^prj_[a-zA-Z0-9_-]+$/.test(g.projectId)&&/^grp_[a-f0-9]{64}$/.test(g.projectionId)&&/^(nod|edg)_[a-f0-9]{64}$/.test(id)&&Number.isSafeInteger(g.projectRevision)&&g.projectRevision>0;
+  $('source').textContent=valid?`qiongli project graph source --project-id ${g.projectId} --expected-project-revision ${g.projectRevision} --expected-projection-id ${g.projectionId} --${isEdge?'edge':'node'}-id ${id}`:'Source command unavailable: invalid snapshot identifiers.';
+  $('detail').hidden=false;
+}
+function renderList(){
+  const query=$('search').value.trim().toLowerCase();
+  const found=semantic.filter(n=>`${n.label} ${n.canonicalId} ${n.nodeType}`.toLowerCase().includes(query));
+  $('count').textContent=`${found.length} matching records${found.length>100?' · showing the first 100; refine your search':''}`;
+  $('nodes').replaceChildren();
+  // ponytail: cap the rendered list; add pagination only when search is insufficient.
+  for(const n of found.slice(0,100)){const li=el('li'),button=el('button',n.label);button.type='button';button.setAttribute('aria-pressed',String(n.nodeId===selected));button.append(el('small',`${n.nodeType} · ${n.canonicalId}`));button.addEventListener('click',()=>select(n,true));li.append(button);$('nodes').append(li)}
+}
+function select(n,focus=false){
+  selected=n.nodeId;renderList();detail(n);$('selected').textContent=n.label;
+  const related=adjacency.get(n.nodeId)||[];
+  const neighbors=[...new Set(related.flatMap(e=>[e.sourceNodeId,e.targetNodeId]))].filter(id=>id!==n.nodeId);
+  // ponytail: show a bounded local neighborhood, not a whole-project force layout.
+  const visible=neighbors.slice(0,12),allowed=new Set([n.nodeId,...visible]);
+  const shown=related.filter(e=>allowed.has(e.sourceNodeId)&&allowed.has(e.targetNodeId)).slice(0,40);
+  $('scope').textContent=`${neighbors.length} neighbors · ${related.length} relations. Showing ${visible.length} neighbors and ${shown.length} relations. Select a neighbor to explore further.`;
+  const points=new Map([[n.nodeId,[380,200]]]);
+  visible.forEach((id,i)=>{const angle=2*Math.PI*i/visible.length;points.set(id,[380+265*Math.cos(angle),200+155*Math.sin(angle)])});
+  $('map').replaceChildren();$('relations').replaceChildren();
+  for(const e of shown){const a=points.get(e.sourceNodeId),b=points.get(e.targetNodeId);$('map').append(svg('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1]}));const button=el('button',`${nodes.get(e.sourceNodeId)?.canonicalId} → ${e.relation} → ${nodes.get(e.targetNodeId)?.canonicalId} · ${e.status}`);button.type='button';button.addEventListener('click',()=>detail(e,true));$('relations').append(button)}
+  for(const [id,[x,y]] of points){const item=nodes.get(id);if(!item)continue;const group=svg('g',{role:'button',tabindex:0,'aria-label':`${item.nodeType}: ${item.label}`});group.append(svg('title',{},item.label),svg('circle',{cx:x,cy:y,r:id===n.nodeId?32:24}),svg('text',{x,y:y+4},item.canonicalId.length>18?item.canonicalId.slice(0,17)+'…':item.canonicalId),svg('text',{x,y:y+46},item.nodeType));group.addEventListener('click',()=>select(item,true));group.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();select(item,true)}});$('map').append(group)}
+  if(!related.length)$('relations').append(el('p','No semantic relations are recorded for this item.'));
+  if(focus)$('selected').focus({preventScroll:true});
+}
+$('search').addEventListener('input',renderList);
+$('download').addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([JSON.stringify({snapshot:g,readiness:r},null,2)],{type:'application/json'}));const link=el('a');link.href=url;link.download=`research-graph-r${g.projectRevision}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+renderList();
+if(semantic.length)select(semantic.find(n=>n.nodeType==='claim')||semantic[0]);
+else{$('detail').hidden=true;$('scope').textContent='No research records have been extracted. Review the source checks and normalize your evidence into the project records before rebuilding.'}
+</script>
+</html>

@@ -358,6 +358,28 @@ Cargo 携带可构建的 Rust 源码；共同的 CLI 描述来自同一份包元
 
 ## Research Graph：如何判断比以前更好 {#research-graph}
 
+平时先看终端摘要，需要检查关系时再打开离线图：
+
+```bash
+qiongli project graph snapshot --project-id <prj_id> --text
+qiongli project graph view --project-id <prj_id> > research-graph-new.html
+```
+
+请使用新的文件名，避免 shell 重定向覆盖已有文件。用浏览器打开 HTML 即可；
+原生 CLI 不需要额外运行时，也不用启动本地服务。页面可以搜索研究记录、查看所选节点的
+相邻关系、证据限制和来源检查。选择记录或关系后，页面会给出绑定当前项目版本和
+projection ID 的 `qiongli project graph source` 命令，用来读取对应记录的片段。
+再沿记录中的文件、页码等位置检查原始材料。来源改变后，需要刷新项目并重新导出。
+
+这个页面是快照。点击 **Save snapshot JSON** 可以保存同一份投影，作为阶段记录。
+保留此前的快照和原始材料；导出不会替你归档或删除它们。HTML 和 JSON 都包含研究内容，
+只应分享给有权查看这些记录的人。
+
+审稿和选刊决定可以通过决策日志中的可选 `Related Claims` 列关联已有论点 ID，
+关系为 `informs`。只有 `locked` 决定生成已审阅关系，暂定、受阻或待重新考虑的决定
+仍为提议状态。这些关系不算支持证据。报告位置、理由、适用的期刊要求和稿件影响
+继续保留在原来的决策记录中。
+
 1.x 的 citation graph 用于从文献种子扩展引用与参考文献，并去重候选文献。
 2.x 的本地 Research Graph 增加了研究记录之间的联系：论点使用稳定标识，
 证据关联来源和具体位置，写作记录与文献记录可以沿同一来源继续追踪。

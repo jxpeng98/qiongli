@@ -492,6 +492,33 @@ that cached bytes match.
 
 ## Research Graph: checking the improvement {#research-graph}
 
+Start with a readable summary, then open an offline view when the relationships
+need a closer look:
+
+```bash
+qiongli project graph snapshot --project-id <prj_id> --text
+qiongli project graph view --project-id <prj_id> > research-graph-new.html
+```
+
+Choose a new filename: shell redirection can overwrite an existing file. Open the
+HTML in your browser; the native CLI needs no extra runtime or local server. It
+shows searchable records, a selected record's neighbors, relation limits and
+source checks. Each record or relation provides a `qiongli project graph source`
+command bound to its project revision and projection ID. This reads the recorded
+source excerpt; follow its file/page references to inspect the original material.
+Changed sources require a refreshed project and a new view.
+
+The page is a snapshot, not a live editor. Its **Save snapshot JSON** button saves
+the same projection for a stage record. Keep previous snapshots and original
+sources; an export does not archive or delete them. Both exports contain research
+content, so share them within the project's access boundaries.
+
+For review or venue decisions, the decision log's optional `Related Claims`
+column links existing claim IDs with `informs`. A `locked` decision produces a
+reviewed relation; tentative, blocked or revisit decisions remain proposed.
+These links never count as supporting evidence. The source record retains the
+report location, rationale, applicable venue requirements and manuscript impact.
+
 The 1.x citation graph expands references and citations from literature seeds and
 deduplicates candidate papers. The 2.x local Research Graph adds relationships
 within research records: stable claim identities, source locations and continuity

@@ -27,6 +27,22 @@ the shared artifact reader resolves them against the current revision. Legacy
 claim/source anchors are also resolved. Host Skills normalize authorized prose
 into reviewed records; no new graph store, raw-PDF scanner or write owner exists.
 
+Support edges expose the ledger's actual limitations. Decision-log Markdown/CSV
+may add optional `Related Claims` / `related_claims`, reusing claim IDs. Explicit
+links project Decision → `informs` → Claim, never support: `locked` is reviewed;
+tentative/blocked/revisit statuses remain proposed. Duplicate decision IDs,
+invalid statuses/references and missing targets cannot create reviewed links.
+The shared reader resolves `decision:<id>` to a unique parsed record line.
+
+`project graph source` aliases the existing revision/projection-bound artifact
+reader; it adds no arbitrary file access. `project graph view` emits a bounded
+neighborhood interface as self-contained HTML on stdout, using the same full
+snapshot/readiness data. Inline data is HTML-safe, DOM text is escaped, and CSP
+blocks network access. No server, browser launch, index write or new dependency
+is introduced. Its explicit JSON download saves a frozen projection, not project
+history or source contents. `graph snapshot` retains machine JSON and gains a
+compact terminal summary; HTML view rejects text/JSON output flags.
+
 ## Local Pattern
 
 - `apps/qiongli/src/command.rs` owns public CLI parsing; `cli_help.rs` provides

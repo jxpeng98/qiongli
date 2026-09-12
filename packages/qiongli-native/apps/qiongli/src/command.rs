@@ -779,6 +779,12 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "migrate-1x" => parse_migration_args(&args[1..]),
         "mcp" => parse_mcp_args(&args[1..]),
         "hooks" if args.len() == 2 && args[1] == OsStr::new("context") => Ok(Command::ContextHook),
+        "project"
+            if args.get(1).is_some_and(|arg| arg == "graph")
+                && args.get(2).is_some_and(|arg| arg == "source") =>
+        {
+            parse_app_project_artifact_args(&args[3..])
+        }
         "project" => crate::project_cli::parse(&args[1..])
             .map(Command::Project)
             .map_err(project_usage_error),
