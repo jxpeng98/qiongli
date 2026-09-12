@@ -594,3 +594,65 @@ pack SHA-256：`2bf43ed9ac70a98470aa62082f68714ea3ca16c1fcee59be5f56dc1941dda1d0
 下一步先在允许的浏览器中验收该离线视图，再用获授权材料在真实 Host 中观察规范化、
 证据追踪和审稿/选刊决策质量。阶段快照沿用既有归档规则；自动历史合并、自动删除和
 新的协调服务没有必要。CLI-402 继续 active，其他现场验证与性能缺口不变。
+
+
+## September 12 — Graph quick opening and collaboration receipts
+
+实现提交：`0bb8b138ab50a733de7593cfdb9a14264e15472d`；最终来源为
+`b8c37b00a33b28009630862fc6b4fdc4ca79d8d1`，补齐帮助页对导出模式的说明。从 `3d95a68a` 在
+`codex/graph-open-collaboration` 继续维护者的 HTML 快速打开和协作增强请求。
+沿用原有页面、快照、任务交接和审批边界，没有增加服务或自动跨 Host 调度器。
+
+`graph view --open` 先在经过校验的 Qiongli 私有状态目录中写入一个新 HTML 文件，
+再请求默认 HTML 应用打开；`--save` 只保存并显示位置。无参数形式继续输出 HTML。
+文件使用随机标识和 create-new 写入，旧快照和项目文件不被覆盖或自动删除。
+复用配置根安全检查和现有私有文件写入函数；该共享写入函数在 Windows 上改为调用
+既有 owner-only 文件 API，避免依赖默认 ACL。打开失败保留快照并提示手动打开；
+收到打开请求不等于确认页面已经显示。
+
+跨平台打开复用锁文件中已有的 `open` 5.4.0，并显式关闭默认功能，没有启用不安全
+Windows shell 模式。它编译进原生 CLI，不要求用户另装运行时；使用系统已有的文件
+关联，默认处理程序未必是浏览器。依据：[open 5.4.0 源码与行为说明](https://docs.rs/open/5.4.0/src/open/lib.rs.html)。
+这不是后台服务，也没有调用本地浏览器来绕过此前工具的安全策略拒绝。
+
+协作增强集中在既有主入口、model-collaborator 和两份交接模板：自然语言请求直接
+进入协作路线；分派需要真实工具回执，等待和取消沿用原任务标识，未知投递先查询，
+重复结果不增加独立审查数量。返回时检查来源和候选版本、实际读取范围、未完成部分
+及整合决定。回执中的 ID 本身不构成身份认证；外部结果仍不能继承原 Host 的审批。
+Full MCP 路由同步披露子代理可用性尚未检查、执行依靠 Host 工具、自动跨 Host
+分派不可用，以及完成所需的任务身份、实际结果和来源绑定。
+
+路由语料增加两组中英文案例：无通信工具时只准备交接材料，以及过期/重复审查与
+仍在运行的任务。现在共 38 组、76 条请求；本轮没有运行新的模型会话，不把语料
+校验称作模型行为、真实协作或跨 Host 质量验证。维护者没有在本轮选择特定自动通信
+实现，因此按已说明的推荐范围整合现有协作，没有扩大到新 transport 或账号配置。
+
+资源版本保持 `2.0.0-beta.5`，434 项；锁绑定上述来源提交。
+Content root SHA-256：`e1d1713a42bf8b844d7f328f32dba06d510bccd16f74ffa297f1f3d1fe20f4d6`；
+pack SHA-256：`e9af33bed4b40988fc5861df4cbac410b2f85289d5697ce4d4cfcd28ba34793f`。
+临时日志前缀为 `/private/tmp/qiongli-graph-open-`。
+
+本地检查沿用 `cargo +1.97.0`、native workspace、`--offline --locked`：
+
+| 检查 | 本地结果 |
+|---|---|
+| `-p qiongli --lib` | 228 通过，1 项原有三平台容量手动观察被忽略；覆盖新文件、私有权限、禁止覆盖、非法根路径，以及打开成功/失败的测试回调 |
+| `-p qiongli --test cli project_graph_cli` | 1 通过；空 PATH 保存与原 HTML 一致，冲突/重复和文本/JSON 参数在写入前被拒绝，来源版本与只读检查保留 |
+| `-p qiongli --test mcp_stdio copied_full_binary_routes` | 1 通过；现有完整二进制路线披露真实协作能力边界 |
+| Python：路由语料、原生 Marketplace、资源链接、跨平台路由约束 | 39 通过；增加实际内容字节后，双 Host 归档检查另重跑 1 项通过 |
+| 最终来源帮助路径 | `short_queries_output_modes_and_scoped_help_preserve_script_contracts` 1 通过 |
+| 最终资源锁 `-p qiongli-content --tests` | 46 通过 |
+| VitePress 文档构建 | 通过，16.50 秒；保留原有高亮回退和 chunk 提示 |
+| 格式检查 | `cargo fmt --all --check` 和 `git diff --check` 通过 |
+| Skill 入口验证 | `quick_validate.py content/workflow` 通过 |
+| Clippy | `-p qiongli --lib --tests -- -D warnings` 通过 |
+| opener 依赖功能 | `cargo tree -e features -i open` 只有 Qiongli 的常规依赖，未启用不安全功能 |
+| 程序台账 | 7 通过；249 项任务状态不变，CLI-402 仍为 active |
+
+以上运行逻辑与内容检查来自实现提交；最后的帮助文字修正不改变执行行为，复用对应
+结果。资源锁重新绑定最终来源后，另检查帮助路径和最终嵌入内容。
+
+浏览器工具此前拒绝本地 file URL。打开器成功/失败使用测试回调验证，不启动实际
+浏览器；页面渲染、键盘交互、JSON 下载和系统文件关联仍待允许环境中的实际验收。
+Windows 的私有写入分支也需要对应平台实测。自动跨 Host 通信、任务认领和并发写入
+继续留在原计划；此次没有远程推送、发布、个人安装修改或程序验收提升。

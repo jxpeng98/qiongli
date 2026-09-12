@@ -21,6 +21,15 @@ permissions, failed opening, resource projection and native MCP responses;
 archive evidence once and integrate locally. Do not bypass the earlier browser
 policy refusal or claim simulated opener checks prove rendered interaction.
 
+Implemented in `0bb8b138`; `b8c37b00` aligns the complete help reference.
+Explicit exports use the existing private file owner and compiled document opener.
+Collaboration adds observed receipts and source reconciliation to the existing
+route/templates; Full MCP discloses its limits. The existing review records local
+checks and the final 434-entry source-bound pack. Next observe the page and system
+file association in an allowed environment, the Windows file branch on Windows,
+and actual delegated result reconciliation in an authorized Host. CLI-402 stays
+active; automatic cross-Host transport and live model quality remain unqualified.
+
 ## Research Graph evidence and views — September 12 follow-up
 
 Continue from `39c25b81` on `codex/research-graph-views`. The maintainer approved
