@@ -140,7 +140,8 @@ class SkillRoutingProbeTests(unittest.TestCase):
                 "resource_reads"][selected[0]]["prerequisite"])
             # Generic and reply-only work reject even successful guidance reads.
             for case_id in ("generic-mean-function-en", "reply-only-supplied-paragraph-en",
-                            "reply-only-unseen-paper-zh", "reply-only-continuation-en"):
+                            "reply-only-unseen-paper-zh", "reply-only-continuation-en",
+                            "no-qiongli-entry-en", "no-qiongli-entry-zh"):
                 captured, _, answer, _ = self.capture(
                     root / case_id, read_resources=True, selected=[case_id])
                 self.assertTrue(probe.score(captured, root / f"{case_id}-zero-reads"))
@@ -337,7 +338,7 @@ class SkillRoutingProbeTests(unittest.TestCase):
 
     def test_corpus_and_traces_fail_closed_without_leaking_labels(self):
         cases = probe.load_cases()
-        self.assertEqual(58, len(cases))
+        self.assertEqual(60, len(cases))
         self.assertEqual({"en", "zh"}, {case["language"] for case in cases.values()})
         case = next(iter(cases.values()))
         response = {key: values[0] for key, values in case["expected"].items()}

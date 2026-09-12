@@ -104,7 +104,8 @@ hooks (off by default). `install plugin --hooks context` includes them;
 
 ## Skills, MCP and research records
 
-Development builds after beta.5 support **“reply only” / “仅回复” / “no 处理”**:
+Development builds after beta.5 include **`no-qiongli`** (`$no-qiongli` in Codex),
+also triggered by **“reply only” / “NoQ问理” / “仅回复” / “no 处理”**:
 answer from the conversation without model-invoked tools, agents or file operations.
 See [reply-only scope and limits](docs/advanced/agent-skill-collaboration.md#reply-only).
 
@@ -117,7 +118,8 @@ See [reply-only scope and limits](docs/advanced/agent-skill-collaboration.md#rep
 | Stage summaries | Keep substantive findings, sources, predecessors and changes; optional retention review lists individual files for the user to select and delete personally |
 
 New Codex Plugin builds have 20 workflow shortcuts and the general `$qiongli` entry;
-82 internal skill cards stay available on demand. Claude keeps one main Skill.
+82 internal skill cards stay available on demand. Both Codex and Claude also
+include the independent `no-qiongli` entry; Claude retains the main research Skill.
 Native Marketplace platform packages start Lite MCP; CLI-exported local Plugins
 start Full MCP. A shared Skill name does not imply the same available tools.
 

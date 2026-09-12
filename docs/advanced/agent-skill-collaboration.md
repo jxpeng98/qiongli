@@ -6,11 +6,19 @@ you Skills and Full MCP; it does not create another agent or change your model.
 
 ## Reply only
 
-In the development build after beta.5, say **“reply only”** or **“no tools”** to
-use Qiongli guidance without asking the model to run anything. For example:
+Development builds after beta.5 include the independent **`no-qiongli`** Skill.
+In Codex, select it as `$no-qiongli`; in other Hosts, select `no-qiongli` from the
+installed Skills. You can also say **“reply only”** or **“no tools”** naturally.
+The entry answers directly without loading the main Skill or research workflow:
 
 > Reply only for this conversation: explain the paragraph below. Do not use tools
 > or read or save files.
+
+Codex and Claude Plugin packages place it at `skills/no-qiongli/SKILL.md`, beside
+the research entry. Update the Plugin and reload its Skills to discover it.
+Skills-only exports include `workflow/no-qiongli/SKILL.md`; that self-contained
+directory can be installed as a Skill through your Host. The export itself does
+not register a Host or connect MCP. There is no `qiongli no-qiongli` CLI command.
 
 The model answers from visible conversation content, skipping resource reads,
 search, MCP, agents, project checks and Graph updates. If material is missing,

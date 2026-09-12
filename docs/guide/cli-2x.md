@@ -396,6 +396,10 @@ Marketplace packages generate the shortcuts automatically. An already installed
 older Plugin gains them only after updating its source/package and refreshing
 it through Codex.
 
+Both Hosts also receive the independent `no-qiongli` Skill for replies without
+tool calls. Use `$no-qiongli` in Codex or say “reply only”. See
+[reply-only scope and installation](../advanced/agent-skill-collaboration.md#reply-only).
+
 For an explicit standalone MCP connection, configure the Host to launch the
 absolute installed `qiongli` path with these arguments:
 

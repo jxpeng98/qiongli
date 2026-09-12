@@ -935,6 +935,9 @@ fn expected_mcp_args() -> Vec<String> {
 }
 
 fn projected_resource_path(source: &str) -> Result<String, CodexPluginBundleError> {
+    if source == "workflow/no-qiongli/SKILL.md" {
+        return Ok("skills/no-qiongli/SKILL.md".to_string());
+    }
     let relative = source.strip_prefix("workflow/").unwrap_or(source);
     if relative.is_empty() || relative == CODEX_PLUGIN_BUNDLE_RECEIPT_FILE {
         return Err(CodexPluginBundleError::ProjectionInvalid);
@@ -1397,6 +1400,7 @@ fn validate_bundle_path(path: &str) -> Result<(), CodexPluginBundleError> {
         || path == MCP_MANIFEST_PATH
         || path == "bin/qiongli"
         || path == "bin/qiongli.exe"
+        || path == "skills/no-qiongli/SKILL.md"
         || path.starts_with("skills/qiongli-workflow/")
         || path
             .strip_prefix("skills/qiongli-")
@@ -2057,6 +2061,9 @@ mod tests {
 
     #[test]
     fn workflow_wrappers_preserve_metadata_and_reject_unsafe_entries() {
+        let reply_only = projected_resource_path("workflow/no-qiongli/SKILL.md").unwrap();
+        assert_eq!(reply_only, "skills/no-qiongli/SKILL.md");
+        validate_bundle_path(&reply_only).unwrap();
         let mut files = BTreeMap::new();
         add_workflow_wrapper_skills(&mut files).unwrap();
         assert!(
@@ -2111,6 +2118,9 @@ mod tests {
             "skills/qiongli-/SKILL.md",
             "skills/qiongli-bad--name/SKILL.md",
             "skills/qiongli-qiongli/SKILL.md",
+            "skills/no-qiongli/script.sh",
+            "skills/no-qiongli/../SKILL.md",
+            "skills/no-qiongli-extra/SKILL.md",
         ] {
             assert!(
                 validate_bundle_path(path).is_err(),

@@ -304,6 +304,17 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
     assert_eq!(manifest["version"], env!("CARGO_PKG_VERSION"));
     assert_eq!(manifest["skills"], "./skills/");
     assert_eq!(manifest["mcpServers"], "./.mcp.json");
+    for profile in ["skill-only", "marketplace-lite", "full"] {
+        assert_eq!(
+            fs::read(target_path.join("skills/no-qiongli/SKILL.md")).unwrap(),
+            content
+                .pack()
+                .resource_for_profile(profile, "workflow/no-qiongli/SKILL.md")
+                .unwrap()
+                .unwrap()
+                .bytes()
+        );
+    }
 
     let mcp_bytes = fs::read(target_path.join(".mcp.json")).unwrap();
     let mcp: Value = serde_json::from_slice(&mcp_bytes).unwrap();

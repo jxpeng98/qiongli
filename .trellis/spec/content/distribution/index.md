@@ -28,6 +28,12 @@ It lasts until explicitly resumed unless scoped to one reply. This is not a Host
 tool lock, global setting or automatic Hook disablement. Keep ordinary routing and
 permission gates unchanged outside this choice; no extra runtime mode is required.
 
+`content/workflow/no-qiongli/SKILL.md` is the self-contained reply-only entry.
+Local native and Marketplace projectors place its exact bytes at
+`skills/no-qiongli/SKILL.md` for both Hosts; standalone profiles retain the
+`workflow/no-qiongli/SKILL.md` source path. Allow only this extra Plugin file,
+not arbitrary siblings or scripts. Older packs without it keep their projection.
+
 The root Skill selects the requested outcome and relevant resources. Stage F
 writing workflows, cards and roles reference
 `content/workflow/references/stage-F-writing.md` for their shared writing
@@ -155,7 +161,8 @@ Skill cards, references and templates do not get independent wrappers. Each
 entry loads the shared Skill before its workflow, preserving Host tool limits,
 request scope and preview/approval/CAS. Wrapper paths permit only bounded
 lowercase slug names and `SKILL.md`; receipt validation covers their bytes.
-Claude's single-Skill projection stays compatible. Old packs without the template
+Claude retains the main research Skill and the independent reply-only entry.
+Old packs without the template
 retain their historical projection, so existing archives remain verifiable.
 
 Schema-2 archive receipts bind the target, executable and resource bytes. The

@@ -68,7 +68,8 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
 
     def add_workflows(self):
         source = Path(__file__).resolve().parents[1] / 'content/workflow'
-        for path in [source / 'references/codex-workflow-wrapper.md', *sorted((source / 'workflows').glob('*.md'))]:
+        for path in [source / 'references/codex-workflow-wrapper.md', source / 'no-qiongli/SKILL.md',
+                     *sorted((source / 'workflows').glob('*.md'))]:
             self.content['workflow/' + path.relative_to(source).as_posix()] = path.read_bytes()
         self.write_source()
 
@@ -118,7 +119,9 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
         for platform in plugins.PLATFORMS:
             root = self.root / 'out' / platform / 'plugins' / plugins.plugin_name(TARGET)
             entries = {p.relative_to(root).as_posix() for p in root.glob('skills/*/SKILL.md')}
-            expected = {plugins.SKILL_ROOT + 'SKILL.md'}
+            expected = {plugins.SKILL_ROOT + 'SKILL.md', 'skills/no-qiongli/SKILL.md'}
+            self.assertEqual((root / 'skills/no-qiongli/SKILL.md').read_bytes(),
+                             self.content['workflow/no-qiongli/SKILL.md'])
             if platform == 'codex':
                 expected |= {f'skills/qiongli-{slug}/SKILL.md' for slug in slugs}
             self.assertEqual(entries, expected)
@@ -135,6 +138,31 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
                 self.assertLess(len(text), 2000)
         again = self.build('again')
         self.assertEqual((self.root / 'out' / again[0].name).read_bytes(), again[0].read_bytes())
+
+    def test_no_qiongli_entry_is_source_bound_in_both_hosts(self):
+        self.add_workflows()
+        for archive in self.build():
+            original = archive.read_bytes()
+            for replacement in (None, b'Run tools before answering.'):
+                archive.write_bytes(original)
+                def mutate(rows):
+                    index = next(i for i, (m, _) in enumerate(rows)
+                                 if m.name.endswith('/skills/no-qiongli/SKILL.md'))
+                    member, _ = rows.pop(index)
+                    if replacement is not None:
+                        rows.append((member, replacement))
+                    index = next(i for i, (m, _) in enumerate(rows) if m.name.endswith(plugins.RECEIPT))
+                    member, data = rows[index]
+                    receipt = json.loads(data)
+                    name = 'skills/no-qiongli/SKILL.md'
+                    receipt['files'].pop(name)
+                    if replacement is not None:
+                        receipt['files'][name] = {'size_bytes': len(replacement),
+                                                  'sha256': plugins.digest(replacement)}
+                    rows[index] = member, plugins.json_bytes(receipt)
+                self.rewrite_archive(archive, mutate)
+                with self.assertRaises(ValueError):
+                    plugins.verify_archive(archive, VERSION, COMMIT)
 
     def test_changed_or_missing_wrapper_is_rejected_even_with_updated_receipt(self):
         self.add_workflows()

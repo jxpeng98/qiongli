@@ -7,7 +7,7 @@ name: qiongli-{{workflow}}
 
 Use this entry for the requested `{{workflow}}` task.
 
-If the user selected reply-only (仅回复 / 不处理 / no 处理 / no tools), answer
+If the user selected reply-only (no-qiongli / NoQ问理 / 仅回复 / 不处理 / no tools), answer
 from the conversation without tools, resource reads, agents or file operations.
 Keep that choice until the user explicitly resumes execution, unless limited to
 one reply. State missing material; do not load the resources below in this mode.

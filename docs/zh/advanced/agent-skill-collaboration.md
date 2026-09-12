@@ -4,12 +4,19 @@
 交接材料和项目工具。Plugin 包含 Skills 与 Full MCP，但安装 Plugin 本身不会
 创建其他 Agent，也不会更换你选择的模型。
 
-## 仅回复，不执行操作
+## 仅回复，不执行操作 {#reply-only}
 
-beta.5 之后的开发构建支持 **“仅回复”**、**“不处理”** 或 **“no 处理”**。
-直接在对话里说明即可，例如：
+beta.5 之后的开发构建包含独立的 **`no-qiongli`** Skill。在 Codex 中可以使用
+`$no-qiongli`；其他 Host 可从已安装的 Skills 中选择 `no-qiongli`。也可以自然地说
+**“NoQ问理”**、**“仅回复”**、**“不处理”** 或 **“no 处理”**，例如：
 
 > 接下来仅回复：请解释下面这段文字，不调用工具，不读取或保存文件。
+
+这个入口直接回答，不先加载穷理主 Skill 或研究工作流。Codex 和 Claude Plugin 都将
+它放在 `skills/no-qiongli/SKILL.md`，与研究入口并列；更新 Plugin 并重新加载 Skills
+后才能发现新入口。独立 Skills 导出包含 `workflow/no-qiongli/SKILL.md`，可以把这个
+自包含目录作为一个 Skill 交给 Host 安装。导出本身不注册 Host 或连接 MCP，CLI 中
+也没有 `qiongli no-qiongli` 子命令。
 
 模型只根据对话中已经可见的内容回答，不读取额外的 Skill 资源，不检索、不调用
 MCP 或其他代理，也不检查项目、更新 Graph。材料不足时，说明缺口或请你贴出相关

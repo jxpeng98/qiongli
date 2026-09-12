@@ -14,7 +14,7 @@ $ARGUMENTS
 
 ## Routing Contract
 
-Honor an active reply-only choice (仅回复 / 不处理 / no 处理 / no tools) first:
+Honor an active reply-only choice (no-qiongli / NoQ问理 / 仅回复 / 不处理 / no tools) first:
 answer from the conversation without tools, resource reads, agents or files.
 State missing material; skip routing below until the user explicitly resumes
 execution, unless they limited the choice to one reply.

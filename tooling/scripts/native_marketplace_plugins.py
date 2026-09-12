@@ -188,6 +188,12 @@ def mcp_manifest(platform: str, target: str | None = None) -> dict:
     return {'mcpServers': {'qiongli-next': server}}
 
 
+def skill_path(source: str) -> str:
+    if source == 'workflow/no-qiongli/SKILL.md':
+        return 'skills/no-qiongli/SKILL.md'
+    return SKILL_ROOT + source.removeprefix('workflow/')
+
+
 def project(content: dict[str, bytes], platform: str, version: str,
             target: str | None = None, binary: bytes | None = None) -> dict[str, bytes]:
     manifest_path = f'.{platform}-plugin/plugin.json'
@@ -209,7 +215,7 @@ def project(content: dict[str, bytes], platform: str, version: str,
     for name, data in content.items():
         if name in ('.codex-plugin/plugin.json', '.claude-plugin/plugin.json'):
             continue
-        target = SKILL_ROOT + name.removeprefix('workflow/')
+        target = skill_path(name)
         if target in files:
             raise ValueError('canonical resource projection collision')
         files[target] = data
@@ -289,7 +295,9 @@ def verify_archive(path: Path, version: str, commit: str) -> dict:
                ('.codex-plugin/plugin.json', '.claude-plugin/plugin.json')}
     for name in expected:
         if name not in content:
-            content[name] = files[SKILL_ROOT + name.removeprefix('workflow/')]
+            if skill_path(name) not in files:
+                raise ValueError('marketplace source resource missing from projection')
+            content[name] = files[skill_path(name)]
         check_bytes(content[name], expected[name])
     verify_pack(metadata, content)
     binary = files.get(binary_path(target)) if target else None

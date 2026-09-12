@@ -296,7 +296,21 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
     assert_eq!(manifest["mcpServers"], "./.mcp.json");
 
     let workflows = target_path.join("skills/qiongli-workflow/workflows");
-    let mut expected_entries = BTreeSet::from(["skills/qiongli-workflow/SKILL.md".to_string()]);
+    let mut expected_entries = BTreeSet::from([
+        "skills/qiongli-workflow/SKILL.md".to_string(),
+        "skills/no-qiongli/SKILL.md".to_string(),
+    ]);
+    for profile in ["skill-only", "marketplace-lite", "full"] {
+        assert_eq!(
+            fs::read(target_path.join("skills/no-qiongli/SKILL.md")).unwrap(),
+            content
+                .pack()
+                .resource_for_profile(profile, "workflow/no-qiongli/SKILL.md")
+                .unwrap()
+                .unwrap()
+                .bytes()
+        );
+    }
     for workflow in fs::read_dir(&workflows).unwrap() {
         let path = workflow.unwrap().path();
         let slug = path.file_stem().unwrap().to_str().unwrap();

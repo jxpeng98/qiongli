@@ -309,6 +309,10 @@ Codex Plugin 同时提供 `$qiongli` 总入口和
 本地 CLI 导出和 Marketplace 打包都会自动生成它们；已经安装的旧 Plugin
 需要更新来源或插件包，并通过 Codex 刷新后才能显示新增入口。
 
+两个 Host 的 Plugin 也都包含独立的 `no-qiongli` Skill。可以在 Codex 中使用
+`$no-qiongli`，或自然地说“NoQ问理，仅回复”。入口不调用工具，使用范围和安装说明见
+[仅回复入口](../advanced/agent-skill-collaboration.md#reply-only)。
+
 ## npm / pip 安装 {#package-managers}
 
 如果更习惯包管理器，可任选一个入口：

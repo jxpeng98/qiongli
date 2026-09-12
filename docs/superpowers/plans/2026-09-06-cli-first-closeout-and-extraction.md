@@ -5,6 +5,14 @@ roadmap. The program ledger remains the only task-state authority.
 
 ## Reply-only scope — September 12 follow-up
 
+The maintainer's next request adds a separately discoverable `no-qiongli` Skill
+from `c4227e91` on `codex/no-qiongli-entry`. Keep the entry self-contained and
+retain natural-language selection. Project the same canonical bytes alongside
+the main Skill in both native Host bundles and Marketplace packages; include
+them in standalone exports. Check source binding, old-pack compatibility and
+missing/changed entries, then refresh the content lock and integrate locally.
+This extends the earlier scope below; no runtime mode or CLI command is added.
+
 Continue from `87a6ea7c` on `codex/reply-only-scope`. Add the maintainer's explicit
 “仅回复 / no 处理” choice before the existing root/shortcut resource reads and
 runtime routing. Use visible conversation material only; retain the choice until

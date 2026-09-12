@@ -855,6 +855,9 @@ fn expected_mcp_args() -> Vec<String> {
 }
 
 fn projected_resource_path(source: &str) -> Result<String, ClaudePluginBundleError> {
+    if source == "workflow/no-qiongli/SKILL.md" {
+        return Ok("skills/no-qiongli/SKILL.md".to_string());
+    }
     let relative = source.strip_prefix("workflow/").unwrap_or(source);
     if relative.is_empty() || relative == CLAUDE_PLUGIN_BUNDLE_RECEIPT_FILE {
         return Err(ClaudePluginBundleError::ProjectionInvalid);
@@ -1317,6 +1320,7 @@ fn validate_bundle_path(path: &str) -> Result<(), ClaudePluginBundleError> {
         || path == MCP_MANIFEST_PATH
         || path == "bin/qiongli"
         || path == "bin/qiongli.exe"
+        || path == "skills/no-qiongli/SKILL.md"
         || path.starts_with("skills/qiongli-workflow/");
     if !allowed {
         return Err(ClaudePluginBundleError::ProjectionInvalid);
@@ -1970,5 +1974,20 @@ impl Drop for DirectoryCleanup {
         if self.armed {
             let _ = fs::remove_dir_all(&self.path);
         }
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn reply_only_entry_has_one_bounded_plugin_path() {
+    let path = projected_resource_path("workflow/no-qiongli/SKILL.md").unwrap();
+    assert_eq!(path, "skills/no-qiongli/SKILL.md");
+    validate_bundle_path(&path).unwrap();
+    for invalid in [
+        "skills/no-qiongli/script.sh",
+        "skills/no-qiongli/../SKILL.md",
+        "skills/no-qiongli-extra/SKILL.md",
+    ] {
+        assert!(validate_bundle_path(invalid).is_err());
     }
 }

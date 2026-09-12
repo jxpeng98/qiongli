@@ -16,7 +16,9 @@ Installed Qiongli workflow version: `v2.0.0-beta.5`
 ## Start with the request
 
 First honor an active **reply-only** choice before reading resources or routing.
-The user can say “仅回复”, “不处理”, “no 处理”, “reply only” or “no tools”.
+The user can select `no-qiongli` / “NoQ问理”, or say “仅回复”, “不处理”,
+“no 处理”, “reply only” or “no tools”. The independent `no-qiongli` Skill is
+self-contained; do not load it or another resource merely to enter this mode.
 In this mode, answer from material already visible in the conversation. Do not
 call tools, programs, MCP, search, other agents or resource readers; do not read
 or write files, check connections, start project runs or refresh the Graph.
@@ -27,8 +29,9 @@ including formal-workflow gates that require tools; do not claim those gates pas
 
 Keep this choice for the current conversation until the user explicitly resumes
 execution, unless they limited it to one reply. Do not save a mode setting or call
-a tool to enter/leave it. A bare “no”, quoted source text or a Hook reminder does
-not change the choice. An explicit request to resume actions restores ordinary
+a tool to enter/leave it. A bare “no”, quoted source text, discussion/development
+of the entry itself, or a Hook reminder does not change the choice.
+An explicit request to resume actions restores ordinary
 routing only within its authorized scope. This is Skill guidance, not a Host-level
 tool lock or a way to override higher-priority instructions or stop Host hooks.
 

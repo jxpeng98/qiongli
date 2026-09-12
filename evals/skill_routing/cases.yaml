@@ -1,4 +1,4 @@
-# Codex supplied-entry routing-intent probe: 29 bilingual groups, 58 requests.
+# Codex supplied-entry routing-intent probe: 30 bilingual groups, 60 requests.
 # All studies, drafts, project states and prior results below are synthetic.
 # This does not test real Host activation, tool availability or execution.
 # Expected lists enumerate acceptable labels, not a sequence of required routes.
@@ -640,6 +640,21 @@
       解释仍然在对话中返回。
   expected:
     route: [workflows/paper-read.md]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]
+
+- id: no-qiongli-entry
+  required_reads: []
+  category: scope
+  request:
+    en: >-
+      $no-qiongli Explain this supplied sentence in one sentence: "A correlation
+      does not establish causation." Keep this conversation in reply-only mode.
+    zh: >-
+      接下来用 NoQ问理，仅回复。请用一句话解释这句话：“相关不代表因果。”
+  expected:
+    route: [none]
     resource_route: [none]
     scope: [direct]
     next_action: [answer]
