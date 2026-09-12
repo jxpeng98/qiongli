@@ -154,8 +154,11 @@ blocks opening, report it and retain the file; do not bypass that restriction.
 For a chosen external destination, use the authorized file-write path and a new
 filename. No server is started, and the page does not update itself.
 
-The page offers record search, a bounded local neighborhood, relation status,
-evidence limits and diagnostics. Selecting a node or edge gives an exact
+The page offers searchable, paged records, relation/status filters, directed
+local neighborhoods, evidence limits and source checks linked to available records.
+Paging exposes the remaining relations without rendering the whole graph at once.
+Filtering changes only the display, not the snapshot downloaded for handoff.
+Selecting a node or edge gives a copyable, exact
 `qiongli project graph source` command with project revision, projection ID and
 entity ID. It reuses the bounded registered-artifact reader; it does not silently
 open every raw note or PDF. Inspect the returned record, then follow its original

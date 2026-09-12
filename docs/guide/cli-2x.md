@@ -504,12 +504,23 @@ qiongli project graph view --project-id <prj_id> --open
 asks the default HTML application, usually a browser, to open it. The CLI prints
 the saved location; open it manually if no window appears. Use `--save` to save
 without opening. Earlier snapshots stay until you remove them; project files and
-previous exports are not overwritten. The native CLI needs no extra runtime or local server. It
-shows searchable records, a selected record's neighbors, relation limits and
-source checks. Each record or relation provides a `qiongli project graph source`
+previous exports are not overwritten. The native CLI needs no extra runtime or
+local server. Filter records by type and search labels, IDs or source files. Record
+pages keep larger projects accessible. Filter relations by type or recorded
+status, then page through them: arrows show direction, dashed lines mark
+proposals and dotted lines mark rejected relations. **Back to record** retraces
+your exploration. The map scrolls horizontally on smaller screens so labels
+remain readable; the relation list provides the same actions with full labels.
+
+Source checks link to the available records from an affected file. Missing
+sources stay visible even when no record can be shown. Each record or relation
+provides a `qiongli project graph source`
 command bound to its project revision and projection ID. This reads the recorded
 source excerpt; follow its file/page references to inspect the original material.
-Changed sources require a refreshed project and a new view.
+Use **Copy command** to copy it; when clipboard access is unavailable, the page
+selects the command for manual copying. Changed sources require a refreshed
+project and a new view. Filters affect only the display; JSON download retains
+the complete exported snapshot, including proposed and rejected relations.
 
 The page is a snapshot, not a live editor. Its **Save snapshot JSON** button saves
 the same projection for a stage record. Keep previous snapshots and original

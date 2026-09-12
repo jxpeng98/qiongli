@@ -3,6 +3,21 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Graph exploration — September 12 follow-up
+
+Continue from `7cdd7228` on `codex/graph-exploration`. Improve the existing offline
+HTML for everyday evidence inspection: searchable type filters and record pages,
+directed/status-aware relations with bounded pages, return navigation, source
+issue links and a copyable revision-bound source command. Preserve the same
+projection, offline boundary and explicit export owners. Reuse native HTML/SVG
+and the existing development DOM library; add no shipped runtime dependency.
+
+Check actual page handlers with synthetic small, dense, empty and hostile-text
+snapshots, plus the affected native embedding/CLI path. The earlier local-file
+browser policy refusal still applies: DOM checks do not establish rendering,
+real keyboard navigation or file download acceptance. Update bilingual usage and
+archive evidence once before local integration; no publication is requested.
+
 ## Graph quick opening and collaboration receipts — September 12 follow-up
 
 Continue from `3d95a68a` on `codex/graph-open-collaboration`. The maintainer asks

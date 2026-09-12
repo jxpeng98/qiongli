@@ -48,7 +48,14 @@ CLI without insecure features, custom application arguments or an extra runtime;
 only the newly generated absolute file path is passed to it. A dispatch failure
 retains the export for manual use; successful dispatch does not prove rendering.
 No server or index write is introduced. Its explicit JSON download saves a frozen projection, not project
-history or source contents. `graph snapshot` retains machine JSON and gains a
+history or source contents. Record search/type filters page 100 rows; relation
+type/status filters page eight incident edges and their neighbors together,
+preserving direction and all recorded statuses. Back navigation is page-local.
+Source issues can filter available records; absence of projection diagnostics
+does not hide missing or stale source state. Copying retains identifier validation
+and falls back to manual selection; a late clipboard response cannot label a
+different selected command. Filtered views never trim the downloaded snapshot.
+`graph snapshot` retains machine JSON and gains a
 compact terminal summary; HTML view rejects text/JSON output flags.
 
 Full MCP orchestration routing discloses that subagent availability is unchecked,
