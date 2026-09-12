@@ -27,8 +27,8 @@ features:
 
 ## Start here
 
-These entry pages cover **2.0.0-beta.5**, including guided Plugin installation and
-local MCP checks. Older packages may not expose these commands.
+These entry pages cover **2.0.0-beta.6**, including the offline Research Graph,
+reply-only Skills, optional hooks and guided Plugin installation. Older packages may not expose these commands.
 
 | What you need | Entry |
 |---|---|

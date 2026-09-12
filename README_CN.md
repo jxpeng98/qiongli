@@ -23,30 +23,33 @@
 你可以继续使用自己的 Codex、Claude Code 和模型设置，穷理负责研究记录、来源、
 可审阅的修改以及阶段交接。使用 CLI 不需要安装穷理桌面 App。
 
-Beta.5 统一安装与更新：在终端运行 `qiongli install` 打开向导，
+安装与更新使用同一套向导：在终端运行 `qiongli install` 打开向导，
 或用 `qiongli install plugin` 复用已有 Host 注册。`qiongli mcp check` 检查本地协议。
 推荐安装的 Plugin 已包含研究 Skills 和 MCP；独立 Skills 是可选的文件导出。
 [2.x 使用指南](docs/zh/guide/cli-2x.md)说明了各入口与首次 Host 会话的检查方法。
+
+Beta.6 增加了离线 [Research Graph 示例页面](docs/zh/examples/research-graph.md)，
+并带来更精简的研究指导、只回复入口和可选上下文 Hook。
 
 ## Qiongli 2.x 独立二进制下载
 
 **下载、解压、运行。不用先安装 Python、Node.js、Rust 或包管理器。**
 
-在 [GitHub Release v2.0.0-beta.5](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.5)
+在 [GitHub Release v2.0.0-beta.6](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.6)
 中选择对应平台的完整 CLI，解压后运行 `./qiongli --help`（Windows PowerShell 使用 `.\qiongli.exe --help`）。
 研究 Skills、模板和 Lite/Full MCP 资源都在程序里，不需要额外安装。
 你可以直接在解压目录使用，安装 App 或配置 PATH 都不是前提。
 
 | 平台 | 二进制压缩包 |
 |---|---|
-| macOS Apple Silicon（ARM64） | [下载 `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-aarch64-apple-darwin.tar.gz) |
-| Windows x64 | [下载 `.zip`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-x86_64-pc-windows-msvc.zip) |
-| Linux x64（glibc 2.35+） | [下载 `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-x86_64-unknown-linux-gnu.tar.gz) |
+| macOS Apple Silicon（ARM64） | [下载 `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-aarch64-apple-darwin.tar.gz) |
+| Windows x64 | [下载 `.zip`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-x86_64-pc-windows-msvc.zip) |
+| Linux x64（glibc 2.35+） | [下载 `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-x86_64-unknown-linux-gnu.tar.gz) |
 
 Windows beta 版本已将 C 运行库编入程序，无需另外安装 Visual C++ 运行库。
 Linux 使用系统自带库，要求 glibc 2.35+。
 
-运行前使用同一 Release 的 [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/SHA256SUMS)
+运行前使用同一 Release 的 [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/SHA256SUMS)
 核对文件；[完整指南](docs/zh/guide/cli-2x.md)说明解压、PATH 和 MCP 接入步骤。
 请在 **Assets** 中选择上述平台包，GitHub 自动生成的 **Source code** 是源码。
 模型 Host 和在线文献服务仍需单独配置。
@@ -56,7 +59,7 @@ Linux 使用系统自带库，要求 glibc 2.35+。
 这两个渠道都自带原生程序。已有 Rust 1.97+ 和本机链接器时，也可以通过 Cargo 从源码安装。
 
 ```sh
-cargo install qiongli --version 2.0.0-beta.5 --locked
+cargo install qiongli --version 2.0.0-beta.6 --locked
 ```
 
 Cargo 提供 `qiongli` 和 `ql`。如果不想编译，直接下载上方二进制包即可。
@@ -89,8 +92,14 @@ qiongli help install plugin
 
 [安装、升级和注册示例](docs/zh/guide/cli-2x.md#install-and-upgrade-bundled-content)
 说明了完整步骤。更新 Plugin 后，需要新开 Host 会话检查工具是否可用。
+beta.6 的安装向导可选上下文 Hook，首次默认关闭；也可使用
+`qiongli install plugin --hooks context` 加入，或用 `--hooks off` 移除配置。
 
 ## Skills、MCP 与研究记录
+
+使用 **`no-qiongli`**（Codex 中为 `$no-qiongli`），或直接说“仅回复”“NoQ问理”，
+可要求模型只依据对话回答，不调用工具、代理或文件操作。
+[只回复的范围与限制](docs/zh/advanced/agent-skill-collaboration.md#reply-only)说明了具体边界。
 
 | 部分 | 用途 |
 |---|---|
@@ -101,7 +110,8 @@ qiongli help install plugin
 | 阶段总结 | 保留主要内容、来源、前序和变化记录；只在用户要求时列出逐文件保留建议，删除由用户亲自完成 |
 
 新构建的 Codex Plugin 提供 20 个 workflow 快捷入口和 `$qiongli` 主入口，
-82 张内部技能卡按需读取。Claude 保留一个主 Skill。原生 Marketplace 平台包默认
+82 张内部技能卡按需读取。Claude 保留研究主 Skill；两个 Host 均包含独立的
+`no-qiongli` 入口。原生 Marketplace 平台包默认
 运行 Lite MCP；CLI 导出的本地 Plugin 运行 Full MCP。相同的 Skill 名称不代表
 相同的工具可用性。
 

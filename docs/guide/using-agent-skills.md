@@ -17,7 +17,7 @@ method and agreed protocol. Roles no longer impose a fixed number of papers,
 rivals or robustness checks. State the decision you need, the available material
 and any requirements that must stay in force. Formal deliverables still require
 their evidence and checks; a preregistration draft is not a registered study.
-These changes follow beta.5 and require a build containing the updated content.
+These changes are included in beta.6. Update the CLI, then refresh the Plugin.
 
 New Codex Plugin builds expose `$qiongli` and 20 workflow shortcuts, including
 `$qiongli-paper-read`, `$qiongli-lit-review` and `$qiongli-stage-close`. Each reads

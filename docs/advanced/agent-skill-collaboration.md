@@ -6,7 +6,7 @@ you Skills and Full MCP; it does not create another agent or change your model.
 
 ## Reply only
 
-Development builds after beta.5 include the independent **`no-qiongli`** Skill.
+Beta.6 includes the independent **`no-qiongli`** Skill.
 In Codex, select it as `$no-qiongli`; in other Hosts, select `no-qiongli` from the
 installed Skills. You can also say **“reply only”** or **“no tools”** naturally.
 The entry answers directly without loading the main Skill or research workflow:
@@ -89,7 +89,7 @@ It needs no Python, Node, MCP connection or model call. It does not read project
 files or transcripts, save summaries, approve writes or keep a completed task
 running. Hooks are optional; ordinary Skill routing remains sufficient.
 
-In the development build after beta.5, `qiongli install` offers context hooks
+In beta.6, `qiongli install` offers context hooks
 when you choose Plugin. They default to off on first install; later installs and
 upgrades preserve your choice. You can also choose explicitly:
 

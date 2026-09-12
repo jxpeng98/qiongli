@@ -4,7 +4,7 @@ Qiongli 2 以原生 CLI 为入口，不需要打开或安装 Qiongli App。
 同一版本、同一平台的 GitHub 二进制包、npm 和 PyPI 包使用相同的原生可执行文件。
 
 
-## beta.5 的安装与命令改进
+## 安装与命令指南
 
 在终端中运行 `qiongli install` 或 `qiongli upgrade` 即可打开向导。
 `qiongli install plugin` 同时负责安装和更新，`upgrade plugin`、`update plugin`
@@ -102,14 +102,14 @@ qiongli doctor --text > qiongli-doctor.txt
 **推荐直接下载：解压后就能运行，不用先安装 Python、Node.js、Rust 或包管理器。**
 你可以直接在解压目录使用，PATH 配置是可选项。
 
-从 [GitHub Release v2.0.0-beta.5](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.5)
+从 [GitHub Release v2.0.0-beta.6](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.6)
 选择与你的操作系统和 CPU 对应的压缩包：
 
 | 平台 | 完整 CLI 二进制包 |
 |---|---|
-| macOS Apple Silicon / ARM64 | [qiongli-2.0.0-beta.5-aarch64-apple-darwin.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-aarch64-apple-darwin.tar.gz) |
-| Windows x64 | [qiongli-2.0.0-beta.5-x86_64-pc-windows-msvc.zip](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-x86_64-pc-windows-msvc.zip) |
-| Linux x64 / glibc 2.35+ | [qiongli-2.0.0-beta.5-x86_64-unknown-linux-gnu.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-x86_64-unknown-linux-gnu.tar.gz) |
+| macOS Apple Silicon / ARM64 | [qiongli-2.0.0-beta.6-aarch64-apple-darwin.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-aarch64-apple-darwin.tar.gz) |
+| Windows x64 | [qiongli-2.0.0-beta.6-x86_64-pc-windows-msvc.zip](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-x86_64-pc-windows-msvc.zip) |
+| Linux x64 / glibc 2.35+ | [qiongli-2.0.0-beta.6-x86_64-unknown-linux-gnu.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-x86_64-unknown-linux-gnu.tar.gz) |
 
 Windows beta 版本已将 C 运行库编入程序，不需要另装 Visual C++ 运行库。
 Linux 使用系统自带库，要求 glibc 2.35+。
@@ -124,19 +124,19 @@ Linux 使用系统自带库，要求 glibc 2.35+。
 
 ### 1. 校验下载文件
 
-下载同一 Release 的 [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/SHA256SUMS)。
+下载同一 Release 的 [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/SHA256SUMS)。
 在下载目录中，运行与你的平台对应的命令，将结果与 `SHA256SUMS` 中该文件名对应的摘要比较；一致后再继续。
 
 ```sh
 # macOS
-shasum -a 256 qiongli-2.0.0-beta.5-aarch64-apple-darwin.tar.gz
+shasum -a 256 qiongli-2.0.0-beta.6-aarch64-apple-darwin.tar.gz
 # Linux
-sha256sum qiongli-2.0.0-beta.5-x86_64-unknown-linux-gnu.tar.gz
+sha256sum qiongli-2.0.0-beta.6-x86_64-unknown-linux-gnu.tar.gz
 ```
 
 ```powershell
 # Windows
-Get-FileHash .\qiongli-2.0.0-beta.5-x86_64-pc-windows-msvc.zip -Algorithm SHA256
+Get-FileHash .\qiongli-2.0.0-beta.6-x86_64-pc-windows-msvc.zip -Algorithm SHA256
 ```
 
 ### 2. 解压后直接运行
@@ -144,9 +144,9 @@ Get-FileHash .\qiongli-2.0.0-beta.5-x86_64-pc-windows-msvc.zip -Algorithm SHA256
 使用一个新目录，保留已有安装和研究文件。在 macOS 终端中：
 
 ```sh
-mkdir qiongli-2.0.0-beta.5-macos-arm64
-tar -xzf qiongli-2.0.0-beta.5-aarch64-apple-darwin.tar.gz -C qiongli-2.0.0-beta.5-macos-arm64
-cd qiongli-2.0.0-beta.5-macos-arm64
+mkdir qiongli-2.0.0-beta.6-macos-arm64
+tar -xzf qiongli-2.0.0-beta.6-aarch64-apple-darwin.tar.gz -C qiongli-2.0.0-beta.6-macos-arm64
+cd qiongli-2.0.0-beta.6-macos-arm64
 ./qiongli --version
 ./qiongli --help
 ./qiongli content list
@@ -155,9 +155,9 @@ cd qiongli-2.0.0-beta.5-macos-arm64
 在 Linux 终端中：
 
 ```sh
-mkdir qiongli-2.0.0-beta.5-linux-x64
-tar -xzf qiongli-2.0.0-beta.5-x86_64-unknown-linux-gnu.tar.gz -C qiongli-2.0.0-beta.5-linux-x64
-cd qiongli-2.0.0-beta.5-linux-x64
+mkdir qiongli-2.0.0-beta.6-linux-x64
+tar -xzf qiongli-2.0.0-beta.6-x86_64-unknown-linux-gnu.tar.gz -C qiongli-2.0.0-beta.6-linux-x64
+cd qiongli-2.0.0-beta.6-linux-x64
 ./qiongli --version
 ./qiongli --help
 ./qiongli content list
@@ -166,14 +166,14 @@ cd qiongli-2.0.0-beta.5-linux-x64
 Windows 用户在下载目录打开 PowerShell：
 
 ```powershell
-Expand-Archive -Path .\qiongli-2.0.0-beta.5-x86_64-pc-windows-msvc.zip -DestinationPath .\qiongli-2.0.0-beta.5-windows-x64
-Set-Location .\qiongli-2.0.0-beta.5-windows-x64
+Expand-Archive -Path .\qiongli-2.0.0-beta.6-x86_64-pc-windows-msvc.zip -DestinationPath .\qiongli-2.0.0-beta.6-windows-x64
+Set-Location .\qiongli-2.0.0-beta.6-windows-x64
 .\qiongli.exe --version
 .\qiongli.exe --help
 .\qiongli.exe content list
 ```
 
-版本应显示 `qiongli 2.0.0-beta.5`。独立包只提供 `qiongli` 可执行文件；`ql` 别名由 npm / PyPI / Cargo 安装提供。
+版本应显示 `qiongli 2.0.0-beta.6`。独立包只提供 `qiongli` 可执行文件；`ql` 别名由 npm / PyPI / Cargo 安装提供。
 
 ### 3. 可选：加入 PATH
 
@@ -228,7 +228,7 @@ pip 和 Cargo 用户也在安装完成后运行向导。脚本、帮助与版本
 才适合另行复制完整备份并校验。归档副本本身不会停用旧命令。
 
 
-## 安装和升级随包 Plugin、Skills（beta.5） {#install-and-upgrade-bundled-content}
+## 安装和升级随包 Plugin、Skills {#install-and-upgrade-bundled-content}
 
 可以直接安装并注册随包 Plugin；目标和目录也可交给向导选择。以 Codex 为例：
 
@@ -244,7 +244,7 @@ Plugin 本身无需 Python、Node 或 Cargo 运行时；Codex 仍需事先安装
 Claude Code 使用 `--target claude`，并另建一个导出父目录，例如
 `$HOME/qiongli-plugins/claude`。
 
-beta.5 之后的开发构建会在安装 Plugin 时提供可选的上下文提醒。首次默认关闭，
+beta.6 会在安装 Plugin 时提供可选的上下文提醒。首次默认关闭，
 更新时保留已有选择。运行 `qiongli install plugin --hooks context` 可加入提醒，
 `--hooks off` 可移除 Plugin 内的提醒配置。确认页会显示具体命令，Host 信任和实际触发
 仍需分别核对，详见 [Hook 安装与验证](/zh/advanced/agent-skill-collaboration#可选的上下文-hook)。
@@ -324,7 +324,7 @@ npm install --global qiongli@next
 或者在 Python 虚拟环境中运行：
 
 ```sh
-python -m pip install --upgrade "qiongli==2.0.0b5"
+python -m pip install --upgrade "qiongli==2.0.0b6"
 ```
 
 npm 需要 Node 18+，PyPI 需要 Python 3.9+；两者都提供 `qiongli` 和 `ql`。
@@ -333,7 +333,7 @@ npm 需要 Node 18+，PyPI 需要 Python 3.9+；两者都提供 `qiongli` 和 `q
 Cargo 从源码构建同一个 CLI，需要 Rust 1.97+ 和本机链接器。
 
 ```sh
-cargo install qiongli --version 2.0.0-beta.5 --locked
+cargo install qiongli --version 2.0.0-beta.6 --locked
 ```
 
 安装后可使用 `qiongli` 和 `ql`。Cargo 没有 `next` 渠道，预发布版需指定完整版本号。
@@ -342,7 +342,7 @@ cargo install qiongli --version 2.0.0-beta.5 --locked
 更多命令边界见[英文 CLI 指南](../../guide/cli-2x.md#which-surface-owns-which-command)。
 旧版 `qiongli setup`、`check`、`project init` 等命令属于 1.x，不能直接套用到原生 2.x。
 
-## 安装状态与版本一致性（beta.5） {#installation-state}
+## 安装状态与版本一致性 {#installation-state}
 
 `qiongli install list` 和 `qiongli doctor` 读取官方 Host 库存，并复用安装时的本地
 Plugin 收据校验。来源、缓存、版本或启用状态不能确认时，诊断会说明需要刷新或无法确认，

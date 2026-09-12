@@ -24,31 +24,34 @@ Keep your chosen Codex or Claude Code Host and model settings. Qiongli supplies
 research records, source links, reviewable changes and stage handoffs; no Qiongli
 desktop App is required.
 
-Beta.5 unifies installation and updates: run `qiongli install` in a terminal,
+Installation and updates share one guide: run `qiongli install` in a terminal,
 or `qiongli install plugin` to reuse an existing Host registration. Check the local
 MCP protocol with `qiongli mcp check`. A Plugin includes the research Skills and its
 MCP runtime; standalone Skills are an optional export. The [2.x guide](docs/guide/cli-2x.md)
 explains the choices and how to verify the first Host session.
 
+Beta.6 adds an offline [Research Graph example](docs/examples/research-graph.md),
+lighter research guidance, a reply-only entry and optional context hooks.
+
 ## Qiongli 2.x Standalone Downloads
 
 **Download, extract, and run. You do not need Python, Node.js, Rust or a package manager.**
 
-Choose the complete CLI from [GitHub Release v2.0.0-beta.5](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.5).
+Choose the complete CLI from [GitHub Release v2.0.0-beta.6](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.6).
 After extraction, run `./qiongli --help` (PowerShell: `.\qiongli.exe --help`).
 The program already includes the research Skills, templates and Lite/Full MCP
 resources. You can use it from that folder; installing an App or changing PATH is optional.
 
 | Platform | Binary archive |
 |---|---|
-| macOS Apple Silicon (ARM64) | [Download `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-aarch64-apple-darwin.tar.gz) |
-| Windows x64 | [Download `.zip`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-x86_64-pc-windows-msvc.zip) |
-| Linux x64 (glibc 2.35+) | [Download `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/qiongli-2.0.0-beta.5-x86_64-unknown-linux-gnu.tar.gz) |
+| macOS Apple Silicon (ARM64) | [Download `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-aarch64-apple-darwin.tar.gz) |
+| Windows x64 | [Download `.zip`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-x86_64-pc-windows-msvc.zip) |
+| Linux x64 (glibc 2.35+) | [Download `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-x86_64-unknown-linux-gnu.tar.gz) |
 
 Windows beta releases include the C runtime in the executable; no Visual C++ runtime
 installation is needed. Linux uses system libraries with glibc 2.35+.
 
-Verify with the release's [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.5/SHA256SUMS)
+Verify with the release's [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/SHA256SUMS)
 before running. See [extraction, PATH and MCP setup](docs/guide/cli-2x.md#standalone-binary-download)
 for step-by-step instructions. Choose these platform archives from **Assets**, rather than
 GitHub's automatic **Source code** downloads. Host applications and online services remain separate.
@@ -59,7 +62,7 @@ Both distribute the native executable. Cargo builds it from source with Rust 1.9
 and a native linker.
 
 ```sh
-cargo install qiongli --version 2.0.0-beta.5 --locked
+cargo install qiongli --version 2.0.0-beta.6 --locked
 ```
 
 Cargo provides `qiongli` and `ql`. Choose the archives above to skip compilation.
@@ -98,13 +101,13 @@ through the original channel without running a package manager.
 
 Follow the [installation and upgrade examples](docs/guide/cli-2x.md#install-and-upgrade-bundled-content).
 After a Plugin update, start a new Host session and check that its tools are available.
-In development builds after beta.5, the Plugin guide also offers optional context
+In beta.6, the Plugin guide also offers optional context
 hooks (off by default). `install plugin --hooks context` includes them;
 `--hooks off` removes their Plugin configuration. See [Hook setup and verification](docs/advanced/agent-skill-collaboration.md#optional-context-hooks).
 
 ## Skills, MCP and research records
 
-Development builds after beta.5 include **`no-qiongli`** (`$no-qiongli` in Codex),
+Beta.6 includes **`no-qiongli`** (`$no-qiongli` in Codex),
 also triggered by **“reply only” / “NoQ问理” / “仅回复” / “no 处理”**:
 answer from the conversation without model-invoked tools, agents or file operations.
 See [reply-only scope and limits](docs/advanced/agent-skill-collaboration.md#reply-only).

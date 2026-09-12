@@ -12,7 +12,7 @@
 当前开发源码也让研究设计指导随方法和已批准协议而定。角色不再统一规定文献、
 竞争解释或稳健性检验的数量。提出请求时，说明需要作出的决定、现有材料，以及
 必须保留的要求即可。正式交付仍需相应证据和检查；预注册草稿也不等于已经注册。
-这些调整位于 beta.5 之后，需要使用包含新内容的构建。
+这些调整已包含在 beta.6 中。请先更新 CLI，再刷新 Plugin。
 
 新构建的 Codex Plugin 提供 `$qiongli` 和 20 个 workflow 快捷入口，例如
 `$qiongli-paper-read`、`$qiongli-lit-review`、`$qiongli-stage-close`。

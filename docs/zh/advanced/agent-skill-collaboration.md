@@ -6,7 +6,7 @@
 
 ## 仅回复，不执行操作 {#reply-only}
 
-beta.5 之后的开发构建包含独立的 **`no-qiongli`** Skill。在 Codex 中可以使用
+beta.6 包含独立的 **`no-qiongli`** Skill。在 Codex 中可以使用
 `$no-qiongli`；其他 Host 可从已安装的 Skills 中选择 `no-qiongli`。也可以自然地说
 **“NoQ问理”**、**“仅回复”**、**“不处理”** 或 **“no 处理”**，例如：
 
@@ -70,7 +70,7 @@ Hook 适合在压缩上下文、恢复会话或启动子代理时，提醒模型
 它是原生命令，不依赖 Python、Node、MCP 连接或额外模型调用，不读取项目文件和聊天
 记录，也不保存总结、批准写入或强迫已经结束的任务继续运行。不启用 Hook 也可正常使用 Skills。
 
-beta.5 之后的开发构建已将 Hook 加入安装向导：运行 `qiongli install` 并选择 Plugin，
+beta.6 已将 Hook 加入安装向导：运行 `qiongli install` 并选择 Plugin，
 就可以选择是否加入上下文提醒。首次安装默认关闭，重新安装和升级时保留已有选择。
 也可以直接指定：
 
