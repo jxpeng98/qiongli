@@ -269,7 +269,7 @@
       "commit": "",
       "run": "",
       "updated_at": "2026-09-12",
-      "blocker": "The September 12 local follow-up adds an explicit conversational reply-only choice before resource reads, workflow routing and context reminders. It adds no runtime mode or Host tool lock; the existing review records source, pack and local checks. Earlier optional Hook installation, bounded delegation and source-bound handoffs remain in place. No release or acceptance change. Live reply-only behavior with automatic Hooks, Hook trust/delivery, non-macOS execution, cross-Host transport/identity, migrated Graph semantics and measured performance/maintenance acceptance remain open. Next observe an authorized live Host reply-only/resumption sequence and one source-bound cross-Host review before automatic claim/review/recovery work."
+      "blocker": "The September 12 follow-up adds a separately discoverable no-qiongli Skill alongside the reply-only conversation choice. Both native Host bundles and Marketplace packages project its canonical bytes as an independent entry; standalone profiles include the same source. Existing receipts, path checks and permission owners remain in force. The existing review records source, pack and local checks. No release, Host tool lock or acceptance change. Live discovery and reply-only behavior with automatic Hooks, non-macOS execution, cross-Host transport/identity, migrated Graph semantics and measured performance/maintenance acceptance remain open. Next observe an authorized live Host entry invocation/resumption sequence and one source-bound cross-Host review before automatic claim/review/recovery work."
     },
     {
       "id": "CLI-403",

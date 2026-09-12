@@ -432,3 +432,39 @@ Hook 信任与事件协议按 [Codex Hooks](https://learn.chatgpt.com/docs/hooks
 CLI-402 保持 active。下一步在获授权的真实 Host 会话中观察仅回复、恢复执行和 Hook
 共存，分别记录模型实际调用与 Host 自动事件；继续保留跨 Host、非 macOS 和研究质量
 验收缺口。本轮只做本地集成，不发布，也不把静态指引称为工具执行拦截。
+
+## 后续调整：独立 no-qiongli 入口（2026-09-12）
+
+用户进一步要求可单独选择的入口。来源提交为
+`f3e0dbc85ae5c067950af052a0b04da18a6f3005`；新增
+`content/workflow/no-qiongli/SKILL.md`，保留 `$no-qiongli`、NoQ问理和自然语言的
+仅回复选择。入口本身包含完整边界，不读取主 Skill、工作流或其他指引。
+讨论、开发或安装这个入口不等于选择仅回复模式。
+
+原生 Codex／Claude Plugin 和 Marketplace 打包把同一份内容放到
+`skills/no-qiongli/SKILL.md`，使 Host 可单独发现它；独立 Skills 的三个内容 profile
+保留 `workflow/no-qiongli/SKILL.md`。没有新增 CLI 子命令、模式配置或工具权限锁。
+路径白名单只增加该文件，旧包没有这份资源时仍保留原结构，现有收据和文件校验继续生效。
+
+本轮本地检查：
+
+- `python3 -m unittest tests.test_native_marketplace_plugins tests.test_skill_routing_probe tests.test_skill_resource_links`：28 项通过。
+  包括两个 Host 的独立入口、旧包结构、入口缺失／篡改（连同收据一起修改）、
+  中英文选择与零资源读取轨迹。离线样例约束不代表真实模型会话的遵循率。
+- 新 Skill 的 `quick_validate.py`、Capability Contract 校验及 Rust 格式检查通过。
+- 原生 Codex 快捷入口与 Claude 独立入口路径检查各 1 项通过，拒绝额外脚本、越界路径
+  和相近目录名；`qiongli-content --tests` 46 项、程序台账检查 7 项通过。
+- Codex 和 Claude 的 `complete_bundle_is_deterministic_tamper_evident_and_runtime_independent`
+  各 1 项通过：完整原生包中包含独立入口，入口字节与三个 profile 一致，并保留确定性、
+  篡改拒绝和空 PATH 下的运行检查。Docs 构建通过，保留既有包体积和高亮提示。
+
+既有资源锁生成器将 434 项资源绑定到上述来源提交，版本仍为 `2.0.0-beta.5`。
+Content root SHA-256：`50caa475bf0fc98175ed3076d6e6af049f6738ab474c341a9fadaa5f68c7c856`；
+pack SHA-256：`dd0312d1fea8d584e8f7aed418fa74332240c9939857d1c0bba433db121bb09a`。
+原生检查使用 `cargo +1.97.0`、native workspace 和 `--offline --locked`。
+临时日志前缀为 `/private/tmp/qiongli-no-entry-`，包括 `python.log`、`platform.log`、
+`content.log`、`bundles.log`、`ledger.log` 和 `docs.log`。
+
+未更改个人 Host 设置或发布新包。CLI-402 保持 active；后续需要在实际安装后的 Host
+中观察独立入口发现、自然语言选择、恢复执行以及自动 Hook 共存，不能把文件导出等同于
+会话行为验收。

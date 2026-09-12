@@ -13,6 +13,11 @@ them in standalone exports. Check source binding, old-pack compatibility and
 missing/changed entries, then refresh the content lock and integrate locally.
 This extends the earlier scope below; no runtime mode or CLI command is added.
 
+Implemented in `f3e0dbc8`: 28 Python checks, two native path checks, both complete
+Host bundle checks, 46 native content checks and seven ledger checks pass. Docs
+build passes. The 434-entry lock and existing review record the source and local
+evidence; actual installed-Host discovery/behavior remains the next observation.
+
 Continue from `87a6ea7c` on `codex/reply-only-scope`. Add the maintainer's explicit
 “仅回复 / no 处理” choice before the existing root/shortcut resource reads and
 runtime routing. Use visible conversation material only; retain the choice until
