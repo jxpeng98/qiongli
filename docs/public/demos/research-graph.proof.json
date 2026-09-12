@@ -1,10 +1,10 @@
 {
   "synthetic": true,
-  "cliVersion": "qiongli 2.0.0-beta.5",
-  "cliSha256": "fd2fdae4e934df02e25f2a00b405681506dbad67bc9e845db9ae1daa91f3e252",
-  "projectId": "prj_8316ab58e6153a87a396856049a63ded",
+  "cliVersion": "qiongli 2.0.0-beta.6",
+  "cliSha256": "5e04048369f8dbd18555c809e149dcf640091540539d32a05f2dc939f8a81216",
+  "projectId": "prj_8a7265e3ee65073c3b4981e75998e23e",
   "projectRevision": 1,
-  "projectionId": "grp_1270c2de0f99ec364746b5107def7de97397ddbab9b9c64c9cc984ee097476cb",
+  "projectionId": "grp_adda74e210162ae61e38b175c96d70177ec2b0baf6c37714848960d0691f7b6d",
   "inputSha256": {
     "manuscript/claims_evidence_map.md": "4b52af887ef32ea3fd32d86f89c9f69696b661fe93c85717695840c773aa7630",
     "context/research_state.md": "c61289f7051e860a4f556d7f6b11a7f00c5ac8cf75db58ed48fae842d31fef64",
@@ -12,7 +12,7 @@
     "evidence/claim-evidence-ledger.csv": "fa6cb6a709fb155e134d03e1aa9820dd3758bc5bb066639d6c828e5a06fa8e8d",
     "notes/synthetic-reading-notes.md": "b371fe59ea9e55c9f0a58d099acf765da4e8c95c2d3affaccc9a19dac4c1bd64"
   },
-  "htmlSha256": "f438074accf650501acc1d71d1b38f6ce634ffb5de14e48ec5a803e088e0e0d1",
+  "htmlSha256": "dd6fb368fcad2f9acd5c98c989decba9df4a78f129e4f9d359ebc4f2c30ef426",
   "semanticRecords": 9,
   "semanticRelations": 8,
   "supportEdges": 2,
