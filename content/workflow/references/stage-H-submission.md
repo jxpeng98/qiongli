@@ -118,8 +118,8 @@ confidential content. Do not contact authors/editors or submit a review automati
 ## Canonical outputs and completion
 
 Formal project writes retain the existing preview/approval/CAS owner. Use
-`references/evidence-ledger-contract.md` for central claim changes and
-`references/citation-risk-policy.md` when citation risk is material. A chat answer
+`references/evidence-ledger-contract.md` when producing, revising or validating
+central claims, and `references/citation-risk-policy.md` when citation risk is material. A chat answer
 need not create these files. Never invent a passed gate, statement or approval.
 
 ### H1 — Submission package
