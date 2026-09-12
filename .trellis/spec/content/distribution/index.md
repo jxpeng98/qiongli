@@ -137,7 +137,14 @@ cache refresh and live readiness remain separately observed actions.
 ADR 0224's terminal `install/upgrade plugin` flow now offers official Codex/Claude
 registration after a second, exact-plan confirmation. It may replace only the
 selected local Plugin's completely verified cache; unrelated enabled Qiongli
-Plugins and changed files block that step. Lower-level source plan/apply commands
+Plugins and changed files block that step. The terminal Codex migration may now
+disable explicitly listed legacy/platform Qiongli entries after the separate Host
+confirmation. It uses the official `config/batchWrite` API with an observed user
+configuration version, preserving old source/cache files and other settings.
+Unknown identities, non-user entries, unsupported APIs and changed configurations
+fail closed. A failed subsequent registration leaves a disclosed disabled previous
+Plugin that the user can re-enable; no automatic deletion or rollback edits are
+performed. Claude keeps its manual conflict handling. Lower-level source plan/apply commands
 still only export files. CLI package updates stay with the original installer.
 Optional local context hooks are projected inline into the selected Host manifest
 and bound to its receipt and native binary. Installation previews the configuration

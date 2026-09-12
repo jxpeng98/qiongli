@@ -21,6 +21,8 @@ use crate::plugin_source::PluginSourcePlan;
 const MARKETPLACE: &str = "qiongli-cli-local";
 const PLUGIN: &str = "qiongli-next@qiongli-cli-local";
 
+mod codex_config;
+
 #[derive(Eq, PartialEq, Serialize)]
 struct HostPlan {
     executable: PathBuf,
@@ -31,6 +33,7 @@ struct HostPlan {
     marketplaces: Value,
     plugins: Value,
     cache_receipt_sha256: Option<String>,
+    migration: Option<codex_config::PluginMigration>,
     commands: Vec<Vec<String>>,
 }
 
@@ -46,7 +49,7 @@ pub(crate) fn register(
         "\nPlugin files are ready. Checking official Host registration…\n",
     )?;
     let plan = prepare(environment, content, source)?;
-    if !plan.commands.is_empty() {
+    if !plan.commands.is_empty() || plan.migration.is_some() {
         let bytes =
             serde_json_canonicalizer::to_vec(&plan).map_err(|_| "local-host-plan-invalid")?;
         let preview = serde_json::json!({
@@ -57,6 +60,8 @@ pub(crate) fn register(
             "source_receipt_sha256": plan.source["source"]["receipt_sha256"],
             "cache_receipt_sha256": plan.cache_receipt_sha256,
             "plugin": PLUGIN,
+            "previous_plugins_to_disable": plan.migration.as_ref().map(|migration| &migration.plugins),
+            "codex_config_request": plan.migration.as_ref().map(codex_config::PluginMigration::request),
             "commands": plan.commands.iter().map(|args| serde_json::json!({"arguments": serde_json::json!(args).to_string()})).collect::<Vec<_>>(),
             "plan_digest_sha256": format!("{:x}", Sha256::digest(&bytes)),
             "approvals_required": ["client-config-change", "host-trust"],
@@ -66,6 +71,12 @@ pub(crate) fn register(
             writer,
             "The Host will register/enable this Plugin and may replace its verified old cache. Existing sessions need a restart.\n",
         )?;
+        if plan.migration.is_some() {
+            line(
+                writer,
+                "Migration: disable only the listed previous Qiongli Plugins through Codex's official configuration API. Keep their sources and caches. This installs the CLI-bundled version in qiongli-cli-local; other Plugins and model settings stay as configured.\n",
+            )?;
+        }
         let reviewed_at = Instant::now();
         if !confirm(
             reader,
@@ -86,6 +97,18 @@ pub(crate) fn register(
         if prepare(environment, content, source)? != plan {
             return Err("local-host-precondition-changed");
         }
+        if let Some(migration) = &plan.migration {
+            migration.apply(environment, &plan.executable)?;
+            line(
+                writer,
+                "Previous Qiongli Plugins: disabled; sources and caches retained. If the following registration fails, retry install plugin, or re-enable the listed previous Plugin in Codex to switch back.\n",
+            )?;
+            let (_, plugins) =
+                read_inventory(environment, &plan.executable, Duration::from_secs(30))?;
+            if !enabled_conflicts(source.target, &plugins)?.is_empty() {
+                return Err("local-host-migration-not-verified");
+            }
+        }
         for arguments in &plan.commands {
             show_json(
                 writer,
@@ -96,7 +119,7 @@ pub(crate) fn register(
         }
     }
     let verified = prepare(environment, content, source)?;
-    if !verified.commands.is_empty() {
+    if !verified.commands.is_empty() || verified.migration.is_some() {
         return Err("local-host-registration-not-verified");
     }
     show_json(writer, &serde_json::json!({
@@ -363,8 +386,37 @@ fn prepare(
     }
     let (marketplaces, plugins) =
         read_inventory(environment, &executable, Duration::from_secs(30))?;
-    let (commands, cache_receipt_sha256) =
-        commands(source, &config_root, &current, &marketplaces, &plugins)?;
+    let conflicts = enabled_conflicts(source.target, &plugins)?;
+    let migration = if conflicts.is_empty() {
+        None
+    } else if source.target == ManagedIntegrationTargetV1::Codex {
+        Some(codex_config::PluginMigration::read(
+            environment,
+            &executable,
+            &config_root,
+            conflicts,
+        )?)
+    } else {
+        return Err("local-host-other-qiongli-enabled");
+    };
+    let mut after_migration = plugins.clone();
+    if let Some(migration) = &migration {
+        for plugin in after_migration["installed"]
+            .as_array_mut()
+            .ok_or("local-host-inventory-invalid")?
+        {
+            if migration.plugins.iter().any(|id| plugin["pluginId"] == *id) {
+                plugin["enabled"] = Value::Bool(false);
+            }
+        }
+    }
+    let (commands, cache_receipt_sha256) = commands(
+        source,
+        &config_root,
+        &current,
+        &marketplaces,
+        &after_migration,
+    )?;
     Ok(HostPlan {
         executable_sha256: crate::cli_install::regular_file_sha256(&executable)?,
         executable,
@@ -374,6 +426,7 @@ fn prepare(
         marketplaces,
         plugins,
         cache_receipt_sha256,
+        migration,
         commands,
     })
 }
@@ -385,7 +438,7 @@ pub(crate) fn installation_source(
     requested: Option<&Path>,
     writer: &mut impl Write,
 ) -> Result<Option<PathBuf>, &'static str> {
-    let (executable, _) = host_context(environment, target)?;
+    let (executable, root) = host_context(environment, target)?;
     let (marketplaces, plugins) =
         read_inventory(environment, &executable, Duration::from_secs(30))?;
     let destination = registered_destination(target, &marketplaces)?;
@@ -405,17 +458,21 @@ pub(crate) fn installation_source(
             writer,
             &serde_json::json!({"enabled_qiongli_plugins":conflicts}).to_string(),
         )?;
+        if target == ManagedIntegrationTargetV1::Codex {
+            codex_config::PluginMigration::read(environment, &executable, &root, conflicts)?;
+            line(
+                writer,
+                "An earlier Qiongli Plugin is installed from another source. Continue to preview migration to the CLI-bundled Plugin. Its previous source and cache will be kept; disabling it requires the separate Host confirmation below.\n",
+            )?;
+            return Ok(destination);
+        }
         line(
             writer,
             "Installation is not complete. Another Qiongli Plugin is enabled. No source files have been changed by this attempt.\n",
         )?;
         line(
             writer,
-            if target == ManagedIntegrationTargetV1::Codex {
-                "In Codex, open Plugins and disable the listed Qiongli Plugin, then rerun qiongli install plugin --target codex. This Codex CLI has no standalone Plugin disable command; removing it would also delete its cache.\n"
-            } else {
-                "Disable the listed Plugin through Claude Code's Plugin manager, then rerun qiongli install plugin --target claude. Keep its files if you want to switch back.\n"
-            },
+            "Disable the listed Plugin through Claude Code's Plugin manager, then rerun qiongli install plugin --target claude. Keep its files if you want to switch back.\n",
         )?;
         return Err("local-host-other-qiongli-enabled");
     }
@@ -483,7 +540,16 @@ fn enabled_conflicts(
             .as_bool()
             .ok_or("local-host-inventory-invalid")?;
         if id != PLUGIN
-            && matches!(id.split('@').next(), Some("qiongli" | "qiongli-next"))
+            && matches!(
+                id.split('@').next(),
+                Some(
+                    "qiongli"
+                        | "qiongli-next"
+                        | "qiongli-next-macos-arm64"
+                        | "qiongli-next-windows-x64"
+                        | "qiongli-next-linux-x64"
+                )
+            )
             && enabled
         {
             conflicts.push(id.to_owned());

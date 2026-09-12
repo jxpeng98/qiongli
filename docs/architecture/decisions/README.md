@@ -38,6 +38,7 @@ decision must be recorded as a new superseding ADR.
 | `CLI-403` / `CLI-405` | [ADR 0222](0222-user-approved-local-plugin-sources.md) | Accepted | User-approved local Plugin source lifecycle; signed product and Host authority remain separate |
 | `CLI-410` | [ADR 0223](0223-bundled-marketplace-native-mcp.md) | Accepted | Platform-specific Marketplace Plugins bundle the native executable; no Node/npm startup dependency |
 | `CLI-402` | [ADR 0224](0224-cli-local-plugin-registration.md) | Accepted | CLI exports bundled content and registers local Plugins through separately approved official Host commands |
+| `CLI-402` | [ADR 0226](0226-confirmed-codex-plugin-source-migration.md) | Accepted | Confirmed Codex source migration preserves old Plugin files and changes only their enabled flags through the official configuration API |
 
 ## Decision lifecycle
 

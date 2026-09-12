@@ -264,12 +264,13 @@
         "docs/superpowers/plans/2026-09-06-cli-first-closeout-and-extraction.md",
         "docs/superpowers/reviews/2026-09-11-qiongli-2x-coherence-review.md",
         "docs/superpowers/reviews/2026-09-11-outcome-guided-skills-review.md",
-        "docs/superpowers/reviews/2026-09-11-outcome-guided-skills-trial.json"
+        "docs/superpowers/reviews/2026-09-11-outcome-guided-skills-trial.json",
+        "docs/architecture/decisions/0226-confirmed-codex-plugin-source-migration.md"
       ],
       "commit": "",
       "run": "",
       "updated_at": "2026-09-12",
-      "blocker": "The September 12 worked Graph example provides five synthetic input files, a real isolated CLI registration/projection/source-read run, a generated offline HTML page and bilingual Examples walkthroughs. It yields nine semantic records, eight non-structural relations and a retained unsupported CLM-2; fixture/template parity and DOM checks are recorded in the existing review. Normalization is supplied, not produced by an observed model session. Actual browser rendering, clipboard/download permissions, file associations, Windows execution and live Host/subagent/reply-only/Hook behavior remain open after the earlier browser-policy refusal. Cross-Host identity/transport, migrated Graph semantics and measured performance/maintenance acceptance are still pending. Next inspect the worked page in an allowed browser and observe authorized research normalization and collaboration in a real Host. Earlier baseline and incomplete-suite gaps remain recorded; no release or acceptance change."
+      "blocker": "Confirmed Codex cross-source Plugin migration is implemented locally after the beta.6 report. An isolated Codex 0.153.4 trial passes conflict reproduction, cancellation, concurrent-edit rejection, migration, preservation and repeat installation; focused native checks pass. The fix is unreleased and other-platform/current-session behavior remains unqualified. The September 12 worked Graph example provides five synthetic input files, a real isolated CLI registration/projection/source-read run, a generated offline HTML page and bilingual Examples walkthroughs. It yields nine semantic records, eight non-structural relations and a retained unsupported CLM-2; fixture/template parity and DOM checks are recorded in the existing review. Normalization is supplied, not produced by an observed model session. Actual browser rendering, clipboard/download permissions, file associations, Windows execution and live Host/subagent/reply-only/Hook behavior remain open after the earlier browser-policy refusal. Cross-Host identity/transport, migrated Graph semantics and measured performance/maintenance acceptance are still pending. Next inspect the worked page in an allowed browser and observe authorized research normalization and collaboration in a real Host. Earlier baseline and incomplete-suite gaps remain recorded; no release or acceptance change."
     },
     {
       "id": "CLI-403",

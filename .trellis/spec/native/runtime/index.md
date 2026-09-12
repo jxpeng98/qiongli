@@ -76,7 +76,12 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   using the existing bounded process runner. It rechecks executable/source/cache
   hashes and official inventories before executing, stops on the first failure,
   and verifies enabled registration plus matching cached files afterward.
-  Live session tools remain a separate check. See ADR 0224.
+  A confirmed Codex cross-source migration uses the bounded stdio configuration
+  client in `plugin_host/codex_config.rs`: user-layer/version checks precede an
+  official batch write of only the listed Qiongli enabled flags. Existing caches
+  remain intact. Cancellation, stale configuration, unsupported protocols and
+  incomplete final registration cannot report success. No model session starts.
+  Live session tools remain a separate check. See ADRs 0224 and 0226.
   `doctor` and `install inventory` reuse this registration owner for configured
   `qiongli-cli-local` sources. Bounded official inventories and verified source/
   cache receipts distinguish current, refresh-required and unavailable states;

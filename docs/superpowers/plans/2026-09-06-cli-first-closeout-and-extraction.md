@@ -3,6 +3,42 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Confirmed Codex Plugin migration — September 12 follow-up
+
+Base `e75e0252`; branch `codex/plugin-source-migration`. The reported beta.6
+upgrade stops because `qiongli-next@personal` differs from the CLI-managed
+`qiongli-next@qiongli-cli-local`. The shared install/upgrade/update owner now
+previews migration and, after the separate Host confirmation, disables only the
+listed known Qiongli entries through Codex's official configuration API. Previous
+sources/caches, other Plugins and models remain intact. ADR 0226 narrowly
+supersedes manual-only Codex handling; Claude keeps its existing behavior.
+
+Reuse the isolated official Host command builder and bounded stdio calls, with
+no added dependency or model session. Require enabled user-layer entries, the
+Host's opaque configuration version and the raw file digest; recheck the complete
+plan before writing. A later registration failure reports the disabled state and
+allows retry or manual re-enable, without guessed rollback or deletion.
+
+Five Plugin Host unit checks, the existing CLI approval/drift lifecycle test,
+CLI library/test Clippy and Docs build pass. A real Codex CLI 0.153.4 trial in an
+isolated synthetic home reproduces beta.6's rejection, then passes cancellation,
+concurrent-edit rejection, confirmed migration, old modified-cache/source
+preservation, unrelated configuration preservation and repeat installation.
+The trial caught an incorrect raw-digest interpretation of the opaque Host version;
+that was corrected and retained in the regression fixture before the passing run.
+The initial temporary-home fixture also hit the existing insecure-parent guard;
+using the native target directory resolved the fixture without weakening it.
+
+The runnable trial, logs and exact binary/file identities are retained under
+`packages/qiongli-native/target/qiongli-plugin-migration-host-dqyongxf/`.
+`proof.json` SHA-256: `0a22b93584ecb21e184362763c4a909fbe53d6d71957c4ffb161f87735fba1dc`.
+Final self-review, format, whitespace, ledger and frozen-source checks pass.
+This is local macOS Host/configuration evidence, not installed-session tool or
+Windows/Linux acceptance. Personal Host settings were not changed. The beta.6
+content pack is unchanged and the fix is not published; no release was requested
+in this follow-up. CLI-402 stays active. Next qualify this migration in the next
+authorized release and continue the existing Graph/live Host observations.
+
 ## Beta.6 release submission — September 12
 
 Base `7c0ea15c`; branch `codex/release-beta-6`. The maintainer requests a new Beta

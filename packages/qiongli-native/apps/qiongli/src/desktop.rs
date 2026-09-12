@@ -10899,6 +10899,21 @@ pub(crate) fn bounded_host_os_command_with_timeout(
     arguments: &[OsString],
     timeout: Duration,
 ) -> Result<String, HostCommandFailure> {
+    run_bounded_command(
+        official_host_command(environment, executable, arguments)?,
+        timeout,
+    )
+}
+
+#[allow(
+    clippy::disallowed_methods,
+    reason = "resolved official Host executable and the existing isolated Host environment"
+)]
+pub(crate) fn official_host_command(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    arguments: &[OsString],
+) -> Result<Command, HostCommandFailure> {
     let mut command = Command::new(executable);
     command
         .env_clear()
@@ -10920,7 +10935,7 @@ pub(crate) fn bounded_host_os_command_with_timeout(
     if let Some(root) = environment.claude_config_root() {
         command.env("CLAUDE_CONFIG_DIR", root);
     }
-    run_bounded_command(command, timeout)
+    Ok(command)
 }
 
 #[allow(

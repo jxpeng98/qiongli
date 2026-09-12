@@ -17,10 +17,18 @@ or failure; each new source needs its own directory with an existing parent.
 
 Plugin source files do not belong in `~/.agents/skills`. Official registration
 lets the Host load Skills and MCP from its Plugin cache. If another Qiongli Plugin
-is enabled, the new flow names it before exporting. Disable it in the Host and
-retry; no old Plugin files are removed. Codex's current CLI has no standalone
-Plugin-disable command. Use the Plugin control in Codex rather than remove, which
-would delete its cache. A completed export alone is not installation success.
+is enabled, the installer lists it before exporting. Published beta.6 requires you to
+disable it in the Host and retry; use the Plugin switch, since remove deletes its
+cache. Development builds after beta.6 offer a confirmed Codex migration from
+`qiongli-next@personal` and the known Qiongli platform entries to the CLI-bundled
+Plugin. The Host preview lists exactly which previous Plugins will be disabled.
+Codex's official configuration API checks the configuration version and changes
+only those enabled flags; previous sources/caches and other settings are kept.
+Cancelling Host confirmation leaves the previous Plugin enabled. If registration
+fails after disabling it, retry installation or enable the previous Plugin in
+Codex to switch back. Unsupported configuration APIs and non-user entries require
+manual review; Claude retains its manual disable step. A completed export alone
+is not installation success.
 
 Check `qiongli doctor` and `qiongli install list` for verified registration, then
 start a new session and check actual tools. Skills-only installation still exports

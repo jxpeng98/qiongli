@@ -474,6 +474,9 @@ fn installation_failure(code: &'static str) -> CliOutput {
         "local-host-other-qiongli-enabled" => {
             "Disable the other Qiongli Plugin in the Host, then retry this command."
         }
+        "local-host-migration-config-unavailable" | "local-host-migration-not-verified" => {
+            "Check the listed Qiongli Plugins in Codex before retrying. Migration needs a supported Codex configuration API and user-scoped enabled entries. Update Codex or disable the previous Plugin there; its source and cache are kept."
+        }
         "local-host-marketplace-conflict" => {
             "Review the Host's qiongli-cli-local marketplace path; choose the matching export destination."
         }

@@ -16,9 +16,13 @@ Qiongli 2 以原生 CLI 为入口，不需要打开或安装 Qiongli App。
 
 Plugin 源文件不需要放进 `~/.agents/skills`。完成官方注册后，Host 会从自己的
 Plugin 缓存中加载 Skills 和 MCP。如果已启用另一个 Qiongli Plugin，新流程会在
-导出前列出它的名称。请先在 Host 中停用，再重试；旧插件文件不会被删除。
-当前 Codex CLI 没有单独的 Plugin 停用命令，请使用 Codex 的插件开关；
-`remove` 会删除缓存，不能当作停用使用。仅导出成功，不能算安装完成。
+导出前列出它的名称。已发布的 beta.6 需要先在 Host 中停用，再重试；请使用插件
+开关，`remove` 会删除缓存。beta.6 之后的开发构建支持在确认后，将
+`qiongli-next@personal` 等穷理旧插件迁移到 CLI 随包 Plugin。Host 确认页会列出
+需要停用的具体插件；Codex 官方配置接口会校验配置版本，只修改这些插件的启用状态，
+保留旧来源、缓存及其他设置。取消 Host 确认时，旧插件保持启用。如果停用后新版
+注册失败，可以重试安装，或在 Codex 中重新启用旧插件。配置接口不受支持或插件
+不属于用户配置时，需要手动核对；Claude 保留手动停用步骤。仅导出成功，不能算安装完成。
 
 用 `qiongli doctor` 和 `qiongli install list` 检查注册，再开新会话验证实际工具。
 独立 Skills 仍导出到 `.qiongli-skills`，不会接入 Host；需要自动注册时选 Plugin。
