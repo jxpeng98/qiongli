@@ -5,6 +5,7 @@ Use this section when you want concrete, repeatable examples rather than abstrac
 ## Example Pages
 
 - [Paper Type Playbooks](/examples/paper-type-playbooks)
+- [Research Graph: notes to an offline evidence view](/examples/research-graph)
 
 ## What This Section Is For
 

@@ -1,0 +1,4 @@
+claim_id,claim_text,claim_type,evidence_type,source_id,source_location,artifact_path,confidence,limitations,status
+CLM-1,Short breaks are associated with higher immediate recall,finding,paper,DemoA,Table 1,notes/synthetic-reading-notes.md,medium,Synthetic pilot; no random assignment; not causal,supported
+CLM-1,Short breaks are associated with higher immediate recall,finding,paper,DemoB,Table 2,notes/synthetic-reading-notes.md,medium,Synthetic pilot; one task; no delayed measurement,supported
+CLM-2,Lasting improvement remains untested,limitation,gap_note,,,notes/synthetic-reading-notes.md,low,Neither pilot measures recall after a week,needs_evidence

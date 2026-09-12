@@ -55,7 +55,8 @@ const enSidebar = {
       text: 'Examples',
       items: [
         { text: 'Overview', link: '/examples/' },
-        { text: 'Paper Type Playbooks', link: '/examples/paper-type-playbooks' }
+        { text: 'Paper Type Playbooks', link: '/examples/paper-type-playbooks' },
+        { text: 'Research Graph example', link: '/examples/research-graph' }
       ]
     }
   ],
@@ -141,7 +142,8 @@ const zhSidebar = {
       text: '示例',
       items: [
         { text: '总览', link: '/zh/examples/' },
-        { text: 'Paper Type 路线图', link: '/zh/examples/paper-type-playbooks' }
+        { text: 'Paper Type 路线图', link: '/zh/examples/paper-type-playbooks' },
+        { text: 'Research Graph 完整示例', link: '/zh/examples/research-graph' }
       ]
     }
   ],

@@ -358,7 +358,8 @@ Cargo 携带可构建的 Rust 源码；共同的 CLI 描述来自同一份包元
 
 ## Research Graph：如何判断比以前更好 {#research-graph}
 
-平时先看终端摘要，需要检查关系时再打开离线图：
+可以先看[Research Graph 完整示例](/zh/examples/research-graph)，里面有虚构输入、
+可交互页面和可复现的 CLI 流程。在自己的项目中，先看终端摘要，需要检查关系时再打开离线图：
 
 ```bash
 qiongli project graph snapshot --project-id <prj_id> --text

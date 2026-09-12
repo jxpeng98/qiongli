@@ -492,8 +492,9 @@ that cached bytes match.
 
 ## Research Graph: checking the improvement {#research-graph}
 
-Start with a readable summary, then open an offline view when the relationships
-need a closer look:
+See the [worked Research Graph example](/examples/research-graph) for synthetic
+inputs, an interactive page and a reproducible CLI run. In your own project,
+start with a readable summary, then open an offline view for a closer look:
 
 ```bash
 qiongli project graph snapshot --project-id <prj_id> --text

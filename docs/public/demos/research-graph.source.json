@@ -1,0 +1,25 @@
+{
+  "type": "project-artifact-read",
+  "artifact": {
+    "schemaVersion": 1,
+    "documentKind": "qiongli-project-artifact-view",
+    "projectId": "prj_8316ab58e6153a87a396856049a63ded",
+    "projectRevision": 1,
+    "projectionId": "grp_1270c2de0f99ec364746b5107def7de97397ddbab9b9c64c9cc984ee097476cb",
+    "entityKind": "edge",
+    "entityId": "edg_e2f0d91170e6e47decf090628771d4b317d82b268a97d5b5c810cece90946695",
+    "artifactPath": "evidence/claim-evidence-ledger.csv",
+    "sourceAnchor": "support:1021889ad3d26db94447a5a766fae7b30bac96a14281d3129fcffd4daa1fc564",
+    "format": "csv",
+    "contentDigest": "fa6cb6a709fb155e134d03e1aa9820dd3758bc5bb066639d6c828e5a06fa8e8d",
+    "sourceSizeBytes": 657,
+    "content": "claim_id,claim_text,claim_type,evidence_type,source_id,source_location,artifact_path,confidence,limitations,status\nCLM-1,Short breaks are associated with higher immediate recall,finding,paper,DemoA,Table 1,notes/synthetic-reading-notes.md,medium,Synthetic pilot; no random assignment; not causal,supported\nCLM-1,Short breaks are associated with higher immediate recall,finding,paper,DemoB,Table 2,notes/synthetic-reading-notes.md,medium,Synthetic pilot; one task; no delayed measurement,supported\nCLM-2,Lasting improvement remains untested,limitation,gap_note,,,notes/synthetic-reading-notes.md,low,Neither pilot measures recall after a week,needs_evidence\n",
+    "contentSizeBytes": 657,
+    "startLine": 1,
+    "endLine": 5,
+    "anchorLine": 2,
+    "anchorMatched": true,
+    "truncatedBefore": false,
+    "truncatedAfter": false
+  }
+}

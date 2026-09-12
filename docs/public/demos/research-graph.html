@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Qiongli · Research Graph</title>
+<style>
+:root{color-scheme:light dark;--paper:#f6f5f1;--panel:#fff;--ink:#242c29;--muted:#5d6863;--line:#d9ddd7;--accent:#28644c;--tint:#eaf1e9;--challenge:#a34a25}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 system-ui,sans-serif}
+header,main,footer{max-width:1380px;margin:auto;padding:24px 32px}
+header{border-bottom:1px solid var(--line)}
+h1{font-size:30px;letter-spacing:-.6px;margin:4px 0}h2{font-size:20px;margin:0 0 12px}h3{font-size:16px;margin:16px 0 8px}
+p{margin:8px 0}.muted,small{color:var(--muted)}small{font-size:14px}
+header p,footer p,.explanation{max-width:75ch}h1,h2,h3,p{overflow-wrap:anywhere}
+::selection{background:var(--accent);color:var(--panel)}
+#metrics{display:flex;gap:8px 24px;flex-wrap:wrap;margin-top:18px;font-variant-numeric:tabular-nums}
+main{display:grid;grid-template-columns:260px minmax(0,1fr);gap:24px}
+section,aside{min-width:0}
+input,button,select{font:inherit;color:inherit}
+input,select{width:100%;padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:5px}
+input{caret-color:var(--accent)}input::placeholder{color:var(--muted)}
+label{display:block;margin-top:12px;margin-bottom:4px;font-size:14px}
+button{cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:9px 12px;text-align:left;min-height:44px;overflow-wrap:anywhere}
+button:hover:not(:disabled){border-color:var(--accent)}button:active:not(:disabled){background:var(--tint)}
+button:disabled{color:var(--muted);cursor:default}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+button[aria-pressed=true]{background:var(--tint);border-color:var(--accent)}
+#nodes{list-style:none;margin:12px 0;padding:0;max-height:690px;overflow:auto}
+#nodes li{margin-bottom:6px}#nodes button{width:100%}#nodes small{display:block}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
+.title-row,.pager{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.title-row h2{flex:1;margin:0}.pager{margin:12px 0}.pager p{margin:0;font-size:14px;font-variant-numeric:tabular-nums}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.map-scroll{overflow:auto;margin:12px 0}
+svg{display:block;width:100%;min-width:760px;height:auto}
+svg .edge{fill:none;stroke:var(--muted);stroke-width:2}
+svg .edge[data-relation=supports]{stroke:var(--accent)}
+svg .edge[data-relation=contradicts],svg .edge[data-relation=weakens]{stroke:var(--challenge)}
+svg .edge[data-status=proposed]{stroke-dasharray:8 5}
+svg .edge[data-status=rejected]{stroke-dasharray:2 5}
+svg .edge[aria-pressed=true],svg .edge:focus-visible{stroke-width:4}
+svg circle{fill:var(--tint);stroke:var(--accent);stroke-width:1.5}
+svg text{fill:var(--ink);font-size:14px;text-anchor:middle}
+svg [role=button]{cursor:pointer}
+.legend{font-size:14px;color:var(--muted)}
+#relations{display:grid;gap:8px}#relations small{display:block}
+dl{display:grid;grid-template-columns:135px minmax(0,1fr);gap:8px 12px}
+dt{color:var(--muted)}dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+code{font:13px/1.7 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;display:block;background:var(--paper);padding:12px;border-radius:5px}
+#diagnostics li{margin:12px 0;overflow-wrap:anywhere}#diagnostics small{display:block}
+footer{font-size:14px;border-top:1px solid var(--line)}
+[hidden]{display:none!important}
+@media(max-width:760px){header,main,footer{padding:18px}main{grid-template-columns:1fr}#nodes{max-height:230px}dl{grid-template-columns:1fr;gap:2px}dd{margin-bottom:8px}.title-row{align-items:flex-start}.filters{grid-template-columns:1fr}.panel{padding:16px}}
+@media(prefers-color-scheme:dark){:root{--paper:#181e1b;--panel:#222a25;--ink:#e6ece6;--muted:#b0bdb3;--line:#47534b;--accent:#95c6a8;--tint:#2f4436;--challenge:#f0ae8c}}
+</style>
+<header>
+  <h1>Research Graph</h1>
+  <p id="project"></p>
+  <p class="muted">An offline snapshot of your research records. Re-export after changing sources. This page does not edit your project.</p>
+  <div id="metrics"></div>
+</header>
+<main>
+  <aside aria-label="Research records">
+    <h2>Explore records</h2>
+    <label for="search">Find a claim, source or decision</label>
+    <input id="search" type="search" placeholder="Label, ID, type or source file">
+    <label for="node-type">Record type</label>
+    <select id="node-type"><option value="">All record types</option></select>
+    <p id="count" class="muted" aria-live="polite"></p>
+    <ul id="nodes"></ul>
+    <nav class="pager" aria-label="Record pages">
+      <button id="records-prev" type="button">Previous records</button>
+      <button id="records-next" type="button">Next records</button>
+    </nav>
+  </aside>
+  <section aria-label="Selected record">
+    <div class="panel">
+      <div class="title-row">
+        <h2 id="selected" tabindex="-1">Select a record</h2>
+        <button id="back" type="button" disabled>Back to record</button>
+      </div>
+      <div class="filters">
+        <div><label for="relation-type">Relation</label><select id="relation-type"><option value="">All relations</option></select></div>
+        <div><label for="relation-status">Recorded status</label><select id="relation-status"><option value="">All statuses</option></select></div>
+      </div>
+      <p id="scope" class="muted" aria-live="polite"></p>
+      <div class="map-scroll" tabindex="0" role="region" aria-label="Relationship map; scroll horizontally on small screens">
+        <svg id="map" viewBox="0 0 760 440" role="group" aria-label="Selected record and its neighbors"></svg>
+      </div>
+      <p class="legend">Arrows follow the recorded direction. Dashed: proposed. Dotted: rejected. Every relation below names its status; reviewed does not mean proven.</p>
+      <div id="relations" aria-label="Relations"></div>
+      <nav class="pager" aria-label="Relation pages">
+        <button id="relations-prev" type="button">Previous relations</button>
+        <button id="relations-next" type="button">Next relations</button>
+      </nav>
+    </div>
+    <div class="panel" id="detail" aria-live="polite">
+      <h2 id="detail-title" tabindex="-1">Record details</h2>
+      <dl id="fields"></dl>
+      <div class="title-row"><h3>Inspect the recorded source</h3><button id="copy" type="button">Copy command</button></div>
+      <p class="muted explanation">Run this in Qiongli to read the registered record at this revision. Follow its file and location references to inspect the original material.</p>
+      <code id="source"></code>
+      <p id="copy-status" class="muted" role="status"></p>
+      <p class="muted explanation">A reviewed relation records a workflow decision; it does not prove a claim. Decisions inform claims and do not count as supporting evidence.</p>
+    </div>
+    <details class="panel" open>
+      <summary id="diagnostic-title">Source checks</summary>
+      <ul id="diagnostics"></ul>
+      <p class="muted explanation">Missing records and unsupported claims stay visible. A complete source set alone does not establish research quality.</p>
+    </details>
+  </section>
+</main>
+<footer>
+  <button id="download" type="button">Save snapshot JSON</button>
+  <p id="identity"></p>
+  <p>This file contains project labels, relations and source pointers. Share it only with people allowed to see those records. No external scripts, fonts or services are loaded.</p>
+</footer>
+<script id="graph-data" type="application/json">{"snapshot":{"schemaVersion":1,"documentKind":"qiongli-academic-graph","projectionId":"grp_1270c2de0f99ec364746b5107def7de97397ddbab9b9c64c9cc984ee097476cb","projectionDigest":"1270c2de0f99ec364746b5107def7de97397ddbab9b9c64c9cc984ee097476cb","projectId":"prj_8316ab58e6153a87a396856049a63ded","projectRevision":1,"projectStage":"idea","projectLifecycle":"active","projectManifestDigest":"4693ca34f3c2fb2bf0c3120a819a81094033756815ad893c5271657f912ab047","projectSemanticDigest":"0a8c202237b38cc2c3e963cb60a738985fb48f3695a62b71daa3ac77437cdc05","graphSourceDigest":"4d9347505e71cd633daa69735e06e809ede087ac35831c4782a827ae0deb0fcd","sourceCount":10,"presentSourceCount":5,"nodeCount":14,"edgeCount":21,"diagnosticCount":1,"sources":[{"sourceKind":"registered-artifact","artifactPath":"context/boundary_review.md","present":false,"contentDigest":null,"sizeBytes":0},{"sourceKind":"registered-artifact","artifactPath":"context/decision_log.md","present":true,"contentDigest":"53f87b4d824d32cf5afa78b61b123f8534759cce2f2e88ca2c645c08dc6eb8fe","sizeBytes":289},{"sourceKind":"registered-artifact","artifactPath":"context/idea_funnel.md","present":false,"contentDigest":null,"sizeBytes":0},{"sourceKind":"project-manifest","artifactPath":"context/project_manifest.json","present":true,"contentDigest":"4693ca34f3c2fb2bf0c3120a819a81094033756815ad893c5271657f912ab047","sizeBytes":394},{"sourceKind":"registered-artifact","artifactPath":"context/research_state.md","present":true,"contentDigest":"c61289f7051e860a4f556d7f6b11a7f00c5ac8cf75db58ed48fae842d31fef64","sizeBytes":272},{"sourceKind":"registered-artifact","artifactPath":"context/stage_handoff.md","present":false,"contentDigest":null,"sizeBytes":0},{"sourceKind":"registered-artifact","artifactPath":"evidence/claim-evidence-ledger.csv","present":true,"contentDigest":"fa6cb6a709fb155e134d03e1aa9820dd3758bc5bb066639d6c828e5a06fa8e8d","sizeBytes":657},{"sourceKind":"semantic-links","artifactPath":"graph/semantic_links.jsonl","present":false,"contentDigest":null,"sizeBytes":0},{"sourceKind":"registered-artifact","artifactPath":"literature/literature_map.md","present":false,"contentDigest":null,"sizeBytes":0},{"sourceKind":"registered-artifact","artifactPath":"manuscript/claims_evidence_map.md","present":true,"contentDigest":"4b52af887ef32ea3fd32d86f89c9f69696b661fe93c85717695840c773aa7630","sizeBytes":476}],"nodes":[{"nodeId":"nod_28a3168da9c628d7962306d1bdfcbfc6bbde42e1848989e68e89a2abb91c356a","nodeType":"evidence","identityScope":"project","canonicalId":"evidence-source:DemoA","label":"DemoA","layers":["argument","combined"],"artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"source:DemoA"},{"nodeId":"nod_3890aab57f1632061c07b5f0734c27f1e2b4e95bf5b3ea6f14899489faafae6a","nodeType":"claim","identityScope":"project","canonicalId":"CLM-2","label":"Lasting improvement remains untested","layers":["argument","combined"],"artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"claim:CLM-2"},{"nodeId":"nod_3bfb6ddb78c3a6a080c841e09c638ff1202a1e4303f9c0dd930cd8ee5c898c5e","nodeType":"decision","identityScope":"project","canonicalId":"DEC-1","label":"Keep association wording; do not claim causality","layers":["idea-decision","combined"],"artifactPath":"context/decision_log.md","sourceAnchor":"decision:DEC-1"},{"nodeId":"nod_3d95c21ab9ea5ca3cd726db68ba1915c7c139b5988a87972407529ee7fdfef02","nodeType":"paper","identityScope":"global","canonicalId":"citekey:DemoA","label":"DemoA","layers":["literature","argument","manuscript","combined"],"artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"source:DemoA"},{"nodeId":"nod_493187c70d05423e751a1d68e350a1924d88f7d40cb9a08308865adfab9c791a","nodeType":"artifact","identityScope":"project","canonicalId":"evidence/claim-evidence-ledger.csv","label":"Claim-evidence ledger","layers":["argument","combined"],"artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"document"},{"nodeId":"nod_6bd6c3f057f0d5d8ab298368702e92dcdca865636f43ab704f14feddce648f5d","nodeType":"evidence","identityScope":"project","canonicalId":"evidence-source:DemoB","label":"DemoB","layers":["argument","combined"],"artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"source:DemoB"},{"nodeId":"nod_79499f3838a5c6ab770d5736a30bec5d6adcb7ca85a1beccc2d215ff8d3c8b40","nodeType":"decision","identityScope":"project","canonicalId":"DEC-2","label":"Plan a delayed recall test before making a lasting-effect claim","layers":["idea-decision","combined"],"artifactPath":"context/decision_log.md","sourceAnchor":"decision:DEC-2"},{"nodeId":"nod_7ff0e44d096c049ea4449e95349da8d98cd6b248734a9fc62eb64b63306ae8c9","nodeType":"project","identityScope":"project","canonicalId":"prj_8316ab58e6153a87a396856049a63ded","label":"Synthetic reading study","layers":["portfolio","combined"],"artifactPath":"context/project_manifest.json","sourceAnchor":"#/project_id"},{"nodeId":"nod_a0a3ac1415abc6d9e7b46c636ce81e7cc52e7b029af47590e1051cb301437d0d","nodeType":"artifact","identityScope":"project","canonicalId":"context/decision_log.md","label":"Decision log","layers":["idea-decision","combined"],"artifactPath":"context/decision_log.md","sourceAnchor":"document"},{"nodeId":"nod_b87c205d84903f921fd9225b91a1a902eba8706db61b38e8d9ec027db4f4a9f5","nodeType":"research-question","identityScope":"project","canonicalId":"research-question:current","label":"Are short breaks associated with immediate recall?","layers":["idea-decision","argument","combined"],"artifactPath":"context/research_state.md","sourceAnchor":"field:main_question_or_thesis"},{"nodeId":"nod_cab392c37a8c71bf45a663b5c682b6cc4951f807c2dd00f2e736d230702f580b","nodeType":"paper","identityScope":"global","canonicalId":"citekey:DemoB","label":"DemoB","layers":["literature","argument","manuscript","combined"],"artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"source:DemoB"},{"nodeId":"nod_d2a4efb47cd5b96b425e2003a24116318e0db11e667a37a92b0963a444537aa9","nodeType":"artifact","identityScope":"project","canonicalId":"context/research_state.md","label":"Research state","layers":["idea-decision","combined"],"artifactPath":"context/research_state.md","sourceAnchor":"document"},{"nodeId":"nod_d4cb43c704adbb94a6bd7184587eb0fe6d54f3b36d9040ceefc936e5bc19227c","nodeType":"artifact","identityScope":"project","canonicalId":"manuscript/claims_evidence_map.md","label":"Manuscript claim map","layers":["argument","manuscript","combined"],"artifactPath":"manuscript/claims_evidence_map.md","sourceAnchor":"document"},{"nodeId":"nod_e650aced52c4146e81f2b6dc4073fff1be13844cc1ca7710f62b394d2fbe6567","nodeType":"claim","identityScope":"project","canonicalId":"CLM-1","label":"Short breaks are associated with higher immediate recall","layers":["argument","manuscript","combined"],"artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"claim:CLM-1"}],"edges":[{"edgeId":"edg_00c6a269013c7158aa078d36113add116d01f4a0694d656473e721ebad8e057c","sourceNodeId":"nod_7ff0e44d096c049ea4449e95349da8d98cd6b248734a9fc62eb64b63306ae8c9","relation":"contains","targetNodeId":"nod_a0a3ac1415abc6d9e7b46c636ce81e7cc52e7b029af47590e1051cb301437d0d","layers":["idea-decision","combined"],"rationale":"The registered project contains this canonical graph source.","artifactPath":"context/decision_log.md","sourceAnchor":"document","evidenceLimit":"Structural containment only; no scholarly support is implied.","inferenceStrength":"direct_evidence","confidence":"high","status":"observed","createdFromCapture":null},{"edgeId":"edg_045af93dc6c890382f599722a07a01f724d33f3c253cf403e60cb387b79a5717","sourceNodeId":"nod_7ff0e44d096c049ea4449e95349da8d98cd6b248734a9fc62eb64b63306ae8c9","relation":"contains","targetNodeId":"nod_d4cb43c704adbb94a6bd7184587eb0fe6d54f3b36d9040ceefc936e5bc19227c","layers":["argument","manuscript","combined"],"rationale":"The registered project contains this canonical graph source.","artifactPath":"manuscript/claims_evidence_map.md","sourceAnchor":"document","evidenceLimit":"Structural containment only; no scholarly support is implied.","inferenceStrength":"direct_evidence","confidence":"high","status":"observed","createdFromCapture":null},{"edgeId":"edg_04e992be416e3a1c0a1e24ee15f62af7586b4127da891f008cfb5b39b32c9d1d","sourceNodeId":"nod_d2a4efb47cd5b96b425e2003a24116318e0db11e667a37a92b0963a444537aa9","relation":"contains","targetNodeId":"nod_b87c205d84903f921fd9225b91a1a902eba8706db61b38e8d9ec027db4f4a9f5","layers":["idea-decision","argument","combined"],"rationale":"This canonical graph source defines this academic record.","artifactPath":"context/research_state.md","sourceAnchor":"field:main_question_or_thesis","evidenceLimit":"Structural containment only; no scholarly support is implied.","inferenceStrength":"direct_evidence","confidence":"high","status":"observed","createdFromCapture":null},{"edgeId":"edg_18b34ec14c748a3d8d0a5b5925ba1516964f173da1d4fde2618e3f30cd14e477","sourceNodeId":"nod_6bd6c3f057f0d5d8ab298368702e92dcdca865636f43ab704f14feddce648f5d","relation":"supports","targetNodeId":"nod_e650aced52c4146e81f2b6dc4073fff1be13844cc1ca7710f62b394d2fbe6567","layers":["argument","combined"],"rationale":"The canonical claim-evidence ledger records this source as supporting evidence.","artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"support:9be436592c018ebf1a0faddff4b54a2906d6b6a452ccf14174ccb7c43fd9b928","evidenceLimit":"Synthetic pilot; one task; no delayed measurement","inferenceStrength":"direct_evidence","confidence":"medium","status":"reviewed","createdFromCapture":null},{"edgeId":"edg_2378ca4c3b1e2b38e35223c5816b83aa8c51522aab9b8aaaf674cdb135d43855","sourceNodeId":"nod_3bfb6ddb78c3a6a080c841e09c638ff1202a1e4303f9c0dd930cd8ee5c898c5e","relation":"informs","targetNodeId":"nod_e650aced52c4146e81f2b6dc4073fff1be13844cc1ca7710f62b394d2fbe6567","layers":["idea-decision","argument","combined"],"rationale":"The decision log explicitly identifies this claim as affected by the decision.","artifactPath":"context/decision_log.md","sourceAnchor":"decision:DEC-1","evidenceLimit":"A review or venue decision is not supporting evidence. Inspect its rationale, evidence basis and manuscript impact in the decision log.","inferenceStrength":"reasonable_inference","confidence":"unknown","status":"reviewed","createdFromCapture":null},{"edgeId":"edg_24421134d9c131577d48967a8ae5156c9a968d8b7d25a9b1220f1a9999914a2e","sourceNodeId":"nod_7ff0e44d096c049ea4449e95349da8d98cd6b248734a9fc62eb64b63306ae8c9","relation":"contains","targetNodeId":"nod_493187c70d05423e751a1d68e350a1924d88f7d40cb9a08308865adfab9c791a","layers":["argument","combined"],"rationale":"The registered project contains this canonical graph source.","artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"document","evidenceLimit":"Structural containment only; no scholarly support is implied.","inferenceStrength":"direct_evidence","confidence":"high","status":"observed","createdFromCapture":null},{"edgeId":"edg_2862764ff7e93eea34e8de4bdf776cbea67c747f97e9fc534b64155ca87faa59","sourceNodeId":"nod_79499f3838a5c6ab770d5736a30bec5d6adcb7ca85a1beccc2d215ff8d3c8b40","relation":"informs","targetNodeId":"nod_3890aab57f1632061c07b5f0734c27f1e2b4e95bf5b3ea6f14899489faafae6a","layers":["idea-decision","argument","combined"],"rationale":"The decision log explicitly identifies this claim as affected by the decision.","artifactPath":"context/decision_log.md","sourceAnchor":"decision:DEC-2","evidenceLimit":"A review or venue decision is not supporting evidence. Inspect its rationale, evidence basis and manuscript impact in the decision log.","inferenceStrength":"reasonable_inference","confidence":"unknown","status":"proposed","createdFromCapture":null},{"edgeId":"edg_3ea7e8c8bb347fc366b1a8eafdbfebabadda6caea0dcf928d90797d33a73cba2","sourceNodeId":"nod_7ff0e44d096c049ea4449e95349da8d98cd6b248734a9fc62eb64b63306ae8c9","relation":"contains","targetNodeId":"nod_d2a4efb47cd5b96b425e2003a24116318e0db11e667a37a92b0963a444537aa9","layers":["idea-decision","combined"],"rationale":"The registered project contains this canonical graph source.","artifactPath":"context/research_state.md","sourceAnchor":"document","evidenceLimit":"Structural containment only; no scholarly support is implied.","inferenceStrength":"direct_evidence","confidence":"high","status":"observed","createdFromCapture":null},{"edgeId":"edg_43c32a271898c40ca70c58dba273b4c1d4224cf069e5cc2b194e4608a2d93435","sourceNodeId":"nod_a0a3ac1415abc6d9e7b46c636ce81e7cc52e7b029af47590e1051cb301437d0d","relation":"contains","targetNodeId":"nod_79499f3838a5c6ab770d5736a30bec5d6adcb7ca85a1beccc2d215ff8d3c8b40","layers":["idea-decision","combined"],"rationale":"This canonical graph source defines this academic record.","artifactPath":"context/decision_log.md","sourceAnchor":"decision:DEC-2","evidenceLimit":"Structural containment only; no scholarly support is implied.","inferenceStrength":"direct_evidence","confidence":"high","status":"observed","createdFromCapture":null},{"edgeId":"edg_5eab22bd5dad0c776010daca3bc0266b5531c9d79701fc73495896045fc60d48","sourceNodeId":"nod_493187c70d05423e751a1d68e350a1924d88f7d40cb9a08308865adfab9c791a","relation":"contains","targetNodeId":"nod_3d95c21ab9ea5ca3cd726db68ba1915c7c139b5988a87972407529ee7fdfef02","layers":["literature","argument","manuscript","combined"],"rationale":"This canonical graph source defines this academic record.","artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"source:DemoA","evidenceLimit":"Structural containment only; no scholarly support is implied.","inferenceStrength":"direct_evidence","confidence":"high","status":"observed","createdFromCapture":null},{"edgeId":"edg_696ee9e80ccce3a9e31c184022f82411756866b9ddc4be1388099bd7c6e43b7e","sourceNodeId":"nod_493187c70d05423e751a1d68e350a1924d88f7d40cb9a08308865adfab9c791a","relation":"contains","targetNodeId":"nod_6bd6c3f057f0d5d8ab298368702e92dcdca865636f43ab704f14feddce648f5d","layers":["argument","combined"],"rationale":"This canonical graph source defines this academic record.","artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"source:DemoB","evidenceLimit":"Structural containment only; no scholarly support is implied.","inferenceStrength":"direct_evidence","confidence":"high","status":"observed","createdFromCapture":null},{"edgeId":"edg_69917c8b7e0acc320d1ece26dc764e6c9d7b4d014015d58b6423ed4da1f38f73","sourceNodeId":"nod_e650aced52c4146e81f2b6dc4073fff1be13844cc1ca7710f62b394d2fbe6567","relation":"cites","targetNodeId":"nod_cab392c37a8c71bf45a663b5c682b6cc4951f807c2dd00f2e736d230702f580b","layers":["argument","manuscript","combined"],"rationale":"The manuscript claim map records this citation for the claim.","artifactPath":"manuscript/claims_evidence_map.md","sourceAnchor":"claim-citation:CLM-1:DemoB","evidenceLimit":"Citation presence is observed; evidential sufficiency remains governed by the claim-evidence ledger.","inferenceStrength":"reasonable_inference","confidence":"medium","status":"reviewed","createdFromCapture":null},{"edgeId":"edg_6a0f2bfcb41845b71f5ecb417ff1297191a14fd5bbf4536ec8e961f455dab3c6","sourceNodeId":"nod_493187c70d05423e751a1d68e350a1924d88f7d40cb9a08308865adfab9c791a","relation":"contains","targetNodeId":"nod_cab392c37a8c71bf45a663b5c682b6cc4951f807c2dd00f2e736d230702f580b","layers":["literature","argument","manuscript","combined"],"rationale":"This canonical graph source defines this academic record.","artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"source:DemoB","evidenceLimit":"Structural containment only; no scholarly support is implied.","inferenceStrength":"direct_evidence","confidence":"high","status":"observed","createdFromCapture":null},{"edgeId":"edg_753aaff24bde3a63c1d4c51652b063591783556ed74494e8781a819c2c64ca54","sourceNodeId":"nod_493187c70d05423e751a1d68e350a1924d88f7d40cb9a08308865adfab9c791a","relation":"contains","targetNodeId":"nod_3890aab57f1632061c07b5f0734c27f1e2b4e95bf5b3ea6f14899489faafae6a","layers":["argument","combined"],"rationale":"This canonical graph source defines this academic record.","artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"claim:CLM-2","evidenceLimit":"Structural containment only; no scholarly support is implied.","inferenceStrength":"direct_evidence","confidence":"high","status":"observed","createdFromCapture":null},{"edgeId":"edg_7d21c24912ce28a393c3ea7529a5b417087a9cdc0634697924806d359d3906ed","sourceNodeId":"nod_e650aced52c4146e81f2b6dc4073fff1be13844cc1ca7710f62b394d2fbe6567","relation":"cites","targetNodeId":"nod_3d95c21ab9ea5ca3cd726db68ba1915c7c139b5988a87972407529ee7fdfef02","layers":["argument","manuscript","combined"],"rationale":"The manuscript claim map records this citation for the claim.","artifactPath":"manuscript/claims_evidence_map.md","sourceAnchor":"claim-citation:CLM-1:DemoA","evidenceLimit":"Citation presence is observed; evidential sufficiency remains governed by the claim-evidence ledger.","inferenceStrength":"reasonable_inference","confidence":"medium","status":"reviewed","createdFromCapture":null},{"edgeId":"edg_9652de92213c7f835e05e7669e39c63147defa0eee64f9f4615d06edda094d62","sourceNodeId":"nod_493187c70d05423e751a1d68e350a1924d88f7d40cb9a08308865adfab9c791a","relation":"contains","targetNodeId":"nod_e650aced52c4146e81f2b6dc4073fff1be13844cc1ca7710f62b394d2fbe6567","layers":["argument","manuscript","combined"],"rationale":"This canonical graph source defines this academic record.","artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"claim:CLM-1","evidenceLimit":"Structural containment only; no scholarly support is implied.","inferenceStrength":"direct_evidence","confidence":"high","status":"observed","createdFromCapture":null},{"edgeId":"edg_ccfb0793220ce9a752aa835bf804abf1986b2e8e0521a785fa4c0cc69909ecac","sourceNodeId":"nod_a0a3ac1415abc6d9e7b46c636ce81e7cc52e7b029af47590e1051cb301437d0d","relation":"contains","targetNodeId":"nod_3bfb6ddb78c3a6a080c841e09c638ff1202a1e4303f9c0dd930cd8ee5c898c5e","layers":["idea-decision","combined"],"rationale":"This canonical graph source defines this academic record.","artifactPath":"context/decision_log.md","sourceAnchor":"decision:DEC-1","evidenceLimit":"Structural containment only; no scholarly support is implied.","inferenceStrength":"direct_evidence","confidence":"high","status":"observed","createdFromCapture":null},{"edgeId":"edg_d135c054911f03b1497a6d2b26df2af186d22f50526f109b843e7d320707bb8b","sourceNodeId":"nod_493187c70d05423e751a1d68e350a1924d88f7d40cb9a08308865adfab9c791a","relation":"contains","targetNodeId":"nod_28a3168da9c628d7962306d1bdfcbfc6bbde42e1848989e68e89a2abb91c356a","layers":["argument","combined"],"rationale":"This canonical graph source defines this academic record.","artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"source:DemoA","evidenceLimit":"Structural containment only; no scholarly support is implied.","inferenceStrength":"direct_evidence","confidence":"high","status":"observed","createdFromCapture":null},{"edgeId":"edg_d98721649627ded646fb6fcb0f457b8c801ed5e080cad77b3799c25cfcd09c78","sourceNodeId":"nod_6bd6c3f057f0d5d8ab298368702e92dcdca865636f43ab704f14feddce648f5d","relation":"derived-from","targetNodeId":"nod_cab392c37a8c71bf45a663b5c682b6cc4951f807c2dd00f2e736d230702f580b","layers":["argument","combined"],"rationale":"The ledger identifies this paper as the evidence source.","artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"support:9be436592c018ebf1a0faddff4b54a2906d6b6a452ccf14174ccb7c43fd9b928","evidenceLimit":"Source identity only; the ledger's source location and limitations remain authoritative.","inferenceStrength":"direct_evidence","confidence":"medium","status":"reviewed","createdFromCapture":null},{"edgeId":"edg_e2f0d91170e6e47decf090628771d4b317d82b268a97d5b5c810cece90946695","sourceNodeId":"nod_28a3168da9c628d7962306d1bdfcbfc6bbde42e1848989e68e89a2abb91c356a","relation":"supports","targetNodeId":"nod_e650aced52c4146e81f2b6dc4073fff1be13844cc1ca7710f62b394d2fbe6567","layers":["argument","combined"],"rationale":"The canonical claim-evidence ledger records this source as supporting evidence.","artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"support:1021889ad3d26db94447a5a766fae7b30bac96a14281d3129fcffd4daa1fc564","evidenceLimit":"Synthetic pilot; no random assignment; not causal","inferenceStrength":"direct_evidence","confidence":"medium","status":"reviewed","createdFromCapture":null},{"edgeId":"edg_f9f1f390d843cd5360b609132a6eb62ecf1f1529fe1514fccbd79eca615c5961","sourceNodeId":"nod_28a3168da9c628d7962306d1bdfcbfc6bbde42e1848989e68e89a2abb91c356a","relation":"derived-from","targetNodeId":"nod_3d95c21ab9ea5ca3cd726db68ba1915c7c139b5988a87972407529ee7fdfef02","layers":["argument","combined"],"rationale":"The ledger identifies this paper as the evidence source.","artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"support:1021889ad3d26db94447a5a766fae7b30bac96a14281d3129fcffd4daa1fc564","evidenceLimit":"Source identity only; the ledger's source location and limitations remain authoritative.","inferenceStrength":"direct_evidence","confidence":"medium","status":"reviewed","createdFromCapture":null}],"diagnostics":[{"code":"unsupported-relation","artifactPath":"evidence/claim-evidence-ledger.csv","sourceAnchor":"row:4","relatedId":"CLM-2"}]},"readiness":{"schemaVersion":1,"documentKind":"qiongli-academic-graph-readiness","projectionId":"grp_1270c2de0f99ec364746b5107def7de97397ddbab9b9c64c9cc984ee097476cb","projectId":"prj_8316ab58e6153a87a396856049a63ded","projectRevision":1,"graphSourceDigest":"4d9347505e71cd633daa69735e06e809ede087ac35831c4782a827ae0deb0fcd","lastSuccessfulBuild":{"projectRevision":1,"projectionId":"grp_1270c2de0f99ec364746b5107def7de97397ddbab9b9c64c9cc984ee097476cb","graphSourceDigest":"4d9347505e71cd633daa69735e06e809ede087ac35831c4782a827ae0deb0fcd"},"state":"sparse","reasonCode":"academic-graph-artifacts-need-repair","remediation":"repair-graph-artifacts","recognizedSourceCount":10,"presentSourceCount":5,"missingSourceCount":5,"invalidSourceCount":0,"unsupportedSourceCount":1,"staleSourceCount":0,"nodeCount":14,"semanticNodeCount":9,"connectedNodeCount":14,"isolatedNodeCount":0,"relationCount":21,"layerCounts":[{"layer":"portfolio","nodeCount":1},{"layer":"literature","nodeCount":2},{"layer":"idea-decision","nodeCount":5},{"layer":"argument","nodeCount":9},{"layer":"manuscript","nodeCount":4},{"layer":"combined","nodeCount":14}],"nodeTypeCounts":[{"nodeType":"project","nodeCount":1},{"nodeType":"research-question","nodeCount":1},{"nodeType":"paper","nodeCount":2},{"nodeType":"claim","nodeCount":2},{"nodeType":"evidence","nodeCount":2},{"nodeType":"decision","nodeCount":2},{"nodeType":"artifact","nodeCount":4}],"relationCounts":[{"relation":"contains","edgeCount":13},{"relation":"cites","edgeCount":2},{"relation":"supports","edgeCount":2},{"relation":"informs","edgeCount":2},{"relation":"derived-from","edgeCount":2}],"sources":[{"sourceKind":"registered-artifact","artifactPath":"context/boundary_review.md","state":"missing","freshness":"fresh","nodeCount":0,"edgeCount":0,"diagnosticCount":0},{"sourceKind":"registered-artifact","artifactPath":"context/decision_log.md","state":"present","freshness":"fresh","nodeCount":3,"edgeCount":5,"diagnosticCount":0},{"sourceKind":"registered-artifact","artifactPath":"context/idea_funnel.md","state":"missing","freshness":"fresh","nodeCount":0,"edgeCount":0,"diagnosticCount":0},{"sourceKind":"project-manifest","artifactPath":"context/project_manifest.json","state":"present","freshness":"fresh","nodeCount":1,"edgeCount":0,"diagnosticCount":0},{"sourceKind":"registered-artifact","artifactPath":"context/research_state.md","state":"present","freshness":"fresh","nodeCount":2,"edgeCount":2,"diagnosticCount":0},{"sourceKind":"registered-artifact","artifactPath":"context/stage_handoff.md","state":"missing","freshness":"fresh","nodeCount":0,"edgeCount":0,"diagnosticCount":0},{"sourceKind":"registered-artifact","artifactPath":"evidence/claim-evidence-ledger.csv","state":"unsupported","freshness":"fresh","nodeCount":7,"edgeCount":11,"diagnosticCount":1},{"sourceKind":"semantic-links","artifactPath":"graph/semantic_links.jsonl","state":"missing","freshness":"fresh","nodeCount":0,"edgeCount":0,"diagnosticCount":0},{"sourceKind":"registered-artifact","artifactPath":"literature/literature_map.md","state":"missing","freshness":"fresh","nodeCount":0,"edgeCount":0,"diagnosticCount":0},{"sourceKind":"registered-artifact","artifactPath":"manuscript/claims_evidence_map.md","state":"present","freshness":"fresh","nodeCount":1,"edgeCount":3,"diagnosticCount":0}]}}</script>
+<script>
+'use strict';
+const {snapshot:g,readiness:r}=JSON.parse(document.getElementById('graph-data').textContent);
+const $=id=>document.getElementById(id);
+const el=(tag,text)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node};
+const svg=(tag,attrs,text)=>{const node=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,String(value));if(text!==undefined)node.textContent=text;return node};
+const readable=value=>String(value).replaceAll('-',' ').replaceAll('_',' ');
+const short=value=>Array.from(value).length>18?Array.from(value).slice(0,17).join('')+'…':value;
+const nodes=new Map(g.nodes.map(n=>[n.nodeId,n]));
+const semantic=g.nodes.filter(n=>!['project','artifact'].includes(n.nodeType));
+const edges=g.edges.filter(e=>e.relation!=='contains');
+const adjacency=new Map();
+for(const edge of edges)for(const id of new Set([edge.sourceNodeId,edge.targetNodeId])){if(!adjacency.has(id))adjacency.set(id,[]);adjacency.get(id).push(edge)}
+// ponytail: bounded pages keep DOM/SVG small; use the existing projection rather than a layout engine.
+const RECORD_PAGE=100,RELATION_PAGE=8;
+let selected=null,recordPage=0,relationPage=0;
+const trail=[];
+function options(id,values){for(const value of [...new Set(values)].sort()){const option=el('option',readable(value));option.value=value;$(id).append(option)}}
+options('node-type',semantic.map(n=>n.nodeType));
+options('relation-type',edges.map(e=>e.relation));
+options('relation-status',edges.map(e=>e.status));
+$('project').textContent=(g.nodes.find(n=>n.nodeType==='project')?.label||g.projectId)+' · Revision '+g.projectRevision+' · '+readable(r.state);
+for(const text of [semantic.length+' research records',edges.length+' relations',g.presentSourceCount+'/'+g.sourceCount+' source records present'])$('metrics').append(el('span',text));
+$('identity').textContent='Snapshot '+g.projectionId;
+const sourceIssues=r.sources.filter(s=>s.state!=='present'||s.freshness!=='fresh');
+$('diagnostic-title').textContent='Source checks · '+g.diagnostics.length+' projection diagnostics · '+sourceIssues.length+' source issues';
+function issue(text,path){
+  const li=el('li',text);
+  if(semantic.some(n=>n.artifactPath===path)){
+    const button=el('button','Search this source path');button.type='button';
+    button.addEventListener('click',()=>{$('node-type').value='';$('search').value=path;recordPage=0;renderList();$('search').focus()});
+    li.append(el('small',path),button);
+  }else li.append(el('small',path+' · No research records from this source are available in this snapshot.'));
+  $('diagnostics').append(li);
+}
+for(const d of g.diagnostics)issue([readable(d.code),d.sourceAnchor,d.relatedId].filter(Boolean).join(' · '),d.artifactPath);
+for(const s of sourceIssues)issue(readable(s.state)+' · '+readable(s.freshness),s.artifactPath);
+if(!g.diagnostics.length&&!sourceIssues.length)$('diagnostics').append(el('li','No source issues recorded. Check the underlying evidence before drawing conclusions.'));
+function detail(record,isEdge=false,focus=false){
+  $('detail-title').textContent=isEdge?'Relation details':'Record details';
+  const fields=isEdge?[['Relation',record.relation],['From',nodes.get(record.sourceNodeId)?.label],['To',nodes.get(record.targetNodeId)?.label],['Status',record.status],['Rationale',record.rationale],['Evidence limit',record.evidenceLimit],['Inference',record.inferenceStrength],['Confidence',record.confidence]]:[['Type',record.nodeType],['ID',record.canonicalId],['Label',record.label]];
+  fields.push(['Source record',record.artifactPath],['Anchor',record.sourceAnchor]);
+  $('fields').replaceChildren();
+  for(const [key,value] of fields)$('fields').append(el('dt',key),el('dd',value||'Not recorded'));
+  const id=isEdge?record.edgeId:record.nodeId;
+  // Only validated identifiers enter the command; labels and file paths never do.
+  const valid=/^prj_[a-zA-Z0-9_-]+$/.test(g.projectId)&&/^grp_[a-f0-9]{64}$/.test(g.projectionId)&&/^(nod|edg)_[a-f0-9]{64}$/.test(id)&&Number.isSafeInteger(g.projectRevision)&&g.projectRevision>0;
+  $('source').textContent=valid?'qiongli project graph source --project-id '+g.projectId+' --expected-project-revision '+g.projectRevision+' --expected-projection-id '+g.projectionId+' --'+(isEdge?'edge':'node')+'-id '+id:'Source command unavailable: invalid snapshot identifiers.';
+  $('copy').disabled=!valid;$('copy-status').textContent='';
+  for(const item of document.querySelectorAll('[data-edge-id]'))item.setAttribute('aria-pressed',String(isEdge&&item.dataset.edgeId===id));
+  $('detail').hidden=false;
+  if(focus)$('detail-title').focus();
+}
+function matchingRecords(){
+  const query=$('search').value.trim().toLowerCase(),type=$('node-type').value;
+  return semantic.filter(n=>(!type||n.nodeType===type)&&(n.label+' '+n.canonicalId+' '+n.nodeType+' '+n.artifactPath).toLowerCase().includes(query));
+}
+function renderList(){
+  const found=matchingRecords();
+  recordPage=Math.min(recordPage,Math.max(0,Math.ceil(found.length/RECORD_PAGE)-1));
+  const start=recordPage*RECORD_PAGE,page=found.slice(start,start+RECORD_PAGE);
+  $('count').textContent=found.length?(start+1)+'–'+(start+page.length)+' of '+found.length+' matching records'+(selected&&!found.some(n=>n.nodeId===selected)?'. Selected record is outside these filters.':''):'No matching records. Clear the search or choose another type.';
+  $('records-prev').disabled=recordPage===0;$('records-next').disabled=start+page.length>=found.length;
+  $('nodes').replaceChildren();
+  for(const n of page){const li=el('li'),button=el('button',n.label);button.type='button';button.setAttribute('aria-pressed',String(n.nodeId===selected));button.append(el('small',readable(n.nodeType)+' · '+n.canonicalId));button.addEventListener('click',()=>select(n,true));li.append(button);$('nodes').append(li)}
+}
+function activate(node,callback){
+  node.addEventListener('click',callback);
+  node.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();callback()}});
+}
+function renderMap(){
+  if(!selected)return;
+  const related=adjacency.get(selected)||[];
+  const filtered=related.filter(e=>(!$('relation-type').value||e.relation===$('relation-type').value)&&(!$('relation-status').value||e.status===$('relation-status').value));
+  relationPage=Math.min(relationPage,Math.max(0,Math.ceil(filtered.length/RELATION_PAGE)-1));
+  const start=relationPage*RELATION_PAGE,shown=filtered.slice(start,start+RELATION_PAGE);
+  const visible=[...new Set(shown.flatMap(e=>[e.sourceNodeId,e.targetNodeId]))].filter(id=>id!==selected);
+  $('scope').textContent=filtered.length?'Relations '+(start+1)+'–'+(start+shown.length)+' of '+filtered.length+' matching · '+related.length+' total. '+visible.length+' neighbors on this page.':related.length?'No relations match these filters. Choose another relation or status.':'No semantic relations are recorded for this item.';
+  $('relations-prev').disabled=relationPage===0;$('relations-next').disabled=start+shown.length>=filtered.length;
+  const points=new Map([[selected,[380,205]]]);
+  visible.forEach((id,i)=>{const angle=2*Math.PI*i/visible.length;points.set(id,[380+250*Math.cos(angle),205+140*Math.sin(angle)])});
+  $('map').replaceChildren();$('relations').replaceChildren();
+  const defs=svg('defs',{}),marker=svg('marker',{id:'arrow',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto-start-reverse'});
+  marker.append(svg('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:'context-stroke'}));defs.append(marker);$('map').append(defs);
+  for(const e of shown){
+    const a=points.get(e.sourceNodeId),b=points.get(e.targetNodeId),dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy);
+    const peers=shown.filter(other=>(other.sourceNodeId===e.sourceNodeId&&other.targetNodeId===e.targetNodeId)||(other.sourceNodeId===e.targetNodeId&&other.targetNodeId===e.sourceNodeId));
+    const offset=(peers.indexOf(e)-(peers.length-1)/2)*22*(e.sourceNodeId<e.targetNodeId?1:-1);
+    const fromRadius=e.sourceNodeId===selected?48:36,toRadius=e.targetNodeId===selected?54:42;
+    const path=length?'M '+(a[0]+dx/length*fromRadius)+' '+(a[1]+dy/length*fromRadius)+' Q '+((a[0]+b[0])/2-dy/length*offset)+' '+((a[1]+b[1])/2+dx/length*offset)+' '+(b[0]-dx/length*toRadius)+' '+(b[1]-dy/length*toRadius):'M '+(a[0]-32)+' '+(a[1]-32)+' C '+(a[0]-100)+' '+(a[1]-140)+' '+(a[0]+100)+' '+(a[1]-140)+' '+(a[0]+32)+' '+(a[1]-32);
+    const label=(nodes.get(e.sourceNodeId)?.label||e.sourceNodeId)+' → '+readable(e.relation)+' → '+(nodes.get(e.targetNodeId)?.label||e.targetNodeId);
+    const line=svg('path',{d:path,class:'edge','data-edge-id':e.edgeId,'data-relation':e.relation,'data-status':e.status,'marker-end':'url(#arrow)',role:'button',tabindex:0,'aria-label':label+' · '+e.status,'aria-pressed':'false'});
+    line.append(svg('title',{},label+' · '+e.status));activate(line,()=>detail(e,true,true));$('map').append(line);
+    const button=el('button',label);button.type='button';button.dataset.edgeId=e.edgeId;button.setAttribute('aria-pressed','false');button.append(el('small','Status: '+e.status));button.addEventListener('click',()=>detail(e,true,true));$('relations').append(button);
+  }
+  for(const [id,[x,y]] of points){
+    const item=nodes.get(id);if(!item)continue;
+    const group=svg('g',{role:'button',tabindex:0,'aria-label':readable(item.nodeType)+': '+item.label,'aria-pressed':String(id===selected)});
+    const identifier=Array.from(item.canonicalId);
+    group.append(svg('title',{},item.label),svg('circle',{cx:x,cy:y,r:id===selected?44:32}),svg('text',{x,y:y+5},identifier.length>9?identifier.slice(0,8).join('')+'…':item.canonicalId),svg('text',{x,y:y+62},short(item.label)),svg('text',{x,y:y+82},readable(item.nodeType)));
+    activate(group,()=>select(item,true));$('map').append(group);
+  }
+}
+function select(n,focus=false,remember=true){
+  if(remember&&selected&&selected!==n.nodeId)trail.push(selected);
+  selected=n.nodeId;relationPage=0;$('back').disabled=!trail.length;
+  $('selected').textContent=n.label;renderList();renderMap();detail(n);
+  if(focus)$('selected').focus();
+}
+for(const id of ['search','node-type'])$(id).addEventListener(id==='search'?'input':'change',()=>{recordPage=0;renderList()});
+for(const id of ['relation-type','relation-status'])$(id).addEventListener('change',()=>{relationPage=0;renderMap();if(selected)detail(nodes.get(selected))});
+for(const [id,step] of [['records-prev',-1],['records-next',1]])$(id).addEventListener('click',()=>{recordPage+=step;renderList();$('nodes').scrollTop=0;$('nodes').querySelector('button')?.focus()});
+for(const [id,step] of [['relations-prev',-1],['relations-next',1]])$(id).addEventListener('click',()=>{relationPage+=step;renderMap();detail(nodes.get(selected));$('relations').querySelector('button')?.focus()});
+$('back').addEventListener('click',()=>{const id=trail.pop();if(id)select(nodes.get(id),true,false)});
+$('copy').addEventListener('click',async()=>{
+  const command=$('source').textContent;
+  try{
+    if(!navigator.clipboard)throw new Error('Clipboard unavailable');
+    await navigator.clipboard.writeText(command);
+    if($('source').textContent!==command)return;
+    $('copy-status').textContent='Command copied. Run it in your terminal to inspect the source.';
+  }catch{
+    if($('source').textContent!==command)return;
+    const range=document.createRange();range.selectNodeContents($('source'));
+    const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);
+    $('copy-status').textContent='Automatic copying is unavailable. The command is selected; copy it with your keyboard.';
+  }
+});
+$('download').addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([JSON.stringify({snapshot:g,readiness:r},null,2)],{type:'application/json'}));const link=el('a');link.href=url;link.download='research-graph-r'+g.projectRevision+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+renderList();
+if(semantic.length)select(semantic.find(n=>n.nodeType==='claim')||semantic[0]);
+else{
+  $('detail').hidden=true;$('scope').textContent='No research records have been extracted. Review the source checks and normalize your evidence into the project records before rebuilding.';
+  for(const id of ['relation-type','relation-status','relations-prev','relations-next'])$(id).disabled=true;
+}
+</script>
+</html>

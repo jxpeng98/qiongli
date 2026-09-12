@@ -47,6 +47,34 @@ function page(data) {
   };
 }
 
+test('worked example shows actual CLI evidence, proposed decisions and the unsupported claim', () => {
+  const data = JSON.parse(readFileSync(new URL('../docs/public/demos/research-graph.snapshot.json', import.meta.url), 'utf8'));
+  const source = JSON.parse(readFileSync(new URL('../docs/public/demos/research-graph.source.json', import.meta.url), 'utf8')).artifact;
+  const { dom, document, errors, $, change } = page(data);
+  const choose = id => [...document.querySelectorAll('#nodes button')].find(button => button.querySelector('small').textContent.endsWith(' · ' + id)).click();
+  try {
+    assert.equal(document.querySelectorAll('#nodes button').length, 9);
+    choose('CLM-1');
+    const support = document.querySelector('#relations [data-edge-id="' + source.entityId + '"]');
+    assert.ok(support);
+    support.click();
+    assert.match($('fields').textContent, /no random assignment; not causal/);
+    assert.ok($('source').textContent.includes(source.projectionId));
+    assert.ok($('source').textContent.endsWith(source.entityId));
+    choose('CLM-2');
+    assert.equal(document.querySelectorAll('#relations button').length, 1);
+    assert.match($('relations').textContent, /informs/);
+    assert.match($('relations').textContent, /proposed/);
+    assert.ok(!$('relations').textContent.includes('supports'));
+    assert.match($('diagnostics').textContent, /CLM-2/);
+    change('relation-status', 'reviewed');
+    assert.match($('scope').textContent, /No relations match/);
+    change('relation-status', 'proposed');
+    assert.equal(document.querySelectorAll('#relations button').length, 1);
+    assert.deepEqual(errors, []);
+  } finally { dom.window.close(); }
+});
+
 test('offline graph explores every page, preserves direction/status, and retains exact source bindings', async () => {
   const data = fixture(), original = JSON.stringify(data);
   const { dom, document, errors, $, change } = page(data);
