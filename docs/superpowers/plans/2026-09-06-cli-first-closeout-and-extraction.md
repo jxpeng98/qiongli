@@ -23,6 +23,17 @@ unrun model trials as evidence. Record sources, checks and remaining gaps once i
 the existing outcome-guided review, then commit and fast-forward locally.
 No publication or program acceptance promotion is requested.
 
+Implemented in `04305045`, with the final central-claim validation obligation
+retained in `2615afbe`. Five task cards shrink from 1,150 to 638 lines; the pack
+still contains 434 resources. The 37 focused routing/projection checks pass, and
+the final shared-contract/projection checks pass again after that correction.
+The broader 52-check run has 49 passes and three failures reproduced on the
+unchanged baseline (one legacy wording assertion and two Desktop file budgets).
+The existing review records sources, pack identity, native checks and those gaps.
+The six new bilingual case groups remain unrun model trials, not measured quality.
+CLI-402 stays active; next observe these venue/review cases in an authorized Host
+alongside the previously recorded discovery, Hook and cross-Host work.
+
 ## Reply-only scope — September 12 follow-up
 
 The maintainer's next request adds a separately discoverable `no-qiongli` Skill

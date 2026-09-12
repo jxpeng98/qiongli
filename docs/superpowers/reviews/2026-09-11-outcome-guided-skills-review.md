@@ -468,3 +468,72 @@ pack SHA-256：`dd0312d1fea8d584e8f7aed418fa74332240c9939857d1c0bba433db121bb09a
 未更改个人 Host 设置或发布新包。CLI-402 保持 active；后续需要在实际安装后的 Host
 中观察独立入口发现、自然语言选择、恢复执行以及自动 Hook 共存，不能把文件导出等同于
 会话行为验收。
+
+## 后续调整：期刊匹配与审稿判断（2026-09-12）
+
+基线为 `f6487a4370ada92d8b59e69c193626605ffa5e11`；主体实现提交为
+`04305045322ccc65eeae9b93f2c7e3eee91aebf7`，最终内容来源为
+`2615afbe867fcbeec7a71874bcbe7bc211a2c36e`。用户要求加强两条路径：选定期刊后
+调整稿件，以及根据已有稿件选择期刊，并让模型在明确边界内自行选择分析方式。
+
+### 修改依据与取舍
+
+沿用 A5、H5 和 Stage H，不增加期刊数据库服务、评分器或新的调度层。Stage H 统一
+来源核验、适用条件、匹配、修改与审稿边界，五张任务卡保留各自职责。A5 负责目标导向
+分析及调整方案，H5 先检查稿件再推荐目标；修正 `paper.md` 中 H5 错指 A5 的入口。
+H1、H3、H4、Stage A、地缘经济学覆盖层、核心摘要、投稿模板及中英文指南同步。
+
+删除“至少两／三本期刊”“3–10 个致命问题”、固定引文年限、页码、缺失值比例和
+一律要求稳健性检验等规则。五张卡从 1,150 行缩至 638 行。精简的是重复流程和无依据
+阈值，保留任务路径、正式质量门、独立复核要求、证据记录及 preview/approval/CAS。
+模型按文章类型、方法和实际问题选择审查角度；未见资料仍是未知，不等于研究没有做。
+
+现行官方资料核查支持以下设计（核查日期均为 2026-09-12）：
+
+- [Nature 初投稿说明](https://www.nature.com/nature/for-authors/initial-submission)：初稿格式有弹性，返修时再给详细格式说明。因此不能把最终排版要求直接当成初稿拒收条件。
+- [PLOS One 接收标准](https://journals.plos.org/plosone/s/criteria-for-publication)：一般综述与系统综述、注册报告、质性研究、阴性结果和协议稿存在类型区别。因此必须读取具体条款和例外，不能按一个宽泛标签筛除稿件。
+- [Elsevier 期刊 AI 使用规定](https://www.elsevier.com/about/policies-and-standards/generative-ai-policies-for-journals)：受邀审稿的保密稿件不得上传 AI 工具，允许的辅助用途另有条件。因此作者投稿前自审与受委托保密审稿需要区分，并核查实际适用规则；不能由模型能力强或收到邀请推导出处理权限。
+
+上述来源用于解释本轮设计，不是固化到每个期刊上的永久规则。Nature 的另一篇编辑
+标准页面访问失败，没有把它当成已核查证据。运行时要求记录官方来源、核查日期、
+文章类型和初投／返修阶段；本地 profile 只提供线索。相冲突、无法访问和未核实的费用、
+索引、时限保持未知，不猜测录用概率。`safe` 保留兼容分类，但明确不保证录用。
+
+修改方案需要对应稿件位置，区分表达／报告补充和需要新分析、数据或作者决定的工作。
+保留结果与限制，不为迎合目标夸大创新或因果，也不把期刊不匹配等同于科学无效。
+保密资料不会自动传给外部选刊工具或其他代理；仅回复模式继续优先。
+
+### 本地检查与未通过项
+
+- Capability Contract v2 校验通过。
+- `python3 -m unittest tests.test_cross_platform_routing_grill_contract tests.test_skill_routing_probe tests.test_native_marketplace_plugins`：37 项通过。新增检查覆盖五张卡的共享引用、既有任务输出及实际生成 Plugin 中对应资源逐字节一致。
+- `python3 -m unittest tests.test_skill_contract_alignment tests.test_skill_structure_lint tests.test_skill_resource_links tests.test_command_workflow_alignment tests.test_workflow_contract_doc tests.test_subject_materializer`：52 项中 49 项通过、3 项失败。
+  在 `/private/tmp/qiongli-venue-baseline.Cy2eS6` 从基线 `git archive` 导出的独立副本中，
+  单独重跑这三项，均复现相同失败：`test_proposal_writer_contract_is_registered`
+  仍断言旧的大小写文案；两个 core Desktop materializer 预算检查均为 187 个文件超过
+  180 上限。它们是本轮前已有的问题，未改测试阈值或把失败计为通过；保留为后续维护项。
+- 既有路由语料增加六组中英文请求，共 36 组／72 请求。覆盖文章类型例外和投稿阶段、
+  无本地档案的人文学科匹配、无法核实的费用、质性研究的报告缺口、保密审稿权限，以及
+  仅回复优先。语料校验和离线评测器测试通过；这些案例没有运行新的模型会话，不能称为
+  推荐准确率、审稿质量或跨模型性能验证。
+- 程序台账检查 7 项通过；249 项任务状态保持不变，CLI-402 仍为 active。
+
+- 最终内容的共享引用／任务路径及实际 Plugin 投影复查 2 项通过。
+- `cargo +1.97.0 test --manifest-path packages/qiongli-native/Cargo.toml --offline --locked -p qiongli-content --tests`：46 项通过。
+- 同一工具链和 workspace 的 `-p qiongli --test cli content`：5 项通过，覆盖资源查看、
+  脚本中的安装预览、退役直接导出路径拒绝写入，以及仓库外、空 PATH 下的独立程序。最终复查
+  改动后重新生成资源锁，并重跑这两组检查，使用最终资源字节。
+
+- `./node_modules/.bin/vitepress build docs` 最终构建通过（15.60 秒），保留已有语法
+  高亮回退和大 chunk 提示。临时日志前缀为 `/private/tmp/qiongli-venue-`，包括
+  `final-projection.log`、`native-content-final.log`、`cli-content-final.log`、
+  `lock.log` 和 `docs-final.log`；本节保留可独立阅读的结果和基线失败说明。
+
+最终复查显式保留了“验证中心主张”时的证据台账义务，不只在修改主张时才记录。
+经既有生成器更新的内嵌资源锁仍为 434 项、`2.0.0-beta.5`，绑定最终内容来源提交。
+Content root SHA-256：`98d2c362766a60336b2034f71d0d46352c46169dbd8233dab4ed9e5034b817d1`；
+pack SHA-256：`58af00b3ac474ce57b94013ceb52e153f63433265f0f6316ce63edeb54706331`。
+
+后续需要在获授权的实际 Host 中运行这些选刊／审稿案例，记录所读来源、建议依据、
+未知信息和越界行为，再评估真实效果。此前独立 no-qiongli、Hook、跨 Host 和 Graph
+的现场证据缺口仍保留。本轮不更新个人安装，不发布，不提升程序验收状态。
