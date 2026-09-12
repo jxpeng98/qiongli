@@ -3,6 +3,45 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Beta.6 release submission — September 12
+
+Base `7c0ea15c`; branch `codex/release-beta-6`. The maintainer requests a new Beta
+from local 2.x, tag submission and the existing automatic publication workflow,
+then immediate termination without tracking. Prepare `2.0.0-beta.6` / PyPI
+`2.0.0b6`, retaining npm `next` and Actions-owned Cargo publication. Use the
+existing candidate-branch/tag route; protected remote 2.x remains unchanged.
+
+Version and reviewed release notes are committed in `eb77221e`. The 434-entry
+content lock binds that source, with pack SHA-256
+`742f0e5b8605e476fbe62d9410c2996b0cb34ab14e2f9ea64e56f78b5f3f887b`.
+The beta.6 CLI regenerated the public synthetic Graph example and passed its ten
+self-checks. Earlier example and development evidence remains historical. The
+bilingual current installation, Hook and Skill guides now describe beta.6;
+legacy package metadata and previously published notes remain unchanged.
+
+Clean local 2.x at `375a69abcb3e949dbd259329d871fe2a8a1b582d` passed the existing
+CLI release-ready owner on macOS ARM64: formatting, workspace CLI Clippy, 40 CLI
+and seven MCP integration tests, extracted standalone execution with empty PATH,
+actual isolated npm/wheel installations and both Marketplace Plugin archives.
+The first sandboxed attempt could not bind the local Zotero fixture port; the
+same checks passed with loopback access. No product fix or private service was
+needed. Qualified local assets and their manifest are retained under
+`/private/tmp/qiongli-beta6-release-qualified/`.
+
+The 21 packaging/version tests, 46 content tests, two example tests, four Graph
+DOM tests, seven ledger checks and capability contract pass. Docs build passes (60.32 seconds, existing
+highlight/chunk warnings). The frozen-source guard and whitespace review pass.
+Logs and example output use `/private/tmp/qiongli-beta6-`; the final release log
+is `release-qualified.log`. Bookkeeping after this qualification changes no
+runtime, content or packaging inputs; final-tag CI will build its own artifacts.
+
+Submit the candidate branch and immutable `v2.0.0-beta.6`, then dispatch
+`release-automation.yml` in post mode at that tag. Do not watch Actions or poll
+public uploads. Final-tag cross-platform builds and publication remain unobserved.
+No program state is promoted: browser rendering, live Hook/collaboration behavior,
+measured performance and full 1.x replacement keep their existing evidence gaps.
+Next development remains the authorized Host and Graph observations in CLI-402.
+
 ## Reproducible Graph example — September 12 follow-up
 
 Continue from b6395feb on codex/graph-example. The maintainer asks for a concrete

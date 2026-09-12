@@ -1367,7 +1367,7 @@
       "commit": "ca0a4a5d530cf53c14d51968387a2aefe19dc630",
       "run": "33311931096",
       "updated_at": "2026-08-30",
-      "blocker": " Beta.5 at c04d0f9d passed local macOS release qualification, command review and isolated real-Host beta.4-to-beta.5 updates. The current plan owns the evidence. Candidate/tag push and Release Automation dispatch at v2.0.0-beta.5 are authorized; stop after dispatch without tracking. Final-tag CI and public publication results remain unobserved; this does not alter the existing accepted evidence."
+      "blocker": "Beta.6 at 375a69ab passed local macOS CLI release qualification; the current plan records its scope and checks. Candidate/tag push and Release Automation dispatch at v2.0.0-beta.6 are authorized, with termination after dispatch and no tracking. Final-tag CI and public publication remain unobserved. Existing accepted evidence and program states are unchanged."
     },
     {
       "id": "REL-914",
