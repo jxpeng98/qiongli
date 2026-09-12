@@ -467,16 +467,22 @@ fn acquire_lock(state_root: &Path) -> Result<File, &'static str> {
     Ok(file)
 }
 
-fn write_new_private_file(path: &Path, bytes: &[u8]) -> Result<(), &'static str> {
+pub(crate) fn write_new_private_file(path: &Path, bytes: &[u8]) -> Result<(), &'static str> {
     #[cfg(unix)]
     use std::os::unix::fs::OpenOptionsExt;
 
-    let mut options = OpenOptions::new();
-    options.create_new(true).write(true);
-    #[cfg(unix)]
-    options.mode(0o600);
-    let mut file = options
-        .open(path)
+    #[cfg(not(windows))]
+    let mut file = {
+        let mut options = OpenOptions::new();
+        options.create_new(true).write(true);
+        #[cfg(unix)]
+        options.mode(0o600);
+        options
+            .open(path)
+            .map_err(|_| "managed-content-registry-unavailable")?
+    };
+    #[cfg(windows)]
+    let mut file = qiongli_windows_security::create_owner_only_new_file(path)
         .map_err(|_| "managed-content-registry-unavailable")?;
     file.write_all(bytes)
         .and_then(|()| file.sync_all())

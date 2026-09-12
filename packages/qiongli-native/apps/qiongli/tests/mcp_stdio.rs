@@ -410,6 +410,23 @@ fn copied_full_binary_routes_to_host_orchestration_without_lite_upgrade() {
     assert_eq!(route["route"], "orchestrator_mcp");
     assert_eq!(route["recommended_tool"], "qiongli_project_list");
     assert_eq!(route["requires_full_runtime"], true);
+    assert_eq!(
+        route["collaboration"]["subagentAvailability"],
+        "not-checked"
+    );
+    assert_eq!(route["collaboration"]["automaticCrossHostDispatch"], false);
+    assert_eq!(
+        route["collaboration"]["checkpointOwner"],
+        "originating-host"
+    );
+    assert_eq!(
+        route["collaboration"]["completionEvidence"],
+        json!([
+            "returned-task-identity",
+            "actual-result",
+            "matching-source-and-candidate"
+        ])
+    );
     assert!(route.get("preview_only").is_none());
     assert!(route.get("upgrade").is_none());
     assert_eq!(

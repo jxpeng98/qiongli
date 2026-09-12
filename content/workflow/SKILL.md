@@ -99,6 +99,7 @@ general entry; skill cards, references and templates are loaded only as needed.
 
 | Requested outcome | Load only the relevant route |
 |---|---|
+| Ask another agent to independently review, split research work, or exchange a cross-Host edit proposal | `skills/Z_cross_cutting/model-collaborator.md`; actual available Host tools execute the work |
 | Topic, question, gap or theory | `workflows/paper.md`, `workflows/find-gap.md` or `workflows/build-framework.md` |
 | Whole paper lifecycle | `workflows/paper-lifecycle.md` |
 | Consolidate a completed stage, track progress, or review files for manual cleanup | `workflows/stage-close.md`; only the user selects and deletes files |
@@ -118,7 +119,6 @@ general entry; skill cards, references and templates are loaded only as needed.
 | Academic talk or slides | `workflows/academic-present.md` (K) |
 | Assignment brief, rubric or coursework | `workflows/coursework.md` (L) |
 | Dissertation, thesis or supervisor feedback | `workflows/dissertation.md` (M) |
-| Independent review or collaboration | `skills/Z_cross_cutting/model-collaborator.md` |
 | Academic Graph, evidence gaps or continuity | `references/academic-graph-continuity.md` |
 
 For adjacent intents, select by the requested output and supplied material:

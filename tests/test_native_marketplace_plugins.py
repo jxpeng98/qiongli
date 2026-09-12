@@ -80,6 +80,12 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
         return plugins.build_plugins(self.source, self.root / name, VERSION, COMMIT, self.binary, target)
 
     def test_both_archives_preserve_canonical_bytes_and_bundle_runtime(self):
+        canonical = Path(__file__).resolve().parents[1] / 'content'
+        for relative in ('skills/Z_cross_cutting/model-collaborator.md',
+                         'templates/agent-handoff.md', 'templates/agent-review-packet.md',
+                         'workflow/references/academic-graph-continuity.md'):
+            self.content[relative] = (canonical / relative).read_bytes()
+        self.write_source()
         archives = self.build()
         self.assertEqual([p.name for p in archives], [plugins.archive_name(p, VERSION, TARGET) for p in plugins.PLATFORMS])
         for platform, archive in zip(plugins.PLATFORMS, archives):

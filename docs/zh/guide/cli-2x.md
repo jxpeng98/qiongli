@@ -362,10 +362,12 @@ Cargo 携带可构建的 Rust 源码；共同的 CLI 描述来自同一份包元
 
 ```bash
 qiongli project graph snapshot --project-id <prj_id> --text
-qiongli project graph view --project-id <prj_id> > research-graph-new.html
+qiongli project graph view --project-id <prj_id> --open
 ```
 
-请使用新的文件名，避免 shell 重定向覆盖已有文件。用浏览器打开 HTML 即可；
+`--open` 把快照保存为 Qiongli 配置目录中的一个新文件，再请系统默认的 HTML 应用
+打开它。默认应用通常是浏览器；CLI 会打印保存位置，若没有出现窗口，可以手动打开。
+只想保存时改用 `--save`。旧快照会保留，直到你自行删除，不会覆盖项目或之前的导出。
 原生 CLI 不需要额外运行时，也不用启动本地服务。页面可以搜索研究记录、查看所选节点的
 相邻关系、证据限制和来源检查。选择记录或关系后，页面会给出绑定当前项目版本和
 projection ID 的 `qiongli project graph source` 命令，用来读取对应记录的片段。
@@ -375,10 +377,20 @@ projection ID 的 `qiongli project graph source` 命令，用来读取对应记�
 保留此前的快照和原始材料；导出不会替你归档或删除它们。HTML 和 JSON 都包含研究内容，
 只应分享给有权查看这些记录的人。
 
+需要自行指定文件位置时，保留原来的 stdout 用法：
+`qiongli project graph view --project-id <prj_id> > research-graph-new.html`。
+请使用新的文件名，避免 shell 重定向覆盖已有文件。
+
 审稿和选刊决定可以通过决策日志中的可选 `Related Claims` 列关联已有论点 ID，
 关系为 `informs`。只有 `locked` 决定生成已审阅关系，暂定、受阻或待重新考虑的决定
 仍为提议状态。这些关系不算支持证据。报告位置、理由、适用的期刊要求和稿件影响
 继续保留在原来的决策记录中。
+
+子代理和跨 Host 协作可以用自然语言提出，例如“让另一个代理独立检查这些证据”。
+Skills 会根据实际可用工具分派任务，记录返回的任务标识，等待结果并核对来源版本。
+Full MCP 路由会说明其能力边界：它不替 Host 创建代理，也不提供通用跨 Host 自动通信。
+没有通信工具时，会准备由你转交的材料；重复、过期或尚未完成的返回不算新的独立审查。
+需要修改项目时，仍由原协调代理整合结果并经过既有写入审批。
 
 1.x 的 citation graph 用于从文献种子扩展引用与参考文献，并去重候选文献。
 2.x 的本地 Research Graph 增加了研究记录之间的联系：论点使用稳定标识，

@@ -30,6 +30,7 @@ qiongli-runtime = { path = "../../crates/qiongli-runtime", features = ["embedded
 qiongli-ui = { path = "../../crates/qiongli-ui", default-features = false }
 futures.workspace = true
 getrandom.workspace = true
+open = { version = "=5.4.0", default-features = false }
 rfd = { workspace = true, optional = true }
 schemars.workspace = true
 semver.workspace = true
@@ -51,6 +52,7 @@ security-framework.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 reqwest = { workspace = true, features = ["native-tls"] }
+qiongli-windows-security = { path = "../../crates/qiongli-windows-security" }
 
 [target.'cfg(unix)'.dependencies]
 rustix.workspace = true
@@ -64,9 +66,6 @@ tauri-build = { workspace = true, optional = true }
 ed25519-dalek.workspace = true
 serde_json_canonicalizer.workspace = true
 zeroize.workspace = true
-
-[target.'cfg(windows)'.dev-dependencies]
-qiongli-windows-security = { path = "../../crates/qiongli-windows-security" }
 
 [lints]
 workspace = true

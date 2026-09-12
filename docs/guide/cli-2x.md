@@ -497,11 +497,14 @@ need a closer look:
 
 ```bash
 qiongli project graph snapshot --project-id <prj_id> --text
-qiongli project graph view --project-id <prj_id> > research-graph-new.html
+qiongli project graph view --project-id <prj_id> --open
 ```
 
-Choose a new filename: shell redirection can overwrite an existing file. Open the
-HTML in your browser; the native CLI needs no extra runtime or local server. It
+`--open` saves a new private snapshot in Qiongli's configuration directory and
+asks the default HTML application, usually a browser, to open it. The CLI prints
+the saved location; open it manually if no window appears. Use `--save` to save
+without opening. Earlier snapshots stay until you remove them; project files and
+previous exports are not overwritten. The native CLI needs no extra runtime or local server. It
 shows searchable records, a selected record's neighbors, relation limits and
 source checks. Each record or relation provides a `qiongli project graph source`
 command bound to its project revision and projection ID. This reads the recorded
@@ -513,11 +516,24 @@ the same projection for a stage record. Keep previous snapshots and original
 sources; an export does not archive or delete them. Both exports contain research
 content, so share them within the project's access boundaries.
 
+To choose your own location, retain the stdout form:
+`qiongli project graph view --project-id <prj_id> > research-graph-new.html`.
+Choose a new filename: shell redirection can overwrite an existing file.
+
 For review or venue decisions, the decision log's optional `Related Claims`
 column links existing claim IDs with `informs`. A `locked` decision produces a
 reviewed relation; tentative, blocked or revisit decisions remain proposed.
 These links never count as supporting evidence. The source record retains the
 report location, rationale, applicable venue requirements and manuscript impact.
+
+Request collaboration in natural language, such as “ask another agent to review
+this evidence independently.” The Skill uses available Host tools, records their
+returned task identities, collects actual results and checks source versions.
+Full MCP routing states its limits: it does not create Host subagents or provide
+general automatic cross-Host communication. Without a communication tool, it
+prepares a packet for you to transfer. Duplicate, stale or unfinished results do
+not count as additional independent reviews. The originating coordinator retains
+integration responsibility and the existing project-write approvals.
 
 The 1.x citation graph expands references and citations from literature seeds and
 deduplicates candidate papers. The 2.x local Research Graph adds relationships

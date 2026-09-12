@@ -122,7 +122,7 @@ pub(crate) fn topic(args: &[OsString]) -> Option<String> {
     // Graph query help also needs the filter names and limits.
     let mut output = format!("Usage:\n{}\n", lines.join("\n"));
     if words == ["project", "graph", "view"] {
-        output.push_str("\nEmits a self-contained offline HTML snapshot to stdout. Save it to a new .html file\nand open it in a browser. No project writes, server, or extra runtime.\nRe-export after source changes. Use graph snapshot for --json or --text.\n");
+        output.push_str("\nEmits a self-contained offline HTML snapshot to stdout by default.\n  --open  Save a new private snapshot and request opening in the default HTML app\n  --save  Save a new private snapshot and print its location, without opening\nSaved files stay in Qiongli state until you remove them. No project writes or server.\nRe-export after source changes. Use graph snapshot for --json or --text.\n");
         return Some(output);
     }
     if words == ["project", "graph"] || words == ["project", "graph", "query"] {

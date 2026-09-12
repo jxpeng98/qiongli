@@ -782,3 +782,43 @@
     resource_route: [none]
     scope: [direct]
     next_action: [answer]
+
+- id: cross-host-review-no-transport
+  required_reads: [route]
+  category: adjacent
+  request:
+    en: >-
+      Prepare an independent review handoff for another Host, using only this
+      synthetic claim: "C1: study time and score were correlated; causality is
+      unknown." There is no communication or subagent tool in this environment.
+      Return a packet I can transfer myself, without writing files. Do not claim
+      you contacted a reviewer or received a review.
+    zh: >-
+      请把这个合成论点交给另一个 Host 独立审查：“C1：学习时间与成绩相关，因果关系
+      未知。”当前没有通信或子代理工具。请在聊天中准备可由我转交的任务材料，不保存
+      文件，也不要声称已经联系审稿人或收到审查结果。
+  expected:
+    route: [skills/Z_cross_cutting/model-collaborator.md]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]
+
+- id: returned-review-stale-and-duplicate
+  required_reads: [route]
+  category: adjacent
+  request:
+    en: >-
+      Reconcile these supplied collaboration receipts in chat; do not edit files
+      or call another reviewer. Current draft revision is 8. Task R1 returned a
+      review of revision 7 twice, with the same execution identity and identical
+      result. Task R2 is still running. Can we count this as two completed,
+      independent reviews and apply the suggested change? Explain the next step.
+    zh: >-
+      请在聊天中核对这些给定的协作回执，不修改文件，也不再联系审稿人：当前稿件是
+      revision 8；R1 对 revision 7 的审查返回了两次，执行标识和结果完全相同；R2 仍在
+      运行。能否把它们算作两份已完成的独立审查，并应用建议？请说明下一步。
+  expected:
+    route: [skills/Z_cross_cutting/model-collaborator.md]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]

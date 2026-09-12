@@ -36,7 +36,7 @@ pub fn prepare_cli_action(
     }
     if text_mode.is_some() && args.starts_with(&["project".into(), "graph".into(), "view".into()]) {
         return ProductAction::Output(CliOutput::usage_text(
-            "graph view emits HTML; use graph snapshot for --json or --text",
+            "graph view uses HTML or a saved-file notice; use graph snapshot for --json or --text",
         ));
     }
     let readable = text_mode.unwrap_or(terminal);
@@ -204,7 +204,7 @@ fn readable_output(output: CliOutput) -> CliOutput {
                 ));
             }
             row(&mut text, "Projection", &graph["projectionId"]);
-            text.push_str(&format!("\nView: qiongli project graph view --project-id {} > research-graph.html\nUse a new output file. --json retains the complete snapshot; source commands are available in the view.\n", scalar(&graph["projectId"])));
+            text.push_str(&format!("\nView: qiongli project graph view --project-id {} --open\nUse --save to keep the page without opening it. --json retains the complete snapshot; source commands are available in the view.\n", scalar(&graph["projectId"])));
         }
         "status" => {
             text.push_str(&format!(

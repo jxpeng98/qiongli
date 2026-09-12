@@ -3,6 +3,24 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Graph quick opening and collaboration receipts — September 12 follow-up
+
+Continue from `3d95a68a` on `codex/graph-open-collaboration`. The maintainer asks
+for a quickly opened native HTML Graph and stronger collaboration. Add explicit
+`graph view --open` / `--save`, retaining stdout HTML and the same snapshot.
+Reuse private state preparation and no-clobber writes; preserve earlier exports
+and canonical project approval/CAS. Reuse the already-locked native opener, with
+no server, model launch or extra installed runtime.
+
+For collaboration, strengthen the existing natural-language route and paired
+handoff/review records: observed dispatch IDs, partial/failure states, duplicate
+and stale results, and one coordinator for approved integration. Surface the
+same capability limits in Full MCP routing. Keep automatic cross-Host transport
+outside this increment unless the maintainer selects it. Check parsing, export
+permissions, failed opening, resource projection and native MCP responses;
+archive evidence once and integrate locally. Do not bypass the earlier browser
+policy refusal or claim simulated opener checks prove rendered interaction.
+
 ## Research Graph evidence and views — September 12 follow-up
 
 Continue from `39c25b81` on `codex/research-graph-views`. The maintainer approved

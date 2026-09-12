@@ -1559,6 +1559,52 @@ fn project_graph_cli_rebuilds_and_queries_without_writing_index_state() {
     assert!(html_text.contains(projection_id));
     assert!(html_text.contains("Which exposure changes returns?"));
     assert!(html_text.contains("connect-src 'none'"));
+    let state_root = fixture.config_root.join("v2");
+    let saved_views = || {
+        fs::read_dir(&state_root)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| {
+                path.file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .starts_with("graph-view-")
+            })
+            .collect::<Vec<_>>()
+    };
+    assert!(saved_views().is_empty());
+    for args in [
+        vec!["--save", "--open"],
+        vec!["--open", "--open"],
+        vec!["--open", "--json"],
+        vec!["--save", "--text"],
+    ] {
+        let mut command = vec![
+            "project",
+            "graph",
+            "view",
+            "--project-id",
+            project_id.as_str(),
+        ];
+        command.extend(args);
+        assert!(!run_configured(&fixture, &command).status.success());
+        assert!(saved_views().is_empty());
+    }
+    let saved = fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), &fixture)
+        .env("PATH", "")
+        .args([
+            "project",
+            "graph",
+            "view",
+            "--project-id",
+            project_id.as_str(),
+            "--save",
+        ])
+        .output()
+        .unwrap();
+    assert!(saved.status.success(), "{}", public_output(&saved));
+    assert_eq!(saved_views().len(), 1);
+    assert_eq!(fs::read_to_string(&saved_views()[0]).unwrap(), html_text);
     for flag in ["--json", "--text"] {
         let invalid = run_configured(
             &fixture,

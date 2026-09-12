@@ -145,9 +145,14 @@ repair instead of silently broadening or fabricating the research record.
 Use `graph snapshot --text` for a concise chat/terminal summary; retain `--json`
 when another Agent needs the complete revision-bound projection. For visual
 inspection, `qiongli project graph view --project-id <prj_id>` emits a standalone
-offline HTML page on stdout. Saving it is an explicit export: choose a new file
-and use the authorized file-write path. The CLI does not launch a server or
-browser, overwrite project records, or keep the page live.
+offline HTML page on stdout. When the user asks to see it, `--open` saves a new
+private snapshot in Qiongli state and requests opening in the default HTML app.
+Use `--save` when only a saved file is requested; it prints the location. These
+flags explicitly create a derived export, with no canonical project write or
+overwrite. Earlier snapshots remain until the user removes them. If the Host
+blocks opening, report it and retain the file; do not bypass that restriction.
+For a chosen external destination, use the authorized file-write path and a new
+filename. No server is started, and the page does not update itself.
 
 The page offers record search, a bounded local neighborhood, relation status,
 evidence limits and diagnostics. Selecting a node or edge gives an exact

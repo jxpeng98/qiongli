@@ -332,6 +332,15 @@ impl FullMcpServer {
                 "requires_full_runtime": true,
                 "platform": platform,
                 "platform_note": "The active host executes each bounded handoff; Qiongli does not launch model processes.",
+                "collaboration": {
+                    "executor": "active-host-tools",
+                    "subagentAvailability": "not-checked",
+                    "crossHost": "source-bound-review-or-edit-proposals",
+                    "automaticCrossHostDispatch": false,
+                    "checkpointOwner": "originating-host",
+                    "completionEvidence": ["returned-task-identity", "actual-result", "matching-source-and-candidate"],
+                    "unavailablePeer": "awaiting-external-review"
+                },
                 "why": ["the active Full MCP already provides host-driven orchestration"],
                 "sequence": [
                     {"tool": "qiongli_project_list", "purpose": "select a registered project and its exact revision"},

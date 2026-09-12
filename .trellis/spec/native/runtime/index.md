@@ -38,10 +38,23 @@ The shared reader resolves `decision:<id>` to a unique parsed record line.
 reader; it adds no arbitrary file access. `project graph view` emits a bounded
 neighborhood interface as self-contained HTML on stdout, using the same full
 snapshot/readiness data. Inline data is HTML-safe, DOM text is escaped, and CSP
-blocks network access. No server, browser launch, index write or new dependency
-is introduced. Its explicit JSON download saves a frozen projection, not project
+blocks network access. By default there is no file write or application launch.
+Explicit `--save` creates a unique HTML file under the validated private state
+root; `--open` also requests opening with the system's default HTML handler.
+Reuse `GlobalSettingsStore::prepare_store` and the existing no-clobber private
+writer (including the Windows owner-only file API). No canonical project write,
+overwrite or cleanup occurs. The already-locked `open` crate is linked into the
+CLI without insecure features, custom application arguments or an extra runtime;
+only the newly generated absolute file path is passed to it. A dispatch failure
+retains the export for manual use; successful dispatch does not prove rendering.
+No server or index write is introduced. Its explicit JSON download saves a frozen projection, not project
 history or source contents. `graph snapshot` retains machine JSON and gains a
 compact terminal summary; HTML view rejects text/JSON output flags.
+
+Full MCP orchestration routing discloses that subagent availability is unchecked,
+actual execution belongs to visible Host tools, and automatic cross-Host dispatch
+is unavailable. Completion needs the returned task identity, actual result and
+matching sources/candidate; the originating Host retains checkpoint authority.
 
 ## Local Pattern
 
