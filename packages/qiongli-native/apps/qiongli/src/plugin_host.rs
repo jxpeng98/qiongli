@@ -109,12 +109,8 @@ pub(crate) fn register(
                 return Err("local-host-migration-not-verified");
             }
         }
+        line(writer, "Registering Plugin…\n")?;
         for arguments in &plan.commands {
-            show_json(
-                writer,
-                &serde_json::json!({"running_arguments": serde_json::json!(arguments).to_string()})
-                    .to_string(),
-            )?;
             run(environment, &plan.executable, arguments)?;
         }
     }
@@ -122,16 +118,20 @@ pub(crate) fn register(
     if !verified.commands.is_empty() || verified.migration.is_some() {
         return Err("local-host-registration-not-verified");
     }
-    show_json(writer, &serde_json::json!({
-        "plugin": PLUGIN,
-        "registered_source": source.destination,
-        "host_cache": verified.config_root.join("plugins/cache").join(MARKETPLACE).join("qiongli-next").join(env!("CARGO_PKG_VERSION")),
-        "skills": "loaded by the Host from this Plugin; no ~/.agents/skills copy is needed",
-    }).to_string())?;
     line(
         writer,
-        "Plugin registration, enabled state and cached files verified.\nHost registration: verified. Session tools: not checked.\nStart a new Host session; the Host launches Full MCP from this Plugin automatically.\nNo separate MCP install or background terminal is needed.\nFirst ask the Host to list Qiongli tools and call qiongli_config_status. Check literature provider setup separately with qiongli_literature_status.\nThen try: read a supplied paper, keep source locations, propose research records for review, and continue through Graph and a stage summary. Saving still requires approval.\nAfter updating the CLI, rerun qiongli install plugin. It reuses the registered directory and refreshes this Plugin. Verify with qiongli doctor and qiongli install list.\n",
-    ).map(|_| true)
+        &crate::cli_presentation::plugin_install_summary(
+            source,
+            PLUGIN,
+            &verified
+                .config_root
+                .join("plugins/cache")
+                .join(MARKETPLACE)
+                .join("qiongli-next")
+                .join(env!("CARGO_PKG_VERSION")),
+        ),
+    )
+    .map(|_| true)
 }
 
 fn run(

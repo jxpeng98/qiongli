@@ -420,12 +420,6 @@ impl BundledContentReview {
             let source: crate::plugin_source::PluginSourcePlan =
                 serde_json::from_value(value["operation"]["source"].clone())
                     .map_err(|_| "managed-operation-plan-invalid")?;
-            if source.context_hooks {
-                line(
-                    writer,
-                    "Hooks: Plugin configuration exported and verified; Host loading/trust/execution still requires verification.\n",
-                )?;
-            }
             match crate::plugin_host::register(environment, content, &source, reader, writer) {
                 Ok(true) => {}
                 Ok(false) => return Ok(false),
@@ -436,21 +430,6 @@ impl BundledContentReview {
                     )?;
                     return Err(code);
                 }
-            }
-            if source.context_hooks {
-                let hint = match source.target {
-                    crate::managed_operation::ManagedIntegrationTargetV1::Codex => {
-                        "Hooks: in Codex, open /hooks (or Hook settings) and review/trust the Qiongli commands; a changed definition may need trust again."
-                    }
-                    crate::managed_operation::ManagedIntegrationTargetV1::ClaudeCode => {
-                        "Hooks: use Claude Code 2.1.139 or newer; open /hooks and check the Qiongli Plugin entries."
-                    }
-                };
-                line(writer, hint)?;
-                line(
-                    writer,
-                    "\nReload the Plugin/start a new Host session, then verify a resume/compact or child-start event delivers the reminder. CLI checks do not prove Host execution.\n",
-                )?;
             }
         } else {
             line(

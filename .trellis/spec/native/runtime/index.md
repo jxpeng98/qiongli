@@ -82,6 +82,10 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   remain intact. Cancellation, stale configuration, unsupported protocols and
   incomplete final registration cannot report success. No model session starts.
   Live session tools remain a separate check. See ADRs 0224 and 0226.
+  After verification, `cli_presentation.rs` renders one compact installation
+  summary with exact source/cache locations, included components, pending session
+  and Hook checks, and next commands. Command arrays remain in the approval
+  preview rather than repeating during execution; JSON plans/receipts are unchanged.
   `doctor` and `install inventory` reuse this registration owner for configured
   `qiongli-cli-local` sources. Bounded official inventories and verified source/
   cache receipts distinguish current, refresh-required and unavailable states;

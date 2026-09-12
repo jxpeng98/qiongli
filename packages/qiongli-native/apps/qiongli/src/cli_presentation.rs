@@ -388,6 +388,49 @@ fn paths_text(text: &mut String, paths: &Value) {
     }
 }
 
+pub(crate) fn plugin_install_summary(
+    source: &crate::plugin_source::PluginSourcePlan,
+    plugin: &str,
+    cache: &std::path::Path,
+) -> String {
+    use crate::managed_operation::ManagedIntegrationTargetV1;
+    let (host, target, hook_step) = match source.target {
+        ManagedIntegrationTargetV1::Codex => (
+            "Codex",
+            "codex",
+            "  Open /hooks (Hook settings) in Codex; review/trust Qiongli commands.\n",
+        ),
+        ManagedIntegrationTargetV1::ClaudeCode => (
+            "Claude Code",
+            "claude",
+            "  Open /hooks in Claude Code; review the Qiongli Plugin entries.\n",
+        ),
+    };
+    let mut text = format!(
+        "\nQiongli Plugin installed — {host}\n\n  Version   {}\n  Plugin    {}\n  Source    {}\n  Cache     {}\n\n  Verified  registration, enabled state and cached files\n  Includes  Skills + Full MCP (32 tools)\n  Pending   session tools{}\n\nNext steps\n",
+        env!("CARGO_PKG_VERSION"),
+        safe(plugin),
+        safe(&source.destination.to_string_lossy()),
+        safe(&cache.to_string_lossy()),
+        if source.context_hooks {
+            "; Hook trust and execution"
+        } else {
+            " (Hooks off in this Plugin)"
+        },
+    );
+    if source.context_hooks {
+        text.push_str(hook_step);
+    }
+    text.push_str("  Start a new session; list Qiongli tools and call qiongli_config_status.\n");
+    if source.context_hooks {
+        text.push_str("  Check for a Hook reminder on resume/compact or child start.\n");
+    }
+    text.push_str(&format!(
+        "\n  Check     qiongli doctor\n  Update    qiongli install plugin --target {target}\n  Providers qiongli_literature_status (ask the Host)\n\nSkills load from the Plugin. MCP starts with the Host; no separate install.\n"
+    ));
+    text
+}
+
 fn array(value: &Value) -> &[Value] {
     value.as_array().map_or(&[], Vec::as_slice)
 }
@@ -473,6 +516,35 @@ pub(crate) fn fields(text: &mut String, value: &Value, indent: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn plugin_summary_keeps_session_and_hook_checks_pending_and_escapes_paths() {
+        use crate::managed_operation::ManagedIntegrationTargetV1;
+        let mut source = crate::plugin_source::contract_source();
+        source.destination = "/example/\u{001b}[2J\nqiongli-next".into();
+        for (host, target) in [
+            (ManagedIntegrationTargetV1::Codex, "codex"),
+            (ManagedIntegrationTargetV1::ClaudeCode, "claude"),
+        ] {
+            source.target = host;
+            for hooks in [false, true] {
+                source.context_hooks = hooks;
+                let text = plugin_install_summary(
+                    &source,
+                    "qiongli-next@qiongli-cli-local",
+                    std::path::Path::new("/example/\u{202e}cache"),
+                );
+                assert!(text.contains("Pending   session tools"));
+                assert!(text.contains(&format!("qiongli install plugin --target {target}")));
+                assert!(text.contains("qiongli_config_status"));
+                assert_eq!(text.contains("/hooks"), hooks);
+                assert_eq!(text.contains("Hook trust and execution"), hooks);
+                assert_eq!(text.contains("Hooks off in this Plugin"), !hooks);
+                assert!(!text.contains(['\u{001b}', '\u{202e}']));
+                assert!(text.contains("\\nqiongli-next"));
+            }
+        }
+    }
 
     #[test]
     fn empty_command_groups_offer_terminal_help_and_preserve_script_errors() {

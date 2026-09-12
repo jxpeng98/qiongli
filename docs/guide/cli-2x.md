@@ -64,7 +64,9 @@ for the read-only inventory. Redirected bare `install` also retains that output.
 
 Check installation in three steps:
 
-1. Read the file and registration results. Declining registration keeps the export
+1. Read the file and registration results. Development builds after beta.6 group
+   version, source/cache paths, verified registration and pending session/Hook
+   checks in one completion summary. Declining registration keeps the export
    available for a retry at the same destination.
 2. Run `qiongli mcp check` (or add `--profile lite`) for initialization, tool discovery
    and one read-only call in this CLI. This does not verify a Plugin cache, Host

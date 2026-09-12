@@ -3,6 +3,32 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Compact Plugin installation results — September 12 follow-up
+
+Base `68a6abe2`; branch `codex/install-output-summary`. The maintainer reports
+that the completed installation prints command arrays, repeated status sentences
+and long onboarding paragraphs. Keep the existing registration/apply owners and
+format their verified result once through `cli_presentation.rs`: aligned identity
+and paths, verified components, pending session/Hook checks, and short next steps.
+Use the existing terminal escaping for paths and retain exact version/Plugin IDs.
+
+Remove repeated execution arguments after approval and duplicate Hook guidance.
+The complete command preview, confirmation, migration, receipt verification,
+JSON plans and cancellation/failure paths remain unchanged. Codex/Claude and
+Hook-on/off results share the renderer; no new dependency, option or content pack.
+The bilingual guide describes the post-beta.6 development output separately.
+
+Four presentation checks, five Plugin Host checks, CLI library/test Clippy and
+seven ledger checks pass. The new renderer check covers both Hosts, Hook on/off,
+pending-state wording and terminal-control escaping. Final self-review, format,
+whitespace and frozen-source checks pass; 46 accepted records are unchanged.
+Logs are retained as `/private/tmp/qiongli-install-output-{presentation,host,clippy}.log`.
+The earlier isolated Codex migration evidence applies to the unchanged execution owner; this
+presentation change does not claim another live Host run or session readiness.
+No publication or personal Host changes are requested. CLI-402 stays active;
+next include the result in the next authorized release and continue the existing
+Graph/live Host checks.
+
 ## Confirmed Codex Plugin migration — September 12 follow-up
 
 Base `e75e0252`; branch `codex/plugin-source-migration`. The reported beta.6
