@@ -705,3 +705,48 @@ Pack SHA-256：e049063572e3160e2749ea6f8fe9114685055113402ffc7593b04769ee4fbe4d
 下一步在允许的浏览器中检查宽屏/窄屏、真实焦点与剪贴板/下载行为，再观察授权材料
 的规范化和证据追踪。CLI-402 继续 active；此前平台、真实 Host、迁移语义、性能与
 维护验收缺口保留，没有把 DOM 通过提升为它们的完成证据。本轮仅做本地整合，未发布。
+
+
+## September 12 — Reproducible Research Graph example
+
+来源提交：e236c2d61f75497776a4fba7821635db36517824。维护者要求在项目中加入一个说明整个流程的测试或 example，
+并提供可查看的 Research Graph 页面。复用现有 CLI 和 HTML 模板，新增五份虚构材料、
+一个标准库复现脚本，以及中英文 Examples 页面；没有修改提取器或另画一份演示图。
+
+材料为短休息与即时回忆的虚构阅读摘录，DemoA / DemoB 不是可引用的真实研究。
+示例已提供规范化台账、决策和稿件引用记录，不把这一步说成模型已完成的自动提取。
+真实 CLI 在新目录、独立 QIONGLI_CONFIG_HOME 和空 PATH 中执行 preview/apply 注册、
+snapshot、view 和 source。项目 ID 与批准摘要沿用 preview 返回值。
+生成九个语义记录、八条非结构关系；CLM-1 的两条支持边保留各自限制，CLM-2
+没有支持边并保留诊断，已接受和待定决策分别为 reviewed/proposed 的 informs。
+
+复现脚本的十项检查通过：注册批准路径、证据限制、未支持论点、决策不算证据、
+来源锚点、错误 revision 拒绝、重复投影一致、HTML/JSON 一致、输入与项目文件不变、
+空 PATH 执行。版本负例是不同于当前值的 revision，不冒充一次实际修改后的旧材料试验。
+来源读取确实定位到台账第 2 行，并返回指向原始摘录 Table 1 的记录。
+脚本拒绝已有输出目录和 Python -O，保留所有运行结果，不启动浏览器或删除文件。
+
+静态展示文件由实际输出复制生成，位于 docs/public/demos/；检查其模板、快照、
+来源响应和输入哈希的一致性。更新示例时重新运行生成器并复制这四个命名输出，
+不直接手工改生成的节点、关系或 HTML。展示页的命令属于生成时的演示项目；
+文档明确要求复现后使用新页面和对应独立配置，不连接用户日常项目。
+
+CLI：qiongli 2.0.0-beta.5；二进制 SHA-256：fd2fdae4e934df02e25f2a00b405681506dbad67bc9e845db9ae1daa91f3e252
+展示 HTML SHA-256：f438074accf650501acc1d71d1b38f6ce634ffb5de14e48ec5a803e088e0e0d1
+实际产物、参数轨迹和验证记录保留在 /private/tmp/qiongli-graph-example-published-fixture；
+该目录名称仅表示文档展示用副本，没有进行网站发布。仓库中同时保留 proof 和来源响应。
+运行日志前缀为 /private/tmp/qiongli-graph-example-。
+
+| 检查 | 本地结果 |
+|---|---|
+| 复现脚本的真实 CLI 调用 | 上述十项检查通过；只操作新建的合成项目 |
+| `tests.test_research_graph_example` | 2 通过；已有目录与禁用断言的拒绝、公开示例与模板/输入/快照/来源响应一致 |
+| `node --test tests/graph_view.test.mjs` | 4 通过；新增真实 CLI 示例数据的点击、限制显示、提议筛选与缺口检查 |
+| `tests.test_program_roadmap` | 7 通过，249 项任务状态不变 |
+| VitePress | 最终构建通过，15.38 秒；两份构建后的说明页均包含 iframe，四个下载文件逐字节一致 |
+
+脚本与展示文件没有改变原生运行时或规范 Skills 内容，因此未重跑无关的 Rust 全套
+检查，也未更新不变的内容包锁。DOM 事件和构建产物检查不代表真实浏览器渲染、
+剪贴板权限或下载完成；此前本地 file URL 限制未被绕过。下一步在允许的浏览器中
+查看此示例，并用授权材料观察真实 Host 的规范化质量。CLI-402 继续 active，
+本轮只合并本地 2.x，没有发布网站、包或远程推送。

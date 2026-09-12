@@ -18,6 +18,14 @@ exercise the real example in the existing DOM checks, and verify no overwrite or
 canonical input edits. This is supplied normalization, not a live model trial;
 the previous browser-policy limitation still applies. No publication is requested.
 
+Implemented in e236c2d6. The actual native CLI generates nine semantic records,
+eight non-structural relations and the retained CLM-2 gap from five synthetic
+input files. Two generator/asset checks and four DOM checks pass; the reproduction
+script also checks source binding, mismatched revisions, complete snapshot parity
+and unchanged project inputs. The bilingual example links to the same generated
+HTML, JSON and source response. The existing review records exact artifacts and
+remaining browser/Host limits. CLI-402 stays active; no release is requested.
+
 ## Graph exploration — September 12 follow-up
 
 Continue from `7cdd7228` on `codex/graph-exploration`. Improve the existing offline
