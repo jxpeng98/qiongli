@@ -41,13 +41,35 @@ current-channel assertions while retaining deliberate mismatches. Docs build
 passes in 15.90 seconds with existing highlight/chunk warnings. The checks are
 retained under `/private/tmp/qiongli-main-cutover-`.
 
-Next integrate locally into 2.x and main, verify the merged tree, then run the
-existing current-target CLI release-ready owner from clean main before remote
-synchronization. Record merged-source qualification here once. Windows/Linux
-current-candidate execution, browser Graph rendering, live Hook/collaboration
-and formal stable acceptance remain separate; all 46 accepted ledger rows stay
-unchanged. No tag, registry publication or external catalog update is part of
-this main cutover increment.
+Integrated `8d330295` into local 2.x, then merged it into main as
+`3fe68ebdfc6a6c64a7d431c5766427daa6b752d6`. The main and 2.x trees both equal
+`2989c9f06fd428c78fea5c698def12ba96e2ce5e`; both histories are preserved.
+Clean merged main passed the existing CLI release-ready owner with Rust 1.97.0
+on macOS ARM64: format/Clippy, 40 CLI and seven MCP tests, actual npm/wheel
+installs, standalone empty-PATH execution (Lite 14 / Full 32) and both native
+Marketplace archives (empty PATH, Lite 14). Qualified unpublished assets and
+receipts are under `/private/tmp/qiongli-main-cutover-qualified/`; the release
+log is `/private/tmp/qiongli-main-cutover-release-qualified.log`. The executable
+SHA-256 is `7ef9a319532600b9ea03f6daaf8cfeaf2fa6f4dca86913494dad392d6a74ba0e`;
+the existing beta.6 pack stays unchanged. No personal Host configuration changed.
+
+Final self-review, workflow YAML parsing, frozen-source checks and seven ledger
+checks pass. The current cutover diff passes whitespace checks; a full diff
+against old main reports pre-existing whitespace in historical archives, accepted
+ADRs and a patch file, all unchanged from 2.x and retained. All 46 accepted ledger
+rows are byte-equivalent as records. This final bookkeeping changes no runtime,
+content, packaging or verification inputs; future CI binds its own exact head.
+
+Synchronize main with a normal push and retain local 2.x at the integrated head.
+The configured main push checks qualify the other targets; their result is not
+claimed here. Windows/Linux current-candidate execution, browser Graph rendering,
+live Hook/collaboration and formal stable acceptance remain separate. The actual
+Python maintenance branch remains at its accepted tag; inspection confirms its
+old release automation still expects main/dev, so a future authorized maintenance
+repair must adjust that owner and branch filters through its existing PR path.
+No tag, registry publication or external catalog update is part of this increment.
+Next select the stable candidate after its current platform/Host qualification;
+clarify the optional Python maintenance scope separately.
 
 ## Compact Plugin installation results — September 12 follow-up
 
