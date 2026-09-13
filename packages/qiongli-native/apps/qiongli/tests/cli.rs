@@ -3852,7 +3852,12 @@ fn update_status_and_channel_use_independent_revision_safe_state_without_path() 
     let status_json = parse_json(&status);
     assert_eq!(status_json["command"], "update-status");
     assert_eq!(status_json["revision"], 0);
-    assert_eq!(status_json["selected_stream"], "beta");
+    let (initial_stream, next_stream) = if env!("CARGO_PKG_VERSION").contains('-') {
+        ("beta", "stable")
+    } else {
+        ("stable", "beta")
+    };
+    assert_eq!(status_json["selected_stream"], initial_stream);
     assert!(!fixture.config_root.exists());
 
     let changed = run_update(&[
@@ -3861,13 +3866,13 @@ fn update_status_and_channel_use_independent_revision_safe_state_without_path() 
         "--expected-revision",
         "0",
         "--stream",
-        "stable",
+        next_stream,
     ]);
     assert!(changed.status.success(), "{}", public_output(&changed));
     let changed_json = parse_json(&changed);
     assert_eq!(changed_json["command"], "update-channel");
     assert_eq!(changed_json["revision"], 1);
-    assert_eq!(changed_json["selected_stream"], "stable");
+    assert_eq!(changed_json["selected_stream"], next_stream);
 
     let update_state = fixture.state_root().join(UPDATE_STATE_FILE);
     assert!(update_state.is_file());
@@ -3883,7 +3888,7 @@ fn update_status_and_channel_use_independent_revision_safe_state_without_path() 
         "--expected-revision",
         "0",
         "--stream",
-        "beta",
+        initial_stream,
     ]);
     assert_eq!(stale.status.code(), Some(1));
     assert_eq!(
