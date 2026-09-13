@@ -1,0 +1,71 @@
+[package]
+name = "qiongli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+description = "Native academic research CLI"
+default-run = "qiongli"
+
+[[bin]]
+name = "qiongli-desktop"
+path = "src/bin/qiongli-desktop.rs"
+required-features = ["desktop"]
+
+[features]
+default = []
+desktop = ["dep:tauri", "dep:tauri-build", "dep:tauri-plugin-opener", "dep:rfd"]
+custom-protocol = ["desktop", "tauri/custom-protocol"]
+
+[dependencies]
+qiongli-config = { path = "../../crates/qiongli-config" }
+qiongli-content = { path = "../../crates/qiongli-content" }
+qiongli-execution = { path = "../../crates/qiongli-execution" }
+qiongli-platform = { path = "../../crates/qiongli-platform" }
+qiongli-project = { path = "../../crates/qiongli-project" }
+qiongli-runtime = { path = "../../crates/qiongli-runtime", features = ["embedded-content", "native-config"] }
+qiongli-ui = { path = "../../crates/qiongli-ui", default-features = false }
+futures.workspace = true
+getrandom.workspace = true
+open = { version = "=5.4.0", default-features = false }
+rfd = { workspace = true, optional = true }
+schemars.workspace = true
+semver.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_json_canonicalizer.workspace = true
+sha2.workspace = true
+# Keep mock IPC support behind desktop too; an unconditional dev dependency
+# would bring the GUI into CLI-only tests.
+tauri = { workspace = true, optional = true, features = ["test"] }
+tauri-plugin-opener = { workspace = true, optional = true }
+
+[target.'cfg(not(windows))'.dependencies]
+reqwest = { workspace = true, features = ["rustls-tls"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+quick-xml.workspace = true
+security-framework.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+reqwest = { workspace = true, features = ["native-tls"] }
+qiongli-windows-security = { path = "../../crates/qiongli-windows-security" }
+
+[target.'cfg(unix)'.dependencies]
+rustix.workspace = true
+
+[build-dependencies]
+qiongli-content = { path = "../../crates/qiongli-content" }
+qiongli-platform = { path = "../../crates/qiongli-platform" }
+tauri-build = { workspace = true, optional = true }
+
+[dev-dependencies]
+ed25519-dalek.workspace = true
+serde_json_canonicalizer.workspace = true
+zeroize.workspace = true
+
+[lints]
+workspace = true

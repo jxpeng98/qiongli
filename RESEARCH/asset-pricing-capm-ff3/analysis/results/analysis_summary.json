@@ -1,0 +1,41 @@
+{
+  "claim_boundary": "Descriptive in-sample benchmark comparison; no causal, universal model-validity, or investment claim.",
+  "ff3_portfolios_with_increased_absolute_alpha": 5,
+  "hypotheses": {
+    "H1": "supported",
+    "H2": "supported",
+    "H3": "supported"
+  },
+  "model_configuration": {
+    "covariance": "HAC",
+    "maxlags": 6,
+    "models": [
+      "capm",
+      "ff3"
+    ],
+    "primary_weighting": "value_weighted",
+    "sensitivity_weighting": "equal_weighted",
+    "small_sample_correction": true
+  },
+  "portfolio_model_counts": {
+    "diagnostic_rows": 100,
+    "model_rows": 100
+  },
+  "primary_result": {
+    "value_weighted_ff3_abs_t_gt_1_96_count": 6,
+    "value_weighted_mean_abs_alpha_reduction": 0.5598296647,
+    "value_weighted_median_abs_alpha_reduction": 0.7417874762
+  },
+  "research_question": "How much does FF3 attenuate CAPM pricing errors across the 25 U.S. size/book-to-market portfolios?",
+  "sample": {
+    "end_month": 202606,
+    "nobs": 756,
+    "start_month": 196307
+  },
+  "schema_version": 1,
+  "sensitivity_result": {
+    "equal_weighted_ff3_abs_t_gt_1_96_count": 6,
+    "equal_weighted_mean_abs_alpha_reduction": 0.5457042298,
+    "equal_weighted_median_abs_alpha_reduction": 0.7772921124
+  }
+}

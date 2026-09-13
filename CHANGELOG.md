@@ -1,10 +1,101 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-07-08）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-09-01）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
-暂无未发布变更。
+暂无其他未发布变更。
+
+## [2.0.0-alpha.5] - Internal candidate (unpublished)
+
+该版本是绑定精确源码
+`842f6bb7136fc03551b7a1acf3b612daa3dc6953` 的内部测试候选。Native CI run
+`33525293258` 与非发布 promotion run `33527363262` 已通过；未创建 tag、GitHub
+Release、更新通道或公开公告。
+
+### Changed
+
+- 将原生 Cargo workspace、Cargo.lock、Codex/Claude Plugin、Full MCPB、Skill
+  registry、workflow 与嵌入内容版本统一推进到 `2.0.0-alpha.5`。
+- 纳入 Alpha 4 私有候选之后完成的授权异常生命周期、自授权负面矩阵与 Trellis
+  scoped standing implementation authorization 改进。
+- 使用现有 Native CI 与 Community Alpha promotion 生成三平台内部候选，不新增
+  发布流水线。
+
+### Verification boundary
+
+- 三个平台候选来自同一精确 `2.x` 源码，并通过 Native CI、目标原生启动和候选安装
+  生命周期检查。
+- 发布授权、离线签名、公开上传与公开回读被有意跳过；这些内部证据不能授权未来版本
+  发布。
+
+### Internal-candidate limits
+
+- macOS 使用 ad-hoc 签名且未公证；Windows 未做 Authenticode 签名；Linux 依赖
+  AppImage/portable package 声明的运行条件。候选仅用于内部验证。
+- 未来公开预发布使用新版本并重新运行完整资格链，不复用 Alpha 5 的内部候选或收据。
+
+## [2.0.0-alpha.4] - Private test candidate
+
+该版本是绑定单一 `2.x` 合并源码的 macOS arm64、Windows x86_64 与 Linux x86_64
+私有测试候选，仅通过保留三天且需要认证的 GitHub Actions artifact 分发。
+`publication_allowed=false`；不创建 tag、GitHub Release、更新通道或公开公告，当前
+公开的 Qiongli 2 预发布版本仍为 `v2.0.0-alpha.1`。
+
+### Changed
+
+- 将原生 Cargo workspace、Cargo.lock、Codex/Claude Plugin、Full MCPB、Skill
+  registry、workflow 与嵌入内容版本统一推进到 `2.0.0-alpha.4`。
+- 候选版本纳入当前 `2.x` 已完成的公共契约冻结、N-2 migration/rollback、forward-
+  version fail-closed、灾难恢复、Graph v1、Host 集成、三平台 provenance 与安装生命周期
+  改进，但不会据此推断未完成里程碑或公开发布资格。
+- 使用现有 Native CI 与 Community Alpha promotion 生成精确源码三平台候选；安装和
+  替换保持手动，不发布自动更新 metadata。
+
+### Verification boundary
+
+- 必须在合并后的精确 `2.x` 源码上通过本地 release readiness、显式完整 Native CI
+  和 publication authorization 保持 false 的三平台聚合。
+- 下载后的封闭文件集合、字节数、SHA-256、源码、版本、Native CI run、promotion
+  attempt 与 candidate-set digest 必须独立核验并记录在 path-redacted receipt 中。
+- 绿色 CI、合并或候选聚合都不授权 tag、Release、公开上传、更新通道或公告；历史
+  Alpha 3 receipt 不能用于本候选版本。
+
+### Community Alpha limits
+
+- macOS 产物使用 ad-hoc 签名且未公证；Windows 产物未做 Authenticode 签名；Linux
+  依赖 AppImage/portable package 声明的运行条件。它们都不具备生产级发布者信任。
+- `GOV-413`、`GOV-417`–`GOV-418`、`PLT-401`–`PLT-408` 与
+  `SEC-401`–`SEC-405` 保持现有未完成状态；本候选版本不构成 M1 或 Stable 退出证据。
+
+## [2.0.0-alpha.3] - Unpublished candidate
+
+该 exact first-usable 内部候选版本尚未发布，`publication_allowed=false`，
+公开 Release 仍为 `v2.0.0-alpha.1`。
+
+### Added
+
+- 新增原生 Academic Graph v1，将受支持的项目、artifact、capture、claim、evidence、analysis、output 与 provenance 汇总为确定性的只读研究图，并在 App、CLI 与 Full MCP 中共享同一份覆盖率和 stale-state 语义。
+- 新增 receipt-backed 原生 CLI 安装、校验、修复、删除和 shell PATH 配置生命周期；删除时会验证所有权和 digest，并在安全时恢复被替换的前序文件。
+- 新增 Codex 与 Claude Code 的结构化 Host 安装指示、版本探测、激活/MCP 观察和真实客户端兼容测试；未观察到的 Host 状态不再显示为 Ready。
+
+### Changed
+
+- 桌面端统一采用 compact Nova/default-radius 设计系统，减少页面空白和说明文字，统一 block、tab、sidebar、暗色模式、交互过渡与溢出约束。
+- Community Alpha 发布链改为从成功的同一 source commit `Native CI` 结果触发，版本、候选产物名、macOS 签名/验收和 release notes 均由当前 Cargo 版本派生。
+- 原生 2.x 安装文档与旧版 npm、Python、shell 1.x 安装路径明确分离，避免将退休的 1.x CLI 误认为原生 2.x 产品。
+
+### Fixed
+
+- 修复 Host probe 不可观察或失败时仍可能显示 Ready 的问题，并保留 unavailable、timeout、malformed、version mismatch 和 positive observation 的独立状态。
+- 修复 Academic Graph stale 原因、canonical coverage 与不同入口之间可能漂移的问题。
+- 修复 `Cargo.lock` 多个工作区包、插件清单、嵌入内容和发布标签之间可能出现混合版本的问题。
+
+### Community Alpha limits
+
+- macOS 为 ad-hoc 签名且未公证；Windows 产物未做 Authenticode 签名；Linux 依赖所声明的 AppImage 运行条件。它们都不具备生产级操作系统发布者信任。
+- 不承诺任意目录或自由文本的启发式图推断、不受限的 Full MCP mutation、云端执行、Codex/Claude Desktop Marketplace 绕过或 Stable 资格；唯一的 Full MCP 项目写入 `qiongli_project_capture_apply` 仍要求 preview、匹配 digest 与明确批准。
+- 自动更新仅在另行发布并通过目标平台验收的签名 update metadata 可用时启用；否则使用已记录的手动替换与回滚流程。
 
 ## [1.17.0] - 2026-07-08
 

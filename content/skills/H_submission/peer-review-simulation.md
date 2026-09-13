@@ -1,7 +1,7 @@
 ---
 id: peer-review-simulation
 stage: H_submission
-description: "Simulate parallel, independent cross-reviews using distinct reviewer personas (Methodologist, Domain Expert, Reviewer 2)."
+description: "Review a manuscript through relevant referee lenses, grounding findings in evidence and distinguishing simulation from actual independent review."
 inputs:
   - type: Manuscript
     description: "Draft manuscript for simulated review"
@@ -9,7 +9,7 @@ outputs:
   - type: PeerReviewSimulation
     artifact: "revision/peer_review_simulation.md"
 constraints:
-  - "Each persona must review independently with distinct focus areas"
+  - "Must disclose actual review participants; simulated lenses are not independent reviewers"
   - "Must aggregate and reconcile conflicting feedback"
   - "Must produce actionable items, not vague criticism"
 failure_modes:
@@ -23,11 +23,11 @@ domain_aware: false
 
 # Peer Review Simulation Skill
 
-Simulate rigorous, independent peer reviews using distinct reviewer personas — catching weaknesses before real reviewers do.
-
 ## Purpose
 
-Simulate parallel, independent cross-reviews using distinct reviewer personas (Methodologist, Domain Expert, Reviewer 2).
+Assess a manuscript through relevant referee lenses. Ground findings in evidence
+and distinguish a simulated critique from actual independent review or an editor's
+decision. A focused check need not become a full review panel.
 
 ## Related Task IDs
 
@@ -39,220 +39,112 @@ Simulate parallel, independent cross-reviews using distinct reviewer personas (M
 
 ## When to Use
 
-- Before submission (final red-team pass)
-- Before sharing a preprint for informal feedback
-- After major revisions (verify the revision addresses original weaknesses)
+- The author requests pre-submission critique or a formal H3 review.
+- A specific method, claim or section needs referee-style scrutiny.
+- For an actual confidential journal review, first establish the applicable
+  confidentiality and AI-use permission under the shared contract.
+
+Explaining a paper belongs to reading; responding to actual received comments
+belongs to revision/rebuttal work. Reviewing does not automatically authorize either
+manuscript edits or submitting the review.
 
 ## Inputs
 
-- `Manuscript`: Draft manuscript for simulated review
-- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
-- Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
+Use the supplied manuscript/version, review scope, target/type/stage and prior
+findings. State which text, supplementary material and underlying evidence were
+actually inspected. Missing raw data or an unstated procedure is an evidence gap,
+not proof of an invalid study. A narrow answer may stay in chat.
 
 ## Process
 
-### Step 1: Configure the Review Panel
+Follow `references/stage-H-submission.md` for applicable criteria, issue severity,
+confidentiality, source handling and formal write boundaries.
 
-Select 3–5 personas that match the expected reviewer pool for the target venue:
+### 1. Choose the review scope
 
-#### Core Persona Set
+Start with the active model and the lenses relevant to the claim and design. A
+full H3 report covers methods/evidence, contribution/positioning and internal
+consistency; a focused request uses only its relevant lens. One model's personas
+remain simulated self-review, not independent reviewers.
 
-| Persona | Focus | Mindset | Looks For |
-|---------|-------|---------|-----------|
-| **Methodologist** | Design, identification, statistical analysis | "Is the evidence credible?" | Endogeneity threats, measurement validity, power, robustness gaps, missing diagnostics |
-| **Domain Expert** | Theory, positioning, literature coverage | "Does this advance the field?" | Missing citations, contribution clarity, theory-evidence fit, novelty |
-| **Reviewer 2** (Skeptic) | Clarity, logic, consistency, reproducibility | "Can I follow this? Am I convinced?" | Unclear writing, logical gaps, missing details, inconsistencies between sections |
+When independent review is requested or required, follow
+`skills/Z_cross_cutting/model-collaborator.md` with available authorized reviewers.
+Record actual participants and source versions. If unavailable, leave that
+requirement unresolved. Existing BLOCK findings, protocols and formal minimum
+independent-review counts remain binding.
 
-#### Extended Persona Set (add based on paper type)
+### 2. Examine the evidence using applicable standards
 
-| Persona | Add When | Looks For |
-|---------|----------|-----------|
-| **Qualitative Methodologist** | Qualitative or mixed-methods paper | Trustworthiness procedures, reflexivity, coding rigor, thick description, negative cases |
-| **Statistics Specialist** | Complex quantitative methods (SEM, Bayesian, ML) | Model specification, assumption violations, estimation choice, reporting completeness |
-| **Ethics Reviewer** | Human subjects, sensitive data, AI use | IRB documentation, consent adequacy, de-identification, AI disclosure |
-| **Practitioner** | Applied research with industry implications | Practical relevance, implementation feasibility, translation of findings |
-| **Associate Editor** | High-tier journal submission | Scope fit, novelty threshold, positioning clarity, desk-reject triggers |
+Choose questions that could change the assessment; these are examples, not a
+mandatory checklist for every discipline or article type:
 
-### Step 2: Execute Each Review Independently
+| Lens | Relevant questions |
+|---|---|
+| Quantitative / computational | Does the design support the stated estimand or prediction? Are assumptions, measurement, uncertainty, data handling and needed diagnostics justified? For prediction, check leakage and evaluation design where applicable. |
+| Qualitative / mixed methods | Do sampling, interpretation and reflexivity fit the approach? Are claims traceable to material and contrary cases? Does integration support mixed-method conclusions? |
+| Theory / humanities / conceptual | Are premises, sources, interpretation and argumentative steps adequate? Are rival readings and the scope of the claim addressed? Do not require empirical hypotheses for a nonempirical argument. |
+| Evidence synthesis | Does the stated review type justify selection and synthesis? Apply relevant search/reporting standards without imposing systematic-review requirements on every review. |
+| Protocol / registered report | Assess the proposed question/design at this stage; do not demand completed results or retroactive preregistration. |
+| Contribution / readers | Does the actual contribution address the venue's published criteria? Distinguish novelty, replication, null findings, synthesis and practical value rather than assuming a novelty hierarchy. |
+| Consistency / reporting | Do abstract, claims, methods, results, figures and limitations agree? Are required statements and relevant evidence accessible or truthfully restricted? |
 
-For each persona, produce a complete review following this structure:
+Use applicable domain/method guidance when needed. Name expertise or access limits.
+Do not apply generic citation-age, sample-size, missing-data percentage or extra
+robustness quotas. A formatting preference is not a scientific flaw.
 
-```markdown
-### Review by [Persona Name]
+### 3. Ground and reconcile findings
 
-#### Overall Assessment
-- Recommendation: [Accept / Minor Revision / Major Revision / Reject]
-- Confidence: [High / Medium / Low] (how qualified this reviewer feels for this topic)
+For every material issue, identify the manuscript location, supporting passage or
+result, applicable criterion, consequence and proportionate remedy. Check whether
+another section, supplement or defensible methodological choice answers the concern.
+Label uncertain questions; do not inflate them to findings. Keep strengths where
+they inform the assessment, without inventing praise or issue counts.
 
-#### Summary (3–5 sentences)
-[Overall impression of the paper's contribution, strengths, and weaknesses]
+| Issue ID | Source / reviewer / lens | Location and evidence | Criterion / consequence | Severity | Remedy / uncertainty |
+|---|---|---|---|---|---|---|
 
-#### Major Issues (must-fix)
+Deduplicate by the underlying issue, preserving its source and prior ID across
+revisions. Resolve disagreement against the same manuscript and criteria, not vote
+counts. A substantiated blocker remains blocking even if only one reviewer raises
+it. If the evidence cannot decide a disagreement, record what would resolve it.
 
-**M1: [Issue title]**
-- **Location**: [Section / page / paragraph]
-- **Problem**: [What is wrong and why it matters]
-- **Evidence**: [Quote or reference from the paper]
-- **Suggested fix**: [Specific recommendation]
-- **Severity**: [Fatal / Major]
+### 4. Return the requested assessment
 
-**M2: ...**
-
-#### Minor Issues (should-fix)
-
-| # | Location | Issue | Suggestion |
-|---|----------|-------|-----------|
-| m1 | § 2.3, ¶ 2 | [specifics] | [fix] |
-| m2 | ... | ... | ... |
-
-#### Strengths (what works well)
-1. ...
-2. ...
-```
-
-### Step 3: Apply Persona-Specific Critique Frameworks
-
-#### Methodologist Checklist
-
-| Question | What to Check | Red Flag |
-|----------|--------------|----------|
-| Is the design appropriate for the RQ? | Causal claim → experimental/quasi; descriptive → observational | Causal claims with cross-sectional data |
-| Is the identification strategy sound? | Exogenous variation, instrument validity, parallel trends | "We control for X" as sole defense against endogeneity |
-| Is the sample size adequate? | Power analysis or MDE reported | N < 50 without justification; no power analysis |
-| Are measures valid and reliable? | Cronbach's α, factor loading, validated scales | New scales without validation |
-| Are robustness checks sufficient? | Multiple specifications, sensitivity to outliers | Single model, no sensitivity analysis |
-| Is missing data handled? | Listwise deletion justification, imputation, or sensitivity | >20% missing without discussion |
-| Are results correctly reported? | CI, effect sizes, exact p-values | Only stars without CI |
-
-#### Domain Expert Checklist
-
-| Question | What to Check | Red Flag |
-|----------|--------------|----------|
-| Is the contribution clear and novel? | Can state novelty in 1 sentence by page 2 | Contribution buried on page 8 |
-| Is the literature review comprehensive? | Key papers cited; recent (2–3 years) | Missing seminal or recent work |
-| Is the paper well-positioned? | Clear gap statement; not just "nobody has studied X" | Gap is a truism, not a research problem |
-| Does the theory support the hypotheses? | Mechanism articulated, not just correlation prediction | "Based on prior literature, we hypothesize..." |
-| Is the discussion substantive? | Engages with theory, not just "implications for managers" | Discussion = restated results |
-| Are findings compared to prior work? | Agreements and disagreements discussed with reasons | "Our results are consistent with Smith (2020)" without analysis |
-
-#### Reviewer 2 (Skeptic) Checklist
-
-| Question | What to Check | Red Flag |
-|----------|--------------|----------|
-| Is the abstract accurate? | Claims match results section | Abstract says "significant" but results are marginal |
-| Is the writing clear? | Can follow the argument without re-reading | Dense paragraphs, jargon without definition |
-| Are sections consistent? | RQ in intro → method → results → discussion alignment | RQ2 not addressed in results |
-| Are tables/figures clear? | Self-explanatory with adequate notes | "Table 1. Results." |
-| Is the paper the right length? | Within venue limits; no padding | 20% over limit; entire section that could be an appendix |
-| Are claims calibrated? | Language matches evidence strength | "Proves" with correlational design |
-
-### Step 4: Consolidate and Reconcile
-
-After all reviews are complete, create a unified action plan:
-
-#### Deduplication
-- Group similar issues from different personas
-- When two personas flag the same problem differently, use the more specific version
-- Note when multiple personas independently identify the same weakness (higher severity signal)
-
-#### Reconciliation Matrix
-
-| Issue | Flagged By | Severity | Consensus | Priority Action |
-|-------|-----------|----------|-----------|-----------------|
-| Weak identification strategy | Methodologist (M1), Reviewer 2 (M3) | Fatal | Unanimous | Must fix: add instrument / design defense |
-| Missing recent citations | Domain Expert (M2) | Major | Single reviewer | Should fix: update lit review |
-| Abstract overclaims | Reviewer 2 (M1), Methodologist (m4) | Major | 2/3 agree | Must fix: calibrate language |
-
-#### Decision Rules
-
-| Consensus | Action |
-|-----------|--------|
-| 3/3 personas flag as fatal | **Do not submit** until fixed |
-| 2/3 flag as major | **Fix before submission** |
-| 1/3 flags as major | **Author judgment** — consider fixing if easy |
-| Conflicting recommendations | **Analyze why** — different methodological norms may apply |
-
-### Step 5: Produce the Final Simulation Report
-
-The consolidation should result in:
-1. **Overall submission readiness**: Ready / Needs Major Revision / Not Ready
-2. **Top 3 risks**: Most likely reasons for rejection
-3. **Prioritized action list**: Ordered by severity × feasibility
-4. **Estimated revision effort**: Quick fixes (<1 day) vs major revisions (>1 week)
+Prioritize actual findings and state readiness only within completed checks.
+A clean review may have zero findings. List unavailable checks and any independent
+review requirement separately. A suggested new experiment is new work, not an
+assumed prerequisite merely to strengthen a paper. Stop at the review unless the
+user also requested revisions; an ordinary review needs only targeted verification
+of subsequent fixes, not repeated unchanged panels.
 
 ## Output Contract
 
-- `PeerReviewSimulation`: write `RESEARCH/[topic]/revision/peer_review_simulation.md`.
-- Separate finding, interpretation, and implication in the final artifact.
-- Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
-- Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
+Formal H3 writes `RESEARCH/[topic]/revision/peer_review_simulation.md` with:
 
-### Evidence Ledger and Source Integrity
+- Review basis: manuscript version/anchors, target/type/stage and applicable sources.
+- Actual participants, selected lenses, self-review status and access limits.
+- Source-bound findings, strengths and reconciliation table.
+- Prioritized actions, unresolved checks and scoped readiness.
 
-- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when producing, revising, or validating central scholarly claims.
-- Follow `references/evidence-ledger-contract.md`: supported claims need source pointers; unsupported central claims become `gap_note` rows and `RESEARCH/[topic]/context/gap_notes.md` entries.
-- For final writing, proofread, submission, rebuttal, citation, or presentation-facing outputs, apply `references/citation-risk-policy.md` and write or update `RESEARCH/[topic]/proofread/citation-risk-report.md` when citation risk is material.
+Follow the shared contract for evidence-ledger and material citation-risk updates.
+Apply `references/academic-output-rubric.md`. Never invent reviewer comments,
+independent participants, data, citations or journal decisions.
 
 ## Quality Bar
 
-The simulation is **ready** when:
-
-- [ ] At least 3 independent persona reviews completed
-- [ ] Each review has summary + recommendation + major issues + minor issues
-- [ ] Methods are assessed for identification/validity (not just surface)
-- [ ] Literature coverage and positioning are assessed
-- [ ] Writing clarity and internal consistency are assessed
-- [ ] Consolidated reconciliation matrix produced
-- [ ] Prioritized action list maps each issue to a fix location and effort
-- [ ] Overall submission readiness recommendation given
-
-## Minimal Output Format
-
-```markdown
-# Peer Review Simulation
-
-## Overall Readiness: [Ready / Needs Revision / Not Ready]
-## Top 3 Rejection Risks:
-1. ...
-2. ...
-3. ...
-
-## Individual Reviews
-
-### Methodologist
-- Recommendation: [Accept / Minor / Major / Reject]
-- Major: [list]
-- Minor: [list]
-
-### Domain Expert
-- Recommendation: ...
-
-### Reviewer 2
-- Recommendation: ...
-
-## Reconciliation Matrix
-
-| Issue | Flagged By | Severity | Action | Location | Effort |
-|-------|-----------|----------|--------|----------|--------|
-
-## Prioritized Action List
-
-### Fatal (block submission)
-1. ...
-
-### Major (fix before submission)
-1. ...
-
-### Minor (fix if time allows)
-1. ...
-```
+- [ ] Requested scope completed; applicable method and venue criteria are explicit.
+- [ ] Findings have evidence, locations, consequences and proportional remedies.
+- [ ] Missing reporting, scientific flaws, venue mismatch and preferences are distinct.
+- [ ] Actual independence requirements are met or visibly unresolved.
+- [ ] Contradictions and counterevidence were considered; repeated votes are not proof.
+- [ ] Readiness claims match the evidence and do not predict acceptance.
 
 ## Common Pitfalls
 
-| Pitfall | Problem | Fix |
-|---------|---------|-----|
-| Persona 不够刁钻 | 模拟太温和发现不了问题 | 包含 Reviewer 2（挑剔型） |
-| 不同 persona 意见雷同 | 缺少独立性 | 先独立生成再 cross-review |
-| 只关注写作 | 忽视方法论和数据问题 | 包含 Methodologist persona |
-| 缺少 actionable feedback | 指出问题但不建议如何修 | 每条 concern 附带 suggested fix |
-| 未映射到修改计划 | 模拟完但不行动 | 输出 → rebuttal-assistant 接力 |
+| Pitfall | Correction |
+|---|---|
+| Make every manuscript look like a quantitative study | Review the actual design and claim |
+| Perform a hostile persona | Test plausible objections fairly against the full supplied source |
+| Assume an omitted detail means an omitted procedure | Ask for the evidence and distinguish reporting from validity |
+| Count simulated reviewers as independent | Disclose actual participants and unmet requirements |
+| Recommend cosmetic fixes for a validity problem | Explain the needed reanalysis, new evidence or claim reduction |

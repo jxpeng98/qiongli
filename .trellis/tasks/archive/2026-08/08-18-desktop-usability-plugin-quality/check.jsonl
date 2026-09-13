@@ -1,0 +1,9 @@
+{"file":".trellis/spec/content/distribution/index.md","reason":"Verify canonical content remains immutable while receipt-owned Markdown variants are projected."}
+{"file":".trellis/spec/app-api/contract/index.md","reason":"Verify schema v18 resource editability, CAS intents, symbolic targets, and stable errors."}
+{"file":".trellis/spec/desktop/frontend/index.md","reason":"Verify native-control typography, content editing states, and graph-backed Library continuity."}
+{"file":".trellis/spec/native/runtime/index.md","reason":"Verify private variant storage, reconciliation, rollback, and fresh Host evidence boundaries."}
+{"file":".trellis/spec/product/control/index.md","reason":"Verify exact canonical-or-variant Plugin receipts and fixed official Host CLI activation."}
+{"file":".trellis/spec/product/control/eval-truth-v1.md","reason":"Verify Ready and packaged acceptance claims remain evidence-bound."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Trace Storage -> Native -> App API -> Desktop and the confirmed write path in reverse."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Confirm existing materializers, transactions, Academic Graph, and design tokens were reused."}
+{"file":".trellis/tasks/08-18-desktop-usability-plugin-quality/research/packaged-content-chain-audit.md","reason":"Compare implementation with the audited packaged CLI, Plugin, Skills, MCP, and Ready chain."}

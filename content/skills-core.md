@@ -1,6 +1,6 @@
 # Skills Core Reference
 
-Consolidated skill reference for token-efficient workflow execution. Use this file by default; only load full skill files (`skills/*/*.md`) for detailed output formats or error recovery.
+Optional consolidated digest. Prefer the relevant `skills/*/*.md` card for execution; read only the matching section here when a compact overview helps. Cards and canonical contracts own current inputs and outputs.
 
 ---
 
@@ -10,7 +10,7 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 **Source of truth:** `standards/research-workflow-contract.yaml`
 
-**Rule:** Always map user intent to a canonical Task ID (`A1`...`K4`) and write outputs to the contract path under `RESEARCH/[topic]/`.
+**Rule:** Infer the applicable Task ID (`A1`...`M7`) without asking for known context. Formal tasks write contract outputs under `RESEARCH/[topic]/`; a direct answer may stay in chat without claiming formal task completion. Follow the entrypoint scope, tool-availability and approval rules.
 
 **Cross-cutting quality substrate:**
 - Central claims go in `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` using `references/evidence-ledger-contract.md`.
@@ -18,7 +18,7 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 - Final writing, proofread, submission, rebuttal, and presentation-facing outputs should apply `references/citation-risk-policy.md`.
 - High-risk stage transitions should write `context/stage_handoff.md` using `references/stage-handoff-contract.md`.
 - Stage C design work should produce or consume `design/method-diagnostic-report.md` and `design/validity-threat-matrix.md`.
-- Writing Harness Contract applies to Stage F writing even when using only this core reference: lock the Story Spine before prose, then write in section or paragraph-cluster chunks with a write -> review -> confirm checkpoint. Do not draft the whole artifact in one uninterrupted pass; stop for the next blocking boundary/grill question when there is mainline drift, missing support, generic or vague claims, or an unsettled evidence threshold.
+- Stage F uses the shared Writing Harness Contract in `references/stage-F-writing.md`: preserve the Story Spine and evidence boundaries; choose structure and review granularity for the requested task.
 
 ---
 
@@ -41,10 +41,13 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 **Purpose:** Turn RQ → executable empirical study design
 
+Use the Design judgment contract in `references/stage-C-design.md`. Work at the
+requested scope; formal C tasks keep their outputs, Q1/Q4 and protocol requirements.
+
 **Process:**
 1. Choose study type (experiment/quasi/observational/qual/mixed) based on claims + constraints
 2. Define constructs → operationalization (IV/DV/measures or qualitative codes)
-3. Specify sampling/recruitment + sample size strategy (power/MDE or saturation)
+3. Justify sampling adequacy for the intended inference, method and available material
 4. Draft data collection instruments and procedures
 5. Pre-specify analysis plan (primary outcomes, models, missingness, robustness)
 6. Plan validity/rigor + reproducibility (DMP + prereg optional)
@@ -390,12 +393,10 @@ required fields, and write export-ready `bibliography.bib`
 **Purpose:** Draft and revise a full research paper (outline → draft → integrity passes)
 
 **Process:**
-1. Create manuscript workspace (`manuscript/outline.md`, `manuscript/manuscript.md`)
-2. Establish the Story Spine: central claim, argumentative mainline, section jobs, non-goals, and evidence threshold
-3. Draft sections iteratively (Intro → Related work → Methods → Results → Discussion → Limitations → Conclusion)
-4. For each section or paragraph-cluster, run write -> review -> confirm and check for mainline drift, missing support, generic or vague claims, and logic jumps
-5. Run claim–evidence integrity pass + figures/tables pass
-6. Prepare for readiness checks (reporting/PRISMA) and submission packaging
+1. Reuse the requested scope, source artifacts and outline; ask only for a consequential missing decision.
+2. Follow `references/stage-F-writing.md` for structure, evidence, review and completion. Do not expand a section edit into the full-paper artifact set.
+3. Use the canonical claim map and stable IDs for formal claims; preserve source anchors and unresolved gaps.
+4. Apply the required reporting and quality gates before claiming formal readiness. Submission packaging is a separate requested outcome.
 
 **Templates:** `templates/manuscript-outline.md`, `templates/manuscript-skeleton.md`, `templates/claim-evidence-map.md`, `templates/figures-tables-plan.md`
 
@@ -451,9 +452,9 @@ required fields, and write export-ready `bibliography.bib`
 **Purpose:** Submission-ready packaging (cover letter + statements + final checklist)
 
 **Process:**
-1. Confirm target venue constraints + anonymization needs
+1. Follow `references/stage-H-submission.md`; verify exact venue/type/stage requirements and sources
 2. Run reporting checks (and PRISMA if SR)
-3. Draft submission auxiliary materials + assemble submission checklist
+3. Draft applicable materials from confirmed author facts; mark unresolved items and unchecked files as pending
 
 **Templates:** `templates/cover-letter.md`, `templates/submission-checklist.md`, `templates/title-page.md`, `templates/highlights.md`, `templates/suggested-reviewers.md`, `templates/author-contributions-credit.md`, `templates/funding-statement.md`, `templates/coi-statement.md`, `templates/data-availability.md`, `templates/ai-disclosure.md`, `templates/supplementary-inventory.md`
 
@@ -512,24 +513,13 @@ required fields, and write export-ready `bibliography.bib`
 
 ## model-collaborator
 
-**Purpose:** Multi-model collaboration for research code tasks
+**Purpose:** Evidence-based independent review across research tasks.
 
-**Modes:**
-1. **parallel**: Both models analyze, merge high-confidence conclusions
-2. **chain**: One generates, other verifies (Codex -> Claude or reverse)
-3. **role**: Task division (Codex: code gen, Claude: review/synthesis)
-4. **single**: Single model execution
-
-**Invocation:**
-```bash
-python -m bridges.orchestrator [mode] --prompt "..." --cwd "/path"
-```
-
-**Model Strengths:**
-- Codex: 算法实现, Bug 修复, 代码生成
-- Claude: 结构化审阅, 长文本综合, 文档生成
-
-**Output:** Standardized JSON with confidence score
+Read `skills/Z_cross_cutting/model-collaborator.md`. Use the configured model and
+visible Host capabilities; Full MCP supplies bounded handoffs, not model processes.
+Sequential roles in one conversation are self-review. Record sources, participants,
+disagreements and unresolved gates in `logs/model_collab_trace.md`; agreement or
+confidence never substitutes for evidence or artifact approval.
 
 ---
 
@@ -551,11 +541,9 @@ subjects. Borrowed lenses load the narrow audited method pack without changing
 1. **Standard (Tier 1):** Use domain-profile recommended library + method checklist
 2. **Advanced (Tier 2):** Methodological Decomposition (JAX/PyTorch/Custom MLE)
 
-**Invocation:**
-```bash
-python -m bridges.orchestrator code-build \
-  --method "GARCH" --domain finance --tier standard --lang python
-```
+**Invocation:** Read `workflows/code-build.md` and execute the selected Stage I
+task in the active Host. Use visible Full MCP for a registered project handoff;
+legacy Python controller commands are not native 2.x dependencies.
 
 **Output:** `AnalysisCode`, `StatsReport`
 
@@ -598,15 +586,14 @@ python -m bridges.orchestrator code-build \
 
 ## self-critique
 
-**Purpose:** Iterative red teaming and Socratic critique of outputs
+**Purpose:** Check concrete claim, evidence and method defects at the requested scope
 
 **Process:**
-1. Act as a harsh "Reviewer 2" or Socratic Questioner.
-2. Ask stage-specific critique questions (e.g., claiming causality vs correlation, omitted variables, confirmation bias).
-3. Keep a persistent issue register in `review/self_critique_log.md`.
-4. Carry unresolved issues across rounds; mark each as open / partial / resolved instead of restarting critique from zero.
-5. Challenge the Generator to defend or revise their work.
-6. Ensure logical flow, empathy in rebuttals, and rigorous claims.
+1. Identify the requested artifact and applicable checks; use only relevant stage lenses.
+2. Review an ordinary answer once. Fix concrete defects and recheck affected work; no findings is a valid result, and no question quota applies.
+3. Follow `skills/Z_cross_cutting/self-critique.md` for review convergence. Preserve explicit protocol and saved-run limits, required independence and any remaining stability review; a standard/deep label alone adds no minimum count.
+4. Reuse issue IDs and keep unresolved blockers. Stop a blocked branch when progress requires unavailable evidence or a decision; reaching a limit does not turn BLOCK into PASS.
+5. Keep `review/self_critique_log.md` for formal runs. A direct answer can report its check in chat. Do not start another model or persona merely because this card was loaded.
 
 **Output:** Self-critique log and revised (improved) output
 
@@ -615,7 +602,7 @@ python -m bridges.orchestrator code-build \
 **Purpose:** Clarify scholarly boundaries one question at a time before high-risk Qiongli work proceeds; also run the Academic Grill Loop for academic idea discovery when a vague topic needs to become a defensible paper idea.
 
 **Process:**
-1. Inspect existing research artifacts before asking the user.
+1. Inspect the request and existing research artifacts before asking. If they settle the relevant boundary, continue without a new interview; a missing boundary file alone does not block a direct answer.
 2. Map the task to an academic boundary dimension: phenomenon, construct, contribution, claim strength, evidence threshold, method validity, rival explanation, generalizability, ethics/governance, venue/reviewer, research code, or submission/revision.
 3. For brainstorms or Stage A work, use the Academic Grill Loop: ask one scholarly question at a time that tests whether the topic can become one answerable paper.
 4. Write `AcademicIdeaFunnel` -> `context/idea_funnel.md` before Stage A outputs when the idea is still unsettled; include Candidate Idea Triage, recommended idea, core claim, research question, candidate gap, contribution type, evidence plan, weakest assumption, reviewer risk, `next_stage_recommendation`, and `boundary_review_handoff`.

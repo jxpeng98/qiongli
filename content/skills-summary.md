@@ -1,6 +1,6 @@
 # Skills Summary
 
-Quick-reference index of all canonical skills (~3KB). For detailed specifications, load `skills/[stage]/[skill-name].md`. For full process descriptions, use `skills-core.md`.
+Quick-reference index of canonical skills. Load the selected `skills/[stage]/[skill-name].md` card; use only a matching section of `skills-core.md` when needed.
 
 ## A — Research Framing
 
@@ -35,11 +35,11 @@ Quick-reference index of all canonical skills (~3KB). For detailed specification
 | rival-hypothesis-designer | Construct competing theories to strengthen design |
 | robustness-planner | Pre-specify robustness checks and sensitivity analysis |
 | dataset-finder | Identify feasible datasets and access routes |
-| variable-constructor | Operationalize constructs into auditable variables |
+| variable-constructor | Specify data columns, units, coding and derivation rules for selected measures |
 | data-dictionary-builder | Create structured data dictionaries |
 | data-management-plan | Generate FAIR-compliant data management plans |
 | prereg-writer | Generate preregistration documents (OSF/AsPredicted) |
-| variable-operationalizer | Map abstract constructs to measurable variables |
+| variable-operationalizer | Choose how to measure constructs and justify instrument validity |
 
 ## D — Ethics & IRB
 
@@ -84,9 +84,10 @@ Quick-reference index of all canonical skills (~3KB). For detailed specification
 
 | Skill | Purpose |
 |-------|---------|
+| journal-fit-recommender | Rank journal fit from an existing manuscript and verified venue evidence |
 | submission-packager | Submission-ready packaging (cover letter + statements) |
 | rebuttal-assistant | Reviewer response workflow (response matrix + letter) |
-| peer-review-simulation | Simulate Reviewer 2 critique before submission |
+| peer-review-simulation | Requested referee-style manuscript critique; distinguish simulated lenses from actual independent reviewers |
 | fatal-flaw-detector | Identify deal-breaker issues before submission |
 | reviewer-empathy-checker | Ensure respectful, constructive rebuttal tone |
 | credit-taxonomy-helper | Generate CRediT author contribution statements |
@@ -104,15 +105,16 @@ Quick-reference index of all canonical skills (~3KB). For detailed specification
 | code-execution | Execute and iterate on research code |
 | code-review | Domain-aware independent code review |
 | reproducibility-auditor | Audit code for reproducibility compliance |
+| release-packager | Assemble analysis code, data documentation and environment for reproducibility |
 | stats-engine | Statistical modeling with domain-specific method selection |
 
-## J — Proofreading & AI De-trace
+## J — Proofreading & Scholarly Voice
 
 | Skill | Purpose |
 |-------|---------|
-| ai-fingerprint-scanner | Detect AI-typical patterns in academic prose |
-| human-voice-rewriter | Rewrite flagged passages with authentic human voice |
-| similarity-checker | Check text similarity against known sources |
+| ai-fingerprint-scanner | Diagnose concrete clarity and repetition problems; no authorship detection |
+| human-voice-rewriter | Improve selected scholarly passages while preserving meaning, evidence and disclosure |
+| similarity-checker | Compare available source text and attribution; report corpus limits |
 | final-proofreader | Final grammar, style, and consistency pass |
 
 ## K — Academic Presentation
@@ -124,6 +126,24 @@ Quick-reference index of all canonical skills (~3KB). For detailed specification
 | slidev-scholarly-builder | Generate Slidev deck with scholarly theme |
 | beamer-builder | Generate LaTeX Beamer presentation |
 
+## L — Coursework
+
+| Skill | Purpose |
+|-------|---------|
+| assignment-brief-analyzer | Parse coursework, capstone, and dissertation assignment briefs into constraints, task type, missing information, and integrity boundaries. |
+| rubric-mapper | Map marking rubrics and learning outcomes to required content, evidence, sections, and coursework risks. |
+| coursework-architect | Design coursework structure, claim-evidence plans, and citation plans from assignment briefs and rubrics. |
+| coursework-reviser | Revise coursework drafts against rubrics, learning outcomes, evidence plans, word count, and integrity constraints. |
+
+## M — Dissertation
+
+| Skill | Purpose |
+|-------|---------|
+| dissertation-planner | Plan dissertations, theses, capstones, and major projects by degree level, method type, dependencies, milestones, and risks. |
+| chapter-architect | Design dissertation chapter maps, chapter status, dependencies, evidence thresholds, and word-count allocations. |
+| supervisor-feedback-integrator | Map supervisor feedback to dissertation chapters, claims, required actions, evidence needs, priorities, and revision status. |
+| dissertation-readiness-checker | Check dissertation final readiness and defense preparation against chapter completeness, evidence alignment, formatting, integrity, and unresolved risks. |
+
 ## Z — Cross-Cutting
 
 | Skill | Purpose |
@@ -132,4 +152,4 @@ Quick-reference index of all canonical skills (~3KB). For detailed specification
 | boundary-interviewer | Run Academic Idea Funnel (`context/idea_funnel.md`) and boundary critique one question at a time, then reuse locked answers as downstream constraints |
 | metadata-enricher | Normalize and complete paper metadata |
 | model-collaborator | Multi-model collaboration for research tasks |
-| self-critique | Iterative red teaming and Socratic critique |
+| self-critique | Check substantive defects, verify targeted fixes and stop at the applicable review contract |

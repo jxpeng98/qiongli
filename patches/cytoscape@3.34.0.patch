@@ -1,0 +1,26 @@
+diff --git a/dist/cytoscape.esm.mjs b/dist/cytoscape.esm.mjs
+index d81a2b6072e6f9a0f563f5dc1b87e3fa1a099b3d..f1ea83b4aa470a182e4785eeff15055e7610c735 100644
+--- a/dist/cytoscape.esm.mjs
++++ b/dist/cytoscape.esm.mjs
+@@ -10399,7 +10399,7 @@ var Selector = function Selector(selector) {
+ };
+ var selfn = Selector.prototype;
+ [parse$1, matching].forEach(function (p) {
+-  return extend(selfn, p);
++  return Object.defineProperties(selfn, Object.getOwnPropertyDescriptors(p));
+ });
+ selfn.text = function () {
+   return this.inputText;
+diff --git a/src/selector/index.mjs b/src/selector/index.mjs
+index 09798c1df9c34be3193aa45352fbb1cc8bd820c2..61aeae3d412a3c7b070b58621bbf485a8e7db674 100644
+--- a/src/selector/index.mjs
++++ b/src/selector/index.mjs
+@@ -48,7 +48,7 @@ let selfn = Selector.prototype;
+ [
+   parse,
+   matching
+-].forEach( p => util.assign( selfn, p ) );
++].forEach( p => Object.defineProperties( selfn, Object.getOwnPropertyDescriptors( p ) ) );
+ 
+ selfn.text = function(){
+   return this.inputText;

@@ -1230,7 +1230,7 @@ def cmd_provider(args: argparse.Namespace) -> int:
         payload = {
             "config_path": str(global_provider_config_path()),
             "providers": summary,
-            "capability_mode": provider_capability_mode(summary),
+            "capability_mode": provider_capability_mode(config),
         }
         if args.json:
             print(json.dumps(payload, indent=2, sort_keys=True))

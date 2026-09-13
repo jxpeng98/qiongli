@@ -118,6 +118,15 @@ required_fields:
   - "stage_handoff_update"
   - "revisit_trigger"
 
+stable_identity:
+  locked_decision_field: "decision_id"
+  locked_decision_format: "BD-###"
+  question_field: "question_id"
+  question_format: "BQ-###"
+  rules:
+    - "Every locked decision and boundary question has a unique stable ID."
+    - "Recorded IDs are never renumbered or reused."
+
 stage_question_sets:
   A:
     - "What evidence would make this research question answerable in one paper?"

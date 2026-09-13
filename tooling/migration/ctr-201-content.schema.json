@@ -1,0 +1,911 @@
+{
+  "$id": "https://qiongli.dev/schemas/ctr-201-content.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "./ctr-201-content.schema.json"
+    },
+    "compatibility_boundary": {
+      "additionalProperties": false,
+      "properties": {
+        "a8_generated_tree_evidence": {
+          "const": false
+        },
+        "captured_outputs": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        "complete_native_binary_parity": {
+          "const": "not-captured"
+        },
+        "complete_plugin_wrapper_parity": {
+          "const": "not-captured"
+        },
+        "complete_subject_matrix_parity": {
+          "const": "not-captured"
+        },
+        "excluded_outputs": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 5,
+          "minItems": 5,
+          "type": "array"
+        },
+        "extraction_filesystem_sandbox": {
+          "const": "python-audit-write-confined;host-read-isolation-not-proven;os-sandbox-not-proven"
+        },
+        "extraction_network_sandbox": {
+          "const": "not-proven"
+        },
+        "fnd_202_implemented": {
+          "const": false
+        },
+        "published_archive_member_parity": {
+          "const": "not-captured"
+        }
+      },
+      "required": [
+        "a8_generated_tree_evidence",
+        "published_archive_member_parity",
+        "complete_plugin_wrapper_parity",
+        "complete_native_binary_parity",
+        "complete_subject_matrix_parity",
+        "extraction_network_sandbox",
+        "extraction_filesystem_sandbox",
+        "captured_outputs",
+        "excluded_outputs",
+        "fnd_202_implemented"
+      ],
+      "type": "object"
+    },
+    "coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted_content_file_count": {
+          "const": 377
+        },
+        "accepted_content_total_bytes": {
+          "const": 1761400
+        },
+        "capture_ready": {
+          "const": true
+        },
+        "generated_output_count": {
+          "const": 7
+        },
+        "identity_output_count": {
+          "const": 850
+        },
+        "materialized_output_file_count": {
+          "const": 863
+        },
+        "materialized_profile_count": {
+          "const": 3
+        },
+        "portable_core_file_count": {
+          "const": 263
+        },
+        "resource_kind_count": {
+          "const": 11
+        },
+        "resource_root_count": {
+          "const": 12
+        },
+        "transformed_output_count": {
+          "const": 6
+        }
+      },
+      "required": [
+        "accepted_content_file_count",
+        "accepted_content_total_bytes",
+        "resource_root_count",
+        "resource_kind_count",
+        "portable_core_file_count",
+        "materialized_profile_count",
+        "materialized_output_file_count",
+        "identity_output_count",
+        "transformed_output_count",
+        "generated_output_count",
+        "capture_ready"
+      ],
+      "type": "object"
+    },
+    "integrity": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "const": "sha256"
+        },
+        "canonicalization": {
+          "const": "utf-8-json-sorted-keys-compact-excluding-integrity"
+        },
+        "payload_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "algorithm",
+        "canonicalization",
+        "payload_sha256"
+      ],
+      "type": "object"
+    },
+    "materialization_contract": {
+      "additionalProperties": false,
+      "properties": {
+        "entry_order": {
+          "const": "ascending-utf8-path-bytes"
+        },
+        "execution_model": {
+          "const": "authenticated-accepted-materializer-in-ephemeral-isolated-subprocess"
+        },
+        "host_cache_writes": {
+          "const": "forbidden"
+        },
+        "input_policy": {
+          "const": "A8-authenticated-regular-blobs-only"
+        },
+        "mode_policy": {
+          "const": "regular-skill-resources-normalized-to-0644"
+        },
+        "path_policy": {
+          "const": "relative-posix-utf8-nfc-portable-casefold-unique"
+        },
+        "python_requirement": {
+          "const": ">=3.12"
+        },
+        "pyyaml_version": {
+          "const": "6.0.3"
+        },
+        "tree_canonicalization": {
+          "const": "sha256-of-utf8-compact-sorted-key-json-over-utf8-byte-sorted-path-mode-size_bytes-sha256-entry-array"
+        },
+        "worker_network": {
+          "const": "accepted-reference-code-static-allowlist-plus-python-audit-denial;os-network-sandbox-not-proven"
+        },
+        "worker_write_scope": {
+          "const": "ephemeral-temporary-root-only"
+        }
+      },
+      "required": [
+        "python_requirement",
+        "pyyaml_version",
+        "execution_model",
+        "input_policy",
+        "path_policy",
+        "mode_policy",
+        "entry_order",
+        "tree_canonicalization",
+        "worker_network",
+        "worker_write_scope",
+        "host_cache_writes"
+      ],
+      "type": "object"
+    },
+    "portable_core": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_scope": {
+          "const": "authenticated-accepted-source-intermediate-tree"
+        },
+        "materialized_tree": {
+          "additionalProperties": false,
+          "properties": {
+            "entries": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "mode": {
+                    "const": "0644"
+                  },
+                  "origin": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "origin_class": {
+                        "enum": [
+                          "identity-copy",
+                          "content-transform",
+                          "generated-metadata"
+                        ]
+                      },
+                      "source_paths": {
+                        "items": {
+                          "maxLength": 512,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "minItems": 1,
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "origin_class",
+                      "source_paths"
+                    ],
+                    "type": "object"
+                  },
+                  "path": {
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  },
+                  "size_bytes": {
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "path",
+                  "mode",
+                  "size_bytes",
+                  "sha256",
+                  "origin"
+                ],
+                "type": "object"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "file_count": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "origin_counts": {
+              "additionalProperties": false,
+              "properties": {
+                "content-transform": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "generated-metadata": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "identity-copy": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "identity-copy",
+                "content-transform",
+                "generated-metadata"
+              ],
+              "type": "object"
+            },
+            "root": {
+              "const": "normalized-skill-root"
+            },
+            "top_level_counts": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "file_count": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "name": {
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "file_count"
+                ],
+                "type": "object"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "total_bytes": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "tree_sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "root",
+            "file_count",
+            "total_bytes",
+            "tree_sha256",
+            "entries",
+            "top_level_counts",
+            "origin_counts"
+          ],
+          "type": "object"
+        },
+        "pipeline": {
+          "items": {
+            "const": "stage-plugin-source-excluding-templates/CLAUDE.project.md"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array"
+        },
+        "variant_id": {
+          "const": "legacy-portable-core"
+        }
+      },
+      "required": [
+        "variant_id",
+        "pipeline",
+        "materialized_tree",
+        "evidence_scope"
+      ],
+      "type": "object"
+    },
+    "profiles": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "aliases": {
+            "items": {
+              "const": "lite"
+            },
+            "maxItems": 1,
+            "type": "array"
+          },
+          "coverage": {
+            "enum": [
+              "focused",
+              "complete"
+            ]
+          },
+          "evidence_scope": {
+            "const": "authenticated-accepted-source-skill-subtree"
+          },
+          "flavor": {
+            "enum": [
+              "desktop",
+              "full"
+            ]
+          },
+          "materialized_tree": {
+            "additionalProperties": false,
+            "properties": {
+              "entries": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "mode": {
+                      "const": "0644"
+                    },
+                    "origin": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "origin_class": {
+                          "enum": [
+                            "identity-copy",
+                            "content-transform",
+                            "generated-metadata"
+                          ]
+                        },
+                        "source_paths": {
+                          "items": {
+                            "maxLength": 512,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "minItems": 1,
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "origin_class",
+                        "source_paths"
+                      ],
+                      "type": "object"
+                    },
+                    "path": {
+                      "maxLength": 512,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "size_bytes": {
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "path",
+                    "mode",
+                    "size_bytes",
+                    "sha256",
+                    "origin"
+                  ],
+                  "type": "object"
+                },
+                "minItems": 1,
+                "type": "array"
+              },
+              "file_count": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "origin_counts": {
+                "additionalProperties": false,
+                "properties": {
+                  "content-transform": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "generated-metadata": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "identity-copy": {
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "identity-copy",
+                  "content-transform",
+                  "generated-metadata"
+                ],
+                "type": "object"
+              },
+              "root": {
+                "const": "normalized-skill-root"
+              },
+              "top_level_counts": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "file_count": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "name": {
+                      "maxLength": 512,
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "file_count"
+                  ],
+                  "type": "object"
+                },
+                "minItems": 1,
+                "type": "array"
+              },
+              "total_bytes": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "tree_sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "root",
+              "file_count",
+              "total_bytes",
+              "tree_sha256",
+              "entries",
+              "top_level_counts",
+              "origin_counts"
+            ],
+            "type": "object"
+          },
+          "pipeline": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "profile_id": {
+            "enum": [
+              "skill-only",
+              "marketplace-lite",
+              "full"
+            ]
+          },
+          "published_archive_member_parity": {
+            "const": "not-captured"
+          },
+          "skill_name": {
+            "enum": [
+              "qiongli",
+              "qiongli-next"
+            ]
+          },
+          "source_closure": {
+            "additionalProperties": false,
+            "properties": {
+              "file_count": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "included_resource_kinds": {
+                "items": {
+                  "enum": [
+                    "target-metadata",
+                    "mcp-contract",
+                    "role",
+                    "schema",
+                    "skill",
+                    "skill-summary",
+                    "standard",
+                    "subject",
+                    "template",
+                    "venue-profile",
+                    "workflow"
+                  ]
+                },
+                "maxItems": 11,
+                "minItems": 8,
+                "type": "array"
+              },
+              "total_bytes": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "tree_sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "included_resource_kinds",
+              "file_count",
+              "total_bytes",
+              "tree_sha256"
+            ],
+            "type": "object"
+          },
+          "source_closure_semantics": {
+            "const": "resource-kind-policy-projection;not-an-exact-materializer-read-set"
+          },
+          "subject": {
+            "const": "core"
+          },
+          "variant_id": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile_id",
+          "aliases",
+          "variant_id",
+          "subject",
+          "flavor",
+          "coverage",
+          "skill_name",
+          "source_closure",
+          "source_closure_semantics",
+          "pipeline",
+          "materialized_tree",
+          "evidence_scope",
+          "published_archive_member_parity"
+        ],
+        "type": "object"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "type": "array"
+    },
+    "record_type": {
+      "const": "qiongli-ctr-201-content-materialization-inventory"
+    },
+    "resource_catalog": {
+      "additionalProperties": false,
+      "properties": {
+        "kinds": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "entries_sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "file_count": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "resource_kind": {
+                "enum": [
+                  "target-metadata",
+                  "mcp-contract",
+                  "role",
+                  "schema",
+                  "skill",
+                  "skill-summary",
+                  "standard",
+                  "subject",
+                  "template",
+                  "venue-profile",
+                  "workflow"
+                ]
+              },
+              "source_roots": {
+                "items": {
+                  "maxLength": 512,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "minItems": 1,
+                "type": "array"
+              },
+              "total_bytes": {
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "resource_kind",
+              "source_roots",
+              "file_count",
+              "total_bytes",
+              "entries_sha256"
+            ],
+            "type": "object"
+          },
+          "maxItems": 11,
+          "minItems": 11,
+          "type": "array"
+        },
+        "resource_kind_count": {
+          "const": 11
+        },
+        "resource_root_count": {
+          "const": 12
+        },
+        "roots": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "entries_sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "file_count": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "match": {
+                "enum": [
+                  "exact",
+                  "prefix"
+                ]
+              },
+              "resource_kind": {
+                "enum": [
+                  "target-metadata",
+                  "mcp-contract",
+                  "role",
+                  "schema",
+                  "skill",
+                  "skill-summary",
+                  "standard",
+                  "subject",
+                  "template",
+                  "venue-profile",
+                  "workflow"
+                ]
+              },
+              "source": {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              },
+              "total_bytes": {
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "source",
+              "match",
+              "resource_kind",
+              "file_count",
+              "total_bytes",
+              "entries_sha256"
+            ],
+            "type": "object"
+          },
+          "maxItems": 12,
+          "minItems": 12,
+          "type": "array"
+        }
+      },
+      "required": [
+        "resource_root_count",
+        "resource_kind_count",
+        "roots",
+        "kinds"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "1.0"
+    },
+    "source": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted_commit": {
+          "const": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f"
+        },
+        "accepted_tag": {
+          "const": "v1.19.0-beta.1"
+        },
+        "accepted_tag_object": {
+          "const": "e68e3af4c879d8e9053124d1aed625bfcddfdbb4"
+        },
+        "content_tree": {
+          "additionalProperties": false,
+          "properties": {
+            "file_count": {
+              "const": 377
+            },
+            "files": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "git_blob_oid": {
+                    "pattern": "^[0-9a-f]{40}$",
+                    "type": "string"
+                  },
+                  "mode": {
+                    "const": "100644"
+                  },
+                  "path": {
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  },
+                  "size_bytes": {
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "git_blob_oid",
+                  "mode",
+                  "path",
+                  "sha256",
+                  "size_bytes"
+                ],
+                "type": "object"
+              },
+              "maxItems": 377,
+              "minItems": 377,
+              "type": "array"
+            },
+            "root": {
+              "const": "content/"
+            },
+            "total_bytes": {
+              "const": 1761400
+            },
+            "tree_sha256": {
+              "const": "4659cbcd839c3f8eb3798a64981b7ec2180cf766566fcf439ac892eb32a8a5a8"
+            }
+          },
+          "required": [
+            "root",
+            "file_count",
+            "total_bytes",
+            "tree_sha256",
+            "files"
+          ],
+          "type": "object"
+        },
+        "manifest_path": {
+          "const": "tooling/migration/baselines/v1.19.0-beta.1/manifest.json"
+        },
+        "manifest_sha256": {
+          "const": "77bb7628d43a496c995e4b0a8daf6a624847b62e96948c0461affe89002da131"
+        },
+        "materializer_anchors": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "git_blob_oid": {
+                "pattern": "^[0-9a-f]{40}$",
+                "type": "string"
+              },
+              "mode": {
+                "enum": [
+                  "100644",
+                  "100755"
+                ]
+              },
+              "path": {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              },
+              "role": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "size_bytes": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "role",
+              "path",
+              "mode",
+              "git_blob_oid",
+              "sha256",
+              "size_bytes"
+            ],
+            "type": "object"
+          },
+          "maxItems": 10,
+          "minItems": 10,
+          "type": "array"
+        }
+      },
+      "required": [
+        "accepted_tag",
+        "accepted_commit",
+        "accepted_tag_object",
+        "manifest_path",
+        "manifest_sha256",
+        "content_tree",
+        "materializer_anchors"
+      ],
+      "type": "object"
+    },
+    "status": {
+      "const": "content-materialization-captured"
+    },
+    "task_id": {
+      "const": "CTR-201D"
+    }
+  },
+  "required": [
+    "$schema",
+    "schema_version",
+    "record_type",
+    "task_id",
+    "status",
+    "source",
+    "resource_catalog",
+    "materialization_contract",
+    "portable_core",
+    "profiles",
+    "coverage",
+    "compatibility_boundary",
+    "integrity"
+  ],
+  "title": "Qiongli CTR-201D content and materialized-tree inventory",
+  "type": "object"
+}

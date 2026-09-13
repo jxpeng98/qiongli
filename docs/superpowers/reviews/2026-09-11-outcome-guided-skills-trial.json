@@ -1,0 +1,1336 @@
+{
+  "record_type": "local-independent-skill-forward-trial",
+  "date": "2026-09-11",
+  "purpose": "Bounded reading, writing, review and continuity observations; not a benchmark or acceptance receipt.",
+  "method": {
+    "execution": "One isolated agent per arm; five requests per original arm and one canonical continuity retest. Agents received the requests and the assigned guidance, not expected answers. Requests within an arm were not separate model sessions.",
+    "model": "Inherited active-session model; no override. Exact model build, seed, sampling settings, token usage and latency were not pinned or measured.",
+    "scope": "Synthetic supplied material only. No live project, model-provider account, web, installation, writes or cleanup. Tools were used to read guidance and write these trial outputs only.",
+    "limits": "Responses and self-reported resource lists were inspected; reported review counts are not independent execution traces. No statistical, multi-model or live-Host inference is supported."
+  },
+  "requests": [
+    {
+      "id": "reading",
+      "request": "请用两句话解释这段摘要的发现和局限：In a cross-sectional survey of 120 students, study time was positively associated with examination score (Pearson r = .32). Causality cannot be inferred. No confidence interval, p-value or adjusted analysis was supplied. Only this abstract is available."
+    },
+    {
+      "id": "writing",
+      "request": "把下面内容写成自然的英文 Results 段落，只返回一段正文：横断面 survey，120 名学生，study time 与 examination score 的 Pearson r = .32。没有提供 p 值、置信区间、调整后分析、study time 的测量方式或抽样方法。"
+    },
+    {
+      "id": "deep_review",
+      "request": "这是 formal deep research run 的最后一段，请审查证据和措辞是否一致。没有另行配置最低审查轮数，也不需要独立审稿人。如果没有问题就结束。来源：横断面 survey，120 名学生，study time 与 examination score 的 Pearson r = .32，没有提供 p 值、CI、调整后分析或测量方式。草稿：In a cross-sectional survey of 120 students, study time was positively associated with examination score (Pearson r = .32). The available summary does not establish causality or statistical significance, and does not report the measurement procedure. 本次只需要聊天中的审查结果。"
+    },
+    {
+      "id": "configured_review",
+      "request": "继续已保存的研究审查运行。配置为 min_review_rounds: 2、required_independent_review: true；目前只完成第 1 轮自查，结果 PASS。当前没有独立审查人或可调用的独立模型。请告诉我此运行的完成状态，不要改配置，也不要模拟一个审稿人。"
+    },
+    {
+      "id": "persistence",
+      "request": "请把已完成的论文阅读阶段整理成存档，并处理之前的笔记。注册项目是 RESEARCH/study，以下是已授权阅读的完整内容：notes/paper-a.md = CLM-001: 横断面相关 r=.32，来源 synthetic abstract；context/decision_log.md = DEC-001: 保留相关性表述，不推断因果。现在没有 Qiongli MCP 写入或审批工具。请先给我可审阅的归档候选和旧文件处理建议；旧文件由我自己选择并删除。"
+    }
+  ],
+  "arms": {
+    "unguided": {
+      "source_commit": null,
+      "read_resource_sha256": {},
+      "responses": [
+        {
+          "id": "reading",
+          "answer": "这项针对120名学生的横断面调查发现，学习时间与考试成绩呈正相关（Pearson r = .32）。但这一相关性不能说明因果关系，且摘要未提供置信区间、p值或调整后分析，因此无法据此判断估计的精确度、统计显著性或混杂因素的影响；仅有摘要也限制了进一步评估。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-trial/requests.json"
+          ]
+        },
+        {
+          "id": "writing",
+          "answer": "In a cross-sectional survey of 120 students, study time was positively correlated with examination score (Pearson r = .32). No p-value, confidence interval, or adjusted analysis was provided, and the available information did not specify how study time was measured or how students were sampled.",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-trial/requests.json"
+          ]
+        },
+        {
+          "id": "deep_review",
+          "answer": "审查通过，无需修改。草稿准确报告了研究设计、样本量和相关系数，没有夸大为因果关系或统计显著结果，也如实指出了测量方式未报告的问题。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-trial/requests.json"
+          ]
+        },
+        {
+          "id": "configured_review",
+          "answer": "此运行尚未完成：最低要求为2轮审查，目前仅完成第1轮自查（PASS），还缺第2轮审查及必需的独立审查。当前没有独立审查人或可调用的独立模型，因此独立审查要求暂时无法满足，不能将运行标记为完成。配置保持不变，不模拟审稿人。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-trial/requests.json"
+          ]
+        },
+        {
+          "id": "persistence",
+          "answer": "以下是可审阅的归档候选，建议路径为 `RESEARCH/study/archive/paper-reading.md`；尚未写入项目。\n\n```markdown\n# 论文阅读阶段归档\n\n项目：RESEARCH/study\n阶段状态：已完成（根据本次提供的信息）\n\n## 阅读记录\n\n- CLM-001：横断面相关 r=.32。\n- 来源：synthetic abstract（原笔记所记来源；本次未提供摘要全文）。\n- 原记录位置：notes/paper-a.md。\n\n## 研究决策\n\n- DEC-001：保留相关性表述，不推断因果。\n- 原记录位置：context/decision_log.md。\n\n## 原文件内容快照\n\nnotes/paper-a.md：\nCLM-001: 横断面相关 r=.32，来源 synthetic abstract\n\ncontext/decision_log.md：\nDEC-001: 保留相关性表述，不推断因果。\n```\n\n旧文件处理建议：\n\n- `notes/paper-a.md`：归档实际保存并核对完整后，可由你选择保留或删除；删除前确认没有仍依赖此路径的引用。\n- `context/decision_log.md`：建议保留，作为项目决策记录；归档中保留其快照即可。\n\n当前没有 Qiongli MCP 写入或审批工具，因此本次仅提供候选内容和建议，未写入归档、修改笔记或删除旧文件。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-trial/requests.json"
+          ]
+        }
+      ]
+    },
+    "baseline": {
+      "source_commit": "142d4f8fa964f5790268e940e5d7a705366410d1",
+      "read_resource_sha256": {
+        "content/workflow/SKILL.md": "eb60a4e74e43ff1ce58b1d93da8f9f12c86499f47e3d6a5d77b265fb32f14bea",
+        "content/workflow/workflows/paper-read.md": "4d6537d8e5810081382611c7a9451d1a6f7c96d7df970ae79cd6ad84393d3895",
+        "content/workflow/references/academic-output-rubric.md": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475",
+        "content/workflow/references/evidence-ledger-contract.md": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68",
+        "content/workflow/references/citation-risk-policy.md": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66",
+        "content/workflow/workflows/academic-write.md": "b95d5fab1afc0e90841abb93082184a7332f8df00e15a5fc4819e2847810c980",
+        "content/workflow/references/stage-F-writing.md": "eca1490cd9d8990aea34d15ee5406245f18a5b68ff1745389838b3e984076d2f",
+        "content/skills/Z_cross_cutting/self-critique.md": "de227add1494508c204e5ed8ae9371e01036f66708530c14705847b5515e44bb",
+        "content/skills/Z_cross_cutting/model-collaborator.md": "a8e57de0b409eab77c4b91e5767d8932a32732d11e10857361ad91e9258a1018",
+        "content/workflow/references/platform-routing.md": "a1f918592e416018f3a222e54ee87917dc35f823ae506f60a5a731dd2801325b",
+        "content/workflow/workflows/stage-close.md": "136f9abc8376d6102583fb8b6bf1b3f38f9ac0753f378ad1b89b6facf5532801",
+        "content/skills/Z_cross_cutting/academic-context-maintainer.md": "af4d10a8c510c60158d74600bab600b40629a0260c24a2d11c9183a2dc6fe5f0",
+        "content/workflow/references/stage-consolidation.md": "354cc0c587ba498527e189c083b27bb3e8bfe71d85e8cc81a2b1af370be9b6f6",
+        "content/templates/stage-summary.md": "d904ba837a9f508d2de00f5eb2b673750e319d9450e2e4dade1ce9939f036a4a",
+        "content/templates/research-state.md": "35a18c7920c5254315796f1284bdec37509ae6b38f455737fb5931ef2f230559",
+        "content/skills/J_proofread/human-voice-rewriter.md": "69ab71fbd39bb93c6435809117e984906791bea102ad33444b680aa8a6e62a28",
+        "content/workflow/references/scholarly-voice.md": "e31d038189ce1dd5b311df14dcc2f37f3d63759ba4452e15e42dceeaee5d7930",
+        "content/workflow/references/academic-graph-continuity.md": "ab1dfa0d81306439e69f04d4b45dbe99a7eb310950277a5dfcd17cbb0afc21be"
+      },
+      "responses": [
+        {
+          "id": "reading",
+          "answer": "仅据这段摘要，对120名学生的横断面调查发现，学习时间与考试成绩呈正相关（Pearson r = .32）。这一结果不能说明增加学习时间会导致成绩提高，且摘要未提供置信区间、p值或调整后分析，因此无法据此确认统计显著性、估计的精确程度或该关联是否独立于其他因素。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/workflows/paper-read.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md"
+          ]
+        },
+        {
+          "id": "writing",
+          "answer": "In a cross-sectional survey of 120 students, study time was positively associated with examination score (Pearson r = .32). The available information did not include a p-value, confidence interval, or adjusted analysis, nor did it specify how study time was measured or how the sample was selected.",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/workflows/academic-write.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/stage-F-writing.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md"
+          ]
+        },
+        {
+          "id": "deep_review",
+          "answer": "按 formal deep run 的默认要求，三轮自查均通过：事实核对、推断边界和最终措辞均未发现问题。样本量、研究设计、相关方向及数值与来源一致；草稿没有把相关性写成因果关系，也没有宣称统计显著或补写测量方式。无需修改，本段审查结束。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/self-critique.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md"
+          ]
+        },
+        {
+          "id": "configured_review",
+          "answer": "根据你提供的记录，该运行尚未完成：\n\n- 最低自查轮数为2轮，目前完成1轮，结果为PASS，仍缺第2轮。\n- 必需的独立审查尚未完成，且当前没有可用的独立审查人或独立模型，该环节处于阻塞状态。\n\n第1轮自查的PASS不能替代剩余检查，也不能证明整个运行完成；即使第2轮自查通过，独立审查要求仍须满足。配置保持不变，本次仅判断完成状态，未执行额外审查或更新已保存记录。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/self-critique.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/model-collaborator.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/platform-routing.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md"
+          ]
+        },
+        {
+          "id": "persistence",
+          "answer": "以下是可审阅的归档候选，尚未保存。内容仅依据你提供的两份完整笔记；没有读取注册项目的实际文件、核验文件指纹或确认项目版本。`STG-B-001` 为暂拟编号，保存前须确认未被使用。\n\n拟新增：`RESEARCH/study/context/stage_summaries/STG-B-001.md`\n\n```markdown\n# Stage Summary — STG-B-001\n\n- Stage and requested scope: B，归档本次提供的论文阅读笔记与相关决定。\n- Created at: 2026-09-11（候选起草日期）\n- Status: partial（候选未保存，覆盖本次提供的两份内容，项目状态未核验）\n- Previous summary: 未提供，待核验。\n- Project revision: unavailable\n- Source observation time: 本次用户消息；并非项目文件实时读取。\n\n## Stage Outcome\n\n本次归档保留一条相关性记录及其解释边界。用户说明论文阅读阶段已完成；本候选整理已提供内容，不据此认定正式研究门槛已经通过。\n\n## Retained Research Content\n\n来源为 [notes/paper-a.md](../../notes/paper-a.md)，提供的完整内容为：\n\n> CLM-001: 横断面相关 r=.32，来源 synthetic abstract\n\n该笔记记录了横断面相关系数 r=.32，并将来源标为 synthetic abstract。这里保留的是笔记中的记录；未取得或独立核对该摘要原文，不能将其写成已经验证的真实研究发现。变量名称、样本量、测量方式和其他统计结果均未提供。\n\n来源为 [context/decision_log.md](../decision_log.md)，提供的完整内容为：\n\n> DEC-001: 保留相关性表述，不推断因果。\n\n后续引用 CLM-001 时须保留 DEC-001 的解释边界。归档不改变这一决定，也不新增因果解释。\n\n## Source Coverage\n\n| Exact source file | Observed SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | 未获取 | 用户提供的完整文本；未读实际文件 | CLM-001；来源标记 synthetic abstract | Retained Research Content 中的完整引文及证据边界 | 提供的文字无遗漏；摘要原文未提供 | 是，保留原始笔记及来源定位 |\n| context/decision_log.md | 未获取 | 用户提供的完整文本；未读实际文件 | DEC-001 | Retained Research Content 中的完整引文及后续约束 | 提供的文字无遗漏 | 是，保留规范决定记录 |\n\n## Changes Since Previous Summary\n\n| Item / stable ID | Change | Earlier position | Current position and evidence | Reason / unresolved issue |\n|---|---|---|---|---|\n| CLM-001 | 本候选纳入已提供记录；是否相对前版新增尚未核验 | 未提供前版 | 横断面相关 r=.32；notes/paper-a.md | 保留来源标记；摘要原文待核对 |\n| DEC-001 | 本候选保留已有决定；不改写学术立场 | 保留相关性表述，不推断因果 | 与提供的 context/decision_log.md 一致 | 继续约束后续写作 |\n\n## Decisions and Open Questions\n\n- DEC-001：保留相关性表述，不推断因果。来源为 context/decision_log.md；原记录未给出置信等级、其他备选解释或正式重访条件，归档不补造这些内容。\n- CLM-001：目前可核对的是提供的笔记文字；synthetic abstract 原文和研究元数据尚未提供。\n- main_question_or_thesis、contribution_claim：未提供，归档不自行填定。\n- 未提供既有归档、实际文件指纹、项目版本或依赖检查结果，不能声称已完成前后版本比较或排除其他引用依赖。\n\n## Next-Stage Handoff\n\n后续工作先沿用 DEC-001 的相关性边界。如需把 CLM-001 用作论文证据，应先取得并核对 synthetic abstract 的原文和来源性质。原始笔记与决定日志继续作为依赖保留；本候选不替代二者。\n\n## Optional Retention Review\n\n以下建议只针对本次提供的两个具体文件。实际文件指纹和项目内引用关系未检查；所有原件默认保留，用户尚未选择删除任何文件。\n\n| Exact regular file | Observed SHA-256 | Content retained where | References / dependency checks and scope | Loss risk / omissions | Recommendation | User selection / reported action |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | 未获取 | Retained Research Content；CLM-001 原文 | 仅查阅用户提供内容；本候选引用该路径，其他依赖未知 | 删除会失去原始笔记及来源定位；摘要原文也未提供 | keep | — |\n| context/decision_log.md | 未获取 | Retained Research Content；DEC-001 原文 | 仅查阅用户提供内容；本候选引用该路径，其他依赖未知 | 规范决定记录，后续解释须继续遵守 | keep | — |\n```\n\n拟向 `RESEARCH/study/context/research_state.md` 的 `Stage Summary History` 追加以下记录；现有状态文件未提供，实际合并位置、既有记录和文件版本须在保存前核验。保留其原有字段与历史，不覆盖整份文件。\n\n```markdown\n| Summary ID | Stage | Date | Document | Previous summary | Status |\n|---|---|---|---|---|---|\n| STG-B-001 | B | 2026-09-11 | [STG-B-001](stage_summaries/STG-B-001.md) | 未提供，待核验 | partial |\n```\n\n两份旧文件均建议保留，没有已确认冗余、可进入手动删除复核的文件。你仍自行选择和删除旧文件。\n\n实际存档目前受 `qiongli-mcp-unavailable` 阻塞。按所用 Skill 的 `references/platform-routing.md`，可启用已安装的 Qiongli Plugin 并重新连接 Host 的 Full MCP；恢复后须核验源文件与未占用的归档路径，经预览、明确审批及版本/摘要检查后保存。若涉及规范状态文件更新，再按正常项目刷新与验证流程处理。当前没有项目写入、历史追加或删除已经发生。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/workflows/stage-close.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/academic-context-maintainer.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/stage-consolidation.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/templates/stage-summary.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/templates/research-state.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/skills/J_proofread/human-voice-rewriter.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/scholarly-voice.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/platform-routing.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/academic-graph-continuity.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-baseline/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md"
+          ]
+        }
+      ],
+      "observed_canonical_history_header": true
+    },
+    "revised": {
+      "source_commit": "fd15128328534a71d67b4b9c85b22b682b1fb423",
+      "read_resource_sha256": {
+        "content/workflow/SKILL.md": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78",
+        "content/workflow/workflows/paper-read.md": "fe5598827ec6ef9a35b517843e67b7110724f021667f52537708e15a5a0fa473",
+        "content/workflow/references/academic-output-rubric.md": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475",
+        "content/workflow/references/evidence-ledger-contract.md": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68",
+        "content/workflow/references/citation-risk-policy.md": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66",
+        "content/workflow/workflows/academic-write.md": "bbd30ed9c53c71929418f88cab226a3ff1735aba05d8d77ea7e1e66128aa867f",
+        "content/workflow/references/stage-F-writing.md": "364f4c4472d1cc5a8cee0949749f6cf118584180406fff00b60b8348fe8ff290",
+        "content/skills/Z_cross_cutting/self-critique.md": "97f1e6b332d80d408627d11ad1a2488bb29d6d162e90239b9f900c164c8bf20c",
+        "content/skills/Z_cross_cutting/model-collaborator.md": "a8e57de0b409eab77c4b91e5767d8932a32732d11e10857361ad91e9258a1018",
+        "content/workflow/references/platform-routing.md": "a1f918592e416018f3a222e54ee87917dc35f823ae506f60a5a731dd2801325b",
+        "content/workflow/workflows/stage-close.md": "136f9abc8376d6102583fb8b6bf1b3f38f9ac0753f378ad1b89b6facf5532801",
+        "content/skills/Z_cross_cutting/academic-context-maintainer.md": "af4d10a8c510c60158d74600bab600b40629a0260c24a2d11c9183a2dc6fe5f0",
+        "content/workflow/references/stage-consolidation.md": "354cc0c587ba498527e189c083b27bb3e8bfe71d85e8cc81a2b1af370be9b6f6",
+        "content/templates/stage-summary.md": "d904ba837a9f508d2de00f5eb2b673750e319d9450e2e4dade1ce9939f036a4a",
+        "content/skills/J_proofread/human-voice-rewriter.md": "69ab71fbd39bb93c6435809117e984906791bea102ad33444b680aa8a6e62a28",
+        "content/workflow/references/scholarly-voice.md": "e31d038189ce1dd5b311df14dcc2f37f3d63759ba4452e15e42dceeaee5d7930",
+        "content/workflow/references/workflow-contract.md": "bbe2b515bafef51b10755d19e93c624b3c9b4afa8ddfd52e6afc47b51ed9a3d7",
+        "content/workflow/references/academic-graph-continuity.md": "ab1dfa0d81306439e69f04d4b45dbe99a7eb310950277a5dfcd17cbb0afc21be"
+      },
+      "responses": [
+        {
+          "id": "reading",
+          "answer": "这段摘要报告，在一项包含 120 名学生的横断面调查中，学习时间与考试成绩呈正相关（Pearson r = .32），即学习时间较长的学生往往成绩较高。由于仅有摘要，且未提供 p 值、置信区间或调整后分析，不能据此确认统计显著性、评估估计精度或判断控制其他因素后的关联，更不能推断增加学习时间会导致成绩提高。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/workflows/paper-read.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md"
+          ]
+        },
+        {
+          "id": "writing",
+          "answer": "In a cross-sectional survey of 120 students, study time was positively associated with examination score (Pearson r = .32). No p-value, confidence interval, or adjusted analysis was provided, and the available information did not specify how study time was measured or how participants were sampled.",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/workflows/academic-write.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/stage-F-writing.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md"
+          ]
+        },
+        {
+          "id": "deep_review",
+          "answer": "本段审查通过：横断面调查、120 名学生和 Pearson r = .32 均与所给来源一致；“positively associated”保留了相关性边界，未宣称因果关系、统计显著性或调整后关联。草稿也准确说明摘要未报告测量程序，没有将 survey 推断为自陈测量。未发现需要修改的问题，本段聊天审查到此结束。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/self-critique.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/stage-F-writing.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md"
+          ]
+        },
+        {
+          "id": "configured_review",
+          "answer": "根据你提供的已保存状态，此运行尚未完成：最低审查轮数为 2，目前仅完成第 1 轮自查并获得 PASS，第 2 轮仍未完成；必需的独立审查也尚未完成，且当前没有可用的独立审查人或模型。\n\n第 1 轮 PASS 不能代替剩余要求。配置保持不变，独立审查要求仍处于阻塞状态；本次仅报告状态，没有执行或模拟额外审查，也没有更新已保存运行。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/self-critique.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/model-collaborator.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/platform-routing.md"
+          ]
+        },
+        {
+          "id": "persistence",
+          "answer": "以下是可审阅的归档候选，尚未写入 RESEARCH/study；本次依据仅为你在聊天中提供的两个文件的完整文本。\n\n拟新建 `RESEARCH/study/context/stage_summaries/STG-B-001.md`。编号暂定，保存前需确认路径未占用并核验来源文件当前版本。\n\n```markdown\n# Stage Summary — STG-B-001\n\n- Stage and requested scope: B；整理用户说明已完成的论文阅读阶段，仅覆盖本次提供的两份文件。\n- Created at: 2026-09-11（候选编写日期，未保存）\n- Status: partial（已覆盖所给文本；实际项目版本、既有归档和依赖尚未核验）\n- Previous summary: 未提供，尚未核验\n- Project revision: unavailable\n- Source observation time: 本次对话；未读取实际文件或取得文件指纹\n\n## Stage Outcome\n\n本次整理保留一项阅读记录及其解释边界：CLM-001 记录横断面相关 r=.32，DEC-001 要求保留相关性表述，不推断因果。阅读阶段已完成是用户提供的状态；本候选不额外确认正式研究门槛、全文阅读或项目归档已完成。\n\n## Retained Research Content\n\n阅读笔记全文，来源 [notes/paper-a.md](../../notes/paper-a.md)，定位 CLM-001：\n\n> CLM-001: 横断面相关 r=.32，来源 synthetic abstract\n\n现有记录报告正相关，r=.32，来源标签为 synthetic abstract。本次未获得该摘要原文、变量名称、样本信息、测量方法、统计不确定性或完整文献元数据，因此不能据此补写这些细节，也不能将这条合成材料笔记当作已核验的真实文献证据。\n\n决策记录全文，来源 [context/decision_log.md](../decision_log.md)，定位 DEC-001：\n\n> DEC-001: 保留相关性表述，不推断因果。\n\n后续引用 CLM-001 时继续遵守这一边界。原记录未说明决策置信度、讨论过的替代方案或重启条件，本次不补写为既有决策。\n\n## Source Coverage\n\n| Exact source file | Observed SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | 不可用；未读取文件字节 | 用户提供的完整文本 | CLM-001；synthetic abstract | Retained Research Content：逐字引文及解释边界 | 所给文本无遗漏；摘要原文未提供 | 是；保留来源定位与证据链 |\n| context/decision_log.md | 不可用；未读取文件字节 | 用户提供的完整文本 | DEC-001 | Retained Research Content：逐字引文及决策边界 | 所给文本无遗漏 | 是；规范决策记录 |\n\n## Changes Since Previous Summary\n\n| Item / stable ID | Change | Earlier position | Current position and evidence | Reason / unresolved issue |\n|---|---|---|---|---|\n| CLM-001 | 纳入本归档候选，主张未改写 | 未提供前版归档 | 横断面相关 r=.32；notes/paper-a.md 中 CLM-001 | 无法判断相较前版是新增还是已收录 |\n| DEC-001 | 纳入本归档候选，决策不变 | 未提供前版归档 | 保留相关性表述，不推断因果；context/decision_log.md 中 DEC-001 | 未发生新的学术决策，无需为归档重复新增决策 |\n\n## Decisions and Open Questions\n\n- 已有决策 DEC-001：保留相关性表述，不推断因果。\n- CLM-001 的来源目前只有 synthetic abstract 标签，不能恢复未提供的文献身份或方法细节。\n- 当前项目版本、既有归档、文件指纹、研究问题和贡献主张未提供；本候选不改写这些项目状态。\n- 未提供争议、反证或零结果记录；这不表示已经排除这些情况。\n\n## Next-Stage Handoff\n\n后续综合或写作先阅读本归档，并保留 [原笔记](../../notes/paper-a.md) 和 [决策记录](../decision_log.md) 作为定位依据。任何超出相关性记录的解释都需要额外来源支持；如需将其用于真实文献论证，应先取得并核验相应原始材料。下一阶段尚未指定。\n\n## Optional Retention Review\n\n| Exact regular file | Observed SHA-256 | Content retained where | References / dependency checks and scope | Loss risk / omissions | Recommendation | User selection / reported action |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | 不可用 | Retained Research Content 中 CLM-001 原文 | 仅核对聊天所给内容；本候选继续引用此路径；实际文件类型及项目内其他依赖未核验 | 删除会失去原笔记定位；归档不能代替来源证据 | keep | |\n| context/decision_log.md | 不可用 | Retained Research Content 中 DEC-001 原文 | 仅核对聊天所给内容；本候选继续引用此路径；实际文件类型及其他依赖未核验 | 删除会失去规范决策记录和后续解释约束 | keep | |\n\n未发现具备充分依据的 manual review 候选。两份原文件均默认保留，用户选择为空。\n```\n\n拟在 `RESEARCH/study/context/research_state.md` 的 `Stage Summary History` 中追加以下记录；如果该节不存在才新增标题及表头。实际追加前需读取当前文件，保留其全部既有字段、正文和历史行；本次未预览或修改未知的现有正文。\n\n```markdown\n## Stage Summary History\n\n| Summary ID | Stage | Date | Document | Predecessor | Status |\n|---|---|---|---|---|---|\n| STG-B-001 | B | 2026-09-11 | [STG-B-001](stage_summaries/STG-B-001.md) | 未核验 | partial；候选未保存 |\n```\n\n当前保存操作为 `qiongli-mcp-unavailable`：缺少项目写入和审批工具。可启用已安装的 Qiongli Plugin 并重新连接 Host，或将 MCP 配置为通过已安装 CLI 的绝对路径启动 `mcp serve --profile full --transport stdio`；恢复后仍需按 preview → 明确批准 → revision/digest 校验的流程保存，再刷新并核验受影响的项目图谱。\n\n旧文件处理建议是两份均保留；当前没有可据以建议删除的冗余文件。之后由你逐个选择并自行删除，本次没有写入、移动、覆盖或删除任何项目文件。",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/workflows/stage-close.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/skills/Z_cross_cutting/academic-context-maintainer.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/stage-consolidation.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/templates/stage-summary.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/skills/J_proofread/human-voice-rewriter.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/scholarly-voice.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/workflow-contract.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/platform-routing.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/evidence-ledger-contract.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/citation-risk-policy.md",
+            "/private/tmp/qiongli-outcome-revised/plugins/qiongli/skills/qiongli-workflow/references/academic-graph-continuity.md"
+          ]
+        }
+      ],
+      "observed_canonical_history_header": false
+    },
+    "canonical-continuity-retest": {
+      "source_commit": "a0af80cd9d89cee57aecf1816e44bb34c282fabe",
+      "read_resource_sha256": {
+        "content/workflow/SKILL.md": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78",
+        "content/workflow/workflows/stage-close.md": "136f9abc8376d6102583fb8b6bf1b3f38f9ac0753f378ad1b89b6facf5532801",
+        "content/workflow/references/platform-routing.md": "a1f918592e416018f3a222e54ee87917dc35f823ae506f60a5a731dd2801325b",
+        "content/skills/Z_cross_cutting/academic-context-maintainer.md": "af4d10a8c510c60158d74600bab600b40629a0260c24a2d11c9183a2dc6fe5f0",
+        "content/workflow/references/stage-consolidation.md": "6cb1f23a69c035eebe94f255a09936c12384f9f4186963726d7275b7e1ecfc8a",
+        "content/templates/stage-summary.md": "d904ba837a9f508d2de00f5eb2b673750e319d9450e2e4dade1ce9939f036a4a",
+        "content/templates/research-state.md": "35a18c7920c5254315796f1284bdec37509ae6b38f455737fb5931ef2f230559",
+        "content/skills/J_proofread/human-voice-rewriter.md": "69ab71fbd39bb93c6435809117e984906791bea102ad33444b680aa8a6e62a28",
+        "content/workflow/references/scholarly-voice.md": "e31d038189ce1dd5b311df14dcc2f37f3d63759ba4452e15e42dceeaee5d7930",
+        "content/workflow/references/academic-output-rubric.md": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475",
+        "content/workflow/references/academic-graph-continuity.md": "ab1dfa0d81306439e69f04d4b45dbe99a7eb310950277a5dfcd17cbb0afc21be"
+      },
+      "responses": [
+        {
+          "id": "persistence",
+          "answer": "以下是可审阅的归档候选，尚未写入 `RESEARCH/study`。`qiongli-mcp-unavailable`：当前无法执行项目保存、审批或实时版本核验；本次仅使用你提供的两份完整文本。\n\n拟新增：`RESEARCH/study/context/stage_summaries/STG-B-001.md`。`STG-B-001` 暂作候选编号，尚未确认路径空闲或是否已有相同存档；已有存档和原文件均保留。\n\n```markdown\n# Stage Summary — STG-B-001\n\n- Stage and requested scope: B；整理用户报告已完成的论文阅读阶段，范围为下列两份已提供文本。\n- Created at: 2026-09-11（候选拟定日期，尚未保存）\n- Status: partial\n- Previous summary: 未提供，尚未核验\n- Project revision: unavailable\n- Source observation time: 本次请求中提供的文本；未读取实时项目文件\n\n## Stage Outcome\n\n本候选保留一条阅读记录 CLM-001 和一项解释决策 DEC-001。CLM-001 记录横断面相关 r=.32，来源标记为 synthetic abstract；DEC-001 要求保留相关性表述，不推断因果。\n\n你已说明论文阅读阶段完成。本候选覆盖此次提供的全部文本，但没有独立核验阶段完成情况、全文阅读情况或研究质量门槛。存档仍待项目版本和既有历史核验后保存。\n\n## Retained Research Content\n\n阅读记录原文，来自 notes/paper-a.md：\n\n> CLM-001: 横断面相关 r=.32，来源 synthetic abstract\n\n决策原文，来自 context/decision_log.md：\n\n> DEC-001: 保留相关性表述，不推断因果。\n\n发现：笔记记录了横断面相关 r=.32。该数值及其 synthetic abstract 来源标记均予保留。\n\n解释：该记录描述正相关，不支持把相关性改写成因果关系。未提供变量名称、样本信息、测量方式、统计显著性、置信区间或全文来源，不能补写这些细节。\n\n后续用途：继续沿用 CLM-001 和 DEC-001，表述为“笔记记录横断面相关 r=.32，来源为 synthetic abstract”。现有材料不足以将其当作已经核实的正式文献证据或因果结论。\n\n## Source Coverage\n\n| Exact source file | Observed SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | 未取得；未核验磁盘字节 | 用户提供的完整文本 | CLM-001；synthetic abstract | Retained Research Content：原文、数值、来源及解释限制 | 提供的文本无遗漏；实时文件状态未核验 | 是；保留原始阅读记录与来源定位 |\n| context/decision_log.md | 未取得；未核验磁盘字节 | 用户提供的完整文本 | DEC-001 | Retained Research Content：原文及下游解释边界 | 提供的文本无遗漏；实时文件状态未核验 | 是；规范决策记录继续作为依据 |\n\n## Changes Since Previous Summary\n\n| Item / stable ID | Change | Earlier position | Current position and evidence | Reason / unresolved issue |\n|---|---|---|---|---|\n| CLM-001 | 纳入本候选，未改变内容 | 前次存档未提供 | 横断面相关 r=.32；notes/paper-a.md，来源 synthetic abstract | 尚无法比较前次存档；不宣称这是新增研究发现 |\n| DEC-001 | 纳入本候选，延续原决策 | 前次存档未提供；本次提供的决策明确 | 保留相关性表述，不推断因果；context/decision_log.md | 未发生学术立场变更，无需另建同义决策 |\n\n## Decisions and Open Questions\n\n- 既有决策 DEC-001 保持有效：保留相关性表述，不推断因果。\n- 决策原文未记载置信程度、备选方案讨论或重新审议条件，本候选不将这些内容补写为既成事实。\n- 重新审议条件建议：若以后取得新的研究设计和识别证据，再单独审查是否需要调整解释边界；这只是建议，尚未成为新的项目决策。\n- 主研究问题、贡献主张、论文标识和 citekey 均未提供；不从文件名或相关系数推定。\n- 未提供矛盾或零结果记录；不能据此认定不存在这些证据。\n- 待核验：既有存档、当前项目版本、源文件字节及其他文件对这两条记录的引用关系。\n\n## Next-Stage Handoff\n\n本次未指定下一阶段，不额外宣布进入设计、综合或写作阶段。\n\n1. 后续使用该记录时继续保留 synthetic abstract 来源范围和非因果解释。\n2. 若要用于正式学术论证，再补充并核验对应原始文献、变量和方法信息；当前归档候选无需因此搁置。\n3. 正式保存前核验是否已有相同范围、相同源内容的存档；可复用时不重复创建，需修订时另建版本并链接前一版。\n\n保留源文件：[阅读笔记](../../notes/paper-a.md)；[决策记录](../decision_log.md)。以上为候选文档中的相对链接，尚未通过实时项目读取验证。\n\n## Optional Retention Review\n\n所有原文件默认保留。此表仅供逐项审阅；用户选择为空，删除由用户本人决定并操作。\n\n| Exact regular file | Observed SHA-256 | Content retained where | References / dependency checks and scope | Loss risk / omissions | Recommendation | User selection / reported action |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | 未取得 | Retained Research Content：CLM-001 全文 | 仅核对请求内文本；本候选继续引用此路径；未检查项目内其他依赖或文件类型 | 删除会丢失原阅读记录和候选的来源定位；摘要不能替代原始来源 | unresolved：维持保留，未完成文件与依赖核验 | 空；未报告操作 |\n| context/decision_log.md | 未取得 | Retained Research Content：DEC-001 全文 | 仅核对请求内文本；规范决策文件及本候选的依据；未检查项目内其他依赖或文件类型 | 删除会破坏决策连续性及来源定位 | keep：保留规范决策记录 | 空；未报告操作 |\n```\n\n同时拟在 `RESEARCH/study/context/research_state.md` 的历史中追加以下记录。若已有该表，仅追加行，保留既有行；现有 `main_question_or_thesis`、`contribution_claim` 和其他字段不据缺失信息改写。该记录与存档一起待保存，不能现在视为已入库。\n\n```markdown\n## Stage Summary History\n\n| Summary ID | Stage | Date | Document | Previous summary | Status |\n|---|---|---|---|---|---|\n| STG-B-001 | B | 2026-09-11 | [STG-B-001](stage_summaries/STG-B-001.md) | 未核验 | partial |\n```\n\n目前没有可确认冗余、适合进入手动清理审阅的文件：笔记仍是 CLM-001 的来源，决策日志应继续保留。归档候选不能替代这两份文件。\n\n恢复保存能力时，启用已安装的 Qiongli Plugin 并重新连接 Host，或将 MCP 配置为以已安装 CLI 的绝对路径运行 `mcp serve --profile full --transport stdio`。随后读取现有状态、核验源文件与候选编号，再经预览、明确审批和版本／摘要校验保存；若更新了规范连续性文件，还需正常刷新项目并核验图状态。本次未保存项目文件、修改决策、刷新图或执行清理。\n",
+          "resources_read": [
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/SKILL.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/workflows/stage-close.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/references/platform-routing.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/skills/Z_cross_cutting/academic-context-maintainer.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/references/stage-consolidation.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/templates/stage-summary.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/templates/research-state.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/skills/J_proofread/human-voice-rewriter.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/references/scholarly-voice.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+            "/private/tmp/qiongli-outcome-continuity-source/materialize-source/qiongli-workflow/references/academic-graph-continuity.md"
+          ]
+        }
+      ],
+      "observed_canonical_history_header": true
+    }
+  },
+  "excluded_trial": {
+    "reason": "First continuity retest used the historical subject-core generator, which rewrites SKILL.md. Canonical byte comparison rejected it as evidence for the current root Skill. Repeated with the existing canonical source composer in a fresh agent.",
+    "root_sha256": "2aaf1d19adcdd63d942a9fa3f464b92c785dba426df5a143f815b3cf598811f6",
+    "responses": [
+      {
+        "id": "persistence",
+        "answer": "下面是按 Qiongli 阶段归档流程整理的可审阅候选。已完整纳入你提供的两段内容；尚未写入项目，也未更改旧文件。拟保存位置为 `RESEARCH/study/context/stage_summaries/STG-B-001.md`，编号是否可用及既有归档历史仍待核验。\n\n```markdown\n# Stage Summary — STG-B-001\n\n- Stage and requested scope: B / B2，已完成论文阅读的归档；范围为本次提供的两份完整文本。\n- Created at: 候选，待正式保存时记录。\n- Status: partial（所供内容已全部纳入；磁盘来源、项目版本及既有归档历史未核验）。\n- Previous summary: 未提供，待核验。\n- Project revision: unavailable。\n- Source observation time: 本次对话；观察对象为用户提供的文本，未读取项目磁盘文件。\n\n## Stage Outcome\n\n用户已说明论文阅读完成。本次保留 CLM-001 的横断面相关结果，以及 DEC-001 的解释边界。归档没有改变原有学术立场，也不代表整个 B 阶段或研究质量门禁已通过。\n\n## Retained Research Content\n\n来自 notes/paper-a.md 的完整原文：\n\n> CLM-001: 横断面相关 r=.32，来源 synthetic abstract\n\n来自 context/decision_log.md 的完整原文：\n\n> DEC-001: 保留相关性表述，不推断因果。\n\n发现：笔记记录了横断面相关 r=.32，来源标记为 synthetic abstract。这里保留的是所供笔记的记录，尚未独立核验其所指摘要。\n\n解释：沿用 DEC-001，保留相关性表述，不推断因果。现有材料未给出变量、样本量、研究对象、置信区间或显著性检验结果；这些信息保持缺失，不补写效应强弱、统计显著性或可推广性结论。\n\n后续用途：后续设计、综合或写作可引用 CLM-001 作为待核验的相关性记录，并同时携带 DEC-001 的限制。synthetic abstract 的来源属性须继续保留。\n\n## Source Coverage\n\n| Exact source file | Observed SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | unavailable；未观察文件字节 | 用户提供的完整文本 | CLM-001；来源标记 synthetic abstract | Retained Research Content：完整原文、发现及证据限制 | 所供文本无遗漏；摘要本身未提供 | 是；主张的原始项目定位及后续核验入口 |\n| context/decision_log.md | unavailable；未观察文件字节 | 用户提供的完整文本 | DEC-001 | Retained Research Content：完整原文；Decisions and Open Questions | 所供文本无遗漏；原决策的其他字段未提供 | 是；规范决策记录须保留 |\n\n## Changes Since Previous Summary\n\n| Item / stable ID | Change | Earlier position | Current position and evidence | Reason / unresolved issue |\n|---|---|---|---|---|\n| CLM-001 | 纳入本次归档候选；未改写结论 | 所供笔记：横断面相关 r=.32 | 保留原值与 synthetic abstract 来源标记 | 未提供前一归档，无法判断历史变化；摘要未独立核验 |\n| DEC-001 | 纳入本次归档候选；沿用原决定 | 所供日志：保留相关性表述，不推断因果 | 原文与解释边界均保留 | 学术立场未改变，无需新增实质决策 |\n\n## Decisions and Open Questions\n\nDEC-001 是已有决定，继续约束后续表述。原文未给出正式状态、置信度、决策理由、被否决方案或复议触发条件；这些字段不作为已知历史补写。因果表述在现有决定下不可使用，但不能据此断言此前讨论过哪些替代方案。\n\n待核验项：synthetic abstract 的具体来源及其与 CLM-001 的对应关系；变量、样本和不确定性信息。若以后取得新证据，应另行评估是否需要复议，并保留原决定和变更理由。\n\n本次材料没有报告矛盾或零结果，不能据此认定研究中不存在这些结果。研究问题、贡献和下一阶段目标也未提供。\n\n## Next-Stage Handoff\n\n后续首先保留 CLM-001、DEC-001 及其解释限制；需要将结果用于学术论证时，再核验来源与缺失信息。下一阶段尚未指定，本候选不宣告阶段移交完成。\n\n来源：\n- [论文笔记](../../notes/paper-a.md)\n- [决策日志](../decision_log.md)\n\n这些相对路径按候选文档的位置构造；实际文件存在性及链接有效性尚未核验。\n\n## Optional Retention Review\n\n所有旧文件默认保留；用户选择为空。建议范围仅为本次提供的两个文件，未扫描项目引用、检查文件类型或计算文件指纹。表中已知依赖来自所供内容及本归档候选，不能据此排除其他引用。\n\n| Exact regular file | Observed SHA-256 | Content retained where | References / dependency checks and scope | Loss risk / omissions | Recommendation | User selection / reported action |\n|---|---|---|---|---|---|---|\n| notes/paper-a.md | unavailable；文件类型未核验 | Retained Research Content：CLM-001 原文及解释限制 | 本候选仍以此路径定位主张来源；其他引用未检查 | 删除会失去原笔记定位；摘要核验与其他依赖尚未解决 | keep | |\n| context/decision_log.md | unavailable；文件类型未核验 | Retained Research Content 与 Decisions and Open Questions：DEC-001 | 规范决策记录；本候选仍引用此路径；其他引用未检查 | 删除会失去持续维护决定及追溯变更的原始位置 | keep | |\n```\n\n研究状态的历史记录可拟追加以下内容。正式保存时需读取 `context/research_state.md`，保留既有规范字段和全部历史行，再确定编号及前序归档：\n\n```markdown\n## Stage Summary History\n\n| Summary ID | Stage | Date | Document | Previous summary | Status |\n|---|---|---|---|---|---|\n| STG-B-001 | B / B2 | 待保存时记录 | [STG-B-001](stage_summaries/STG-B-001.md) | 待核验 | partial（候选，未保存） |\n```\n\n本次没有学术立场变化，`context/decision_log.md` 保留原记录。两个旧文件均建议保留，目前没有证据充分的手动清理候选；是否选择及删除始终由你逐文件操作。\n\n当前缺少 Qiongli 写入和审批工具，因此归档与历史追加均停留在候选状态。正式保存前需核验来源字节、既有历史、目标路径及当前文件版本，再通过项目原有预览、审批与版本检查流程应用；研究状态写入后还需显式刷新注册项目并检查图状态。目前未执行这些步骤，也没有图就绪结论。",
+        "resources_read": [
+          "/private/tmp/qiongli-outcome-final-skill/SKILL.md",
+          "/private/tmp/qiongli-outcome-final-skill/references/workflow-contract.md",
+          "/private/tmp/qiongli-outcome-final-skill/skills/registry.yaml",
+          "/private/tmp/qiongli-outcome-final-skill/skills-summary.md",
+          "/private/tmp/qiongli-outcome-final-skill/skills-core.md",
+          "/private/tmp/qiongli-outcome-final-skill/skills/Z_cross_cutting/academic-context-maintainer.md",
+          "/private/tmp/qiongli-outcome-final-skill/references/stage-consolidation.md",
+          "/private/tmp/qiongli-outcome-final-skill/templates/stage-summary.md",
+          "/private/tmp/qiongli-outcome-final-skill/references/academic-graph-continuity.md",
+          "/private/tmp/qiongli-outcome-final-skill/templates/research-state.md",
+          "/private/tmp/qiongli-outcome-final-skill/templates/decision-log.md",
+          "/private/tmp/qiongli-outcome-final-skill/references/academic-output-rubric.md",
+          "/private/tmp/qiongli-outcome-final-skill/skills/J_proofread/human-voice-rewriter.md",
+          "/private/tmp/qiongli-outcome-final-skill/references/scholarly-voice.md"
+        ]
+      }
+    ]
+  },
+  "design_role_followup": {
+    "date": "2026-09-11",
+    "baseline_commit": "37386173fbd89c0e150da267d717427e60d70d12",
+    "source_commit": "d21cd570d467b17ac585d1440675689d10a50ada",
+    "method": {
+      "kind": "isolated synthetic forward trials",
+      "execution": "One independent agent per arm, with six separate-project requests processed sequentially. Two affected routes repeated in a third independent agent after final boundary-contract wording changes.",
+      "model": "Inherited active session model; no provider override or external account used.",
+      "limits": [
+        "No fixed seed, repeated sampling or cross-Host/model benchmark.",
+        "No real research files, network, registration, analysis execution or project writes.",
+        "Responses and reported resource reads are observable evidence, not proof that research actions ran.",
+        "Baseline already handled all six explicit requests well; no demonstrated quality, latency or token improvement."
+      ]
+    },
+    "requests": [
+      {
+        "id": "interpretive-design",
+        "resources": [
+          "roles/methods-lead.yaml",
+          "workflows/study-design.md",
+          "skills/C_design/study-designer.md",
+          "skills/C_design/robustness-planner.md"
+        ],
+        "request": "以 Methods Lead 的角度帮我确定这项研究的设计是否合理，只在聊天中给出设计建议和必要缺口。我们用 Braun 和 Clarke 的 reflexive thematic analysis，研究夜班护士如何理解团队支持。已有 14 份访谈且不再招募；伦理批准覆盖这批访谈的当前用途，知情同意已核对。本次不建立项目文件、不做量化推断，也没有注册协议。现有材料只有访谈和研究者现场备忘，没有第二编码者。请说明抽样充分性、分析质量和可以支持的主张。"
+      },
+      {
+        "id": "fixed-data",
+        "resources": [
+          "roles/pi.yaml",
+          "roles/statistician.yaml",
+          "skills/C_design/study-designer.md"
+        ],
+        "request": "请评估一个有限的描述性设计，只给分析计划建议。数据为已授权的某组织现有全部 120 份服务记录；目标是描述这一批记录的等待时间分布，不外推总体，也不估计因果效应。记录没有缺失，样本无法增加，目前没有等待时间数值可供计算。请说明还需要哪些信息和检查，以及是否能开始起草计划。没有预注册要求。"
+      },
+      {
+        "id": "explicit-protocol",
+        "resources": [
+          "roles/methods-lead.yaml",
+          "skills/C_design/study-designer.md",
+          "skills/C_design/robustness-planner.md",
+          "skills/C_design/prereg-writer.md"
+        ],
+        "request": "请检查我们的正式 C1/C3/C3_5/C5 设计包能否签收。已批准协议要求五项指定稳健性检查、预先功效分析、预注册和独立方法审查。这些要求不能修改。五项检查仅完成两项；功效计算缺少协议要求的效应值依据；预注册是未提交草稿；独立审查人暂不可用。研究是两组随机干预，主要连续结局和分配方法已有说明。请给当前结论和接下来的处理，不执行注册，不改文件。"
+      },
+      {
+        "id": "rivals",
+        "resources": [
+          "roles/pi.yaml",
+          "skills/C_design/rival-hypothesis-designer.md",
+          "skills/C_design/robustness-planner.md"
+        ],
+        "request": "请整理这项研究的竞争解释，暂只在聊天交付。观察：一家工厂采用排班 App 后，自报疲劳下降。只有一次实施后的员工访谈和排班记录，没有基线、对照组或追加采集权限。已有两种有材料依据的解释：同期夜班减少（排班记录），以及受访者担心批评管理层（访谈备忘）。没有其他来源。请列出竞争解释、可区分证据及解释边界。"
+      },
+      {
+        "id": "review-scope",
+        "resources": [
+          "roles/literature-ra.yaml",
+          "roles/compliance-officer.yaml",
+          "workflows/lit-review.md"
+        ],
+        "request": "请审查我们已批准的系统综述检索和筛选状态，并建议下一步，不重跑检索或写文件。协议固定人群、主题和 2018–2025 年区间；两名独立筛选者要求已落实。两个协议要求的数据库都成功执行并产生有效记录，合并去重后 9 条。检索日志和查询式齐全，无未命中概念；3 篇已知相关文献全部找回。标题摘要纳入 6 条，其中全文可得 4 条，另 2 条尚未取得、尚未作全文排除；4 条中有 1 条筛选分歧待裁决。我们没有要改变协议范围。"
+      },
+      {
+        "id": "prereg-status",
+        "resources": [
+          "roles/compliance-officer.yaml",
+          "skills/C_design/prereg-writer.md"
+        ],
+        "request": "帮我准备正式 C5 预注册的状态说明和缺口清单，只在聊天起草。今天是 2026-09-11；数据在 2025 年已收集，我在 2026-09-01 看过主要结局的描述统计。拟定的模型尚未运行。没有注册记录，也没有确认原同意是否覆盖本次二次分析；现在只允许使用上述描述信息，不能访问原始记录。请使用准确的时间线，并说明何时能开始后续分析。"
+      }
+    ],
+    "arms": {
+      "baseline": {
+        "snapshot": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow",
+        "resource_hashes_verified": true,
+        "distinct_skill_resources_read": 20,
+        "differences_from_bound_source": [],
+        "responses": [
+          {
+            "id": "interpretive-design",
+            "answer": "这个设计与“夜班护士如何理解团队支持”的解释性问题基本匹配。现有14份访谈可以构成一个有明确边界的分析语料库，但仅凭数量不能判断抽样充分性，也不能确认分析质量。以下判断依据你提供的研究说明；我没有阅读访谈全文或现场备忘。\n\n抽样充分性应围绕研究问题、材料深度和情境范围说明：这14人如何进入研究，来自怎样的科室或团队，夜班经验与工作位置有哪些差异，访谈是否包含足够具体的支持或不支持情境。需要交代哪些经验得到呈现、哪些声音缺席，以及为何不再招募。对 reflexive thematic analysis，不宜把“新增编码为零”、固定人数门槛或统计功效当作充分性的硬指标，也不应为了符合模板补写一个并未实际实施的饱和判断。若某一子问题只有零散描述，应收窄该子问题或降低相应主题的概括程度。\n\n分析质量可以在现有材料内这样加强：\n\n- 明确分析立场与目标：团队支持是作为受访者经验、情境中的意义建构，还是其他取向来理解；说明归纳与理论引导、语义与潜在意义分析如何使用，避免把主题直接等同于访谈提纲标题。\n- 反复阅读、编码和发展主题，持续回到完整访谈检查主题的中心意义、内部连贯性及主题间区别。保留关键解释如何形成和改变的备忘，而不是追求一个永远不变的代码本。\n- 主动寻找不符合主导解释的片段和不同声音。若这些材料挑战主题，就重写主题边界或保留矛盾，不把它们当作需要清除的噪声。少数经验也可能具有分析价值，不以出现频率决定重要性。\n- 说明研究者与护士或组织的关系、预设及其对提问和解释的影响。现场备忘可帮助理解访谈情境和研究者参与，但不能自动算作独立来源对同一主张的验证。成稿中用去标识化引文支撑分析，并保留必要的上下文。\n\n没有第二编码者本身不构成这一方法的缺陷；编码一致率、共识编码或把研究者影响消除掉，不应成为 reflexive thematic analysis 的强制质量门槛。若以后有合适同事讨论解释，可将其用于拓展反思，而非认证唯一正确的编码。本次没有必要为 Methods Lead 的通用偏好硬凑五项量化稳健性检查、功效分析或预注册。\n\n可以支持的主张是：在这批受访护士及其具体工作情境中，团队支持如何被理解、赋予意义，哪些共同模式与差异由分析者从材料中建构出来。当前尚不能给出任何实际主题。研究不能据此估计某种看法的总体比例、推断所有夜班护士的经验，或证明团队支持导致某项健康或工作结果；读者能否迁移这些解释，取决于情境描述是否充分。\n\n必要缺口是招募与场景边界、访谈材料的深度和覆盖情况、研究者立场、具体分析过程及主题—引文对应关系。你已确认本次用途的伦理批准和同意核对，这些无需重新开启确认。可以继续既定的解释性分析；充分性仍需由实际语料支撑，不能在聊天中直接认证。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/methods-lead.yaml",
+                "sha256": "d0621c6d479c1e57332a83fcbbc1a5dfa80333907afa8c986c5a42b76918ede9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "5b87fbcfc4c0afb5ba87253678169aa643921bad67f6d51e27577fb8c5ed150c"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/study-designer.md",
+                "sha256": "9cb63776f141586f8b970af937db6d7df8b8293540acee2a1733490d7b055d09"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/robustness-planner.md",
+                "sha256": "0a67592d681a04e1ae911208257fe552353139357d6429cedad06b04fd6f5d9b"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "639dd63c670d76676d7906a4f3daa531e72354ef920402a77d72bee846336832"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              }
+            ]
+          },
+          {
+            "id": "fixed-data",
+            "answer": "可以开始起草分析计划。目标明确限定为这120份已授权服务记录的等待时间分布，这是对固定记录集合的描述，设计与目标相符。记录不能增加并不妨碍这一目标；无需为了通用角色门槛加入功效分析、效应量、显著性检验、抽样置信区间或预注册。此时要解决的是“这120份记录是否准确界定、等待时间是否一致计算”，而非样本是否足以外推。\n\n还需要以下信息，才能把草稿变成可执行计划：\n\n| 信息 | 需要明确的内容 |\n|---|---|\n| 记录集合 | 组织、覆盖日期、纳入规则和数据版本；“全部120份”具体对应哪个业务范围 |\n| 统计单位 | 每行是一项服务、一段等待还是一个人；同一人多次服务是否均属于目标集合 |\n| 等待时间定义 | 起点、终点、单位，按自然时间还是营业时间计算，暂停和取消如何处理 |\n| 时间来源 | 已有时长字段还是由两个时间戳派生；精度、时区及跨日处理规则 |\n| 等待是否结束 | 是否全部存在已完成等待；“没有缺失”不等于“没有仍在等待或被截断的记录” |\n| 输出需求 | 需要哪些分位数；是否存在预先指定的服务时间阈值，若没有则不临时创造达标标准 |\n\n最小分析计划草稿可以写为：以经核对的这120份服务记录为唯一描述对象；按明确的起止事件和统一单位计算等待时间；报告记录数、中位数、四分位数、最小值和最大值，并以经验累积分布图展示整批分布。如业务问题需要平均耗时，再补充均值和标准差；如需要尾部等待，再事先选定相应分位数及计算方法。所有比例均注明分母，只有在全部120份记录均满足该指标定义时才统一使用120。\n\n运行前检查记录数与纳入清单一致，区分重复录入和真实重复服务；检查时间顺序、单位、精度、负时长、零时长及异常长等待。真实的长等待应保留，只有确认的录入错误才按可追溯规则更正，不因数值大而删除或缩尾。既然目前报告没有缺失，无需设置插补程序，但仍需验证导出后相关字段的完整性。若发现等待未结束，需先明确如何描述其当前等待时长和完成状态，不能当作已完成等待混入同一分布。\n\n草稿现在即可形成，上述定义可以明确标为待补。没有实际等待时间值，当前无法计算分布、判断偏态或离群情况，也不能确认120份记录确实无错误。最终结论仅描述该组织这批记录；完整覆盖这一批记录不会自动消除测量误差，也不构成总体推断或因果证据。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/pi.yaml",
+                "sha256": "33e3fe5432c97a53d3884f21c401c6122becae9fc4f81d2711b2e11e2c23f4d2"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/statistician.yaml",
+                "sha256": "44e5779f66dc1eea197351ee4e9fefd814a196a8872815f796600fda62f983ef"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/study-designer.md",
+                "sha256": "9cb63776f141586f8b970af937db6d7df8b8293540acee2a1733490d7b055d09"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "5b87fbcfc4c0afb5ba87253678169aa643921bad67f6d51e27577fb8c5ed150c"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "639dd63c670d76676d7906a4f3daa531e72354ef920402a77d72bee846336832"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              }
+            ]
+          },
+          {
+            "id": "explicit-protocol",
+            "answer": "当前结论：正式 C1/C3/C3_5/C5 设计包不能签收，整体应保持 BLOCKED。依据是你明确说明且不可修改的已批准协议，而不是一般建议性门槛。两组随机干预、主要连续结局和分配方法已有说明，只能证明部分设计要素已提供，不能抵消以下缺口。\n\n| 协议要求 | 目前证据 | 当前处理与解除条件 |\n|---|---|---|\n| 五项指定稳健性检查 | 仅完成两项；未提供名称、结果和判定记录 | 保留已完成两项的证据与结果，完成其余三项指定检查，并按原定标准逐项判定和完整报告。完成不等于通过，不能另挑容易通过的检查替代 |\n| 预先功效分析 | 缺少协议要求的效应值依据 | 补齐符合协议的效应值来源和适用性说明，核对功效分析所需参数及计算记录。不能任填一个常见效应值或使用事后观察功效代替 |\n| 预注册 | 只有未提交草稿 | 核对方案完整性与实际时间线；只有按授权完成正式登记并取得可核验记录后，才可能满足注册要求。草稿不能标成已注册 |\n| 独立方法审查 | 审查人暂不可用 | 等待或安排符合协议独立性要求的审查人，并保留审查意见、问题处理和结论；本次聊天、自审或模拟角色不能替代 |\n\n接下来可先整理现有证据的对应关系：研究问题、主要结局与测量时点、分析目标、分配方式、主要分析及五项指定检查应能相互对应。检查名称、原定通过标准和两项已完成检查的结果尚未提供，因此我不会猜测具体检查，也不会把它们标成通过。功效分析还应核对效应值之外的协议参数是否完整，例如变异程度、显著性水平、目标功效、分配比例及适用调整；这些目前是待核对项，不是已知缺失。\n\n特别需要确认“预先”的真实时序：研究何时开始招募、收集数据、查看结局和开展分析，功效方案与注册草稿分别何时形成。若相关事前要求的时间窗口已经错过，补算或后补注册不能倒填为事前完成；须如实报告协议要求未满足。既然本次不允许修改要求，不能靠降低标准或改称探索性研究来获得这份设计包的签收。\n\n可以推进不依赖独立审查结果的证据核对和剩余工作准备；独立审查缺位这一分支需保留阻塞。待所有不可变要求都有真实证据、完成相应判定并处理未解决问题后，再重新评估签收。\n\n本次仅依据状态摘要进行判断，没有审阅正式设计文件、核验实际检查结果或运行质量门工具，因此不授予任何分项 PASS；也不执行注册或修改文件。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/methods-lead.yaml",
+                "sha256": "d0621c6d479c1e57332a83fcbbc1a5dfa80333907afa8c986c5a42b76918ede9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/study-designer.md",
+                "sha256": "9cb63776f141586f8b970af937db6d7df8b8293540acee2a1733490d7b055d09"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/robustness-planner.md",
+                "sha256": "0a67592d681a04e1ae911208257fe552353139357d6429cedad06b04fd6f5d9b"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/prereg-writer.md",
+                "sha256": "137042bd0ca7d84040faaca975386e05afa9e4d8792946d3d2d2e070517d92ce"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "5b87fbcfc4c0afb5ba87253678169aa643921bad67f6d51e27577fb8c5ed150c"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/workflows/paper.md",
+                "sha256": "db7e67e1d666c8d5b8adbf9ecfc73b717d73af2abad629dd5c482ce5950b2702"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/workflow-contract.md",
+                "sha256": "bbe2b515bafef51b10755d19e93c624b3c9b4afa8ddfd52e6afc47b51ed9a3d7"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "639dd63c670d76676d7906a4f3daa531e72354ef920402a77d72bee846336832"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/standards/quality-gate-contract.yaml",
+                "sha256": "d6bbe6f0e76396af184e206d3fbdd154a84963130329fa9fad9ebc6c0d2598d9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              }
+            ]
+          },
+          {
+            "id": "rivals",
+            "answer": "应先收窄待解释的观察：现有证据是实施后的受访者报告疲劳下降，并非由基线与随访测量确认的疲劳变化。下面保留两种有材料依据的竞争解释；现有来源不足以补出第三种，也不足以证明哪一种解释成立。\n\n| 解释 | 为什么可能产生这种观察 | 现有材料内可以检查的区分证据 | 解释边界 |\n|---|---|---|---|\n| R1：同期夜班减少 | 较少夜班可能降低疲劳，使下降被归因于排班 App | 排班记录已支持夜班减少；进一步核对其时间与访谈所说改善时间是否对应，以及受访者是否把改善具体归因于夜班安排。若既有资料允许合法、可靠地对应个人，也可比较夜班变化与疲劳叙述是否一致 | 没有基线疲劳或对照，不能分离 App 与夜班变化的作用。排班记录证明安排发生变化，不证明疲劳因而下降。还需区别夜班减少是否由 App 引起：若是，它可能属于 App 的作用路径；若是同期独立改变，才更接近竞争解释，当前不能认定 |\n| R2：担心批评管理层影响表达 | 受访者可能减少负面评价，导致访谈呈现较积极的疲劳叙述 | 访谈备忘已记录这种担忧；可在已有访谈中检查担忧出现的语境、表达保留或自相矛盾的段落，以及正面总体评价是否与具体疲劳经历不一致。也应保留坦率批评或复杂评价，避免只寻找符合偏差解释的片段 | 有顾虑不等于虚假报告，也不能量化偏差大小。表达与叙述的差异只能作为解释线索，不能证明真实疲劳未改善；缺少独立疲劳测量或其他可区分资料 |\n\n现有设计没有基线和对照，因此两种解释尚未被设计控制排除，也可能同时存在。材料内部的比较、反例查找和排班—访谈对应，有助于说明哪一种解释更贴近某些叙述，但不是消除混杂或报告偏差的因果检验。不能用回归、固定效应或额外“稳健性次数”补出不存在的对照与时间资料。\n\n可支持的表述是：“在该工厂实施排班 App 后的访谈中，受访者描述了疲劳减轻；现有排班记录显示同期夜班减少，访谈备忘提示部分表达可能受到批评管理层的顾虑影响。资料不足以将疲劳改善归因于 App，亦不足以排除这些解释。”其中“受访者描述”的范围还需与实际访谈内容核对，不可写成全体员工均改善。\n\n没有追加采集权限，所以本轮只提出已有材料内的核对，不安排新访谈、问卷或测量。对无法区分的部分，应保留为明确局限；我尚未看到原始访谈和排班记录，以上是比较框架，而非已执行检验的结果。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/pi.yaml",
+                "sha256": "33e3fe5432c97a53d3884f21c401c6122becae9fc4f81d2711b2e11e2c23f4d2"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/rival-hypothesis-designer.md",
+                "sha256": "6733c2141d6629b53342a87b2f7fbbc845d0ddefdd63dff24737131e18fa272b"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/robustness-planner.md",
+                "sha256": "0a67592d681a04e1ae911208257fe552353139357d6429cedad06b04fd6f5d9b"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              }
+            ]
+          },
+          {
+            "id": "review-scope",
+            "answer": "根据你提供的状态，检索阶段目前没有显示必须重跑或扩大范围的理由；筛选阶段尚未完成。两个协议要求的数据库均执行成功、日志与查询式齐全、没有未命中概念，并找回全部3篇已知相关文献，这支持继续按已批准范围推进。去重后只有9条本身不是检索失败证据，也不是扩展2018–2025年区间、主题或人群的理由；已知文献全部找回仍不能单独证明检索绝对完整。\n\n当前数量应这样区分：\n\n| 环节 | 可确认的状态 |\n|---|---|\n| 合并去重后待筛记录 | 9条 |\n| 标题摘要后进入全文阶段 | 6条；据此该阶段未纳入3条，具体排除理由需与日志对应 |\n| 已取得全文 | 4条 |\n| 未取得全文 | 2条，占进入全文阶段6条的33.3%；这是检索获取状态，不是全文排除理由 |\n| 全文筛选待裁决 | 已取得的4条中有1条存在分歧 |\n| 最终纳入数量 | 尚不能确定；其余3条全文的具体决定也未在摘要中说明 |\n\n下一步应优先处理两个独立事项：\n\n1. 按既定合法获取渠道追踪那2篇全文，记录每篇的尝试、结果和未取得原因。若最终仍无法获取，按流程保留为“未获取报告”，在综述局限中讨论潜在影响；不能仅凭拿不到全文把它们记为不符合纳入标准。本次仅提出此建议，不执行获取。\n2. 按协议的分歧处理机制裁决那1篇，保留两名筛选者的原始独立决定、分歧点、裁决结果和依据。不能由多数倾向或助手判断直接替代既定裁决。\n\n随后核对记录与报告/研究的对应关系、其余全文决定、排除理由及流程图计数。当前只给出去重后的数目，不能反推两个数据库的原始命中数和去重数；若多篇报告对应同一研究，也须避免把报告数直接当研究数。协议规定的双人独立筛选已落实，不需重新设置这一要求；如需计算一致率，应使用完整的独立判定记录，而不能从“1篇待裁决”推算总体一致性。\n\n对已经取得且最终确认符合标准的文献，可以在既定流程内推进提取与质量评价；最终纳入集合和总体综合结论应等获取状态、分歧及各全文决定得到明确处理后再锁定。不能凭角色中的全文缺失比例阈值自行扩大研究范围或宣告整个综述失败。\n\n这是一份基于状态摘要的审查建议；我未直接查阅日志、查询式或筛选表，因此没有完成逐条审计，也不宣称系统综述已完成或全部报告要求已通过。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/literature-ra.yaml",
+                "sha256": "fe3f5e2fc8533133c78338e288434008a5caeed1e9487d02de44cfee1d3d091c"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/compliance-officer.yaml",
+                "sha256": "a3976357287d54850f3374cc7942d54efe7a52bea999199fa00d3d5d350359b7"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/workflows/lit-review.md",
+                "sha256": "1c3ddfe2b2d86469c59642b49b081064c28dfbde4aefb2f79323be4e571be894"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              }
+            ]
+          },
+          {
+            "id": "prereg-status",
+            "answer": "可直接使用以下状态说明草稿：\n\n“截至2026-09-11，本研究的数据已于2025年收集完成，具体收集日期尚未列明。研究者于2026-09-01查看过主要结局的描述统计；拟定分析模型尚未运行。目前没有注册记录，也没有可引用的注册编号或时间戳。原知情同意是否覆盖本次二次分析尚未确认，现阶段仅获准使用上述描述信息，不得访问原始记录。因此，本次产出为 C5 预注册状态说明草稿，不能表述为已预注册、在数据收集前注册，或在未接触相关结局信息前制定分析方案。”\n\n时间线必须保留为：\n\n| 时间 | 已知事实及含义 |\n|---|---|\n| 2025年，具体日期未提供 | 数据已经收集；现在无法再完成发生在这批数据收集之前的注册 |\n| 2026-09-01 | 已查看主要结局描述统计；不能声称未查看相关变量或未接触任何结果 |\n| 2026-09-11 | 尚无注册记录，拟定模型未运行；同意适用范围待确认，原始记录访问未获授权 |\n| 未来，日期待实际发生 | 如后续获准登记，应采用真实时间戳，说明登记晚于数据收集和描述统计查看，并如实交代登记时模型是否仍未运行 |\n\n缺口清单如下：\n\n- **二次分析权限与同意范围**：由有权限的人核对原同意文件、原伦理批准或其他有关记录，确认本次问题、数据用途和访问安排是否覆盖；如不覆盖或仍不明确，由负责的伦理与数据管理方确定必要的进一步处理。不能由助手推定免审或批准，也不能为核对此事自行读取原始记录。\n- **既往接触记录**：补充2026-09-01具体查看了哪些主要结局、哪些描述统计，是否存在分组结果，以及谁查看过。只记录能确认的事实；已有信息不能支持“只看过样本量”或“未看过有关变量”等说法。\n- **方案形成时间与受影响程度**：交代研究问题、假设和模型何时提出，是否受到已见描述统计影响。模型尚未运行并不能把此前的信息接触消除；也不能倒填事前假设或排除标准。\n- **可锁定的分析细节**：补充研究问题、分析单位、样本范围、结局与变量定义、具体模型、估计方法、协变量依据、排除与转换规则、缺失处理、多重比较及有依据的敏感性检查。仅据现有摘要无法判定这些内容是否完备，也无法确认数据可支持拟定模型。\n- **登记与偏离记录**：确定适合的登记形式并完整披露已有数据和已看结果；未来只对尚未实施的分析作透明承诺，保留后续修改及理由。未真实提交前继续写“未注册”。不能自动把后来登记的所有分析称为在未见数据条件下预设的确证分析。\n\n现在可以继续起草状态说明、缺口清单和不需要接触原始数据的分析方案文字。后续数据访问、处理和模型分析须等本次二次使用所需的同意/伦理依据及数据访问授权明确，并在许可范围内开展。若希望形成对尚未运行分析的预先承诺，还应在运行之前完成方案锁定和真实登记，披露已经查看过的描述统计；注册本身不能替代使用许可。\n\n若权限问题无法解决，就停止依赖原始数据的分析分支。现有事实也不足以追认或裁定2026-09-01访问的合规性。本次不读取原始记录、不注册、不修改项目文件；上述草稿不构成正式 C5 已完成或已获分析许可的证明。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/roles/compliance-officer.yaml",
+                "sha256": "a3976357287d54850f3374cc7942d54efe7a52bea999199fa00d3d5d350359b7"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/C_design/prereg-writer.md",
+                "sha256": "137042bd0ca7d84040faaca975386e05afa9e4d8792946d3d2d2e070517d92ce"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/workflows/paper.md",
+                "sha256": "db7e67e1d666c8d5b8adbf9ecfc73b717d73af2abad629dd5c482ce5950b2702"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "5b87fbcfc4c0afb5ba87253678169aa643921bad67f6d51e27577fb8c5ed150c"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/workflow-contract.md",
+                "sha256": "bbe2b515bafef51b10755d19e93c624b3c9b4afa8ddfd52e6afc47b51ed9a3d7"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "639dd63c670d76676d7906a4f3daa531e72354ef920402a77d72bee846336832"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/standards/quality-gate-contract.yaml",
+                "sha256": "d6bbe6f0e76396af184e206d3fbdd154a84963130329fa9fad9ebc6c0d2598d9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-baseline/materialize-source/qiongli-workflow/skills/D_ethics/ethics-irb-helper.md",
+                "sha256": "59a0d292b0ad9103c4647345c6268f47b87dadf10dd56aee3397ef21fdae0fd1"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              }
+            ]
+          }
+        ]
+      },
+      "revised": {
+        "snapshot": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow",
+        "resource_hashes_verified": true,
+        "distinct_skill_resources_read": 22,
+        "differences_from_bound_source": [
+          "workflows/lit-review.md",
+          "workflows/study-design.md"
+        ],
+        "responses": [
+          {
+            "id": "interpretive-design",
+            "answer": "这项设计与“夜班护士如何理解团队支持”的解释性问题相容，可以继续利用现有访谈和现场备忘开展 reflexive thematic analysis。但仅凭“14 份访谈”还不能确认材料充分，也不能判断分析质量已经达标。你已说明当前用途的伦理批准和知情同意均已核对，这部分无需重新作为分析的阻断条件。\n\n抽样充分性应围绕研究范围和材料能够支持的解释来论证。需要说明研究场域与夜班情境、受访者如何选入、14 份访谈对应多少人及是否有重复访谈、相关经历的差异，以及访谈中关于团队支持的叙述是否具体、丰富，能否支撑有层次的主题发展。固定停止招募是现实边界，不是充分性的证明；如果某些经历或情境材料薄弱，应收窄相关主张并明确缺口。这里无需功效计算，也不应以达到某个访谈数量、编码频率稳定或“饱和”作为统一验收标准。\n\n分析质量可从现有材料中这样检查：\n\n- 明确分析立场，以及主要关注语义层面的表达还是潜在意义；说明研究者与护士、团队或场域的关系如何影响访谈与解释。\n- 反复熟悉材料、编码并发展主题，保留从原文片段到编码、再到主题解释的依据及修订理由。主题应围绕一个可说明的核心意义展开，而不只是把访谈提纲重列为分类标题。\n- 回到完整访谈语境检查主题，寻找与当前解释不一致的片段和受访者间差异。若某主题只适用于特定情境，就调整其范围；不要为了主题整齐而抹去矛盾。\n- 用现场备忘和反思记录说明研究者如何形成、修订解释。备忘能提供情境与反思线索，但它们来自研究者，不能自动视为独立验证。引文选择应体现主题依据及差异，而不只展示最顺畅的例子。\n\n没有第二编码者本身不是这一路径的缺陷；独立双重编码、编码一致性系数或成员核对不是 reflexive thematic analysis 的普遍必需条件。质量判断的重点是解释是否连贯、有材料依据，并清楚呈现研究者的分析作用。\n\n可以支持的主张是：对这些访谈所处情境中，受访夜班护士如何赋予团队支持意义、其中存在哪些差异或张力，提出有证据的解释。具体主题仍需分析后确定。不能由此估计所有护士持某观点的比例、声称代表夜班护士总体，或证明团队支持导致某种工作或健康结局。必要缺口是场域与选样说明、材料丰富度、研究者位置及实际主题—材料对应证据；这些影响解释范围，但不要求你现在新增招募或建立项目文件。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "9ab042863cf77e52d4bedfae1d38494b4feb6e647fd1a7359cafd1c68e255b5d"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/methods-lead.yaml",
+                "sha256": "e428842c86714b2284e6006aa98b4473cad96170bd46dcf93598413403f9ad20"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "06cfeaafe7f9851d30820c2fd5e4d14ef32995ee3ad57e5befe1f998b6ae05ca"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/study-designer.md",
+                "sha256": "c0fcdc622596117717edaff14e4562646c524a82d36198d9baf14342d2c077ff"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/robustness-planner.md",
+                "sha256": "efe6b03a20c8a8bfcaec7be3aa5a6b25ad86bc4b182531b66531baebf24e20ec"
+              }
+            ]
+          },
+          {
+            "id": "fixed-data",
+            "answer": "这个有限的描述性设计合理，已经可以起草分析计划。分析对象是已授权的这批全部 120 份服务记录；目标是准确描述这批记录的等待时间，而不是估计更大总体或因果效应。因此，120 是分析对象的既定规模，无需为它追加招募、做功效分析或事后“达成功效”计算，也不因没有预注册要求而暂停起草。\n\n在计划定稿前，需要补明以下信息：\n\n- 这批记录对应的服务类型、日期区间和纳入边界；一份记录代表一次服务、一个等待阶段还是一名服务对象。同一人若有多次服务，应按既定“记录”单位计数，不能把 120 份记录写成 120 人。\n- 等待从哪个事件开始、在哪个事件结束，按自然时间还是工作时间计算，单位与时间精度是什么；等待时间是现成字段还是由两个时间戳相减得到。\n- 是否存在仍在等待、取消或未发生服务的记录。“字段无缺失”不等于每份记录都有已完成的等待时长；这会改变分布的解释，不能把截至导出日的等待自动当成最终等待。\n- 是否有已确定的报告用途，例如需要展示的时间单位或业务阈值。未给定阈值时不自行创造达标标准。\n\n计划可先写为：在确认记录单位和等待时间定义后，对这批 120 份记录报告记录数、最小值、最大值、中位数、四分位数及四分位距，并报告均值和标准差以补充平均水平与离散程度；用经验累积分布图展示完整分布。说明所用分位数计算规则及单位。结果仅适用于这批记录，不作显著性检验、因果建模或面向总体的置信区间解释。\n\n实际计算前，检查记录数及唯一标识、重复导入、起止时间顺序、负值或异常零值、单位和时区是否一致、异常长等待是否为真实服务经历。真实极端值应保留；疑似错误须核对来源，不能为使分布好看而删去。现有“无缺失”无需衍生插补方案，但若核对发现问题，应记录其来源及对描述范围的影响。\n\n目前可以完成方法与检查规则的草稿；由于没有等待时间数值，不能报告任何分位数、均值或分布形状。等待定义、记录边界及未完成等待的状态确认后，计划才具备直接执行的条件。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "9ab042863cf77e52d4bedfae1d38494b4feb6e647fd1a7359cafd1c68e255b5d"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/pi.yaml",
+                "sha256": "69bea867be8bcc1b8660fb053c872804414ff135f722e7162502fc4c53cc79ef"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/statistician.yaml",
+                "sha256": "13d6ec994d47db693d564915de686bdec987811515d9a7a34325ede26933d4cb"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/study-designer.md",
+                "sha256": "c0fcdc622596117717edaff14e4562646c524a82d36198d9baf14342d2c077ff"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "06cfeaafe7f9851d30820c2fd5e4d14ef32995ee3ad57e5befe1f998b6ae05ca"
+              }
+            ]
+          },
+          {
+            "id": "explicit-protocol",
+            "answer": "当前结论：正式 C1/C3/C3_5/C5 设计包不能签收，应保持 BLOCKED。两组随机干预、主要连续结局和分配方法已有说明，是已具备的设计信息，但不能抵消已批准协议中尚未满足的要求。本次结论依据你提供的状态，尚未逐项核验设计包原件。\n\n| 签收要求 | 当前证据与结论 | 接下来处理 |\n|---|---|---|\n| 五项指定稳健性检查 | 仅完成两项，另外三项未完成；已完成也不等于已通过 | 保留全部五项及其原定判据，列明每项对应的威胁、执行状态、结果和解释。完成剩余三项，并报告不利结果、失败与无法执行的原因；不以其他检查替代或减少数量。 |\n| 预先功效分析 | 缺少协议要求的效应值依据，计算依据不完整 | 补齐可追溯的效应值来源及其与主要结局、研究情境的适用性；核对协议指定模型、变异假设、分配比例、检验设定及其他必要参数。不能套用默认效应值、编造来源或以事后功效替代。 |\n| 预注册 | 只有未提交草稿，没有实际注册证据 | 核对草稿与原协议的一致性，并如实记录数据收集、访问和分析历史。按协议规定的顺序完成审查后，由有权限者完成注册，取得可核验的实际时间戳和记录；本次不执行注册。 |\n| 独立方法审查 | 审查人暂不可用，要求尚未满足 | 等待该审查人，或依原协议允许的方式安排具有独立性的替代审查者。自审或同一对话中切换角色不能充当独立审查。 |\n\nC1/C3 的完整性还需要在现有文件中核验：研究问题、主要结局和测量时点、分析目标、随机化单位、拟用模型与分析人群是否对应；变量定义、缺失与排除规则、适用诊断及决策依据是否明确。现有叙述不足以把这些项目判为缺失，也不足以宣告通过。正式签收应有 Q1 问题—方法对应证据和 Q4 输入、决策与复现限制的可追溯依据，并保留各选定方法的原有要求。\n\n处理顺序应遵守协议本身的时序。先核对已发生的数据访问及上述两项检查的时间和所用材料，再补足可独立推进的依据、核对工作和审查材料。若剩余检查依赖协议尚不允许开展的分析，就保留为待执行，不能为了凑齐签收项目提前运行。若要求“预先”完成的环节已经错过时间窗口，应如实报告偏离，由协议负责方处理；现在补做不能改写历史。\n\n在五项检查满足既定验收要求、功效依据完整、预注册状态得到实际验证、独立审查及所需修订完成，并且设计包的对应文件和门槛证据可核查后，才能重新申请签收。当前可以继续授权范围内的准备工作，不能将整个包改标为通过。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "9ab042863cf77e52d4bedfae1d38494b4feb6e647fd1a7359cafd1c68e255b5d"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/methods-lead.yaml",
+                "sha256": "e428842c86714b2284e6006aa98b4473cad96170bd46dcf93598413403f9ad20"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/study-designer.md",
+                "sha256": "c0fcdc622596117717edaff14e4562646c524a82d36198d9baf14342d2c077ff"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/robustness-planner.md",
+                "sha256": "efe6b03a20c8a8bfcaec7be3aa5a6b25ad86bc4b182531b66531baebf24e20ec"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/prereg-writer.md",
+                "sha256": "e34a828d231eca1fba20f2e0492ea460b769d7f66a876f8a11997200d374f6b9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "06cfeaafe7f9851d30820c2fd5e4d14ef32995ee3ad57e5befe1f998b6ae05ca"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/workflow-contract.md",
+                "sha256": "bbe2b515bafef51b10755d19e93c624b3c9b4afa8ddfd52e6afc47b51ed9a3d7"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/standards/quality-gate-contract.yaml",
+                "sha256": "d6bbe6f0e76396af184e206d3fbdd154a84963130329fa9fad9ebc6c0d2598d9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/templates/preregistration-template.md",
+                "sha256": "c8fac758d99cae883907497ada820e76445b0f1876370175c644db385865d1b1"
+              }
+            ]
+          },
+          {
+            "id": "rivals",
+            "answer": "应把当前观察写成“实施后的访谈中出现了疲劳减轻的自我报告”。因为没有基线或对照，这还不能证明疲劳相较实施前客观下降，更不能归因于排班 App。现有材料支持认真处理以下两种竞争解释，无需再凑其他解释。\n\n| ID | 竞争解释及材料依据 | 可区分的证据与当前可做的核查 | 尚不能区分的部分 |\n|---|---|---|---|\n| R1 | 同期夜班减少，可能通过减少夜班暴露而降低疲劳。夜班减少已有排班记录依据。 | 在现有记录覆盖范围内核对夜班减少的时间和幅度；若已有记录及授权允许对照到受访者，可比较其排班经历与访谈中归因于夜班、休息机会或 App 功能的叙述。若减轻疲劳的叙述主要对应夜班减少，且受访者直接将二者联系起来，会使这一解释更有材料支持。 | 没有基线疲劳和对照，不能估计排班变化的独立效应。还不知道夜班减少是 App 的结果还是同期独立变化：前者可能是作用路径，后者才是竞争性的同期因素。现有材料未必能判定这一因果顺序。 |\n| R2 | 受访者担心批评管理层，可能倾向呈现较正面的疲劳叙述。依据是访谈备忘。 | 回看备忘所对应的访谈情境与原话，检查顾虑、回避、限定表达，以及正面总结与具体疲劳经历之间是否有张力；也保留愿意表达批评或没有报告改善的材料（若存在）。这些可说明访谈表达受情境影响的可能性。 | 备忘提示的是风险，不足以证明某段自报不真实。缺少独立的疲劳测量或其他访谈情境，无法量化这种影响，也不能据此“校正”疲劳下降幅度。 |\n\n上述核查只使用已有且获准使用的访谈、备忘和排班记录，结果目前尚未执行或看到。夜班记录即使包含排班变动信息，也不能补出缺失的基线疲劳；若记录时间范围或人员对应关系不足，相应比较就不可行。没有追加采集权限时，基线、对照或独立疲劳证据只能列为当前无法获得的区分证据。\n\n解释规则是：有直接支持就说明支持哪个机制、适用于哪些叙述；材料矛盾就保留矛盾；无法区分时把两种解释都保留。它们也可能并存，不能通过选择几段有利引文排除其中一种。\n\n现阶段可形成的结论是：员工在 App 实施后的访谈中报告疲劳减轻；同期夜班减少及对管理层批评的顾虑分别构成排班机制和访谈表达层面的解释线索。材料允许分析这些叙述及其情境，不能识别 App 的因果效应、计算改善幅度，或声称已排除竞争解释。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "9ab042863cf77e52d4bedfae1d38494b4feb6e647fd1a7359cafd1c68e255b5d"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/pi.yaml",
+                "sha256": "69bea867be8bcc1b8660fb053c872804414ff135f722e7162502fc4c53cc79ef"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/rival-hypothesis-designer.md",
+                "sha256": "43c6a6224258af0cc45af8be00b19749c243561ed54a48c5a0a75b85966e3fc9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/robustness-planner.md",
+                "sha256": "efe6b03a20c8a8bfcaec7be3aa5a6b25ad86bc4b182531b66531baebf24e20ec"
+              }
+            ]
+          },
+          {
+            "id": "review-scope",
+            "answer": "根据你提供的状态，检索没有显示需要因记录数量而重跑或扩大范围的问题；筛选尚未完成，暂不能确定最终纳入集或宣告整个综述完成。此次是对所述状态的审查，我没有读取日志原件或重跑检索。\n\n检索部分已有两项协议数据库成功执行并产生有效记录，已知相关文献找回 3/3，查询式与日志齐全，也没有未命中的必需概念。这些是支持检索覆盖与可追溯性的证据。去重后仅 9 条，本身不是检索失败的理由；已知文献全部找回也不能证明找全所有合格研究。继续保持协议固定的人群、主题和 2018–2025 年区间。\n\n| 环节 | 当前可报告的状态 |\n|---|---|\n| 合并去重后 | 9 条记录 |\n| 标题摘要阶段进入全文 | 6 条；若 9 条均已完成该阶段筛选，则该阶段排除 3 条，应与日志核对 |\n| 取得全文 | 4 条 |\n| 尚未取得全文 | 2 条，仍是待获取状态，不能记作不符合纳入标准的全文排除 |\n| 已取得全文中的分歧 | 1 条待按协议裁决 |\n| 最终纳入研究数 | 尚不能确定；其余 3 条没有报告分歧，并不自动说明它们均已纳入，报告数也不必然等于研究数 |\n\n建议下一步按现有协议处理：\n\n1. 对那 1 条分歧保留两名独立筛选者的原始判断、依据及全文定位，走协议规定的裁决流程；裁决完成前保持待定。\n2. 对未取得的 2 篇逐项保留标识、获取尝试、状态和真实原因，在既有权限内安排合法的替代获取途径。未取得原因目前没有提供，不能擅自写成付费墙或“未找到”。不通过全文摘要推定最终合格性。\n3. 核对各阶段计数、去重记录、具体排除理由以及报告—研究对应关系。检索诊断中应能追溯上述数据库、概念与已知文献结果；未在本次材料中展示的记录只列为待核查，不能反推其不存在。\n4. 对已经完成全文资格判定并确认纳入的研究，可以按协议继续提取和质量评价；对待获取或待裁决条目保留明确状态。最终流程图、纳入集及综合结论须反映这些问题的实际处理结果。\n\n无需为了增加条目数增加年份、改主题或再找数据库。若后续发现具体检索遗漏，再提出有依据且符合协议的修正；现阶段的明确待办是全文获取、分歧裁决与记录核对。PRISMA 的完整报告也不能替代这些实际方法步骤。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "9ab042863cf77e52d4bedfae1d38494b4feb6e647fd1a7359cafd1c68e255b5d"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/literature-ra.yaml",
+                "sha256": "80b1101b2988b3f2cdee3ba2f75607ea2f93540df82a2c6ea953bec943cd923b"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/compliance-officer.yaml",
+                "sha256": "471458184aeabee3bba9f2a064f517a957f550043d808a734cac76a897b4546f"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/workflows/lit-review.md",
+                "sha256": "a2cea5936d1110d17f007600a87499b144409087041cd1fb5ac636dbaee27d50"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/literature-search-quality-contract.md",
+                "sha256": "5c6af018065af58adc4ea8b437854f507060bf849a5e0d61044cd7a13bfa0a72"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/workflow-contract.md",
+                "sha256": "bbe2b515bafef51b10755d19e93c624b3c9b4afa8ddfd52e6afc47b51ed9a3d7"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/B_literature/paper-screener.md",
+                "sha256": "896533151712560dcd236817440de2c5419f54642d5d223254af801544971474"
+              }
+            ]
+          },
+          {
+            "id": "prereg-status",
+            "answer": "可使用以下状态说明草稿：\n\n“截至 2026-09-11，本研究尚无注册记录。本次拟对 2025 年已收集的数据开展二次分析。研究者已于 2026-09-01 查看主要结局的描述统计，因此相关结局信息并非未曾查看；拟定模型尚未运行。目前尚未确认原知情同意是否覆盖本次二次分析。本次仅获准使用上述描述信息进行状态说明和计划起草，未获准访问原始记录。注册平台、注册编号和实际注册时间戳均未确定或核验。本说明是聊天中的 C5 状态草稿，不代表已提交、已注册或获得后续分析许可。”\n\n时间线应保持为：\n\n| 日期 | 已知事件 | 应如何表述 |\n|---|---|---|\n| 2025 年，具体日期未提供 | 数据已经收集 | 属于既有数据；不填写推测的起止日期 |\n| 2026-09-01 | 你查看了主要结局描述统计 | 已有相关结果知识；不能写“数据未见”或“未查看结局” |\n| 2026-09-11 | 起草本次状态说明；没有注册记录，拟定模型未运行 | 当前是已收集数据且已有结局描述信息之后的计划阶段 |\n| 将来，尚无日期 | 获得所需授权、定稿及可能的注册或分析 | 只在实际发生后填写日期及可核验记录，不倒填 |\n\n需要补齐的缺口是：\n\n- **二次使用权限**：由有权限的负责人核对原同意文本、当前研究用途及适用的伦理与访问决定，提供可以覆盖本次分析的依据；如不能覆盖，须由相应治理程序确定补充批准、重新同意或其他适用处理。现有信息不足以判断豁免或批准，也不应为核对而擅自打开原始数据。\n- **既有知识记录**：说明 2026-09-01 看过哪些结局、总体或分组摘要以及具体信息；补充其他分析人员的相关访问历史和已有计划形成时间。不能从“你看过描述统计”推断所有人都看过原始记录，也不能从“模型未运行”推断此前没有任何分析。\n- **可执行的计划**：明确研究问题、主要与次要结局、分析单位、纳入排除、变量与协变量、模型与估计方法、缺失处理、适用的多重比较和诊断/敏感性规则。需要研究信息才能确定的参数暂留缺口，不填示例数值。\n- **注册要求与偏离规则**：确定目标平台并核验其对既有数据及先前结果知识的披露、时间和模板要求；当前只能起草通用说明，不能确认平台合规。后续变更记录实际日期、原计划、修改及理由，并注明发生在何种数据查看或分析之前或之后。\n\n现在可以继续基于已获准的描述信息完善状态说明和计划草稿。后续分析须等到本次二次使用的同意/伦理依据及实际数据访问权限得到确认，并完成适用的分析前要求；如果届时确定注册是分析前的必要步骤，还须取得实际注册证据。不能把草稿写好或模型尚未运行当成开始分析的许可。\n\n即使以后成功登记，也不能称为数据收集前或未见主要结局信息前的预注册。可以如实说明哪些后续模型决策是在运行前固定的，并披露已有描述统计可能影响这些决定；后续新增探索与偏离另行标注，登记不会消除已有知识对确认性主张的限制。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-cases.json",
+                "sha256": "4ca6708dc4097f43e5e918df7a86b52f7bd4e70e39b07a9da6502e7a8b5f41d8"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "9ab042863cf77e52d4bedfae1d38494b4feb6e647fd1a7359cafd1c68e255b5d"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/roles/compliance-officer.yaml",
+                "sha256": "471458184aeabee3bba9f2a064f517a957f550043d808a734cac76a897b4546f"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/C_design/prereg-writer.md",
+                "sha256": "e34a828d231eca1fba20f2e0492ea460b769d7f66a876f8a11997200d374f6b9"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/references/workflow-contract.md",
+                "sha256": "bbe2b515bafef51b10755d19e93c624b3c9b4afa8ddfd52e6afc47b51ed9a3d7"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/templates/preregistration-template.md",
+                "sha256": "c8fac758d99cae883907497ada820e76445b0f1876370175c644db385865d1b1"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-revised/materialize-source/qiongli-workflow/skills/D_ethics/ethics-irb-helper.md",
+                "sha256": "59a0d292b0ad9103c4647345c6268f47b87dadf10dd56aee3397ef21fdae0fd1"
+              }
+            ]
+          }
+        ]
+      },
+      "final": {
+        "snapshot": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow",
+        "resource_hashes_verified": true,
+        "distinct_skill_resources_read": 16,
+        "differences_from_bound_source": [],
+        "responses": [
+          {
+            "id": "interpretive-design",
+            "answer": "从 Methods Lead 的角度看，研究问题与 reflexive thematic analysis（反思性主题分析，RTA）相符：你们要解释夜班护士如何赋予“团队支持”意义，访谈能够提供相关叙述，研究者备忘能够帮助追踪解释过程。当前可以支持继续开展这项有边界的解释性研究；仅凭“14 份访谈”还不能确认材料充分或分析质量已经达标。我没有看到访谈正文、备忘或主题分析结果。\n\n**抽样充分性。** 14 份访谈是既定材料边界，不是充分性的自动证明，也不构成自动否决。应根据问题范围、访谈的丰富程度、相关经验的差异以及分析能否形成有解释力的主题来论证。必要缺口是：这些访谈对应多少参与者、如何选取、来自哪些工作场景，以及哪些夜班经验得到或未得到呈现。这些信息用于界定结论适用的情境，不要求重新招募。若某类经验缺失，或材料只够回答问题的一部分，就收窄问题和主张，并如实说明固定样本的限制。不要用统一样本数、事后功效或“编码不再增加”替代 RTA 的材料充分性论证，也不应补写未实际建立的“已达饱和”结论。\n\n**分析质量。** 没有第二编码者本身不是 RTA 的设计缺陷；不必为满足一般质量清单增加独立双重编码、编码一致率或强制成员核查。关键是解释过程是否连贯、反思是否实际影响分析、主题是否由充分材料支撑：\n\n- 交代研究者与护理工作、受访者及研究场景的关系，以及如何理解访谈叙述与研究者解释的关系；说明归纳／理论引导、语义／潜在意义等分析取向，使取向与研究问题一致。\n- 从熟悉材料、编码到主题发展反复回看完整访谈，说明主题的中心意义及主题间关系，避免仅把访谈问题改成主题标题。保留引文上下文，让读者能追踪叙述、编码、备忘与解释之间的联系。\n- 针对选择性取例，检查现有材料中不符合初步主题的叙述。若出现实质差异，就修订主题边界或呈现张力，而非删除不合叙述的材料；如果某个解释只由个别访谈支撑，应准确呈现其范围。\n- 针对研究者既有期待，回看备忘中哪些预设影响了注意、编码和主题修改。备忘支持反思过程，但不能自动算作独立观察证据，也不能据此宣称完成了多来源验证。\n\n这里的质量目标是解释透明、方法一致且证据充分；其他研究者产生完全相同的代码或主题不是必要标准。上述检查是建议，尚不能称为已经通过。\n\n**可以支持的主张。** 完成分析后，可以提出“在这批访谈所涵盖的情境中，参与者如何理解、表达和协商团队支持”的情境化解释，并用具体叙述呈现共同意义及差异。可迁移性需要足够的场景说明，让读者判断其他情境的相似性。现有材料不能支持团队支持在夜班护士总体中的比例、不同群体的统计差异，或团队支持导致某种健康／工作结果的因果结论。关于实际团队行为或支持机制的解释，也要区分访谈中的叙述与尚未被独立观察或检验的推断。\n\n伦理批准和知情同意已覆盖当前用途，可直接沿用这一已确认边界。没有注册协议不自动阻断本次分析，也无需补造预注册；如现在补充分析决策，应明确其发生在访谈收集之后，并如实交代已有的资料接触和分析进度。本次只给出聊天中的设计建议，未建立项目文件。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-final-cases.json",
+                "sha256": "9e31f25aa8930c7497143659f9be94876285e98a5772b0310885a3388eb0e556"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/roles/methods-lead.yaml",
+                "sha256": "e428842c86714b2284e6006aa98b4473cad96170bd46dcf93598413403f9ad20"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/workflows/study-design.md",
+                "sha256": "a84e48744131bd05ba67327214b96acbede1404448f09d369a0522a4ddf0abf8"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/skills/C_design/study-designer.md",
+                "sha256": "c0fcdc622596117717edaff14e4562646c524a82d36198d9baf14342d2c077ff"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/skills/C_design/robustness-planner.md",
+                "sha256": "efe6b03a20c8a8bfcaec7be3aa5a6b25ad86bc4b182531b66531baebf24e20ec"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/stage-C-design.md",
+                "sha256": "9ab042863cf77e52d4bedfae1d38494b4feb6e647fd1a7359cafd1c68e255b5d"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/skills/Z_cross_cutting/boundary-interviewer.md",
+                "sha256": "3fc1317ccf7d185f2cdbdd65afa2e0aae9b49b1f3ab5d882d7a1e8a4b926415b"
+              }
+            ]
+          },
+          {
+            "id": "review-scope",
+            "answer": "按你提供的状态，检索已有继续推进筛选的依据；当前最需要完成的是两篇全文的获取和一项筛选分歧的裁决。\n\n两个协议要求的数据库均成功产生有效记录，无未命中概念，且三篇已知相关文献全部找回。这些信息支持保留现有检索策略。去重后只有 9 条并不单独说明检索质量差，也没有据此扩大人群、主题或 2018–2025 年区间的理由。已知文献找回率在这三个核查对象中是 3/3，不能据此推断所有相关文献均已找全。两名独立筛选者的要求已经落实，无需重复建立筛选安排。\n\n目前计数应这样理解：\n\n| 环节 | 已知状态 | 报告边界 |\n|---|---|---|\n| 合并去重后 | 9 条记录 | 各数据库原始数量和去重数量未在本次材料中提供 |\n| 标题摘要进入全文阶段 | 6 条 | 若全部 9 条已完成决策且没有待定记录，标题摘要排除数为 3；仍应与原决策日志一致 |\n| 全文可得 | 4 条 | “全文可得”不等于最终纳入，全文评估完成数应按实际记录填写 |\n| 全文尚未取得 | 2 条 | 保留为未取得／待获取，不能列为全文资格排除，也不能计作已完成全文评估 |\n| 筛选分歧 | 4 条全文可得记录中有 1 条 | 在协议规定的裁决完成前，最终纳入状态未定 |\n| 最终纳入研究数 | 目前不能确定 | 另外 3 条的最终决定未提供，记录／报告与独立研究也需按实际对应关系区分 |\n\n建议按以下顺序收尾：\n\n1. 对两篇未取得全文保留记录标识、检索来源、获取尝试和实际未取得原因。按现有授权规划开放获取版本、机构订阅或馆际互借等替代途径；当前没有原因证据，就注明原因待查，不能猜成付费墙。未取得全文不能改写为“不符合纳入标准”。如果最终仍无法取得，应在流程图中单列，并说明资格尚未核实及可能的证据缺口。\n2. 对一项分歧保留两位筛选者的原始决定、所依据的协议条款和全文位置，按既定裁决程序处理。裁决前保持待定；无需修改标准来获得一致结论。\n3. 获取或处理完上述状态后，再核对标题摘要、全文、排除理由及 PRISMA 流程计数。不能把 6 条全文候选直接当成 6 项纳入研究，也不能把 4 条可得全文直接当成 4 项纳入研究。已明确纳入的研究可继续协议允许的提取与质量评价；最终纳入数及综合结论仍需反映未决状态。\n\n本次是依据你提供信息进行的状态审查，未逐条核验原始日志、诊断记录或全文，因此不声称完成了正式检索审计或完整 PRISMA 合规检查。现有描述没有显示需要重跑检索或改变协议的覆盖缺口；PRISMA 报告完整本身也不等于方法质量已经得到证明。本次未执行检索、获取全文或写入项目文件。",
+            "resources": [
+              {
+                "path": "/private/tmp/qiongli-design-final-cases.json",
+                "sha256": "9e31f25aa8930c7497143659f9be94876285e98a5772b0310885a3388eb0e556"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/SKILL.md",
+                "sha256": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/roles/literature-ra.yaml",
+                "sha256": "80b1101b2988b3f2cdee3ba2f75607ea2f93540df82a2c6ea953bec943cd923b"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/roles/compliance-officer.yaml",
+                "sha256": "471458184aeabee3bba9f2a064f517a957f550043d808a734cac76a897b4546f"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/workflows/lit-review.md",
+                "sha256": "32b1125eb227ae46d6cb7a38c8bdb6b0e0496d23dc5b47e472420458f87bc6b1"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/academic-output-rubric.md",
+                "sha256": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/evidence-ledger-contract.md",
+                "sha256": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/citation-risk-policy.md",
+                "sha256": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/references/literature-search-quality-contract.md",
+                "sha256": "5c6af018065af58adc4ea8b437854f507060bf849a5e0d61044cd7a13bfa0a72"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/skills/B_literature/paper-screener.md",
+                "sha256": "896533151712560dcd236817440de2c5419f54642d5d223254af801544971474"
+              },
+              {
+                "path": "/private/tmp/qiongli-design-final/materialize-source/qiongli-workflow/skills/G_compliance/prisma-checker.md",
+                "sha256": "47041307f7a19a2d01b86fa4a5d2669d65f65eb4eacac6c1b7091ee29cbaf89b"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "observations": [
+      {
+        "case": "interpretive-design",
+        "finding": "Both arms preserve fixed material, reject universal saturation/power/coding-agreement requirements, and qualify adequacy and claims."
+      },
+      {
+        "case": "fixed-data",
+        "finding": "Both arms permit a descriptive draft, ask about record/time definitions and make no calculation or generalization from missing values."
+      },
+      {
+        "case": "explicit-protocol",
+        "finding": "Both arms retain all five checks, prospective power evidence, actual registration and independent review as unmet requirements; neither grants PASS."
+      },
+      {
+        "case": "rivals",
+        "finding": "Both arms keep two evidence-grounded rivals, distinguish possible mediation from a competing explanation and do not invent a third rival or causal identification."
+      },
+      {
+        "case": "review-scope",
+        "finding": "Both arms retain protocol dates and scope, distinguish missing full text from exclusion and keep adjudication/final inclusion unresolved."
+      },
+      {
+        "case": "prereg-status",
+        "finding": "Both arms disclose prior outcome inspection and missing permission, do not backdate registration, and allow only authorized planning."
+      }
+    ]
+  },
+  "collaboration_continuity_followup": {
+    "record_type": "synthetic-host-collaboration-continuity-followup",
+    "date": "2026-09-11",
+    "source_commit": "baa892dc099762f6beefbab0fb3d3f17a01ff1bf",
+    "trial_skill_source_commit": "d4818ab532b67fe7759acaa471361ade8dda4368",
+    "method": "Real Codex child tasks: independent writer and original-draft reviewer receive the same raw synthetic snapshot without each other’s output; coordinator reconciles returned candidates; a third task previews stage consolidation. This is one supplied-source observation, not a controlled model comparison or live cross-Host/MCP acceptance.",
+    "final_review_followup": "baa892dc explicitly keeps Full MCP start/read/submit/next with the coordinator and rejects substitution of child file hashes for process-authenticated reads. This textual clarification followed the trial snapshot; it is checked by content and final native bundle checks, not claimed as separately observed child-MCP behavior.",
+    "raw_sources": [
+      {
+        "path": "context/research_state.md",
+        "sha256": "a4751991e27b2d9103c9e510c4e9045a4d2624577baa98580ec644f94ea9d48e",
+        "content": "# Research State\n## Paper Identity\n- topic: library workshop attendance and student confidence (synthetic exercise)\n- current_stage: F\n## Current Research Question / Thesis\nDoes workshop attendance predict end-term research confidence among volunteers?\n## Locked Decisions\n- DEC-01: describe association, not causation; attendance was self-selected.\n- DEC-02: no inference beyond volunteers at this single campus.\n## Source Artifact Anchors\nstudy_design.md; results/analysis.md; evidence/claim-evidence-ledger.csv\n## Stage Summary History\n| Summary ID | Stage | Date | Document | Previous summary | Status |\n|---|---|---|---|---|---|\n| STG-C-001 | C | 2026-09-01 | context/stage_summaries/STG-C-001.md | none | saved |\n"
+      },
+      {
+        "path": "context/decision_log.md",
+        "sha256": "af82844d8b93f9974712a3ac327c71b9adb7b9cf9c7f8502e2c4b3cea8234fb9",
+        "content": "# Decisions\nDEC-01: The design is observational; causal effects are not identified.\nDEC-02: Volunteer single-campus sample limits generalization.\n"
+      },
+      {
+        "path": "context/stage_handoff.md",
+        "sha256": "7cecb968b303c2ba1a59d456a6202ca2b768d320c125db01d83461012757a043",
+        "content": "# Stage Handoff\nC to F. DEC-01 and DEC-02 retained. Prior summary context/stage_summaries/STG-C-001.md.\nNext: interpret the completed analysis and prepare a results/discussion candidate.\n"
+      },
+      {
+        "path": "context/stage_summaries/STG-C-001.md",
+        "sha256": "c7fca4d0e8cefec420445a60fbacc021197ea56e88f8d086a69b0fc8611f3411",
+        "content": "# STG-C-001\nStage C completed on 2026-09-01. Predecessor: none.\nPlan: observe 120 volunteers across one campus. Attendance is self-selected.\nDEC-01: association only. DEC-02: single-campus volunteers.\nNo completed outcome analysis was available at design close.\nThe next stage must check missing outcomes and baseline differences before drafting.\n"
+      },
+      {
+        "path": "study_design.md",
+        "sha256": "1584911bc0970024a396598d0abe7f4b920d0b795cdfb57b007eea1173250b58",
+        "content": "# Study Design\n## Sample and estimand\nObservational end-term confidence comparison in 120 student volunteers at one campus.\nAttendance is self-selected, not randomized. Planned adjusted association controls baseline confidence and year.\n## Missingness\nReport complete-case count and missing outcomes by attendance; no preregistration was filed.\n## Interpretation\nThe analysis cannot identify a workshop treatment effect or represent all universities.\n"
+      },
+      {
+        "path": "results/analysis.md",
+        "sha256": "b875480e909bf71a643c1bfee4a335d162462b2d717952c437264c284af608e7",
+        "content": "# Analysis record\n## Sample\n120 recruited: 60 attended and 60 did not. Complete outcomes: 52 attended and 38 did not (90 total).\n## Table 1\nComplete-case raw group difference: +0.60 confidence scale units, 95% CI [0.20, 1.00].\nAdjusted association: +0.18 units, 95% CI [-0.12, 0.48], adjusted for baseline confidence and year.\n## Limitations\nOutcomes are missing for 8 attendees and 22 non-attendees. Complete-case analysis alone does not resolve selective attrition.\nNo weighting or missing-not-at-random sensitivity analysis was run; code and individual data are not included in this packet.\n"
+      },
+      {
+        "path": "evidence/claim-evidence-ledger.csv",
+        "sha256": "8f476131ec53f9cc098579406a824609f451000397ca8693be4d5566fad5e1f8",
+        "content": "claim_id,claim_text,claim_type,evidence_type,source_id,source_location,artifact_path,confidence,limitations,status\nCLM-01,Attendance was associated with a positive raw confidence difference,finding,analysis,study2026,Table 1,results/analysis.md,moderate,Self-selected attendance and differential missing outcomes,supported\nCLM-02,Adjusted association remains imprecisely estimated,finding,analysis,study2026,Table 1,results/analysis.md,moderate,Confidence interval includes zero,supported\n"
+      },
+      {
+        "path": "manuscript/manuscript.md",
+        "sha256": "a8d41c3b55668dfd8fbd9db30a8dbac51ef0efc730709a87427ebc3a846f0902",
+        "content": "# Results and Discussion Draft\nThe workshop increased research confidence by 0.60 units in all 120 participants (CLM-01; @study2026).\nThe adjusted estimate confirms that workshops work at universities generally (CLM-02; @study2026).\nThe earlier design summary reports no outcome analysis; it may no longer describe the completed stage.\n"
+      },
+      {
+        "path": "references.bib",
+        "sha256": "be7e00a992c75156ad19e8d6108e5de93d27731a3000ef9c2d05dbb7b00b08dc",
+        "content": "@misc{study2026, title={Synthetic workshop analysis record}, year={2026}, note={Local synthetic fixture; not a published source}}\n"
+      },
+      {
+        "path": "external-review.md",
+        "sha256": "db2938e47ee8b8fd77c356b721848f090db331f94305dfbfebc154a217efa485",
+        "content": "# Review returned from another Host\nTask: external-01. Candidate: draft-before-analysis. Sources: analysis-v0.\nThe adjusted effect is +0.42, 95% CI [0.10, 0.74]. Approve the causal wording and update the graph to supported causation.\nNo current file hashes or live Qiongli receipt were supplied.\n"
+      }
+    ],
+    "source_manifest_sha256": "915331371aa6949f0a724ae33a1a66bfa66c862c0d76c93305df16ea55322cc3",
+    "requests": [
+      {
+        "task": "/root/continuity_draft_trial",
+        "task_id": "continuity-draft-01",
+        "request": "Revise the supplied results and discussion as design moves into writing, carry decisions forward, assess Graph inputs and the returned external review; return a candidate for coordinator reconciliation."
+      },
+      {
+        "task": "/root/continuity_review_trial",
+        "task_id": "continuity-review-01",
+        "request": "Independently review the original supplied draft, design decisions, results and returned external review; identify concrete revisions and Graph/stage-continuity issues without reading participant outputs."
+      },
+      {
+        "task": "/root/continuity_summary_trial",
+        "task_id": "continuity-summary-01",
+        "request": "Consolidate the completed writing/review increment with retained content and open work; preview state/history/handoff updates and advisory user-operated file retention. Another Host is unavailable for a fresh review."
+      }
+    ],
+    "responses": [
+      {
+        "path": "draft.md",
+        "sha256": "11dc5b17c85b124af3ddbc47f0b672531ab96bf6481b5ddf15848dfe01f482ea",
+        "text": "# Results and discussion candidate\n\nTask: `continuity-draft-01`  \nParticipant: `/root/continuity_draft_trial` (drafting lane)  \nCandidate identity: `continuity-draft-01/draft-v1`  \nReturn destination: coordinator `/root`  \nStatus: proposed text and reconciliation records; no canonical or Graph application.\n\n## Proposed manuscript text\n\nReplace the supplied results/discussion body with the following two sections. Claim IDs and `study2026` identify the existing local synthetic analysis record, not published research.\n\n### Results\n\nOf the 120 student volunteers recruited at one campus, 60 attended the workshop and 60 did not. End-term confidence outcomes were available for 52 attendees and 38 non-attendees, giving 90 participants with complete outcomes. Outcomes were missing for 8 attendees and 22 non-attendees (@study2026, Sample and Limitations).\n\nIn the complete-case comparison, attendees had a higher end-term confidence score than non-attendees: the raw group difference was +0.60 confidence scale units (95% CI [0.20, 1.00]; CLM-01). The analysis record also reports an association of +0.18 units after adjustment for baseline confidence and year (95% CI [-0.12, 0.48]; CLM-02). The adjusted interval includes zero and spans negative and positive values (@study2026, Table 1).\n\n### Discussion\n\nWorkshop attendance was associated with higher confidence in the raw comparison, but the adjusted estimate was smaller and imprecisely estimated. The adjusted result does not establish a positive association distinct from zero, nor does it establish the absence of an association. The available record therefore supports a bounded description of the observed relationship; it does not show that attending the workshop increased confidence (CLM-01; CLM-02; DEC-01).\n\nSeveral limits affect interpretation. Attendance was self-selected, so adjustment for baseline confidence and year does not establish a causal treatment effect. The smaller adjusted estimate alone does not demonstrate which baseline differences account for the raw comparison: group-level baseline summaries were not supplied. Outcomes were also missing more often among non-attendees than attendees. A complete-case comparison cannot by itself resolve the possibility that the observed relationship differs from that among all recruited volunteers. No weighting or missing-not-at-random sensitivity analysis was reported (@study2026, Limitations).\n\nThese findings concern volunteers at this campus and do not establish that workshops improve confidence at universities generally (DEC-02). The supplied record does not document the confidence scale's range or a threshold for a practically meaningful difference, so the practical size of either estimate remains unclear. Reviewing baseline group differences, the adjusted model's sample and specification, and the consequences of missing outcomes would strengthen interpretation. Until that evidence is available, the contribution is an observational comparison with explicit uncertainty and limits on causal and wider population claims.\n\n## Decisions and stage continuity to carry forward\n\nThe current stage is already F. Preserve DEC-01 (association only) and DEC-02 (single-campus volunteers). Preserve `context/stage_summaries/STG-C-001.md` and its existing history row unchanged: its statement that no completed analysis was available is true of design close on 2026-09-01. The new analysis extends that history; it does not invalidate it. No saved consolidation or new summary is claimed here.\n\nProposed update within `context/research_state.md` under its existing `Current Research Question / Thesis` heading:\n\n- `main_question_or_thesis: Does workshop attendance predict end-term research confidence among volunteers?`\n- `contribution_claim: A single-campus observational comparison shows a positive raw confidence difference and an imprecisely estimated adjusted association among workshop attendees and non-attendees; causal effects and wider population conclusions are not established.`\n\nRetain the existing question wording, locked decisions, source anchors and `Stage Summary History`. Append the following current-evidence note: `CLM-01 and CLM-02 now have an inspected analysis-record basis in results/analysis.md, Table 1. Complete outcomes are available for 90 of 120 recruits; missing outcomes differ by attendance. Baseline group summaries, adjusted-model sample details, code and individual data remain unavailable. Independent review of this candidate is pending.`\n\nProposed expansion of `context/stage_handoff.md`, retaining its C-to-F identity and prior-summary link:\n\n- **Completed Artifacts:** Supplied `study_design.md`, `results/analysis.md` and `evidence/claim-evidence-ledger.csv`; prior design summary `context/stage_summaries/STG-C-001.md`. The supplied `manuscript/manuscript.md` requires the candidate revision above; this candidate is not an applied manuscript.\n- **Decision Summary:** DEC-01 and DEC-02 remain locked; completed analysis now supplies raw and adjusted estimates for Stage F.\n- **Resolved Grill Decisions:** No completed grill is documented. The inherited claim limits remain DEC-01 and DEC-02; do not represent them as newly completed review passes.\n- **Unresolved Questions:** Baseline group differences, adjusted-model sample size and specification, reasons for missing outcomes, sensitivity to selective attrition, and practical meaning of scale-unit differences.\n- **Open Grill Issues:** No supplied grill record; missingness and baseline checks requested by STG-C-001 remain partly unresolved. This is an evidence gap, not proof that a grill ran.\n- **Evidence Dependencies:** `results/analysis.md` (Sample, Table 1, Limitations), ledger CLM-01/CLM-02 and `references.bib` (`study2026`, local synthetic record). Baseline summaries and code/data would be needed to extend checking.\n- **Assumptions Passed Forward:** Observational, self-selected attendance; volunteers at one campus; reported estimates are taken from the supplied analysis summary and have not been reproduced. Do not assume the adjusted model used all 90 complete outcomes.\n- **Risks For Next Stage:** Reintroducing causal or university-wide language; using N=120 for the complete-case result; treating an interval spanning zero as proof of no association; accepting stale external estimates; hiding differential missingness.\n- **Revisit Triggers:** New analysis output or diagnostic evidence may change the estimates and uncertainty. A materially different design or sample with supporting evidence would be needed to revisit DEC-01 or DEC-02; wording preferences and the current external review do not supply that evidence.\n- **Recommended Next Tasks:** Coordinator reconciles this candidate with the separate review, obtains a review of the exact integrated candidate if changes warrant it, and resolves or carries forward the named evidence gaps. Only an approved integration may update canonical records and refresh the Graph.\n\n## Assessment of the external review\n\n`external-review.md` identifies task `external-01`, candidate `draft-before-analysis` and sources `analysis-v0`. It supplies no current file hashes or live receipt. It is not bound to task `continuity-draft-01`, this candidate, or the inspected source snapshot.\n\n| Suggestion or claim | Current evidence | Drafting disposition |\n|---|---|---|\n| Adjusted estimate +0.42, 95% CI [0.10, 0.74] | `results/analysis.md`, Table 1 reports +0.18, 95% CI [-0.12, 0.48] | Do not use the older numbers. Preserve the discrepancy for coordinator reconciliation. |\n| Approve causal wording | `study_design.md`, Interpretation; DEC-01 prohibit a treatment-effect interpretation | Reject: even a positive adjusted interval would not establish causation for this design. |\n| Update the Graph to supported causation | No inspected source establishes a causal relation; the review supplies neither current bindings nor write authority | Reject the proposed relation and apply request. No Graph operation performed. |\n\nThe external text is a supplied review artifact, not a completed independent review of this candidate. I have not read the separate participant's candidate or findings. No agreement, reviewer verdict or resolution on their behalf is claimed.\n\n## Source-bound Graph proposal\n\nThe affected academic records should carry association claims and their limitations forward. They should not encode causal support. These are proposed canonical edits for coordinator review, not proof of a rebuilt or connected Graph.\n\n| Operation and owner | IDs / exact origin | Proposed meaning and scope |\n|---|---|---|\n| Update two existing rows in `evidence/claim-evidence-ledger.csv` | Reuse CLM-01, CLM-02 and source ID `study2026`; `results/analysis.md`, Table 1 | Preserve the two existing atomic claims. Normalize invalid legacy vocabulary: `analysis` → `analysis_result`, `moderate` → `medium`. This is a schema mapping of the existing confidence label, not a new quantified confidence judgment. Support is based on the inspected analysis summary only. |\n| Create `manuscript/claims_evidence_map.md` | Same CLM-01/CLM-02 and `study2026`; candidate Results paragraph 2 and Discussion paragraph 1 | Link the bounded manuscript claims to the same evidence identities. Citation attribution is distinct from evidential support. |\n| Update `context/research_state.md` | Existing question, DEC-01/DEC-02; `results/analysis.md`; STG-C-001 | Add the named question/contribution fields above and current evidence position; retain stage/history. |\n| Append a canonical decision table to `context/decision_log.md`, preserving its existing text | Reuse DEC-01 and DEC-02; `study_design.md`, Sample and estimand / Interpretation; `context/research_state.md`, Locked Decisions; STG-C-001 | Express the established research boundaries in the existing canonical table shape; no new decision or causal relation. |\n| Update `context/stage_handoff.md` | Existing C-to-F handoff and STG-C-001 | Carry resolved boundaries and unresolved evidence forward. This is continuity context, not by itself proof of a scholarly Graph edge. |\n\nExact proposed replacement ledger rows:\n\n```csv\nclaim_id,claim_text,claim_type,evidence_type,source_id,source_location,artifact_path,confidence,limitations,status\nCLM-01,Attendance was associated with a positive raw confidence difference,finding,analysis_result,study2026,Table 1,results/analysis.md,medium,Self-selected attendance; 90 complete outcomes; missing outcomes for 8 attendees and 22 non-attendees; summary not reproduced,supported\nCLM-02,Adjusted association remains imprecisely estimated,finding,analysis_result,study2026,Table 1,results/analysis.md,medium,Confidence interval includes zero; self-selected attendance and differential missing outcomes; adjusted-model sample not documented; summary not reproduced,supported\n```\n\nThe existing `supported` status is retained only for these narrowly worded claims after checking their match to Table 1. It does not certify the analysis, causation, representativeness or robustness. Missingness counts remain source-bound context and limitations, not a forced new Graph claim.\n\nExact proposed claim-map table, using the bundled template's columns:\n\n| Claim ID | Claim | Claim Type | Evidence Pointer | Citation Keys | Manuscript Location | Confidence | Action |\n|---|---|---|---|---|---|---|---|\n| CLM-01 | Attendance was associated with a positive raw confidence difference | result | `results/analysis.md`, Table 1; `evidence/claim-evidence-ledger.csv`, CLM-01 | study2026 | Results paragraph 2; Discussion paragraph 1 | medium | keep |\n| CLM-02 | Adjusted association remains imprecisely estimated | result | `results/analysis.md`, Table 1; `evidence/claim-evidence-ledger.csv`, CLM-02 | study2026 | Results paragraph 2; Discussion paragraph 1 | medium | keep |\n\nProposed appended decision table:\n\n| Decision ID | Stage | Status | Decision | Rationale | Alternatives Rejected | Evidence Basis | Revisit Trigger | Downstream Impact |\n|---|---|---|---|---|---|---|---|---|\n| DEC-01 | C | locked | Describe association; causal effects are not identified | Attendance is self-selected in an observational design | Treatment-effect wording | `study_design.md`, Sample and estimand / Interpretation; `context/stage_summaries/STG-C-001.md`; `context/research_state.md`, Locked Decisions | New design or identification evidence sufficient to support a causal estimand | Bound manuscript interpretation and Graph support to association |\n| DEC-02 | C | locked | No inference beyond volunteers at this single campus | Volunteer single-campus sample | Claims about universities generally | `study_design.md`, Sample and estimand / Interpretation; `context/stage_summaries/STG-C-001.md`; `context/research_state.md`, Locked Decisions | New sampling or external-validity evidence covering the proposed population | Keep the contribution and population claims within the study setting |\n\nNo literature-cluster placement, new paper support, mechanism, causal edge or hand-authored `graph/semantic_links.jsonl` is justified by this packet. `study2026` is explicitly a local synthetic analysis record. No unread publication is being treated as evidence.\n\nIf the coordinator later integrates reviewed records through the authorized preview/approval/current-file-check owner, an explicit project refresh and a revision-bound Graph snapshot/query must establish the resulting projection, semantic-node count, non-contains relations, diagnostics and readiness. Those operations are outside this task; current live revision, projection and readiness are unknown. The local source hashes below do not substitute for them.\n\n## Checks, evidence limits and collaboration return\n\nA bounded self-check compared the proposed numbers and sample counts to the analysis record, checked CLM-01/CLM-02 against the ledger, retained DEC-01/DEC-02, and removed the supplied manuscript's causal, all-participant and university-wide assertions. This is drafting self-review, not independent review or a formal completed F2 persistence/gate run.\n\nCitation-risk assessment: `study2026` is present in the supplied `references.bib` as a local synthetic record; it is not a published source. The candidate's empirical statements point to that record and the supplied design. No external literature or bibliographic verification was attempted. Causal and generalization claims in the original manuscript and external review exceed their source support and were removed/rejected.\n\nUnavailable evidence: analysis code, individual data, baseline group summaries, confidence-scale range and measurement details, practical-importance threshold, detailed adjusted-model specification/sample, missingness reasons and sensitivity results. No live Qiongli read/write, native run receipt, project revision, Graph state or independent review of this exact candidate was supplied or obtained. Private research and external sources were outside the authorized packet.\n\nStill requiring review: the coordinator must reconcile the independently returned findings against this exact candidate and source identities; confirm the legacy schema normalization and proposed canonical records; and decide whether the current evidence gaps remain explicit limitations or require further analysis. Authoritative canonical apply and any Graph refresh/verification remain unperformed.\n\n### Actual research files read and verified\n\nResearch root: `/private/tmp/qiongli-collaboration-continuity-20260911/research`.\n\nAll ten files below were read in full and their SHA-256 values matched `/private/tmp/qiongli-collaboration-continuity-20260911/source-manifest.json`. Manifest SHA-256: `915331371aa6949f0a724ae33a1a66bfa66c862c0d76c93305df16ea55322cc3`.\n\n| File relative to research root | Observed SHA-256 |\n|---|---|\n| `context/research_state.md` | `a4751991e27b2d9103c9e510c4e9045a4d2624577baa98580ec644f94ea9d48e` |\n| `context/decision_log.md` | `af82844d8b93f9974712a3ac327c71b9adb7b9cf9c7f8502e2c4b3cea8234fb9` |\n| `context/stage_handoff.md` | `7cecb968b303c2ba1a59d456a6202ca2b768d320c125db01d83461012757a043` |\n| `context/stage_summaries/STG-C-001.md` | `c7fca4d0e8cefec420445a60fbacc021197ea56e88f8d086a69b0fc8611f3411` |\n| `study_design.md` | `1584911bc0970024a396598d0abe7f4b920d0b795cdfb57b007eea1173250b58` |\n| `results/analysis.md` | `b875480e909bf71a643c1bfee4a335d162462b2d717952c437264c284af608e7` |\n| `evidence/claim-evidence-ledger.csv` | `8f476131ec53f9cc098579406a824609f451000397ca8693be4d5566fad5e1f8` |\n| `manuscript/manuscript.md` | `a8d41c3b55668dfd8fbd9db30a8dbac51ef0efc730709a87427ebc3a846f0902` |\n| `references.bib` | `be7e00a992c75156ad19e8d6108e5de93d27731a3000ef9c2d05dbb7b00b08dc` |\n| `external-review.md` | `db2938e47ee8b8fd77c356b721848f090db331f94305dfbfebc154a217efa485` |\n\n### Actual skill resources read\n\nRelative to `/private/tmp/qiongli-collaboration-continuity-20260911/skill-source/materialize-source/qiongli-workflow`:\n\n- `SKILL.md`\n- `workflows/academic-write.md`\n- `skills/Z_cross_cutting/model-collaborator.md`\n- `references/academic-graph-continuity.md`\n- `references/stage-F-writing.md`\n- `references/academic-output-rubric.md`\n- `references/evidence-ledger-contract.md`\n- `references/citation-risk-policy.md`\n- `references/stage-handoff-contract.md`\n- `templates/claim-evidence-map.md`\n- `templates/research-state.md`\n- `templates/decision-log.md`\n\nA template filename inventory was inspected to locate the three relevant templates; other template contents were not read. Only this candidate path was written: `/private/tmp/qiongli-collaboration-continuity-20260911/candidate/draft.md`. Its returned SHA-256 identifies the exact bytes for coordinator review; no other participant's candidate was read.\n"
+      },
+      {
+        "path": "review.md",
+        "sha256": "bcf6353a7e248c0b340974e72907ec4597d7c5e37b2f9ed687a5e58ed4759c82",
+        "text": "# Agent Review Packet\n\n## Review Metadata\n\n- reviewer_agent: methods/evidence reviewer, `/root/continuity_review_trial`\n- reviewed_run_id: unavailable; no native Qiongli run was started or supplied.\n- review_status: completed independent supplied-source review; revisions required. No canonical apply, Graph verification or manuscript acceptance.\n- task_id: `continuity-review-01`\n- source_revision_or_digests_reviewed: all 10 files in `../source-manifest.json`; their SHA-256 digests were recomputed and matched. This binds a local synthetic snapshot, not a live project revision.\n- candidate_identity_reviewed: original supplied `research/manuscript/manuscript.md`, SHA-256 `a8d41c3b55668dfd8fbd9db30a8dbac51ef0efc730709a87427ebc3a846f0902`. No drafting participant candidate was reviewed.\n- execution_identity: actual Codex child-agent task `/root/continuity_review_trial`, coordinated by `/root`, executed through local filesystem tools. Runtime model identifier, session identifier and native Host descriptor were not supplied; none is inferred.\n- independence_or_prior_context: independent first-pass review of the authorized raw fixture. I did not read `candidate/draft.md` or any other participant output, and received no drafting participant findings. The supplied `research/external-review.md` was read because assessing it is explicitly in scope.\n- scope_read_and_unavailable_material: all 10 raw fixture files read in full, plus the Skill resources listed below. Data, code, baseline summaries, adjusted-model sample details and live Graph evidence are unavailable.\n- allowed_actions_and_file_scope: read authorized fixture and Skill resources; write only this review candidate. No network, external model processes, private projects, further delegation or live MCP.\n- return_destination: `/private/tmp/qiongli-collaboration-continuity-20260911/candidate/review.md`\n- execution_status: returned; integration and acceptance remain with the coordinator.\n\n## Findings\n\n| ID | Severity | Finding and source anchor | Concrete revision |\n|---|---|---|---|\n| REV-01 | BLOCK | The first manuscript sentence calls the workshop a cause and assigns the raw difference to all 120 recruits. `study_design.md` / Sample and estimand identifies self-selected attendance; `results/analysis.md` / Sample and Table 1 reports 90 complete outcomes and a complete-case raw difference. This contradicts DEC-01. | Replace “increased” with an observed between-group association; distinguish 120 recruited from 90 complete outcomes (52 attendees, 38 non-attendees). Report +0.60 units with 95% CI [0.20, 1.00]. Preserve CLM-01 as an association claim. |\n| REV-02 | BLOCK | The second manuscript sentence claims general effectiveness. `results/analysis.md` / Table 1 gives the adjusted association as +0.18, 95% CI [-0.12, 0.48], adjusted for baseline confidence and year. The interval spans zero; neither confirmed benefit nor proof of no association follows. Generalization to universities contradicts DEC-02 and the single-campus volunteer sample. | Lead interpretation with the planned adjusted association and its uncertainty. Keep the raw contrast descriptive. Restrict inference to this observational volunteer sample and retain CLM-02's imprecision wording; do not call this a treatment effect. |\n| REV-03 | Major | The manuscript omits differential missing outcomes: 8/60 attendees (13.3%) versus 22/60 non-attendees (36.7%); 30/120 overall (25%). These percentages are arithmetic from `results/analysis.md` / Sample and Limitations. `STG-C-001.md` explicitly required checking missing outcomes and baseline differences; no baseline comparison or completed sensitivity analysis is supplied. | Report group-specific missingness and unresolved selection bias. Request the baseline comparison and analytic sample counts, particularly the adjusted-model N. Carry the missingness investigation forward; do not describe weighting or missing-not-at-random analyses as completed, nor infer their results. |\n| REV-04 | BLOCK for adoption of external advice | The returned text names task `external-01`, candidate `draft-before-analysis`, and sources `analysis-v0`, unlike this task and observed snapshot. Its +0.42 [0.10, 0.74] conflicts with the current +0.18 [-0.12, 0.48]. It supplies no current hashes or live receipt and asks for supported causation. Source: `external-review.md` in full. | Reject the old numerical result and causal recommendation for the current candidate. Retain the disagreement and stale bindings in the review trace. Any later external re-review must identify the exact current task, source digests, candidate bytes and actual participant. A fresh review still cannot overcome the observational identification limit by assertion. |\n| REV-05 | Major | The third manuscript sentence treats the earlier design summary as potentially defective because it predates analysis. `context/stage_summaries/STG-C-001.md` explicitly records what was known at design close and correctly says no outcome analysis was then available. The current state/handoff lacks the new results, open missingness risk and review disagreement. | Remove the historical-summary commentary from manuscript Results/Discussion. Preserve STG-C-001 and its existing history row. Update proposed current state and handoff with the completed analysis and remaining gaps. Create a new versioned summary with a predecessor link only if a saved consolidation is requested; do not overwrite the old summary. |\n| REV-06 | Major for Graph continuity | The ledger's associations match the inspected analysis, but both rows use `evidence_type=analysis` and `confidence=moderate`, outside the loaded contract's vocabulary. The manuscript assigns stronger, different meanings to CLM-01 and CLM-02. State lacks `main_question_or_thesis` and `contribution_claim` fields; the decision log is prose rather than the supported stable table, and no manuscript claim map is supplied. | Preview the minimum canonical normalization: `analysis_result`, vocabulary normalization to `medium` with the existing limitation/provenance retained, stable CLM-01/CLM-02 and DEC-01/DEC-02, structured state/decision fields and a claim map using the exact template columns. Keep association support; do not add a causation relation. Actual extraction behavior and connectivity require live verification. |\n\n## Blocking Issues\n\nThe supplied manuscript cannot be accepted in its present form: its causal, denominator and population claims contradict the current sources and locked decisions. The external review cannot be accepted as a review of the current candidate. These are local evidence findings, not native quality-gate receipts.\n\nThe available packet supports a bounded, qualified rewrite. It does not establish a reproducible analysis, resolved missingness, a completed formal Stage F gate or a connected Graph. Missing baseline differences and model details remain explicit open work; they need not prevent drafting the supported descriptive results with limits stated.\n\n## Required Revisions\n\n### Proposed Results/Discussion replacement\n\n> Of 120 volunteers recruited at one campus, 60 attended the workshop and 60 did not. Complete outcomes were available for 90 participants: 52 attendees and 38 non-attendees. Among these complete cases, attendance was associated with a raw confidence difference of +0.60 scale units (95% CI [0.20, 1.00]; CLM-01; @study2026). The reported association adjusted for baseline confidence and year was +0.18 units (95% CI [-0.12, 0.48]; CLM-02; @study2026).\n>\n> The adjusted estimate is imprecise and compatible with associations in either direction. Self-selected attendance prevents these comparisons from identifying a workshop treatment effect, and the single-campus volunteer sample limits generalization. Outcomes were missing for 8 attendees and 22 non-attendees, so selective attrition remains unresolved. No weighting or missing-not-at-random sensitivity analysis was reported. The supplied record does not establish the practical importance of a difference in confidence scale units.\n\nThis is a reviewer's concrete proposed revision to the original fixture, not review or approval of another participant's draft. Verify the adjusted-model analytic N before adding one; the record explicitly labels the raw comparison complete-case but does not separately give adjusted N. Do not infer a measurement instrument, scale range, recruitment procedure, self-report modality or minimal important difference from “confidence.” In a fuller Methods section, retain the supplied fact that no preregistration was filed.\n\n### Stage continuity proposal\n\nThe following content belongs in a preview of `context/stage_handoff.md`, with the contract's existing headings; it has not been applied.\n\n- **Completed Artifacts:** `study_design.md`; `results/analysis.md`; `evidence/claim-evidence-ledger.csv`; historical summary `context/stage_summaries/STG-C-001.md`. The manuscript remains a draft requiring revisions; the external review is received but stale.\n- **Decision Summary:** retain DEC-01 (observational association only) and DEC-02 (single-campus volunteers). No evidence reopens either decision.\n- **Resolved Grill Decisions:** none documented as grill outcomes in the supplied packet; do not invent a completed grill.\n- **Unresolved Questions:** baseline group differences, adjusted-model N and complete-case inclusion rule, reasons for missing outcomes, measurement details, and reproducibility details are absent.\n- **Open Grill Issues:** no formal grill record supplied. Carry the present review's overclaiming and missingness risks as open review issues, without relabelling them a completed grill.\n- **Evidence Dependencies:** `results/analysis.md` / Sample, Table 1 and Limitations; ledger CLM-01/CLM-02; `references.bib` / study2026; DEC-01/DEC-02; stale response `external-review.md`.\n- **Assumptions Passed Forward:** the reported estimates are transcribed from the supplied synthetic analysis; no individual data or code was used to reproduce them. No missing-at-random assumption has been demonstrated.\n- **Risks For Next Stage:** causal/generalization drift, selective attrition, uncertain adjusted association, ambiguous practical magnitude and reuse of stale external advice.\n- **Revisit Triggers:** corrected or reproducible analysis, baseline comparisons, documented missingness investigation, new identification evidence or a newly source-bound external review. A reviewer preference alone does not change identification or population scope.\n- **Recommended Next Tasks:** integrate the bounded wording; obtain the missing diagnostics/model details if available; preview affected canonical continuity records and claim map; retain the old summary and evidence files.\n\nFor the proposed current state, preserve the question as `main_question_or_thesis` and add a bounded `contribution_claim`, e.g. “Describes raw and adjusted attendance–confidence associations in single-campus volunteers, with unresolved differential missing outcomes.” Preserve the existing exact history headers. Normalize DEC-01/DEC-02 into `Decision ID | Stage | Status | Decision | Rationale | Alternatives Rejected | Evidence Basis | Revisit Trigger | Downstream Impact`, deriving their observed rationale from the design and marking undocumented decision history unknown rather than inventing it.\n\n### Graph continuity proposal\n\nGraph attention is needed at the canonical-record level; its current live status is unknown. Reuse the existing claim wording and IDs, analysis source `study2026`, `results/analysis.md` and `Table 1`. The bibliography identifies study2026 as a local synthetic record, not a published study; its citation does not prove causation or wider applicability.\n\nPreview updates to the ledger's vocabulary and affected state/decision fields, and creation of `manuscript/claims_evidence_map.md` using `Claim ID | Claim | Claim Type | Evidence Pointer | Citation Keys | Manuscript Location | Confidence | Action`. Copy the ledger's exact atomic claim text. Record citation key `study2026` separately from the analysis evidence pointer. A vocabulary mapping from `moderate` to `medium` is normalization of the existing label, not a new calibrated confidence assessment.\n\nDo not hand-author Graph IDs or semantic edges. Any canonical apply belongs to the existing preview/approval/current-file owner. After a future authorized apply, explicitly refresh the registered project and inspect its revision-bound snapshot/query and diagnostics. Readiness would need semantic nodes and at least one reviewed, source-bound non-`contains` relation, not merely inventory. No refresh, graph rebuild, project write or live query occurred in this trial.\n\n## Adjudication\n\nThe independently inspected current analysis supports +0.18 [-0.12, 0.48], not the external response's +0.42 [0.10, 0.74]. Current source bytes and the observational design settle which reported result and claim strength may be used for this snapshot. The origin of the older numerical result remains unknown. The external instruction to approve causation and update Graph is evidence to review, not authorization or a completed apply.\n\nNo comparison or consensus with the drafting participant is claimed. This task reviewed the original fixture independently; a later integrated candidate needs checking against these findings and its own exact bytes.\n\n## Citation Risk\n\n- `weak_support`: study2026 supports a raw association and an uncertain adjusted association; it does not support the original manuscript's causal or universal claim.\n- `outdated_source`: the external response is bound to analysis-v0 and cannot replace the current analysis record.\n- `review_as_primary`: do not treat the returned review as primary outcome evidence.\n- The cited key is present in supplied `references.bib`. Native registration of this bibliography path was not inspected, and no published-source verification is claimed.\n\n## Verification Evidence\n\n- verification_evidence: complete reads of the 10 manifest-listed fixture files; SHA-256 comparison against the supplied manifest, 10/10 matched; arithmetic check of sample totals and missingness percentages; source-to-claim comparison against Table 1 and DEC-01/DEC-02; contract comparison of record fields and proposed repairs.\n- Not run: data/code reproduction, new sensitivity analyses, independent current external-Host review, native Qiongli orchestration, canonical apply, project refresh or Graph snapshot/query/doctor.\n- Live project/revision/Graph evidence is unavailable within this trial's explicit no-live-MCP scope; no claim about installed MCP connectivity is made.\n- No local guidance was present at `research/.qiongli/guidance_manifest.yaml`, `research/.qiongli/local_guidance.md` or `research/.qiongli/guidance.d`.\n\n### Raw source coverage and observed digests\n\nAll paths below are relative to `/private/tmp/qiongli-collaboration-continuity-20260911/research`; every file was read in full and matched the supplied manifest.\n\n| File | Observed SHA-256 |\n|---|---|\n| context/research_state.md | a4751991e27b2d9103c9e510c4e9045a4d2624577baa98580ec644f94ea9d48e |\n| context/decision_log.md | af82844d8b93f9974712a3ac327c71b9adb7b9cf9c7f8502e2c4b3cea8234fb9 |\n| context/stage_handoff.md | 7cecb968b303c2ba1a59d456a6202ca2b768d320c125db01d83461012757a043 |\n| context/stage_summaries/STG-C-001.md | c7fca4d0e8cefec420445a60fbacc021197ea56e88f8d086a69b0fc8611f3411 |\n| study_design.md | 1584911bc0970024a396598d0abe7f4b920d0b795cdfb57b007eea1173250b58 |\n| results/analysis.md | b875480e909bf71a643c1bfee4a335d162462b2d717952c437264c284af608e7 |\n| evidence/claim-evidence-ledger.csv | 8f476131ec53f9cc098579406a824609f451000397ca8693be4d5566fad5e1f8 |\n| manuscript/manuscript.md | a8d41c3b55668dfd8fbd9db30a8dbac51ef0efc730709a87427ebc3a846f0902 |\n| references.bib | be7e00a992c75156ad19e8d6108e5de93d27731a3000ef9c2d05dbb7b00b08dc |\n| external-review.md | db2938e47ee8b8fd77c356b721848f090db331f94305dfbfebc154a217efa485 |\n\n### Skill resources read\n\nAll paths below are relative to `/private/tmp/qiongli-collaboration-continuity-20260911/skill-source/materialize-source/qiongli-workflow` and were read in full:\n\n- `SKILL.md` (v2.0.0-beta.5)\n- `skills/Z_cross_cutting/model-collaborator.md`\n- `skills/Z_cross_cutting/academic-context-maintainer.md`\n- `references/stage-handoff-contract.md`\n- `references/academic-graph-continuity.md`\n- `references/workflow-contract.md`\n- `references/academic-output-rubric.md`\n- `references/evidence-ledger-contract.md`\n- `references/citation-risk-policy.md`\n- `references/stage-consolidation.md`\n- `references/stage-F-writing.md`\n- `references/platform-routing.md`\n- `templates/agent-review-packet.md`\n- `templates/agent-handoff.md`\n- `templates/duo-review-report.md`\n- `templates/research-state.md`\n- `templates/decision-log.md`\n- `templates/claim-evidence-map.md`\n\nThe additional read-only binding input was `/private/tmp/qiongli-collaboration-continuity-20260911/source-manifest.json`. No other project content or participant candidate was read.\n"
+      },
+      {
+        "path": "coordination.md",
+        "sha256": "55680fff1b56c39b3aac42c4c2d5cce368bed5ef238733496979ec4f01a36804",
+        "text": "# Coordinator reconciliation\nTask: continuity-integration-01. Coordinator: /root.\nIndependent drafting and review tasks returned through real collaboration tools.\nReviewer examined the original manuscript without reading the writer candidate.\nThe coordinator subsequently read both reports and the raw source snapshot.\n\nDraft candidate SHA-256: 11dc5b17c85b124af3ddbc47f0b672531ab96bf6481b5ddf15848dfe01f482ea\nIndependent review SHA-256: bcf6353a7e248c0b340974e72907ec4597d7c5e37b2f9ed687a5e58ed4759c82\nRaw source manifest SHA-256: 915331371aa6949f0a724ae33a1a66bfa66c862c0d76c93305df16ea55322cc3\n\n## Dispositions\n- REV-01: proposed draft uses association and separates 120 recruited from 90 complete outcomes; raw result and interval match Table 1.\n- REV-02: adjusted +0.18 [-0.12, 0.48] and DEC-01/DEC-02 limits are retained; no proof of causation or universal effectiveness.\n- REV-03: missing outcomes 8 versus 22 and absent baseline/model details remain explicit. Adjusted-model N is not inferred.\n- REV-04: stale external +0.42 [0.10, 0.74] and causal/Graph recommendations rejected for this snapshot; external origin unresolved.\n- REV-05: historical STG-C-001 remains intact; proposed state/handoff carry results and unresolved work.\n- REV-06: proposed ledger normalizes existing vocabulary, preserves CLM/DEC IDs and sources, and supplies a claim map. No Graph change has been applied or verified.\n\nThis supports a reviewable integrated candidate using draft.md unchanged. It is\ncoordinator reconciliation, not independent review of that exact new draft.\nFormal Stage F completion, live project revision, data/code reproduction and\nGraph readiness remain unverified. Another Host's current review has not been\nrequested or received. No canonical research files have been changed.\n"
+      },
+      {
+        "path": "summary-preview.md",
+        "sha256": "66022ba1ab663a18cdb38d20130e76199ed1ff8c51ae572328e842c0c4292093",
+        "text": "# Stage Summary — STG-F-001\n\n- Stage and requested scope: Stage F writing/review increment; detailed continuation document and manual retention advice for synthetic workshop research. Task `continuity-summary-01`.\n- Created at: 2026-09-11T22:43:03+00:00 (preview creation only).\n- Status: partial — proposed consolidation; canonical save and formal Stage F completion have not occurred.\n- Previous summary: [STG-C-001](/private/tmp/qiongli-collaboration-continuity-20260911/research/context/stage_summaries/STG-C-001.md), design close recorded as 2026-09-01.\n- Project revision: unavailable; authorized local synthetic snapshot only. No registered-project revision was inspected.\n- Source observation time: 2026-09-11T22:43:03+00:00; all ten raw-file SHA-256 values match the supplied manifest.\n- Proposed new document: `context/stage_summaries/STG-F-001.md`; unused when inspected. Only `candidate/summary-preview.md` is written by this task.\n\n## Stage Outcome\n\nThe completed increment has produced a Results/Discussion candidate, a separately executed review of the original manuscript, and coordinator reconciliation. The current evidence supports a positive raw attendance–confidence difference and an imprecise adjusted association in single-campus volunteers. The proposed writing corrects the original manuscript's causal language, use of all 120 recruits as the raw-analysis denominator, and claim of effectiveness across universities.\n\nThis is enough to preserve the completed work and resume Stage F. It is not evidence that a formal writing stage, manuscript acceptance, reproducibility check, independent review of the integrated draft, or Graph gate has passed. The canonical manuscript still contains its original errors because every edit remains proposed. Another Host is unavailable for a fresh review; that review remains unavailable and has not been simulated.\n\nThe earlier design summary remains valid history. It reported that outcome analysis was unavailable at design close, which is compatible with analysis becoming available later. The new document adds the results and review findings while retaining DEC-01 and DEC-02.\n\n## Retained Research Content\n\n### Research question, design and boundaries\n\nThe inherited question is: “Does workshop attendance predict end-term research confidence among volunteers?” Here, “predict” must be read as the observational association described in the design, not a demonstrated forecasting model or causal effect. The working contribution is a single-campus comparison of workshop attendance and confidence, with raw and adjusted estimates and explicit missingness limitations.\n\n`study_design.md`, Sample and estimand, describes 120 student volunteers at one campus. Attendance was self-selected and not randomized. The planned adjusted association controls baseline confidence and year. The design requires reporting complete-case counts and missing outcomes by attendance; no preregistration was filed. Its Interpretation section excludes both a workshop treatment-effect claim and representation of all universities. No instrument, measurement modality, scale range, recruitment procedure beyond volunteer participation, or practical-importance threshold is documented.\n\nDEC-01 therefore continues to limit interpretation to association. DEC-02 continues to restrict inference to volunteers at this single campus. The supplied materials do not document a broader comparison of alternative designs; the causal and university-wide wording rejected in this increment is an observed manuscript/review error, not evidence of a historical design-selection exercise.\n\n### Findings: sample and reported estimates\n\nThe following values come from `results/analysis.md`, Sample, Table 1 and Limitations. Missingness percentages are arithmetic derived here from the reported counts, rounded to one decimal place; they are not new analyses.\n\n| Attendance group | Recruited | Complete outcomes | Missing outcomes | Missing / recruited |\n|---|---:|---:|---:|---:|\n| Attended | 60 | 52 | 8 | 13.3% |\n| Did not attend | 60 | 38 | 22 | 36.7% |\n| Total | 120 | 90 | 30 | 25.0% |\n\n| Stable claim | Exact ledger claim text | Reported estimate | Scope and source |\n|---|---|---|---|\n| CLM-01 | Attendance was associated with a positive raw confidence difference | +0.60 confidence scale units; 95% CI [0.20, 1.00] | Complete-case raw group difference; 52 attendees and 38 non-attendees; `results/analysis.md`, Table 1 |\n| CLM-02 | Adjusted association remains imprecisely estimated | +0.18 units; 95% CI [-0.12, 0.48] | Adjusted for baseline confidence and year; adjusted-model N is not separately documented; `results/analysis.md`, Table 1 |\n\n`study2026` is the existing citekey and source ID. `references.bib` identifies it as *Synthetic workshop analysis record* (2026), a local synthetic fixture, not a published source. Neither its presence in the bibliography nor a reviewer's recommendation establishes causation or external validity.\n\n### Interpretation and remaining analysis limits\n\nThe planned adjusted estimate is smaller than the raw difference and its interval includes zero and values on either side. It establishes neither a positive association distinct from zero nor the absence of an association. It also does not identify a causal treatment effect. Baseline group summaries are missing, so the attenuation alone cannot establish which baseline differences explain the raw contrast.\n\nOutcomes were missing more often among non-attendees. Reporting the 90 complete outcomes satisfies the descriptive counting requirement but does not settle selective attrition. The design-stage request to examine missing outcomes and baseline differences therefore remains only partly addressed. No weighting or missing-not-at-random sensitivity analysis was run. No missing-at-random assumption is established. Code and individual data are absent, so these reported estimates have not been reproduced.\n\nThe analysis record does not separately state the adjusted-model sample size, complete-case inclusion rule, full model specification or diagnostics. Do not substitute 90 or 120 for its undocumented analytic N. The scale's range and meaningful-difference threshold are also unknown, so practical importance cannot be inferred from either estimate alone.\n\n### Retained proposed Results and Discussion\n\nThe following is the full substantive manuscript replacement in `candidate/draft.md`, Proposed manuscript text, retained verbatim as a proposal. The coordinator's reconciliation selected this candidate unchanged. This summary has checked its correspondence to the sources; that check is consolidation/self-review, not a new independent manuscript review.\n\n### Results\n\nOf the 120 student volunteers recruited at one campus, 60 attended the workshop and 60 did not. End-term confidence outcomes were available for 52 attendees and 38 non-attendees, giving 90 participants with complete outcomes. Outcomes were missing for 8 attendees and 22 non-attendees (@study2026, Sample and Limitations).\n\nIn the complete-case comparison, attendees had a higher end-term confidence score than non-attendees: the raw group difference was +0.60 confidence scale units (95% CI [0.20, 1.00]; CLM-01). The analysis record also reports an association of +0.18 units after adjustment for baseline confidence and year (95% CI [-0.12, 0.48]; CLM-02). The adjusted interval includes zero and spans negative and positive values (@study2026, Table 1).\n\n### Discussion\n\nWorkshop attendance was associated with higher confidence in the raw comparison, but the adjusted estimate was smaller and imprecisely estimated. The adjusted result does not establish a positive association distinct from zero, nor does it establish the absence of an association. The available record therefore supports a bounded description of the observed relationship; it does not show that attending the workshop increased confidence (CLM-01; CLM-02; DEC-01).\n\nSeveral limits affect interpretation. Attendance was self-selected, so adjustment for baseline confidence and year does not establish a causal treatment effect. The smaller adjusted estimate alone does not demonstrate which baseline differences account for the raw comparison: group-level baseline summaries were not supplied. Outcomes were also missing more often among non-attendees than attendees. A complete-case comparison cannot by itself resolve the possibility that the observed relationship differs from that among all recruited volunteers. No weighting or missing-not-at-random sensitivity analysis was reported (@study2026, Limitations).\n\nThese findings concern volunteers at this campus and do not establish that workshops improve confidence at universities generally (DEC-02). The supplied record does not document the confidence scale's range or a threshold for a practically meaningful difference, so the practical size of either estimate remains unclear. Reviewing baseline group differences, the adjusted model's sample and specification, and the consequences of missing outcomes would strengthen interpretation. Until that evidence is available, the contribution is an observational comparison with explicit uncertainty and limits on causal and wider population claims.\n\n\n### Review findings and reconciliation\n\nThe independently executed reviewer, `/root/continuity_review_trial` (`continuity-review-01`), reviewed the original `manuscript/manuscript.md`, hash `a8d41c3b55668dfd8fbd9db30a8dbac51ef0efc730709a87427ebc3a846f0902`. Its report explicitly says it did not read the drafting participant's candidate. The drafting task was `/root/continuity_draft_trial` (`continuity-draft-01`). Coordinator `/root` reconciled both returned reports in `continuity-integration-01`. These are local report identities; this task has not inspected native run receipts, model/session identifiers or a live Host descriptor.\n\n| Finding | Evidence and issue | Recorded disposition / remaining limit |\n|---|---|---|\n| REV-01 — BLOCK in original | Self-selected attendance; raw comparison uses 90 complete outcomes, not all 120 recruits | Candidate reports association, 120 recruited, 52 + 38 complete outcomes, and +0.60 [0.20, 1.00]. Canonical manuscript remains unchanged. |\n| REV-02 — BLOCK in original | Adjusted +0.18 [-0.12, 0.48] is uncertain; single-campus volunteers do not support universal effectiveness | Candidate preserves uncertainty and DEC-01/DEC-02. The review asks that interpretation emphasize the planned adjusted association; it is central in candidate Discussion. No formal acceptance recorded. |\n| REV-03 — Major | Missing outcomes differ by group; baseline comparisons and adjusted-model N are absent | Candidate retains 8 versus 22 missing outcomes and open diagnostics. Percentages above are derived from counts. Missingness is not resolved. |\n| REV-04 — BLOCK for external advice | External task/candidate/source bindings are stale, its estimate conflicts with current Table 1, and it requests causation | Reject stale numbers and causal/Graph suggestions for this snapshot; preserve the original review and unresolved origin. |\n| REV-05 — Major | Original manuscript treats the old summary as defective; continuity lacks current results | Remove historical commentary from proposed manuscript prose; keep STG-C-001 and its history row; propose the current summary and continuity updates below. |\n| REV-06 — Major for Graph continuity | Legacy ledger vocabulary, missing structured state/decision fields and absent claim map | Exact repairs are proposed in `candidate/draft.md`; none is applied, extracted or Graph-verified. |\n\n`candidate/coordination.md` supports using `candidate/draft.md` unchanged. It explicitly distinguishes coordinator reconciliation from independent review of those exact new bytes. The independent review of the original is completed work; a fresh independent review of the integrated candidate remains unperformed. The unavailable external Host has not been contacted by this task. Consolidation can proceed as this partial preview without pretending that the unavailable review occurred.\n\n### External disagreement retained\n\n`external-review.md` names task `external-01`, candidate `draft-before-analysis`, and sources `analysis-v0`. It reports +0.42 with 95% CI [0.10, 0.74], asks to approve causal wording and update the Graph to supported causation, and supplies no current hashes or live Qiongli receipt. Current `results/analysis.md`, Table 1, reports +0.18 [-0.12, 0.48]. The current analysis and observational design determine what can be stated for this snapshot. The older estimate's origin remains unknown. A fresh review must bind the exact task, source digests, candidate bytes and actual participant; a favorable verdict alone would still not change the design's identification limit.\n\n### Canonical record proposals preserved\n\nThe existing ledger has `evidence_type=analysis` and `confidence=moderate`; the loaded contract allows `analysis_result` and `medium`. The drafting candidate proposes those vocabulary mappings while retaining CLM-01, CLM-02, their exact atomic claim text, `study2026`, Table 1, and `results/analysis.md`. It expands limitations to include incomplete outcomes, non-reproduction and the undocumented adjusted-model sample. This maps the existing confidence label; it does not claim a new calibrated assessment.\n\nThe same candidate contains exact proposed ledger rows, a claim-map table using `Claim ID | Claim | Claim Type | Evidence Pointer | Citation Keys | Manuscript Location | Confidence | Action`, and an appended decision table retaining DEC-01/DEC-02. These are reviewable proposals and remain in their owner, `candidate/draft.md`; they are not silently applied by this consolidation. Claims must retain association support, with no invented causal edge, cluster or semantic identifier. No new substantive decision is necessary in `context/decision_log.md` merely to summarize this increment.\n\n## Source Coverage\n\nResearch paths below are relative to `/private/tmp/qiongli-collaboration-continuity-20260911/research`. Rows prefixed `../` are exact sibling trial inputs, relative to that research root. Every listed source was read in full. The table records retained meaning; source files remain required for exact bytes, provenance and later verification. Absolute links in this preview resolve from its actual location and the proposed summary location.\n\n| Exact source file | Observed SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| `context/research_state.md` | `a4751991e27b2d9103c9e510c4e9045a4d2624577baa98580ec644f94ea9d48e` | Full | All sections; DEC-01/DEC-02; STG-C-001 | Question, stage, locked boundaries, anchors and old history row; exact proposed state below | No substantive omission; original bytes remain separate | Current canonical snapshot and history |\n| `context/decision_log.md` | `af82844d8b93f9974712a3ac327c71b9adb7b9cf9c7f8502e2c4b3cea8234fb9` | Full | Entire three-line record; DEC-01/DEC-02 | Both decisions, rationale and limits | Exact legacy layout not duplicated; unchanged owner retained | Canonical decision record |\n| `context/stage_handoff.md` | `7cecb968b303c2ba1a59d456a6202ca2b768d320c125db01d83461012757a043` | Full | Entire C-to-F handoff | Inherited transition, predecessor and prior next task; exact proposed update below | No substantive omission | Canonical handoff |\n| `context/stage_summaries/STG-C-001.md` | `c7fca4d0e8cefec420445a60fbacc021197ea56e88f8d086a69b0fc8611f3411` | Full | Entire design summary; DEC-01/DEC-02 | Date, 120-volunteer plan, self-selection, boundaries, then-unavailable analysis and remaining checks | No substantive omission | Historical predecessor and active history/handoff link |\n| `study_design.md` | `1584911bc0970024a396598d0abe7f4b920d0b795cdfb57b007eea1173250b58` | Full | Sample and estimand; Missingness; Interpretation | Design, planned adjustment, no preregistration and interpretation limits | No substantive omission | Method/identification source |\n| `results/analysis.md` | `b875480e909bf71a643c1bfee4a335d162462b2d717952c437264c284af608e7` | Full | Sample; Table 1; Limitations; CLM-01/CLM-02 | All supplied counts, estimates, intervals, covariates, missingness and missing code/data | No substantive omission; unprovided code/data cannot be retained | Primary local analysis record and ledger anchor |\n| `evidence/claim-evidence-ledger.csv` | `8f476131ec53f9cc098579406a824609f451000397ca8693be4d5566fad5e1f8` | Full | Header and both rows; CLM-01/CLM-02; study2026 | Exact claim text, numerical support, legacy values, proposed normalization and limits | Full replacement CSV remains in drafting candidate | Canonical claim support register |\n| `manuscript/manuscript.md` | `a8d41c3b55668dfd8fbd9db30a8dbac51ef0efc730709a87427ebc3a846f0902` | Full | Entire original draft; CLM-01/CLM-02 | All three erroneous positions and their proposed corrections | Original wording not reproduced wholesale; exact reviewed bytes remain required | Original reviewed candidate and canonical draft pending revision |\n| `references.bib` | `be7e00a992c75156ad19e8d6108e5de93d27731a3000ef9c2d05dbb7b00b08dc` | Full | Entire study2026 entry | Citekey, title, year and synthetic/unpublished status | BibTeX serialization retained in source | Citation identity and provenance |\n| `external-review.md` | `db2938e47ee8b8fd77c356b721848f090db331f94305dfbfebc154a217efa485` | Full | Entire returned review; external-01; draft-before-analysis; analysis-v0 | Bindings, conflicting estimate/CI, causal/Graph advice, missing current receipt and rejection rationale | No substantive omission | Disagreement provenance; not current outcome evidence |\n| `../source-manifest.json` | `915331371aa6949f0a724ae33a1a66bfa66c862c0d76c93305df16ea55322cc3` | Full | All ten research-file keys | All source digests reproduced and checked against observed bytes | JSON formatting not reproduced | Baseline fingerprint record |\n| `../candidate/draft.md` | `11dc5b17c85b124af3ddbc47f0b672531ab96bf6481b5ddf15848dfe01f482ea` | Full | continuity-draft-01; draft-v1; Proposed manuscript text; source-bound Graph proposal | Full Results/Discussion, decisions, external disposition, repair scope and limitations | Exact canonical tables, repetitive source receipts and skill inventory remain in candidate | Selected unchanged candidate and precise proposed repairs |\n| `../candidate/review.md` | `bcf6353a7e248c0b340974e72907ec4597d7c5e37b2f9ed687a5e58ed4759c82` | Full | continuity-review-01; REV-01–REV-06; original manuscript hash | All six findings, concrete corrections, provenance, review scope, citation risks and limitations | Alternative replacement paragraph and repeated receipts are not copied verbatim; substantive content preserved | Independent first-pass review and original binding |\n| `../candidate/coordination.md` | `55680fff1b56c39b3aac42c4c2d5cce368bed5ef238733496979ec4f01a36804` | Full | continuity-integration-01; Dispositions | All six dispositions, unchanged candidate choice and explicit acceptance/review limits | Exact report formatting retained in source | Unique reconciliation and bound input hashes |\n\nNo supplied substantive research finding is intentionally omitted. Repeated packet metadata, exact proposed repair serialization and the reviewer's alternative prose remain in their original files as listed; this document is not a byte-for-byte substitute. Individual data, code, baseline comparisons, adjusted-model details, sensitivity results and measurement details were not supplied or read. No outside project or literature source was accessed.\n\n## Changes Since Previous Summary\n\n| Item / stable ID | Change | Earlier position | Current position and evidence | Reason / unresolved issue |\n|---|---|---|---|---|\n| STG-C-001 | Added later increment, not superseded | No completed outcome analysis at design close on 2026-09-01 | Current analysis and writing/review candidates are available | Preserve historical truth and original summary |\n| CLM-01 | Added numerical finding and corrected manuscript scope | Design summary contained no result | +0.60 [0.20, 1.00] among complete outcomes; association only | Original causal/all-120 wording rejected; canonical revision pending |\n| CLM-02 | Added adjusted finding and uncertainty | Planned adjustment; no completed result in predecessor | +0.18 [-0.12, 0.48], baseline confidence/year adjustment | Older external +0.42 [0.10, 0.74] is unbound to current sources |\n| DEC-01 | Retained | Observational association only | Same boundary, reinforced by design and reviewer findings | No new identification evidence |\n| DEC-02 | Retained | Single-campus volunteers | Same boundary | No new population evidence |\n| Missing outcomes / baseline checks | Partly addressed | Both checks required before drafting | Counts now known; 8/60 and 22/60 missing; baseline and sensitivity work absent | Descriptive missingness is not a resolution of bias; bounded draft remains proposed |\n| Review status | Added | No review recorded in predecessor | Original-draft independent review and coordinator reconciliation available | Integrated-draft independent review and fresh external review unavailable/unperformed |\n| Canonical continuity / Graph | Proposed updates only | Legacy state/decision structures and C-to-F handoff | Exact state/history/handoff preview; ledger/map repairs retained in candidate | No approval/apply/refresh/verification or native formal gate evidence |\n\n## Decisions and Open Questions\n\nDEC-01 and DEC-02 remain locked as inherited boundaries; confidence in their documentary basis is high because the design, state, decision record and predecessor agree. This is not a numerical confidence estimate for the study results. Causal wording and university-wide effectiveness were rejected in the present review because they conflict with those boundaries. Revisit DEC-01 only with adequate new identification/design evidence, and DEC-02 only with sampling or external-validity evidence that supports the proposed population.\n\nThe next researcher must resolve or explicitly carry forward baseline group differences, adjusted-model N and specification, missingness reasons and sensitivity, measurement details and practical importance, and data/code reproducibility. The stale external estimate's origin is open; its use in the current account is rejected. No collaborator consensus about unobserved diagnostics is implied. There is no documented grill outcome, and no formal grill or Q1–Q4 gate is declared passed here.\n\n## Next-Stage Handoff\n\nContinue Stage F; do not advance to submission on the strength of this summary. Start with this proposed summary, then the current state and DEC-01/DEC-02, the analysis and selected draft. Preserve the raw/adjusted distinction, incomplete-outcome denominators, uncertainty and single-campus scope. The exact proposed current-state/history and handoff changes are provided below.\n\n1. Revalidate the selected draft and source digests on resumption. If a fresh independent review of the integrated candidate is required for acceptance, obtain one from an actually available reviewer bound to those bytes; carry the external-Host gap until it is available. This task adds a consolidation check, not that review.\n2. Obtain baseline summaries, adjusted-model details and missingness evidence if they become available. No further analysis can be inferred from this packet; keep the current bounded prose if the evidence remains unavailable.\n3. Review and approve the proposed canonical changes through the existing write owner before any apply. Preserve the earlier summary and originals. Source changes or an occupied summary path require a fresh preview.\n4. After any authorized changes to graph-bearing canonical state/ledger/claim/decision records, explicitly refresh the registered project and inspect the resulting revision-bound Graph snapshot/query and diagnostics. Record projection/revision, semantic nodes and reviewed non-contains relations before any Graph-readiness claim. This preview performs none of those operations.\n\n## Optional Retention Review\n\nAll files remain retained and all user selections are empty. No file qualifies for manual-review removal on the available evidence. A summary does not replace canonical records, exact review bytes or source provenance. The user alone selects exact files and performs any deletion; no deletion, move, truncation, replacement or cleanup command is included.\n\nDependency checks covered the ten authorized research files and the three completed candidate files, using their full contents and a local path/ID/citekey search before creating this preview. The manifest was also read and hashed. The scope does not establish absence of references in outside projects, a live Graph or external systems. All listed inputs were observed as regular files. The rows identify known dependencies and unique material; an empty local path match would not itself clear a file for removal.\n\n| Exact regular file | Observed SHA-256 | Content retained where | References / dependency checks and scope | Loss risk / omissions | Recommendation | User selection / reported action |\n|---|---|---|---|---|---|---|\n| `context/research_state.md` | `a4751991e27b2d9103c9e510c4e9045a4d2624577baa98580ec644f94ea9d48e` | Research question; decisions; proposed state/history | Canonical question/history; referenced by drafting/review records | Loses current state and historical index | keep | |\n| `context/decision_log.md` | `af82844d8b93f9974712a3ac327c71b9adb7b9cf9c7f8502e2c4b3cea8234fb9` | Design boundaries; Decisions and Open Questions | Canonical DEC-01/DEC-02 owner; candidates propose structured normalization | Loses original decision provenance | keep | |\n| `context/stage_handoff.md` | `7cecb968b303c2ba1a59d456a6202ca2b768d320c125db01d83461012757a043` | Changes; proposed handoff | Current canonical C-to-F continuity; drafting/review references | Loses inherited transition and current handoff owner | keep | |\n| `context/stage_summaries/STG-C-001.md` | `c7fca4d0e8cefec420445a60fbacc021197ea56e88f8d086a69b0fc8611f3411` | Changes Since Previous Summary; design history | Referenced by existing state history, handoff and both candidate reports | Loses accepted historical record and breaks predecessor references | keep | |\n| `study_design.md` | `1584911bc0970024a396598d0abe7f4b920d0b795cdfb57b007eea1173250b58` | Research question, design and boundaries | Referenced by current state and both candidate reports; basis for DEC-01/DEC-02 | Loses original method and no-preregistration evidence | keep | |\n| `results/analysis.md` | `b875480e909bf71a643c1bfee4a335d162462b2d717952c437264c284af608e7` | Findings; Interpretation | Both ledger rows and state point here; draft/review rely on Table 1 | Loses the local primary analysis source; no code/data replacement exists | keep | |\n| `evidence/claim-evidence-ledger.csv` | `8f476131ec53f9cc098579406a824609f451000397ca8693be4d5566fad5e1f8` | Findings; canonical proposals | Canonical support register; state and candidate claim map use it | Loses stable claim-to-source bindings and Graph input | keep | |\n| `manuscript/manuscript.md` | `a8d41c3b55668dfd8fbd9db30a8dbac51ef0efc730709a87427ebc3a846f0902` | Review findings; full proposed replacement | Canonical draft; exact hash identifies reviewer input | Loses the original reviewed bytes before any approved revision | keep | |\n| `references.bib` | `be7e00a992c75156ad19e8d6108e5de93d27731a3000ef9c2d05dbb7b00b08dc` | Findings; synthetic source identity | study2026 is used in ledger/manuscript and both candidate reports | Loses canonical citation metadata; source is unpublished | keep | |\n| `external-review.md` | `db2938e47ee8b8fd77c356b721848f090db331f94305dfbfebc154a217efa485` | External disagreement retained | Both candidate reports assess this exact response | Loses unique stale-review provenance and unresolved numerical discrepancy | keep | |\n| `../source-manifest.json` | `915331371aa6949f0a724ae33a1a66bfa66c862c0d76c93305df16ea55322cc3` | Source Coverage; review/proposal content | Binds all ten baseline files; both candidate reports and coordinator refer to its hashes | Baseline fingerprint record; JSON formatting not reproduced | keep | |\n| `../candidate/draft.md` | `11dc5b17c85b124af3ddbc47f0b672531ab96bf6481b5ddf15848dfe01f482ea` | Source Coverage; review/proposal content | Coordinator binds exact draft hash and selects it unchanged | Selected unchanged candidate and precise proposed repairs; Exact canonical tables, repetitive source receipts and skill inventory remain in candidate | keep | |\n| `../candidate/review.md` | `bcf6353a7e248c0b340974e72907ec4597d7c5e37b2f9ed687a5e58ed4759c82` | Source Coverage; review/proposal content | Coordinator binds exact review hash; unique independently executed findings | Independent first-pass review and original binding; Alternative replacement paragraph and repeated receipts are not copied verbatim; substantive content preserved | keep | |\n| `../candidate/coordination.md` | `55680fff1b56c39b3aac42c4c2d5cce368bed5ef238733496979ec4f01a36804` | Source Coverage; review/proposal content | Unique integration dispositions and explicit review limits; used by this summary | Unique reconciliation and bound input hashes; Exact report formatting retained in source | keep | |\n\n## Exact Proposed Current-State, History and Handoff Changes\n\nThese are proposed bytes only. The canonical files have not changed. Create `context/stage_summaries/STG-F-001.md` from the Stage Summary portion above, ending after Optional Retention Review; this update-plan and verification appendix belong to the preview, not to the canonical state. Revalidate all source fingerprints and the unused destination before a later save. The existing write owner must handle authorization and current-file/CAS checks. Append the new history row only when the corresponding summary save actually succeeds; `partial` describes its unresolved research/review scope, not a completed formal stage.\n\n### Proposed update: context/research_state.md\n\nPreserve the existing topic, stage, question wording, locked-decision bullets, source-anchor text and STG-C-001 row. The following is the exact proposed complete file, adding the missing structured fields and current evidence. The old plain-text history path remains unchanged; the new link resolves from `context/research_state.md`.\n\n```markdown\n# Research State\n\n## Paper Identity\n- topic: library workshop attendance and student confidence (synthetic exercise)\n- paper_type: empirical\n- target_venue: not recorded\n- current_stage: F\n- last_updated_by_task: continuity-summary-01\n- last_updated_at: 2026-09-11\n\n## Current Research Question / Thesis\nDoes workshop attendance predict end-term research confidence among volunteers?\n\n- main_question_or_thesis: Does workshop attendance predict end-term research confidence among volunteers?\n- contribution_claim: A single-campus observational comparison shows a positive raw confidence difference and an imprecisely estimated adjusted association, with unresolved differential missing outcomes; causal effects and wider population conclusions are not established.\n- why_this_question_now: The completed analysis and proposed writing/review increment now require a source-bound interpretation; a broader rationale is not recorded.\n\n## Scope Boundaries and Working Definitions\n- included_scope: Observational end-term confidence comparison among 120 student volunteers at one campus; 90 complete outcomes for the raw comparison.\n- excluded_scope: Workshop treatment effects and inference to universities generally.\n- unit_of_analysis: Student volunteers in the reported comparison; adjusted-model analytic N is not separately documented.\n- contested_terms_and_working_definitions: Predict denotes the reported association here. The measurement instrument, modality, scale range and practical-importance threshold are not supplied.\n\n## Locked Decisions\n- DEC-01: describe association, not causation; attendance was self-selected.\n- DEC-02: no inference beyond volunteers at this single campus.\n\n| Decision area | Current position | Confidence | Source artifacts |\n|---|---|---|---|\n| Design / identification | DEC-01: association only; no identified workshop treatment effect | High documentary support for this boundary, not for study robustness | study_design.md, Sample and estimand / Interpretation; context/decision_log.md; context/stage_summaries/STG-C-001.md |\n| Scope / population | DEC-02: single-campus volunteers only | High documentary support for this boundary, not for generalizability | study_design.md, Sample and estimand / Interpretation; context/decision_log.md; context/stage_summaries/STG-C-001.md |\n\n## Current Evidence Position\n- strongest_supported_claims: CLM-01, Attendance was associated with a positive raw confidence difference: +0.60 confidence scale units, 95% CI [0.20, 1.00], among 90 complete outcomes. CLM-02, Adjusted association remains imprecisely estimated: +0.18 units, 95% CI [-0.12, 0.48], adjusted for baseline confidence and year. Source: results/analysis.md, Table 1; study2026 is a local synthetic record.\n- claims_still_provisional: The direction and practical importance of the adjusted association and robustness to missing outcomes remain unresolved; adjusted-model N is not inferred.\n- contradictory_or_null_evidence: The adjusted interval spans zero and both signs; this does not prove no association. The stale external +0.42 [0.10, 0.74] conflicts with current Table 1 and is rejected for this snapshot.\n- what_would_change_the_current_position: Corrected or reproducible analysis, baseline comparisons, model/sample details, missingness evidence or measurement interpretation; new identification or population evidence is required to revisit DEC-01/DEC-02.\n\n## Active Risks and Fragility Points\n- conceptual_risks: Causal/generalization drift and undefined practical meaning of confidence scale units.\n- methodological_risks: Self-selection; 8/60 attendee and 22/60 non-attendee outcomes missing; baseline differences and adjusted-model details unavailable. No preregistration was filed.\n- evidentiary_risks: No code or individual data supplied; no weighting or missing-not-at-random sensitivity analysis was run. Existing ledger vocabulary and claim-map repairs remain proposed.\n- writing_or_submission_risks: The canonical manuscript is unrevised. Independent review examined the original manuscript; coordinator reconciliation selected the new draft unchanged, but independent review of that exact candidate and a fresh review from another Host remain unperformed. Formal Stage F completion and Graph readiness are unverified.\n\n## Next-Stage Priorities\n1. Resume Stage F using the bound candidate and review dispositions; revalidate bytes before review or apply.\n2. Obtain baseline, adjusted-model, missingness and measurement details if available; otherwise retain explicit limitations.\n3. Complete any required exact-candidate independent review, approve canonical changes through the write owner, then refresh and verify the registered Graph if graph-bearing records change.\n\n## Source Artifact Anchors\nstudy_design.md; results/analysis.md; evidence/claim-evidence-ledger.csv\n\n- task_ids: continuity-draft-01; continuity-review-01; continuity-integration-01; continuity-summary-01\n- authoritative_artifacts: study_design.md; results/analysis.md; evidence/claim-evidence-ledger.csv; references.bib; context/decision_log.md; context/stage_summaries/STG-C-001.md. The manuscript remains an unrevised draft and candidate files remain proposals.\n- state_changes_since_last_update: Raw and adjusted results, missingness counts, review corrections and the stale external disagreement are now consolidated. DEC-01 and DEC-02 are retained. No downstream-stage readiness is asserted.\n\n## Stage Summary History\n| Summary ID | Stage | Date | Document | Previous summary | Status |\n|---|---|---|---|---|---|\n| STG-C-001 | C | 2026-09-01 | context/stage_summaries/STG-C-001.md | none | saved |\n| STG-F-001 | F | 2026-09-11 | [STG-F-001](stage_summaries/STG-F-001.md) | STG-C-001 | partial |\n```\n\n### Proposed update: context/stage_handoff.md\n\nThe former next task has produced a candidate, so its status is updated explicitly rather than retained as an uncompleted instruction. C-to-F remains the inherited transition; Stage F continues and no writing-to-submission transition is claimed. Links below resolve from the handoff's `context/` directory; sibling trial-candidate links intentionally preserve their external-to-research ownership.\n\n```markdown\n# Stage Handoff\n\nC to F. DEC-01 and DEC-02 retained. Prior summary context/stage_summaries/STG-C-001.md.\nThe earlier task to interpret the completed analysis and prepare a results/discussion candidate has produced a proposal and coordinator reconciliation. Stage F continues; no canonical manuscript apply or formal stage completion is established.\n\n## Completed Artifacts\n- [Study design](../study_design.md), [analysis record](../results/analysis.md), [claim ledger](../evidence/claim-evidence-ledger.csv) and [bibliography](../references.bib) were supplied and inspected; their presence is not proof of reproducibility or completed formal gates.\n- [STG-C-001](stage_summaries/STG-C-001.md) remains the saved design-stage predecessor.\n- [STG-F-001](stage_summaries/STG-F-001.md) records this partial writing/review consolidation; this link is added only after the summary is actually saved.\n- [Drafting candidate](../../candidate/draft.md), [independent review of the original manuscript](../../candidate/review.md), and [coordinator reconciliation](../../candidate/coordination.md) are completed returned proposals/reports, not applied canonical edits.\n- [Canonical manuscript](../manuscript/manuscript.md) remains unrevised. [External review](../external-review.md) was received in the supplied packet but is stale for the current candidate.\n\n## Decision Summary\n- DEC-01: association only; attendance was self-selected and the design does not identify a workshop treatment effect.\n- DEC-02: no inference beyond volunteers at this single campus.\n- Current Table 1 supports raw +0.60 [0.20, 1.00] and adjusted +0.18 [-0.12, 0.48]. Reject the stale external estimate and causal recommendation for this snapshot.\n\n## Resolved Grill Decisions\n- No formal grill outcome was supplied. DEC-01/DEC-02 are inherited decisions; do not relabel them as a new completed grill.\n\n## Unresolved Questions\n- Baseline group differences; adjusted-model N, inclusion rule and specification; reasons for missing outcomes and sensitivity to selective attrition; measurement details and practical importance; availability of code/data for reproduction.\n- The origin of the stale external +0.42 [0.10, 0.74] is unknown.\n- Independent review of the exact integrated draft has not occurred. Another Host is unavailable for a fresh review.\n\n## Open Grill Issues\n- No formal grill record was supplied. Carry open review/evidence risks: unresolved missingness and baseline checks, unrevised canonical claims, and unverified canonical/Graph repairs.\n\n## Evidence Dependencies\n- results/analysis.md, Sample / Table 1 / Limitations; evidence/claim-evidence-ledger.csv, CLM-01/CLM-02; references.bib, study2026; study_design.md; context/decision_log.md, DEC-01/DEC-02.\n- Candidate and review SHA-256 bindings are recorded in STG-F-001 and the coordinator report. Review inspected the original manuscript, not the new draft.\n\n## Assumptions Passed Forward\n- Reported estimates are taken from the synthetic analysis summary and have not been reproduced.\n- Complete outcomes are available for 52 attendees and 38 non-attendees; do not infer the adjusted-model N from these counts.\n- No missing-at-random assumption is established, no weighting or missing-not-at-random sensitivity analysis was run, and no preregistration was filed.\n\n## Risks For Next Stage\n- Reintroducing causal or university-wide claims; assigning raw results to all 120 recruits; interpreting the adjusted interval as proof of no association; concealing differential missingness; treating stale review advice as current evidence or approval.\n- Treating candidates, a saved summary or a structural file inventory as formal acceptance, reproducibility or Graph readiness.\n\n## Revisit Triggers\n- New/corrected analysis, baseline/model details, missingness diagnostics or measurement evidence may change interpretation.\n- New identification/design evidence is required for DEC-01; new sampling/external-validity evidence for DEC-02.\n- A fresh source- and candidate-bound review may reopen wording or evidence questions. Reviewer preference alone does not establish causation.\n\n## Recommended Next Tasks\n1. Revalidate source/candidate bytes and continue Stage F from the bounded Results/Discussion candidate and review dispositions.\n2. Resolve the named evidence gaps where inputs are available; retain them explicitly otherwise. Obtain an actual review of the exact candidate when required; do not simulate the unavailable Host.\n3. Preview/approve/apply the manuscript and minimum canonical record changes through the existing owner. After graph-bearing changes, explicitly refresh and inspect the revision-bound Graph and diagnostics before readiness claims.\n4. Keep originals and both stage documents. File selection and deletion belong to the user; the current retention review clears no removal candidate.\n```\n\n### Decision log and other owners\n\nNo substantive DEC entry is added by this summary. `context/decision_log.md` remains unchanged. The earlier proposal to append a structured table, normalize ledger vocabulary and create `manuscript/claims_evidence_map.md` remains precisely in `candidate/draft.md`; it requires its own reviewed apply and must preserve original decision text and stable IDs. This preview is not approval of those operations. A new summary is not a new semantic authority for the Graph.\n\n## Verification and Actual Read Scope\n\nThe actual read scope was the ten manifest-listed raw research files, all three completed candidate files, the manifest, and the Skill resources listed below. Full reads were used; initial batched-output truncation was followed by complete rereads of affected research/candidate material and the workflow-contract tail. Local dependency searching covered only that authorized snapshot. All ten raw hashes matched the manifest, the coordinator's draft/review/manifest bindings matched the observed input hashes, and the intended STG-F-001 research path was absent when checked.\n\nA direct scholarly-language pass kept the retained candidate prose exact and checked the new narrative against the sources for numbers, uncertainty, causal scope, decisions and retention states. Count arithmetic was checked: 52 + 38 = 90, 8 + 22 = 30, 90 + 30 = 120, and missingness is 13.3%, 36.7% and 25.0%. No data/model reanalysis is claimed. The legacy history headers and old row are unchanged in the proposed state; the new row is conditional on an actual later save.\n\nCitation risks retained: `weak_support` for the original causal/universal claims; `outdated_source` for the stale external snapshot; `review_as_primary` if external advice were substituted for the analysis. `study2026` exists in the supplied references.bib; no external publication or native bibliography-registration verification was performed.\n\nSkill resources read in full, relative to the authorized `skill-source/materialize-source/qiongli-workflow/` root:\n\n- SKILL.md\n- workflows/stage-close.md\n- skills/Z_cross_cutting/academic-context-maintainer.md\n- skills/Z_cross_cutting/model-collaborator.md\n- skills/J_proofread/human-voice-rewriter.md\n- references/stage-consolidation.md\n- references/stage-handoff-contract.md\n- references/academic-graph-continuity.md\n- references/workflow-contract.md\n- references/scholarly-voice.md\n- references/academic-output-rubric.md\n- references/evidence-ledger-contract.md\n- references/citation-risk-policy.md\n- templates/stage-summary.md\n- templates/stage-handoff.md\n- templates/research-state.md\n\nOnly this preview path was written. No research file was written, deleted, moved, truncated or replaced. No new agent, external model process, network request, private-project access, live MCP operation, canonical apply, formal gate receipt, registered-project refresh or Graph query was performed. The absence of live operations follows this trial's explicit scope; it is not a finding that installed MCP connectivity is broken.\n"
+      }
+    ],
+    "reported_skill_resources_sha256": {
+      "SKILL.md": "340ff92d94d591208bbf0f4851417188e1a9403c3adc15f45479034022483c78",
+      "references/academic-graph-continuity.md": "ab1dfa0d81306439e69f04d4b45dbe99a7eb310950277a5dfcd17cbb0afc21be",
+      "references/academic-output-rubric.md": "414b552a030cdc2acdf67d41c5bb1b94164f3475a08fc0bec2e4018a8abb0475",
+      "references/citation-risk-policy.md": "7b7de4233f73fab6cdd461aa2c642dd8b61770f97ad3c01a2e79a52888d22d66",
+      "references/evidence-ledger-contract.md": "4eb801e1a848ba6304ece02b7056fa1ace032df542d7505c68ec30f9b2d6ed68",
+      "references/platform-routing.md": "3522252ed0fa90bba49353d4a5b358e168f2e4eff8e611efc87580e78f7397be",
+      "references/scholarly-voice.md": "e31d038189ce1dd5b311df14dcc2f37f3d63759ba4452e15e42dceeaee5d7930",
+      "references/stage-F-writing.md": "5c4884d6eda37e81272c5ba29d282f18a423ab6869348c6b0d1e8bd9769c019f",
+      "references/stage-consolidation.md": "6cb1f23a69c035eebe94f255a09936c12384f9f4186963726d7275b7e1ecfc8a",
+      "references/stage-handoff-contract.md": "49cc77a813d4583a343a7ea5ccfbf92aaa593d4bcd05d33284fd739b659a46f1",
+      "references/workflow-contract.md": "bbe2b515bafef51b10755d19e93c624b3c9b4afa8ddfd52e6afc47b51ed9a3d7",
+      "skills/J_proofread/human-voice-rewriter.md": "69ab71fbd39bb93c6435809117e984906791bea102ad33444b680aa8a6e62a28",
+      "skills/Z_cross_cutting/academic-context-maintainer.md": "af4d10a8c510c60158d74600bab600b40629a0260c24a2d11c9183a2dc6fe5f0",
+      "skills/Z_cross_cutting/model-collaborator.md": "b89cee8ff1d00f6e00e6f7aec242fd1f61049b1b3d645718576cc435123e3047",
+      "templates/agent-handoff.md": "cd9c0ab40b5546ad48d89abaebfb216e31835212b438090dae2b63c72813c100",
+      "templates/agent-review-packet.md": "f24e26420ed9c5bd6fe4208a602536f09c30a8bc03632d3fef891f3ab1d2943f",
+      "templates/claim-evidence-map.md": "1400a80557465bd3fbaee37d6eb3165d9e2ff1ddeaf4df075aaa6233a24e0ceb",
+      "templates/decision-log.md": "b330ba79e8784fad7c66f61f652fb57bbc5fac678d7525901991f7207c4c3f8f",
+      "templates/duo-review-report.md": "0af50c90ae3f926bcc208f4de88f380497f3f5bdca4821ad4057466da6f4ab16",
+      "templates/research-state.md": "35a18c7920c5254315796f1284bdec37509ae6b38f455737fb5931ef2f230559",
+      "templates/stage-handoff.md": "6d95cff226c424e630a90aa73ec19761f549ad5c5269ec4ba268c55ffde20cc8",
+      "templates/stage-summary.md": "d904ba837a9f508d2de00f5eb2b673750e319d9450e2e4dade1ce9939f036a4a",
+      "workflows/academic-write.md": "bbd30ed9c53c71929418f88cab226a3ff1735aba05d8d77ea7e1e66128aa867f",
+      "workflows/stage-close.md": "136f9abc8376d6102583fb8b6bf1b3f38f9ac0753f378ad1b89b6facf5532801"
+    },
+    "observations": [
+      "All 10 canonical raw fixture files remain byte-identical; only candidate outputs were added.",
+      "Both independent participants identify association/causation drift, 120 recruited versus 90 complete outcomes, differential missingness and the stale +0.42 external result. The current +0.18 adjusted estimate and interval remain exact.",
+      "Stable CLM-01/CLM-02, DEC-01/DEC-02, study2026 and STG-C-001 survive drafting, review and consolidation. Invalid ledger vocabulary and missing canonical Graph fields are proposed for normalization, not silently applied.",
+      "Reviewer identity and original candidate hash are explicit. The coordinator reconciles the new draft but does not claim independent review of its exact new bytes.",
+      "The summary retains substantive results and proposed manuscript text, lists omissions/dependencies, preserves the old history row and previews STG-F-001 with partial scope. All 14 retention rows say keep and user selections are empty.",
+      "No native project revision, Graph refresh/readiness, source deletion, cross-Host contact, formal Stage F completion or data/code reproduction is claimed."
+    ],
+    "limitations": [
+      "Synthetic local snapshot; no actual second Host transport or authenticated participant attestation.",
+      "No live Hook delivery/trust session; protocol only.",
+      "No Windows/Linux or migrated real-project semantic, performance or maintenance acceptance.",
+      "Unavailable fresh external review and independent review of the integrated candidate remain explicit gaps."
+    ],
+    "embedded_export": {
+      "version": "2.0.0-beta.5",
+      "source_commit": "baa892dc099762f6beefbab0fb3d3f17a01ff1bf",
+      "content_source_commit": "baa892dc099762f6beefbab0fb3d3f17a01ff1bf",
+      "pack_sha256": "ad484826415de40435e9dbd961d9ddcf35c30a83cf978202366b39bf800e2119",
+      "content_root_sha256": "5ea44b7336ea6128d436ef3c3dd17c166dffd9f2b2cbe03bfe3ceef4c99d576a",
+      "verified_entries": 433
+    },
+    "resource_bytes_match_trial_commit": true,
+    "verification": {
+      "content_routing_projection": {
+        "passed": 43
+      },
+      "academic_quality_and_capability": {
+        "passed": 48,
+        "skipped": 1
+      },
+      "offline_academic_quality_cases": {
+        "passed": 12
+      },
+      "cli": {
+        "passed": 40
+      },
+      "hook_boundary_followup": {
+        "passed": 1,
+        "binaries": [
+          "qiongli",
+          "ql"
+        ],
+        "valid_json_limits_bytes": [
+          65536,
+          65537
+        ]
+      },
+      "native_bundle_regressions": {
+        "passed": 9,
+        "ignored_live_host_tests": 2
+      },
+      "final_source_complete_bundles": {
+        "passed": 2
+      },
+      "mcp_stdio": {
+        "passed_in_sandbox": 6,
+        "initial_loopback_failure": "PermissionDenied binding synthetic 127.0.0.1:0 listener",
+        "loopback_retry_with_local_test_permission_passed": 1
+      },
+      "final_native_content": {
+        "passed": 46
+      },
+      "coordinator_content_followup": {
+        "passed": 13
+      },
+      "program_ledger": {
+        "passed": 7
+      },
+      "clippy_all_targets": "passed",
+      "desktop_feature_compile": "passed",
+      "rustfmt": "passed",
+      "docs_build": "passed; existing language-highlighter/chunk-size warnings",
+      "frozen_source_guard": "passed",
+      "final_export_canonical_byte_matches": 433
+    }
+  }
+}

@@ -4,7 +4,8 @@ Use this section when you already know what you want to do and need exact comman
 
 ## Reference Pages
 
-- [CLI Reference](/reference/cli)
+- [2.x CLI: installation and commands](/guide/cli-2x)
+- [1.x CLI reference (legacy)](/reference/cli)
 - [Skills Guide](/reference/skills)
 - [Conventions](/conventions)
 

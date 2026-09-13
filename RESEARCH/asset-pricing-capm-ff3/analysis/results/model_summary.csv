@@ -1,0 +1,5 @@
+weighting,model,portfolio_count,mean_abs_alpha_monthly,median_abs_alpha_monthly,alpha_abs_t_gt_1_96_count,mean_adjusted_r_squared,mean_abs_alpha_reduction_vs_capm,median_abs_alpha_reduction_vs_capm
+value_weighted,capm,25,0.0019794875,0.0019448813,10,0.7338049171,,
+value_weighted,ff3,25,0.0008713117,0.0005021927,6,0.9096355832,0.5598296647,0.7417874762
+equal_weighted,capm,25,0.0022376175,0.0023044078,10,0.7226584505,,
+equal_weighted,ff3,25,0.0010165402,0.0005132098,6,0.8867379155,0.5457042298,0.7772921124

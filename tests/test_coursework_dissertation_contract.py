@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import unittest
 from pathlib import Path
 
 import yaml
@@ -108,8 +109,8 @@ def test_platform_routing_mentions_coursework_and_dissertation() -> None:
     assert "/dissertation" in routing
     assert "assignment brief" in routing
     assert "supervisor feedback" in routing
-    assert "/coursework [assignment brief, task, or topic]" in skill
-    assert "/dissertation [topic, program, or level]" in skill
+    assert "workflows/coursework.md" in skill
+    assert "workflows/dissertation.md" in skill
 
 
 def test_skill_schema_and_registry_include_coursework_and_dissertation_stages() -> None:
@@ -172,3 +173,17 @@ def test_coursework_and_dissertation_templates_exist_with_missing_information_fi
         text = (ROOT / "content" / "templates" / name).read_text(encoding="utf-8")
         assert "Missing Information" in text
         assert "Do not invent" in text
+
+
+def load_tests(
+    _loader: unittest.TestLoader,
+    suite: unittest.TestSuite,
+    _pattern: str | None,
+) -> unittest.TestSuite:
+    functions = (
+        value
+        for name, value in sorted(globals().items())
+        if name.startswith("test_") and callable(value)
+    )
+    suite.addTests(unittest.FunctionTestCase(function) for function in functions)
+    return suite

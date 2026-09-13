@@ -39,7 +39,7 @@ class MCPToolSurfaceParityTests(unittest.TestCase):
             ],
         )
 
-    def test_node_mcpb_manifest_exposes_common_literature_provider_tools(self) -> None:
+    def test_binary_mcpb_manifest_exposes_common_literature_provider_tools(self) -> None:
         manifest_path = REPO_ROOT / "packages" / "qiongli-literature-mcpb" / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         names = {tool["name"] for tool in manifest["tools"]}
@@ -50,10 +50,10 @@ class MCPToolSurfaceParityTests(unittest.TestCase):
         python_names = {tool["name"] for tool in MCP_TOOL_DEFINITIONS}
         manifest_path = REPO_ROOT / "packages" / "qiongli-literature-mcpb" / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        node_names = {tool["name"] for tool in manifest["tools"]}
+        mcpb_names = {tool["name"] for tool in manifest["tools"]}
 
         self.assertIn("qiongli_collect_evidence", python_names)
-        self.assertNotIn("qiongli_collect_evidence", node_names)
+        self.assertNotIn("qiongli_collect_evidence", mcpb_names)
 
 
 if __name__ == "__main__":

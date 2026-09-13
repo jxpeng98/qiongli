@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/product/control/index.md", "reason": "Product-control verification and release-tier contract"}
+{"file": ".trellis/spec/native/runtime/index.md", "reason": "Native workspace, generated schema, and cross-platform quality contract"}
+{"file": ".trellis/tasks/08-30-2x-cross-platform-delivery/research/current-cross-platform-validation-audit.md", "reason": "Measured current Native CI duplication and ruleset evidence"}
+{"file": ".trellis/tasks/08-30-2x-cross-platform-delivery/research/macos-windows-cross-build-validation.md", "reason": "Observed cargo-xwin artifacts, guest runtime evidence, and residual risk"}

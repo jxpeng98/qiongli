@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import os
+import re
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -16,10 +21,12 @@ RELEASE_LOCAL_INSTALL_CHECK = LAYOUT.scripts / "release_local_install_check.py"
 BETA_SMOKE = REPO_ROOT / "tooling" / "scripts" / "run_beta_smoke.sh"
 PYPI_PREFLIGHT = LAYOUT.scripts / "pypi_preflight.sh"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml"
+CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 INSTALL_CHECK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "install-check.yml"
 MACOS_INSTALL_CHECK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "install-check-macos.yml"
 AUTO_RERUN_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "auto-rerun-failed-actions.yml"
 PUBLISH_PYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml"
+PUBLISH_TESTPYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-testpypi.yml"
 PUBLISH_NPM_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-npm.yml"
 VERIFY_RELEASE_TAG = LAYOUT.scripts / "verify_release_tag_version.sh"
 CHANGELOG_SECTION = LAYOUT.scripts / "changelog_section.py"
@@ -29,6 +36,7 @@ PUBLISH_PYPI_ZH_DOC = REPO_ROOT / "docs" / "zh" / "advanced" / "publish-pypi.md"
 RELEASE_BRANCH_POLICY_DOC = REPO_ROOT / "docs" / "maintainer" / "release-branch-policy.md"
 RELEASE_BRANCH_POLICY_ZH_DOC = REPO_ROOT / "docs" / "zh" / "maintainer" / "release-branch-policy.md"
 ACCEPTANCE_TEMPLATE = REPO_ROOT / "tooling" / "release" / "templates" / "beta-acceptance-template.md"
+WINDOWS_A1_ACCEPTANCE = REPO_ROOT / "tooling" / "scripts" / "windows_a1_acceptance.ps1"
 
 
 class ReleaseAutomationTests(unittest.TestCase):
@@ -124,6 +132,10 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('if is_prerelease_tag "$repo_tag" && [[ "$current_branch" == "$DEV_PRERELEASE_BRANCH" ]]; then', content)
         self.assertIn('release_branch="$DEV_PRERELEASE_BRANCH"', content)
         self.assertIn('Current branch: $current_branch; push branch: $push_branch; expected release branch: $release_branch', content)
+        self.assertIn('release_line="$(normalize_field "$version_input" release_line)"', content)
+        self.assertIn('source_branch="$(normalize_field "$version_input" source_branch)"', content)
+        self.assertIn('if [[ "$release_line" == "native-2x" ]]; then', content)
+        self.assertIn("RLS-201/PKG gate: native", content)
 
     def test_publish_mode_uses_release_ready_staging_before_commit_and_tag(self) -> None:
         content = RELEASE_AUTOMATION.read_text(encoding="utf-8")
@@ -177,6 +189,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("resume_after_ready=0", content)
         self.assertIn('if [[ "$resume_after_ready" -eq 0 ]]; then', content)
         self.assertIn("ensure_clean_resume_worktree", content)
+        self.assertIn('git status --porcelain --untracked-files=normal', content)
+        self.assertNotIn('if ! git diff --quiet || ! git diff --cached --quiet; then', content)
         self.assertIn('echo "[release-automation] resuming after release_ready; skipping preflight and release-prep commit"', content)
         self.assertIn('ensure_tag_matches_release_commit "$repo_tag" "$release_commit" "$push_remote"', content)
         self.assertIn('local_tag_target="$(resolve_local_tag_target "$repo_tag")"', content)
@@ -224,14 +238,23 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertNotIn('"dist/qiongli-core-codex-plugin-${TAG}.tar.gz"', content)
         self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"', content)
         self.assertIn('release_args+=("${PLUGIN_ARTIFACTS[@]}")', content)
+        native_gate = 'if [[ "$RELEASE_LINE" == "native-2x" ]]; then'
+        materialize = 'python3 scripts/materialize_distribution_payloads.py --target all --out "$POSTFLIGHT_STAGING_DIR" --force'
+        self.assertIn(native_gate, content)
+        self.assertIn("no materialization, dist-ref update, asset upload, or GitHub release mutation was attempted", content)
+        self.assertLess(content.index(native_gate), content.index(materialize))
 
     def test_release_postflight_uploads_zotero_companion(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
 
-        self.assertIn("python3 scripts/build_zotero_companion.py --dist-dir dist >/dev/null", content)
+        build_companion = """python3 scripts/build_zotero_companion.py \\
+  --dist-dir dist \\
+  --release-tag "$TAG" \\
+  --repo "$REPO_SLUG" >/dev/null"""
+        self.assertIn(build_companion, content)
         self.assertIn('python3 scripts/release_upload_assets.py --tag "$TAG" --dist-dir dist >"$UPLOAD_ASSETS_FILE"', content)
         self.assertLess(
-            content.index("python3 scripts/build_zotero_companion.py --dist-dir dist >/dev/null"),
+            content.index(build_companion),
             content.index('python3 scripts/release_upload_assets.py --tag "$TAG" --dist-dir dist >"$UPLOAD_ASSETS_FILE"'),
         )
 
@@ -240,44 +263,57 @@ class ReleaseAutomationTests(unittest.TestCase):
         template = ACCEPTANCE_TEMPLATE.read_text(encoding="utf-8")
 
         evidence = 'python3 scripts/release_acceptance_evidence.py --root "$ROOT_DIR" --out "$ACCEPTANCE_EVIDENCE_FILE"'
-        template_write = 'python3 - "$TEMPLATE_PATH" "$ACCEPTANCE_OUT" "$TAG" "$RELEASE_DATE" "$LOCAL_TAG_COMMIT" "$CI_STATUS" "$ACCEPTANCE_EVIDENCE_FILE"'
+        template_write = 'python3 - "$TEMPLATE_PATH" "$ACCEPTANCE_OUT" "$TAG" "$RELEASE_DATE" "$LOCAL_TAG_COMMIT" "$CI_STATUS" "$ACCEPTANCE_EVIDENCE_FILE" "$DOWNLOAD_INDEX"'
 
         self.assertIn("{{SUBJECT_RUNTIME_EVIDENCE}}", template)
+        self.assertIn("{{COMPONENT_VERSION_MAP}}", template)
         self.assertIn('ACCEPTANCE_EVIDENCE_FILE=""', content)
         self.assertIn('rm -f "$ACCEPTANCE_EVIDENCE_FILE"', content)
         self.assertIn(evidence, content)
         self.assertIn(template_write, content)
         self.assertIn('subject_runtime_evidence = evidence.read_text(encoding="utf-8")', content)
+        self.assertIn('release_index.get("component_versions")', content)
+        self.assertIn('.replace("{{COMPONENT_VERSION_MAP}}", component_version_map)', content)
         self.assertIn('.replace("{{SUBJECT_RUNTIME_EVIDENCE}}", subject_runtime_evidence)', content)
         self.assertLess(content.index(evidence), content.index(template_write))
 
-    def test_release_postflight_publishes_codex_dist_refs(self) -> None:
+    def test_release_postflight_guards_generic_platform_dist_refs(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
 
-        self.assertIn("publish_codex_dist_ref()", content)
+        self.assertIn("publish_plugin_dist_refs()", content)
         self.assertIn('codex_slug="qiongli"', content)
         self.assertIn('codex_slug="qiongli-next"', content)
+        self.assertIn('claude_slug="qiongli"', content)
+        self.assertIn('claude_slug="qiongli-next"', content)
         self.assertIn('node scripts/publish-codex-dist-ref.mjs \\', content)
+        self.assertIn('--channel "$channel" \\', content)
         self.assertIn('--version "${TAG#v}" \\', content)
-        self.assertIn('--slug "$codex_slug" \\', content)
-        self.assertIn('--source "$POSTFLIGHT_STAGING_DIR/plugins/$codex_slug"', content)
-        self.assertIn('publish_codex_dist_ref "$TAG"', content)
+        self.assertIn('--slug "$platform_slug" \\', content)
+        self.assertIn('--source "$platform_source"', content)
+        self.assertIn('! -name "qiongli-workflow"', content)
+        self.assertIn('publish_plugin_dist_refs "$TAG"', content)
+        self.assertIn("native_plugin_dist_ref_policy()", content)
+        self.assertIn('NATIVE_PLUGIN_DIST_REF_POLICY="$(native_plugin_dist_ref_policy "$TAG")"', content)
+        self.assertIn('if [[ "$NATIVE_PLUGIN_DIST_REF_POLICY" == "multi-target" ]]; then', content)
+        self.assertIn("generic plugin dist refs skipped: native policy is", content)
         self.assertLess(
             content.index('python3 scripts/build_plugin_artifacts.py --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG" --dist-dir dist'),
-            content.index('publish_codex_dist_ref "$TAG"'),
+            content.index('NATIVE_PLUGIN_DIST_REF_POLICY="$(native_plugin_dist_ref_policy "$TAG")"'),
         )
         self.assertLess(
-            content.index('publish_codex_dist_ref "$TAG"'),
+            content.index('publish_plugin_dist_refs "$TAG"'),
             content.index('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"'),
         )
 
     def test_checkout_install_check_runs_all_platforms_on_push_and_pr(self) -> None:
         main_content = INSTALL_CHECK_WORKFLOW.read_text(encoding="utf-8")
 
-        self.assertIn("name: Checkout Install Check", main_content)
+        self.assertIn("name: Legacy Checkout Install Check", main_content)
         self.assertIn("push:", main_content)
         self.assertIn("pull_request:", main_content)
         self.assertIn("workflow_dispatch:", main_content)
+        self.assertIn('branches: ["main", "master", "dev"]', main_content)
+        self.assertNotIn('branches: ["2.x"]', main_content)
         self.assertIn("os: [ubuntu-latest, macos-latest]", main_content)
         self.assertIn("runs-on: windows-latest", main_content)
 
@@ -285,6 +321,49 @@ class ReleaseAutomationTests(unittest.TestCase):
             MACOS_INSTALL_CHECK_WORKFLOW.exists(),
             msg="macOS checkout checks should stay in the main workflow to avoid duplicate checks.",
         )
+
+    def test_ci_runs_windows_a1_acceptance_against_the_built_artifact(self) -> None:
+        workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+        windows_job = workflow.split("  rust-lite-mcp-windows:\n", 1)[1].split(
+            "  cross-platform-tests:\n", 1
+        )[0]
+        acceptance = WINDOWS_A1_ACCEPTANCE.read_text(encoding="utf-8")
+
+        self.assertIn("components: rustfmt, clippy", windows_job)
+        self.assertIn("Run Windows provider-config ACL evidence", windows_job)
+        self.assertIn("--lib windows_ -- --nocapture", windows_job)
+        self.assertIn("Run legacy Node MCPB Windows tests", windows_job)
+        self.assertIn("npm --prefix packages/qiongli-literature-mcpb test", windows_job)
+        self.assertIn("Run built Windows artifact A1 acceptance", windows_job)
+        self.assertIn("tooling/scripts/windows_a1_acceptance.ps1", windows_job)
+        self.assertIn("windows-a1-acceptance.json", windows_job)
+        self.assertIn("if: success()", windows_job)
+        self.assertIn("if-no-files-found: error", windows_job)
+        self.assertIn("Upload partial Windows diagnostics", windows_job)
+        self.assertIn("if: failure()", windows_job)
+        self.assertIn("qiongli-lite-mcp-windows-x86_64-partial", windows_job)
+        self.assertIn("if-no-files-found: warn", windows_job)
+
+        self.assertIn('acceptance = "qiongli_windows_a1_release_artifact"', acceptance)
+        self.assertIn("$runningOnWindows =", acceptance)
+        self.assertNotIn("$isWindows =", acceptance)
+        self.assertIn('$saveJsonRpc -ceq "2.0" -and $saveResponseId -eq 1', acceptance)
+        self.assertIn('$statusJsonRpc -ceq "2.0" -and $statusResponseId -eq 2', acceptance)
+        self.assertIn(
+            '$redactedApiKeyProperty = $redactedFields.PSObject.Properties["api_key"]',
+            acceptance,
+        )
+        self.assertIn('$null -eq $redactedApiKeyProperty', acceptance)
+        self.assertNotIn('$redactedApiKey -ceq "configured"', acceptance)
+        self.assertIn('GetEnvironmentVariable("GITHUB_SHA")', acceptance)
+        self.assertIn("AreAccessRulesProtected", acceptance)
+        self.assertIn("owner_is_current_user", acceptance)
+        self.assertIn("current_user_full_control_only", acceptance)
+        self.assertIn("canary_redacted", acceptance)
+        self.assertIn("$null -eq $originalValue", acceptance)
+        self.assertIn("[System.Management.Automation.Language.NullString]::Value", acceptance)
+        self.assertNotIn("[object]::Equals($restoredValue", acceptance)
+        self.assertIn("temporary_config_removed", acceptance)
 
     def test_failed_ci_and_checkout_runs_are_rerun_once(self) -> None:
         content = AUTO_RERUN_WORKFLOW.read_text(encoding="utf-8")
@@ -364,7 +443,7 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_release_ready_updates_stable_download_sections_before_preflight(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
 
-        stable_guard = 'if ! is_prerelease_tag "$REPO_TAG"; then'
+        stable_guard = 'if [[ "$RELEASE_LINE" == "legacy-1x" ]] && ! is_prerelease_tag "$REPO_TAG"; then'
         updater = 'python3 scripts/update_stable_download_sections.py --tag "$REPO_TAG" --root "$ROOT_DIR"'
         preflight = './scripts/release_automation.sh pre "${PRE_ARGS[@]}" --materialize-out "$RELEASE_STAGING_DIR"'
 
@@ -378,7 +457,7 @@ class ReleaseAutomationTests(unittest.TestCase):
 
         self.assertNotIn("python3 scripts/materialize_distribution_payloads.py --target next-plugin --in-place", content)
         preflight = './scripts/release_automation.sh pre "${PRE_ARGS[@]}" --materialize-out "$RELEASE_STAGING_DIR"'
-        verify = 'bash ./scripts/verify_release_tag_version.sh --root "$RELEASE_STAGING_DIR" --tag "$REPO_TAG"'
+        verify = 'bash ./scripts/verify_release_tag_version.sh --root "$VERIFY_ROOT" --tag "$REPO_TAG"'
         local_install = 'python3 scripts/release_local_install_check.py --root "$RELEASE_STAGING_DIR"'
         pypi = 'bash ./scripts/pypi_preflight.sh --root "$RELEASE_STAGING_DIR" "${PYPI_ARGS[@]}"'
         npm = 'bash ./scripts/npm_preflight.sh --root "$RELEASE_STAGING_DIR"'
@@ -400,7 +479,7 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_release_ready_checks_experience_schema_compatibility(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
 
-        verify = 'bash ./scripts/verify_release_tag_version.sh --root "$RELEASE_STAGING_DIR" --tag "$REPO_TAG"'
+        verify = 'bash ./scripts/verify_release_tag_version.sh --root "$VERIFY_ROOT" --tag "$REPO_TAG"'
         checker = 'python3 scripts/check_experience_schema_compatibility.py --root "$RELEASE_STAGING_DIR"'
         local_install = 'python3 scripts/release_local_install_check.py --root "$RELEASE_STAGING_DIR"'
 
@@ -471,6 +550,18 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertNotIn('echo "[preflight] platform target registry schema"', content)
         self.assertIn(platform_registry_gate, content)
         self.assertLess(content.index(platform_registry_gate), content.index(standard_validator))
+
+    def test_release_preflight_validates_capability_contract_before_standard_validator(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        capability_gate = (
+            'python3 scripts/validate_capability_contract.py --root "$PREFLIGHT_ROOT" --require-complete'
+        )
+        standard_validator = 'run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"'
+
+        self.assertIn('echo "[preflight] capability contract v2"', content)
+        self.assertIn(capability_gate, content)
+        self.assertLess(content.index(capability_gate), content.index(standard_validator))
 
     def test_release_preflight_supports_staged_materialization_for_ci(self) -> None:
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
@@ -594,7 +685,65 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('release_ready.sh --version', content)
         self.assertNotIn('git push origin main --tags', content)
 
-    def test_release_workflow_is_diagnostic_wrapper_not_publish_entrypoint(self) -> None:
+    @unittest.skipIf(os.name == "nt", "requires POSIX Bash release entrypoints")
+    def test_native_note_generator_is_truthful_and_rejects_legacy_customization(self) -> None:
+        manifest = (REPO_ROOT / "packages/qiongli-native/Cargo.toml").read_text(encoding="utf-8")
+        version = re.search(
+            r'(?ms)^\[workspace\.package\]\s*$.*?^version\s*=\s*"([^"]+)"',
+            manifest,
+        )
+        self.assertIsNotNone(version)
+        native_tag = f"v{version.group(1)}"
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "native-alpha.md"
+            generated = subprocess.run(
+                [
+                    "bash",
+                    "scripts/generate_release_notes.sh",
+                    "--tag",
+                    native_tag,
+                    "--output",
+                    str(output),
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            self.assertEqual(generated.returncode, 0, generated.stderr)
+            content = output.read_text(encoding="utf-8")
+            for token in (
+                "Release Notes",
+                "Stage: Alpha",
+                "Validation Evidence",
+                "Publish Steps",
+                "rollback.md",
+                "publication is not allowed",
+            ):
+                self.assertIn(token, content)
+
+            rejected = subprocess.run(
+                [
+                    "bash",
+                    "scripts/generate_release_notes.sh",
+                    "--tag",
+                    native_tag,
+                    "--output",
+                    str(Path(directory) / "custom.md"),
+                    "--from-tag",
+                    "v1.19.0-beta.1",
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            self.assertEqual(rejected.returncode, 2)
+            self.assertIn("reject legacy", rejected.stderr)
+
+    def test_release_workflow_separates_diagnostics_from_authorized_native_publication(self) -> None:
         content = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
         self.assertIn("workflow_dispatch:", content)
@@ -620,6 +769,38 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('git config user.name "github-actions[bot]"', content)
         self.assertIn("python -m pip install -e . build twine", content)
         self.assertIn("./scripts/release_automation.sh \"$mode\" \"${args[@]}\"", content)
+        self.assertIn("Classify release", content)
+        self.assertIn('--print-field package_version', content)
+        self.assertIn("native-release-dry-run:", content)
+        self.assertIn("legacy-release-automation:", content)
+        native_jobs, legacy_job = content.split("  legacy-release-automation:\n", 1)
+        native_job, publication_job = native_jobs.split("  native-publish:\n", 1)
+        self.assertIn("inputs.mode == 'post' && inputs.create_release", publication_job)
+        self.assertIn("contents: write", publication_job)
+        self.assertIn("actions: write", publication_job)
+        self.assertIn('native_release_publish.py --tag "$RELEASE_TAG"', publication_job)
+        self.assertIn("contents: read", native_job)
+        self.assertIn("persist-credentials: false", native_job)
+        self.assertIn("dtolnay/rust-toolchain@1.97.0", native_job)
+        self.assertNotIn("GH_TOKEN", native_job)
+        self.assertIn("contents: write", legacy_job)
+        self.assertIn("GH_TOKEN", legacy_job)
+        self.assertIn('if [[ "$GITHUB_REF_TYPE" != "branch"', native_job)
+        self.assertNotIn('tag="${{ inputs.tag }}"', content)
+        self.assertNotIn('args+=(--from-tag "${{ inputs.from_tag }}")', content)
+        self.assertIn('--materialize-out "$RUNNER_TEMP/qiongli-native-release-plan"', content)
+        self.assertIn("Upload native release dry-run bundle", content)
+
+    def test_testpypi_workflow_is_legacy_branch_only(self) -> None:
+        content = PUBLISH_TESTPYPI_WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn("github.ref_type == 'branch'", content)
+        self.assertIn("github.ref_name == 'main'", content)
+        self.assertIn("github.ref_name == 'dev'", content)
+        self.assertIn("github.ref_name == 'release/1.x-python'", content)
+        self.assertIn('--print-field release_line', content)
+        self.assertIn('if [[ "$release_line" != "legacy-1x" ]]; then', content)
+        self.assertIn("id-token: write", content)
 
     def test_publish_pypi_workflow_verifies_tag_matches_repo_version(self) -> None:
         content = PUBLISH_PYPI_WORKFLOW.read_text(encoding="utf-8")
@@ -628,18 +809,25 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('packages-dir: ${{ runner.temp }}/qiongli-dist/dist', content)
         self.assertNotIn('bash scripts/verify_release_tag_version.sh --tag "${GITHUB_REF_NAME}"', content)
 
-    def test_tag_publish_workflows_do_not_expose_manual_publish_dispatch(self) -> None:
+    def test_tag_publish_workflows_limit_manual_publication_to_native_tags(self) -> None:
         for workflow in (PUBLISH_PYPI_WORKFLOW, PUBLISH_NPM_WORKFLOW):
             with self.subTest(workflow=workflow.name):
                 content = workflow.read_text(encoding="utf-8")
 
-                self.assertNotIn("workflow_dispatch:", content)
+                self.assertIn("workflow_dispatch:", content)
+                self.assertIn("inputs.publish_release && github.ref_type == 'tag'", content)
+                self.assertIn("startsWith(github.ref_name, 'v2.')", content)
                 self.assertNotIn("inputs.tag", content)
                 self.assertIn("push:", content)
                 self.assertIn('tags:\n      - "v*"', content)
                 self.assertIn("ref: ${{ github.ref }}", content)
                 self.assertIn("RELEASE_TAG: ${{ github.ref_name }}", content)
                 self.assertIn('bash scripts/verify_release_tag_version.sh --root "$RUNNER_TEMP/qiongli-dist" --tag "${RELEASE_TAG}"', content)
+                self.assertIn("if: ${{ github.event_name == 'push' && !startsWith(github.ref_name, 'v2.') }}", content)
+                self.assertIn("types: [published]", content)
+                self.assertIn("--require-ci", content)
+                self.assertIn('release_line="$(python3 scripts/release_version.py "${RELEASE_TAG}" --print-field release_line)"', content)
+                self.assertIn('if [[ "$release_line" == "native-2x" ]]; then', content)
 
     def test_tag_publish_workflows_materialize_staging_before_version_verify(self) -> None:
         for workflow in (PUBLISH_PYPI_WORKFLOW, PUBLISH_NPM_WORKFLOW):
@@ -673,8 +861,15 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("--root <dir>", content)
         self.assertIn('ROOT_DIR="$(cd "$2" && pwd)"', content)
         self.assertIn('cd "$ROOT_DIR"', content)
-        self.assertIn('scripts/sync_versions.py "$TAG" --print-field package_version', content)
-        self.assertIn('scripts/sync_versions.py "$TAG" --print-field npm_version', content)
+        self.assertIn('"${QIONGLI_PYTHON:-python3}" scripts/release_version.py "$TAG" --print-field "$field"', content)
+        self.assertIn('expected_package_version="$(release_field package_version)"', content)
+        self.assertIn('expected_release_line="$(release_field release_line)"', content)
+        self.assertIn('expected_channel="$(release_field channel)"', content)
+        self.assertIn('if [[ "$expected_release_line" == "native-2x" ]]; then', content)
+        self.assertIn('packages/qiongli-native/Cargo.toml', content)
+        self.assertIn('packages/qiongli-native/Cargo.lock', content)
+        self.assertIn('packages/qiongli-lite-mcp/Cargo.lock', content)
+        self.assertIn('native workspace channel mismatch', content)
         self.assertIn('pyproject.toml', content)
         self.assertIn('packages/python-qiongli/src/qiongli/__init__.py', content)
         self.assertIn('content/skills/registry.yaml', content)
@@ -697,11 +892,202 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('plugins/qiongli/skills/qiongli-workflow/VERSION', content)
         self.assertIn('plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('plugins/qiongli-next/.codex-plugin/plugin.json', content)
+        self.assertIn('plugins/qiongli-next/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli-next/skills/qiongli-workflow/VERSION', content)
         self.assertIn('plugins/qiongli-next/skills/qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertNotIn('plugins/qiongli/gemini-extension.json', content)
-        self.assertIn('python3 scripts/audit_distribution_payloads.py --root "$ROOT_DIR"', content)
+        self.assertIn('"${QIONGLI_PYTHON:-python3}" scripts/audit_distribution_payloads.py --root "$ROOT_DIR"', content)
+
+    def test_native_preflight_uses_external_plan_and_native_cargo_gates(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+        ready = RELEASE_READY.read_text(encoding="utf-8")
+
+        self.assertIn('native --materialize-out must be outside the source tree', content)
+        self.assertIn('native --staging-dir must be outside the source tree', ready)
+        self.assertIn('RELEASE_STAGING_DIR="$(canonical_external_path "$RELEASE_STAGING_DIR")"', ready)
+        self.assertIn('native preflight forbids --in-place', content)
+        self.assertIn('cd packages/qiongli-native', content)
+        self.assertIn('cargo fmt --all -- --check', content)
+        self.assertIn('cargo clippy --workspace --all-targets --all-features --locked -- -D warnings', content)
+        self.assertIn('cargo test --workspace --all-targets --all-features --locked', content)
+        self.assertIn('python3 scripts/native_release_dry_run.py \\', content)
+        self.assertIn('--out-dir "$MATERIALIZE_OUT" \\', content)
+        self.assertIn('--source-ref "$native_source_ref"', content)
+        self.assertIn('--source-ref-type "$native_source_ref_type"', content)
+        self.assertIn('--worktree-state "$native_worktree_state"', content)
+        self.assertIn('--source-commit "$(git rev-parse HEAD)"', content)
+        self.assertIn('dry-run evidence will not bind source_commit', content)
+        self.assertIn('--json', content)
+
+    def test_native_publish_and_postflight_fail_before_mutating_commands(self) -> None:
+        automation = RELEASE_AUTOMATION.read_text(encoding="utf-8")
+        postflight = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
+
+        automation_gate = 'if [[ "$release_line" == "native-2x" ]]; then'
+        automation_gate_index = automation.index(automation_gate)
+        self.assertLess(
+            automation_gate_index,
+            automation.index("\n    ensure_git_identity\n", automation_gate_index),
+        )
+        self.assertLess(
+            automation_gate_index,
+            automation.index('git push "$push_remote" "$push_branch"', automation_gate_index),
+        )
+        postflight_gate = 'if [[ "$RELEASE_LINE" == "native-2x" ]]; then'
+        self.assertLess(postflight.index(postflight_gate), postflight.index('POSTFLIGHT_STAGING_DIR="$(mktemp'))
+        self.assertLess(postflight.index(postflight_gate), postflight.index('publish_plugin_dist_refs "$TAG"'))
+
+    @unittest.skipIf(os.name == "nt", "requires POSIX Bash release entrypoints")
+    def test_native_publish_gate_is_functional_and_does_not_change_head(self) -> None:
+        before = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            check=True,
+        ).stdout.strip()
+        refs_before = subprocess.run(
+            ["git", "for-each-ref", "--format=%(refname):%(objectname)"],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            check=True,
+        ).stdout
+        result = subprocess.run(
+            [
+                "bash",
+                "scripts/release_automation.sh",
+                "publish",
+                "--tag",
+                "v2.0.0-alpha.1",
+            ],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        postflight = subprocess.run(
+            [
+                "bash",
+                "scripts/release_postflight.sh",
+                "--tag",
+                "v2.0.0-alpha.1",
+                "--skip-remote",
+                "--skip-ci-status",
+            ],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        after = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            check=True,
+        ).stdout.strip()
+        refs_after = subprocess.run(
+            ["git", "for-each-ref", "--format=%(refname):%(objectname)"],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            check=True,
+        ).stdout
+
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("RLS-201/PKG gate", result.stderr)
+        self.assertIn("no commit, push, or tag was created", result.stderr)
+        self.assertEqual(postflight.returncode, 1, postflight.stderr)
+        self.assertIn("RLS-201/PKG gate", postflight.stderr)
+        self.assertIn("no materialization", postflight.stderr)
+        self.assertEqual(after, before)
+        self.assertEqual(refs_after, refs_before)
+
+    @unittest.skipIf(os.name == "nt", "requires POSIX Bash release entrypoints")
+    def test_native_tag_verifier_binds_cargo_version_channel_and_lock(self) -> None:
+        manifest = (REPO_ROOT / "packages/qiongli-native/Cargo.toml").read_text(encoding="utf-8")
+        version = re.search(
+            r'(?ms)^\[workspace\.package\]\s*$.*?^version\s*=\s*"([^"]+)"',
+            manifest,
+        )
+        self.assertIsNotNone(version)
+        aligned = subprocess.run(
+            [
+                "bash",
+                "scripts/verify_release_tag_version.sh",
+                "--root",
+                str(REPO_ROOT),
+                "--tag",
+                f"v{version.group(1)}",
+            ],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        mismatch = subprocess.run(
+            [
+                "bash",
+                "scripts/verify_release_tag_version.sh",
+                "--root",
+                str(REPO_ROOT),
+                "--tag",
+                "v2.0.0-alpha.9999",
+            ],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual(aligned.returncode, 0, aligned.stderr)
+        self.assertIn("workspace version, channel, and Cargo.lock are aligned", aligned.stdout)
+        self.assertEqual(mismatch.returncode, 1, mismatch.stderr)
+        self.assertIn("native workspace version mismatch", mismatch.stderr)
+
+    def test_active_native_release_paths_have_no_alpha1_literals(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "tooling/scripts/check_native_release_literals.py"],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("active release paths are version-generic", result.stdout)
+        self.assertIn("historical fixtures=1", result.stdout)
+
+    @unittest.skipIf(os.name == "nt", "requires POSIX Bash release entrypoints")
+    def test_native_preflight_rejects_source_tree_output_before_write(self) -> None:
+        forbidden = REPO_ROOT / ".rel201-forbidden-output"
+        self.assertFalse(forbidden.exists())
+        result = subprocess.run(
+            [
+                "bash",
+                "scripts/release_preflight.sh",
+                "--tag",
+                "v2.0.0-alpha.987654",
+                "--materialize-out",
+                str(forbidden),
+            ],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("must be outside the source tree", result.stderr)
+        self.assertFalse(forbidden.exists())
 
 
 if __name__ == "__main__":

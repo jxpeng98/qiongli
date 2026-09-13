@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 node_modules/
+.pnpm-store/
+.svelte-kit/
 dist/
 build/
 *.egg-info/
@@ -15,6 +17,10 @@ output/test_runtime/
 # Local agent artifacts generated during `rsk` install tests
 .claude/
 .qiongli/
+
+# Public inputs for the repository-owned empirical acceptance project are
+# downloaded and digest-verified at run time; raw archives are not redistributed.
+/RESEARCH/asset-pricing-capm-ff3/analysis/data/raw/
 
 # Local Qiongli guidance and trace artifacts generated during orchestrator runs
 .qiongli/

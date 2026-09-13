@@ -1,5 +1,9 @@
 # qiongli
 
+> **Qiongli 1.x distribution:** This npm package is the maintained Python-free 1.x asset manager.
+> It does not install or verify the native 2.x App or CLI. Native Community Alpha users must follow
+> the [2.x App installation authority](../../docs/alpha/install-2x.md).
+
 `qiongli` on npm is the Python-free asset manager for Qiongli client assets.
 
 ## Install

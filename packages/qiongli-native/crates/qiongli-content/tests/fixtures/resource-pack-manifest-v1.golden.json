@@ -1,0 +1,160 @@
+{
+  "format_version": 1,
+  "compiler_contract_version": 1,
+  "pack_id": "qiongli-core",
+  "content_version": "1.19.0-beta.1",
+  "source_commit": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f",
+  "compatible_product": {
+    "minimum": "2.0.0-alpha.1",
+    "maximum_exclusive": "3.0.0"
+  },
+  "profiles": [
+    {
+      "id": "skill-only",
+      "aliases": [],
+      "included_resource_kinds": [
+        "role",
+        "skill",
+        "skill-summary",
+        "standard",
+        "subject",
+        "template",
+        "venue-profile",
+        "workflow"
+      ]
+    },
+    {
+      "id": "marketplace-lite",
+      "aliases": ["lite"],
+      "included_resource_kinds": [
+        "target-metadata",
+        "mcp-contract",
+        "role",
+        "schema",
+        "skill",
+        "skill-summary",
+        "standard",
+        "subject",
+        "template",
+        "venue-profile",
+        "workflow"
+      ]
+    },
+    {
+      "id": "full",
+      "aliases": [],
+      "included_resource_kinds": [
+        "target-metadata",
+        "mcp-contract",
+        "role",
+        "schema",
+        "skill",
+        "skill-summary",
+        "standard",
+        "subject",
+        "template",
+        "venue-profile",
+        "workflow"
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "path": "distribution/platform-targets.yaml",
+      "resource_kind": "target-metadata",
+      "mode": "0644",
+      "size_bytes": 1,
+      "payload_offset": 0,
+      "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+    },
+    {
+      "path": "mcp-contracts/v2/registry.json",
+      "resource_kind": "mcp-contract",
+      "mode": "0644",
+      "size_bytes": 1,
+      "payload_offset": 1,
+      "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+    },
+    {
+      "path": "roles/pi.yaml",
+      "resource_kind": "role",
+      "mode": "0644",
+      "size_bytes": 1,
+      "payload_offset": 2,
+      "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+    },
+    {
+      "path": "schemas/skill.schema.json",
+      "resource_kind": "schema",
+      "mode": "0644",
+      "size_bytes": 1,
+      "payload_offset": 3,
+      "sha256": "18ac3e7343f016890c510e93f935261169d9e3f565436429830faf0934f4f8e4"
+    },
+    {
+      "path": "skills-core.md",
+      "resource_kind": "skill-summary",
+      "mode": "0644",
+      "size_bytes": 1,
+      "payload_offset": 4,
+      "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea"
+    },
+    {
+      "path": "skills-summary.md",
+      "resource_kind": "skill-summary",
+      "mode": "0644",
+      "size_bytes": 1,
+      "payload_offset": 5,
+      "sha256": "252f10c83610ebca1a059c0bae8255eba2f95be4d1d7bcfa89d7248a82d9f111"
+    },
+    {
+      "path": "skills/A_framing/question-refiner.md",
+      "resource_kind": "skill",
+      "mode": "0644",
+      "size_bytes": 1,
+      "payload_offset": 6,
+      "sha256": "cd0aa9856147b6c5b4ff2b7dfee5da20aa38253099ef1b4a64aced233c9afe29"
+    },
+    {
+      "path": "standards/research-quality.yaml",
+      "resource_kind": "standard",
+      "mode": "0644",
+      "size_bytes": 1,
+      "payload_offset": 7,
+      "sha256": "aaa9402664f1a41f40ebbc52c9993eb66aeb366602958fdfaa283b71e64db123"
+    },
+    {
+      "path": "subjects/catalog.yaml",
+      "resource_kind": "subject",
+      "mode": "0644",
+      "size_bytes": 1,
+      "payload_offset": 8,
+      "sha256": "de7d1b721a1e0632b7cf04edf5032c8ecffa9f9a08492152b926f1a5a7e765d7"
+    },
+    {
+      "path": "templates/paper.md",
+      "resource_kind": "template",
+      "mode": "0644",
+      "size_bytes": 1,
+      "payload_offset": 9,
+      "sha256": "189f40034be7a199f1fa9891668ee3ab6049f82d38c68be70f596eab2e1857b7"
+    },
+    {
+      "path": "venue-profiles/nature.yaml",
+      "resource_kind": "venue-profile",
+      "mode": "0644",
+      "size_bytes": 1,
+      "payload_offset": 10,
+      "sha256": "8254c329a92850f6d539dd376f4816ee2764517da5e0235514af433164480d7a"
+    },
+    {
+      "path": "workflow/SKILL.md",
+      "resource_kind": "workflow",
+      "mode": "0644",
+      "size_bytes": 0,
+      "payload_offset": 11,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "content_root_sha256": "1b0bbbc9f2edff065aae153f017af3e35537c6a80b98b2f5411b47ce60a1ea5b"
+}

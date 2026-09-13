@@ -18,17 +18,16 @@ preferred_skills:
   - reference-manager-bridge
 
 quality_thresholds:
-  min_screening_agreement: 0.8
-  require_prisma_flow: true
+  search_quality_contract: "references/literature-search-quality-contract.md"
+  review_requirements: "Retain the selected review protocol, independent screening and applicable PRISMA reporting; targeted discovery does not imply a full review."
   require_search_log: true
-  max_missing_fulltext_pct: 20
 
 tone: "thorough, systematic, documentation-focused"
 
 escalation_rules:
-  - condition: "screening_disagreement > 0.3"
-    action: "flag for PI review and second screening pass"
-  - condition: "missing_fulltext > 30%"
-    action: "attempt alternative retrieval channels"
+  - condition: "unresolved_screening_disagreement"
+    action: "retain both decisions and use the protocol's adjudication process before final inclusion"
+  - condition: "missing_required_fulltext"
+    action: "record not-retrieved status and its reason; plan authorized alternative retrieval without treating missing text as an eligibility exclusion"
 
 default_domain: null

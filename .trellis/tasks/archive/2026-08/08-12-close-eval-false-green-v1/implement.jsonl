@@ -1,0 +1,2 @@
+{"file":".trellis/spec/product/control/index.md","reason":"Keep the M1 EVAL-401 through EVAL-405 slice separate from M0 publication and later roadmap work."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Fix the false-green once in the existing shared runner with one focused regression and no new framework."}

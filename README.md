@@ -12,216 +12,144 @@
     <a href="docs/index.md">Docs</a> ·
     <a href="docs/zh/index.md">中文文档</a> ·
     <a href="docs/quickstart.md">Quickstart</a> ·
-    <a href="docs/guide/install.md">Install</a> ·
-    <a href="docs/reference/cli.md">CLI</a>
+    <a href="docs/guide/cli-2x.md#standalone-binary-download">Install</a> ·
+    <a href="docs/guide/cli-2x.md">CLI</a>
   </p>
 </div>
 
-## What It Is
+## Qiongli 2.x
 
-Qiongli is an academic workflow system for researchers who use Codex, Claude Code, Claude Desktop, Antigravity, Hermes, or similar AI agents. Use it when a research task is too important for a one-off prompt and needs visible evidence, repeatable steps, and reviewable outputs.
+Native academic research CLI with embedded Skills, templates and Lite/Full MCP.
+Keep your chosen Codex or Claude Code Host and model settings. Qiongli supplies
+research records, source links, reviewable changes and stage handoffs; no Qiongli
+desktop App is required.
 
-You can use Qiongli to:
+Installation and updates share one guide: run `qiongli install` in a terminal,
+or `qiongli install plugin` to reuse an existing Host registration. Check the local
+MCP protocol with `qiongli mcp check`. A Plugin includes the research Skills and its
+MCP runtime; standalone Skills are an optional export. The [2.x guide](docs/guide/cli-2x.md)
+explains the choices and how to verify the first Host session.
 
-- choose a paper route for empirical, qualitative, systematic review, RCT, theory, and code-first methods projects;
-- structure literature search, citation checking, study design, writing, code, review, submission, and rebuttal work;
-- keep claims, sources, methods decisions, review notes, and generated artifacts in predictable project paths;
-- run lightweight skill/plugin workflows first, then add the full local orchestrator only when you need controlled solo, duo, or triad agent execution.
+Beta.6 adds an offline [Research Graph example](docs/examples/research-graph.md),
+lighter research guidance, a reply-only entry and optional context hooks.
 
-The name comes from `穷理`: keep asking what principle, evidence, and limit sits underneath a claim.
+## Qiongli 2.x Standalone Downloads
 
-## Start Here
+**Download, extract, and run. You do not need Python, Node.js, Rust or a package manager.**
 
-| Need | Best entry |
+Choose the complete CLI from [GitHub Release v2.0.0-beta.6](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.6).
+After extraction, run `./qiongli --help` (PowerShell: `.\qiongli.exe --help`).
+The program already includes the research Skills, templates and Lite/Full MCP
+resources. You can use it from that folder; installing an App or changing PATH is optional.
+
+| Platform | Binary archive |
 |---|---|
-| Browse the full documentation | [VitePress Docs](docs/index.md), or run `npm run docs:dev` |
-| Read in Chinese | [中文 README](README_CN.md) or [中文文档](docs/zh/index.md) |
-| Install Qiongli in one client | [Install Guide](docs/guide/install.md) |
-| Get from zero to a first workspace | [Quickstart](docs/quickstart.md) |
-| Decide which paper workflow to use | [Task Recipes](docs/guide/task-recipes.md) |
-| Use CLI commands, aliases, JSON checks, or automation | [CLI Reference](docs/reference/cli.md) |
-| Understand the runtime and package model | [Architecture](docs/architecture.md) |
+| macOS Apple Silicon (ARM64) | [Download `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-aarch64-apple-darwin.tar.gz) |
+| Windows x64 | [Download `.zip`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-x86_64-pc-windows-msvc.zip) |
+| Linux x64 (glibc 2.35+) | [Download `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-x86_64-unknown-linux-gnu.tar.gz) |
 
-## Latest Stable Downloads
+Windows beta releases include the C runtime in the executable; no Visual C++ runtime
+installation is needed. Linux uses system libraries with glibc 2.35+.
 
-Current stable release: [v1.17.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.17.0). These direct links cover the common install paths; use the download guide for subject-specific Desktop ZIPs and maintainer artifacts.
+Verify with the release's [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/SHA256SUMS)
+before running. See [extraction, PATH and MCP setup](docs/guide/cli-2x.md#standalone-binary-download)
+for step-by-step instructions. Choose these platform archives from **Assets**, rather than
+GitHub's automatic **Source code** downloads. Host applications and online services remain separate.
 
-| Need | Link or command |
-|---|---|
-| npm CLI | [`qiongli@1.17.0`](https://www.npmjs.com/package/qiongli/v/1.17.0): `npm install -g qiongli@latest` |
-| PyPI CLI | [`qiongli 1.17.0`](https://pypi.org/project/qiongli/1.17.0/): `pipx install qiongli` |
-| Claude Desktop recommended plugin | [`qiongli-claude-desktop-plugin-v1.17.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.17.0/qiongli-claude-desktop-plugin-v1.17.0.zip) |
-| Claude Desktop/Web fallback skill ZIP | [`qiongli-claude-desktop-skill-core-v1.17.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.17.0/qiongli-claude-desktop-skill-core-v1.17.0.zip) |
-| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.5.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.17.0/qiongli-literature-provider-0.1.5.mcpb) |
-| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.17.0/qiongli-zotero-companion-0.2.2.xpi) |
-| All release assets | [Download guide](https://github.com/jxpeng98/qiongli/releases/download/v1.17.0/qiongli-downloads-v1.17.0.md) and [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.17.0) |
+Package-manager users can use `npm install --global qiongli@next` with Node.js 18+,
+or follow the [PyPI instructions](docs/guide/cli-2x.md#package-managers) with Python 3.9+.
+Both distribute the native executable. Cargo builds it from source with Rust 1.97+
+and a native linker.
 
-## Install Fast
-
-The npm CLI is a Python-free asset manager. It installs the skills surface by default:
-
-```bash
-npm install -g qiongli
-qiongli install --target auto --surface skills
-qiongli check
+```sh
+cargo install qiongli --version 2.0.0-beta.6 --locked
 ```
 
-For scripted installs, keep the project directory explicit:
+Cargo provides `qiongli` and `ql`. Choose the archives above to skip compilation.
 
-```bash
-qiongli install --target all --project-dir "$PWD"
-```
+Beta.3 adds shorter commands and readable terminal output. Run `qiongli` for
+help, `qiongli project` to list projects, or `qiongli setup` to review installed
+CLI versions and manual archive/uninstall steps. npm can show the review during
+a foreground install; pip and Cargo users run it afterward. No files or settings are changed. See the
+[installation review guide](docs/guide/cli-2x.md#review-existing-cli-installations).
 
-`--target all` writes every supported platform path explicitly. Use `--target auto` to detect supported client CLIs on `PATH` and install only those client surfaces.
+`install plugin` and `upgrade plugin` use the same flow, with file previews
+and separate confirmation for official Codex/Claude registration. See [bundled content installation](docs/guide/cli-2x.md#install-and-upgrade-bundled-content).
 
-Use project-local subject guidance instead of reinstalling packages for every topic:
+## After installation
 
-```bash
-qiongli project init --project-dir "$PWD"
-qiongli project set-subject finance --project-dir "$PWD"
-qiongli project status --project-dir "$PWD"
-```
-
-For plugin-lite or full runtime paths, use the install guide. It covers Codex and Claude Code marketplace plugins, Claude Desktop direct plugin and fallback Skill ZIPs, the literature MCPB, bootstrap partial/full, npm/npx, pipx, and pip. npm plugin-lite output is opt-in with `--surface plugin` or `--surface both` where bundled and supported.
-
-## Install Entry Comparison
-
-| Entry | Positioning | Includes | Use it for | Boundary |
-|---|---|---|---|---|
-| Marketplace plugin / extension | Client-native, lowest setup | Qiongli skill/plugin package, workflows, prompts, templates; Codex/Claude Code also bundle the Node literature MCP | Work inside one client without managing a CLI | No full orchestrator or Python runtime unless you install the full runtime separately |
-| Claude Desktop direct plugin | Recommended Desktop path | `qiongli` plugin with skill package, workflow wrappers, and bundled lightweight literature MCP runtime | A unified Qiongli entry in Claude Desktop without managing a CLI | No full Python orchestrator unless you install the full runtime separately |
-| Claude Desktop fallback Skill ZIP + Literature MCPB | Desktop/Web manual path | Uploaded `qiongli` Skill ZIP plus optional `qiongli-literature-provider.mcpb` | Manual skill upload or provider-only Desktop literature tools | Skill ZIP is skill-only; MCPB is provider-only; neither runs the Python orchestrator |
-| npm / npx | Python-free asset manager | npm CLI, pre-materialized skills by default, optional plugin-lite assets with `--surface plugin|both`, Node project commands | Scripted installs, dotfiles, CI, current-package asset refresh, project subject guidance | Does not self-update packages or run `doctor`, `mcp serve`, provider setup, or task orchestration |
-| pipx / pip full runtime | Python CLI and managed full local runtime | Python CLI, setup wizard, full plugin install, unified MCP server, provider setup, doctor checks, task/orchestrator commands | Local validation, provider configuration, MCP/orchestrator tools, package self-update | Requires Python 3.12+ and the relevant local CLIs for agent execution |
-| Bootstrap partial/full | Release-script install path | `partial`: global skills/discovery; `full`: partial plus shell CLI/MCP/doctor support | Machines that should install from release scripts instead of package managers | `full` still requires Python 3.12+ already available |
-
-## Runtime Flow
-
-```mermaid
-flowchart TB
-    Request["Academic request<br/>topic, paper type, constraints"]
-    Entry{"Entry point"}
-    Client["Client skill/plugin<br/>Codex, Claude Code,<br/>Claude Desktop/Web"]
-    Npm["npm/npx asset manager<br/>install, update, check,<br/>project guidance"]
-    Full["Full runtime<br/>pipx/pip/bootstrap full"]
-    Project["Project guidance<br/>.qiongli/guidance_manifest.yaml<br/>or active_subject: auto"]
-    Contract["Task contract<br/>Task ID, stage, outputs,<br/>evidence rules, gates"]
-    Runtime{"Smallest runtime<br/>that fits the job"}
-    SkillOnly["Skill/plugin only<br/>draft, review, route"]
-    Provider["Literature provider<br/>MCPB or bundled Node MCP"]
-    Preview["Full runtime preview<br/>doctor, task-plan,<br/>task-run without agents"]
-    Execute{"run_agents true?"}
-    Agents["Controlled agent run<br/>solo, duo, triad"]
-    Outputs["Formal outputs<br/>RESEARCH/[topic]/..."]
-    Trace["Trace and guidance proposal<br/>.qiongli/trace/"]
-
-    Request --> Entry
-    Entry --> Client
-    Entry --> Npm
-    Entry --> Full
-    Npm --> Project
-    Client --> Contract
-    Full --> Contract
-    Project --> Contract
-    Contract --> Runtime
-    Runtime --> SkillOnly
-    Runtime --> Provider
-    Runtime --> Preview
-    SkillOnly --> Outputs
-    Provider --> Outputs
-    Preview --> Execute
-    Execute -->|no| Trace
-    Execute -->|yes| Agents
-    Agents --> Outputs
-    Agents --> Trace
-    Trace --> Project
-```
-
-The npm path stops at asset management and project guidance. Full runtime commands are explicit, preview-first, and start real agent execution only after `run_agents: true` plus passing runtime checks.
-
-## Recommended CLI Setup Wizard
-
-Use the full runtime wizard when you want the CLI to help choose an install and upgrade path:
-
-```bash
-pipx install qiongli
+```sh
+qiongli --version
+qiongli install
+qiongli mcp check
+qiongli doctor
 qiongli setup
-qiongli setup --dry-run
-qiongli setup --project-dir "$PWD" --no-doctor
+qiongli content
+qiongli help install plugin
 ```
 
-The full runtime wizard covers runtime surface, subject, coverage, `--mode copy|link`, shell CLI / CLI directory choices, `--overwrite` / `--no-overwrite`, optional provider config, and doctor verification. On npm/npx, `qiongli setup` is the Python-free asset manager shortcut for client assets; full runtime commands such as `doctor`, `mcp serve`, `provider setup`, or `customize` require `pipx install qiongli`. If you only need scriptable asset installation, run `qiongli install ...` directly.
+`setup` reviews visible CLI copies and gives manual removal or archive guidance.
+It does not uninstall programs, move files or change PATH. `qiongli` and `ql` use
+the same commands; direct downloads provide `qiongli`, while package-manager
+installs also provide `ql`. Use `--json` in scripts.
 
-## Update Or Refresh
+`install plugin` previews bundled files and asks for confirmation before exporting.
+It then asks separately for official Host registration. Later runs discover and
+refresh that source; `upgrade plugin` is an alias. `install skills` exports
+`.qiongli-skills`; use the Plugin installation path to load the workflow in a Host. `upgrade cli` explains how to update
+through the original channel without running a package manager.
 
-On npm/npx, `qiongli update` and `qiongli refresh` stay on the Python-free asset path:
+Follow the [installation and upgrade examples](docs/guide/cli-2x.md#install-and-upgrade-bundled-content).
+After a Plugin update, start a new Host session and check that its tools are available.
+In beta.6, the Plugin guide also offers optional context
+hooks (off by default). `install plugin --hooks context` includes them;
+`--hooks off` removes their Plugin configuration. See [Hook setup and verification](docs/advanced/agent-skill-collaboration.md#optional-context-hooks).
 
-```bash
-qiongli update
-qiongli refresh
-```
+## Skills, MCP and research records
 
-On npm/npx, `qiongli upgrade` is an alias for an overwrite asset refresh from the currently installed npm package; it does not update the npm package or the full Python CLI. Selected release archives, package self-update, and `qiongli self-update` belong to the full Python runtime: `pipx install qiongli`.
+Beta.6 includes **`no-qiongli`** (`$no-qiongli` in Codex),
+also triggered by **“reply only” / “NoQ问理” / “仅回复” / “no 处理”**:
+answer from the conversation without model-invoked tools, agents or file operations.
+See [reply-only scope and limits](docs/advanced/agent-skill-collaboration.md#reply-only).
 
-```bash
-qiongli upgrade --target all
-```
+| Part | Purpose |
+|---|---|
+| Skills / Plugin | Route the requested reading, review, study design, writing, polish or stage summary through shared guidance |
+| Lite MCP | 14 tools for bounded literature, configuration, search planning and Zotero operations |
+| Full MCP | 32 tools, adding projects, Graph and Host handoffs; writes retain preview, approval and revision checks |
+| Research Graph | Rebuild links between claims, sources and locations from canonical research records; unsupported relations remain unconfirmed |
+| Stage summaries | Keep substantive findings, sources, predecessors and changes; optional retention review lists individual files for the user to select and delete personally |
 
-## Runtime Boundary
+New Codex Plugin builds have 20 workflow shortcuts and the general `$qiongli` entry;
+82 internal skill cards stay available on demand. Both Codex and Claude also
+include the independent `no-qiongli` entry; Claude retains the main research Skill.
+Native Marketplace platform packages start Lite MCP; CLI-exported local Plugins
+start Full MCP. A shared Skill name does not imply the same available tools.
 
-Installing Qiongli assets is intentionally lighter than running full orchestration.
+Graph improvements are checked through stable identities, multiple sources, resolvable
+evidence, deterministic rebuilding and stale-read refusal. The Host still needs to
+normalize authorized material into canonical records. This is not an arbitrary-folder
+or PDF semantic scanner. See [Graph scope and checks](docs/guide/cli-2x.md#research-graph).
 
-| Surface | Use it for | Needs Python/model CLIs? |
-|---|---|---|
-| skill-only or plugin package | prompts, task routes, templates, standards, subject overlays | No |
-| Literature MCPB / bundled literature MCP | provider status, local search, evidence export | No Python |
-| Full local plugin or CLI MCP | full runtime commands: `doctor`, provider config, `task-plan`, `task-run`, `mcp serve` | Yes |
-| Shell/Python CLI | validators, release checks, local orchestration, package maintenance | Yes |
+## Development and documentation
 
-Actual agent execution starts only when the runtime is configured and an execution command explicitly enables it. Previews and checks are designed to be inspectable before side effects.
+Shared research content lives in `content/`; native services live in
+`packages/qiongli-native/`. npm, PyPI and Cargo keep their own launchers and installation
+instructions while sharing the CLI description and release identity. Generate packages
+from their canonical sources; installed caches and generated mirrors are not edit targets.
 
-## Research Boundaries
+- [Quickstart](docs/quickstart.md) and [2.x command guide](docs/guide/cli-2x.md)
+- [Architecture](docs/architecture.md) and [contribution workflow](CONTRIBUTING.md)
+- [1.x command reference](docs/reference/cli.md), retained for older installations and migration
+- [Distribution materialization](docs/development/distribution-materialization.md), including staged materialization and npm package contract tests
 
-Qiongli includes the Academic Idea Funnel and Academic Grill Loop as an academic adaptation of Matt Pocock's `grill-me` idea-discovery pattern. It is tuned for academic idea-discovery, so it asks about evidence, rival explanations, feasibility, venue fit, and boundary review before drafting.
-
-Provider credentials stay in provider config, not generated skill bundles. Use `qiongli provider setup` for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv-supported literature workflows, then `qiongli provider doctor` to verify. The `qiongli-literature-provider` `.mcpb` exposes `qiongli_literature_status`, `qiongli_search_plan`, `qiongli_literature_search`, `qiongli_literature_export_evidence`, `qiongli_config_status`, `qiongli_configure_provider`, and `qiongli_save_provider_config` for Codex/Desktop flows; statuses include `provider_connected`, `native_only`, and `strategy_only` depending on provider and platform search availability. `qiongli_collect_evidence` is an external evidence adapter path and must not be used as the OpenAlex provider-config check. Skill-only installs can still use strategy fallback, and runtime checks keep a 180-second ceiling for external provider probes.
-
-## Documentation Map
-
-- [Guide](docs/guide/index.md): install, usage, upgrade, troubleshooting, and runtime choices.
-- [Quickstart](docs/quickstart.md): smallest install surface and first research route.
-- [Using Agent Skills](docs/guide/using-agent-skills.md): what to type in Codex, Claude Code, Antigravity, Hermes, and shell.
-- [Task Recipes](docs/guide/task-recipes.md): scenario-based paper routes.
-- [Reference](docs/reference/index.md): CLI behavior and skill catalog.
-- [Advanced](docs/advanced/index.md): MCP providers, Zotero, subject packaging, and plugin-first distribution.
-- [Maintainer](docs/maintainer/index.md): release policy, naming policy, and contributor guidance.
-
-## Development
-
-Common checks:
-
-```bash
-python3 -m unittest tests.test_self_update tests.test_cli tests.test_cli_setup_docs
-python3 -m unittest tests.test_materialize_distribution_payloads tests.test_npm_package_contract
-npm --prefix packages/npm-qiongli test
-npm run docs:build
-git diff --check
-```
-
-Maintainer contract anchors:
-
-- The canonical contract lives with the workflow standards; packaged installs expose `standards/research-workflow-contract.yaml` and `standards/mcp-agent-capability-map.yaml`.
-- Run `python3 scripts/validate_research_standard.py --strict` before release-facing changes.
-- Subject package changes must pass staged materialization and npm package contract tests, including `tests.test_materialize_distribution_payloads` and `tests.test_npm_package_contract`.
-- Agent routing details live in [Agent-Skill Collaboration](docs/advanced/agent-skill-collaboration.md).
-- The legacy shell installer remains at `scripts/install_qiongli.sh`; most users should prefer the install guide or `qiongli install`.
-
-Routine releases go through:
-
-```bash
-./scripts/release_automation.sh publish --version <version> --from-tag <previous-tag>
-```
+Reuse existing approval, rollback, package-identity and content checks. A Rust rewrite
+alone does not establish a speed or maintenance-cost improvement; those claims need
+measurements against the same task and environment.
 
 ## Credit
 
-Qiongli adapts useful workflow ideas from strict agent planning/review systems, Claude skill packaging, and academic review practices. Thanks to the [linux.do](https://linux.do/) community for practical AI tooling discussion and feedback.
+The Academic Idea Funnel and Academic Grill Loop are an academic adaptation of
+Matt Pocock's `grill-me` pattern for academic idea-discovery, evidence, rival explanations
+and feasibility. Thanks to the [linux.do](https://linux.do/) community for practical
+discussion and feedback.

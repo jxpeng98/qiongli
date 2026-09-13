@@ -1,5 +1,13 @@
 # Rust Marketplace Lite MCP Roadmap
 
+> **Status: superseded on July 9, 2026.** The Rust skeleton and packaging
+> milestones in this document have landed on `dev`. Functional closure and all
+> subsequent convergence work are now tracked by
+> `docs/superpowers/roadmaps/2026-07-09-unified-platform-roadmap.md` and
+> `docs/superpowers/plans/2026-07-09-lite-mcp-functional-closure.md`. The stage
+> labels below are retained as historical planning context and must not be used
+> as current implementation status.
+
 ## Purpose
 
 Qiongli Marketplace Lite should become a one-step local plugin install for

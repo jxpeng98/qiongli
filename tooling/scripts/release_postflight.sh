@@ -20,6 +20,9 @@ TEMP_RELEASE_NOTES=""
 POSTFLIGHT_STAGING_DIR=""
 ACCEPTANCE_EVIDENCE_FILE=""
 UPLOAD_ASSETS_FILE=""
+RELEASE_LINE=""
+RELEASE_CHANNEL=""
+RELEASE_SOURCE_BRANCH=""
 
 cleanup() {
   if [[ -n "$TEMP_RELEASE_NOTES" && -f "$TEMP_RELEASE_NOTES" ]]; then
@@ -124,8 +127,14 @@ refresh_branch_ref() {
   return 0
 }
 
+release_field() {
+  local version="$1"
+  local field="$2"
+  python3 "${ROOT_DIR}/scripts/release_version.py" "$version" --print-field "$field"
+}
+
 is_prerelease_tag() {
-  [[ "$1" == *beta* || "$1" =~ b[0-9]+ ]]
+  [[ "$(release_field "$1" channel)" != "stable" ]]
 }
 
 select_release_branch_ref() {
@@ -284,24 +293,93 @@ PY
   return "$status"
 }
 
-publish_codex_dist_ref() {
-  local tag="$1"
-  local codex_slug="qiongli"
+prepare_platform_dist_source() {
+  local channel="$1"
+  local slug="$2"
+  local source_dir="$3"
+  local out_root="$4"
+  local platform_source="$out_root/$channel/$slug"
 
-  if is_prerelease_tag "$tag"; then
-    codex_slug="qiongli-next"
-  fi
-
-  if [[ ! -d "$POSTFLIGHT_STAGING_DIR/plugins/$codex_slug" ]]; then
-    echo "[postflight] missing Codex dist payload: $POSTFLIGHT_STAGING_DIR/plugins/$codex_slug" >&2
+  if [[ ! -d "$source_dir" ]]; then
+    echo "[postflight] missing $channel dist payload: $source_dir" >&2
     exit 1
   fi
 
-  echo "[postflight] publishing Codex dist ref: codex/${TAG}"
+  mkdir -p "$(dirname "$platform_source")"
+  cp -R "$source_dir" "$platform_source"
+
+  if [[ "$channel" == "codex" ]]; then
+    rm -rf "$platform_source/.claude-plugin"
+  elif [[ "$channel" == "claude" ]]; then
+    rm -rf "$platform_source/.codex-plugin" "$platform_source/.mcp.json"
+    if [[ -d "$platform_source/skills" ]]; then
+      find "$platform_source/skills" -mindepth 1 -maxdepth 1 -type d -name "${slug}-*" ! -name "qiongli-workflow" -exec rm -rf {} +
+    fi
+  else
+    echo "[postflight] unsupported dist ref channel: $channel" >&2
+    exit 1
+  fi
+
+  printf '%s\n' "$platform_source"
+}
+
+publish_platform_dist_ref() {
+  local channel="$1"
+  local platform_slug="$2"
+  local platform_source="$3"
+
+  echo "[postflight] publishing $channel dist ref: $channel/${TAG}"
   node scripts/publish-codex-dist-ref.mjs \
+    --channel "$channel" \
     --version "${TAG#v}" \
-    --slug "$codex_slug" \
-    --source "$POSTFLIGHT_STAGING_DIR/plugins/$codex_slug"
+    --slug "$platform_slug" \
+    --source "$platform_source"
+}
+
+publish_plugin_dist_refs() {
+  local tag="$1"
+  local codex_slug="qiongli"
+  local claude_slug="qiongli"
+  local platform_work_root="$POSTFLIGHT_STAGING_DIR/.platform-dist-refs"
+  local platform_slug platform_source
+
+  if is_prerelease_tag "$tag"; then
+    codex_slug="qiongli-next"
+    claude_slug="qiongli-next"
+  fi
+
+  platform_slug="$codex_slug"
+  platform_source="$(prepare_platform_dist_source codex "$platform_slug" "$POSTFLIGHT_STAGING_DIR/plugins/$platform_slug" "$platform_work_root")"
+  publish_platform_dist_ref codex "$platform_slug" "$platform_source"
+
+  platform_slug="$claude_slug"
+  platform_source="$(prepare_platform_dist_source claude "$platform_slug" "$POSTFLIGHT_STAGING_DIR/plugins/$platform_slug" "$platform_work_root")"
+  publish_platform_dist_ref claude "$platform_slug" "$platform_source"
+}
+
+native_plugin_dist_ref_policy() {
+  local tag="$1"
+  local plugin_slug="qiongli"
+  local identity_path
+
+  if is_prerelease_tag "$tag"; then
+    plugin_slug="qiongli-next"
+  fi
+  identity_path="$POSTFLIGHT_STAGING_DIR/plugins/$plugin_slug/bin/qiongli-literature-provider.target.json"
+  python3 - "$identity_path" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+identity_path = Path(sys.argv[1])
+if not identity_path.is_file():
+    raise SystemExit(f"missing native target identity: {identity_path}")
+identity = json.loads(identity_path.read_text(encoding="utf-8"))
+policy = identity.get("target_policy")
+if not isinstance(policy, str) or not policy:
+    raise SystemExit(f"native target identity has no target_policy: {identity_path}")
+print(policy)
+PY
 }
 
 while [[ $# -gt 0 ]]; do
@@ -371,6 +449,19 @@ done
 [[ -n "$TAG" ]] || { echo "[postflight] --tag is required" >&2; usage; exit 2; }
 
 cd "$ROOT_DIR"
+
+RELEASE_LINE="$(release_field "$TAG" release_line)"
+RELEASE_CHANNEL="$(release_field "$TAG" channel)"
+RELEASE_SOURCE_BRANCH="$(release_field "$TAG" source_branch)"
+if [[ "$RELEASE_LINE" != "legacy-1x" && "$RELEASE_LINE" != "native-2x" ]]; then
+  echo "[postflight] unsupported release line: $RELEASE_LINE" >&2
+  exit 2
+fi
+if [[ "$RELEASE_LINE" == "native-2x" ]]; then
+  echo "[postflight] RLS-201/PKG gate: native ${RELEASE_CHANNEL} postflight is disabled until native packaging and publication gates exist" >&2
+  echo "[postflight] expected source branch: ${RELEASE_SOURCE_BRANCH}; no materialization, dist-ref update, asset upload, or GitHub release mutation was attempted" >&2
+  exit 1
+fi
 
 if ! LOCAL_TAG_COMMIT="$(git rev-parse "$TAG^{}" 2>/dev/null)"; then
   echo "[postflight] local tag not found: $TAG" >&2
@@ -534,13 +625,22 @@ fi
 
 python3 scripts/build_plugin_artifacts.py --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG" --dist-dir dist
 python3 scripts/build_literature_mcpb.py --dist-dir dist >/dev/null
-python3 scripts/build_zotero_companion.py --dist-dir dist >/dev/null
+python3 scripts/build_zotero_companion.py \
+  --dist-dir dist \
+  --release-tag "$TAG" \
+  --repo "$REPO_SLUG" >/dev/null
 python3 scripts/generate_release_downloads.py --tag "$TAG" --out-dir dist
 UPLOAD_ASSETS_FILE="$(mktemp -t qiongli-upload-assets.XXXXXX.txt)"
 python3 scripts/release_upload_assets.py --tag "$TAG" --dist-dir dist >"$UPLOAD_ASSETS_FILE"
 mapfile -t PLUGIN_ARTIFACTS <"$UPLOAD_ASSETS_FILE"
 
-publish_codex_dist_ref "$TAG"
+NATIVE_PLUGIN_DIST_REF_POLICY="$(native_plugin_dist_ref_policy "$TAG")"
+if [[ "$NATIVE_PLUGIN_DIST_REF_POLICY" == "multi-target" ]]; then
+  publish_plugin_dist_refs "$TAG"
+else
+  echo "[postflight] generic plugin dist refs skipped: native policy is $NATIVE_PLUGIN_DIST_REF_POLICY"
+  echo "[postflight] target-identified release assets remain available from the GitHub release"
+fi
 
 if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
   echo "[postflight] gh auth is required to verify or create the GitHub release page" >&2
@@ -620,20 +720,52 @@ ACCEPTANCE_EVIDENCE_FILE="$(mktemp -t qiongli-acceptance-evidence.XXXXXX.md)"
 python3 scripts/release_acceptance_evidence.py --root "$ROOT_DIR" --out "$ACCEPTANCE_EVIDENCE_FILE"
 
 RELEASE_DATE="$(date +%F)"
-python3 - "$TEMPLATE_PATH" "$ACCEPTANCE_OUT" "$TAG" "$RELEASE_DATE" "$LOCAL_TAG_COMMIT" "$CI_STATUS" "$ACCEPTANCE_EVIDENCE_FILE" <<'PY'
+DOWNLOAD_INDEX="dist/qiongli-downloads-${TAG}.json"
+python3 - "$TEMPLATE_PATH" "$ACCEPTANCE_OUT" "$TAG" "$RELEASE_DATE" "$LOCAL_TAG_COMMIT" "$CI_STATUS" "$ACCEPTANCE_EVIDENCE_FILE" "$DOWNLOAD_INDEX" <<'PY'
+import json
 from pathlib import Path
 import sys
 
-template_path, out_path, tag, date, commit, ci_status, evidence_path = sys.argv[1:]
+template_path, out_path, tag, date, commit, ci_status, evidence_path, index_path = sys.argv[1:]
 with open(template_path, "r", encoding="utf-8") as f:
     content = f.read()
 evidence = Path(evidence_path)
 subject_runtime_evidence = evidence.read_text(encoding="utf-8")
+release_index = json.loads(Path(index_path).read_text(encoding="utf-8"))
+components = release_index.get("component_versions")
+if not isinstance(components, dict) or not components:
+    raise SystemExit(f"release index has no component_versions: {index_path}")
+component_version_map = "\n".join(
+    [
+        "| Component | Version | Runtime / target | Source |",
+        "|---|---|---|---|",
+        *(
+            "| {name} | `{version}` | {runtime} | `{source}` |".format(
+                name=name,
+                version=entry.get("version", "unknown"),
+                runtime=" / ".join(
+                    value
+                    for value in (
+                        entry.get("runtime_profile"),
+                        entry.get("runtime_implementation"),
+                        entry.get("native_target"),
+                    )
+                    if isinstance(value, str) and value
+                )
+                or "not applicable",
+                source=entry.get("source", "unknown"),
+            )
+            for name, entry in components.items()
+            if isinstance(entry, dict)
+        ),
+    ]
+)
 content = (
     content.replace("{{TAG}}", tag)
     .replace("{{DATE}}", date)
     .replace("{{COMMIT}}", commit)
     .replace("{{CI_STATUS}}", ci_status)
+    .replace("{{COMPONENT_VERSION_MAP}}", component_version_map)
     .replace("{{SUBJECT_RUNTIME_EVIDENCE}}", subject_runtime_evidence)
 )
 with open(out_path, "w", encoding="utf-8") as f:

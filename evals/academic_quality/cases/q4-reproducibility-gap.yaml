@@ -1,21 +1,17 @@
-id: q4-reproducibility-gap
-scenario: Q4 reproducibility failure where computational outputs lack environment, script, and order baseline
-metadata:
-  gate: Q4
-  severity: block
+schema_version: "1.0"
+case_id: q4-reproducibility-gap
+pipeline: code-first-methods
+description: Detect missing environment, script, and execution-order evidence.
+input:
+  topic: Assess computational results delivered without an environment lock, scripts, or execution order.
   domain: computational social science
-  method: reproducible analysis
-expected_failures:
-  - gate: Q4
-    severity: block
-    reason: Computational outputs cannot be reproduced because environment, scripts, and execution order are missing.
-expected_dimensions:
-  artifact_completeness: 0.45
-  evidence_traceability: 0.75
-  no_fabricated_sources: 1.0
-  claim_calibration: 0.7
-  venue_fit: 0.65
-  method_validity: 0.55
-  scholarly_voice: 0.75
-  quality_gate_compliance: 0.25
-  domain_method_fit: 0.55
+expected_outputs:
+  quality-assessment:
+    artifact: quality_findings.md
+    required: true
+    assertions:
+      - type: contains_all
+        values:
+          - "Gate: Q4"
+          - "Severity: block"
+          - Computational outputs cannot be reproduced because environment, scripts, and execution order are missing.

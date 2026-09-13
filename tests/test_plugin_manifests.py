@@ -50,6 +50,21 @@ class PluginDistributionMetadataTests(unittest.TestCase):
         self.assertEqual(metadata.plugins["qiongli-next"].skill_name, "qiongli-next")
         self.assertEqual(metadata.plugins["qiongli"].mcp_server_name, "qiongli")
         self.assertEqual(metadata.plugins["qiongli-next"].mcp_server_name, "qiongli-next")
+        self.assertEqual(metadata.plugins["qiongli"].release_lines, ("legacy-1x",))
+        self.assertEqual(metadata.plugins["qiongli"].release_channels, ("stable",))
+        self.assertEqual(
+            metadata.plugins["qiongli-next"].release_lines,
+            ("legacy-1x",),
+        )
+        self.assertEqual(metadata.plugins["qiongli-next"].release_channels, ("beta",))
+        self.assertEqual(
+            metadata.plugins["qiongli-next"].planned_release_lines,
+            ("native-2x",),
+        )
+        self.assertEqual(
+            metadata.plugins["qiongli-next"].planned_release_channels,
+            ("alpha", "beta"),
+        )
 
     def test_canonical_distribution_metadata_carries_discovery_terms(self) -> None:
         metadata = load_plugin_distribution(REPO_ROOT)
@@ -154,13 +169,12 @@ class PluginManifestTests(unittest.TestCase):
             plugin_root = self.materialize_plugin_root(tmp_dir)
             manifest = json.loads((plugin_root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
             mcp_manifest = json.loads((plugin_root / ".mcp.json").read_text(encoding="utf-8"))
-            mcp_entrypoint_exists = (plugin_root / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
-            mcp_query_exists = (plugin_root / "mcp" / "qiongli-literature-provider" / "query.mjs").is_file()
+            mcp_entrypoint_exists = (plugin_root / "bin" / "qiongli-literature-provider").is_file()
 
         self.assertEqual(manifest["mcpServers"], "./.mcp.json")
         server = mcp_manifest["mcpServers"]["qiongli"]
-        self.assertEqual(server["command"], "node")
-        self.assertEqual(server["args"], ["./mcp/qiongli-literature-provider/index.mjs"])
+        self.assertEqual(server["command"], "./bin/qiongli-literature-provider")
+        self.assertEqual(server["args"], ["--transport", "stdio"])
         self.assertNotEqual(server["command"], "qiongli")
         self.assertNotIn("mcp serve", json.dumps(server))
         self.assertEqual(server["cwd"], ".")
@@ -168,7 +182,6 @@ class PluginManifestTests(unittest.TestCase):
         self.assertEqual(server["tool_timeout_sec"], 60)
         self.assertNotIn("env", server)
         self.assertTrue(mcp_entrypoint_exists)
-        self.assertTrue(mcp_query_exists)
         self.assertNotIn("QIONGLI_OPENALEX_EMAIL", json.dumps(mcp_manifest))
         self.assertNotIn("SEMANTIC_SCHOLAR_API_KEY", json.dumps(mcp_manifest))
         self.assertNotIn("qiongli mcp", json.dumps(mcp_manifest))
@@ -177,8 +190,6 @@ class PluginManifestTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             plugin_root = self.materialize_plugin_root(tmp_dir)
             manifest = json.loads((plugin_root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-            mcp_entrypoint_exists = (plugin_root / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
-            mcp_query_exists = (plugin_root / "mcp" / "qiongli-literature-provider" / "query.mjs").is_file()
 
         self.assertEqual(manifest["name"], "qiongli")
         self.assertEqual(manifest["version"], WORKFLOW_VERSION.read_text(encoding="utf-8").strip().lstrip("v"))
@@ -202,23 +213,21 @@ class PluginManifestTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             plugin_root = self.materialize_plugin_root(tmp_dir)
             manifest = json.loads((plugin_root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-            mcp_entrypoint_exists = (plugin_root / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
-            mcp_query_exists = (plugin_root / "mcp" / "qiongli-literature-provider" / "query.mjs").is_file()
+            mcp_entrypoint_exists = (plugin_root / "bin" / "qiongli-literature-provider").is_file()
 
         self.assertIn("mcpServers", manifest)
         self.assertIn("qiongli", manifest["mcpServers"])
         server = manifest["mcpServers"]["qiongli"]
-        self.assertEqual(server["command"], "node")
+        self.assertEqual(server["command"], "${CLAUDE_PLUGIN_ROOT}/bin/qiongli-literature-provider")
         self.assertEqual(
             server["args"],
-            ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
+            ["--transport", "stdio"],
         )
         self.assertNotEqual(server["command"], "qiongli")
         self.assertNotIn("mcp serve", json.dumps(server))
         self.assertEqual(server["cwd"], "${CLAUDE_PLUGIN_ROOT}")
         self.assertNotIn("env", server)
         self.assertTrue(mcp_entrypoint_exists)
-        self.assertTrue(mcp_query_exists)
         manifest_text = json.dumps(manifest)
         self.assertNotIn("QIONGLI_OPENALEX_EMAIL", manifest_text)
         self.assertNotIn("SEMANTIC_SCHOLAR_API_KEY", manifest_text)

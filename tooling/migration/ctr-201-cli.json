@@ -1,0 +1,5787 @@
+{
+  "$schema": "./ctr-201-cli.schema.json",
+  "capture_contract": {
+    "ambient_dependency_policy": "disabled-with-deny-use-stubs",
+    "callable_policy": "allowlisted-symbols-no-repr",
+    "dynamic_default_policy": "symbolic-context-values",
+    "environment_count": 2,
+    "environment_mode": "dual-environment",
+    "help_mode": "authored-help-only",
+    "python_version": "python3.12",
+    "side_effect_policy": "read-only-no-network-no-process",
+    "source_mode": "accepted-tag-git-blobs"
+  },
+  "commands": [
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "repo",
+          "help": {
+            "kind": "text",
+            "value": "Upstream repo in owner/repo form (or Git URL). Optional if QIONGLI_REPO is set, or when running inside a qiongli repo clone, or via a project config file."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--repo"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "json",
+          "help": {
+            "kind": "text",
+            "value": "Emit JSON only"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--json"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "strict_network",
+          "help": {
+            "kind": "text",
+            "value": "Fail if upstream version check fails (default: warn and continue)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--strict-network"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "offline",
+          "help": {
+            "kind": "suppressed"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--offline"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 4,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "beta",
+          "help": {
+            "kind": "text",
+            "value": "Use beta/pre-release tags for update status; output always shows stable and pre-release separately"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--beta"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 0,
+      "delegate": null,
+      "description": null,
+      "help": "Check installed versions and latest upstream release",
+      "path": [
+        "qiongli",
+        "check"
+      ],
+      "segment": "check",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "repo",
+          "help": {
+            "kind": "text",
+            "value": "Upstream repo in owner/repo form (or Git URL). Optional if QIONGLI_REPO is set, or via a project config file."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--repo"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "ref",
+          "help": {
+            "kind": "text",
+            "value": "Tag or branch name (default: latest release tag)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--ref"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "tag",
+              "branch"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "string",
+            "value": "tag"
+          },
+          "destination": "ref_type",
+          "help": {
+            "kind": "text",
+            "value": "How to interpret --ref (default: tag; latest uses tag)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--ref-type"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "codex",
+              "claude",
+              "antigravity",
+              "hermes",
+              "all",
+              "auto"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "string",
+            "value": "all"
+          },
+          "destination": "target",
+          "help": {
+            "kind": "text",
+            "value": "Install target (default: all)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--target"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "partial",
+              "full"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 4,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "profile",
+          "help": {
+            "kind": "text",
+            "value": "Install profile to apply: partial or full (default: full unless --surface skills is explicit)."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--profile"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "skills",
+              "plugin",
+              "both"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 5,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "surface",
+          "help": {
+            "kind": "text",
+            "value": "Install output surface to prepare: skills, plugin, or both (default: plugin)."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--surface"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 6,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "beta",
+          "help": {
+            "kind": "text",
+            "value": "Include beta/pre-release tags for upgrade"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--beta"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 7,
+          "default": {
+            "kind": "string",
+            "value": "core"
+          },
+          "destination": "subject",
+          "help": {
+            "kind": "text",
+            "value": "Advanced override for pre-materialized subject packages. Default core keeps runtime subject refinement adaptive."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--subject"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "complete",
+              "focused"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 8,
+          "default": {
+            "kind": "string",
+            "value": "complete"
+          },
+          "destination": "coverage",
+          "help": {
+            "kind": "text",
+            "value": "Subject coverage to install (default: complete)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--coverage"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "copy",
+              "link"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 9,
+          "default": {
+            "kind": "string",
+            "value": "copy"
+          },
+          "destination": "mode",
+          "help": {
+            "kind": "text",
+            "value": "Install mode (default: copy)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--mode"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 10,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory used when project surfaces are enabled (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 11,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "install_cli",
+          "help": {
+            "kind": "text",
+            "value": "Install or refresh shell CLI wrappers"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--install-cli"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 12,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "no_cli",
+          "help": {
+            "kind": "text",
+            "value": "Skip shell CLI installation during upgrade"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--no-cli"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 13,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "cli_dir",
+          "help": {
+            "kind": "text",
+            "value": "Directory for shell CLI wrappers"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--cli-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 14,
+          "default": {
+            "kind": "boolean",
+            "value": true
+          },
+          "destination": "overwrite",
+          "help": {
+            "kind": "text",
+            "value": "Overwrite existing installs (default: on)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--overwrite"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-false",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": false
+          },
+          "declaration_ordinal": 15,
+          "default": {
+            "kind": "boolean",
+            "value": true
+          },
+          "destination": "overwrite",
+          "help": {
+            "kind": "text",
+            "value": "Do not overwrite existing installs"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--no-overwrite"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 16,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "doctor",
+          "help": {
+            "kind": "text",
+            "value": "Run orchestrator doctor after install"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--doctor"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 17,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "dry_run",
+          "help": {
+            "kind": "text",
+            "value": "Show install actions only"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--dry-run"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 18,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "parts",
+          "help": {
+            "kind": "text",
+            "value": "Comma-separated install surfaces to apply: globals, plugin, project, cli, mcp, doctor."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--parts"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 1,
+      "delegate": null,
+      "description": "Refresh local assets from a release archive without updating the CLI package",
+      "help": "Refresh local assets from a release archive without updating the CLI package",
+      "path": [
+        "qiongli",
+        "upgrade"
+      ],
+      "segment": "upgrade",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [
+        "update"
+      ],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "stable",
+              "next"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "string",
+            "value": "stable"
+          },
+          "destination": "channel",
+          "help": {
+            "kind": "text",
+            "value": "Package release channel to install: stable or next (default: stable)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--channel"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-const",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "string",
+            "value": "next"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "suppressed"
+          },
+          "destination": "channel",
+          "help": {
+            "kind": "text",
+            "value": "Shortcut for --channel next"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--beta"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "codex",
+              "claude",
+              "antigravity",
+              "hermes",
+              "all",
+              "auto"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "string",
+            "value": "all"
+          },
+          "destination": "target",
+          "help": {
+            "kind": "suppressed"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--target"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "skills",
+              "plugin",
+              "both"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "string",
+            "value": "plugin"
+          },
+          "destination": "surface",
+          "help": {
+            "kind": "suppressed"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--surface"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "partial",
+              "full"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 4,
+          "default": {
+            "kind": "string",
+            "value": "full"
+          },
+          "destination": "profile",
+          "help": {
+            "kind": "suppressed"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--profile"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-false",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": false
+          },
+          "declaration_ordinal": 5,
+          "default": {
+            "kind": "boolean",
+            "value": true
+          },
+          "destination": "refresh",
+          "help": {
+            "kind": "text",
+            "value": "Skip installed surface refresh"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--no-refresh"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-false",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": false
+          },
+          "declaration_ordinal": 6,
+          "default": {
+            "kind": "boolean",
+            "value": true
+          },
+          "destination": "check",
+          "help": {
+            "kind": "text",
+            "value": "Skip post-update check"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--skip-check"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 7,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "dry_run",
+          "help": {
+            "kind": "text",
+            "value": "Print the update plan without running commands"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--dry-run"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 8,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "yes",
+          "help": {
+            "kind": "text",
+            "value": "Run the update plan without an extra confirmation prompt"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--yes"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 2,
+      "delegate": null,
+      "description": null,
+      "help": "Interactively update the qiongli CLI package, then optionally refresh installed local assets",
+      "path": [
+        "qiongli",
+        "self-update"
+      ],
+      "segment": "self-update",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "codex",
+              "claude",
+              "antigravity",
+              "hermes",
+              "all",
+              "auto"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "string",
+            "value": "all"
+          },
+          "destination": "target",
+          "help": {
+            "kind": "text",
+            "value": "Install target (default: all)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--target"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "partial",
+              "full"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "profile",
+          "help": {
+            "kind": "text",
+            "value": "Install profile to apply: partial or full (default: full unless --surface skills is explicit)."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--profile"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "skills",
+              "plugin",
+              "both"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "surface",
+          "help": {
+            "kind": "text",
+            "value": "Install output surface to prepare: skills, plugin, or both (default: plugin)."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--surface"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "string",
+            "value": "core"
+          },
+          "destination": "subject",
+          "help": {
+            "kind": "text",
+            "value": "Advanced override for pre-materialized subject packages. Default core installs adaptive runtime subject refinement."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--subject"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "complete",
+              "focused"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 4,
+          "default": {
+            "kind": "string",
+            "value": "complete"
+          },
+          "destination": "coverage",
+          "help": {
+            "kind": "text",
+            "value": "Subject coverage to install (default: complete)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--coverage"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "copy",
+              "link"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 5,
+          "default": {
+            "kind": "string",
+            "value": "copy"
+          },
+          "destination": "mode",
+          "help": {
+            "kind": "text",
+            "value": "Install mode (default: copy)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--mode"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 6,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory used when project surfaces are enabled (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 7,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "install_cli",
+          "help": {
+            "kind": "text",
+            "value": "Install or refresh shell CLI wrappers"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--install-cli"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 8,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "no_cli",
+          "help": {
+            "kind": "text",
+            "value": "Skip shell CLI installation"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--no-cli"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 9,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "cli_dir",
+          "help": {
+            "kind": "text",
+            "value": "Directory for shell CLI wrappers"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--cli-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 10,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "overwrite",
+          "help": {
+            "kind": "text",
+            "value": "Overwrite existing installs"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--overwrite"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 11,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "doctor",
+          "help": {
+            "kind": "text",
+            "value": "Run orchestrator doctor after install"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--doctor"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 12,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "dry_run",
+          "help": {
+            "kind": "text",
+            "value": "Show install actions only"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--dry-run"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 13,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "parts",
+          "help": {
+            "kind": "text",
+            "value": "Comma-separated install surfaces to apply: globals, plugin, project, cli, mcp, doctor."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--parts"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 3,
+      "delegate": null,
+      "description": null,
+      "help": "Install bundled qiongli workflow assets",
+      "path": [
+        "qiongli",
+        "install"
+      ],
+      "segment": "install",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory to configure (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "dry_run",
+          "help": {
+            "kind": "text",
+            "value": "Show planned setup actions only"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--dry-run"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "no_doctor",
+          "help": {
+            "kind": "text",
+            "value": "Skip doctor after setup"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--no-doctor"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "page",
+              "prompt",
+              "skip"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "string",
+            "value": "page"
+          },
+          "destination": "provider_mode",
+          "help": {
+            "kind": "text",
+            "value": "Provider setup mode when setup asks for literature keys (default: page)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--provider-mode"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 4,
+          "default": {
+            "kind": "string",
+            "value": "127.0.0.1"
+          },
+          "destination": "provider_host",
+          "help": {
+            "kind": "text",
+            "value": "Host for the local provider setup page (default: 127.0.0.1)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--provider-host"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 5,
+          "default": {
+            "kind": "integer",
+            "value": 0
+          },
+          "destination": "provider_port",
+          "help": {
+            "kind": "text",
+            "value": "Port for the local provider setup page; 0 picks a free port"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--provider-port"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "integer"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 6,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "no_browser",
+          "help": {
+            "kind": "text",
+            "value": "Print the provider setup URL without opening a browser"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--no-browser"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 4,
+      "delegate": null,
+      "description": null,
+      "help": "Interactively configures Qiongli for CLI/Codex/Claude Code/Antigravity use",
+      "path": [
+        "qiongli",
+        "setup"
+      ],
+      "segment": "setup",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "repo",
+          "help": {
+            "kind": "text",
+            "value": "Optional upstream repo in owner/repo form (used in examples)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--repo"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 5,
+      "delegate": null,
+      "description": null,
+      "help": "Print a short usage alignment (what installs where)",
+      "path": [
+        "qiongli",
+        "align"
+      ],
+      "segment": "align",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "mcp_args",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "remainder",
+          "option_strings": [],
+          "positional": true,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 6,
+      "delegate": {
+        "argument_destination": "mcp_args",
+        "kind": "parser-root",
+        "parser_root_id": "qiongli-mcp-cli"
+      },
+      "description": null,
+      "help": "Run or configure the cross-platform Qiongli MCP server",
+      "path": [
+        "qiongli",
+        "mcp"
+      ],
+      "segment": "mcp",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [],
+      "declaration_ordinal": 7,
+      "delegate": null,
+      "description": null,
+      "help": "Configure literature search providers",
+      "path": [
+        "qiongli",
+        "provider"
+      ],
+      "segment": "provider",
+      "subcommand_metadata": {
+        "destination": "provider_cmd",
+        "required": true
+      }
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "cwd",
+          "help": {
+            "kind": "text",
+            "value": "Project directory to inspect (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--cwd"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 8,
+      "delegate": null,
+      "description": null,
+      "help": "Run orchestrator doctor for the current project",
+      "path": [
+        "qiongli",
+        "doctor"
+      ],
+      "segment": "doctor",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [],
+      "declaration_ordinal": 9,
+      "delegate": null,
+      "description": null,
+      "help": "Manage project-local guidance and trace bundles",
+      "path": [
+        "qiongli",
+        "guidance"
+      ],
+      "segment": "guidance",
+      "subcommand_metadata": {
+        "destination": "guidance_cmd",
+        "required": true
+      }
+    },
+    {
+      "aliases": [],
+      "arguments": [],
+      "declaration_ordinal": 10,
+      "delegate": null,
+      "description": null,
+      "help": "Inspect and control adaptive subject guidance",
+      "path": [
+        "qiongli",
+        "subject"
+      ],
+      "segment": "subject",
+      "subcommand_metadata": {
+        "destination": "subject_cmd",
+        "required": true
+      }
+    },
+    {
+      "aliases": [],
+      "arguments": [],
+      "declaration_ordinal": 11,
+      "delegate": null,
+      "description": null,
+      "help": "Manage project subject guidance settings",
+      "path": [
+        "qiongli",
+        "project"
+      ],
+      "segment": "project",
+      "subcommand_metadata": {
+        "destination": "project_cmd",
+        "required": true
+      }
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory to initialize (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "codex",
+              "claude",
+              "antigravity",
+              "hermes",
+              "all",
+              "auto"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "string",
+            "value": "all"
+          },
+          "destination": "target",
+          "help": {
+            "kind": "text",
+            "value": "Project/client surface to initialize (default: all)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--target"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "copy",
+              "link"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "string",
+            "value": "copy"
+          },
+          "destination": "mode",
+          "help": {
+            "kind": "text",
+            "value": "Install mode (default: copy)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--mode"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "overwrite",
+          "help": {
+            "kind": "text",
+            "value": "Overwrite existing project-facing assets"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--overwrite"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 4,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "doctor",
+          "help": {
+            "kind": "text",
+            "value": "Run orchestrator doctor after init"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--doctor"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 5,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "dry_run",
+          "help": {
+            "kind": "text",
+            "value": "Show init actions only"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--dry-run"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 6,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "parts",
+          "help": {
+            "kind": "text",
+            "value": "Comma-separated install surfaces to apply (default: project): globals, plugin, project, cli, mcp, doctor."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--parts"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 12,
+      "delegate": null,
+      "description": null,
+      "help": "Initialize project-facing qiongli assets from the installed package",
+      "path": [
+        "qiongli",
+        "init"
+      ],
+      "segment": "init",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory to clean (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "dry_run",
+          "help": {
+            "kind": "text",
+            "value": "Show what would be removed without deleting"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--dry-run"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "globals",
+          "help": {
+            "kind": "text",
+            "value": "Also remove workflow discovery symlinks from global dirs"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--globals"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 13,
+      "delegate": null,
+      "description": null,
+      "help": "Remove stale project-local qiongli assets",
+      "path": [
+        "qiongli",
+        "clean"
+      ],
+      "segment": "clean",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [
+        "uninstall",
+        "delete"
+      ],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "codex",
+              "claude",
+              "antigravity",
+              "hermes",
+              "all",
+              "auto"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "string",
+            "value": "all"
+          },
+          "destination": "target",
+          "help": {
+            "kind": "text",
+            "value": "Install target to remove from (default: all)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--target"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory used when --parts includes project (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "parts",
+          "help": {
+            "kind": "text",
+            "value": "Comma-separated install surfaces to remove (default: globals): globals, plugin, project, cli, mcp, doctor."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--parts"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "skills",
+              "plugin",
+              "both"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "string",
+            "value": "skills"
+          },
+          "destination": "surface",
+          "help": {
+            "kind": "text",
+            "value": "Installed output surface to remove: skills, plugin, or both (default: skills)."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--surface"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 4,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "cli_dir",
+          "help": {
+            "kind": "text",
+            "value": "Directory containing shell CLI wrappers"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--cli-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 5,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "dry_run",
+          "help": {
+            "kind": "text",
+            "value": "Show what would be removed without deleting"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--dry-run"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 14,
+      "delegate": null,
+      "description": null,
+      "help": "Remove qiongli assets installed by the CLI",
+      "path": [
+        "qiongli",
+        "remove"
+      ],
+      "segment": "remove",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "string",
+            "value": "core"
+          },
+          "destination": "subject",
+          "help": {
+            "kind": "text",
+            "value": "Base subject package to customize (default: core)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--subject"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "name",
+          "help": {
+            "kind": "text",
+            "value": "Name for the local custom subject layer"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--name"
+          ],
+          "positional": false,
+          "required": true,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "out",
+          "help": {
+            "kind": "text",
+            "value": "Output directory for the custom subject layer"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--out"
+          ],
+          "positional": false,
+          "required": true,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "force",
+          "help": {
+            "kind": "text",
+            "value": "Allow writing into an existing directory"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--force"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 15,
+      "delegate": null,
+      "description": null,
+      "help": "Create a local custom subject overlay directory",
+      "path": [
+        "qiongli",
+        "customize"
+      ],
+      "segment": "customize",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "global_config",
+          "help": {
+            "kind": "text",
+            "value": "Write global config"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--global"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "project",
+          "help": {
+            "kind": "text",
+            "value": "Reserved for future project-local writes"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--project"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "openalex",
+              "semantic-scholar",
+              "semantic_scholar",
+              "crossref",
+              "pubmed"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "provider",
+          "help": {
+            "kind": "text",
+            "value": "Limit the local setup page to one provider"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--provider"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "string",
+            "value": "127.0.0.1"
+          },
+          "destination": "host",
+          "help": {
+            "kind": "text",
+            "value": "Host for the local setup page"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--host"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 4,
+          "default": {
+            "kind": "integer",
+            "value": 0
+          },
+          "destination": "port",
+          "help": {
+            "kind": "text",
+            "value": "Port for the local setup page; 0 picks a free port"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--port"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "integer"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 5,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "no_browser",
+          "help": {
+            "kind": "text",
+            "value": "Print the setup URL without opening a browser"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--no-browser"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 16,
+      "delegate": null,
+      "description": null,
+      "help": "Interactively configure literature providers",
+      "path": [
+        "qiongli",
+        "provider",
+        "setup"
+      ],
+      "segment": "setup",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "provider",
+          "help": {
+            "kind": "text",
+            "value": "Provider name, e.g. openalex or semantic-scholar"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [],
+          "positional": true,
+          "required": true,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "field",
+          "help": {
+            "kind": "text",
+            "value": "Field name, e.g. email or api-key"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [],
+          "positional": true,
+          "required": true,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "value",
+          "help": {
+            "kind": "text",
+            "value": "Config value"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [],
+          "positional": true,
+          "required": true,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 17,
+      "delegate": null,
+      "description": null,
+      "help": "Set a provider config value",
+      "path": [
+        "qiongli",
+        "provider",
+        "set"
+      ],
+      "segment": "set",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "provider",
+          "help": {
+            "kind": "text",
+            "value": "Provider name, e.g. openalex or semantic-scholar"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [],
+          "positional": true,
+          "required": true,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "field",
+          "help": {
+            "kind": "text",
+            "value": "Field name, e.g. email or api-key"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [],
+          "positional": true,
+          "required": true,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 18,
+      "delegate": null,
+      "description": null,
+      "help": "Unset a provider config value",
+      "path": [
+        "qiongli",
+        "provider",
+        "unset"
+      ],
+      "segment": "unset",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "json",
+          "help": {
+            "kind": "text",
+            "value": "Emit JSON only"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--json"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 19,
+      "delegate": null,
+      "description": null,
+      "help": "List configured literature providers",
+      "path": [
+        "qiongli",
+        "provider",
+        "list"
+      ],
+      "segment": "list",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "json",
+          "help": {
+            "kind": "text",
+            "value": "Emit JSON only"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--json"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "network",
+          "help": {
+            "kind": "text",
+            "value": "Reserved for future network checks"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--network"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 20,
+      "delegate": null,
+      "description": null,
+      "help": "Check literature provider configuration",
+      "path": [
+        "qiongli",
+        "provider",
+        "doctor"
+      ],
+      "segment": "doctor",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory that owns .qiongli/ (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 21,
+      "delegate": null,
+      "description": null,
+      "help": "Create project-local guidance and trace directories",
+      "path": [
+        "qiongli",
+        "guidance",
+        "init"
+      ],
+      "segment": "init",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory that owns .qiongli/ (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 22,
+      "delegate": null,
+      "description": null,
+      "help": "Show effective project-local guidance context",
+      "path": [
+        "qiongli",
+        "guidance",
+        "show"
+      ],
+      "segment": "show",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory that owns .qiongli/ (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "integer",
+            "value": 20
+          },
+          "destination": "limit",
+          "help": {
+            "kind": "text",
+            "value": "Maximum trace records to show"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--limit"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "integer"
+        }
+      ],
+      "declaration_ordinal": 23,
+      "delegate": null,
+      "description": null,
+      "help": "Summarize project-local guidance trace index",
+      "path": [
+        "qiongli",
+        "guidance",
+        "trace"
+      ],
+      "segment": "trace",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory that owns .qiongli/ (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 24,
+      "delegate": null,
+      "description": null,
+      "help": "List effective project guidance sources",
+      "path": [
+        "qiongli",
+        "guidance",
+        "list"
+      ],
+      "segment": "list",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory that owns .qiongli/ (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "name",
+          "help": {
+            "kind": "text",
+            "value": "Guidance fragment name, e.g. writing-style"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--name"
+          ],
+          "positional": false,
+          "required": true,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 25,
+      "delegate": null,
+      "description": null,
+      "help": "Create a project guidance fragment",
+      "path": [
+        "qiongli",
+        "guidance",
+        "add"
+      ],
+      "segment": "add",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory that owns .qiongli/ (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 26,
+      "delegate": null,
+      "description": null,
+      "help": "Check project guidance for unsafe override language",
+      "path": [
+        "qiongli",
+        "guidance",
+        "lint"
+      ],
+      "segment": "lint",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory that owns .qiongli/ (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "proposal",
+          "help": {
+            "kind": "text",
+            "value": "Path to .qiongli/trace/runs/<run_id>/guidance_update_proposal.md"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--proposal"
+          ],
+          "positional": false,
+          "required": true,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 27,
+      "delegate": null,
+      "description": null,
+      "help": "Apply an explicit guidance update proposal to project-local guidance",
+      "path": [
+        "qiongli",
+        "guidance",
+        "apply"
+      ],
+      "segment": "apply",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "cwd",
+          "help": {
+            "kind": "text",
+            "value": "Project directory to inspect (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--cwd"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "json",
+          "help": {
+            "kind": "text",
+            "value": "Emit JSON only"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--json"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 28,
+      "delegate": null,
+      "description": null,
+      "help": "Show adaptive subject guidance status",
+      "path": [
+        "qiongli",
+        "subject",
+        "status"
+      ],
+      "segment": "status",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "economics",
+              "accounting",
+              "business",
+              "finance",
+              "political-economy",
+              "geoeconomics",
+              "economics-accounting"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "subject",
+          "help": {
+            "kind": "text",
+            "value": "Concrete official subject"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [],
+          "positional": true,
+          "required": true,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "cwd",
+          "help": {
+            "kind": "text",
+            "value": "Project directory to update (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--cwd"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "propose_only",
+          "help": {
+            "kind": "text",
+            "value": "Return a proposed subject action without writing .qiongli project files"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--propose-only"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "json",
+          "help": {
+            "kind": "text",
+            "value": "Emit JSON only"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--json"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 29,
+      "delegate": null,
+      "description": null,
+      "help": "Confirm an official subject",
+      "path": [
+        "qiongli",
+        "subject",
+        "confirm"
+      ],
+      "segment": "confirm",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "economics",
+              "accounting",
+              "business",
+              "finance",
+              "political-economy",
+              "geoeconomics",
+              "economics-accounting"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "subject",
+          "help": {
+            "kind": "text",
+            "value": "Concrete official subject"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [],
+          "positional": true,
+          "required": true,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "cwd",
+          "help": {
+            "kind": "text",
+            "value": "Project directory to update (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--cwd"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "propose_only",
+          "help": {
+            "kind": "text",
+            "value": "Return a proposed subject action without writing .qiongli project files"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--propose-only"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "json",
+          "help": {
+            "kind": "text",
+            "value": "Emit JSON only"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--json"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 30,
+      "delegate": null,
+      "description": null,
+      "help": "Dismiss an official subject",
+      "path": [
+        "qiongli",
+        "subject",
+        "dismiss"
+      ],
+      "segment": "dismiss",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "economics",
+              "accounting",
+              "business",
+              "finance",
+              "political-economy",
+              "geoeconomics",
+              "economics-accounting"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "subject",
+          "help": {
+            "kind": "text",
+            "value": "Concrete official subject"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [],
+          "positional": true,
+          "required": true,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "cwd",
+          "help": {
+            "kind": "text",
+            "value": "Project directory to update (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--cwd"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "propose_only",
+          "help": {
+            "kind": "text",
+            "value": "Return a proposed subject action without writing .qiongli project files"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--propose-only"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "json",
+          "help": {
+            "kind": "text",
+            "value": "Emit JSON only"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--json"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 31,
+      "delegate": null,
+      "description": null,
+      "help": "Lock an official subject",
+      "path": [
+        "qiongli",
+        "subject",
+        "lock"
+      ],
+      "segment": "lock",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "cwd",
+          "help": {
+            "kind": "text",
+            "value": "Project directory to update (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--cwd"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "propose_only",
+          "help": {
+            "kind": "text",
+            "value": "Return a proposed subject action without writing .qiongli project files"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--propose-only"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "json",
+          "help": {
+            "kind": "text",
+            "value": "Emit JSON only"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--json"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 32,
+      "delegate": null,
+      "description": null,
+      "help": "Reset adaptive subject guidance",
+      "path": [
+        "qiongli",
+        "subject",
+        "reset"
+      ],
+      "segment": "reset",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "cwd",
+          "help": {
+            "kind": "text",
+            "value": "Project directory to update (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--cwd"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "propose_only",
+          "help": {
+            "kind": "text",
+            "value": "Return a proposed subject action without writing .qiongli project files"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--propose-only"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "json",
+          "help": {
+            "kind": "text",
+            "value": "Emit JSON only"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--json"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 33,
+      "delegate": null,
+      "description": null,
+      "help": "Unlock adaptive subject guidance",
+      "path": [
+        "qiongli",
+        "subject",
+        "unlock"
+      ],
+      "segment": "unlock",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory that owns .qiongli/ (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 34,
+      "delegate": null,
+      "description": null,
+      "help": "Initialize project guidance settings",
+      "path": [
+        "qiongli",
+        "project",
+        "init"
+      ],
+      "segment": "init",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory that owns .qiongli/ (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 35,
+      "delegate": null,
+      "description": null,
+      "help": "Show project guidance settings",
+      "path": [
+        "qiongli",
+        "project",
+        "status"
+      ],
+      "segment": "status",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "subject",
+          "help": {
+            "kind": "text",
+            "value": "Subject ID, e.g. finance"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "optional",
+          "option_strings": [],
+          "positional": true,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "subject_flag",
+          "help": {
+            "kind": "text",
+            "value": "Subject ID, e.g. finance"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--subject"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory that owns .qiongli/ (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 36,
+      "delegate": null,
+      "description": null,
+      "help": "Set active project subject",
+      "path": [
+        "qiongli",
+        "project",
+        "set-subject"
+      ],
+      "segment": "set-subject",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "venue",
+          "help": {
+            "kind": "text",
+            "value": "Venue profile path/name"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "optional",
+          "option_strings": [],
+          "positional": true,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "venue_flag",
+          "help": {
+            "kind": "text",
+            "value": "Venue profile path/name"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--venue"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory that owns .qiongli/ (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 37,
+      "delegate": null,
+      "description": null,
+      "help": "Set active venue profile",
+      "path": [
+        "qiongli",
+        "project",
+        "set-venue"
+      ],
+      "segment": "set-venue",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "method_lens",
+          "help": {
+            "kind": "text",
+            "value": "Method lens path/name"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "optional",
+          "option_strings": [],
+          "positional": true,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "method_lens_flag",
+          "help": {
+            "kind": "text",
+            "value": "Method lens path/name"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--method-lens"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory that owns .qiongli/ (default: current dir)"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 38,
+      "delegate": null,
+      "description": null,
+      "help": "Set active method lens",
+      "path": [
+        "qiongli",
+        "project",
+        "set-method-lens"
+      ],
+      "segment": "set-method-lens",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "stdio",
+              "http"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "string",
+            "value": "stdio"
+          },
+          "destination": "transport",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--transport"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "string",
+            "value": "127.0.0.1"
+          },
+          "destination": "host",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--host"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "integer",
+            "value": 8765
+          },
+          "destination": "port",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--port"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "integer"
+        }
+      ],
+      "declaration_ordinal": 0,
+      "delegate": null,
+      "description": null,
+      "help": "Run the MCP server",
+      "path": [
+        "qiongli",
+        "mcp",
+        "serve"
+      ],
+      "segment": "serve",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "cwd",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--cwd"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "json",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--json"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 1,
+      "delegate": null,
+      "description": null,
+      "help": "Check MCP provider configuration",
+      "path": [
+        "qiongli",
+        "mcp",
+        "doctor"
+      ],
+      "segment": "doctor",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "repo",
+          "help": {
+            "kind": "text",
+            "value": "Upstream repo in owner/repo form or Git URL. Defaults to configured Qiongli upstream."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--repo"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "ref",
+          "help": {
+            "kind": "text",
+            "value": "Tag or branch name. Defaults to the latest release tag."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--ref"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "tag",
+              "branch"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "string",
+            "value": "tag"
+          },
+          "destination": "ref_type",
+          "help": {
+            "kind": "text",
+            "value": "How to interpret --ref (default: tag; latest uses tag)."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--ref-type"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "codex",
+              "claude",
+              "antigravity",
+              "hermes",
+              "all",
+              "auto"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "string",
+            "value": "all"
+          },
+          "destination": "target",
+          "help": {
+            "kind": "text",
+            "value": "Install target to refresh after upgrade (default: all)."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--target"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 4,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "beta",
+          "help": {
+            "kind": "text",
+            "value": "Include beta/pre-release tags for upgrade."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--beta"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 5,
+          "default": {
+            "kind": "string",
+            "value": "core"
+          },
+          "destination": "subject",
+          "help": {
+            "kind": "text",
+            "value": "Advanced override for pre-materialized subject packages. Default core keeps runtime subject refinement adaptive."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--subject"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "complete",
+              "focused"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 6,
+          "default": {
+            "kind": "string",
+            "value": "complete"
+          },
+          "destination": "coverage",
+          "help": {
+            "kind": "text",
+            "value": "Subject coverage to install (default: complete)."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--coverage"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "copy",
+              "link"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 7,
+          "default": {
+            "kind": "string",
+            "value": "copy"
+          },
+          "destination": "mode",
+          "help": {
+            "kind": "text",
+            "value": "Install mode (default: copy)."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--mode"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 8,
+          "default": {
+            "kind": "context",
+            "source": "cwd"
+          },
+          "destination": "project_dir",
+          "help": {
+            "kind": "text",
+            "value": "Project directory used when project surfaces are enabled (default: current dir)."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--project-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 9,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "install_cli",
+          "help": {
+            "kind": "text",
+            "value": "Install or refresh shell CLI wrappers."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--install-cli"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 10,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "no_cli",
+          "help": {
+            "kind": "text",
+            "value": "Skip shell CLI installation during upgrade."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--no-cli"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 11,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "cli_dir",
+          "help": {
+            "kind": "text",
+            "value": "Directory for shell CLI wrappers."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--cli-dir"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 12,
+          "default": {
+            "kind": "boolean",
+            "value": true
+          },
+          "destination": "overwrite",
+          "help": {
+            "kind": "text",
+            "value": "Overwrite existing installs (default: on)."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--overwrite"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-false",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": false
+          },
+          "declaration_ordinal": 13,
+          "default": {
+            "kind": "boolean",
+            "value": true
+          },
+          "destination": "overwrite",
+          "help": {
+            "kind": "text",
+            "value": "Do not overwrite existing installs."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--no-overwrite"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 14,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "doctor",
+          "help": {
+            "kind": "text",
+            "value": "Run orchestrator doctor after install."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--doctor"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 15,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "dry_run",
+          "help": {
+            "kind": "text",
+            "value": "Show install actions only."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--dry-run"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 16,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "parts",
+          "help": {
+            "kind": "text",
+            "value": "Comma-separated install surfaces to apply: globals, plugin, project, cli, mcp, doctor."
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--parts"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 2,
+      "delegate": null,
+      "description": null,
+      "help": "Upgrade the Qiongli CLI runtime and installed assets used by the MCP server",
+      "path": [
+        "qiongli",
+        "mcp",
+        "upgrade"
+      ],
+      "segment": "upgrade",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "provider",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--provider"
+          ],
+          "positional": false,
+          "required": true,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "field",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--field"
+          ],
+          "positional": false,
+          "required": true,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "none"
+          },
+          "destination": "value",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--value"
+          ],
+          "positional": false,
+          "required": true,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "json",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--json"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 3,
+      "delegate": null,
+      "description": null,
+      "help": "Save a provider config value",
+      "path": [
+        "qiongli",
+        "mcp",
+        "configure"
+      ],
+      "segment": "configure",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "string",
+            "value": "127.0.0.1"
+          },
+          "destination": "host",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--host"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "integer",
+            "value": 0
+          },
+          "destination": "port",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--port"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "integer"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 2,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "no_block",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--no-block"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 3,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "json",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--json"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 4,
+      "delegate": null,
+      "description": null,
+      "help": "Start a local provider configuration wizard",
+      "path": [
+        "qiongli",
+        "mcp",
+        "wizard"
+      ],
+      "segment": "wizard",
+      "subcommand_metadata": null
+    },
+    {
+      "aliases": [],
+      "arguments": [],
+      "declaration_ordinal": 5,
+      "delegate": null,
+      "description": null,
+      "help": "Print MCP client configuration examples",
+      "path": [
+        "qiongli",
+        "mcp",
+        "config"
+      ],
+      "segment": "config",
+      "subcommand_metadata": {
+        "destination": "config_cmd",
+        "required": true
+      }
+    },
+    {
+      "aliases": [],
+      "arguments": [
+        {
+          "action": "store",
+          "choices": {
+            "kind": "ordered",
+            "values": [
+              "codex",
+              "claude",
+              "claude-code",
+              "antigravity",
+              "cursor",
+              "hermes"
+            ]
+          },
+          "const": {
+            "kind": "none"
+          },
+          "declaration_ordinal": 0,
+          "default": {
+            "kind": "string",
+            "value": "codex"
+          },
+          "destination": "target",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "one",
+          "option_strings": [
+            "--target"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        },
+        {
+          "action": "store-true",
+          "choices": {
+            "kind": "none"
+          },
+          "const": {
+            "kind": "boolean",
+            "value": true
+          },
+          "declaration_ordinal": 1,
+          "default": {
+            "kind": "boolean",
+            "value": false
+          },
+          "destination": "json",
+          "help": {
+            "kind": "none"
+          },
+          "metavar": {
+            "kind": "none"
+          },
+          "nargs": "zero",
+          "option_strings": [
+            "--json"
+          ],
+          "positional": false,
+          "required": false,
+          "type": "none"
+        }
+      ],
+      "declaration_ordinal": 6,
+      "delegate": null,
+      "description": null,
+      "help": "Print a client config fragment",
+      "path": [
+        "qiongli",
+        "mcp",
+        "config",
+        "example"
+      ],
+      "segment": "example",
+      "subcommand_metadata": null
+    }
+  ],
+  "console_entrypoints": [
+    {
+      "declaration_ordinal": 0,
+      "name": "qiongli",
+      "target": "qiongli.cli:main"
+    },
+    {
+      "declaration_ordinal": 1,
+      "name": "ql",
+      "target": "qiongli.cli:main"
+    },
+    {
+      "declaration_ordinal": 2,
+      "name": "research-skills",
+      "target": "qiongli.cli:main"
+    },
+    {
+      "declaration_ordinal": 3,
+      "name": "rsk",
+      "target": "qiongli.cli:main"
+    },
+    {
+      "declaration_ordinal": 4,
+      "name": "rsw",
+      "target": "qiongli.cli:main"
+    }
+  ],
+  "coverage": {
+    "argument_action_count": 164,
+    "canonical_command_count": 46,
+    "completion_ready": false,
+    "console_entrypoint_count": 5,
+    "ctr_201": "in-progress",
+    "cwd_default_count": 27,
+    "dry_run_semantics": "incomplete",
+    "error_matrix": "incomplete",
+    "exit_code_matrix": "incomplete",
+    "fnd_202": "not-implemented",
+    "formatted_help_output": "incomplete",
+    "json_output": "incomplete",
+    "legacy_npm_compatibility_surface": "incomplete",
+    "public_command_count": 49,
+    "runtime_behavior_matrix": "incomplete",
+    "side_effect_matrix": "incomplete",
+    "static_semantics": "captured"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "utf-8-json-sorted-keys-compact-excluding-integrity",
+    "payload_sha256": "f81c8f039fae28dd8747f0672bfb6c1caacbd563153f65826356eeb93eacf1a7"
+  },
+  "parser_roots": [
+    {
+      "builder": "qiongli.cli:build_parser",
+      "declaration_ordinal": 0,
+      "description": "Install/upgrade qiongli client skills without requiring a git fork.",
+      "path": [
+        "qiongli"
+      ],
+      "root_id": "qiongli-cli",
+      "source_anchor_role": "cli-parser",
+      "subcommand_metadata": {
+        "destination": "cmd",
+        "required": true
+      }
+    },
+    {
+      "builder": "bridges.mcp_cli:build_parser",
+      "declaration_ordinal": 1,
+      "description": "Run and configure the Qiongli cross-platform MCP server.",
+      "path": [
+        "qiongli",
+        "mcp"
+      ],
+      "root_id": "qiongli-mcp-cli",
+      "source_anchor_role": "mcp-cli-parser",
+      "subcommand_metadata": {
+        "destination": "cmd",
+        "required": true
+      }
+    }
+  ],
+  "record_type": "qiongli-ctr-201-cli-static-semantics",
+  "schema_version": "1.0",
+  "source": {
+    "a8_manifest": {
+      "path": "tooling/migration/baselines/v1.19.0-beta.1/manifest.json",
+      "sha256": "77bb7628d43a496c995e4b0a8daf6a624847b62e96948c0461affe89002da131"
+    },
+    "accepted_commit": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f",
+    "accepted_tag": "v1.19.0-beta.1",
+    "blob_anchors": [
+      {
+        "binding_class": "frozen-a8-domain-file",
+        "git_blob_oid": "4802fddd7a019eb24ea6c69cc5f065e40ee3c61e",
+        "path": "packages/python-qiongli/src/qiongli/cli.py",
+        "role": "cli-parser",
+        "sha256": "bab1a374aece96fbf802771774203536830709c3579541987ea46cf650d357bb",
+        "size_bytes": 71311
+      },
+      {
+        "binding_class": "frozen-a8-domain-file",
+        "git_blob_oid": "c0ab03e7e1e07bfd8f059c94eadc0b69cefb5eae",
+        "path": "packages/python-qiongli/src/qiongli/bridges/mcp_cli.py",
+        "role": "mcp-cli-parser",
+        "sha256": "5409f37d0eb1ac769fa7988f18d9a431a75c51947819e0e8087bf238559ba33b",
+        "size_bytes": 11850
+      },
+      {
+        "binding_class": "accepted-tag-additional-blob",
+        "git_blob_oid": "4fc00c6a21b5c7e8a9ffc1ac58698b9d2bd087a5",
+        "path": "pyproject.toml",
+        "role": "console-entrypoints",
+        "sha256": "3001a8c7e6002e6fca928a7748dbb556e95c3cb6b9cc864a0a8d4294638f5ebf",
+        "size_bytes": 1315
+      }
+    ],
+    "package_tree": {
+      "file_count": 76,
+      "root": "packages/python-qiongli/",
+      "tree_sha256": "3a91a6dde9a78116fed73358275b2797c3ce7bf3d9a54894e7dbd11d2f0f9781"
+    },
+    "python_full_oracle": {
+      "case_count": 5,
+      "oracle_id": "python-full",
+      "path": "tooling/migration/baselines/v1.19.0-beta.1/oracles/python-full.json",
+      "sha256": "26d247c9268c3166c98080aef420acfdb8248f62b11cc69420250f6e493a23e3"
+    }
+  },
+  "status": "static-semantics-captured",
+  "task_id": "CTR-201B"
+}

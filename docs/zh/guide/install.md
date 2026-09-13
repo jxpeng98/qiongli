@@ -1,5 +1,12 @@
 # 安装 Qiongli
 
+> 原生 2.x 可[直接下载独立二进制包](cli-2x.md#standalone-binary-download)，
+> 或使用 [npm / pip 安装](cli-2x.md#package-managers)。
+> 下方 npm/Python 能力差异与安装命令属于 1.x。
+
+> 本页保留 1.x 的安装说明。当前原生版本的安装与命令请参阅
+> [2.x CLI 指南](cli-2x.md)。
+
 Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不同。先选能满足目标的最小入口。
 
 ## 最新稳定版下载
@@ -20,9 +27,9 @@ Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不
 
 | 入口 | 定位 | 包含内容 | 能做什么 | 边界 | 是否要求 Python |
 |---|---|---|---|---|---|
-| Marketplace plugin / extension | 客户端原生、最少配置 | 客户端 plugin 和 `qiongli-workflow`；Codex / Claude Code 内置 Node literature MCP | 在单个客户端里使用 workflows、prompts、subject packages 和内置 literature-provider tools | 不暴露完整 Python orchestrator，也不负责 package self-update | skill 使用和内置 literature MCP 不要求 |
+| Marketplace plugin / extension | 客户端原生、最少配置 | 客户端 plugin 和 `qiongli-workflow`；Codex / Claude Code 内置 Rust Lite literature MCP | 在单个客户端里使用 workflows、prompts、subject packages 和内置 literature-provider tools | 不暴露完整 Python orchestrator，也不负责 package self-update | skill 使用和内置 literature MCP 不要求 |
 | Claude Desktop Skill ZIP | Desktop/Web 的 skill-only 路径 | 个人上传的 `qiongli` Skill，通常可搭配 literature MCPB | 不用终端或代码环境，在 Claude Desktop/Web 中使用 workflows | Skill ZIP 不保存 secrets，也不执行 provider 或 orchestrator calls | 否 |
-| Claude Desktop Literature MCPB | Desktop 本地 provider 路径 | `qiongli-literature-provider.mcpb` 零依赖 Node stdio server | provider config/status、本地 literature search、evidence export | 只提供 provider；不安装 Qiongli workflows，也不运行 Python orchestrator | 否 |
+| Claude Desktop Literature MCPB | Desktop 本地 provider 路径 | `qiongli-literature-provider.mcpb` 内置 Rust Lite MCP executable | provider config/status、本地 literature search、evidence export、Zotero import files | 只提供 provider；不安装 Qiongli workflows，也不运行 Python orchestrator | 否 |
 | npm / npx | 免 Python 资产管理器 | npm CLI、默认预生成 skills；可用 `--surface plugin|both` 显式安装 plugin-lite assets；Node project commands | 脚本化安装、CI/dotfiles、当前 package asset refresh、`project init/status/set-subject`、bundled plugin-lite | 不升级 npm/Python package，不运行 `doctor`、`mcp serve`、provider setup 或 task orchestration | 否 |
 | pipx / pip 完整运行时 | Python CLI 和受管理 full local runtime | Python CLI、setup wizard、完整 plugin surface、统一 MCP server、provider setup、doctor、task/orchestrator commands | 完整本地验证、provider 配置、MCP/orchestrator 工具、package self-update、release archive refresh | 真实 agent execution 前仍需要本地 Python 和对应 client/model CLI | 是，Python 3.12+ |
 | Bootstrap `partial` | release script skills 安装 | 多客户端全局 skills 和 workflow discovery | 不走 package manager，直接安装 portable workflow assets | 不做完整 runtime validation 或 orchestration | 否 |
@@ -47,7 +54,9 @@ codex plugin marketplace list
 
 然后在 Codex plugin UI 中安装或启用 `qiongli`，这是默认 core package。也可以选择 `qiongli-economics`、`qiongli-accounting`、`qiongli-business`、`qiongli-finance`、`qiongli-political-economy`、`qiongli-geoeconomics`、`qiongli-economics-accounting` 这类 subject entry，它们会安装对应的 `subject/complete` package。
 
-Codex plugin 自带 `.mcp.json` 和 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime。只使用这些内置文献 provider 工具时，桌面用户不需要安装 `qiongli` CLI，也不需要手写 MCP config。Provider key 不写入 plugin manifest；可以通过平台无关的本地设置工具 `qiongli_configure_provider` 配置，也可以用 `qiongli_save_provider_config` 保存，或者在已安装 CLI 时用 `qiongli mcp configure` / `qiongli provider setup` 配置。完整本地 Qiongli 使用 CLI 生成的本地 plugin：`qiongli install --profile full --target codex --surface plugin`。这个本地 plugin 保留 Codex 原生 plugin 容器，但它的 `.mcp.json` 会启动完整 Python-backed `qiongli mcp serve --transport stdio` server。
+Codex plugin 自带 `.mcp.json` 和 `bin/qiongli-literature-provider` Rust Lite literature-provider MCP runtime。只使用这些内置文献 provider 工具时，桌面用户不需要安装 Node、Python、`qiongli` CLI，也不需要手写 MCP config。Provider key 不写入 plugin manifest；可以通过平台无关的本地设置工具 `qiongli_configure_provider` 配置，也可以用 `qiongli_save_provider_config` 保存，或者在已安装 CLI 时用 `qiongli mcp configure` / `qiongli provider setup` 配置。完整本地 Qiongli 使用 CLI 生成的本地 plugin：`qiongli install --profile full --target codex --surface plugin`。这个本地 plugin 保留 Codex 原生 plugin 容器，但它的 `.mcp.json` 会启动完整 Python-backed `qiongli mcp serve --transport stdio` server。
+
+安装或升级 plugin 之后，请新开一个 Codex thread，或者重启本地 Codex 客户端，让 plugin 内置 MCP server 被重新加载。在 Codex CLI 中，`codex mcp list` 应该能看到 `qiongli` 或 `qiongli-next`，其 command 为 `./bin/qiongli-literature-provider`，`cwd` 指向 plugin cache 路径。在 Codex App 中，可以通过 Settings > Integrations & MCP 或当前 thread 的 MCP status view 确认 server 已启用，再测试 provider tools。
 
 Codex 插件安装默认使用插件内置 MCP。安装器会把 `.mcp.json` 写在 Qiongli 插件目录内，并由插件 manifest 指向它；插件路径不会写入 `~/.codex/config.toml`。只有在需要 standalone MCP fallback 时，才运行 `qiongli install --target codex --parts mcp`。
 
@@ -77,7 +86,9 @@ claude plugin install qiongli-economics@skillsplace
 /plugin install qiongli-economics@skillsplace
 ```
 
-Claude Code marketplace plugin 也内置 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime，提供与 Codex plugin 相同的 provider、search、search-plan、evidence-export 和 status tools。只使用这些内置 literature-provider tools 时，不需要安装 `qiongli` CLI。`qiongli_orchestrator_route`、`qiongli_task_plan`、`qiongli_task_run` 和 `qiongli_orchestrator_doctor` 这类 Python-backed orchestration tools 需要完整运行时：`pipx install qiongli`。然后运行 `qiongli install --profile full --target claude --surface plugin` 生成本地 Claude Code plugin，并由这个 plugin 启动统一的 `qiongli mcp serve --transport stdio` server。`--target antigravity` 会生成带 root `mcp_config.json` 的 Antigravity plugin，`--target hermes` 写入 Hermes MCP config；`--target all --surface plugin` 会让 Codex / Claude Code / Antigravity 使用本地 plugin，同时给 Hermes 写入受管理的 full MCP client 配置。
+Claude Code marketplace plugin 也内置 `bin/qiongli-literature-provider` Rust Lite literature-provider MCP runtime，提供与 Codex plugin 相同的 provider、search、search-plan、evidence-export、Zotero import-file 和 status tools。只使用这些内置 literature-provider tools 时，不需要安装 Node、Python 或 `qiongli` CLI。`qiongli_task_run` 和 `qiongli_orchestrator_doctor` 这类 Python-backed orchestration tools 需要完整运行时：`pipx install qiongli`。然后运行 `qiongli install --profile full --target claude --surface plugin` 生成本地 Claude Code plugin，并由这个 plugin 启动统一的 `qiongli mcp serve --transport stdio` server。`--target antigravity` 会生成带 root `mcp_config.json` 的 Antigravity plugin，`--target hermes` 写入 Hermes MCP config；`--target all --surface plugin` 会让 Codex / Claude Code / Antigravity 使用本地 plugin，同时给 Hermes 写入受管理的 full MCP client 配置。
+
+安装或升级 Claude Code plugin 之后，请运行 `/reload-plugins` 或新开一个 Claude Code session。然后打开 `/mcp`；Qiongli server 应显示为 plugin-provided MCP server，并且 tool count 不应为 0。Plugin-bundled MCP tool name 会带 plugin 和 server namespace，所以实际可调用名称会包含 plugin 前缀，而不只是裸的 `qiongli_literature_search`。
 
 Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace。对于 Claude Desktop，优先使用 direct plugin ZIP：
 
@@ -91,7 +102,7 @@ direct plugin 是推荐的 Desktop 包，因为它把 `qiongli` skill、包含 `
 
 fallback skill ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预算。它是 subject 专精 Desktop/Web 包，不是降质删减版：保留可执行 workflows、prompts、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。这个 Desktop skill ZIP 是 skill-only asset：只包含 workflows/prompts/templates，不保存 secrets，也不执行 provider calls。完整 canonical source 可通过默认 `coverage=complete` 的 CLI/npm 安装、Codex / Claude Code plugin 包和源码仓库获得。
 
-独立的 Qiongli Literature Provider `.mcpb`（`qiongli-literature-provider.mcpb`）才是 Claude Desktop 本地 provider asset。它在本地运行 Desktop literature search，支持 OpenAlex、Semantic Scholar、Crossref、PubMed 和 arXiv，并通过 Desktop 配置 UI 填写需要凭据的 provider；arXiv 默认可用，不需要凭据。敏感 key 交给 Claude Desktop sensitive-field handling，不写入 Desktop skill ZIP。这个 MCPB 自带零依赖 Node stdio server，所以 Desktop 用户不需要安装 `qiongli` CLI 或运行 npm install。CLI、Codex、Claude Code、Antigravity 和 Hermes 用户仍然可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；如果没有 MCPB 或平台原生搜索能力，就把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
+独立的 Qiongli Literature Provider `.mcpb`（`qiongli-literature-provider.mcpb`）才是 Claude Desktop 本地 provider asset。它在本地运行 Desktop literature search，支持 OpenAlex、Semantic Scholar、Crossref、PubMed 和 arXiv，并通过 Desktop 配置字段填写需要凭据的 provider；arXiv 默认可用，不需要凭据。敏感 key 交给 Claude Desktop sensitive-field handling，不写入 Desktop skill ZIP。Rust Lite 只承诺有界基础检索、规范化/去重、evidence export、Zotero 状态/导入文件与 preview-only route/task planning；领域深搜、citation expansion、Zotero library 检索/写入和 agent execution 需要 Full。这个 MCPB 自带 Rust Lite MCP executable，所以 Desktop 用户不需要安装 Node、Python、`qiongli` CLI 或运行 npm install。标记为 `current-host-only` 的 beta 只能安装到 identity file 所记录的 target triple；这类 beta 不会推进通用 marketplace dist ref。CLI、Codex、Claude Code、Antigravity 和 Hermes 用户仍然可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；如果没有 MCPB 或平台原生搜索能力，就把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
 
 ## 安装后如何使用
 

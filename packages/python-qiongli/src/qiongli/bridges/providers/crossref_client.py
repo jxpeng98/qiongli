@@ -14,7 +14,12 @@ CROSSREF_WORKS_URL = "https://api.crossref.org/works"
 DEFAULT_TIMEOUT_SECONDS = 15
 
 
-def search(translation: dict[str, object], limit: int) -> dict[str, object]:
+def search(
+    translation: dict[str, object],
+    limit: int,
+    *,
+    email: str | None = None,
+) -> dict[str, object]:
     query = str(translation.get("translated_query", "") or "").strip()
     if not query:
         return {"data": []}
@@ -28,7 +33,7 @@ def search(translation: dict[str, object], limit: int) -> dict[str, object]:
     filter_value = _filter_value(filters)
     if filter_value:
         params["filter"] = filter_value
-    mailto = _crossref_email()
+    mailto = _crossref_email() if email is None else email.strip()
     if mailto:
         params["mailto"] = mailto
 

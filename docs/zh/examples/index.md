@@ -5,6 +5,7 @@
 ## 示例页面
 
 - [Paper Type 路线图](/zh/examples/paper-type-playbooks)
+- [Research Graph：从研究摘录到离线证据图](/zh/examples/research-graph)
 
 ## 这部分适合什么
 

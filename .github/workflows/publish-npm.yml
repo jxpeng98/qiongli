@@ -1,6 +1,14 @@
 name: Publish to npm
 
 on:
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Publish this immutable native release tag after release verification
+        type: boolean
+        default: false
+  release:
+    types: [published]
   push:
     tags:
       - "v*"
@@ -11,6 +19,7 @@ permissions:
 
 jobs:
   build-and-publish:
+    if: ${{ github.event_name == 'push' && !startsWith(github.ref_name, 'v2.') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
@@ -36,6 +45,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Reject native release lines
+        run: |
+          release_line="$(python3 scripts/release_version.py "${RELEASE_TAG}" --print-field release_line)"
+          if [[ "$release_line" == "native-2x" ]]; then
+            echo "[npm-publish] RLS-201/PKG gate: native 2.x tags must not publish the frozen npm package" >&2
+            exit 1
+          fi
+
       - name: Install Python runtime dependency
         run: python -m pip install -e .
 
@@ -51,7 +68,13 @@ jobs:
       - name: Publish to npm
         working-directory: ${{ runner.temp }}/qiongli-dist/packages/npm-qiongli
         run: |
-          if [[ "${RELEASE_TAG}" == *beta* ]]; then
+          release_line="$(python3 "${GITHUB_WORKSPACE}/scripts/release_version.py" "${RELEASE_TAG}" --print-field release_line)"
+          channel="$(python3 "${GITHUB_WORKSPACE}/scripts/release_version.py" "${RELEASE_TAG}" --print-field channel)"
+          if [[ "$release_line" == "native-2x" ]]; then
+            echo "[npm-publish] RLS-201/PKG gate: refusing native 2.x registry publication" >&2
+            exit 1
+          fi
+          if [[ "$channel" != "stable" ]]; then
             npm publish --tag next
             latest="$(npm view qiongli dist-tags.latest --silent || true)"
             if [[ "$latest" == *"-beta."* ]]; then
@@ -60,3 +83,40 @@ jobs:
           else
             npm publish --tag latest
           fi
+
+  publish-native:
+    if: ${{ (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v2.')) || (github.event_name == 'workflow_dispatch' && inputs.publish_release && github.ref_type == 'tag' && startsWith(github.ref_name, 'v2.')) }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    environment: npm
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+      - name: Download verified three-platform release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir "$RUNNER_TEMP/assets"
+          python tooling/scripts/native_release_assets.py verify --root "$RUNNER_TEMP/assets" --version "$RELEASE_TAG" --commit "$GITHUB_SHA" --require-ci
+      - name: Publish to the version-selected native channel
+        shell: bash
+        run: |
+          version=$(python scripts/release_version.py "$RELEASE_TAG" --print-field npm_version)
+          channel=$(python scripts/release_version.py "$RELEASE_TAG" --print-field npm_dist_tag)
+          [[ "$channel" == next || "$channel" == latest ]]
+          npm publish "$RUNNER_TEMP/assets/qiongli-$version.tgz" --tag "$channel" --provenance

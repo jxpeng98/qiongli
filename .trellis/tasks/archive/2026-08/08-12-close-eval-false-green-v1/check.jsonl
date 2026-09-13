@@ -1,0 +1,2 @@
+{"file":".trellis/spec/product/control/index.md","reason":"Verify claims close only the authorized M1 false-green slice and do not imply Alpha 3 publication."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Verify one shared-owner fix, one focused test owner, and no speculative abstraction or duplicate runner."}

@@ -20,6 +20,9 @@ Use this artifact before Stage A work when the project starts from a vague topic
 
 ## Candidate Idea Triage
 
+Assign each candidate a stable `IF-###` ID. Never renumber or reuse an ID after it has been
+recorded; mark rejected candidates as `reject` so downstream graph references remain valid.
+
 | Idea ID | One-Sentence Idea | Paper Type Fit | Candidate Gap | Contribution Type | Evidence Needed | Feasibility | Novelty Risk | Reviewer Risk | Triage Decision |
 |---|---|---|---|---|---|---|---|---|---|
 | IF-001 |  |  |  |  |  |  |  |  | keep / revise / reject |

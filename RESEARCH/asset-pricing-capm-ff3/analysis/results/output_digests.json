@@ -1,0 +1,13 @@
+{
+  "outputs": {
+    "provenance.json": "d7238ad89a959e8d1fcd247fe993aa2a95b0e9dbdee634cfc178f0ce39176ed0",
+    "results/analysis_summary.json": "ddcbfd674e73d5aae9c3deb6cb5b4f58cbf4ca333f3d58d7b000fbe8d9c1bb8a",
+    "results/factor_diagnostics.json": "8c5f902bf225dd119a50e94bd4c3cf7661053305c401c762f845ca1a60fc1ef7",
+    "results/model_comparison.csv": "de326aa2766e104ac321948bb9f0952236c6263141c934fa9a2ebdd3f25e545a",
+    "results/model_results.csv": "185c15a7f7f222b02b574f400e45983eed85d092ba36cfb3b9c05922dbed33b4",
+    "results/model_summary.csv": "0daec8794b10842931c12985b2904d32207b5ffa50cfd4789b14af0c1fbcd829",
+    "results/residual_diagnostics.csv": "b86502bc396bfbff9897cb0ffb9754e566a78486511e0e70eb7756af418a6483",
+    "results/results.md": "1e29b74389eafaf8c253a6f93c12a1d48c1a8c76984a457ed1cbd58572eb97d8"
+  },
+  "schema_version": 1
+}

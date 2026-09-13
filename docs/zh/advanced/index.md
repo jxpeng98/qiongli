@@ -8,6 +8,7 @@
 - [Subject Packaging Model](/zh/advanced/subject-packaging-model)
 - [Agent + Skill 协同](/zh/advanced/agent-skill-collaboration)
 - [MCP Providers 接入](/zh/advanced/mcp-providers-setup)
+- [原生桌面 Alpha 安装包](/zh/advanced/native-desktop-alpha)
 - [严格 Academic Literature Search](/zh/advanced/rigorous-literature-search)
 - [Zotero 集成](/zh/advanced/mcp-zotero-integration)
 - [发布到 PyPI](/zh/advanced/publish-pypi)

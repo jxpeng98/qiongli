@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "documentKind": "qiongli-real-project-pilot-receipt",
+  "status": "passed",
+  "product": {
+    "sourceCommit": "d0b4113364452d6ff8ff7cb2a3735e7c8d40d3f8",
+    "version": "2.0.0-alpha.3",
+    "binarySha256": "7f4dc44396ecd71de5b1cc831ebe460054435a20d3e60eb57008b8f94816b693",
+    "skillTreeSha256": "5f51c2207d561c9ff88d7c7ab89c0c7361a964ed6df5b5577aee640de970f8c0",
+    "sourceInventorySha256": "f1122f1f7a5679bc8d626e8790aebf63665876f5ab20b21d150f92a58fd90369",
+    "sourceInventoryFileCount": 58,
+    "adapterVersion": "2.0.0-alpha.3",
+    "fullMcpProtocol": "qiongli-full-mcp/1"
+  },
+  "host": {
+    "family": "codex",
+    "version": "0.147.0",
+    "capabilities": [
+      "single-agent",
+      "structured-output"
+    ],
+    "skillInvoked": true,
+    "ephemeral": true,
+    "userConfigIgnored": true,
+    "workspaceSandbox": "read-only",
+    "fullMcpConnected": true,
+    "doctorRunnable": true
+  },
+  "migration": {
+    "planSha256": "5a839f3515668665b004c8222f44fc5d6a26a69d3b311357f0569366bef5b1f0",
+    "copiedFileCount": 58,
+    "copiedByteCount": 816474,
+    "excludedEntryCount": 1,
+    "sourceRetained": true,
+    "rollbackPlanSha256": "f7808006c4fe28b0357117e5ef5074187a54a8443d199fc7e85c8d4131463e5a",
+    "rollbackRemovedArtifactCount": 61,
+    "destinationRemoved": true,
+    "registrationRemoved": true
+  },
+  "graph": {
+    "projectionSha256": "291e755c4d8711ae38813c69694d7c7e7921007bef31fb496e06e57398c39b94",
+    "manifestSha256": "e6c4b69e9f0c6c60e8309b261827ff56f22dc7e703f1a9e650dd3d30ec887e4c",
+    "semanticSha256": "e7be1a6743bc90e667f66c969a8a85ff2fbd74239777ffa4c1d6b6c3a5d7f671",
+    "sourceSha256": "b2e22ce1818abb27ade851125003e5090f775f4404258733dc59a2d4b208d3a2",
+    "readiness": "visualizable",
+    "nodeCount": 60,
+    "semanticNodeCount": 52,
+    "relationCount": 110,
+    "diagnosticCount": 0,
+    "queryMatchedNodeCount": 1,
+    "queryMatchedEdgeCount": 0,
+    "queryTruncated": false
+  },
+  "orchestration": {
+    "executionMode": "solo",
+    "hostDriven": true,
+    "terminalState": "completed",
+    "terminalReason": "completed",
+    "totalTaskCount": 76,
+    "completedTaskCount": 76,
+    "handoffCount": 76,
+    "authenticatedEvidenceReadCount": 77,
+    "submissionCount": 76,
+    "finalGeneration": 153,
+    "checkpointDocumentSha256": "15512d232d6270681cfaff04962eba82c6777a5bca91c033732f54ef0fbde9e5",
+    "hostObservationSha256": "12f377c79bf27aefcfe1895f6abfdf53afb9ff0dbf64cb5b5c7b24731be7cf86",
+    "projectWritesPerformed": false
+  },
+  "privacy": {
+    "checkpointMaximumStringLength": 64,
+    "checkpointAbsolutePathCount": 0,
+    "checkpointMultilineStringCount": 0,
+    "checkpointConversationLikeKeyCount": 0,
+    "candidateBodiesPersisted": false,
+    "hostSessionPersisted": false,
+    "rawHostOutputRetained": false,
+    "temporaryDestinationRetained": false
+  },
+  "requiredCheckIds": [
+    "native-full-route",
+    "native-host-handoff",
+    "real-codex-host",
+    "graph-query",
+    "checkpoint-privacy",
+    "migration-rollback",
+    "program-ledger",
+    "task-validation",
+    "diff-check",
+    "native-slice-ci"
+  ],
+  "receiptPayloadSha256": "f81eb7aa501f905a453e3e026cb8d3dd966e7617578cc65fd70682f231d561db"
+}

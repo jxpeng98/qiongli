@@ -787,6 +787,39 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertIn("Literature provider semantic_scholar: configured", result.merged_analysis)
         self.assertIn("Literature search capability: provider_connected", result.merged_analysis)
 
+    def test_doctor_does_not_claim_disabled_literature_provider_connectivity(self) -> None:
+        orchestrator = ModelOrchestrator(standards_dir=RepoLayout(REPO_ROOT).standards)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config_home = Path(tmp_dir) / "config"
+            config_home.mkdir()
+            (config_home / "providers.json").write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "providers": {
+                            "semantic_scholar": {
+                                "enabled": False,
+                                "api_key": "disabled-canary",
+                            },
+                            "arxiv": {"enabled": False},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"QIONGLI_CONFIG_HOME": str(config_home)},
+                clear=False,
+            ):
+                result = orchestrator.doctor(REPO_ROOT)
+
+        self.assertNotIn("Literature provider semantic_scholar", result.merged_analysis)
+        self.assertIn(
+            "[WARNING] Literature search capability: strategy_only",
+            result.merged_analysis,
+        )
+
     def test_doctor_reports_metadata_registry_enrichment_overlay(self) -> None:
         orchestrator = ModelOrchestrator(standards_dir=RepoLayout(REPO_ROOT).standards)
         with mock.patch.dict(

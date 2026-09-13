@@ -219,15 +219,23 @@ class MCPToolHandlerTests(unittest.TestCase):
         )
         status_index = ordered_names.index("qiongli_literature_status")
         self.assertEqual(ordered_names[status_index + 1], "qiongli_search_plan")
-        search_plan_schema = next(
-            tool["inputSchema"]["properties"]
+        search_plan_input = next(
+            tool["inputSchema"]
             for tool in MCP_TOOL_DEFINITIONS
             if tool["name"] == "qiongli_search_plan"
         )
+        self.assertEqual(search_plan_input["required"], ["query"])
+        self.assertIs(search_plan_input["additionalProperties"], False)
+        search_plan_schema = search_plan_input["properties"]
         for alias in (
+            "native_search_usable",
             "nativeSearchAvailable",
             "nativeSearchTools",
             "includeWorkingPapers",
+            "from_year",
+            "fromYear",
+            "to_year",
+            "toYear",
             "searchMode",
             "venueFilter",
             "documentTypes",
@@ -268,6 +276,69 @@ class MCPToolHandlerTests(unittest.TestCase):
             lessons["structuredContent"]["records"][0]["reusable_guidance"],
             ["Write search diagnostics before claiming review-grade coverage."],
         )
+
+    def test_experience_mcp_tools_redact_credential_bearing_record_fields(self) -> None:
+        canary = "QIONGLI_EXPERIENCE_CREDENTIAL_CANARY_DO_NOT_ECHO"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_experience_fixture(root)
+            run_dir = root / ".qiongli" / "trace" / "runs" / "failed-b1"
+            record_path = run_dir / "experience_record.json"
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+            record["inputs"] = {
+                "QIONGLI_OPENALEX_API_KEY": canary,
+                "nested": {"access_token": canary, "safe": "kept"},
+            }
+            record_path.write_text(json.dumps(record), encoding="utf-8")
+            index_path = root / ".qiongli" / "trace" / "experience.jsonl"
+            index_path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+            results = (
+                call_qiongli_tool("qiongli_experience_query", {"cwd": str(root)}),
+                call_qiongli_tool(
+                    "qiongli_experience_show",
+                    {"cwd": str(root), "run_id": "failed-b1"},
+                ),
+                call_qiongli_tool("qiongli_experience_lessons", {"cwd": str(root)}),
+            )
+
+        for result in results:
+            with self.subTest(tool_result=result["structuredContent"].keys()):
+                self.assertFalse(result["isError"], result)
+                self.assertNotIn(canary, json.dumps(result, sort_keys=True))
+
+    def test_experience_show_rejects_traversal_and_symlink_escape_without_leak(self) -> None:
+        canary = "QIONGLI_EXPERIENCE_OUTSIDE_CANARY_DO_NOT_ECHO"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            base = Path(tmp_dir)
+            root = base / "project"
+            runs_root = root / ".qiongli" / "trace" / "runs"
+            outside_run = base / "outside"
+            runs_root.mkdir(parents=True)
+            outside_run.mkdir()
+            (outside_run / "experience_record.json").write_text(
+                json.dumps({"run_id": "linked", "api_key": canary}),
+                encoding="utf-8",
+            )
+            (runs_root / "linked").symlink_to(outside_run, target_is_directory=True)
+
+            traversal = call_qiongli_tool(
+                "qiongli_experience_show",
+                {"cwd": str(root), "run_id": str(outside_run)},
+            )
+            linked = call_qiongli_tool(
+                "qiongli_experience_show",
+                {"cwd": str(root), "run_id": "linked"},
+            )
+
+        self.assertTrue(traversal["isError"])
+        self.assertEqual(
+            traversal["structuredContent"]["error_kind"],
+            "invalid_arguments",
+        )
+        self.assertTrue(linked["isError"])
+        self.assertEqual(linked["structuredContent"]["error_kind"], "tool_error")
+        self.assertNotIn(canary, json.dumps((traversal, linked), sort_keys=True))
 
     def test_tool_definitions_include_subject_lifecycle_tools(self) -> None:
         definitions = {tool["name"]: tool for tool in MCP_TOOL_DEFINITIONS}
@@ -629,7 +700,8 @@ class MCPToolHandlerTests(unittest.TestCase):
             )
 
         self.assertTrue(result["isError"])
-        self.assertIn("Unsupported subject lifecycle action", result["structuredContent"]["error"])
+        self.assertEqual(result["structuredContent"]["error_kind"], "invalid_arguments")
+        self.assertIn("action", result["structuredContent"]["error"])
 
     def test_subject_update_confirm_rejects_auto_or_missing_subject(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -643,10 +715,8 @@ class MCPToolHandlerTests(unittest.TestCase):
             )
 
         self.assertTrue(auto_result["isError"])
-        self.assertIn(
-            "confirm requires a concrete official subject",
-            auto_result["structuredContent"]["error"],
-        )
+        self.assertEqual(auto_result["structuredContent"]["error_kind"], "invalid_arguments")
+        self.assertIn("subject", auto_result["structuredContent"]["error"])
         self.assertTrue(missing_result["isError"])
         self.assertIn("confirm requires a subject", missing_result["structuredContent"]["error"])
 
@@ -753,7 +823,15 @@ class MCPToolHandlerTests(unittest.TestCase):
         payload = result["structuredContent"]
         self.assertEqual(payload["providers"]["openalex"], "missing")
         self.assertEqual(payload["providers"]["semantic_scholar"], "missing")
-        self.assertEqual(payload["missing"], ["openalex.api_key", "semantic_scholar.api_key"])
+        self.assertEqual(
+            payload["missing"],
+            [
+                "openalex.api_key",
+                "semantic_scholar.api_key",
+                "crossref.email",
+                "pubmed.api_key",
+            ],
+        )
         self.assertEqual(payload["next_action"]["tool"], "qiongli_configure_provider")
         self.assertEqual(payload["next_action"]["args"], {"provider": "openalex"})
 
@@ -774,6 +852,7 @@ class MCPToolHandlerTests(unittest.TestCase):
         rendered = json.dumps(result, sort_keys=True)
         self.assertEqual(result["structuredContent"]["provider"], "openalex")
         self.assertEqual(result["structuredContent"]["field"], "api_key")
+        self.assertIs(result["structuredContent"]["saved"], True)
         self.assertEqual(status["structuredContent"]["providers"]["openalex"], "configured")
         self.assertNotIn("openalex-secret-key", rendered)
 
@@ -793,6 +872,7 @@ class MCPToolHandlerTests(unittest.TestCase):
         rendered = json.dumps(result, sort_keys=True)
         self.assertEqual(result["structuredContent"]["provider"], "semantic_scholar")
         self.assertEqual(result["structuredContent"]["field"], "api_key")
+        self.assertIs(result["structuredContent"]["saved"], True)
         self.assertIn("Prefer qiongli_configure_provider", result["structuredContent"]["warning"])
         self.assertNotIn("secret-demo-key", rendered)
 
@@ -880,6 +960,7 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertIn("QIONGLI_SEMANTIC_SCHOLAR_API_KEY", aliases)
         self.assertIn("S2_API_KEY", aliases)
         self.assertNotIn("secret-demo-key", rendered)
+        self.assertFalse(result["isError"])
 
     def test_search_plan_tool_uses_status_capability_without_leaking_secrets(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -904,6 +985,7 @@ class MCPToolHandlerTests(unittest.TestCase):
         rendered = json.dumps(result, sort_keys=True)
         self.assertFalse(result["isError"])
         self.assertEqual(payload["artifact_type"], "qiongli_hybrid_search_plan")
+        self.assertEqual(payload["search_mode"], "topic")
         self.assertEqual(payload["search_execution_mode"], "hybrid_search")
         self.assertEqual(payload["provider_capability_mode"], "provider_connected")
         self.assertEqual(payload["native_search_tools"], ["codex_web_search"])
@@ -921,6 +1003,7 @@ class MCPToolHandlerTests(unittest.TestCase):
             port = 8765
             token = "abc"
             config_path = "/tmp/qiongli/providers.json"
+            provider = None
 
         with mock.patch.object(
             tool_handlers,
@@ -945,6 +1028,7 @@ class MCPToolHandlerTests(unittest.TestCase):
             port = 8765
             token = "abc"
             config_path = "/tmp/qiongli/providers.json"
+            provider = "semantic_scholar"
 
         with mock.patch.object(
             tool_handlers,
@@ -962,6 +1046,32 @@ class MCPToolHandlerTests(unittest.TestCase):
         )
         self.assertEqual(result["structuredContent"]["provider"], "semantic_scholar")
         self.assertEqual(result["structuredContent"]["config_path"], "/tmp/qiongli/providers.json")
+
+    def test_configure_provider_reuse_reports_the_active_wizard_provider(self) -> None:
+        class ActiveWizard:
+            url = "http://127.0.0.1:8765/?token=abc"
+            host = "127.0.0.1"
+            port = 8765
+            config_path = "/tmp/qiongli/providers.json"
+            provider = "openalex"
+            completed = mock.Mock()
+
+        ActiveWizard.completed.is_set.return_value = False
+        previous = tool_handlers._ACTIVE_CONFIG_WIZARD
+        tool_handlers._ACTIVE_CONFIG_WIZARD = ActiveWizard()
+        try:
+            result = call_qiongli_tool(
+                "qiongli_configure_provider",
+                {"provider": "pubmed", "host": "localhost", "port": 0},
+            )
+        finally:
+            tool_handlers._ACTIVE_CONFIG_WIZARD = previous
+
+        payload = result["structuredContent"]
+        self.assertFalse(result["isError"])
+        self.assertEqual(payload["status"], "already_running")
+        self.assertEqual(payload["provider"], "openalex")
+        self.assertEqual(payload["url"], ActiveWizard.url)
 
     def test_orchestrator_doctor_tool_returns_structured_result(self) -> None:
         class StubResult:
@@ -1013,8 +1123,6 @@ class MCPToolHandlerTests(unittest.TestCase):
                         "task_id": "F3",
                         "paper_type": "empirical",
                         "topic": "my-topic",
-                        "primary": "codex",
-                        "reviewer": "claude",
                     },
                 )
 
@@ -1123,7 +1231,11 @@ class MCPToolHandlerTests(unittest.TestCase):
                     )
 
                 self.assertTrue(result["isError"])
-                self.assertIn("run_agents must be the JSON boolean", result["structuredContent"]["error"])
+                self.assertEqual(
+                    result["structuredContent"]["error_kind"],
+                    "invalid_arguments",
+                )
+                self.assertIn("run_agents", result["structuredContent"]["error"])
                 self.assertFalse(stub.ran_agents)
 
     def test_task_run_preview_exposes_effective_runtime_options(self) -> None:

@@ -1,0 +1,15 @@
+schema_version: "1.0"
+case_id: keyword-only
+pipeline: evaluation-truth
+input:
+  topic: Reject generic scholarly keywords without claim evidence.
+expected_outputs:
+  evidence:
+    artifact: evidence.md
+    required: true
+    assertions:
+      - type: contains_all
+        values:
+          - Claim C-1
+          - source S-1
+          - locator p. 4

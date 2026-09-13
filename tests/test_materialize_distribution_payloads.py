@@ -97,6 +97,7 @@ class DistributionMaterializerTests(unittest.TestCase):
             local_artifacts = (
                 source / "dist" / "qiongli-0.15.0b1-py3-none-any.whl",
                 source / "build" / "lib" / "qiongli" / "__init__.py",
+                source / "packages" / "qiongli-native" / "target" / "debug" / "qiongli",
                 source / "qiongli.egg-info" / "PKG-INFO",
                 source / "packages" / "python-qiongli" / "src" / "qiongli.egg-info" / "PKG-INFO",
             )
@@ -109,6 +110,7 @@ class DistributionMaterializerTests(unittest.TestCase):
             self.assertTrue((dest / "content" / "workflow" / "SKILL.md").is_file())
             self.assertFalse((dest / "dist").exists())
             self.assertFalse((dest / "build").exists())
+            self.assertFalse((dest / "packages" / "qiongli-native" / "target").exists())
             self.assertFalse((dest / "qiongli.egg-info").exists())
             self.assertFalse((dest / "packages" / "python-qiongli" / "src" / "qiongli.egg-info").exists())
 
@@ -162,6 +164,7 @@ class DistributionMaterializerTests(unittest.TestCase):
             self.assertTrue((out / "plugins/qiongli/skills/qiongli-workflow/SKILL.md").is_file())
             self.assertTrue((out / "plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml").is_file())
             self.assertTrue((out / "plugins/qiongli-next/.codex-plugin/plugin.json").is_file())
+            self.assertTrue((out / "plugins/qiongli-next/.claude-plugin/plugin.json").is_file())
             self.assertTrue((out / "plugins/qiongli-next/.mcp.json").is_file())
             self.assertTrue((out / "plugins/qiongli-next/skills/qiongli-workflow/SKILL.md").is_file())
             self.assertTrue((out / "qiongli-workflow/skills/registry.yaml").is_file())

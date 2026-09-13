@@ -1,0 +1,1494 @@
+[
+  {
+    "schemaVersion": 1,
+    "projectId": "prj_00000000000000000000000000000000",
+    "expectedProjectRevision": 1,
+    "runId": "run_00000000000000000000000000000000",
+    "agent": "offline_demo",
+    "revision": 1,
+    "status": "active",
+    "nextTurn": 2,
+    "prompts": [
+      {
+        "text": "Demonstrate activity",
+        "context": "Synthetic fixture context",
+        "sourceRefs": [
+          "fixture-source"
+        ]
+      }
+    ],
+    "updates": [
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 1,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "session",
+          "info": {
+            "adapter": null,
+            "sessionEstablished": false,
+            "authenticationRequired": false,
+            "authMethodIds": [],
+            "loadAdvertised": false,
+            "resumeAdvertised": false,
+            "modeIds": [],
+            "currentModeId": null,
+            "modelIds": [],
+            "currentModelId": null,
+            "loadEnabled": false,
+            "resumeEnabled": false,
+            "modeSelectionEnabled": false,
+            "modelSelectionEnabled": false
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 2,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "session",
+          "info": {
+            "adapter": null,
+            "sessionEstablished": true,
+            "authenticationRequired": false,
+            "authMethodIds": [],
+            "loadAdvertised": false,
+            "resumeAdvertised": false,
+            "modeIds": [],
+            "currentModeId": null,
+            "modelIds": [],
+            "currentModelId": null,
+            "loadEnabled": false,
+            "resumeEnabled": false,
+            "modeSelectionEnabled": false,
+            "modelSelectionEnabled": false
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 3,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "status": "running"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 4,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_pending",
+          "request": {
+            "binding": {
+              "connectionId": "acp-connection-00000000000000000000000000000000",
+              "runId": "run_00000000000000000000000000000000",
+              "role": "primary",
+              "sessionId": "offline-demo",
+              "turnId": 1
+            },
+            "requestId": 1,
+            "toolCallId": "demo-tool",
+            "title": "Offline demonstration",
+            "options": [
+              {
+                "optionId": "allow",
+                "name": "Allow once",
+                "kind": "allow_once",
+                "enabled": true
+              },
+              {
+                "optionId": "deny",
+                "name": "Deny once",
+                "kind": "reject_once",
+                "enabled": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 5,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "plan",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "entries": [
+            {
+              "content": "Demonstrate permission and activity without reading sources",
+              "status": "in_progress"
+            }
+          ]
+        }
+      }
+    ],
+    "error": null
+  },
+  {
+    "schemaVersion": 1,
+    "projectId": "prj_00000000000000000000000000000000",
+    "expectedProjectRevision": 1,
+    "runId": "run_00000000000000000000000000000000",
+    "agent": "offline_demo",
+    "revision": 1,
+    "status": "active",
+    "nextTurn": 3,
+    "prompts": [
+      {
+        "text": "Demonstrate activity",
+        "context": "Synthetic fixture context",
+        "sourceRefs": [
+          "fixture-source"
+        ]
+      },
+      {
+        "text": "Demonstrate activity",
+        "context": "Synthetic fixture context",
+        "sourceRefs": [
+          "fixture-source"
+        ]
+      }
+    ],
+    "updates": [
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 1,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "session",
+          "info": {
+            "adapter": null,
+            "sessionEstablished": false,
+            "authenticationRequired": false,
+            "authMethodIds": [],
+            "loadAdvertised": false,
+            "resumeAdvertised": false,
+            "modeIds": [],
+            "currentModeId": null,
+            "modelIds": [],
+            "currentModelId": null,
+            "loadEnabled": false,
+            "resumeEnabled": false,
+            "modeSelectionEnabled": false,
+            "modelSelectionEnabled": false
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 2,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "session",
+          "info": {
+            "adapter": null,
+            "sessionEstablished": true,
+            "authenticationRequired": false,
+            "authMethodIds": [],
+            "loadAdvertised": false,
+            "resumeAdvertised": false,
+            "modeIds": [],
+            "currentModeId": null,
+            "modelIds": [],
+            "currentModelId": null,
+            "loadEnabled": false,
+            "resumeEnabled": false,
+            "modeSelectionEnabled": false,
+            "modelSelectionEnabled": false
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 3,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "status": "running"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 4,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_pending",
+          "request": {
+            "binding": {
+              "connectionId": "acp-connection-00000000000000000000000000000000",
+              "runId": "run_00000000000000000000000000000000",
+              "role": "primary",
+              "sessionId": "offline-demo",
+              "turnId": 1
+            },
+            "requestId": 1,
+            "toolCallId": "demo-tool",
+            "title": "Offline demonstration",
+            "options": [
+              {
+                "optionId": "allow",
+                "name": "Allow once",
+                "kind": "allow_once",
+                "enabled": true
+              },
+              {
+                "optionId": "deny",
+                "name": "Deny once",
+                "kind": "reject_once",
+                "enabled": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 5,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "plan",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "entries": [
+            {
+              "content": "Demonstrate permission and activity without reading sources",
+              "status": "in_progress"
+            }
+          ]
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 6,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_resolved",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "requestId": 1,
+          "choice": {
+            "type": "select",
+            "optionId": "allow"
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 7,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "tool",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "toolCallId": "demo-tool",
+          "title": "Offline demonstration",
+          "status": "completed"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 8,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "text",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "content": "Offline demonstration completed. No source was read and no file was changed. You can send another message in this session."
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 9,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "status": "completed"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 10,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 2
+          },
+          "status": "running"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 11,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_pending",
+          "request": {
+            "binding": {
+              "connectionId": "acp-connection-00000000000000000000000000000000",
+              "runId": "run_00000000000000000000000000000000",
+              "role": "primary",
+              "sessionId": "offline-demo",
+              "turnId": 2
+            },
+            "requestId": 2,
+            "toolCallId": "demo-tool",
+            "title": "Offline demonstration",
+            "options": [
+              {
+                "optionId": "allow",
+                "name": "Allow once",
+                "kind": "allow_once",
+                "enabled": true
+              },
+              {
+                "optionId": "deny",
+                "name": "Deny once",
+                "kind": "reject_once",
+                "enabled": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 12,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "plan",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 2
+          },
+          "entries": [
+            {
+              "content": "Demonstrate permission and activity without reading sources",
+              "status": "in_progress"
+            }
+          ]
+        }
+      }
+    ],
+    "error": null
+  },
+  {
+    "schemaVersion": 1,
+    "projectId": "prj_00000000000000000000000000000000",
+    "expectedProjectRevision": 1,
+    "runId": "run_00000000000000000000000000000000",
+    "agent": "offline_demo",
+    "revision": 1,
+    "status": "interrupted",
+    "nextTurn": 4,
+    "prompts": [
+      {
+        "text": "Demonstrate activity",
+        "context": "Synthetic fixture context",
+        "sourceRefs": [
+          "fixture-source"
+        ]
+      },
+      {
+        "text": "Demonstrate activity",
+        "context": "Synthetic fixture context",
+        "sourceRefs": [
+          "fixture-source"
+        ]
+      },
+      {
+        "text": "Demonstrate activity",
+        "context": "Synthetic fixture context",
+        "sourceRefs": [
+          "fixture-source"
+        ]
+      }
+    ],
+    "updates": [
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 1,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "session",
+          "info": {
+            "adapter": null,
+            "sessionEstablished": false,
+            "authenticationRequired": false,
+            "authMethodIds": [],
+            "loadAdvertised": false,
+            "resumeAdvertised": false,
+            "modeIds": [],
+            "currentModeId": null,
+            "modelIds": [],
+            "currentModelId": null,
+            "loadEnabled": false,
+            "resumeEnabled": false,
+            "modeSelectionEnabled": false,
+            "modelSelectionEnabled": false
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 2,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "session",
+          "info": {
+            "adapter": null,
+            "sessionEstablished": true,
+            "authenticationRequired": false,
+            "authMethodIds": [],
+            "loadAdvertised": false,
+            "resumeAdvertised": false,
+            "modeIds": [],
+            "currentModeId": null,
+            "modelIds": [],
+            "currentModelId": null,
+            "loadEnabled": false,
+            "resumeEnabled": false,
+            "modeSelectionEnabled": false,
+            "modelSelectionEnabled": false
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 3,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "status": "running"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 4,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_pending",
+          "request": {
+            "binding": {
+              "connectionId": "acp-connection-00000000000000000000000000000000",
+              "runId": "run_00000000000000000000000000000000",
+              "role": "primary",
+              "sessionId": "offline-demo",
+              "turnId": 1
+            },
+            "requestId": 1,
+            "toolCallId": "demo-tool",
+            "title": "Offline demonstration",
+            "options": [
+              {
+                "optionId": "allow",
+                "name": "Allow once",
+                "kind": "allow_once",
+                "enabled": true
+              },
+              {
+                "optionId": "deny",
+                "name": "Deny once",
+                "kind": "reject_once",
+                "enabled": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 5,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "plan",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "entries": [
+            {
+              "content": "Demonstrate permission and activity without reading sources",
+              "status": "in_progress"
+            }
+          ]
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 6,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_resolved",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "requestId": 1,
+          "choice": {
+            "type": "select",
+            "optionId": "allow"
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 7,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "tool",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "toolCallId": "demo-tool",
+          "title": "Offline demonstration",
+          "status": "completed"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 8,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "text",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "content": "Offline demonstration completed. No source was read and no file was changed. You can send another message in this session."
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 9,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "status": "completed"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 10,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 2
+          },
+          "status": "running"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 11,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_pending",
+          "request": {
+            "binding": {
+              "connectionId": "acp-connection-00000000000000000000000000000000",
+              "runId": "run_00000000000000000000000000000000",
+              "role": "primary",
+              "sessionId": "offline-demo",
+              "turnId": 2
+            },
+            "requestId": 2,
+            "toolCallId": "demo-tool",
+            "title": "Offline demonstration",
+            "options": [
+              {
+                "optionId": "allow",
+                "name": "Allow once",
+                "kind": "allow_once",
+                "enabled": true
+              },
+              {
+                "optionId": "deny",
+                "name": "Deny once",
+                "kind": "reject_once",
+                "enabled": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 12,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "plan",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 2
+          },
+          "entries": [
+            {
+              "content": "Demonstrate permission and activity without reading sources",
+              "status": "in_progress"
+            }
+          ]
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 13,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_resolved",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 2
+          },
+          "requestId": 2,
+          "choice": {
+            "type": "select",
+            "optionId": "deny"
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 14,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "tool",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 2
+          },
+          "toolCallId": "demo-tool",
+          "title": "Offline demonstration",
+          "status": "completed"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 15,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "text",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 2
+          },
+          "content": "Permission was declined. No source was read and no file was changed."
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 16,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 2
+          },
+          "status": "completed"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 17,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 3
+          },
+          "status": "running"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 18,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_pending",
+          "request": {
+            "binding": {
+              "connectionId": "acp-connection-00000000000000000000000000000000",
+              "runId": "run_00000000000000000000000000000000",
+              "role": "primary",
+              "sessionId": "offline-demo",
+              "turnId": 3
+            },
+            "requestId": 3,
+            "toolCallId": "demo-tool",
+            "title": "Offline demonstration",
+            "options": [
+              {
+                "optionId": "allow",
+                "name": "Allow once",
+                "kind": "allow_once",
+                "enabled": true
+              },
+              {
+                "optionId": "deny",
+                "name": "Deny once",
+                "kind": "reject_once",
+                "enabled": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 19,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "plan",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 3
+          },
+          "entries": [
+            {
+              "content": "Demonstrate permission and activity without reading sources",
+              "status": "in_progress"
+            }
+          ]
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 20,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_resolved",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 3
+          },
+          "requestId": 3,
+          "choice": {
+            "type": "cancel"
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 21,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 3
+          },
+          "status": "interrupted"
+        }
+      }
+    ],
+    "error": "all-chat-session-interrupted"
+  },
+  {
+    "schemaVersion": 1,
+    "projectId": "prj_00000000000000000000000000000000",
+    "expectedProjectRevision": 1,
+    "runId": "run_00000000000000000000000000000000",
+    "agent": "offline_demo",
+    "revision": 1,
+    "status": "closed",
+    "nextTurn": 4,
+    "prompts": [
+      {
+        "text": "Demonstrate activity",
+        "context": "Synthetic fixture context",
+        "sourceRefs": [
+          "fixture-source"
+        ]
+      },
+      {
+        "text": "Demonstrate activity",
+        "context": "Synthetic fixture context",
+        "sourceRefs": [
+          "fixture-source"
+        ]
+      },
+      {
+        "text": "Demonstrate activity",
+        "context": "Synthetic fixture context",
+        "sourceRefs": [
+          "fixture-source"
+        ]
+      }
+    ],
+    "updates": [
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 1,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "session",
+          "info": {
+            "adapter": null,
+            "sessionEstablished": false,
+            "authenticationRequired": false,
+            "authMethodIds": [],
+            "loadAdvertised": false,
+            "resumeAdvertised": false,
+            "modeIds": [],
+            "currentModeId": null,
+            "modelIds": [],
+            "currentModelId": null,
+            "loadEnabled": false,
+            "resumeEnabled": false,
+            "modeSelectionEnabled": false,
+            "modelSelectionEnabled": false
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 2,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "session",
+          "info": {
+            "adapter": null,
+            "sessionEstablished": true,
+            "authenticationRequired": false,
+            "authMethodIds": [],
+            "loadAdvertised": false,
+            "resumeAdvertised": false,
+            "modeIds": [],
+            "currentModeId": null,
+            "modelIds": [],
+            "currentModelId": null,
+            "loadEnabled": false,
+            "resumeEnabled": false,
+            "modeSelectionEnabled": false,
+            "modelSelectionEnabled": false
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 3,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "status": "running"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 4,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_pending",
+          "request": {
+            "binding": {
+              "connectionId": "acp-connection-00000000000000000000000000000000",
+              "runId": "run_00000000000000000000000000000000",
+              "role": "primary",
+              "sessionId": "offline-demo",
+              "turnId": 1
+            },
+            "requestId": 1,
+            "toolCallId": "demo-tool",
+            "title": "Offline demonstration",
+            "options": [
+              {
+                "optionId": "allow",
+                "name": "Allow once",
+                "kind": "allow_once",
+                "enabled": true
+              },
+              {
+                "optionId": "deny",
+                "name": "Deny once",
+                "kind": "reject_once",
+                "enabled": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 5,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "plan",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "entries": [
+            {
+              "content": "Demonstrate permission and activity without reading sources",
+              "status": "in_progress"
+            }
+          ]
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 6,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_resolved",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "requestId": 1,
+          "choice": {
+            "type": "select",
+            "optionId": "allow"
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 7,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "tool",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "toolCallId": "demo-tool",
+          "title": "Offline demonstration",
+          "status": "completed"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 8,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "text",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "content": "Offline demonstration completed. No source was read and no file was changed. You can send another message in this session."
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 9,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 1
+          },
+          "status": "completed"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 10,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 2
+          },
+          "status": "running"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 11,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_pending",
+          "request": {
+            "binding": {
+              "connectionId": "acp-connection-00000000000000000000000000000000",
+              "runId": "run_00000000000000000000000000000000",
+              "role": "primary",
+              "sessionId": "offline-demo",
+              "turnId": 2
+            },
+            "requestId": 2,
+            "toolCallId": "demo-tool",
+            "title": "Offline demonstration",
+            "options": [
+              {
+                "optionId": "allow",
+                "name": "Allow once",
+                "kind": "allow_once",
+                "enabled": true
+              },
+              {
+                "optionId": "deny",
+                "name": "Deny once",
+                "kind": "reject_once",
+                "enabled": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 12,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "plan",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 2
+          },
+          "entries": [
+            {
+              "content": "Demonstrate permission and activity without reading sources",
+              "status": "in_progress"
+            }
+          ]
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 13,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_resolved",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 2
+          },
+          "requestId": 2,
+          "choice": {
+            "type": "select",
+            "optionId": "deny"
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 14,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "tool",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 2
+          },
+          "toolCallId": "demo-tool",
+          "title": "Offline demonstration",
+          "status": "completed"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 15,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "text",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 2
+          },
+          "content": "Permission was declined. No source was read and no file was changed."
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 16,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 2
+          },
+          "status": "completed"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 17,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 3
+          },
+          "status": "running"
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 18,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_pending",
+          "request": {
+            "binding": {
+              "connectionId": "acp-connection-00000000000000000000000000000000",
+              "runId": "run_00000000000000000000000000000000",
+              "role": "primary",
+              "sessionId": "offline-demo",
+              "turnId": 3
+            },
+            "requestId": 3,
+            "toolCallId": "demo-tool",
+            "title": "Offline demonstration",
+            "options": [
+              {
+                "optionId": "allow",
+                "name": "Allow once",
+                "kind": "allow_once",
+                "enabled": true
+              },
+              {
+                "optionId": "deny",
+                "name": "Deny once",
+                "kind": "reject_once",
+                "enabled": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 19,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "plan",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 3
+          },
+          "entries": [
+            {
+              "content": "Demonstrate permission and activity without reading sources",
+              "status": "in_progress"
+            }
+          ]
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 20,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "permission_resolved",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 3
+          },
+          "requestId": 3,
+          "choice": {
+            "type": "cancel"
+          }
+        }
+      },
+      {
+        "connectionId": "acp-connection-00000000000000000000000000000000",
+        "schemaVersion": 1,
+        "sequence": 21,
+        "runId": "run_00000000000000000000000000000000",
+        "role": "primary",
+        "kind": {
+          "type": "turn",
+          "binding": {
+            "connectionId": "acp-connection-00000000000000000000000000000000",
+            "runId": "run_00000000000000000000000000000000",
+            "role": "primary",
+            "sessionId": "offline-demo",
+            "turnId": 3
+          },
+          "status": "interrupted"
+        }
+      }
+    ],
+    "error": "all-chat-session-interrupted"
+  }
+]

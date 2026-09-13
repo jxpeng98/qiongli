@@ -71,10 +71,8 @@ primary clustering basis.
 Every included paper should have one primary cluster and optional secondary
 cluster. Each assignment must cite `source_anchor` and `evidence_limit`.
 
-```markdown
-| citekey | primary_cluster | secondary_cluster | basis | evidence_limit | source_anchor |
-|---|---|---|---|---|---|
-```
+Use the exact `Included Studies` table in `templates/literature-map.md`. Assign
+stable `LC-###` IDs to clusters and never renumber or reuse recorded IDs.
 
 If a paper does not fit, record whether it is an outlier, a missing cluster, or
 outside the mapping scope.
@@ -158,30 +156,9 @@ addresses. If the map does not support a novelty claim, write an
 
 ## Minimal Output Format
 
-```markdown
-# Literature Map
-
-## Clustering Basis
-
-## Cluster Overview
-| cluster | basis | representative_papers | evidence_limits | open_problem |
-|---|---|---|---|---|
-
-## Detailed Clusters
-### Cluster: <label>
-- core argument:
-- representative papers:
-- evidence limits:
-- contradictions:
-- open problems:
-- contribution implication:
-
-## Inter-Cluster Relationships
-| cluster_a | relation | cluster_b | source_anchor | implication |
-|---|---|---|---|---|
-
-## Project Positioning
-```
+Start from `templates/literature-map.md` and preserve its exact machine-readable
+table headers for Included Studies, Concept Streams, Evidence Gaps, and
+Inter-Cluster Relationships. Narrative detail may follow each table.
 
 ## When to Use
 

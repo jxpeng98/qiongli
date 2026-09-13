@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import unittest
+from tooling.scripts.release_version import parse_release_version
 from pathlib import Path
 
 
@@ -9,8 +10,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 DOC_PATHS = (
-    Path("README.md"),
-    Path("README_CN.md"),
     Path("docs/guide/install.md"),
     Path("docs/zh/guide/install.md"),
     Path("docs/reference/cli.md"),
@@ -19,6 +18,23 @@ DOC_PATHS = (
 
 
 class CLISetupDocsTests(unittest.TestCase):
+    def test_current_entry_pages_use_the_native_contract(self) -> None:
+        for path in ("README.md", "README_CN.md", "docs/index.md", "docs/zh/index.md",
+                     "docs/quickstart.md", "docs/zh/quickstart.md"):
+            text = (REPO_ROOT / path).read_text(encoding="utf-8")
+            with self.subTest(path=path):
+                self.assertIn("cli-2x", text)
+                self.assertIn("qiongli", text)
+                self.assertNotIn("Python 3.12+", text)
+                self.assertNotIn("qiongli install --target all", text)
+                self.assertNotIn("qiongli@1.17.0", text)
+        for path in ("docs/guide/cli-2x.md", "docs/zh/guide/cli-2x.md"):
+            text = (REPO_ROOT / path).read_text(encoding="utf-8")
+            version = re.search(r"cargo install qiongli --version (\S+)", text).group(1)
+            self.assertIn(f"qiongli=={parse_release_version(version).package_version}", text)
+            for token in ("{#installation-state}", "{#research-graph}", "qiongli content --json"):
+                self.assertIn(token, text)
+
     def test_cli_setup_docs_cover_wizard_flags_and_choices(self) -> None:
         for path in DOC_PATHS:
             content = (REPO_ROOT / path).read_text(encoding="utf-8")
@@ -38,14 +54,7 @@ class CLISetupDocsTests(unittest.TestCase):
                 self.assertRegex(content, re.compile(r"provider (config|配置)|provider config"))
 
     def test_cli_setup_docs_keep_scriptable_npm_install_examples(self) -> None:
-        readme_default_install = 'qiongli install --target all --project-dir "$PWD"'
         guide_core_install = 'qiongli install --subject core --target all --project-dir "$PWD"'
-
-        for path in (Path("README.md"), Path("README_CN.md")):
-            content = (REPO_ROOT / path).read_text(encoding="utf-8")
-            with self.subTest(path=str(path)):
-                self.assertIn("qiongli setup", content)
-                self.assertIn(readme_default_install, content)
 
         for path in (Path("docs/guide/install.md"), Path("docs/zh/guide/install.md")):
             content = (REPO_ROOT / path).read_text(encoding="utf-8")
@@ -55,8 +64,6 @@ class CLISetupDocsTests(unittest.TestCase):
 
     def test_cli_setup_docs_disclose_npm_full_runtime_boundary(self) -> None:
         for path in (
-            Path("README.md"),
-            Path("README_CN.md"),
             Path("docs/guide/install.md"),
             Path("docs/zh/guide/install.md"),
             Path("docs/reference/cli.md"),

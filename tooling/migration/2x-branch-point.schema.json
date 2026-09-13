@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qiongli.dev/schemas/2x-branch-point.schema.json",
+  "title": "Qiongli 2.x branch-point evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "record_type",
+    "branch",
+    "source",
+    "baseline",
+    "source_validation",
+    "branch_validation",
+    "protection",
+    "branch_validation_policy"
+  ],
+  "properties": {
+    "$schema": {"const": "./2x-branch-point.schema.json"},
+    "schema_version": {"const": "1.0"},
+    "record_type": {"const": "qiongli-2x-branch-point"},
+    "branch": {"const": "2.x"},
+    "source": {"$ref": "#/$defs/source"},
+    "baseline": {"$ref": "#/$defs/baseline"},
+    "source_validation": {"$ref": "#/$defs/workflowPair"},
+    "branch_validation": {
+      "allOf": [
+        {"$ref": "#/$defs/workflowPair"},
+        {
+          "type": "object",
+          "required": ["record_commit"],
+          "properties": {
+            "record_commit": {"$ref": "#/$defs/gitSha"}
+          }
+        }
+      ]
+    },
+    "protection": {"$ref": "#/$defs/protection"},
+    "branch_validation_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_workflows",
+        "evidence_binding",
+        "ruleset_activation_gate"
+      ],
+      "properties": {
+        "required_workflows": {
+          "const": ["CI", "Checkout Install Check"]
+        },
+        "evidence_binding": {"type": "string", "minLength": 20},
+        "ruleset_activation_gate": {"type": "string", "minLength": 20}
+      }
+    }
+  },
+  "$defs": {
+    "gitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branch",
+        "baseline_commit",
+        "baseline_tree",
+        "initialization_commit",
+        "initialization_tree",
+        "initialization_tree_changed",
+        "accepted_release_tag",
+        "accepted_release_commit",
+        "maintenance_branch"
+      ],
+      "properties": {
+        "branch": {"const": "dev"},
+        "baseline_commit": {"$ref": "#/$defs/gitSha"},
+        "baseline_tree": {"$ref": "#/$defs/gitSha"},
+        "initialization_commit": {"$ref": "#/$defs/gitSha"},
+        "initialization_tree": {"$ref": "#/$defs/gitSha"},
+        "initialization_tree_changed": {"const": false},
+        "accepted_release_tag": {"const": "v1.19.0-beta.1"},
+        "accepted_release_commit": {"$ref": "#/$defs/gitSha"},
+        "maintenance_branch": {"const": "release/1.x-python"}
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest_path", "manifest_sha256", "corpus_sha256"],
+      "properties": {
+        "manifest_path": {
+          "const": "tooling/migration/baselines/v1.19.0-beta.1/manifest.json"
+        },
+        "manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "corpus_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "workflowEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "head_sha", "job_count", "conclusion", "url"],
+      "properties": {
+        "run_id": {"type": "integer", "minimum": 1},
+        "head_sha": {"$ref": "#/$defs/gitSha"},
+        "job_count": {"type": "integer", "minimum": 1},
+        "conclusion": {"const": "success"},
+        "url": {
+          "type": "string",
+          "pattern": "^https://github\\.com/jxpeng98/qiongli/actions/runs/[0-9]+$"
+        }
+      }
+    },
+    "workflowPair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ci", "checkout_install_check"],
+      "properties": {
+        "ci": {"$ref": "#/$defs/workflowEvidence"},
+        "checkout_install_check": {"$ref": "#/$defs/workflowEvidence"},
+        "record_commit": {"$ref": "#/$defs/gitSha"}
+      }
+    },
+    "ruleset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ruleset_id", "name", "enforcement", "url"],
+      "properties": {
+        "branch": {"type": "string", "minLength": 1},
+        "ruleset_id": {"type": "integer", "minimum": 1},
+        "name": {"type": "string", "minLength": 10},
+        "enforcement": {"const": "active"},
+        "url": {
+          "type": "string",
+          "pattern": "^https://github\\.com/jxpeng98/qiongli/rules/[0-9]+$"
+        }
+      }
+    },
+    "protection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "development_handoff_policy",
+        "dev",
+        "native_development",
+        "maintenance"
+      ],
+      "properties": {
+        "development_handoff_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "applies_to",
+            "pull_request_required",
+            "dismiss_stale_reviews",
+            "required_review_thread_resolution",
+            "required_checks_strict",
+            "required_check_count",
+            "deletion_blocked",
+            "non_fast_forward_blocked",
+            "bypass_actors",
+            "current_user_can_bypass"
+          ],
+          "properties": {
+            "applies_to": {"const": ["dev", "2.x"]},
+            "pull_request_required": {"const": true},
+            "dismiss_stale_reviews": {"const": true},
+            "required_review_thread_resolution": {"const": true},
+            "required_checks_strict": {"const": true},
+            "required_check_count": {"const": 8},
+            "deletion_blocked": {"const": true},
+            "non_fast_forward_blocked": {"const": true},
+            "bypass_actors": {"const": []},
+            "current_user_can_bypass": {"const": "never"}
+          }
+        },
+        "dev": {"$ref": "#/$defs/ruleset"},
+        "native_development": {"$ref": "#/$defs/ruleset"},
+        "maintenance": {"$ref": "#/$defs/ruleset"}
+      }
+    }
+  }
+}

@@ -14,6 +14,7 @@ from bridges.experience_runtime import (
     generate_skill_reinforcement_candidate,
     promote_experience,
     query_experience,
+    redact_experience_payload,
     replay_experience_plan,
     select_prior_experience,
     show_experience,
@@ -22,6 +23,41 @@ from bridges.experience_runtime import (
 
 
 class ExperienceRuntimeTests(unittest.TestCase):
+    def test_redact_experience_payload_removes_common_credential_keys(self) -> None:
+        credential_keys = (
+            "token",
+            "access_token",
+            "accessToken",
+            "access_key",
+            "accessKey",
+            "auth",
+            "authorization",
+            "bearer",
+            "QIONGLI_OPENALEX_API_KEY",
+            "service_private_key",
+            "servicePrivateKey",
+            "service_client_secret",
+            "serviceClientSecret",
+            "sessionToken",
+            "refreshToken",
+            "authToken",
+            "idToken",
+        )
+        payload = {
+            "nested": {
+                key: f"CANARY_{index}"
+                for index, key in enumerate(credential_keys)
+            },
+            "token_budget": 4096,
+            "public_key": "kept",
+        }
+
+        redacted = redact_experience_payload(payload)
+
+        self.assertEqual(redacted["nested"], {})
+        self.assertEqual(redacted["token_budget"], 4096)
+        self.assertEqual(redacted["public_key"], "kept")
+
     def _write_experience_fixture(
         self,
         root: Path,
@@ -272,6 +308,51 @@ class ExperienceRuntimeTests(unittest.TestCase):
         self.assertEqual(rows[0]["run_id"], "run-2")
         self.assertEqual(result["experience_status"], "written")
 
+    def test_write_experience_record_rejects_run_directory_symlink_escape(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            base = Path(tmp_dir)
+            root = base / "project"
+            runs_root = root / ".qiongli" / "trace" / "runs"
+            outside = base / "outside-run"
+            runs_root.mkdir(parents=True)
+            outside.mkdir()
+            escaped_run = runs_root / "escaped-run"
+            escaped_run.symlink_to(outside, target_is_directory=True)
+
+            with self.assertRaisesRegex(ValueError, "managed project paths"):
+                write_experience_record(
+                    project_root=root,
+                    run_dir=escaped_run,
+                    guidance_trace={"run_id": "escaped-run"},
+                    task_packet={},
+                    validator_gate={},
+                )
+
+            self.assertFalse((outside / "experience_record.json").exists())
+
+    def test_write_experience_record_rejects_index_symlink_escape(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            base = Path(tmp_dir)
+            root = base / "project"
+            run_dir = root / ".qiongli" / "trace" / "runs" / "safe-run"
+            run_dir.mkdir(parents=True)
+            outside_index = base / "outside-experience.jsonl"
+            outside_index.write_text("outside-canary\n", encoding="utf-8")
+            index_path = root / ".qiongli" / "trace" / "experience.jsonl"
+            index_path.symlink_to(outside_index)
+
+            with self.assertRaisesRegex(ValueError, "managed project paths"):
+                write_experience_record(
+                    project_root=root,
+                    run_dir=run_dir,
+                    guidance_trace={"run_id": "safe-run"},
+                    task_packet={},
+                    validator_gate={},
+                )
+
+            self.assertEqual(outside_index.read_text(encoding="utf-8"), "outside-canary\n")
+            self.assertFalse((run_dir / "experience_record.json").exists())
+
     def test_experience_summary_tolerates_malformed_jsonl_rows(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -362,6 +443,106 @@ class ExperienceRuntimeTests(unittest.TestCase):
             ["missing_required_output:search_diagnostics.md"],
         )
         self.assertEqual(prior["query"]["limit"], 1)
+
+    def test_show_experience_rejects_record_directory_symlink_escape(self) -> None:
+        canary = "QIONGLI_OUTSIDE_RECORD_CANARY_DO_NOT_READ"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            base = Path(tmp_dir)
+            root = base / "project"
+            runs_root = root / ".qiongli" / "trace" / "runs"
+            outside_run = base / "outside-run"
+            runs_root.mkdir(parents=True)
+            outside_run.mkdir()
+            (outside_run / "experience_record.json").write_text(
+                json.dumps({"run_id": "linked-run", "api_key": canary}),
+                encoding="utf-8",
+            )
+            (runs_root / "linked-run").symlink_to(outside_run, target_is_directory=True)
+
+            with self.assertRaisesRegex(ValueError, "managed project paths") as caught:
+                show_experience(root, "linked-run")
+
+        self.assertNotIn(canary, str(caught.exception))
+
+    def test_show_experience_rejects_record_file_symlink_escape(self) -> None:
+        canary = "QIONGLI_OUTSIDE_FILE_CANARY_DO_NOT_READ"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            base = Path(tmp_dir)
+            root = base / "project"
+            run_dir = root / ".qiongli" / "trace" / "runs" / "linked-file"
+            run_dir.mkdir(parents=True)
+            outside_record = base / "outside-record.json"
+            outside_record.write_text(
+                json.dumps({"run_id": "linked-file", "api_key": canary}),
+                encoding="utf-8",
+            )
+            (run_dir / "experience_record.json").symlink_to(outside_record)
+
+            with self.assertRaisesRegex(ValueError, "managed project paths") as caught:
+                show_experience(root, "linked-file")
+
+        self.assertNotIn(canary, str(caught.exception))
+
+    def test_experience_readers_reject_index_symlink_escape(self) -> None:
+        canary = "QIONGLI_OUTSIDE_INDEX_CANARY_DO_NOT_READ"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            base = Path(tmp_dir)
+            root = base / "project"
+            trace_root = root / ".qiongli" / "trace"
+            trace_root.mkdir(parents=True)
+            outside_index = base / "outside-index.jsonl"
+            outside_index.write_text(
+                json.dumps({"run_id": "outside-run", "api_key": canary}) + "\n",
+                encoding="utf-8",
+            )
+            (trace_root / "experience.jsonl").symlink_to(outside_index)
+
+            readers = (
+                lambda: query_experience(root),
+                lambda: experience_lessons(root),
+                lambda: show_experience(root, "missing-run"),
+            )
+            for reader in readers:
+                with self.subTest(reader=reader):
+                    with self.assertRaisesRegex(ValueError, "managed project paths") as caught:
+                        reader()
+                    self.assertNotIn(canary, str(caught.exception))
+
+    def test_experience_readers_reject_in_project_managed_path_redirects(self) -> None:
+        canary = "QIONGLI_IN_PROJECT_REDIRECT_CANARY_DO_NOT_READ"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir) / "project"
+            qiongli_root = root / ".qiongli"
+            qiongli_root.mkdir(parents=True)
+            redirected_index = root / "experience.jsonl"
+            redirected_index.write_text(
+                json.dumps({"run_id": "redirected", "api_key": canary}) + "\n",
+                encoding="utf-8",
+            )
+            (qiongli_root / "trace").symlink_to(root, target_is_directory=True)
+
+            with self.assertRaisesRegex(ValueError, "managed project paths") as caught:
+                query_experience(root)
+
+        self.assertNotIn(canary, str(caught.exception))
+
+    def test_experience_readers_reject_in_trace_index_symlink(self) -> None:
+        canary = "QIONGLI_IN_TRACE_INDEX_CANARY_DO_NOT_READ"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir) / "project"
+            trace_root = root / ".qiongli" / "trace"
+            trace_root.mkdir(parents=True)
+            redirected_index = trace_root / "redirected.jsonl"
+            redirected_index.write_text(
+                json.dumps({"run_id": "redirected", "api_key": canary}) + "\n",
+                encoding="utf-8",
+            )
+            (trace_root / "experience.jsonl").symlink_to(redirected_index)
+
+            with self.assertRaisesRegex(ValueError, "managed project paths") as caught:
+                experience_lessons(root)
+
+        self.assertNotIn(canary, str(caught.exception))
 
     def test_skill_reinforcement_candidate_requires_repeated_experience_support(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/product/control/index.md", "reason": "Verify implementation against product-control tier contract"}
+{"file": ".trellis/spec/native/runtime/index.md", "reason": "Verify native schema and cross-platform checks against runtime guidance"}
+{"file": ".trellis/tasks/08-30-2x-cross-platform-delivery/research/current-cross-platform-validation-audit.md", "reason": "Compare final workflow with audited baseline and constraints"}
+{"file": ".trellis/tasks/08-30-2x-cross-platform-delivery/research/macos-windows-cross-build-validation.md", "reason": "Check reported artifact identities, guest evidence, and nonclaims"}

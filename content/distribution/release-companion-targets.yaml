@@ -12,6 +12,12 @@ targets:
     artifact_kind: xpi
     expected_install_method: download_xpi
 
+  zotero_desktop_companion_updates:
+    target_id: zotero-desktop-companion-update-manifest
+    subject: zotero
+    artifact_kind: release-metadata
+    expected_install_method: automatic_update_manifest
+
   download_guide:
     target_id: release-download-guide
     subject: not-applicable

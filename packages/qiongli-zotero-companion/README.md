@@ -13,6 +13,48 @@ connector server:
 - `POST /qiongli/upsertItems`
 - `GET /qiongli/collections`
 
+Companion `0.3.1` implements endpoint contract `2`. Qiongli clients must probe
+`GET /qiongli/ping` and reject any other endpoint version before search or
+write operations. An older live Companion is an update-required state, not a
+successful connection.
+
+## Zotero 10 compatibility
+
+Use Companion `0.3.1` with Zotero 10.0.x. Earlier `0.3.0` packages declare a
+maximum of Zotero 9.0.x, so Zotero 10 disables them. Updating the Qiongli CLI
+through npm, pip or Cargo does not replace the extension inside Zotero.
+
+Build the XPI as described below, then open Zotero's **Tools → Plugins**, choose
+**Install Plugin From File…** from the gear menu, and select
+`qiongli-zotero-companion-0.3.1.xpi`. Zotero handles the existing extension's
+upgrade and any restart prompt; uninstalling Zotero or removing library files
+is unnecessary.
+
+This version also keeps child-note requests out of ordinary item fields and
+includes nested collections in listing and search. The local HTTP endpoints
+retain Zotero's browser-request protections and Qiongli's write approval checks.
+
+## Search Contract
+
+`POST /qiongli/search` accepts bounded DOI, title, citekey, creator, year, tag,
+and collection-path filters. It returns at most 200 compact items with
+creators, tags, collection paths, note summaries, and attachment summaries.
+Local attachment paths remain omitted unless a controlled local resolver
+explicitly requests them.
+
+## Write Approval
+
+Every `POST /qiongli/upsertItems` mutation uses a two-step, plan-bound approval:
+
+1. Send the exact payload with `dry_run: true` and review the returned plan.
+2. Within five minutes, resend the unchanged payload with `dry_run: false`,
+   `write_intent: "apply"`, and the returned `write_approval.receipt`.
+
+Receipts are one-shot, expire after five minutes, and are invalid if the item,
+collection, note, tag, or update plan changes. A changed or expired plan must
+be dry-run again. A direct write request never mutates Zotero and returns
+`approval_required`. Batches are limited to 100 items.
+
 ## Attachment Metadata
 
 `POST /qiongli/search` returns compact Zotero item records plus attachment
@@ -47,8 +89,9 @@ note is created as a Zotero child note under the reference item.
 Qiongli reading notes are not written into `abstractNote` or `extra`; those
 fields remain reserved for paper abstracts and compact provenance metadata.
 
-Qiongli's MCPB probes these endpoints through `qiongli_zotero_status`, performs
-dry-run writes through `qiongli_zotero_upsert_references`, and falls back to
+Qiongli's native Lite and Full MCP probe these endpoints through
+`qiongli_zotero_status`, search through `qiongli_zotero_search`, perform dry-run
+writes through `qiongli_zotero_upsert_references`, and fall back to
 `references.json`, `references.ris`, and `bibliography.bib` when the companion is
 not installed or Zotero is not running.
 
@@ -58,9 +101,42 @@ Build the user-installable Zotero extension from the repository root:
 python3 scripts/build_zotero_companion.py --dist-dir dist
 ```
 
-The generated `qiongli-zotero-companion-*.xpi` targets the bootstrapped Zotero
-Desktop plugin model used by Zotero 8 through Zotero 9.0.x and has been tested
-with Zotero 9.0.4. It can be installed through Zotero Desktop's add-on manager.
-The manifest includes the Zotero `update_url` metadata required by Zotero's
-add-on manager. Direct local writes require this companion extension; without
-it, Qiongli still generates import files that can be imported manually.
+The builder emits both `qiongli-zotero-companion-*.xpi` and
+`qiongli-zotero-companion.manifest.json`. The XPI uses a fixed entry order,
+timestamp, compression mode, and file metadata, while the canonical artifact
+manifest binds its version, supported Zotero range, endpoint version, size,
+SHA-256, and complete source inventory. Rebuilding unchanged sources therefore
+produces identical bytes.
+
+Release automation also supplies the immutable Qiongli release identity:
+
+```bash
+python3 scripts/build_zotero_companion.py \
+  --dist-dir dist \
+  --release-tag v2.0.0-alpha.2 \
+  --repo jxpeng98/qiongli
+```
+
+That explicit release form additionally emits
+`qiongli-zotero-companion-updates.json`, which binds the Companion version and
+supported Zotero range to the versioned release XPI URL and its SHA-256. It is
+uploaded beside the XPI. Zotero reads the public manifest through the
+`releases/latest` URL, so automatic updates intentionally follow the latest
+stable Qiongli release; prerelease Companion updates remain available through
+Qiongli's bundled install handoff until stable advances.
+
+The generated extension targets the bootstrapped Zotero Desktop plugin model
+used by Zotero 8 through Zotero 10.0.x. Runtime checks cover Zotero 9.0.4 and an
+isolated Zotero 10.0.2 library on macOS, including approved item/note/collection
+writes and refusal of unapproved or replayed writes. See the
+[Zotero 10 migration notes](https://www.zotero.org/support/dev/zotero_10_for_developers)
+for the compatibility declaration and HTTP security changes. The extension
+manifest includes the Zotero `update_url` metadata required by Zotero's add-on
+manager and the release job publishes the referenced Mozilla-style JSON
+update manifest. Direct local writes require this companion extension; without it,
+Qiongli still generates import files that can be imported manually.
+
+Qiongli desktop packages contain the same verified XPI and artifact manifest.
+The App may stage and reveal that product-controlled artifact, but Zotero owns
+the installation confirmation and profile mutation. The presence of an XPI or
+a Qiongli staging receipt is never treated as activation evidence.

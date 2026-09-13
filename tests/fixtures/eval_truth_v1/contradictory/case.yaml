@@ -1,0 +1,15 @@
+schema_version: "1.0"
+case_id: contradictory
+pipeline: evaluation-truth
+input:
+  topic: Reject contradictory claim and evidence ledgers.
+expected_outputs:
+  claims:
+    artifact: claims.csv
+    required: true
+    assertions:
+      - type: cross_artifact_consistency
+        field: claim_id
+        other_artifact: evidence.csv
+        other_field: linked_claim_id
+        relation: equal

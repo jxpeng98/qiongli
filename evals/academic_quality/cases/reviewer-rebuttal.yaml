@@ -1,12 +1,18 @@
-id: reviewer-rebuttal
-scenario: Evidence-backed reviewer rebuttal and revision plan
-expected_dimensions:
-  artifact_completeness: 0.85
-  evidence_traceability: 0.85
-  no_fabricated_sources: 1.0
-  claim_calibration: 0.9
-  venue_fit: 0.85
-  method_validity: 0.8
-  scholarly_voice: 0.9
-  quality_gate_compliance: 0.85
-  domain_method_fit: 0.8
+schema_version: "1.0"
+case_id: reviewer-rebuttal
+pipeline: empirical-study
+description: Require an evidence-backed response and a concrete manuscript revision.
+input:
+  topic: Assess a rebuttal to a reviewer who challenges the study's identification assumptions.
+  domain: general
+expected_outputs:
+  quality-assessment:
+    artifact: quality_findings.md
+    required: true
+    assertions:
+      - type: contains_all
+        values:
+          - Reviewer concern
+          - Evidence-backed response
+          - Exact manuscript revision
+          - Unresolved limitation

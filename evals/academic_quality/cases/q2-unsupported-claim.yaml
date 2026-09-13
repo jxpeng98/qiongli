@@ -1,21 +1,17 @@
-id: q2-unsupported-claim
-scenario: Q2 evidence failure where the central claim lacks evidence ledger support
-metadata:
-  gate: Q2
-  severity: block
+schema_version: "1.0"
+case_id: q2-unsupported-claim
+pipeline: systematic-review-prisma
+description: Detect a central claim without ledger or verified-citation support.
+input:
+  topic: Assess a synthesis whose central causal claim is absent from its evidence ledger.
   domain: general
-  method: evidence synthesis
-expected_failures:
-  - gate: Q2
-    severity: block
-    reason: Central causal claim is not linked to evidence ledger entries or verified citations.
-expected_dimensions:
-  artifact_completeness: 0.7
-  evidence_traceability: 0.25
-  no_fabricated_sources: 0.8
-  claim_calibration: 0.35
-  venue_fit: 0.65
-  method_validity: 0.65
-  scholarly_voice: 0.7
-  quality_gate_compliance: 0.3
-  domain_method_fit: 0.65
+expected_outputs:
+  quality-assessment:
+    artifact: quality_findings.md
+    required: true
+    assertions:
+      - type: contains_all
+        values:
+          - "Gate: Q2"
+          - "Severity: block"
+          - Central causal claim is not linked to evidence ledger entries or verified citations.

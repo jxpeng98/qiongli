@@ -1,0 +1,31 @@
+{
+  "id": "rel-904-disaster-recovery",
+  "name": "rel-904-disaster-recovery",
+  "title": "REL-904 disaster recovery",
+  "description": "Qualify the five REL-904 project recovery cases and unblock explicit reset of corrupted rebuildable portfolio state.",
+  "status": "completed",
+  "dev_type": "test",
+  "scope": "native/project-disaster-recovery",
+  "package": "product",
+  "priority": "P2",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-29",
+  "completedAt": "2026-08-29",
+  "branch": "feat/rel-904-disaster-recovery",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": "bc6aa9febf07b7053fa150001d73c343193e57bb",
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/147",
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "packages/qiongli-native/crates/qiongli-project/src/service.rs",
+    "packages/qiongli-native/crates/qiongli-project/src/incremental_portfolio.rs",
+    "packages/qiongli-native/crates/qiongli-project/src/portfolio_catalog_storage.rs",
+    ".trellis/spec/product/control/public-schema-authority.md"
+  ],
+  "notes": "Accepted at Slice tier. Product source bc6aa9febf07b7053fa150001d73c343193e57bb passed Native CI 33267605850 and Evaluation Truth 33267605852. Packaging, promotion, publication, REL-905 policy, and general backup/restore remain out of scope.",
+  "meta": {}
+}

@@ -3,11 +3,17 @@ from __future__ import annotations
 from dataclasses import replace
 import json
 from pathlib import Path
+import threading
 from typing import Any, Callable
 
-from bridges.mcp_config_wizard import start_config_wizard
+from bridges.mcp_config_wizard import ConfigWizard, start_config_wizard
 from bridges.mcp_connectors import MCPConnector
-from bridges.experience_runtime import experience_lessons, query_experience, show_experience
+from bridges.experience_runtime import (
+    experience_lessons,
+    query_experience,
+    redact_experience_payload,
+    show_experience,
+)
 from bridges.guidance_runtime import GUIDANCE_MODES, effective_guidance, guidance_bootstrap_status
 from bridges.project_manifest import OFFICIAL_SUBJECTS, ProjectManifestError, load_project_manifest
 from bridges.subject_lifecycle import ACTIONS, apply_subject_action, propose_subject_action, subject_status
@@ -15,15 +21,18 @@ from bridges.subject_refinement import infer_subject_refinement
 from bridges.subject_runtime import implicit_project_manifest_state, resolve_project_subject
 from bridges.literature_mcp_tools import (
     LITERATURE_TOOL_DEFINITIONS,
+    MCPToolInputError,
     handle_literature_export_evidence,
     handle_literature_search,
     handle_literature_status,
     handle_search_plan,
 )
+from bridges.mcp_input_validation import first_input_error
 from bridges.provider_config import (
     PROVIDER_FIELDS,
+    ProviderConfigError,
+    active_provider_names,
     global_provider_config_path,
-    provider_capability_mode,
     provider_config_summary,
     redact_provider_config,
     resolve_provider_config,
@@ -42,18 +51,140 @@ SUBJECT_LIFECYCLE_SUBJECT_ENUM = [
     subject for subject in OFFICIAL_SUBJECTS if subject not in {"auto", "core"}
 ]
 
+CONFIG_STATUS_INPUT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "cwd": {
+            "type": "string",
+            "description": (
+                "Project-config context used by Full and accepted as a compatibility "
+                "context by Lite."
+            ),
+        }
+    },
+    "additionalProperties": False,
+}
+
+SAVE_PROVIDER_CONFIG_INPUT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "required": ["provider", "field", "value"],
+    "properties": {
+        "provider": {
+            "type": "string",
+            "enum": [
+                "openalex",
+                "semantic_scholar",
+                "semantic-scholar",
+                "semanticscholar",
+                "s2",
+                "crossref",
+                "pubmed",
+                "ncbi",
+            ],
+        },
+        "field": {"type": "string", "enum": ["api_key", "api-key", "email"]},
+        "value": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": ".*\\S.*",
+            "writeOnly": True,
+            "description": "Provider value to store. This value is never returned.",
+        },
+    },
+    "oneOf": [
+        {
+            "properties": {
+                "provider": {"const": "openalex"},
+                "field": {"enum": ["api_key", "api-key", "email"]},
+            }
+        },
+        {
+            "properties": {
+                "provider": {
+                    "enum": [
+                        "semantic_scholar",
+                        "semantic-scholar",
+                        "semanticscholar",
+                        "s2",
+                    ]
+                },
+                "field": {"enum": ["api_key", "api-key"]},
+            }
+        },
+        {
+            "properties": {
+                "provider": {"const": "crossref"},
+                "field": {"const": "email"},
+            }
+        },
+        {
+            "properties": {
+                "provider": {"enum": ["pubmed", "ncbi"]},
+                "field": {"enum": ["api_key", "api-key"]},
+            }
+        },
+    ],
+    "additionalProperties": False,
+}
+
+CONFIGURE_PROVIDER_INPUT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "provider": {
+            "type": "string",
+            "enum": [
+                "openalex",
+                "semantic_scholar",
+                "semantic-scholar",
+                "semanticscholar",
+                "s2",
+                "crossref",
+                "pubmed",
+            ],
+        },
+        "host": {
+            "type": "string",
+            "enum": ["127.0.0.1", "localhost"],
+            "default": "127.0.0.1",
+        },
+        "port": {"type": "integer", "minimum": 0, "maximum": 65535, "default": 0},
+    },
+    "additionalProperties": False,
+}
+
+_CONFIG_WIZARD_LOCK = threading.Lock()
+_ACTIVE_CONFIG_WIZARD: ConfigWizard | None = None
+CONTRACT_V2_TOOL_ERROR_MESSAGES = {
+    "qiongli_config_status": "provider configuration status is unavailable",
+    "qiongli_save_provider_config": "provider configuration could not be saved",
+    "qiongli_configure_provider": "provider configuration wizard could not start",
+    "qiongli_open_config_wizard": "provider configuration wizard could not start",
+    "qiongli_literature_status": "literature provider status is unavailable",
+    "qiongli_search_plan": "literature search planning is unavailable",
+    "qiongli_literature_search": "literature search failed",
+    "qiongli_literature_export_evidence": "literature evidence export failed",
+    "qiongli_collect_evidence": "evidence collection failed",
+    "qiongli_list_provider_env": "provider environment metadata is unavailable",
+    "qiongli_test_provider": "provider configuration check failed",
+    "qiongli_subject_status": "subject status is unavailable",
+    "qiongli_subject_update": "subject state could not be updated",
+    "qiongli_orchestrator_route": "orchestrator routing failed",
+    "qiongli_orchestrator_doctor": "orchestrator preflight is unavailable",
+    "qiongli_lifecycle_plan": "lifecycle planning failed",
+    "qiongli_journal_fit_recommend": "journal-fit recommendation failed",
+    "qiongli_experience_query": "experience query failed",
+    "qiongli_experience_show": "experience record is unavailable",
+    "qiongli_experience_lessons": "experience lesson synthesis failed",
+    "qiongli_task_plan": "task planning failed",
+    "qiongli_task_run": "task execution failed",
+}
+
 
 MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     {
         "name": "qiongli_config_status",
         "description": "Return redacted Qiongli provider configuration status.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "cwd": {"type": "string", "description": "Project directory for project-local config lookup."}
-            },
-            "additionalProperties": False,
-        },
+        "inputSchema": CONFIG_STATUS_INPUT_SCHEMA,
     },
     {
         "name": "qiongli_save_provider_config",
@@ -61,35 +192,15 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "Save explicit Qiongli provider config values from chat or scripts. "
             "Prefer qiongli_configure_provider for API keys."
         ),
-        "inputSchema": {
-            "type": "object",
-            "required": ["provider", "field", "value"],
-            "properties": {
-                "provider": {"type": "string"},
-                "field": {"type": "string"},
-                "value": {"type": "string"},
-            },
-            "additionalProperties": False,
-        },
+        "inputSchema": SAVE_PROVIDER_CONFIG_INPUT_SCHEMA,
     },
     {
         "name": "qiongli_configure_provider",
         "description": (
-            "Open a local browser-based setup page for Qiongli provider credentials. "
-            "Prefer this for API keys so secrets do not enter chat history."
+            "Start a tokenized loopback setup page and return its URL for provider "
+            "configuration. Prefer this for API keys so secrets do not enter chat history."
         ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "provider": {
-                    "type": "string",
-                    "enum": ["openalex", "semantic_scholar", "semantic-scholar", "crossref", "pubmed"],
-                },
-                "host": {"type": "string", "default": "127.0.0.1"},
-                "port": {"type": "integer", "default": 0},
-            },
-            "additionalProperties": False,
-        },
+        "inputSchema": CONFIGURE_PROVIDER_INPUT_SCHEMA,
     },
     {
         "name": "qiongli_collect_evidence",
@@ -156,7 +267,7 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "cwd": {"type": "string", "description": "Project directory to update."},
                 "action": {"type": "string", "enum": SUBJECT_LIFECYCLE_ACTION_ENUM},
                 "subject": {"type": "string", "enum": SUBJECT_LIFECYCLE_SUBJECT_ENUM},
-                "run_id": {"type": "string"},
+                "run_id": {"type": ["string", "integer"]},
                 "read_only": {
                     "type": "boolean",
                     "description": "Return an exportable proposed action without writing .qiongli files.",
@@ -167,28 +278,14 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
     {
         "name": "qiongli_open_config_wizard",
-        "description": (
-            "Compatibility alias for qiongli_configure_provider. "
-            "Starts a local browser-based provider configuration wizard."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "provider": {
-                    "type": "string",
-                    "enum": ["openalex", "semantic_scholar", "semantic-scholar", "crossref", "pubmed"],
-                },
-                "host": {"type": "string", "default": "127.0.0.1"},
-                "port": {"type": "integer", "default": 0},
-            },
-            "additionalProperties": False,
-        },
+        "description": "Compatibility alias for qiongli_configure_provider.",
+        "inputSchema": CONFIGURE_PROVIDER_INPUT_SCHEMA,
     },
     {
         "name": "qiongli_orchestrator_route",
         "description": (
-            "Decide whether a Codex, Claude Code, or other MCP client should use "
-            "the full Qiongli orchestrator instead of skill-only workflow routing."
+            "Decide whether the active client should use skill-only routing or "
+            "Full Qiongli orchestration."
         ),
         "inputSchema": {
             "type": "object",
@@ -253,7 +350,7 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                     "type": "array",
                     "items": {"type": "string"},
                 },
-                "limit": {"type": "integer"},
+                "limit": {"type": "integer", "minimum": 0},
             },
             "additionalProperties": False,
         },
@@ -286,7 +383,12 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "required": ["run_id"],
             "properties": {
                 "cwd": {"type": "string", "description": "Project directory to inspect."},
-                "run_id": {"type": "string"},
+                "run_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+                },
             },
             "additionalProperties": False,
         },
@@ -360,10 +462,12 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
 ]
 
 MCP_TOOL_DEFINITIONS = [*LITERATURE_TOOL_DEFINITIONS, *MCP_TOOL_DEFINITIONS]
+MCP_TOOL_DEFINITION_BY_NAME = {
+    definition["name"]: definition for definition in MCP_TOOL_DEFINITIONS
+}
 
 
 def call_qiongli_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
-    args = arguments or {}
     handlers: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
         "qiongli_literature_status": handle_literature_status,
         "qiongli_search_plan": handle_search_plan,
@@ -390,23 +494,82 @@ def call_qiongli_tool(name: str, arguments: dict[str, Any] | None = None) -> dic
     }
     handler = handlers.get(name)
     if handler is None:
-        return _tool_result({"error": f"unknown tool: {name}"}, is_error=True)
+        return _tool_result(
+            {
+                "status": "error",
+                "error_kind": "tool_error",
+                "message": "tool is unavailable",
+                "error": "tool is unavailable",
+            },
+            is_error=True,
+        )
     try:
-        return _tool_result(handler(args))
-    except Exception as exc:  # noqa: BLE001 - MCP tools must convert failures into tool results.
-        return _tool_result({"error": str(exc), "tool": name}, is_error=True)
+        if arguments is not None and not isinstance(arguments, dict):
+            raise MCPToolInputError("arguments must be an object")
+        args = {} if arguments is None else arguments
+        definition = MCP_TOOL_DEFINITION_BY_NAME.get(name)
+        input_schema = definition.get("inputSchema") if isinstance(definition, dict) else None
+        if not isinstance(input_schema, dict):
+            raise MCPToolInputError("tool input schema is unavailable")
+        input_error = first_input_error(args, input_schema)
+        if input_error is not None:
+            raise MCPToolInputError(input_error)
+        payload = handler(args)
+        if name != "qiongli_list_provider_env":
+            payload = redact_experience_payload(payload)
+        return _tool_result(payload)
+    except MCPToolInputError as exc:
+        message = str(exc)
+        return _tool_result(
+            {
+                "status": "error",
+                "error_kind": "invalid_arguments",
+                "message": message,
+                "error": message,
+                "tool": name,
+            },
+            is_error=True,
+        )
+    except ProviderConfigError:
+        return _tool_result(
+            {
+                "status": "error",
+                "error_kind": "tool_error",
+                "message": "provider configuration could not be read safely",
+                "tool": name,
+            },
+            is_error=True,
+        )
+    except Exception:  # noqa: BLE001 - MCP tools must convert failures into tool results.
+        message = CONTRACT_V2_TOOL_ERROR_MESSAGES.get(name, "tool operation failed")
+        return _tool_result(
+            {
+                "status": "error",
+                "error_kind": "tool_error",
+                "message": message,
+                "error": message,
+                "tool": name,
+            },
+            is_error=True,
+        )
 
 
 def _tool_config_status(args: dict[str, Any]) -> dict[str, Any]:
+    _reject_unknown_arguments(args, {"cwd"})
+    if "cwd" in args and not isinstance(args["cwd"], str):
+        raise MCPToolInputError("cwd must be a string")
     cwd = _cwd_from_args(args)
     config = resolve_provider_config(cwd=cwd)
     summary = provider_config_summary(config)
     missing = _missing_provider_fields(summary)
     payload = {
+        "status": "ok",
         "server": {"name": SERVER_NAME},
         "config_path": str(global_provider_config_path()),
         "providers": summary,
-        "capability_mode": provider_capability_mode(summary),
+        "capability_mode": (
+            "provider_connected" if active_provider_names(config) else "strategy_only"
+        ),
         "missing": missing,
         "redacted_config": redact_provider_config(config),
     }
@@ -417,15 +580,29 @@ def _tool_config_status(args: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_save_provider_config(args: dict[str, Any]) -> dict[str, Any]:
-    provider = _required_str(args, "provider")
-    field = _required_str(args, "field")
-    value = _required_str(args, "value")
-    path = set_provider_value(provider, field, value)
+    _reject_unknown_arguments(args, {"provider", "field", "value"})
+    provider = _required_contract_string(args, "provider")
+    field = _required_contract_string(args, "field")
+    value = _required_contract_string(args, "value")
+    provider_id = _normalize_provider(provider)
     field_id = _normalize_label(field)
+    allowed_fields = {
+        "openalex": {"api_key", "email"},
+        "semantic_scholar": {"api_key"},
+        "crossref": {"email"},
+        "pubmed": {"api_key"},
+    }
+    if field_id not in allowed_fields.get(provider_id, set()):
+        raise MCPToolInputError(f"unsupported provider field: {provider_id}.{field_id}")
+    try:
+        path = set_provider_value(provider_id, field_id, value)
+    except ValueError as exc:
+        raise MCPToolInputError(str(exc)) from exc
     payload = {
         "status": "saved",
-        "provider": _normalize_label(provider),
+        "provider": provider_id,
         "field": field_id,
+        "saved": True,
         "config_path": str(path),
     }
     if field_id == "api_key":
@@ -477,6 +654,8 @@ def _tool_subject_update(args: dict[str, Any]) -> dict[str, Any]:
     action = _required_str(args, "action")
     subject = args.get("subject")
     run_id = args.get("run_id")
+    if action in {"confirm", "dismiss", "lock"} and not subject:
+        raise MCPToolInputError(f"{action} requires a subject")
     action_fn = propose_subject_action if args.get("read_only") else apply_subject_action
     return action_fn(
         _cwd_from_args(args),
@@ -492,19 +671,53 @@ def _tool_open_config_wizard(args: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_configure_provider(args: dict[str, Any]) -> dict[str, Any]:
-    host = str(args.get("host", "127.0.0.1") or "127.0.0.1")
-    port = int(args.get("port", 0) or 0)
-    provider = str(args.get("provider", "") or "").strip()
+    global _ACTIVE_CONFIG_WIZARD
+
+    _reject_unknown_arguments(args, {"provider", "host", "port"})
+    raw_host = args.get("host", "127.0.0.1")
+    if not isinstance(raw_host, str):
+        raise MCPToolInputError("host must be a string")
+    host = raw_host.strip().lower()
+    if not host:
+        raise MCPToolInputError("host must not be empty")
+    if host not in {"127.0.0.1", "localhost"}:
+        raise MCPToolInputError("host must be 127.0.0.1 or localhost")
+
+    raw_port = args.get("port", 0)
+    if isinstance(raw_port, bool) or not isinstance(raw_port, int):
+        raise MCPToolInputError("port must be an integer")
+    if not 0 <= raw_port <= 65535:
+        raise MCPToolInputError("port must be between 0 and 65535")
+
+    raw_provider = args.get("provider")
+    if raw_provider is not None and not isinstance(raw_provider, str):
+        raise MCPToolInputError("provider must be a string")
+    provider = raw_provider.strip() if isinstance(raw_provider, str) else ""
+    if raw_provider is not None and not provider:
+        raise MCPToolInputError("provider must not be empty")
     provider_id = _normalize_provider(provider) if provider else None
-    wizard = start_config_wizard(host=host, port=port, provider=provider_id)
+    if provider_id not in {None, "openalex", "semantic_scholar", "crossref", "pubmed"}:
+        raise MCPToolInputError(f"unsupported provider: {provider}")
+
+    port = raw_port
+    with _CONFIG_WIZARD_LOCK:
+        active_wizard = _ACTIVE_CONFIG_WIZARD
+        if active_wizard is not None and not active_wizard.completed.is_set():
+            wizard = active_wizard
+            status = "already_running"
+        else:
+            wizard = start_config_wizard(host=host, port=port, provider=provider_id)
+            _ACTIVE_CONFIG_WIZARD = wizard if isinstance(wizard, ConfigWizard) else None
+            status = "ready"
     payload = {
+        "status": status,
         "url": wizard.url,
         "host": wizard.host,
         "port": wizard.port,
         "config_path": wizard.config_path,
     }
-    if provider_id:
-        payload["provider"] = provider_id
+    if wizard.provider:
+        payload["provider"] = wizard.provider
     return payload
 
 
@@ -1022,34 +1235,51 @@ def _cwd_from_args(args: dict[str, Any]) -> Path:
 
 
 def _missing_provider_fields(summary: dict[str, str]) -> list[str]:
-    missing: list[str] = []
-    if summary.get("openalex") != "configured":
-        missing.append("openalex.api_key")
-    if summary.get("semantic_scholar") != "configured":
-        missing.append("semantic_scholar.api_key")
-    return missing
+    activation_fields = (
+        ("openalex", "openalex.api_key"),
+        ("semantic_scholar", "semantic_scholar.api_key"),
+        ("crossref", "crossref.email"),
+        ("pubmed", "pubmed.api_key"),
+    )
+    return [field for provider, field in activation_fields if summary.get(provider) != "configured"]
 
 
 def _provider_setup_next_action(missing: list[str]) -> dict[str, Any] | None:
-    if "openalex.api_key" in missing:
-        return {
-            "tool": "qiongli_configure_provider",
-            "args": {"provider": "openalex"},
-            "message": (
-                "Run qiongli_configure_provider to open a local setup page. "
-                "Do not paste API keys in chat."
-            ),
-        }
-    if "semantic_scholar.api_key" not in missing:
-        return None
-    return {
-        "tool": "qiongli_configure_provider",
-        "args": {"provider": "semantic_scholar"},
-        "message": (
-            "Run qiongli_configure_provider to open a local setup page. "
-            "Do not paste API keys in chat."
-        ),
-    }
+    field_providers = (
+        ("openalex.api_key", "openalex"),
+        ("semantic_scholar.api_key", "semantic_scholar"),
+        ("crossref.email", "crossref"),
+        ("pubmed.api_key", "pubmed"),
+    )
+    for field, provider in field_providers:
+        if field in missing:
+            return {
+                "tool": "qiongli_configure_provider",
+                "args": {"provider": provider},
+                "message": (
+                    "Run qiongli_configure_provider to open a local setup page. "
+                    "Do not paste API keys in chat."
+                ),
+            }
+    return None
+
+
+def _reject_unknown_arguments(args: dict[str, Any], allowed: set[str]) -> None:
+    unknown = sorted(set(args) - allowed)
+    if unknown:
+        raise MCPToolInputError(f"unknown arguments: {', '.join(unknown)}")
+
+
+def _required_contract_string(args: dict[str, Any], key: str) -> str:
+    if key not in args:
+        raise MCPToolInputError(f"{key} is required")
+    raw = args[key]
+    if not isinstance(raw, str):
+        raise MCPToolInputError(f"{key} must be a string")
+    value = raw.strip()
+    if not value:
+        raise MCPToolInputError(f"{key} must not be empty")
+    return value
 
 
 def _normalize_platform(value: str) -> str:

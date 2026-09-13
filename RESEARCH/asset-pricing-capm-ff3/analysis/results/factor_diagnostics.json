@@ -1,0 +1,36 @@
+{
+  "correlation_matrix": [
+    [
+      1.0,
+      0.2904995475,
+      -0.2097687326
+    ],
+    [
+      0.2904995475,
+      1.0,
+      -0.1385221458
+    ],
+    [
+      -0.2097687326,
+      -0.1385221458,
+      1.0
+    ]
+  ],
+  "design_condition_numbers": {
+    "capm": 22.4183139017,
+    "ff3": 36.2577666568
+  },
+  "duplicate_month_count": 0,
+  "factor_order": [
+    "Mkt-RF",
+    "SMB",
+    "HML"
+  ],
+  "missing_sentinel_count": 0,
+  "sample": {
+    "end_month": 202606,
+    "nobs": 756,
+    "start_month": 196307
+  },
+  "schema_version": 1
+}

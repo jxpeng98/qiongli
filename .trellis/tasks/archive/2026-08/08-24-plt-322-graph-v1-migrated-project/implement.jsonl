@@ -1,0 +1,7 @@
+{"file":".trellis/spec/product/control/index.md","reason":"PLT-322 acceptance and ledger constraints"}
+{"file":".trellis/spec/native/runtime/index.md","reason":"reuse the native migration and Graph authority"}
+{"file":".trellis/spec/app-api/contract/index.md","reason":"decode the existing Graph and artifact-read contracts"}
+{"file":".trellis/spec/desktop/frontend/index.md","reason":"reuse existing Graph presentation adapters"}
+{"file":".trellis/spec/guides/index.md","reason":"shared coding and verification rules"}
+{"file":".trellis/tasks/08-24-plt-322-graph-v1-migrated-project/research/asset-pricing-project-design.md","reason":"approved real-project empirical boundary"}
+{"file":".trellis/tasks/08-24-plt-322-graph-v1-migrated-project/research/current-graph-v1-acceptance-gap.md","reason":"confirmed gap and existing owners to reuse"}

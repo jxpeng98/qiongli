@@ -1,0 +1,10 @@
+packages:
+  - packages/npm-qiongli
+  - packages/qiongli-app-api
+  - packages/qiongli-desktop
+allowBuilds:
+  esbuild: true
+minimumReleaseAgeExclude:
+  - '@sveltejs/kit@2.70.1'
+patchedDependencies:
+  cytoscape@3.34.0: patches/cytoscape@3.34.0.patch

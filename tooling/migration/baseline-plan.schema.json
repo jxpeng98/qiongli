@@ -1,0 +1,383 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qiongli.dev/schemas/migration-baseline-plan-v1.1.json",
+  "title": "Qiongli 1.x to 2.x Migration Baseline Plan",
+  "type": "object",
+  "required": [
+    "$schema",
+    "schema_version",
+    "plan_id",
+    "status",
+    "release_lineage",
+    "output",
+    "capture_inputs",
+    "selector_semantics",
+    "contracts",
+    "oracles",
+    "inventory",
+    "normalization",
+    "integrity",
+    "consumer"
+  ],
+  "properties": {
+    "$schema": { "const": "./baseline-plan.schema.json" },
+    "schema_version": { "const": "1.1" },
+    "plan_id": { "const": "qiongli-1x-to-2x-migration-baseline" },
+    "status": { "enum": ["planned", "captured", "accepted"] },
+    "release_lineage": {
+      "type": "object",
+      "required": [
+        "source_release",
+        "accepted_tag",
+        "accepted_commit",
+        "maintenance_branch",
+        "successor_branch",
+        "first_native_release",
+        "generation_gate",
+        "branch_point"
+      ],
+      "properties": {
+        "source_release": { "const": "v1.19.0-beta.1" },
+        "accepted_tag": { "const": "v1.19.0-beta.1" },
+        "accepted_commit": {
+          "const": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f"
+        },
+        "maintenance_branch": { "const": "release/1.x-python" },
+        "successor_branch": { "const": "2.x" },
+        "first_native_release": { "const": "v2.0.0-alpha.1" },
+        "generation_gate": { "const": "accepted-final-1x-beta" },
+        "branch_point": { "const": "clean-post-release-baseline-commit" }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "required": [
+        "manifest_path",
+        "manifest_schema",
+        "oracle_schema",
+        "format_id",
+        "generated_from",
+        "deterministic"
+      ],
+      "properties": {
+        "manifest_path": {
+          "const": "tooling/migration/baselines/v1.19.0-beta.1/manifest.json"
+        },
+        "manifest_schema": {
+          "const": "tooling/migration/baseline-manifest.schema.json"
+        },
+        "oracle_schema": {
+          "const": "tooling/migration/oracle-fixture.schema.json"
+        },
+        "format_id": { "const": "qiongli-migration-baseline-v1" },
+        "generated_from": { "const": "accepted-annotated-tag" },
+        "deterministic": { "const": true }
+      },
+      "additionalProperties": false
+    },
+    "capture_inputs": {
+      "type": "object",
+      "required": [
+        "finalized_receipt",
+        "finalized_receipt_commit",
+        "finalized_receipt_git_blob_oid",
+        "finalized_receipt_sha256",
+        "finalized_receipt_size_bytes",
+        "release_asset_names",
+        "native_container_names",
+        "native_receipt_labels",
+        "native_member_bindings"
+      ],
+      "properties": {
+        "finalized_receipt": {
+          "const": "tooling/release/acceptance/v1.19.0-beta.1-receipt.md"
+        },
+        "finalized_receipt_commit": {
+          "const": "ba4517c8dfd5ce8b551c83b129213e689d32cac4"
+        },
+        "finalized_receipt_git_blob_oid": {
+          "const": "605ab151b1621838a85f9909d6877f0f69857fc3"
+        },
+        "finalized_receipt_sha256": {
+          "const": "a462dc24d94debfb678038e9ed437bdf04dc75476237cc74a9bf06ac366444e9"
+        },
+        "finalized_receipt_size_bytes": { "const": 6641 },
+        "release_asset_names": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "native_container_names": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "native_receipt_labels": {
+          "type": "object",
+          "minProperties": 5,
+          "additionalProperties": { "type": "string", "minLength": 1 }
+        },
+        "native_member_bindings": {
+          "type": "object",
+          "minProperties": 5,
+          "maxProperties": 5,
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "identity_member",
+              "binary_member",
+              "identity_document_sha256"
+            ],
+            "properties": {
+              "identity_member": { "type": "string", "minLength": 1 },
+              "binary_member": { "type": "string", "minLength": 1 },
+              "identity_document_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "selector_semantics": {
+      "type": "object",
+      "required": [
+        "universe",
+        "path_format",
+        "exact",
+        "star",
+        "question",
+        "double_star",
+        "include_policy",
+        "exclude_policy",
+        "unsupported"
+      ],
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "contracts": {
+      "type": "object",
+      "required": [
+        "capability_registry",
+        "golden_fixture",
+        "conformance_test",
+        "golden_selection",
+        "registry_copy_policy"
+      ],
+      "properties": {
+        "capability_registry": {
+          "const": "content/mcp-contracts/v2/registry.json"
+        },
+        "golden_fixture": {
+          "const": "content/mcp-contracts/fixtures/lite-tool-smoke-calls.json"
+        },
+        "conformance_test": { "const": "tests/test_capability_contract_v2.py" },
+        "golden_selection": { "const": "registry.tools[*].smoke_call_ids" },
+        "registry_copy_policy": { "const": "reference-only" }
+      },
+      "additionalProperties": false
+    },
+    "oracles": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "runtime",
+          "profile",
+          "source_root",
+          "capture",
+          "projection",
+          "required_coverage",
+          "accepted_gaps",
+          "production_dependency"
+        ],
+        "properties": {
+          "id": { "enum": ["python-full", "rust-lite", "node-mcpb"] },
+          "runtime": { "enum": ["python", "rust", "node"] },
+          "profile": { "enum": ["full", "marketplace-lite", "legacy-mcpb"] },
+          "source_root": { "type": "string", "pattern": "^packages/" },
+          "capture": { "type": "string", "minLength": 1 },
+          "projection": {
+            "type": "object",
+            "required": ["kind", "source_selectors"],
+            "properties": {
+              "kind": {
+                "const": "accepted-runtime-outcome-capture"
+              },
+              "source_selectors": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": { "type": "string", "minLength": 1 }
+              }
+            },
+            "additionalProperties": false
+          },
+          "required_coverage": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "accepted_gaps": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "required": ["capability", "disposition", "reason"],
+              "properties": {
+                "capability": { "type": "string", "minLength": 1 },
+                "disposition": { "const": "accepted-gap" },
+                "reason": { "type": "string", "minLength": 1 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "production_dependency": { "const": false }
+        },
+        "additionalProperties": false
+      }
+    },
+    "inventory": {
+      "type": "object",
+      "required": ["domains", "exclude_selectors"],
+      "properties": {
+        "domains": {
+          "type": "array",
+          "minItems": 11,
+          "maxItems": 11,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "required": ["id", "source_selectors"],
+            "properties": {
+              "id": {
+                "enum": [
+                  "mcp",
+                  "cli",
+                  "skills",
+                  "tasks",
+                  "roles",
+                  "workflows",
+                  "subjects",
+                  "templates",
+                  "installers",
+                  "mutable-state",
+                  "orchestrator-scenarios"
+                ]
+              },
+              "source_selectors": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^(content|packages|tests|tooling|evals)/"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "exclude_selectors": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": false
+    },
+    "normalization": {
+      "type": "object",
+      "required": ["rules", "serialization"],
+      "properties": {
+        "rules": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "required": ["id", "strategy", "replacement"],
+            "properties": {
+              "id": {
+                "enum": ["paths", "ports", "timestamps", "process-ids", "secrets"]
+              },
+              "strategy": { "type": "string", "minLength": 1 },
+              "replacement": { "type": "string", "pattern": "^<[A-Z_]+>$" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "serialization": {
+          "type": "object",
+          "required": ["encoding", "line_endings", "json_keys", "terminal_newline"],
+          "properties": {
+            "encoding": { "const": "utf-8" },
+            "line_endings": { "const": "lf" },
+            "json_keys": { "const": "sorted" },
+            "terminal_newline": { "const": true }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "integrity": {
+      "type": "object",
+      "required": [
+        "digest_algorithm",
+        "record_file_checksums",
+        "record_package_trees",
+        "package_tree_roots",
+        "path_order",
+        "file_mode_policy",
+        "corpus_digest"
+      ],
+      "properties": {
+        "digest_algorithm": { "const": "sha256" },
+        "record_file_checksums": { "const": true },
+        "record_package_trees": { "const": true },
+        "package_tree_roots": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^(content|packages)/" }
+        },
+        "path_order": { "const": "sorted-repository-relative-path" },
+        "file_mode_policy": { "const": "record-git-mode" },
+        "corpus_digest": { "const": "sha256-of-canonical-manifest-corpus" }
+      },
+      "additionalProperties": false
+    },
+    "consumer": {
+      "type": "object",
+      "required": ["id", "planned_path", "mode", "requires_oracle_runtime"],
+      "properties": {
+        "id": { "const": "qiongli-testkit" },
+        "planned_path": {
+          "const": "packages/qiongli-native/crates/qiongli-testkit"
+        },
+        "mode": { "const": "read-only-golden-oracle" },
+        "requires_oracle_runtime": { "const": false }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

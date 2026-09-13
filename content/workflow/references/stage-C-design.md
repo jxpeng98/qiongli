@@ -18,6 +18,46 @@ This stage converts framing into an executable plan: design choices, measurement
 - `Q4` (reproducibility baseline): document data lineage, missingness, and analysis decisions.
 - Semantic gate report: update `quality-gate-report.md` with `q1_rq_method_alignment`; evidence must anchor each RQ/hypothesis to method, data or setting, outcome or evidence form, measurement or evidence source, estimand or analytic target, and analysis strategy.
 
+## Design judgment contract
+
+Start with the requested decision or deliverable and reuse known project context.
+A role supplies a perspective, not extra tasks or authority. A narrow design
+question can be answered in chat; formal C tasks retain their canonical outputs,
+Q1/Q4 evidence and selected method requirements. Ask only about missing facts that
+would change the design, claim, access decision or required deliverable.
+
+Choose methods that support the research question under the actual constraints:
+
+- Justify sampling adequacy for the intended inference. Quantitative work may need
+  power, precision, a minimum detectable effect, or an explicit account of a fixed
+  dataset and its limits. Do not invent effect sizes, variance or achieved power.
+  Qualitative work needs a rationale consistent with its analytic tradition and
+  available material; saturation and coding agreement are not universal tests.
+  In reflexive thematic analysis, discuss scope, richness, analytic development
+  and reflexivity rather than imposing saturation or independent coding agreement.
+- Select rivals and robustness checks for consequential threats. There is no
+  default count of papers, rivals or checks. State what each check could establish,
+  its assumptions, what would change the claim, and what remains unresolved.
+  A design label, more controls or stable significance does not establish causality.
+- Preserve explicit user/protocol requirements, saved minima, required independent
+  review, applicable reporting standards and selected method diagnostics. Do not
+  waive them because generic defaults were removed. Mark inapplicable reporting
+  items with a reason; missing required evidence remains blocked or incomplete.
+- Reuse established ethics/access decisions for the exact proposed use. If required
+  permission or review is unresolved, block the affected access, collection or
+  analysis; authorized planning can continue. Never infer an exemption or approval.
+- Preregistration is required when the agreed protocol or applicable requirement
+  says so. Record actual collection, access, analysis and registration status.
+  A draft is not a registration; do not backdate or describe examined data as unseen.
+  Distinguish pre-specified decisions from later amendments and exploratory work.
+
+Plans describe proposed actions. Execution, project writes and external registration
+remain subject to the existing tool availability, scope and preview/approval/CAS
+owners. Do not change an approved model, protocol or source data to make a check pass.
+
+Methodological basis: [sample-size justification](https://online.ucpress.edu/collabra/article/8/1/33267/120491/Sample-Size-Justification)
+and [saturation in thematic analysis](https://uwe-repository.worktribe.com/output/4820803/to-saturate-or-not-to-saturate-questioning-data-saturation-as-a-useful-concept-for-thematic-analysis-and-sample-size-rationales).
+
 ---
 
 ## C1 — Study Design
@@ -48,7 +88,7 @@ This stage converts framing into an executable plan: design choices, measurement
 ## Sample / data
 - Population/frame:
 - Inclusion/exclusion:
-- Target N / saturation / case logic:
+- Available/target sample, adequacy rationale and limits:
 
 ## Measures / operationalization
 | Construct / sensitizing concept | Measure / protocol / evidence source | Reliability/validity or trustworthiness notes |
@@ -66,7 +106,7 @@ This stage converts framing into an executable plan: design choices, measurement
 - Credibility / transferability / dependability / confirmability (if qualitative):
 ```
 
-For fully qualitative studies, `C1` should also lock:
+For qualitative studies, specify the applicable procedures and their rationale:
 - case selection rationale and setting boundaries
 - interview / observation / document collection rules
 - within-case vs cross-case logic
@@ -77,11 +117,12 @@ For fully qualitative studies, `C1` should also lock:
 
 ## C1_5 — Rival Hypotheses / Alternative Explanations
 
-Goal: reduce reviewer “endogeneity / confounding / alternative mechanism” objections proactively.
+Goal: identify credible alternative explanations and the limits of distinguishing them.
 
 **Definition of done**
-- 3–8 plausible rivals listed
-- For each rival: how it would create the same pattern, and what you will measure/control to rule it out
+- Consequential rivals grounded in theory or available evidence
+- For each rival: how it could produce the pattern, what evidence could distinguish
+  it under stated assumptions, and any unresolved limitation
 
 Suggested table: `design/rival_hypotheses.md`
 
@@ -162,12 +203,14 @@ Companion artifact: `design/variable_spec.md`
 
 ## C3_5 — Robustness / Sensitivity Plan
 
-This is where you pre-specify checks reviewers will demand.
-For qualitative work, this includes rival interpretations, deviant cases, alternate coding lenses, and source triangulation.
+Pre-specify checks linked to the study's actual threats and method assumptions.
+For qualitative work, choose compatible procedures such as examining rival
+interpretations, deviant cases, reflexive memos or sources that are available.
 
 **Definition of done**
 - A prioritized list of robustness checks linked to specific threats
-- Clear pass/fail interpretation (what would change your conclusion)
+- Interpretation rules for changes in magnitude, uncertainty, meaning or scope;
+  unresolved threats are not a pass, and results are not a vote by significance
 
 Write into: `design/robustness_plan.md`.
 
@@ -199,13 +242,14 @@ Recommended minimal structure for `design/dataset_plan.md`
 
 ---
 
-## C5 — Preregistration Draft (Optional but valuable)
+## C5 — Preregistration Draft
 
-Use when the venue/community values preregistration or when you want to lock in degrees of freedom.
-For qualitative work, a protocol lock-in document is still valuable even if formal preregistration is uncommon.
+Produce C5 when requested or required by the agreed protocol or applicable rules.
+Use a format appropriate to the study and intended registry; record the actual
+prior access and analysis history, including work on existing data.
 
 **Definition of done**
 - Hypotheses/RQs, design, exclusion rules, and analysis plan are frozen in a prereg doc
-- Deviations policy described
+- Deviations policy and current draft/registration status described truthfully
 
 Write into: `preregistration.md`.

@@ -5,6 +5,7 @@ import argparse
 import json
 import re
 import sys
+import tomllib
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -15,38 +16,25 @@ for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
 
 from qiongli.source_layout import RepoLayout
 
+try:
+    from tooling.scripts.release_version import ReleaseIdentity, parse_release_version
+except ModuleNotFoundError:  # Direct execution from tooling/scripts.
+    from release_version import ReleaseIdentity, parse_release_version
 
-VERSION_PATTERN = re.compile(
-    r"^(?:v)?(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:(?:-beta\.|b)(?P<beta>\d+))?$"
-)
+
 PRINTABLE_FIELDS = ("package_version", "skill_version", "repo_version", "npm_version")
 
 
 def parse_version(raw: str) -> tuple[str, str, str, str]:
-    match = VERSION_PATTERN.fullmatch(raw.strip())
-    if not match:
-        raise ValueError(
-            "unsupported version format. Use stable `X.Y.Z` or beta `X.Y.ZbN` / `vX.Y.Z-beta.N`."
-        )
+    """Preserve the historical four-value API over the shared release contract."""
 
-    major = int(match.group("major"))
-    minor = int(match.group("minor"))
-    patch = int(match.group("patch"))
-    beta_raw = match.group("beta")
-
-    if beta_raw is None:
-        skill_version = f"{major}.{minor}.{patch}"
-        package_version = skill_version
-        npm_version = skill_version
-        repo_version = f"v{skill_version}"
-        return package_version, skill_version, repo_version, npm_version
-
-    beta = int(beta_raw)
-    package_version = f"{major}.{minor}.{patch}b{beta}"
-    skill_version = f"{major}.{minor}.{patch}-beta.{beta}"
-    npm_version = skill_version
-    repo_version = f"v{skill_version}"
-    return package_version, skill_version, repo_version, npm_version
+    identity = parse_release_version(raw)
+    return (
+        identity.package_version,
+        identity.skill_version,
+        identity.repo_tag,
+        identity.npm_version,
+    )
 
 
 def replace_pattern(path: Path, pattern: re.Pattern[str], replacement: str) -> bool:
@@ -109,8 +97,8 @@ def replace_skill_entrypoint_version(path: Path, repo_version: str) -> bool:
     def replace_description(match: re.Match[str]) -> str:
         current = _unquote_yaml_like_string(match.group(2).strip())
         prefix = re.compile(
-            r"^(?:Qiongli(?: Next)? version:\s*)"
-            r"v?\d+\.\d+\.\d+(?:-beta\.\d+)?\.\s*"
+            r"^(?:Qiongli(?: Next)? version:\s*"
+            r"v?\d+\.\d+\.\d+(?:-(?:alpha|beta)\.\d+)?\.\s*)+"
         )
         body = prefix.sub("", current, count=1)
         description = f"{label} version: {repo_version}. {body}"
@@ -161,9 +149,205 @@ def replace_uv_lock_editable_package_version(path: Path, package_name: str, vers
     return True
 
 
+def _replace_toml_section_string(
+    content: str, *, section: str, field: str, value: str, path: Path
+) -> str:
+    section_pattern = re.compile(
+        rf"(?ms)^\[{re.escape(section)}\]\s*$\n(?P<body>.*?)(?=^\[|\Z)"
+    )
+    section_match = section_pattern.search(content)
+    if section_match is None:
+        raise ValueError(f"missing [{section}] section in {path}")
+
+    body = section_match.group("body")
+    field_pattern = re.compile(
+        rf'(?m)^(?P<prefix>{re.escape(field)}\s*=\s*)"[^"]*"(?P<suffix>\s*(?:#.*)?)$'
+    )
+    updated_body, count = field_pattern.subn(
+        lambda match: f'{match.group("prefix")}"{value}"{match.group("suffix")}',
+        body,
+    )
+    if count != 1:
+        raise ValueError(
+            f"expected exactly one {field!r} field in [{section}] in {path}; found {count}"
+        )
+    return (
+        content[: section_match.start("body")]
+        + updated_body
+        + content[section_match.end("body") :]
+    )
+
+
+def _replace_cargo_lock_package_version(
+    content: str, *, package_name: str, version: str, path: Path
+) -> str:
+    package_pattern = re.compile(r"(?ms)^\[\[package\]\]\s*$\n.*?(?=^\[\[package\]\]\s*$|\Z)")
+    matching_blocks = [
+        match
+        for match in package_pattern.finditer(content)
+        if re.search(
+            rf'(?m)^name\s*=\s*"{re.escape(package_name)}"\s*$',
+            match.group(0),
+        )
+    ]
+    if len(matching_blocks) != 1:
+        raise ValueError(
+            f"expected exactly one Cargo.lock package named {package_name!r} in {path}; "
+            f"found {len(matching_blocks)}"
+        )
+
+    block_match = matching_blocks[0]
+    updated_block, count = re.subn(
+        r'(?m)^(version\s*=\s*)"[^"]*"(\s*)$',
+        rf'\g<1>"{version}"\g<2>',
+        block_match.group(0),
+        count=1,
+    )
+    if count != 1:
+        raise ValueError(f"missing version field for package {package_name!r} in {path}")
+    return content[: block_match.start()] + updated_block + content[block_match.end() :]
+
+
+def _native_workspace_package_names(manifest: dict[str, object], native_root: Path) -> tuple[str, ...]:
+    workspace = manifest.get("workspace")
+    if not isinstance(workspace, dict):
+        raise ValueError(f"missing [workspace] section in {native_root / 'Cargo.toml'}")
+    members = workspace.get("members")
+    if members is None:
+        return ("qiongli",)
+    if not isinstance(members, list) or not members:
+        raise ValueError(f"invalid workspace members in {native_root / 'Cargo.toml'}")
+
+    names: list[str] = []
+    for member in members:
+        if not isinstance(member, str) or "*" in member:
+            raise ValueError(f"workspace members must be explicit paths: {member!r}")
+        member_manifest = native_root / member / "Cargo.toml"
+        try:
+            with member_manifest.open("rb") as handle:
+                member_data = tomllib.load(handle)
+        except (OSError, tomllib.TOMLDecodeError) as exc:
+            raise ValueError(f"unable to read workspace member {member_manifest}: {exc}") from exc
+        package = member_data.get("package")
+        name = package.get("name") if isinstance(package, dict) else None
+        if not isinstance(name, str) or not name:
+            raise ValueError(f"missing package.name in workspace member {member_manifest}")
+        if package.get("version") != {"workspace": True}:
+            raise ValueError(f"workspace member must inherit version: {member_manifest}")
+        names.append(name)
+    if len(set(names)) != len(names):
+        raise ValueError("native workspace contains duplicate package names")
+    return tuple(sorted(names))
+
+
+def _replace_native_content_versions(root: Path, identity: ReleaseIdentity) -> list[Path]:
+    changed: list[Path] = []
+    content_root = root / "content"
+    for manifest in (
+        content_root / ".codex-plugin" / "plugin.json",
+        content_root / ".claude-plugin" / "plugin.json",
+        root / "packages" / "qiongli-full-mcpb" / "manifest.json",
+    ):
+        if manifest.exists() and replace_json_versions(manifest, identity.version):
+            changed.append(manifest)
+
+    registry = content_root / "skills" / "registry.yaml"
+    if registry.exists() and replace_pattern(
+        registry,
+        re.compile(r'^(\s*version:\s*)"?[^"\n]+"?$', re.MULTILINE),
+        rf'\g<1>"{identity.version}"',
+    ):
+        changed.append(registry)
+
+    workflow_version = content_root / "workflow" / "VERSION"
+    if workflow_version.exists() and workflow_version.read_text(encoding="utf-8").strip() != identity.repo_tag:
+        workflow_version.write_text(identity.repo_tag + "\n", encoding="utf-8")
+        changed.append(workflow_version)
+
+    workflow_skill = content_root / "workflow" / "SKILL.md"
+    if workflow_skill.exists() and replace_skill_entrypoint_version(workflow_skill, identity.repo_tag):
+        changed.append(workflow_skill)
+    return changed
+
+
+def _sync_native_versions(root: Path, identity: ReleaseIdentity) -> list[Path]:
+    native_root = root / "packages" / "qiongli-native"
+    manifest = native_root / "Cargo.toml"
+    lockfile = native_root / "Cargo.lock"
+    lite_lockfile = root / "packages" / "qiongli-lite-mcp" / "Cargo.lock"
+
+    try:
+        with manifest.open("rb") as handle:
+            parsed_manifest = tomllib.load(handle)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        raise ValueError(f"unable to read native workspace manifest {manifest}: {exc}") from exc
+    workspace_package_names = _native_workspace_package_names(parsed_manifest, native_root)
+
+    manifest_original = manifest.read_text(encoding="utf-8")
+    manifest_updated = _replace_toml_section_string(
+        manifest_original,
+        section="workspace.package",
+        field="version",
+        value=identity.version,
+        path=manifest,
+    )
+    manifest_updated = _replace_toml_section_string(
+        manifest_updated,
+        section="workspace.metadata.qiongli",
+        field="channel",
+        value=identity.channel,
+        path=manifest,
+    )
+    lock_updates: list[tuple[Path, str, str]] = []
+    lock_original = lockfile.read_text(encoding="utf-8")
+    lock_updated = lock_original
+    for package_name in workspace_package_names:
+        lock_updated = _replace_cargo_lock_package_version(
+            lock_updated,
+            package_name=package_name,
+            version=identity.version,
+            path=lockfile,
+        )
+    lock_updates.append((lockfile, lock_original, lock_updated))
+
+    if lite_lockfile.exists():
+        lite_lock_original = lite_lockfile.read_text(encoding="utf-8")
+        lite_lock_updated = lite_lock_original
+        for package_name in workspace_package_names:
+            if re.search(
+                rf'(?m)^name\s*=\s*"{re.escape(package_name)}"\s*$',
+                lite_lock_original,
+            ):
+                lite_lock_updated = _replace_cargo_lock_package_version(
+                    lite_lock_updated,
+                    package_name=package_name,
+                    version=identity.version,
+                    path=lite_lockfile,
+                )
+        lock_updates.append((lite_lockfile, lite_lock_original, lite_lock_updated))
+
+    changed: list[Path] = []
+    if manifest_updated != manifest_original:
+        manifest.write_text(manifest_updated, encoding="utf-8")
+        changed.append(manifest)
+    for path, original, updated in lock_updates:
+        if updated != original:
+            path.write_text(updated, encoding="utf-8")
+            changed.append(path)
+    changed.extend(_replace_native_content_versions(root, identity))
+    return changed
+
+
 def sync_versions(root: Path, raw_version: str) -> list[Path]:
     root = root.resolve()
-    package_version, skill_version, repo_version, npm_version = parse_version(raw_version)
+    identity = parse_release_version(raw_version)
+    if identity.release_line == "native-2x":
+        return _sync_native_versions(root, identity)
+
+    package_version = identity.package_version
+    skill_version = identity.skill_version
+    repo_version = identity.repo_tag
+    npm_version = identity.npm_version
     changed: list[Path] = []
     layout = RepoLayout(root)
 
@@ -257,9 +441,12 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(
-        description="Sync package, portable skill, and skill metadata versions from one release version."
+        description="Sync the version sources owned by one Qiongli release line."
     )
-    parser.add_argument("version", help="Stable or beta version, e.g. 0.2.0 or 0.2.0b1")
+    parser.add_argument(
+        "version",
+        help="Stable, beta, or native alpha version, e.g. 1.19.1b1 or 2.0.0-alpha.3",
+    )
     parser.add_argument(
         "--print-field",
         choices=PRINTABLE_FIELDS,

@@ -244,7 +244,10 @@ class BoundaryInterviewerContractTests(unittest.TestCase):
 
         for path in workflow_paths:
             content = path.read_text(encoding="utf-8")
-            self.assertIn("Academic Boundary Review Trigger", content, path.as_posix())
+            if path.name == "academic-write.md":
+                self.assertIn("references/stage-F-writing.md", content)
+            else:
+                self.assertIn("Academic Boundary Review Trigger", content, path.as_posix())
             self.assertIn("boundary-interviewer", content, path.as_posix())
             self.assertIn("claim strength", content, path.as_posix())
             self.assertIn("evidence threshold", content, path.as_posix())
@@ -277,6 +280,14 @@ class BoundaryInterviewerContractTests(unittest.TestCase):
         for path in workflow_paths:
             content = path.read_text(encoding="utf-8")
             self.assertIn("boundary-interviewer", content, path.as_posix())
+            if path.name == "proofread.md":
+                self.assertIn("references/workflow-contract.md", content)
+                contract = RepoLayout(REPO_ROOT).workflow / "references" / "workflow-contract.md"
+                self.assertIn("context/boundary_review.md", contract.read_text(encoding="utf-8"))
+                self.assertIn("Before formal checkpoint outputs", content)
+                self.assertIn("missing boundary file alone does not block a direct language edit", content)
+                self.assertIn("locked research claims requires a new boundary decision", content)
+                continue
             self.assertIn("context/boundary_review.md", content, path.as_posix())
             self.assertIn("locked boundary", content, path.as_posix())
 

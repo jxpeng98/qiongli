@@ -526,10 +526,7 @@ class PluginDistributionContractTests(unittest.TestCase):
             self.assertTrue((materialized_plugin / "skills").is_dir())
             self.assertTrue((materialized_plugin / ".mcp.json").is_file())
             self.assertTrue(
-                (materialized_plugin / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
-            )
-            self.assertTrue(
-                (materialized_plugin / "mcp" / "qiongli-literature-provider" / "query.mjs").is_file()
+                (materialized_plugin / "bin" / "qiongli-literature-provider").is_file()
             )
 
     def test_git_backed_next_codex_plugin_source_is_installable(self) -> None:
@@ -537,6 +534,7 @@ class PluginDistributionContractTests(unittest.TestCase):
             materialized_next = self.materialize_next_plugin_payload(tmp_dir)
             manifest_path = materialized_next / ".codex-plugin" / "plugin.json"
             mcp_manifest_path = materialized_next / ".mcp.json"
+            claude_manifest_path = materialized_next / ".claude-plugin" / "plugin.json"
             skill_root = materialized_next / "skills" / "qiongli-workflow"
 
             validator._assert_manifest(
@@ -565,6 +563,14 @@ class PluginDistributionContractTests(unittest.TestCase):
                 f"v{WORKFLOW_VERSION}",
                 skill_name="qiongli-next",
             )
+            validator._assert_manifest(
+                "claude",
+                claude_manifest_path,
+                WORKFLOW_VERSION,
+                expected_plugin_name="qiongli-next",
+                expected_skill_name="qiongli-next",
+            )
+            validator._assert_bundled_literature_mcp(materialized_next, "claude", mcp_server_name="qiongli-next")
             skill_text = (skill_root / "SKILL.md").read_text(encoding="utf-8")
             self.assertIn(f"Qiongli Next version: v{WORKFLOW_VERSION}", skill_text)
             self.assertIn(f"Installed Qiongli workflow version: `v{WORKFLOW_VERSION}`", skill_text)
@@ -572,7 +578,6 @@ class PluginDistributionContractTests(unittest.TestCase):
             validator._assert_subject_manifest(skill_root, "core", "complete")
             validator._assert_command_invocation(materialized_next, workflow_names, skill_name="qiongli-next")
 
-            self.assertFalse((materialized_next / ".claude-plugin").exists())
             self.assertFalse((materialized_next / "gemini-extension.json").exists())
 
     def test_codex_plugin_materializes_bundled_mcp_manifest(self) -> None:
@@ -584,10 +589,13 @@ class PluginDistributionContractTests(unittest.TestCase):
             mcp_manifest = json.loads((materialized_plugin / ".mcp.json").read_text(encoding="utf-8"))
 
         self.assertEqual(manifest["mcpServers"], "./.mcp.json")
-        self.assertEqual(mcp_manifest["mcpServers"]["qiongli"]["command"], "node")
+        self.assertEqual(
+            mcp_manifest["mcpServers"]["qiongli"]["command"],
+            "./bin/qiongli-literature-provider",
+        )
         self.assertEqual(
             mcp_manifest["mcpServers"]["qiongli"]["args"],
-            ["./mcp/qiongli-literature-provider/index.mjs"],
+            ["--transport", "stdio"],
         )
 
     def test_claude_plugin_materializes_bundled_mcp_server(self) -> None:
@@ -600,15 +608,105 @@ class PluginDistributionContractTests(unittest.TestCase):
             self.assertIn("mcpServers", manifest)
             self.assertIn("qiongli", manifest["mcpServers"])
             server = manifest["mcpServers"]["qiongli"]
-            self.assertEqual(server["command"], "node")
+            self.assertEqual(server["command"], "${CLAUDE_PLUGIN_ROOT}/bin/qiongli-literature-provider")
             self.assertEqual(
                 server["args"],
-                ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
+                ["--transport", "stdio"],
             )
             self.assertEqual(server["cwd"], "${CLAUDE_PLUGIN_ROOT}")
             self.assertTrue(
-                (materialized_plugin / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
+                (materialized_plugin / "bin" / "qiongli-literature-provider").is_file()
             )
+
+    def test_codex_plugin_bundled_mcp_server_launches(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+
+            tools = validator._assert_plugin_mcp_server_launches(
+                materialized_plugin,
+                "codex",
+                mcp_server_name="qiongli",
+            )
+
+        self.assertIn("qiongli_literature_status", tools)
+        self.assertIn("qiongli_literature_search", tools)
+        self.assertIn("qiongli_task_plan", tools)
+
+    def test_bundled_mcp_validation_requires_target_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            identity = (
+                materialized_plugin
+                / "bin"
+                / "qiongli-literature-provider.target.json"
+            )
+            identity.unlink()
+
+            with self.assertRaisesRegex(ValueError, "target.json"):
+                validator._assert_bundled_literature_mcp(materialized_plugin, "codex")
+
+    def test_plugin_mcp_launch_requires_smoke_fixture_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            missing_fixture = Path(tmp_dir) / "missing-lite-tool-smoke-calls.json"
+
+            with self.assertRaisesRegex(ValueError, "missing Lite tool smoke fixture"):
+                validator._assert_plugin_mcp_server_launches(
+                    materialized_plugin,
+                    "codex",
+                    safety_fixture=missing_fixture,
+                )
+
+            tools = validator._assert_plugin_mcp_server_launches(
+                materialized_plugin,
+                "codex",
+                safety_fixture=missing_fixture,
+                run_tool_smoke=False,
+            )
+
+        self.assertIn("qiongli_literature_status", tools)
+
+    def test_lite_tool_smoke_requires_complete_success_envelope(self) -> None:
+        fixture_path = Path("lite-tool-smoke-calls.json")
+        fixture = {"canary_value": "fixture-canary"}
+        call = {
+            "name": "qiongli_literature_status",
+            "expected_response_class": "bounded_local_result",
+            "forbidden_output": [],
+        }
+        base_result = {"isError": False, "content": [], "structuredContent": {}}
+
+        for missing_field, expected_error in (
+            ("content", "result.content list"),
+            ("structuredContent", "result.structuredContent object"),
+        ):
+            with self.subTest(missing_field=missing_field):
+                result = dict(base_result)
+                del result[missing_field]
+                with self.assertRaisesRegex(ValueError, expected_error):
+                    validator._assert_lite_tool_smoke_responses(
+                        fixture_path=fixture_path,
+                        fixture=fixture,
+                        calls_by_id={100: call},
+                        response_by_id={100: {"jsonrpc": "2.0", "id": 100, "result": result}},
+                        tool_names={"qiongli_literature_status"},
+                        stdout="",
+                        stderr="",
+                    )
+
+    def test_claude_plugin_bundled_mcp_server_launches(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+
+            tools = validator._assert_plugin_mcp_server_launches(
+                materialized_plugin,
+                "claude",
+                mcp_server_name="qiongli",
+            )
+
+        self.assertIn("qiongli_literature_status", tools)
+        self.assertIn("qiongli_literature_search", tools)
+        self.assertIn("qiongli_task_plan", tools)
 
     def test_codex_bundled_mcp_validation_requires_plugin_manifest_reference(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -677,7 +775,7 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertEqual(manifest, {"name": plugin_name})
         self.assertIn(f"{plugin_name}/.claude-plugin/plugin.json", names)
         self.assertIn(f"{plugin_name}/commands/lit-review.md", names)
-        self.assertIn(f"{plugin_name}/mcp/qiongli-literature-provider/index.mjs", names)
+        self.assertIn(f"{plugin_name}/bin/qiongli-literature-provider", names)
         self.assertIn(f"{plugin_name}/skills/qiongli-workflow/SKILL.md", names)
         self.assertIn(f"name: {skill_name}", skill_text)
         self.assertNotIn(f"{plugin_name}/.codex-plugin/plugin.json", names)
@@ -712,22 +810,22 @@ class PluginDistributionContractTests(unittest.TestCase):
         if "-" in current_tag.removeprefix("v"):
             self.assertIn(
                 "[OK] codex marketplace artifact (core-next): "
-                "qiongli-next invocation checked; bundled literature MCP checked",
+                "qiongli-next invocation checked; bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertIn(
                 "[OK] claude marketplace artifact (core-next): "
-                "qiongli-next invocation checked; bundled literature MCP checked",
+                "qiongli-next invocation checked; bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertIn(
                 "[OK] claude marketplace ZIP artifact (core-next): "
-                "qiongli-next invocation checked; bundled literature MCP checked",
+                "qiongli-next invocation checked; bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertIn(
                 "[OK] claude-desktop direct plugin artifact (core-next): "
-                "qiongli-next invocation checked; bundled literature MCP checked",
+                "qiongli-next invocation checked; bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertIn("[OK] claude-desktop skill artifact (core-next)", result.stdout)
@@ -736,20 +834,23 @@ class PluginDistributionContractTests(unittest.TestCase):
             self.assertIn("qiongli-next invocation", result.stdout)
         else:
             self.assertIn(
-                "[OK] codex marketplace artifact: qiongli invocation checked; bundled literature MCP checked",
+                "[OK] codex marketplace artifact: qiongli invocation checked; "
+                "bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertIn(
-                "[OK] claude marketplace artifact: qiongli invocation checked; bundled literature MCP checked",
+                "[OK] claude marketplace artifact: qiongli invocation checked; "
+                "bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertIn(
-                "[OK] claude marketplace ZIP artifact: qiongli invocation checked; bundled literature MCP checked",
+                "[OK] claude marketplace ZIP artifact: qiongli invocation checked; "
+                "bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertIn(
                 "[OK] claude-desktop direct plugin artifact: "
-                "qiongli invocation checked; bundled literature MCP checked",
+                "qiongli invocation checked; bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertNotIn("[OK] gemini marketplace artifact", result.stdout)
@@ -759,6 +860,12 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertIn("under desktop file budget", result.stdout)
         self.assertIn("invocation checked", result.stdout)
         self.assertIn("bundled literature MCP checked", result.stdout)
+        self.assertIn("MCP startup checked", result.stdout)
+        self.assertIn(
+            "[OK] Lite tool smoke calls checked from "
+            "content/mcp-contracts/fixtures/lite-tool-smoke-calls.json",
+            result.stdout,
+        )
         self.assertIn("[OK] structural archive checks completed", result.stdout)
         self.assertIn(
             "[SKIP] client CLI activation checks skipped for targets: "
@@ -766,6 +873,29 @@ class PluginDistributionContractTests(unittest.TestCase):
             "run scripts/release_local_install_check.py",
             result.stdout,
         )
+
+    def test_ci_and_preflight_enforce_rust_lite_release_gates(self) -> None:
+        ci = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        preflight = (REPO_ROOT / "tooling" / "scripts" / "release_preflight.sh").read_text(
+            encoding="utf-8"
+        )
+
+        for expected in (
+            "cargo fmt --manifest-path packages/qiongli-lite-mcp/Cargo.toml -- --check",
+            "cargo clippy --locked --manifest-path packages/qiongli-lite-mcp/Cargo.toml",
+            "cargo test --locked --manifest-path packages/qiongli-lite-mcp/Cargo.toml --all-targets",
+            "python tooling/scripts/build_lite_mcp.py --target current",
+            "runs-on: windows-latest",
+        ):
+            self.assertIn(expected, ci)
+
+        for expected in (
+            "cargo fmt --manifest-path packages/qiongli-lite-mcp/Cargo.toml -- --check",
+            "cargo clippy --locked --manifest-path packages/qiongli-lite-mcp/Cargo.toml",
+            "cargo test --locked --manifest-path packages/qiongli-lite-mcp/Cargo.toml --all-targets",
+            "python3 tooling/scripts/build_lite_mcp.py --target current",
+        ):
+            self.assertIn(expected, preflight)
 
 
 if __name__ == "__main__":

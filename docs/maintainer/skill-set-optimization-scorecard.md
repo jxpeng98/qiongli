@@ -95,7 +95,7 @@ Current baseline commands:
 ```bash
 uv run python scripts/validate_research_standard.py --strict
 uv run python scripts/audit_skill_sections.py --strict
-uv run python scripts/run_academic_quality_evals.py evals/academic_quality/cases
+uv run python evals/runner/run_suite.py
 ```
 
 Post-optimization commands, available after Task 1/2 create the audit scripts:

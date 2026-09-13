@@ -22,6 +22,10 @@ plugins:
       - rebuttal
       - academic-code
       - grill
+    release_lines:
+      - legacy-1x
+    release_channels:
+      - stable
     codex:
       short_description: Academic research workflows for Codex.
       default_prompts:
@@ -56,6 +60,15 @@ plugins:
       - grill
       - qiongli-next
       - prerelease
+    release_lines:
+      - legacy-1x
+    release_channels:
+      - beta
+    planned_release_lines:
+      - native-2x
+    planned_release_channels:
+      - alpha
+      - beta
     codex:
       short_description: Prerelease academic research workflows for Codex.
       default_prompts:

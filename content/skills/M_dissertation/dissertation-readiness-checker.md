@@ -42,6 +42,8 @@ Write `dissertation/final_readiness.md` and, when requested, support `dissertati
 - `DissertationPlan`
 - `DissertationChapterMap`
 - Optional supervisor feedback log, chapter drafts, formatting rules, and integrity notes.
+- If chapters, feedback, formatting rules, or evidence are missing or
+  insufficient, record a gap note and keep final readiness blocked.
 
 ## Process
 
@@ -60,6 +62,9 @@ Write `RESEARCH/[topic]/dissertation/final_readiness.md`; write `RESEARCH/[topic
 - [ ] Evidence and method alignment are checked.
 - [ ] Integrity and formatting constraints are preserved.
 - [ ] Defense preparation does not invent dissertation content.
+- [ ] Each finding points to a supplied chapter or requirement; interpretation
+  states the readiness risk without predicting approval; implication names the
+  required revision, evidence, confirmation, or blocker.
 
 ## Common Pitfalls
 

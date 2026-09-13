@@ -15,16 +15,15 @@ preferred_skills:
   - submission-packager
 
 quality_thresholds:
-  require_all_checklist_items: true
-  require_prisma_flow: true
-  require_ethics_approval: true
+  require_design_contract: "Design judgment contract — references/stage-C-design.md"
+  reporting_requirements: "Check every applicable item in the selected reporting standard; explain N/A items and retain all protocol obligations. PRISMA reports review methods, not proof of their quality."
 
 tone: "precise, regulatory, checklist-driven"
 
 escalation_rules:
-  - condition: "checklist_items_missing > 3"
-    action: "flag for manuscript revision before submission"
+  - condition: "required_checklist_item_missing"
+    action: "identify the missing evidence before claiming reporting completeness or submission readiness"
   - condition: "ethics_concern"
-    action: "halt pipeline and escalate to PI"
+    action: "block the affected access, collection or analysis until the required ethics decision is evidenced; continue only independently authorized work"
 
 default_domain: null

@@ -26,6 +26,7 @@ def search_paper(
     fields: str | list[str] | tuple[str, ...] | None = None,
     publication_type: str | None = None,
     venue: str | None = None,
+    api_key: str | None = None,
 ) -> dict[str, Any]:
     """Search for papers by keyword."""
     if not query.strip():
@@ -47,7 +48,7 @@ def search_paper(
     )
     url = f"{S2_GRAPH_BASE}/paper/search?{query_string}"
 
-    return _make_request(url)
+    return _make_request(url) if api_key is None else _make_request(url, api_key=api_key)
 
 def get_paper_details(paper_id: str) -> dict[str, Any]:
     """Get detailed information about a specific paper."""
@@ -64,14 +65,14 @@ def get_references(paper_id: str, limit: int = 20) -> dict[str, Any]:
     url = f"{S2_GRAPH_BASE}/paper/{paper_id}/references?limit={limit}&fields=title,authors,year,venue,url,citationCount"
     return _make_request(url)
 
-def _make_request(url: str) -> dict[str, Any]:
+def _make_request(url: str, *, api_key: str | None = None) -> dict[str, Any]:
     headers = {
         "User-Agent": "Research-Skills-MCP/1.0",
         "Accept": "application/json",
     }
-    api_key = _semantic_scholar_api_key()
-    if api_key:
-        headers["x-api-key"] = api_key
+    resolved_api_key = _semantic_scholar_api_key() if api_key is None else api_key.strip()
+    if resolved_api_key:
+        headers["x-api-key"] = resolved_api_key
 
     for attempt in range(1, DEFAULT_MAX_ATTEMPTS + 1):
         try:

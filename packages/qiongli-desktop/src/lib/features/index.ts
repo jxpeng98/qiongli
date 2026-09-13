@@ -1,0 +1,9 @@
+export { academicGraphFeature } from './academic-graph';
+export { capturesFeature } from './captures';
+export { clientIntegrationsFeature } from './client-integrations';
+export { diagnosticsFeature } from './diagnostics';
+export { overviewFeature } from './overview';
+export { portfolioFeature } from './portfolio';
+export { researchLibraryFeature } from './research-library';
+export { timelineFeature } from './timeline';
+export type { FeatureDescriptor, FeatureStage } from './types';

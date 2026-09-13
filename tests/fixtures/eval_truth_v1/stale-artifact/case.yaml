@@ -1,0 +1,12 @@
+schema_version: "1.0"
+case_id: stale-artifact
+pipeline: evaluation-truth
+input:
+  topic: Reject evidence whose exact bytes are stale.
+expected_outputs:
+  evidence:
+    artifact: evidence.md
+    required: true
+    assertions:
+      - type: file_digest
+        sha256: bb83370a57f3e4a7196bfadd8675d874bc47df8a99f4b709b5499b01369f2366

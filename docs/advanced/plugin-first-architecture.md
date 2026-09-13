@@ -2,7 +2,7 @@
 
 Qiongli stable is distributed as one plugin package, not as dozens of separate academic-skill plugins.
 
-Plugin-first describes the marketplace distribution architecture. It is not the full-product architecture. For full local Qiongli, the CLI full profile can generate a client-native local plugin bundle. Marketplace plugins remain client-native lite installs, with bundled Node literature MCP fallback where supported.
+Plugin-first describes the marketplace distribution architecture. It is not the full-product architecture. For full local Qiongli, the CLI full profile can generate a client-native local plugin bundle. Marketplace plugins remain client-native lite installs with a bundled Rust Literature Provider MCP executable where supported.
 
 ## Definitions
 
@@ -38,8 +38,8 @@ The `qiongli-next` plugin is generated from the same canonical sources with prer
 
 | Platform | Manifest | Runtime entry |
 |----------|----------|---------------|
-| Codex | generated `.codex-plugin/plugin.json` plus bundled `.mcp.json` in `plugins/qiongli/` or `plugins/qiongli-next/` | `skills/qiongli-workflow/`, visible as `qiongli` or `qiongli-next` in `/skills`, invoked as `$qiongli` or `$qiongli-next`; bundled Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/` |
-| Claude Code | generated `.claude-plugin/plugin.json` in the plugin payload | `commands/*.md` plus `skills/qiongli-workflow/`; bundled Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/` |
+| Codex | generated `.codex-plugin/plugin.json` plus bundled `.mcp.json` in `plugins/qiongli/` or `plugins/qiongli-next/` | `skills/qiongli-workflow/`, visible as `qiongli` or `qiongli-next` in `/skills`, invoked as `$qiongli` or `$qiongli-next`; bundled Rust Lite MCP executable under `bin/qiongli-literature-provider` |
+| Claude Code | generated `.claude-plugin/plugin.json` in the plugin payload | `commands/*.md` plus `skills/qiongli-workflow/`; bundled Rust Lite MCP executable under `bin/qiongli-literature-provider` |
 | Claude Desktop direct plugin | root `plugin.json` plus generated `.claude-plugin/plugin.json` in `qiongli-claude-desktop-plugin-<tag>.zip` | installed `qiongli` entry, generated workflow wrappers including `/qiongli`, `skills/qiongli-workflow/`, and bundled lightweight literature MCP runtime |
 | Claude Desktop/Web fallback skill ZIP | uploaded skill package only | installed `qiongli` skill; no bundled provider tools unless the user also installs the Qiongli Literature Provider MCPB |
 
@@ -55,7 +55,7 @@ The plugin-first package does not replace the legacy global install in place. Na
 - Global skill install: `~/.codex/skills/qiongli-workflow`, `~/.claude/skills/qiongli-workflow`, `~/.gemini/antigravity/skills/qiongli-workflow`, and `~/.hermes/skills/qiongli-workflow`, managed by `rsk` or bootstrap.
 - Global slash discovery: `~/.claude/commands/*.md`, managed by `rsk`.
 
-For ordinary skill-only client-native usage and Codex/Claude Code bundled literature-provider MCP usage, the marketplace plugin bundle is enough. Those marketplace artifacts keep the bundled Node literature MCP. From v1.9.0 onward, the default full local Qiongli path installs a client-native local plugin bundle backed by the full Python MCP:
+For ordinary skill-only client-native usage and Codex/Claude Code bundled literature-provider MCP usage, the marketplace plugin bundle is enough. Those marketplace artifacts keep the bundled Rust Lite MCP for the provider subset. From v1.9.0 onward, the default full local Qiongli path installs a client-native local plugin bundle backed by the full Python MCP:
 
 ```bash
 qiongli install --target all

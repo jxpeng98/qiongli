@@ -1,0 +1,6 @@
+# Project instructions live in AGENTS.md; no workflow hooks or custom roles.
+project_doc_fallback_filenames = ["AGENTS.md"]
+
+# Preserve the existing recursion bound.
+[agents]
+max_depth = 1

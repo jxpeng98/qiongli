@@ -18,29 +18,60 @@ This stage turns artifacts into a publishable narrative: outline → draft → c
 - `Q2` (claim-evidence traceability): enforced via `F4` and `G3`.
 - Semantic gate report: update `quality-gate-report.md` with `q2_claim_evidence_traceability`; evidence must anchor central claims to the claim-evidence ledger, source notes, analysis outputs, citations, or explicit gap notes.
 
-## Cross-task depth rules
-
-- Every substantive paragraph must move beyond description into at least two of: mechanism, comparison/tension, alternative explanation, boundary condition, implication.
-- Qualitative findings should be interpreted as process, mechanism, or meaning claims, not left as theme labels plus quotes.
-- If evidence only supports a narrow descriptive claim, write the narrow claim plainly; do not fake depth with abstract language.
-- Related work and discussion should be organized around arguments, tensions, or explanatory structures rather than paper-by-paper listing.
-
 ## Writing Harness Contract
 
-This contract applies whenever Stage F writing is produced through a workflow, skill card, role prompt, or direct agent instruction.
+This shared contract applies to Stage F workflows, skill cards and role prompts.
+It specifies the result and boundaries; the active model chooses how to reach it.
+Formal task outputs and Q1/Q2 gates above remain required for the selected task.
+A direct paragraph answer does not require the full artifact set or a gate report.
 
-Before drafting prose:
-- inspect `context/boundary_review.md`, `context/decision_log.md`, `context/stage_handoff.md`, and `review/self_critique_log.md` when present
-- state the **Story Spine**: central claim, claim strength, argumentative mainline, section jobs, non-goals, and evidence threshold
-- ask the next blocking boundary/grill question when the boundary, mainline, claim strength, or evidence threshold is not settled
+### Direction and freedom
 
-During drafting:
-- write in section or paragraph-cluster chunks
-- use a write -> review -> confirm checkpoint for each chunk
-- review each chunk for mainline drift, logic jumps, missing support, contradiction with locked decisions, and generic or vague claims
-- do not draft the whole artifact in one uninterrupted pass
+- Reuse relevant source material and settled decisions, including
+  `context/boundary_review.md`, `context/decision_log.md`,
+  `context/stage_handoff.md` and `review/self_critique_log.md` when present.
+- Keep a coherent **Story Spine**: what the text argues, the section's job,
+  evidence supporting its central claim and where that claim stops. Reuse an
+  existing outline; a short edit needs no separate Story Spine presentation.
+- Choose structure, drafting order, tools and chunk size from the requested
+  length, evidence dependencies and risk. A bounded section may be drafted and
+  checked as a whole. Split longer work when checkpoints help catch a specific
+  risk, a dependency remains unsettled or the user requests staged delivery.
+- Follow the user, venue or agreed protocol when it specifies a structure or
+  review process. Do not infer extra approval steps from a template or role name.
 
-Convergence requires every chunk to have concrete claim-support notes, resolved or carried-forward review issues, and a continue/revise/ask decision.
+### Evidence and quality
+
+- Check for mainline drift, unsupported claims, logic jumps, contradiction with
+  settled decisions, and generic or vague claims. Preserve source meaning,
+  numbers, citations, uncertainty and the distinction between findings,
+  interpretation and implication. Never infer measurement from a study label.
+- Match analytical depth to the section's job and evidence. Discussion should
+  explain what the findings mean; methods and results may be descriptive.
+  Mechanisms, tensions, alternatives and implications are useful lenses, not a
+  per-paragraph quota. Narrow claims when evidence cannot support more depth.
+- Interpret qualitative themes when supported, keeping quotations and episodes
+  as evidence anchors. Do not invent mechanisms, negative cases or theoretical
+  contributions to satisfy a writing template.
+
+### Review and completion
+
+Check the requested unit before returning it. Revise concrete defects and verify
+what changed; further passes need new evidence, a remaining defect or an explicit
+review requirement. Honor configured minimum passes and required independent
+review, including settings carried by an existing run. A clean check is allowed
+and does not require invented revisions. Missing evidence or an exhausted budget
+does not establish readiness.
+
+Continue within the agreed scope when evidence settles the decision. Ask only
+for a consequential unresolved choice, scope change or required write approval;
+continue independent supported work while that branch is blocked. Registered
+project writes still use preview/approval/CAS and preserve user material.
+
+Finish when the requested deliverable meets its applicable checks, or report the
+specific unmet requirement. Record claim-support evidence and unresolved issues
+at the artifact or claim level needed for traceability; routine paragraphs need
+no checkpoint transcript. Preserve stable claim IDs and review issue lineage.
 
 ---
 
@@ -75,7 +106,7 @@ Use when you want to draft one component precisely (e.g., “intro gap paragraph
 
 **Definition of done**
 - The component has a clear rhetorical role (setup / gap / contribution / method / evidence / limitation)
-- The component makes at least one analytical move beyond summary (mechanism, contrast, boundary, or implication)
+- The component fulfills its section purpose at the depth supported by the evidence
 - Citations are present where claims of prior work are made
 - No new claims that contradict earlier artifacts
 
@@ -86,7 +117,7 @@ Write into: `manuscript/manuscript.md` (or a section placeholder within it).
 ## F3 — Full Draft
 
 **Definition of done (minimum)**
-- All required sections exist (title/abstract/intro/related work/method/results/discussion/limitations/conclusion)
+- All sections required by the paper type and venue exist; do not force an empirical structure onto other paper types
 - Methods contain enough detail for replication or audit (given the artifact set), including sampling, access, data sources, analytic procedure, and reflexivity for qualitative work
 - Results are consistent with analysis plan and reported with uncertainty or transparent evidence structure
 - Findings in qualitative papers are analytic claims; quotes, vignettes, and episodes are evidence anchors rather than the finding itself
@@ -113,12 +144,9 @@ This is the anti-overclaim tool: every major claim must trace to evidence (data,
 - Each claim has at least one evidence pointer
 - Claims are typed (novelty / mechanism / empirical effect / robustness / synthesis)
 
-Suggested table: `manuscript/claims_evidence_map.md`
-
-```markdown
-| claim_id | claim | claim_type | evidence | citation_keys | status (ok/weak/missing) | fix |
-|---|---|---|---|---|---|---|
-```
+Use `templates/claim-evidence-map.md` for `manuscript/claims_evidence_map.md`.
+Preserve its exact headers, stable claim IDs and distinction between evidence
+pointers and citation keys. Do not substitute a differently shaped summary table.
 
 ---
 

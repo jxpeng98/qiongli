@@ -11,6 +11,17 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / "tooling" / "scripts" / "release_upload_assets.py"
 
 
+def literature_mcpb_asset_name() -> str:
+    import json
+
+    manifest = json.loads(
+        (REPO_ROOT / "packages" / "qiongli-literature-mcpb" / "manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return f"{manifest['name']}-{manifest['version']}.mcpb"
+
+
 def load_release_upload_assets():
     spec = importlib.util.spec_from_file_location("release_upload_assets", SCRIPT_PATH)
     if spec is None or spec.loader is None:
@@ -38,8 +49,9 @@ class ReleaseUploadAssetsTests(unittest.TestCase):
         self.assertIn("qiongli-claude-plugin-v1.6.0.zip", names)
         self.assertIn("qiongli-claude-desktop-plugin-v1.6.0.zip", names)
         self.assertIn("qiongli-claude-desktop-skill-core-v1.6.0.zip", names)
-        self.assertIn("qiongli-literature-provider-0.1.5.mcpb", names)
-        self.assertIn("qiongli-zotero-companion-0.2.2.xpi", names)
+        self.assertIn(literature_mcpb_asset_name(), names)
+        self.assertIn("qiongli-zotero-companion-0.3.1.xpi", names)
+        self.assertIn("qiongli-zotero-companion-updates.json", names)
         self.assertIn("qiongli-downloads-v1.6.0.md", names)
         self.assertIn("qiongli-downloads-v1.6.0.json", names)
         self.assertIn("qiongli-artifacts-v1.6.0.json", names)
@@ -64,6 +76,7 @@ class ReleaseUploadAssetsTests(unittest.TestCase):
         self.assertIn("qiongli-next-claude-desktop-plugin-v1.6.0-beta.1.zip", names)
         self.assertIn("qiongli-next-claude-desktop-skill-core-v1.6.0-beta.1.zip", names)
         self.assertIn("qiongli-artifacts-v1.6.0-beta.1.json", names)
+        self.assertIn("qiongli-zotero-companion-updates.json", names)
         self.assertNotIn("qiongli-finance-codex-plugin-v1.6.0-beta.1.tar.gz", names)
 
     def test_missing_upload_asset_paths_fail_when_required(self) -> None:
@@ -77,6 +90,15 @@ class ReleaseUploadAssetsTests(unittest.TestCase):
                     root=REPO_ROOT,
                     require_existing=True,
                 )
+
+    def test_native_alpha_cannot_reuse_legacy_upload_asset_set(self) -> None:
+        module = load_release_upload_assets()
+        with self.assertRaisesRegex(module.ReleaseUploadAssetError, "legacy upload assets are disabled"):
+            module.release_upload_asset_names(
+                "v2.0.0-alpha.1",
+                root=REPO_ROOT,
+                require_existing=False,
+            )
 
 
 if __name__ == "__main__":

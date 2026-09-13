@@ -1,0 +1,34 @@
+{
+  "id": "pilot-903-real-project-pilot",
+  "name": "pilot-903-real-project-pilot",
+  "title": "PILOT-903 representative migrated real-project pilot",
+  "description": "Complete a representative migrated real-project pilot through supported Qiongli surfaces without storing Host conversations.",
+  "status": "completed",
+  "dev_type": "test",
+  "scope": "product/real-project-pilot",
+  "package": "product",
+  "priority": "P1",
+  "creator": "jxpeng98",
+  "assignee": "jxpeng98",
+  "createdAt": "2026-08-29",
+  "completedAt": "2026-08-30",
+  "branch": "feat/pilot-903-real-project-pilot",
+  "base_branch": "2.x",
+  "worktree_path": null,
+  "commit": "d0b4113364452d6ff8ff7cb2a3735e7c8d40d3f8",
+  "pr_url": "https://github.com/jxpeng98/qiongli/pull/149",
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "RESEARCH/asset-pricing-capm-ff3",
+    "packages/qiongli-native/apps/qiongli/src/mcp.rs",
+    "packages/qiongli-native/apps/qiongli/tests/mcp_stdio.rs",
+    "docs/superpowers/roadmaps/qiongli-program-ledger-v1.json",
+    "docs/superpowers/roadmaps/qiongli-current-program-index.md"
+  ],
+  "notes": "Accepted at Slice tier. Product source d0b4113364452d6ff8ff7cb2a3735e7c8d40d3f8 passed Native CI 33280296497. One ephemeral Codex Host completed the current-source Full MCP and Graph journey with redacted checkpoint evidence, supported rollback, and no research-project writes. Claude cross-Host equivalence, App UI, packaging, promotion, publication, and release authorization remain out of scope.",
+  "meta": {
+    "dev_type": "test"
+  }
+}

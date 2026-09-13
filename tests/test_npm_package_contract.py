@@ -119,8 +119,12 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertTrue((workflow_root / "workflows" / "paper.md").is_file())
         self.assertTrue((workflow_root / "templates" / "search-diagnostics.md").is_file())
         self.assertEqual(
+            (workflow_root / "VERSION").read_text(encoding="utf-8"),
+            (LAYOUT.workflow / "VERSION").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
             package_json["version"],
-            (workflow_root / "VERSION").read_text(encoding="utf-8").strip().removeprefix("v"),
+            json.loads((NPM_PACKAGE_ROOT / "package.json").read_text(encoding="utf-8"))["version"],
         )
         self.assertEqual(
             (LAYOUT.skills / "registry.yaml").read_text(encoding="utf-8"),
@@ -168,8 +172,8 @@ class NpmPackageContractTests(unittest.TestCase):
             msg="expected bundled plugin-lite skill entrypoint in npm payload",
         )
         self.assertTrue(
-            (fallback_plugin_root / "mcp" / "qiongli-literature-provider").is_dir(),
-            msg="expected bundled plugin-lite literature MCP provider in npm payload",
+            (fallback_plugin_root / "bin" / "qiongli-literature-provider").is_file(),
+            msg="expected bundled Rust Lite MCP provider binary in npm payload",
         )
         self.assertTrue(
             (fallback_plugin_root / ".codex-plugin" / "plugin.json").is_file()
@@ -184,8 +188,8 @@ class NpmPackageContractTests(unittest.TestCase):
                     msg=f"expected plugin-lite skill entrypoint in target payload {target_root}",
                 )
                 self.assertTrue(
-                    (target_root / "mcp" / "qiongli-literature-provider").is_dir(),
-                    msg=f"expected bundled Node MCP provider in target payload {target_root}",
+                    (target_root / "bin" / "qiongli-literature-provider").is_file(),
+                    msg=f"expected bundled Rust Lite MCP provider binary in target payload {target_root}",
                 )
 
     def _assert_platform_target_registry(self, package_root: Path) -> None:
@@ -266,6 +270,14 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertIn("[npm-publish] warning: unable to remove beta latest dist-tag", npm_workflow)
         self.assertNotIn("npm publish --tag beta", npm_workflow)
         self.assertIn("scripts/npm_preflight.sh", npm_workflow)
+        for workflow in (pypi_workflow, npm_workflow):
+            self.assertIn("if: ${{ !startsWith(github.ref_name, 'v2.') }}", workflow)
+            self.assertIn("scripts/release_version.py", workflow)
+            self.assertIn('if [[ "$release_line" == "native-2x" ]]; then', workflow)
+            self.assertIn("RLS-201/PKG gate", workflow)
+        self.assertIn('--print-field channel', npm_workflow)
+        self.assertIn('if [[ "$channel" != "stable" ]]; then', npm_workflow)
+        self.assertNotIn('if [[ "${RELEASE_TAG}" == *beta* ]]; then', npm_workflow)
 
     def test_docs_use_npm_next_dist_tag_for_prereleases(self) -> None:
         docs = "\n".join(

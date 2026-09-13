@@ -62,6 +62,33 @@ class MCPCLITests(unittest.TestCase):
         self.assertIn("qiongli_configure_provider", payload["next_action"]["tool"])
         self.assertNotIn("openalex-secret-key", rendered)
 
+    def test_mcp_doctor_reports_strategy_only_for_configured_but_disabled_providers(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_home = root / "config"
+            config_home.mkdir()
+            (config_home / "providers.json").write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "providers": {
+                            "semantic_scholar": {
+                                "enabled": False,
+                                "api_key": "disabled-canary",
+                            },
+                            "arxiv": {"enabled": False},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            env = self._env(root)
+            with mock.patch.dict(os.environ, env, clear=True):
+                payload = mcp_cli._doctor_payload(root)
+
+        self.assertEqual(payload["providers"]["semantic_scholar"], "configured")
+        self.assertEqual(payload["capability_mode"], "strategy_only")
+
     def test_mcp_cli_config_example_for_codex_json(self) -> None:
         result = subprocess.run(
             [sys.executable, "-m", "bridges.mcp_cli", "config", "example", "--target", "codex", "--json"],
@@ -213,7 +240,13 @@ class MCPCLITests(unittest.TestCase):
                     proc.terminate()
                     proc.wait(timeout=5)
 
-        self.assertEqual(returncode, 0, proc.stderr.read() if proc.stderr else "")
+                stderr = proc.stderr.read() if proc.stderr is not None else ""
+                if proc.stdout is not None:
+                    proc.stdout.close()
+                if proc.stderr is not None:
+                    proc.stderr.close()
+
+        self.assertEqual(returncode, 0, stderr)
 
     def test_mcp_cli_wizard_payload_reader_fails_when_child_exits_without_json(self) -> None:
         proc = subprocess.Popen(

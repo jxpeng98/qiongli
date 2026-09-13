@@ -21,6 +21,12 @@ from qiongli.source_layout import RepoLayout
 from qiongli.distribution_metadata import PluginDefinition, load_plugin_distribution
 from qiongli.platform_targets import load_platform_targets, remove_path_pattern
 from qiongli.workflow_wrapper_skills import write_codex_workflow_wrapper_skills
+from tooling.scripts.release_version import parse_release_version
+from tooling.scripts.build_lite_mcp import (
+    build_current_platform,
+    read_target_identity,
+    write_target_identity,
+)
 
 try:
     from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
@@ -44,6 +50,8 @@ NEXT_PLUGIN_DESCRIPTION = (
     "Qiongli Next prerelease academic research workflow plugin for testing the upcoming core workflow "
     "with bundled literature MCP tools."
 )
+LITE_MCP_BIN_NAME = "qiongli-literature-provider"
+_LITE_MCP_BINARY_CACHE: dict[str, Path] = {}
 DESKTOP_SKILL_FILE_BUDGET = 180
 FALLBACK_SUBJECT_LAYERS = {
     "core": ["core"],
@@ -261,16 +269,12 @@ AGENT_PACKET_TEMPLATES = (
 
 
 def _normalize_tag(raw: str) -> tuple[str, str]:
-    tag = raw.strip()
-    if not tag:
-        raise ValueError("tag is required")
-    repo_tag = tag if tag.startswith("v") else f"v{tag}"
-    skill_version = repo_tag.removeprefix("v")
-    return repo_tag, skill_version
+    identity = parse_release_version(raw)
+    return identity.repo_tag, identity.version
 
 
 def _is_prerelease_tag(repo_tag: str) -> bool:
-    return "-" in repo_tag.removeprefix("v")
+    return parse_release_version(repo_tag).is_prerelease
 
 
 def _read_json(path: Path) -> object:
@@ -356,8 +360,8 @@ def _write_claude_manifest(path: Path, plugin: PluginDefinition, version: str) -
         "commands": "./commands/",
         "mcpServers": {
             plugin.mcp_server_name: {
-                "command": "node",
-                "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
+                "command": "${CLAUDE_PLUGIN_ROOT}/bin/qiongli-literature-provider",
+                "args": ["--transport", "stdio"],
                 "cwd": "${CLAUDE_PLUGIN_ROOT}",
             }
         },
@@ -390,8 +394,8 @@ def _write_codex_mcp_manifest(root: Path, dest_plugin_root: Path, *, server_name
     manifest = {
         "mcpServers": {
             server_name: {
-                "command": "node",
-                "args": ["./mcp/qiongli-literature-provider/index.mjs"],
+                "command": "./bin/qiongli-literature-provider",
+                "args": ["--transport", "stdio"],
                 "cwd": ".",
                 "startup_timeout_sec": 20,
                 "tool_timeout_sec": 60,
@@ -587,6 +591,33 @@ def _copy_literature_mcp_runtime(root: Path, dest_plugin_root: Path) -> None:
     mcp_runtime = RepoLayout(root).literature_mcpb_package / "server"
     if mcp_runtime.is_dir():
         _copy_path(mcp_runtime, dest_plugin_root / "mcp" / "qiongli-literature-provider")
+
+
+def _cached_lite_mcp_binary(root: Path) -> Path:
+    root = root.resolve()
+    cache_key = str(root)
+    cached = _LITE_MCP_BINARY_CACHE.get(cache_key)
+    if cached is not None and cached.is_file():
+        return cached
+    cache_dir = Path(tempfile.mkdtemp(prefix="qiongli-lite-mcp-binary-"))
+    binary = build_current_platform(root, cache_dir)
+    _LITE_MCP_BINARY_CACHE[cache_key] = binary
+    return binary
+
+
+def _copy_lite_mcp_runtime(root: Path, dest_plugin_root: Path) -> None:
+    binary = _cached_lite_mcp_binary(root)
+    dest = dest_plugin_root / "bin" / LITE_MCP_BIN_NAME
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(binary, dest)
+    identity = read_target_identity(binary)
+    target = identity.get("target_triple")
+    if not isinstance(target, str) or not target:
+        raise ValueError(f"Lite MCP target identity missing target_triple: {binary}")
+    version = identity.get("component_version")
+    if not isinstance(version, str) or not version:
+        raise ValueError(f"Lite MCP target identity missing component_version: {binary}")
+    write_target_identity(dest, target, version)
 
 
 def _make_tarball(source_dir: Path, tar_path: Path) -> None:
@@ -859,8 +890,8 @@ def _write_fallback_skill_md(
             "- Treat `strategy_only` as a constrained mode: draft the search strategy or use user-supplied corpus, record the limitation, and do not claim review-grade external provider or native-search coverage.",
             "- Claude Desktop/Web focused ZIPs are skill-only packages kept within the 180-file upload budget. They contain workflows/prompts/templates, store no secrets, and cannot execute OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv API calls by themselves.",
             "- For a manual Desktop install, upload the `qiongli-claude-desktop-skill-*.zip` first, then add a manual MCP install when provider calls or local orchestration are required. The skill ZIP supplies agent instructions, workflows/prompts/templates, and subject overlays; MCP supplies tool calls.",
-            "- Desktop/Web users need the Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) or another configured provider MCP before claiming `provider_connected` literature search. The MCPB is the separate local Claude Desktop provider for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv configuration/search. arXiv is enabled without credentials. Platform-native search alone is `native_only`, not `provider_connected`; if no provider MCP/MCPB and no platform-native search is available, record the run as `strategy_only`.",
-            "- The literature MCPB provides literature MCP tools only. It does not launch orchestrator agents. To expose the full agent runtime through MCP, manually install the full CLI MCP server with `qiongli mcp serve --transport stdio`; clients can then call tools such as `qiongli_task_run` after the local CLI runtime and model CLIs are configured.",
+            "- Desktop/Web users need the Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) or another configured provider MCP before claiming `provider_connected` literature search. The MCPB is the separate local Claude Desktop provider for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv configuration/search. Its primary package uses the Rust Lite MCP executable, not a user-installed Node or Python runtime. arXiv is enabled without credentials. Platform-native search alone is `native_only`, not `provider_connected`; if no provider MCP/MCPB and no platform-native search is available, record the run as `strategy_only`.",
+            "- The literature MCPB provides literature MCP tools only. It does not expose project orchestration. To add orchestration, install the native Full MCP server with `qiongli mcp serve --transport stdio --profile full`; the active Codex or Claude host executes each returned handoff and submits a bounded candidate back to Qiongli.",
             "",
         ]
     )
@@ -1064,7 +1095,7 @@ def _build_marketplace_plugin(
             plugin_dest,
             server_name=_mcp_server_name_for_plugin(plugin_name),
         )
-    _copy_literature_mcp_runtime(root, plugin_dest)
+    _copy_lite_mcp_runtime(root, plugin_dest)
     _copy_commands(root, plugin_dest, skill_name=skill_name)
     _copy_subject_skill(root, plugin_dest, subject, skill_name=skill_name)
     if platform == "codex":
@@ -1111,7 +1142,7 @@ def materialize_next_codex_plugin(root: Path, dest_plugin_root: Path, *, force: 
     )
     _write_root_plugin_manifest(dest_plugin_root, NEXT_PLUGIN_NAME)
     _copy_codex_mcp_manifest(root, dest_plugin_root, server_name=NEXT_MCP_SERVER_NAME)
-    _copy_literature_mcp_runtime(root, dest_plugin_root)
+    _copy_lite_mcp_runtime(root, dest_plugin_root)
     _copy_commands(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
     _copy_subject_skill(root, dest_plugin_root, "core", skill_name=NEXT_SKILL_NAME)
     _copy_codex_workflow_wrapper_skills(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
@@ -1152,7 +1183,7 @@ def materialize_next_plugin_package(root: Path, dest_plugin_root: Path, *, force
 
     _write_root_plugin_manifest(dest_plugin_root, NEXT_PLUGIN_NAME)
     _copy_codex_mcp_manifest(root, dest_plugin_root, server_name=NEXT_MCP_SERVER_NAME)
-    _copy_literature_mcp_runtime(root, dest_plugin_root)
+    _copy_lite_mcp_runtime(root, dest_plugin_root)
     _copy_commands(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
     _copy_subject_skill(root, dest_plugin_root, "core", skill_name=NEXT_SKILL_NAME)
     _copy_codex_workflow_wrapper_skills(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
@@ -1188,7 +1219,7 @@ def materialize_plugin_package(root: Path, dest_plugin_root: Path, *, force: boo
         )
     _write_root_plugin_manifest(dest_plugin_root, PLUGIN_NAME)
     _copy_codex_mcp_manifest(root, dest_plugin_root, server_name=DEFAULT_MCP_SERVER_NAME)
-    _copy_literature_mcp_runtime(root, dest_plugin_root)
+    _copy_lite_mcp_runtime(root, dest_plugin_root)
     _copy_commands(root, dest_plugin_root, skill_name=DEFAULT_SKILL_NAME)
     _copy_subject_skill(root, dest_plugin_root, "core", skill_name=DEFAULT_SKILL_NAME)
     _copy_codex_workflow_wrapper_skills(root, dest_plugin_root, skill_name=DEFAULT_SKILL_NAME)
@@ -1382,6 +1413,18 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
     workflow_version = (layout.workflow / "VERSION").read_text(encoding="utf-8").strip()
     if workflow_version != repo_tag:
         raise ValueError(f"version mismatch in qiongli-workflow/VERSION: expected {repo_tag}, found {workflow_version}")
+
+    release_identity = parse_release_version(repo_tag)
+    plugin_name = NEXT_PLUGIN_NAME if release_identity.is_prerelease else PLUGIN_NAME
+    plugin = _plugin_definition(root, plugin_name)
+    if release_identity.release_line not in (*plugin.release_lines, *plugin.planned_release_lines):
+        raise ValueError(
+            f"{plugin_name} does not support release line {release_identity.release_line}"
+        )
+    if release_identity.channel not in (*plugin.release_channels, *plugin.planned_release_channels):
+        raise ValueError(
+            f"{plugin_name} does not support release channel {release_identity.channel}"
+        )
 
     with tempfile.TemporaryDirectory(prefix="qiongli-plugin-") as tmp:
         work_dir = Path(tmp)

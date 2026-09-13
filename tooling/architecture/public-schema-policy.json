@@ -1,0 +1,474 @@
+{
+  "schema_version": "1.1",
+  "record_type": "qiongli-public-schema-policy",
+  "branch": "2.x",
+  "authority": {
+    "language": "rust",
+    "json_schema_draft": "https://json-schema.org/draft/2020-12/schema",
+    "generated_contract_role": "derived",
+    "golden_fixture_owner": "rust"
+  },
+  "compatibility_classes": [
+    "additive",
+    "migratable-breaking",
+    "unsupported-breaking"
+  ],
+  "compatibility_window": {
+    "same_id_semantics": "immutable",
+    "persisted_state_predecessors": 2,
+    "persisted_state_migration": "forward-only-with-rollback",
+    "future_persisted_state": "fail-closed-unmodified",
+    "public_id_removal": "accepted-release-gate-required"
+  },
+  "contracts": [
+    {
+      "id": "app-ipc",
+      "boundary": "Native App snapshot, intent, and event protocol decoded by TypeScript/Zod",
+      "baseline": {
+        "adopted_at": "2026-08-18",
+        "authority_state": "split-rust-zod",
+        "version_sources": [
+          "packages/qiongli-native/apps/qiongli/src/desktop_api.rs",
+          "packages/qiongli-app-api/src/schema.ts"
+        ]
+      },
+      "rust_sources": [
+        "packages/qiongli-native/apps/qiongli/src/desktop_api.rs",
+        "packages/qiongli-native/apps/qiongli/src/desktop.rs"
+      ],
+      "consumers": [
+        "packages/qiongli-app-api/src/schema.ts",
+        "packages/qiongli-app-api/src/client.ts"
+      ],
+      "fixtures": [
+        "packages/qiongli-native/apps/qiongli/examples/app_api_contract_fixture.rs",
+        "packages/qiongli-app-api/scripts/run-tests.mjs",
+        "packages/qiongli-app-api/tests/client.test.ts"
+      ],
+      "release_freeze": {
+        "identity": "schema-version:19",
+        "definition_version": "19",
+        "semantic_meaning": "Native App snapshot, intent, and event fields retain their accepted meanings for one exact bundled product.",
+        "support_window": "exact-bundled-product"
+      },
+      "changes": [
+        {
+          "change_id": "app-ipc/all-chat-v1",
+          "contract_id": "app-ipc/all-chat",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/crates/qiongli-execution/src/all_chat.rs",
+            "packages/qiongli-native/apps/qiongli/src/all_chat_api.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/all-chat-app-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-app-v1.completed.json",
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-app-v1.cancelled.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_api.rs",
+            "packages/qiongli-app-api/tests/all-chat.test.ts"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "app-ipc/all-chat-control-v1",
+          "contract_id": "app-ipc/all-chat-control",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_control.rs",
+            "packages/qiongli-native/crates/qiongli-execution/src/acp_control.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/all-chat-control-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-control-v1.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_control.rs",
+            "packages/qiongli-app-api/tests/all-chat.test.ts"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "app-ipc/all-chat-history-v1",
+          "contract_id": "app-ipc/all-chat-history",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_history.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/all-chat-history-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-history-v1.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_history.rs"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "app-ipc/all-chat-research-v1",
+          "contract_id": "app-ipc/all-chat-research",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-native/apps/qiongli/src/all_chat_control.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/all-chat-research-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-research-v1.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-app-api/tests/research.test.ts"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "app-ipc/all-chat-research-control-v1",
+          "contract_id": "app-ipc/all-chat-research-control",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-native/apps/qiongli/src/all_chat_control.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/all-chat-research-control-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-research-control-v1.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-app-api/tests/research.test.ts"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "app-ipc/all-chat-research-v2",
+          "contract_id": "app-ipc/all-chat-research",
+          "from_version": "1",
+          "to_version": "2",
+          "classification": "unsupported-breaking",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-native/apps/qiongli/src/all_chat_control.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/all-chat-research-v2.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-research-v2.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-app-api/tests/research.test.ts"
+          ],
+          "migration_path": null,
+          "removal_gate": ".trellis/tasks/09-04-app-acp-all-chat-realignment/implement.md"
+        },
+        {
+          "change_id": "app-ipc/all-chat-research-control-v2",
+          "contract_id": "app-ipc/all-chat-research-control",
+          "from_version": "1",
+          "to_version": "2",
+          "classification": "unsupported-breaking",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-native/apps/qiongli/src/all_chat_control.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/all-chat-research-control-v2.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/all-chat-research-control-v2.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/all_chat_research.rs",
+            "packages/qiongli-app-api/tests/research.test.ts"
+          ],
+          "migration_path": null,
+          "removal_gate": ".trellis/tasks/09-04-app-acp-all-chat-realignment/implement.md"
+        }
+      ]
+    },
+    {
+      "id": "mcp-tools",
+      "boundary": "Versioned MCP tool input and output contracts across supported profiles",
+      "baseline": {
+        "adopted_at": "2026-08-18",
+        "authority_state": "checked-in-json-schema",
+        "version_sources": [
+          "content/mcp-contracts/v2/registry.json",
+          "content/mcp-contracts/v2/registry.schema.json"
+        ]
+      },
+      "rust_sources": [
+        "packages/qiongli-native/crates/qiongli-runtime/src/contract.rs",
+        "packages/qiongli-native/apps/qiongli/src/mcp.rs"
+      ],
+      "consumers": [
+        "content/mcp-contracts/v2/registry.json",
+        "content/mcp-contracts/v2/registry.schema.json",
+        "tooling/scripts/validate_capability_contract.py"
+      ],
+      "fixtures": [
+        "content/mcp-contracts/fixtures/capability-contract-v2-smoke-calls.json",
+        "tests/test_capability_contract_v2.py"
+      ],
+      "release_freeze": {
+        "identity": "https://qiongli.dev/schemas/mcp-capability-registry-v2.json",
+        "definition_version": "2.0.0-preview.5",
+        "semantic_meaning": "MCP tool names, profiles, input and output contracts, errors, side effects, and security meanings are immutable under their v2 schema IDs.",
+        "support_window": "qiongli-2.x"
+      },
+      "changes": []
+    },
+    {
+      "id": "public-cli-json",
+      "boundary": "Documented machine-readable JSON emitted by the public native CLI",
+      "baseline": {
+        "adopted_at": "2026-08-18",
+        "authority_state": "rust-serialize-without-generated-schema",
+        "version_sources": [
+          "packages/qiongli-native/apps/qiongli/src/command.rs",
+          "packages/qiongli-native/apps/qiongli/src/cli_install.rs",
+          "packages/qiongli-native/apps/qiongli/src/managed_operation.rs"
+        ]
+      },
+      "rust_sources": [
+        "packages/qiongli-native/apps/qiongli/src/candidate_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/capture_assignment_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/capture_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/capture_consolidation_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/capture_delivery_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/capture_resolution_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/cli_install.rs",
+        "packages/qiongli-native/apps/qiongli/src/command.rs",
+        "packages/qiongli-native/apps/qiongli/src/legacy_migration_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/managed_operation.rs",
+        "packages/qiongli-native/apps/qiongli/src/native_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/plugin_source.rs",
+        "packages/qiongli-native/apps/qiongli/src/portfolio_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/project_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/repository_capture_cli.rs",
+        "packages/qiongli-native/apps/qiongli/src/update_cli.rs"
+      ],
+      "consumers": [
+        "docs/reference/cli.md"
+      ],
+      "fixtures": [
+        "packages/qiongli-native/apps/qiongli/tests/cli.rs",
+        "packages/qiongli-native/apps/qiongli/examples/native_packaged_product_acceptance.rs"
+      ],
+      "release_freeze": {
+        "identity": "schema-version:1",
+        "definition_version": "1",
+        "semantic_meaning": "Each documented CLI JSON result keeps its command-scoped fields, errors, and redaction meanings under schema version 1.",
+        "support_window": "qiongli-2.x"
+      },
+      "changes": [
+        {
+          "change_id": "public-cli-json/candidate-stage-v1",
+          "contract_id": "public-cli-json/candidate-stage",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/candidate_cli.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/candidate-stage-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/candidate-stage-v1.ready.json",
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/candidate-stage-v1.staged.json",
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/candidate-stage-v1.already-staged.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/candidate_cli.rs",
+            "packages/qiongli-native/apps/qiongli/examples/native_candidate_acceptance.rs"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "public-cli-json/candidate-activation-preview-v1",
+          "contract_id": "public-cli-json/candidate-activation-preview",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/candidate_cli.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/candidate-activation-preview-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/candidate-activation-preview-v1.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/candidate_cli.rs",
+            "packages/qiongli-native/apps/qiongli/tests/native_release_candidate.rs"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "public-cli-json/candidate-activation-prepared-v1",
+          "contract_id": "public-cli-json/candidate-activation-prepared",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/candidate_cli.rs",
+            "packages/qiongli-native/apps/qiongli/src/update_reconcile.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/candidate-activation-prepared-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/candidate-activation-prepared-v1.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/candidate_cli.rs",
+            "packages/qiongli-native/apps/qiongli/tests/native_release_candidate.rs"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "public-cli-json/candidate-activation-discarded-v1",
+          "contract_id": "public-cli-json/candidate-activation-discarded",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/candidate_cli.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/candidate-activation-discarded-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/candidate-activation-discarded-v1.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/candidate_cli.rs",
+            "packages/qiongli-native/apps/qiongli/tests/native_release_candidate.rs"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "public-cli-json/update-recovery-v1",
+          "contract_id": "public-cli-json/update-recovery",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/update_cli.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/update-recovery-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/update-recovery-v1.preview.json",
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/update-recovery-v1.recovered.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/update_cli.rs",
+            "packages/qiongli-native/apps/qiongli/src/native_update_replace.rs",
+            "packages/qiongli-native/apps/qiongli/tests/cli.rs"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "public-cli-json/candidate-activation-completed-v1",
+          "contract_id": "public-cli-json/candidate-activation-completed",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/candidate_cli.rs",
+            "packages/qiongli-native/apps/qiongli/src/update_reconcile.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/candidate-activation-completed-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/candidate-activation-completed-v1.activate.json",
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/candidate-activation-completed-v1.recover.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/candidate_cli.rs",
+            "packages/qiongli-native/apps/qiongli/tests/native_release_candidate.rs"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "public-cli-json/managed-operation-plan-v2",
+          "contract_id": "public-cli-json/managed-operation-plan",
+          "from_version": "1",
+          "to_version": "2",
+          "classification": "migratable-breaking",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/managed_operation.rs",
+            "packages/qiongli-native/apps/qiongli/src/plugin_source.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/managed-operation-v2.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/plugin-source-v2.plan.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/managed_operation.rs",
+            "packages/qiongli-native/apps/qiongli/src/plugin_source.rs",
+            "packages/qiongli-native/apps/qiongli/tests/cli.rs"
+          ],
+          "migration_path": "docs/architecture/decisions/0222-user-approved-local-plugin-sources.md",
+          "removal_gate": null
+        },
+        {
+          "change_id": "public-cli-json/managed-operation-result-v1",
+          "contract_id": "public-cli-json/managed-operation-result",
+          "from_version": "frozen-baseline",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/managed_operation.rs",
+            "packages/qiongli-native/apps/qiongli/src/plugin_source.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/managed-operation-result-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/plugin-source-v1.applied.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/managed_operation.rs",
+            "packages/qiongli-native/apps/qiongli/src/plugin_source.rs",
+            "packages/qiongli-native/apps/qiongli/tests/cli.rs"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        },
+        {
+          "change_id": "public-cli-json/plugin-source-status-v1",
+          "contract_id": "public-cli-json/plugin-source-status",
+          "from_version": "absent",
+          "to_version": "1",
+          "classification": "additive",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/plugin_source.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/plugin-source-status-v1.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/plugin-source-v1.status.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/managed_operation.rs",
+            "packages/qiongli-native/apps/qiongli/src/plugin_source.rs",
+            "packages/qiongli-native/apps/qiongli/tests/cli.rs"
+          ],
+          "migration_path": null,
+          "removal_gate": null
+        }
+      ]
+    }
+  ]
+}

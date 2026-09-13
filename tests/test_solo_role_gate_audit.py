@@ -14,6 +14,15 @@ def write_json(path: Path, payload: dict[str, object]) -> None:
 
 
 class SoloRoleGateAuditTests(unittest.TestCase):
+    def test_non_utf8_json_extension_is_ignored(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "generated.json").write_bytes(b"\xea\x00\xff")
+
+            errors = audit_solo_role_gates(root)
+
+        self.assertEqual([], errors)
+
     def test_solo_codex_writing_without_claim_map_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

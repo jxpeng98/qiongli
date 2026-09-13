@@ -1,7 +1,7 @@
 ---
 id: self-critique
 stage: Z_cross_cutting
-description: "Iterative red teaming and Socratic questioning to continuously critique and refine AI-generated outputs."
+description: "Review research artifacts for concrete claim, evidence and method defects; revise affected work and stop when the applicable checks are satisfied."
 inputs:
   - type: AnyArtifact
     description: "Any output requiring quality assurance"
@@ -9,8 +9,8 @@ outputs:
   - type: CritiqueLog
     artifact: "review/self_critique_log.md"
 constraints:
-  - "Must apply structured questioning protocol"
-  - "Must iterate until no new issues found or max rounds reached"
+  - "Must check the applicable evidence and output contract without inventing critique issues"
+  - "Must preserve unresolved blockers and stop when the applicable review contract is satisfied or progress needs unavailable evidence"
 failure_modes:
   - "Circular critique without convergence"
   - "Inability to identify own systematic biases"
@@ -21,37 +21,53 @@ domain_aware: false
 
 # Self-Critique Skill
 
-Iterative Critique Loop (Red Teaming) to pressure-test research outputs through multi-agent debate and Socratic questioning.
+Review the requested research output for substantive defects without expanding
+the assignment into an unrequested debate or full-stage audit.
 
 ## Purpose
 
-Prevent superficial research by forcing the AI to act as "Reviewer 2" or a "Socratic Questioner." This skill challenges the generator's output to ensure rigorous narrowing down, robust design, and claim-evidence alignment.
+Check claim-evidence alignment, methodological validity and the requested output
+contract. Use adversarial review when requested or required; routine quality
+checking does not require a reviewer persona or additional model.
 
 ## Inputs
 
 - `AnyArtifact`: Any output requiring quality assurance
-- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
+- If a required input is missing, report the affected check as incomplete. For project work, propose the gap for `context/gap_notes.md` through the existing write owner; a direct review can report it in chat.
 - Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
 
 ## Process
 
-1. **Self-Review Configuration:** Identify the current research stage (A-I).
-2. **Reviewer Persona:** Adopt a highly critical, adversarial, yet constructive persona.
-3. **Execution (Debate Loop):**
-   - **Draft Generation:** Generator provides the primary draft based on provided context and skills.
-   - **Dynamic Literature Critique:** The Reviewer first analyzes the provided MCP Evidence (literature abstracts, metadata, full texts) and formulates 2-3 highly specific questions based on the controversies or limitations identified in those exact reference texts.
-   - **Stage-Specific Critique:** The Reviewer then appends the rigorous, stage-specific questions (listed below).
-   - **Iterative Revision:** The Reviewer passes or blocks the draft. If blocked, the Generator revises targeted fixes until the Reviewer passes the output or reaches the maximum allowed rounds.
-4. **Persistent Issue Register:** Keep `review/self_critique_log.md` as the canonical loop memory across rounds. Do not restart critique from zero after each revision.
+1. Identify the requested artifact, relevant stage and applicable review contract.
+   Reuse the current draft and prior findings; do not generate a new draft just
+   to review an existing one.
+2. Check the source evidence and only the relevant stage questions below. They
+   are lenses, not a checklist to exhaust or a quota of questions to invent.
+3. For an ordinary check, review once. Fix concrete defects and verify the
+   affected claims or outputs. Stop when those checks pass; repeat a broader
+   review only for changed inputs, new evidence or the formal contract below.
+4. Preserve unresolved blockers. If a fix requires unavailable evidence or a
+   user decision, report the gap instead of continuing the same debate. A clean
+   review may report no findings; missing evidence is not a PASS.
+5. In formal runs, keep `review/self_critique_log.md` as the canonical issue
+   memory. A direct answer can report its check in chat without creating a log.
 
 ## Multi-Round Self-Loop Contract
 
-When this skill is active inside orchestrated research runs, treat critique as a stateful loop rather than isolated review comments.
+Review depth follows the requested risk and evidence, not a fixed count attached
+to a label such as standard or deep. When a protocol, user instruction or saved
+run supplies minimum passes, consecutive passes, revision limits or independent
+review requirements, honor them. Do not silently reduce an existing run's limits.
 
-- Run a draft -> review -> targeted revision -> review loop until the reviewer passes after the minimum review count or the maximum revision count is reached.
-- Standard runs require at least 2 review passes before convergence when revision rounds are available; deep runs require at least 3 review passes.
-- A `BLOCK` verdict always remains blocking, even with high confidence. Confidence records certainty; it does not convert a blocker into a pass.
-- A `PASS` before the minimum review count triggers a stability review of the same current draft, not immediate termination.
+- Review the current artifact against its applicable checks. Revise concrete
+  defects, then verify the affected work; do not manufacture a revision to
+  justify another round.
+- If an explicit minimum remains after a `PASS`, complete the required stability
+  review of the same draft. Report only reviews actually performed.
+- A required independent review cannot be replaced by role-play or another pass
+  in the same conversation. Report unavailable reviewers as an unmet requirement.
+- A `BLOCK` verdict remains blocking regardless of confidence. Reaching a review
+  or resource limit with unresolved issues means blocked or incomplete.
 - Carry unresolved issues forward into the next round.
 - Mark each issue as `open`, `partial`, `resolved`, or `superseded`.
 - Reuse existing issue IDs when the same problem persists.
@@ -82,8 +98,8 @@ light automatic grill and deep grill distinction as `boundary-interviewer`.
 
 ## Cross-Stage Grill Memory
 
-Self-critique issues are part of the cross-stage grill memory. Before starting a
-new critique loop, inspect:
+Self-critique issues are part of the cross-stage grill memory. For a project review, inspect the relevant existing records before starting a
+new critique loop:
 
 - `context/boundary_review.md`
 - `context/decision_log.md`
@@ -91,8 +107,8 @@ new critique loop, inspect:
 - `review/self_critique_log.md`
 
 If a prior issue affects the current artifact, keep the same issue ID and update
-its status instead of creating a duplicate. Open issues that cannot be resolved in
-the current stage must be copied into `context/stage_handoff.md` under `Open
+its status instead of creating a duplicate. At a formal handoff, open issues that cannot be resolved in
+the current stage must be carried through the approved write owner into `context/stage_handoff.md` under `Open
 Grill Issues` with a concrete `Revisit Trigger`.
 
 ## Stage-Specific Critique Questions
@@ -171,7 +187,7 @@ Grill Issues` with a concrete `Revisit Trigger`.
 - *Q2:* "Does every figure or table support the spoken argument, or is it decorative complexity?"
 - *Q3:* "What would a skeptical audience member challenge first, and is the answer already on a backup slide or speaker note?"
 
-### Stage J: Proofread & De-AI
+### Stage J: Scholarly Proofreading
 - **Focus:** Human scholarly voice, originality, and final integrity.
 - *Q1:* "Which sentences sound polished but empty, and what concrete claim or evidence should replace them?"
 - *Q2:* "Does the humanized text preserve citations, hedging, and claim strength from the source draft?"
@@ -185,14 +201,14 @@ This skill is injected into tasks by the `mcp-agent-capability-map.yaml` and sho
 
 ## Output Contract
 
-- `CritiqueLog`: write `RESEARCH/[topic]/review/self_critique_log.md`.
+- `CritiqueLog`: for formal persistence, update `RESEARCH/[topic]/review/self_critique_log.md` through preview/approval/CAS; a chat review need not create a file.
 - Separate finding, interpretation, and implication in the final artifact.
 - Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
 - Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
 
 ## Quality Bar
 
-- [ ] 至少执行两轮 critique 迭代
+- [ ] 已完成当前任务适用的检查；保留协议或已有运行明确配置的复核轮数和独立审查要求
 - [ ] 每个 critique 点附带具体修正建议
 - [ ] 每轮保留并更新 issue lineage，而不是把 critique 重置
 - [ ] Overclaiming 已被识别并降级表述
@@ -203,11 +219,11 @@ This skill is injected into tasks by the `mcp-agent-capability-map.yaml` and sho
 
 | Pitfall | Problem | Fix |
 |---------|---------|-----|
-| 走过场 | Critique 只说整体不错 | 每轮至少 3 个 specific 挑战 |
+| 走过场 | Critique 只说整体不错 | 说明检查了哪些主张与证据；只报告实际问题，不凑数量 |
 | 过度自我批评 | 导致不敢下结论 | 区分 fatal flaw vs. minor improvement |
 | 只关注表面 | 挑错别字不挑逻辑 | 按逻辑 → 证据 → 表述优先级 |
 | 无 action | 批判完但不修改 | 每条 critique 必须附带 action item |
-| Critique 同质化 | 每轮发现同一问题 | 每轮切换 lens（逻辑/证据/读者体验） |
+| Critique 同质化 | 相同输入反复发现同一问题 | 复用 issue ID；缺少新证据或可行修复时说明阻塞并停止 |
 
 ## When to Use
 

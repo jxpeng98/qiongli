@@ -1,0 +1,526 @@
+{
+  "$schema": "../../../oracle-fixture.schema.json",
+  "capture_kind": "accepted-runtime-outcomes",
+  "cases": [
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "provider-normalization"
+      ],
+      "disposition": "captured",
+      "id": "node.crossref-normalization",
+      "invocation": {
+        "arguments": {
+          "fixture": "content/mcp-contracts/fixtures/crossref-search-response.json",
+          "limit": 1,
+          "network": false,
+          "query": "runtime baseline"
+        },
+        "operation": "searchCrossref with canonical mocked response",
+        "transport": "module-fixture-driver"
+      },
+      "kind": "provider-normalization-outcome",
+      "outcome": {
+        "error": null,
+        "exit_code": 0,
+        "status": "success",
+        "value": {
+          "result": {
+            "attempts": 1,
+            "error": null,
+            "provider": "crossref",
+            "request_count": 1,
+            "results": [
+              {
+                "abstract": null,
+                "access_url": null,
+                "authors": [],
+                "citation_count": null,
+                "citations": [],
+                "document_type": null,
+                "doi": "10.1234/example",
+                "evidence_limit": null,
+                "fulltext_status": null,
+                "license": null,
+                "local_zotero_match": null,
+                "open_access_pdf_url": null,
+                "provider": "crossref",
+                "reference_count": null,
+                "references": [],
+                "review_status": null,
+                "source_id": "10.1234/example",
+                "source_type": null,
+                "title": "A Test Paper",
+                "url": null,
+                "venue": "Journal of Tests",
+                "verification": null,
+                "year": 2025,
+                "zotero": null
+              }
+            ]
+          },
+          "stderr_lines": []
+        }
+      },
+      "side_effects": {
+        "class": "none",
+        "filesystem_delta": {
+          "after_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "created": [],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/qiongli-literature-mcpb/server/providers/crossref.mjs",
+        "packages/qiongli-literature-mcpb/server/providers/http.mjs",
+        "packages/qiongli-literature-mcpb/server/normalize.mjs",
+        "content/mcp-contracts/fixtures/crossref-search-response.json"
+      ]
+    },
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "malformed-config-fail-closed"
+      ],
+      "disposition": "captured",
+      "id": "node.malformed-config-fail-closed",
+      "invocation": {
+        "arguments": {
+          "config_fixture": "malformed-redacted-json"
+        },
+        "operation": "tools/call qiongli_config_status with malformed config",
+        "transport": "jsonrpc-stdio"
+      },
+      "kind": "fail-closed-outcome",
+      "outcome": {
+        "error": {
+          "code": -32603,
+          "message": "provider configuration is unavailable"
+        },
+        "exit_code": 0,
+        "status": "error",
+        "value": {
+          "config_preserved": true,
+          "stderr_lines": []
+        }
+      },
+      "side_effects": {
+        "class": "none",
+        "filesystem_delta": {
+          "after_tree_sha256": "7c8f55fa0e78422e20dda2e6736e6152fcd8491012b0317aff39575cc0979b71",
+          "before_tree_sha256": "7c8f55fa0e78422e20dda2e6736e6152fcd8491012b0317aff39575cc0979b71",
+          "created": [],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/qiongli-literature-mcpb/server/config.mjs",
+        "packages/qiongli-literature-mcpb/server/stdio.mjs"
+      ]
+    },
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "mcp-initialize-and-list"
+      ],
+      "disposition": "captured",
+      "id": "node.mcp-initialize-list",
+      "invocation": {
+        "arguments": {
+          "protocol_version": "2024-11-05"
+        },
+        "operation": "initialize + tools/list",
+        "transport": "jsonrpc-stdio"
+      },
+      "kind": "jsonrpc-outcome",
+      "outcome": {
+        "error": null,
+        "exit_code": 0,
+        "status": "success",
+        "value": {
+          "initialize": {
+            "capabilities": {
+              "tools": {}
+            },
+            "protocolVersion": "2024-11-05",
+            "serverInfo": {
+              "name": "qiongli-literature-provider",
+              "version": "0.2.0-beta.3"
+            }
+          },
+          "stderr_lines": [],
+          "tool_count": 12,
+          "tool_names": [
+            "qiongli_literature_status",
+            "qiongli_search_plan",
+            "qiongli_config_status",
+            "qiongli_configure_provider",
+            "qiongli_save_provider_config",
+            "qiongli_open_config_wizard",
+            "qiongli_literature_search",
+            "qiongli_literature_export_evidence",
+            "qiongli_zotero_status",
+            "qiongli_zotero_search",
+            "qiongli_zotero_upsert_references",
+            "qiongli_zotero_export_import_files"
+          ]
+        }
+      },
+      "side_effects": {
+        "class": "none",
+        "filesystem_delta": {
+          "after_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "created": [],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/qiongli-literature-mcpb/server/index.mjs",
+        "packages/qiongli-literature-mcpb/server/stdio.mjs"
+      ]
+    },
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "search-plan"
+      ],
+      "disposition": "captured",
+      "id": "node.search-plan",
+      "invocation": {
+        "arguments": {
+          "native_search_available": true,
+          "native_search_tools": [
+            "codex_web_search"
+          ],
+          "platform": "codex",
+          "query": "runtime oracle"
+        },
+        "operation": "tools/call qiongli_search_plan",
+        "transport": "jsonrpc-stdio"
+      },
+      "kind": "search-plan-outcome",
+      "outcome": {
+        "error": null,
+        "exit_code": 0,
+        "status": "success",
+        "value": {
+          "plan": {
+            "artifact_type": "qiongli_hybrid_search_plan",
+            "limitations": [],
+            "native_search_queries": [
+              {
+                "filters": {},
+                "platform": "codex",
+                "provenance_label": "native:codex_web_search",
+                "query": "runtime oracle",
+                "query_id": "Q1",
+                "source": "primary",
+                "tool": "codex_web_search"
+              }
+            ],
+            "platform": "codex",
+            "provider_capability_mode": "provider_connected",
+            "provider_queries": [
+              {
+                "filters": {},
+                "provenance_label": "mcp:arxiv",
+                "provider": "arxiv",
+                "query": "runtime oracle",
+                "query_id": "Q1",
+                "source": "primary"
+              }
+            ],
+            "query": "runtime oracle",
+            "search_execution_mode": "hybrid_search"
+          },
+          "stderr_lines": []
+        }
+      },
+      "side_effects": {
+        "class": "none",
+        "filesystem_delta": {
+          "after_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "created": [],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/qiongli-literature-mcpb/server/index.mjs",
+        "packages/qiongli-literature-mcpb/server/search-plan.mjs"
+      ]
+    },
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "unsupported-config-fail-closed"
+      ],
+      "disposition": "captured",
+      "id": "node.unsupported-config-fail-closed",
+      "invocation": {
+        "arguments": {
+          "config_home": "relative-config-home"
+        },
+        "operation": "tools/call qiongli_config_status with relative config home",
+        "transport": "jsonrpc-stdio"
+      },
+      "kind": "fail-closed-outcome",
+      "outcome": {
+        "error": {
+          "code": -32603,
+          "message": "QIONGLI_CONFIG_HOME must be a fully qualified absolute path or use '~' home notation"
+        },
+        "exit_code": 0,
+        "status": "error",
+        "value": {
+          "filesystem_unchanged": true,
+          "stderr_lines": []
+        }
+      },
+      "side_effects": {
+        "class": "none",
+        "filesystem_delta": {
+          "after_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "created": [],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/qiongli-literature-mcpb/server/config.mjs",
+        "packages/qiongli-literature-mcpb/server/stdio.mjs"
+      ]
+    }
+  ],
+  "coverage": {
+    "accepted_gaps": [
+      {
+        "capability": "live-provider-search",
+        "disposition": "accepted-gap",
+        "reason": "Live provider search depends on external network state; deterministic mocked-provider normalization and offline search planning are captured instead."
+      }
+    ],
+    "captured_capabilities": [
+      "mcp-initialize-and-list",
+      "provider-normalization",
+      "search-plan",
+      "malformed-config-fail-closed",
+      "unsupported-config-fail-closed"
+    ],
+    "required_capabilities": [
+      "mcp-initialize-and-list",
+      "provider-normalization",
+      "search-plan",
+      "malformed-config-fail-closed",
+      "unsupported-config-fail-closed"
+    ]
+  },
+  "oracle_id": "node-mcpb",
+  "profile": "legacy-mcpb",
+  "runtime_origin": "node",
+  "schema_version": "2.0",
+  "source": {
+    "access_method": "git-ls-tree-and-cat-file",
+    "peeled_commit": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f",
+    "projections": [
+      {
+        "git_blob_oid": "1e58b64508a4f711c08400ab4243440506e0c0da",
+        "path": "content/mcp-contracts/fixtures/crossref-search-response.json",
+        "sha256": "ac6ed357e0b75bdbd906db474884b603f5b7a614c0e4d8ce8410c20d09b7d9dd",
+        "size_bytes": 223
+      },
+      {
+        "git_blob_oid": "c8554d526f0bae51979d5c0e774985be0ae3274c",
+        "path": "packages/qiongli-literature-mcpb/package.json",
+        "sha256": "d27dbf9853cfd6d0f1e0e00a22e65bb9c9c6f04e6ea681160dbff31e8580ee88",
+        "size_bytes": 779
+      },
+      {
+        "git_blob_oid": "dcd88a499f88a9713c891f1a20d067853da08f41",
+        "path": "packages/qiongli-literature-mcpb/server/capabilities.mjs",
+        "sha256": "3b491805ae7bcb207c4099488456b06786a07d13c9b50723ae8b4aeb5c90a0ab",
+        "size_bytes": 1444
+      },
+      {
+        "git_blob_oid": "8675d1c4cf6b7131487c24f0b4a6a0f6fb7cc149",
+        "path": "packages/qiongli-literature-mcpb/server/config-wizard.mjs",
+        "sha256": "000e49c4317d46cf6ddbb149af34c41ec539a8a79be736bc1c64e64dc14bfc6b",
+        "size_bytes": 15941
+      },
+      {
+        "git_blob_oid": "e9dd9fa9a87d63449dbc9b4387fa8fa5b7fc89a2",
+        "path": "packages/qiongli-literature-mcpb/server/config.mjs",
+        "sha256": "65120ca7bfd2474cf18a0ad776ec47ef2fc02fd21784581e164cb35bf91123d5",
+        "size_bytes": 24385
+      },
+      {
+        "git_blob_oid": "17d3ba11e25be9f8915177f9c91075aaa8677adb",
+        "path": "packages/qiongli-literature-mcpb/server/diagnostics.mjs",
+        "sha256": "9310f77c6aa81a4244a4697d919b3708fb301381b04547a229e6572e5f0399b7",
+        "size_bytes": 5253
+      },
+      {
+        "git_blob_oid": "e6e4470eed5bf5aa14922451fb70d1abceea037f",
+        "path": "packages/qiongli-literature-mcpb/server/domain-profiles.mjs",
+        "sha256": "b86b3507bfa8dcd3124cb55c807675b3c9820bbc150caa465ea6fb9267ba2f8e",
+        "size_bytes": 3800
+      },
+      {
+        "git_blob_oid": "d1a29eaa7daba0d6951258658eca14051488353f",
+        "path": "packages/qiongli-literature-mcpb/server/evidence.mjs",
+        "sha256": "8614055d608001bc8cc67d87c927ce107402eaec1c9f8f5ce24e5d561755e963",
+        "size_bytes": 1034
+      },
+      {
+        "git_blob_oid": "ef75e46836a8d490bbbcea57c5fdb542dc3304a7",
+        "path": "packages/qiongli-literature-mcpb/server/index.mjs",
+        "sha256": "a6a1adc3a50d18690a101f8dfa8e5297ef2dd037deb6386db6ed40c63d79f802",
+        "size_bytes": 29734
+      },
+      {
+        "git_blob_oid": "df8ecdfdce561f7ed552d7265fdfecf597e5cf71",
+        "path": "packages/qiongli-literature-mcpb/server/normalize.mjs",
+        "sha256": "33c0d81eb22024a9f8837585ac12695ff512bc2705243bdf0163194bcd14176f",
+        "size_bytes": 5211
+      },
+      {
+        "git_blob_oid": "89cf8dd2bd8c7e0a9bc3b79e09bc6cd7b6ca31c6",
+        "path": "packages/qiongli-literature-mcpb/server/providers/arxiv.mjs",
+        "sha256": "f43880f26e911033af6b2438414f3667c0f9a3f6bb1cb6e53df02bf9e792dbd9",
+        "size_bytes": 6426
+      },
+      {
+        "git_blob_oid": "2979bfc981db63129c531507a283fe8237c63145",
+        "path": "packages/qiongli-literature-mcpb/server/providers/crossref.mjs",
+        "sha256": "d4474bbb24d5a65268b6be75fab810a7034d87dd98d5d3258f3c1812c6571e2d",
+        "size_bytes": 6526
+      },
+      {
+        "git_blob_oid": "81a3a926712d51eb05baef235d7cfc8c71381a6f",
+        "path": "packages/qiongli-literature-mcpb/server/providers/http.mjs",
+        "sha256": "f92b15abd77ea05eae62809cc0147b05d1ef8741c0d3cbed6999a36ee2552327",
+        "size_bytes": 4004
+      },
+      {
+        "git_blob_oid": "d51b595920dd24117a5e9997dbf81c0a663e5120",
+        "path": "packages/qiongli-literature-mcpb/server/providers/openalex.mjs",
+        "sha256": "e31bc615eb933e430bd2edb89cadb72f6d67d2352f41fed0efd5642411e81274",
+        "size_bytes": 7431
+      },
+      {
+        "git_blob_oid": "5874e69fc762f7661e155655715dac17c5125a7d",
+        "path": "packages/qiongli-literature-mcpb/server/providers/pubmed.mjs",
+        "sha256": "7926b1b4c33ad2ddb4e0249dc661e9fdaef9efdce5e92834b82bd43b5435b59b",
+        "size_bytes": 6044
+      },
+      {
+        "git_blob_oid": "08c8ceee49ec432dad01ca192c1d3d95d5707df7",
+        "path": "packages/qiongli-literature-mcpb/server/providers/semantic-scholar.mjs",
+        "sha256": "5b2f2ae3f61a30c0c1c8c8bafb8b6aab5520ce7ff109186ca646ff5278c3f589",
+        "size_bytes": 8279
+      },
+      {
+        "git_blob_oid": "a9fff5490e998a7299753c5c18b53c5b1a03aded",
+        "path": "packages/qiongli-literature-mcpb/server/query.mjs",
+        "sha256": "acf2d5113007a5191b8faac8d98600ef640e0f34830c911c4264e543e298063e",
+        "size_bytes": 5442
+      },
+      {
+        "git_blob_oid": "8082b7db64aab0b9a1c7fae5590f5a9c820f8419",
+        "path": "packages/qiongli-literature-mcpb/server/search-plan.mjs",
+        "sha256": "c3c9a866b904347111066e2c843527f1349dc6990a75bb3685cb4af12ee273a6",
+        "size_bytes": 12598
+      },
+      {
+        "git_blob_oid": "6506e51b55f357fa8f904973045973ddaf645b34",
+        "path": "packages/qiongli-literature-mcpb/server/stdio.mjs",
+        "sha256": "0174f404b45e98db8026beef7d3e9a8d0792b912f83800ca3ae9a41bc47c4796",
+        "size_bytes": 5231
+      },
+      {
+        "git_blob_oid": "a6f354f11917f8d5925a6f3a1f69ad639c6dc3a7",
+        "path": "packages/qiongli-literature-mcpb/server/zotero/client.mjs",
+        "sha256": "b5e2fa9eca7671be9f8da4f971e86a6b5fcd2be6e3ef6000ab2ee5f5097f8374",
+        "size_bytes": 2135
+      },
+      {
+        "git_blob_oid": "f8ecc7127f9fb5c345d1cf130430890a3d472302",
+        "path": "packages/qiongli-literature-mcpb/server/zotero/config.mjs",
+        "sha256": "d159e3af8727e87dc3735915a6a4f38e792b498a1dfa64daa81efe9c149961df",
+        "size_bytes": 2607
+      },
+      {
+        "git_blob_oid": "bbdb8ada99afaa8214d672cd78d4def37416769b",
+        "path": "packages/qiongli-literature-mcpb/server/zotero/crossref-verifier.mjs",
+        "sha256": "6364d1f47a3a3c0b85cb36498ea20f9fb1513863a6a85caba10660c3193bfd95",
+        "size_bytes": 4209
+      },
+      {
+        "git_blob_oid": "11e0e14b3d961d85b3f0a5fb3d376aec823f60cf",
+        "path": "packages/qiongli-literature-mcpb/server/zotero/exporters.mjs",
+        "sha256": "5b8017c26f264380918339b041e81e610ce161c2c62382bd5acac4c79b585ef9",
+        "size_bytes": 5180
+      },
+      {
+        "git_blob_oid": "4c4a0e1b6333543489e21a2200cb34fc8ec16009",
+        "path": "packages/qiongli-literature-mcpb/server/zotero/records.mjs",
+        "sha256": "42b1ee6b696437047d5691cdbba9b68e0d129a72308aad32845a992c8aa052d5",
+        "size_bytes": 11203
+      },
+      {
+        "git_blob_oid": "818e4ae3f62dd3f52a74dd7b66a84fc972c321dc",
+        "path": "packages/qiongli-literature-mcpb/server/zotero/review-tags.mjs",
+        "sha256": "313805939bc07bf28b7b614344f6ce9d1597b867367dbddce3350ca110d1b887",
+        "size_bytes": 1549
+      },
+      {
+        "git_blob_oid": "2b9d62773262b04048ab487c80120962b41a81da",
+        "path": "packages/qiongli-literature-mcpb/server/zotero/search-source.mjs",
+        "sha256": "e01c87d6453bfc479c3c08389de992dcffcf87bd0421d26fe910fab1dad684de",
+        "size_bytes": 10706
+      },
+      {
+        "git_blob_oid": "85261360f27481ff9f083e6a66eb371a31a0b05d",
+        "path": "packages/qiongli-literature-mcpb/server/zotero/tools.mjs",
+        "sha256": "b1e92d5b1b4aeef4c2b9ba6d4737e6d1dafd37bbc304b88ebac3c9ef8bf475c3",
+        "size_bytes": 8344
+      }
+    ],
+    "runtime_source": {
+      "kind": "peeled-tag-materialization",
+      "peeled_commit": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f",
+      "source_file_count": 38,
+      "source_root": "packages/qiongli-literature-mcpb/",
+      "source_tree_sha256": "95c06985bfa0fba4fc9e2f69d154f4a390c8ebb42112b107f61d19e3161d3089",
+      "tag": "v1.19.0-beta.1"
+    },
+    "tag": "v1.19.0-beta.1"
+  }
+}

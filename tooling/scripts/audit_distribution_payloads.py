@@ -7,6 +7,7 @@ import json
 import shutil
 import sys
 import tempfile
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -20,6 +21,7 @@ from qiongli.source_layout import RepoLayout
 from qiongli.platform_targets import load_platform_targets
 from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
 from qiongli.bridges.subject_contracts import load_runtime_subject_contracts
+from tooling.scripts.release_version import parse_release_version
 
 
 EXCLUDED_NAMES = {
@@ -466,10 +468,11 @@ def audit(root: Path) -> list[AuditIssue]:
     issues.extend(_compare_files(root / "LICENSE", root / "packages" / "npm-qiongli" / "LICENSE", "npm LICENSE vs source"))
 
     package_json = root / "packages" / "npm-qiongli" / "package.json"
-    workflow_version = workflow / "VERSION"
-    if package_json.exists() and workflow_version.exists():
+    legacy_version_source = root / "pyproject.toml"
+    if package_json.exists() and legacy_version_source.exists():
         npm_version = json.loads(package_json.read_text(encoding="utf-8"))["version"]
-        expected = workflow_version.read_text(encoding="utf-8").strip().removeprefix("v")
+        with legacy_version_source.open("rb") as handle:
+            expected = parse_release_version(tomllib.load(handle)["project"]["version"]).npm_version
         if npm_version != expected:
             issues.append(AuditIssue("npm package version", f"expected {expected}, found {npm_version}"))
 

@@ -1,0 +1,37 @@
+# Optional legacy history utilities; active development follows AGENTS.md.
+# No project hook calls these utilities automatically.
+session_auto_commit: false
+session_commit_message: "chore: record journal"
+max_journal_lines: 2000
+codex:
+  dispatch_mode: inline
+channel:
+  worker_guard:
+    idle_timeout: 5m
+    max_live_workers: 6
+
+# Retained package map for existing specs and manual context queries.
+packages:
+  product:
+    path: .
+  content:
+    path: content
+  app-api:
+    path: packages/qiongli-app-api
+  desktop:
+    path: packages/qiongli-desktop
+  native:
+    path: packages/qiongli-native
+  lite-mcp:
+    path: packages/qiongli-lite-mcp
+  zotero-companion:
+    path: packages/qiongli-zotero-companion
+  literature-mcpb:
+    path: packages/qiongli-literature-mcpb
+  full-mcpb:
+    path: packages/qiongli-full-mcpb
+  legacy-python:
+    path: packages/python-qiongli
+  legacy-npm:
+    path: packages/npm-qiongli
+default_package: product

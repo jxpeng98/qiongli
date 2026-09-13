@@ -206,7 +206,7 @@ targets:
     required_paths: [plugin.json]
     allowed_wrapper_dirs: []
     forbidden_paths: [.claude-plugin/]
-    bundled_mcp_mode: codex-plugin-local-node
+    bundled_mcp_mode: marketplace-lite-binary
     command_surface: slash-commands
     validator: fixture-codex-validator
     release_download:
@@ -228,7 +228,7 @@ targets:
     required_paths: [plugin.json]
     allowed_wrapper_dirs: []
     forbidden_paths: [.codex-plugin/]
-    bundled_mcp_mode: claude-plugin-local-node
+    bundled_mcp_mode: marketplace-lite-binary
     command_surface: slash-commands
     validator: fixture-claude-validator
     release_download:
@@ -288,7 +288,7 @@ targets:
     required_paths: [plugin.json]
     allowed_wrapper_dirs: []
     forbidden_paths: [.claude-plugin/]
-    bundled_mcp_mode: codex-plugin-local-node
+    bundled_mcp_mode: marketplace-lite-binary
     command_surface: slash-commands
     validator: codex-marketplace-plugin
     release_download:
@@ -310,7 +310,7 @@ targets:
     required_paths: [plugin.json]
     allowed_wrapper_dirs: []
     forbidden_paths: [.codex-plugin/]
-    bundled_mcp_mode: claude-plugin-local-node
+    bundled_mcp_mode: marketplace-lite-binary
     command_surface: slash-commands
     validator: claude-code-marketplace-plugin
     release_download:
@@ -442,7 +442,7 @@ targets:
                 "target_id": "codex-marketplace-plugin",
                 "artifact_kind": "marketplace-plugin",
                 "archive_format": "tar.gz",
-                "bundled_mcp_mode": "codex-plugin-local-node",
+                "bundled_mcp_mode": "marketplace-lite-binary",
                 "command_surface": "slash-commands",
                 "validator": "codex-marketplace-plugin",
             },
@@ -450,7 +450,7 @@ targets:
                 "target_id": "claude-code-marketplace-plugin",
                 "artifact_kind": "marketplace-plugin",
                 "archive_format": "tar.gz",
-                "bundled_mcp_mode": "claude-plugin-local-node",
+                "bundled_mcp_mode": "marketplace-lite-binary",
                 "command_surface": "slash-commands",
                 "validator": "claude-code-marketplace-plugin",
             },

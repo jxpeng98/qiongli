@@ -1,0 +1,52 @@
+name: Evaluation Truth
+
+on:
+  pull_request:
+    branches: ["main", "2.x"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  evaluation-truth:
+    name: Evaluation Truth V1
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate architecture governance truth
+        run: |
+          python scripts/validate_arc_201_adrs.py
+          python tooling/scripts/validate_authorization_policy.py
+          python tooling/scripts/validate_public_schema_policy.py
+          python -m unittest \
+            tests.test_arc_201_adrs \
+            tests.test_authorization_policy \
+            tests.test_data_lifecycle_policy \
+            tests.test_frozen_2x_architecture_baseline \
+            tests.test_public_schema_policy \
+            -v
+
+      - name: Validate program ledger and generated roadmap index
+        run: python tooling/scripts/update_program_roadmap.py --check
+
+      - name: Install evaluation dependency
+        run: python -m pip install PyYAML==6.0.3
+
+      - name: Run canonical evaluation suite
+        run: python evals/runner/run_suite.py
+
+      - name: Check scoped evidence journeys and broken links
+        run: python -m unittest tests.test_research_journey_evals -v

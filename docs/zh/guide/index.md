@@ -1,36 +1,14 @@
-# 入门
+# 2.x 使用指南
 
-这一部分面向系统使用者与项目拥有者，优先解决“怎么装、安装后怎么调用、怎么选 workflow、什么时候需要 runtime check”。
+从[快速开始](../quickstart.md)进入，或直接查看[安装与命令](cli-2x.md)。
+独立二进制包含研究资源，无需安装 Python、Node.js 或 Rust 运行时。
 
-## 推荐阅读顺序
+- [安装、升级与随包 Plugin](cli-2x.md#install-and-upgrade-bundled-content)
+- [安装状态与版本](cli-2x.md#installation-state)
+- [Research Graph 的证据与检查](cli-2x.md#research-graph)
+- [研究任务场景](task-recipes.md)与[数据所有权](data-lifecycle.md)
+- [已观察的 Host 能力](agent-host-capability-matrix.md)
+- [系统架构](../architecture.md)
 
-1. [快速开始](/zh/quickstart)
-2. [安装](/zh/guide/install)
-3. [使用 Agent Skills](/zh/guide/using-agent-skills)
-4. [任务场景](/zh/guide/task-recipes)
-5. [多 Agent 运行指南](/zh/guide/multi-agent)
-6. [CLI 参考](/zh/reference/cli)
-7. [故障排除](/zh/guide/troubleshooting)
-
-## 内容说明
-
-- [快速开始](/zh/quickstart)：最小安装入口、首个工作区、paper route 和质量门上下文。
-- [安装](/zh/guide/install)：原生 plugin、bootstrap、npm、pipx 等安装面。
-- [使用 Agent Skills](/zh/guide/using-agent-skills)：安装后在 Codex、Claude Code、Antigravity、Hermes 和 shell 中该如何调用。
-- [任务场景](/zh/guide/task-recipes)：按“我要做什么”来选 stages、Task IDs 和 skills。
-- [多 Agent 运行指南](/zh/guide/multi-agent)：解释 runtime routing、本地 agent execution 和认证规则。
-- [示例](/zh/examples/)：按 systematic-review、empirical、qualitative、methods、theory 查看标准推荐路线。
-- [升级](/zh/guide/upgrade)：npm asset refresh、完整运行时 package update、无 Python bootstrap、Python CLI 升级、长期 clone 维护。
-- [故障排除](/zh/guide/troubleshooting)：统一错误码与定位建议。
-
-## 什么时候离开这一部分
-
-- 如果你要理解系统分层或契约关系，转到 [系统架构](/zh/architecture) 或 [规范约定](/zh/conventions)。
-- 如果你要配置 MCP / Zotero / 外部 Provider，转到 [高级文档](/zh/advanced/)。
-- 如果你要修改系统本身，转到 [维护者文档](/zh/maintainer/)。
-
-## 更新边界
-
-- 在 npm/npx 下，用 `qiongli update` 或 `qiongli refresh` 从当前 package 重新应用 assets。
-- 在 npm/npx 下，用 `qiongli upgrade` 从当前 package 执行覆盖式 asset refresh。
-- 完整运行时的 package self-update，包括 `qiongli self-update`，需要先安装 Python 完整运行时：`pipx install qiongli`。
+[1.x 安装](install.md)、[旧升级流程](upgrade.md)和[旧 CLI 参考](../reference/cli.md)
+保留供历史版本使用。旧页面中的 Python、bootstrap 和旧命令要求不适用于原生 2.x。

@@ -41,6 +41,8 @@ Write `dissertation/dissertation_plan.md` with topic, level, research problem, m
 
 - `AssignmentBrief`
 - Optional `RQSet`, `GapAnalysis`, `DesignSpec`, supervisor notes, handbook excerpt, and user constraints.
+- If the brief, degree level, handbook, approvals, access, or supervisor input
+  is missing or insufficient, record the gap and block dependent milestones.
 
 ## Process
 
@@ -60,6 +62,9 @@ Write `RESEARCH/[topic]/dissertation/dissertation_plan.md`.
 - [ ] Missing requirements are explicit.
 - [ ] Research tasks are delegated to A-K where appropriate.
 - [ ] Risks and fallback options are concrete.
+- [ ] Each finding cites supplied requirements or project evidence;
+  interpretation calibrates feasibility and contribution to the degree level;
+  implication names a milestone, fallback, question, or blocker.
 
 ## Common Pitfalls
 

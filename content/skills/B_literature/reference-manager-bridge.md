@@ -21,7 +21,7 @@ outputs:
     artifact: "zotero-import-report.md"
 constraints:
   - "Must not route scholarly discovery through Zotero by default"
-  - "Must dry-run local Zotero writes before explicit dry_run: false"
+  - "Must use the immediately preceding dry-run receipt for every explicit local Zotero write"
   - "Must preserve user-curated Zotero fields unless the user selects a stronger update policy"
 failure_modes:
   - "Qiongli Zotero companion is unavailable"
@@ -62,7 +62,7 @@ generate import files instead of attempting an unsafe write.
 
 | Mode | Trigger | Required behavior |
 | --- | --- | --- |
-| Local Zotero source search | User explicitly requests existing Zotero library | call literature search with `include_zotero: true`; mark Zotero as `source_type: local_reference_database` |
+| Local Zotero source search | User explicitly requests existing Zotero library | call `qiongli_zotero_search`; mark Zotero as `source_type: local_reference_database` |
 | Local Zotero sync | User wants selected records written to Zotero Desktop | status check, dry-run upsert, then explicit `dry_run: false` |
 | Import-file fallback | Companion unavailable or user wants manual import | generate `references.json`, `references.ris`, `bibliography.bib`, and `zotero-import-report.md` |
 | Cloud/Web API sync | Future explicit workflow | not the default local-first path |
@@ -110,6 +110,10 @@ Conflicts are written to `zotero-import-report.md` and, when relevant,
 `RESEARCH/[topic]/dedup_log.csv`. Crossref verification may enrich blank fields
 or flag `qiongli:metadata-conflict`; it is not human verification.
 
+When the user explicitly requests their existing library, call
+`qiongli_zotero_search` with at least one DOI, title, citekey, or year filter.
+Do not use Zotero as an implicit discovery provider.
+
 ### 3. Generate export files
 
 Always keep `bibliography.bib` as the canonical Qiongli export target. Generate
@@ -128,7 +132,10 @@ Local Zotero sync sequence:
 1. Run `qiongli_zotero_status`.
 2. If status is `ok`, run `qiongli_zotero_upsert_references` as a dry-run.
 3. Review created, updated, unchanged, skipped, conflict, and failed counts.
-4. Write only when the user explicitly requests `dry_run: false`.
+4. Write only when the user explicitly approves the reviewed plan. Reuse the
+   returned receipt within five minutes with `dry_run: false`,
+   `write_intent: "apply"`, and `dry_run_receipt`; do not reuse a receipt or
+   apply it to changed arguments.
 5. Use DOI-first duplicate detection, then stable identifiers, then title/year.
 6. Fill blank Zotero fields by default.
 7. Preserve user-curated title, authors, date, publication title, abstract,
@@ -176,8 +183,8 @@ summary, Crossref verification summary, and manual import instructions.
 - [ ] `bibliography.bib` has unique citekeys.
 - [ ] DOI values are normalized and conflicts are reported.
 - [ ] Required metadata gaps are flagged, not invented.
-- [ ] Local Zotero writes are dry-run first and require explicit
-      `dry_run: false`.
+- [ ] Local Zotero writes use the immediately preceding one-shot dry-run receipt
+      with explicit `dry_run: false` and `write_intent: "apply"`.
 - [ ] User-curated Zotero fields are preserved under the default fill-blank
       policy.
 - [ ] Paper-reading notes are written as child notes, not into abstract or extra
@@ -189,7 +196,7 @@ summary, Crossref verification summary, and manual import instructions.
 | Pitfall | Problem | Fix |
 | --- | --- | --- |
 | Searching Zotero by default | Local library biases discovery | Use Zotero only when explicitly requested |
-| Skipping dry-run | User library may be changed unexpectedly | Run status and dry-run before `dry_run: false` |
+| Skipping or reusing a dry-run receipt | User library may be changed from an unreviewed plan | Dry-run the exact plan and use its one-shot receipt once |
 | Overwriting curated fields | Human metadata edits are lost | Fill blank fields unless user chooses stronger policy |
 | Treating Crossref as human review | Registry metadata can still conflict | Add verification tags and conflict notes |
 | No fallback files | Companion outage blocks the workflow | Generate import files and report |

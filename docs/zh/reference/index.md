@@ -4,7 +4,8 @@
 
 ## 参考页面
 
-- [CLI 参考](/zh/reference/cli)
+- [2.x CLI 安装与命令](/zh/guide/cli-2x)
+- [1.x CLI 历史参考](/zh/reference/cli)
 - [Skills 指南](/zh/reference/skills)
 - [规范约定](/zh/conventions)
 

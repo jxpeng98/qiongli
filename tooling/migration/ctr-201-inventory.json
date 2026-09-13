@@ -1,0 +1,469 @@
+{
+  "$schema": "./ctr-201-inventory.schema.json",
+  "schema_version": "1.0",
+  "record_type": "qiongli-ctr-201-semantic-inventory",
+  "task_id": "CTR-201A",
+  "status": "complete",
+  "completion": {
+    "ctr_201": "complete",
+    "fnd_202": "not-implemented",
+    "completion_ready": true
+  },
+  "frozen_source": {
+    "accepted_tag": "v1.19.0-beta.1",
+    "accepted_commit": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f",
+    "manifest_path": "tooling/migration/baselines/v1.19.0-beta.1/manifest.json",
+    "manifest_sha256": "77bb7628d43a496c995e4b0a8daf6a624847b62e96948c0461affe89002da131",
+    "corpus_sha256": "7fdd92894d88b221180e77ad73677cc158147cc861b17ba0245ea54f0127fbe2",
+    "content_tree": {
+      "root": "content/",
+      "file_count": 377,
+      "tree_sha256": "4659cbcd839c3f8eb3798a64981b7ec2180cf766566fcf439ac892eb32a8a5a8"
+    }
+  },
+  "contract_v2": {
+    "registry_path": "content/mcp-contracts/v2/registry.json",
+    "registry_sha256": "602d3faf525e2e5c938afb14f1b1d291f528240947b3df6ed9f56baeb73e7020",
+    "status": "pilot",
+    "coverage_mode": "pilot",
+    "canonical_tool_count": 6,
+    "public_name_count": 7,
+    "target_canonical_tool_count": 23,
+    "target_public_name_count": 24,
+    "completion_ready": false
+  },
+  "mcp": {
+    "runtime_surfaces": [
+      {
+        "oracle_id": "node-mcpb",
+        "runtime": "node",
+        "profile": "legacy-mcpb",
+        "oracle": {
+          "path": "tooling/migration/baselines/v1.19.0-beta.1/oracles/node-mcpb.json",
+          "sha256": "3bdf3a264da250a3f97f69da1ee2ee084affc7fd48cc799167ae5cc334fdb91f",
+          "case_count": 5
+        },
+        "public_name_count": 12,
+        "public_names": [
+          "qiongli_literature_status",
+          "qiongli_search_plan",
+          "qiongli_config_status",
+          "qiongli_configure_provider",
+          "qiongli_save_provider_config",
+          "qiongli_open_config_wizard",
+          "qiongli_literature_search",
+          "qiongli_literature_export_evidence",
+          "qiongli_zotero_status",
+          "qiongli_zotero_search",
+          "qiongli_zotero_upsert_references",
+          "qiongli_zotero_export_import_files"
+        ]
+      },
+      {
+        "oracle_id": "python-full",
+        "runtime": "python",
+        "profile": "full",
+        "oracle": {
+          "path": "tooling/migration/baselines/v1.19.0-beta.1/oracles/python-full.json",
+          "sha256": "26d247c9268c3166c98080aef420acfdb8248f62b11cc69420250f6e493a23e3",
+          "case_count": 5
+        },
+        "public_name_count": 22,
+        "public_names": [
+          "qiongli_literature_status",
+          "qiongli_search_plan",
+          "qiongli_literature_search",
+          "qiongli_literature_export_evidence",
+          "qiongli_config_status",
+          "qiongli_save_provider_config",
+          "qiongli_configure_provider",
+          "qiongli_collect_evidence",
+          "qiongli_list_provider_env",
+          "qiongli_test_provider",
+          "qiongli_subject_status",
+          "qiongli_subject_update",
+          "qiongli_open_config_wizard",
+          "qiongli_orchestrator_route",
+          "qiongli_orchestrator_doctor",
+          "qiongli_lifecycle_plan",
+          "qiongli_journal_fit_recommend",
+          "qiongli_experience_query",
+          "qiongli_experience_show",
+          "qiongli_experience_lessons",
+          "qiongli_task_plan",
+          "qiongli_task_run"
+        ]
+      },
+      {
+        "oracle_id": "rust-lite",
+        "runtime": "rust",
+        "profile": "marketplace-lite",
+        "oracle": {
+          "path": "tooling/migration/baselines/v1.19.0-beta.1/oracles/rust-lite.json",
+          "sha256": "c40376a926615eac73f2aec9c3ddaa92d99bbe749f113e936824f5c3b41a23bf",
+          "case_count": 5
+        },
+        "public_name_count": 12,
+        "public_names": [
+          "qiongli_config_status",
+          "qiongli_save_provider_config",
+          "qiongli_configure_provider",
+          "qiongli_open_config_wizard",
+          "qiongli_literature_status",
+          "qiongli_search_plan",
+          "qiongli_literature_search",
+          "qiongli_literature_export_evidence",
+          "qiongli_zotero_status",
+          "qiongli_zotero_export_import_files",
+          "qiongli_orchestrator_route",
+          "qiongli_task_plan"
+        ]
+      }
+    ],
+    "target_public_names": [
+      "qiongli_literature_status",
+      "qiongli_search_plan",
+      "qiongli_literature_search",
+      "qiongli_literature_export_evidence",
+      "qiongli_config_status",
+      "qiongli_save_provider_config",
+      "qiongli_configure_provider",
+      "qiongli_collect_evidence",
+      "qiongli_list_provider_env",
+      "qiongli_test_provider",
+      "qiongli_subject_status",
+      "qiongli_subject_update",
+      "qiongli_open_config_wizard",
+      "qiongli_orchestrator_route",
+      "qiongli_orchestrator_doctor",
+      "qiongli_lifecycle_plan",
+      "qiongli_journal_fit_recommend",
+      "qiongli_experience_query",
+      "qiongli_experience_show",
+      "qiongli_experience_lessons",
+      "qiongli_task_plan",
+      "qiongli_task_run",
+      "qiongli_zotero_status",
+      "qiongli_zotero_export_import_files"
+    ],
+    "target_canonical_names": [
+      "qiongli_literature_status",
+      "qiongli_search_plan",
+      "qiongli_literature_search",
+      "qiongli_literature_export_evidence",
+      "qiongli_config_status",
+      "qiongli_save_provider_config",
+      "qiongli_configure_provider",
+      "qiongli_collect_evidence",
+      "qiongli_list_provider_env",
+      "qiongli_test_provider",
+      "qiongli_subject_status",
+      "qiongli_subject_update",
+      "qiongli_orchestrator_route",
+      "qiongli_orchestrator_doctor",
+      "qiongli_lifecycle_plan",
+      "qiongli_journal_fit_recommend",
+      "qiongli_experience_query",
+      "qiongli_experience_show",
+      "qiongli_experience_lessons",
+      "qiongli_task_plan",
+      "qiongli_task_run",
+      "qiongli_zotero_status",
+      "qiongli_zotero_export_import_files"
+    ],
+    "aliases": [
+      {
+        "public_name": "qiongli_open_config_wizard",
+        "canonical_name": "qiongli_configure_provider"
+      }
+    ],
+    "legacy_only": [
+      {
+        "public_name": "qiongli_zotero_search",
+        "source_oracle": "node-mcpb",
+        "disposition": "pending-LEG-201"
+      },
+      {
+        "public_name": "qiongli_zotero_upsert_references",
+        "source_oracle": "node-mcpb",
+        "disposition": "pending-LEG-201"
+      }
+    ],
+    "target_public_name_count": 24,
+    "target_canonical_tool_count": 23,
+    "completion_ready": true
+  },
+  "cli": {
+    "status": "runtime-inventory-frozen",
+    "captured_oracle_cases": [
+      "python.cli-align",
+      "python.installer-dry-run"
+    ],
+    "captured_scope": [
+      "align-success-outcome",
+      "installer-dry-run-success",
+      "observed-success-exit-code-zero",
+      "python-full-static-command-tree",
+      "python-full-static-arguments-and-aliases",
+      "python-full-authored-help-metadata",
+      "python-full-console-entrypoints",
+      "python-full-mounted-mcp-parser",
+      "python-full-formatted-help-49-public-paths",
+      "python-full-invalid-usage-49-public-paths",
+      "python-full-five-console-entrypoint-root-help-and-align",
+      "python-full-safe-json-handler-boundaries",
+      "python-full-observable-error-taxonomy",
+      "python-full-dry-run-explicit-dispositions",
+      "python-full-side-effect-explicit-dispositions",
+      "python-full-approved-leg-201-disposition-decisions",
+      "python-full-handler-runtime-parity-not-claimed",
+      "npm-accepted-parse-argv-dispatch",
+      "npm-python-update-divergence"
+    ],
+    "required_not_fully_captured": [],
+    "static_semantics": {
+      "task_id": "CTR-201B",
+      "status": "static-semantics-captured",
+      "artifact_path": "tooling/migration/ctr-201-cli.json",
+      "schema_path": "tooling/migration/ctr-201-cli.schema.json",
+      "schema_canonical_sha256": "173436615a8a26d45903cc7812a55f2e9ae094089f637bced0f418a3976456ad",
+      "payload_sha256": "f81c8f039fae28dd8747f0672bfb6c1caacbd563153f65826356eeb93eacf1a7",
+      "canonical_command_path_count": 46,
+      "public_command_path_count": 49,
+      "console_entrypoint_count": 5,
+      "argument_action_count": 164,
+      "cwd_default_count": 27,
+      "capture_ready": true
+    },
+    "runtime_freeze": {
+      "task_id": "CTR-201E",
+      "status": "runtime-inventory-freeze-captured",
+      "artifact_path": "tooling/migration/ctr-201-cli-runtime.json",
+      "schema_path": "tooling/migration/ctr-201-cli-runtime.schema.json",
+      "schema_canonical_sha256": "785b051f5d67900d43012b7f9574f43e7a2a1c63e3b4274a4814637d0623175b",
+      "payload_sha256": "b82be3d7f1531a3fefdf3dd864c74042d2d3ecc806d38337f24e2b14d843f41c",
+      "public_command_path_count": 49,
+      "console_entrypoint_count": 5,
+      "case_count": 118,
+      "formatted_help_observation_count": 245,
+      "invalid_usage_observation_count": 49,
+      "zero_argument_observation_count": 5,
+      "json_canonical_path_count": 13,
+      "dry_run_public_path_count": 11,
+      "npm_alias_count": 5,
+      "capture_ready": true
+    },
+    "completion_ready": true
+  },
+  "orchestrator": {
+    "status": "runtime-inventory-frozen",
+    "captured_oracle_cases": [
+      "python.orchestration-preview"
+    ],
+    "captured_scope": [
+      "task-run-preview",
+      "duo-mode-preview",
+      "python-full-static-declared-stage-task-graph",
+      "python-full-static-declared-agent-contracts",
+      "python-full-static-declared-routing-contracts",
+      "python-full-static-declared-mcp-capability-contracts",
+      "python-full-static-declared-quality-gates",
+      "python-full-bounded-orchestrator-runtime-matrix",
+      "python-full-state-and-resume-observed-boundary",
+      "python-full-agent-launch-fake-boundary",
+      "python-full-solo-duo-triad-controller-semantics",
+      "python-full-failure-and-cancellation-observed-boundary",
+      "python-full-quality-gate-artifact-existence-boundary",
+      "python-full-approved-downstream-disposition-decisions",
+      "python-full-real-agent-runtime-parity-not-claimed"
+    ],
+    "required_not_fully_captured": [],
+    "static_contract": {
+      "task_id": "CTR-201C",
+      "status": "static-contract-captured",
+      "artifact_path": "tooling/migration/ctr-201-orchestrator.json",
+      "schema_path": "tooling/migration/ctr-201-orchestrator.schema.json",
+      "schema_canonical_sha256": "0473158288cf35d4a10e39cfc741fd5b4cb38a49c68209aaea48337d52782510",
+      "payload_sha256": "508ed0f92a511a0a9a6daa33598ce891222540b15e5aa207984db97319fe2c5e",
+      "stage_count": 13,
+      "task_count": 76,
+      "required_dependency_edge_count": 104,
+      "runtime_agent_count": 3,
+      "functional_agent_count": 9,
+      "routing_skill_id_count": 82,
+      "logical_mcp_capability_count": 11,
+      "quality_gate_count": 4,
+      "declared_profile_count": 5,
+      "team_run_task_count": 2,
+      "worker_orchestration_task_count": 2,
+      "capture_ready": true
+    },
+    "runtime_freeze": {
+      "task_id": "CTR-201F",
+      "status": "runtime-inventory-freeze-captured",
+      "artifact_path": "tooling/migration/ctr-201-orchestrator-runtime.json",
+      "schema_path": "tooling/migration/ctr-201-orchestrator-runtime.schema.json",
+      "schema_canonical_sha256": "dff9d2226a4f3cb6ab068b158c7aecbff393c0c2a18a46058c5f587172a5178e",
+      "payload_sha256": "29bbb1c0cd042d469f55e93078a4d3b4494148f47a2bd66e568d097f83e6b5da",
+      "case_manifest_sha256": "6a930dd355eb57b0b6b1759f73dba9c7af4b115e1b0bdc576112e49c14cc20ee",
+      "case_count": 44,
+      "resolved_dimension_count": 6,
+      "disposition_decision_count": 6,
+      "capture_ready": true
+    },
+    "completion_ready": true
+  },
+  "content": {
+    "status": "content-materialization-captured",
+    "source_file_count": 377,
+    "source_total_bytes": 1761400,
+    "source_tree_sha256": "4659cbcd839c3f8eb3798a64981b7ec2180cf766566fcf439ac892eb32a8a5a8",
+    "resource_roots": [
+      {
+        "source": "content/distribution/",
+        "match": "prefix",
+        "resource_kind": "target-metadata",
+        "file_count": 3
+      },
+      {
+        "source": "content/mcp-contracts/",
+        "match": "prefix",
+        "resource_kind": "mcp-contract",
+        "file_count": 28
+      },
+      {
+        "source": "content/roles/",
+        "match": "prefix",
+        "resource_kind": "role",
+        "file_count": 10
+      },
+      {
+        "source": "content/schemas/",
+        "match": "prefix",
+        "resource_kind": "schema",
+        "file_count": 5
+      },
+      {
+        "source": "content/skills/",
+        "match": "prefix",
+        "resource_kind": "skill",
+        "file_count": 97
+      },
+      {
+        "source": "content/skills-core.md",
+        "match": "exact",
+        "resource_kind": "skill-summary",
+        "file_count": 1
+      },
+      {
+        "source": "content/skills-summary.md",
+        "match": "exact",
+        "resource_kind": "skill-summary",
+        "file_count": 1
+      },
+      {
+        "source": "content/standards/",
+        "match": "prefix",
+        "resource_kind": "standard",
+        "file_count": 11
+      },
+      {
+        "source": "content/subjects/",
+        "match": "prefix",
+        "resource_kind": "subject",
+        "file_count": 77
+      },
+      {
+        "source": "content/templates/",
+        "match": "prefix",
+        "resource_kind": "template",
+        "file_count": 92
+      },
+      {
+        "source": "content/venue-profiles/",
+        "match": "prefix",
+        "resource_kind": "venue-profile",
+        "file_count": 6
+      },
+      {
+        "source": "content/workflow/",
+        "match": "prefix",
+        "resource_kind": "workflow",
+        "file_count": 46
+      }
+    ],
+    "profiles": [
+      {
+        "profile_id": "skill-only",
+        "aliases": [],
+        "variant_id": "qiongli-next-prerelease-core-desktop-focused",
+        "source_file_count": 341,
+        "materialized_file_count": 178,
+        "materialized_total_bytes": 708608,
+        "expected_materialized_tree_sha256": "5b76bc0c02cda7fc18adf2b1afd492e763392ed5fc2a05dac360d1221045f280",
+        "identity_output_count": 173,
+        "transformed_output_count": 2,
+        "generated_output_count": 3
+      },
+      {
+        "profile_id": "marketplace-lite",
+        "aliases": [
+          "lite"
+        ],
+        "variant_id": "qiongli-next-prerelease-core-full-complete",
+        "source_file_count": 377,
+        "materialized_file_count": 342,
+        "materialized_total_bytes": 1600064,
+        "expected_materialized_tree_sha256": "a854fc61203883132041a43077cc9ea26e62aa28e2c2eeb266777f582b029c6c",
+        "identity_output_count": 338,
+        "transformed_output_count": 2,
+        "generated_output_count": 2
+      },
+      {
+        "profile_id": "full",
+        "aliases": [],
+        "variant_id": "qiongli-local-core-full-complete",
+        "source_file_count": 377,
+        "materialized_file_count": 343,
+        "materialized_total_bytes": 1602568,
+        "expected_materialized_tree_sha256": "b5612c713789bbd126829edc1e0646ec2c2387898aa2f5a4c812de0de5aad554",
+        "identity_output_count": 339,
+        "transformed_output_count": 2,
+        "generated_output_count": 2
+      }
+    ],
+    "materialization": {
+      "status": "content-materialization-captured",
+      "mapping_policy": "authenticated-accepted-materializer-in-ephemeral-isolated-subprocess",
+      "published_archive_parity": "not-captured",
+      "extraction_network_sandbox": "not-proven",
+      "extraction_filesystem_sandbox": "python-audit-write-confined;host-read-isolation-not-proven;os-sandbox-not-proven",
+      "rust_materializer": "not-implemented"
+    },
+    "static_inventory": {
+      "task_id": "CTR-201D",
+      "status": "content-materialization-captured",
+      "artifact_path": "tooling/migration/ctr-201-content.json",
+      "schema_path": "tooling/migration/ctr-201-content.schema.json",
+      "schema_canonical_sha256": "6f88a56c2a88c51f68a6bb10bce05776d1e06f678ae916739a6e3de96d2b1704",
+      "payload_sha256": "d17f37aa96d1896d047b27d197d63f773ae1d644a875722f5262be39593ff304",
+      "accepted_content_file_count": 377,
+      "accepted_content_total_bytes": 1761400,
+      "resource_root_count": 12,
+      "resource_kind_count": 11,
+      "portable_core_file_count": 263,
+      "materialized_profile_count": 3,
+      "materialized_output_file_count": 863,
+      "identity_output_count": 850,
+      "transformed_output_count": 6,
+      "generated_output_count": 7,
+      "capture_ready": true
+    },
+    "completion_ready": true
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "utf-8-json-sorted-keys-compact-excluding-integrity",
+    "payload_sha256": "3077d190a415037cc9d0e6054d1d62573865706b321bcfd8e5793e0c73754120"
+  }
+}

@@ -1,0 +1,528 @@
+{
+  "$schema": "../../../oracle-fixture.schema.json",
+  "capture_kind": "accepted-runtime-outcomes",
+  "cases": [
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "cli-command"
+      ],
+      "disposition": "captured",
+      "id": "python.cli-align",
+      "invocation": {
+        "arguments": {
+          "argv": [
+            "align"
+          ]
+        },
+        "operation": "qiongli align",
+        "transport": "cli"
+      },
+      "kind": "cli-outcome",
+      "outcome": {
+        "error": null,
+        "exit_code": 0,
+        "status": "success",
+        "value": {
+          "stderr_lines": [],
+          "stdout_lines": [
+            "cli.py — Quick Reference",
+            "",
+            "What pipx installs:",
+            "- A global CLI (per-user). It does NOT auto-modify your projects.",
+            "- CLI aliases: `qiongli`, `ql`, `research-skills`, `rsk`, `rsw` (same behavior).",
+            "",
+            "What `cli.py upgrade` modifies by default:",
+            "- Full local plugin surface: Codex/Claude Code get CLI-managed local plugins.",
+            "- Full MCP surface: Antigravity/Hermes get managed `qiongli mcp serve` client configs.",
+            "- Legacy global skills and Codex/Claude standalone MCP configs are cleaned after plugin install succeeds.",
+            "- Use `--surface skills --profile partial` to keep the old skills-only upgrade behavior.",
+            "",
+            "Project-facing assets are opt-in:",
+            "- Use `qiongli init --project-dir .` to create project config + .env",
+            "- Use `qiongli clean --project-dir .` to remove stale project-local assets",
+            "",
+            "Typical usage:",
+            "1) Check:   cli.py check --repo <owner>/<repo>",
+            "2) Upgrade: cli.py upgrade --repo <owner>/<repo> --target all",
+            "3) Init:    cli.py init --project-dir .",
+            "4) Clean:   cli.py clean --project-dir .",
+            "5) Doctor:  cli.py doctor --cwd .",
+            "",
+            "Tip:",
+            "- `cli.py install` and `cli.py upgrade` default to `--profile full --surface plugin`.",
+            "- `cli.py upgrade` migrates old skills/MCP surfaces only after the new plugin install succeeds.",
+            "- `cli.py clean` removes stale workflow copies / CLAUDE.md / .gemini quickstart.",
+            "- Set `QIONGLI_REPO=owner/repo` to avoid passing `--repo` every time."
+          ]
+        }
+      },
+      "side_effects": {
+        "class": "none",
+        "filesystem_delta": {
+          "after_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "created": [],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/python-qiongli/src/qiongli/cli.py"
+      ]
+    },
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "installer-dry-run"
+      ],
+      "disposition": "captured",
+      "id": "python.installer-dry-run",
+      "invocation": {
+        "arguments": {
+          "dry_run": true,
+          "profile": "full",
+          "surface": "plugin",
+          "target": "codex"
+        },
+        "operation": "qiongli install --dry-run",
+        "transport": "cli"
+      },
+      "kind": "installer-outcome",
+      "outcome": {
+        "error": null,
+        "exit_code": 0,
+        "status": "success",
+        "value": {
+          "stderr_lines": [],
+          "stdout_lines": [
+            "Qiongli Universal Installer",
+            "  source:  <TAG_ROOT>",
+            "  project: <TAG_ROOT>",
+            "  target:  codex | mode: copy",
+            "  subject: core (adaptive; active_subject defaults to auto)",
+            "  coverage: complete",
+            "  profile: full",
+            "  surface: plugin",
+            "  cli:     install -> <HOME>/.local/bin",
+            "",
+            "== Detected Versions ==",
+            "  source:      v1.19.0-beta.1",
+            "  codex       not installed",
+            "",
+            "== Full Profile Readiness ==",
+            "  [ok]   Python       -> <RUNTIME_EXECUTABLE> (<RUNTIME_VERSION>)",
+            "  [skip] OPENAI_API_KEY -> missing",
+            "  [skip] ANTHROPIC_API_KEY -> missing",
+            "",
+            "== CLI Checks ==",
+            "  [skip] CLI          -> codex -> missing",
+            "          Hint: Install the Codex CLI from the official OpenAI distribution and ensure `codex` is on PATH.",
+            "",
+            "== Local Plugin ==",
+            "  [ok]   Plugin       -> codex: <HOME>/plugins/qiongli (dry-run)",
+            "  [skip] Activation   -> qiongli@personal (dry-run)",
+            "",
+            "== Shell CLI ==",
+            "  [ok]   CLI          -> <HOME>/.local/bin/qiongli",
+            "  [ok]   Bootstrap    -> <HOME>/.local/bin/qiongli-bootstrap",
+            "  [ok]   Alias        -> <HOME>/.local/bin/ql",
+            "  [ok]   Alias        -> <HOME>/.local/bin/research-skills",
+            "  [ok]   Alias        -> <HOME>/.local/bin/rsk",
+            "  [ok]   Alias        -> <HOME>/.local/bin/rsw",
+            "  [warn] CLI installed to <HOME>/.local/bin but this directory is not on PATH",
+            "",
+            "== MCP Client Config ==",
+            "  [skip] MCP          -> target codex (not applicable)",
+            "",
+            "[done] Installation complete",
+            "       Add <HOME>/.local/bin to PATH to use qiongli / ql / research-skills / rsk / rsw",
+            "       Restart Codex / Claude Code / Antigravity / Hermes to activate changes"
+          ]
+        }
+      },
+      "side_effects": {
+        "class": "none",
+        "filesystem_delta": {
+          "after_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "created": [],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/python-qiongli/src/qiongli/cli.py",
+        "packages/python-qiongli/src/qiongli/universal_installer.py"
+      ]
+    },
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "mcp-initialize-and-list"
+      ],
+      "disposition": "captured",
+      "id": "python.mcp-initialize-list",
+      "invocation": {
+        "arguments": {
+          "protocol_version": "2024-11-05"
+        },
+        "operation": "initialize + tools/list",
+        "transport": "jsonrpc-stdio"
+      },
+      "kind": "jsonrpc-outcome",
+      "outcome": {
+        "error": null,
+        "exit_code": 0,
+        "status": "success",
+        "value": {
+          "initialize": {
+            "capabilities": {
+              "tools": {}
+            },
+            "protocolVersion": "2024-11-05",
+            "serverInfo": {
+              "name": "qiongli-mcp",
+              "version": "1.19.0b1"
+            }
+          },
+          "stderr_lines": [],
+          "tool_count": 22,
+          "tool_names": [
+            "qiongli_literature_status",
+            "qiongli_search_plan",
+            "qiongli_literature_search",
+            "qiongli_literature_export_evidence",
+            "qiongli_config_status",
+            "qiongli_save_provider_config",
+            "qiongli_configure_provider",
+            "qiongli_collect_evidence",
+            "qiongli_list_provider_env",
+            "qiongli_test_provider",
+            "qiongli_subject_status",
+            "qiongli_subject_update",
+            "qiongli_open_config_wizard",
+            "qiongli_orchestrator_route",
+            "qiongli_orchestrator_doctor",
+            "qiongli_lifecycle_plan",
+            "qiongli_journal_fit_recommend",
+            "qiongli_experience_query",
+            "qiongli_experience_show",
+            "qiongli_experience_lessons",
+            "qiongli_task_plan",
+            "qiongli_task_run"
+          ]
+        }
+      },
+      "side_effects": {
+        "class": "none",
+        "filesystem_delta": {
+          "after_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "created": [],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/python-qiongli/src/qiongli/bridges/mcp_server_stdio.py",
+        "packages/python-qiongli/src/qiongli/bridges/mcp_tool_handlers.py"
+      ]
+    },
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "mutable-provider-state"
+      ],
+      "disposition": "captured",
+      "id": "python.mutable-provider-state",
+      "invocation": {
+        "arguments": {
+          "field": "api-key",
+          "provider": "semantic-scholar",
+          "value": "<REDACTED>"
+        },
+        "operation": "save provider config + read redacted status",
+        "transport": "jsonrpc-stdio"
+      },
+      "kind": "mutable-state-outcome",
+      "outcome": {
+        "error": null,
+        "exit_code": 0,
+        "status": "success",
+        "value": {
+          "redaction_assertion": "capture secret absent from process output",
+          "save": {
+            "config_path": "<CONFIG_ROOT>/providers.json",
+            "field": "api_key",
+            "provider": "semantic_scholar",
+            "saved": true,
+            "status": "saved",
+            "warning": "api_key was saved from chat input. Prefer qiongli_configure_provider so provider secrets do not enter chat history."
+          },
+          "status": {
+            "capability_mode": "provider_connected",
+            "config_path": "<CONFIG_ROOT>/providers.json",
+            "missing": [
+              "openalex.api_key",
+              "crossref.email",
+              "pubmed.api_key"
+            ],
+            "next_action": {
+              "args": {
+                "provider": "openalex"
+              },
+              "message": "Run qiongli_configure_provider to open a local setup page. Do not paste API keys in chat.",
+              "tool": "qiongli_configure_provider"
+            },
+            "providers": {
+              "arxiv": "configured",
+              "crossref": "missing",
+              "openalex": "missing",
+              "pubmed": "missing",
+              "semantic_scholar": "configured"
+            },
+            "redacted_config": {
+              "providers": {
+                "arxiv": {
+                  "configured": true,
+                  "enabled": true,
+                  "fields": {}
+                },
+                "crossref": {
+                  "configured": false,
+                  "enabled": false,
+                  "fields": {
+                    "email": "missing"
+                  }
+                },
+                "openalex": {
+                  "configured": false,
+                  "enabled": false,
+                  "fields": {
+                    "api_key": "missing",
+                    "email": "missing"
+                  }
+                },
+                "pubmed": {
+                  "configured": false,
+                  "enabled": false,
+                  "fields": {
+                    "api_key": "missing"
+                  }
+                },
+                "semantic_scholar": {
+                  "configured": true,
+                  "enabled": true,
+                  "fields": {
+                    "api_key": "configured"
+                  }
+                }
+              },
+              "search": {
+                "allow_platform_search_supplement": true,
+                "minimum_productive_providers": 2
+              }
+            },
+            "server": {
+              "name": "qiongli-mcp"
+            },
+            "status": "ok"
+          }
+        }
+      },
+      "side_effects": {
+        "class": "bounded-write",
+        "filesystem_delta": {
+          "after_tree_sha256": "e8eb97e26a099153716b9e811a3619c4ae3df4ef53bda94e75bda04305f83b43",
+          "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "created": [
+            {
+              "path": "config/providers.json",
+              "sha256": "3b93e69cc6ad2506aa57dde65f9d273526e25c24e77e592095b5e47d03ea3fbf",
+              "size_bytes": 141
+            }
+          ],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/python-qiongli/src/qiongli/bridges/mcp_tool_handlers.py",
+        "packages/python-qiongli/src/qiongli/bridges/provider_config.py"
+      ]
+    },
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "orchestration-preview"
+      ],
+      "disposition": "captured",
+      "id": "python.orchestration-preview",
+      "invocation": {
+        "arguments": {
+          "guidance_mode": "off",
+          "paper_type": "empirical",
+          "run_agents": false,
+          "task_id": "F3",
+          "topic": "runtime-baseline"
+        },
+        "operation": "tools/call qiongli_task_run",
+        "transport": "jsonrpc-stdio"
+      },
+      "kind": "orchestration-outcome",
+      "outcome": {
+        "error": null,
+        "exit_code": 0,
+        "status": "success",
+        "value": {
+          "controller_metadata": {
+            "controller": "codex",
+            "execution_mode": "duo",
+            "primary_agent": "",
+            "review_agent": "",
+            "solo_role_gates": "standard",
+            "verifier_agent": ""
+          },
+          "effective_domain": "auto",
+          "mode": "task-run-preview",
+          "run_agents": false,
+          "stderr_lines": [],
+          "task": {
+            "paper_type": "empirical",
+            "task_id": "F3",
+            "topic": "runtime-baseline"
+          },
+          "task_description": "F3 empirical runtime-baseline",
+          "will_launch_agents": false
+        }
+      },
+      "side_effects": {
+        "class": "none",
+        "filesystem_delta": {
+          "after_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "created": [],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/python-qiongli/src/qiongli/bridges/orchestrator.py",
+        "packages/python-qiongli/src/qiongli/bridges/mcp_tool_handlers.py",
+        "content/standards/research-workflow-contract.yaml",
+        "content/standards/mcp-agent-capability-map.yaml"
+      ]
+    }
+  ],
+  "coverage": {
+    "accepted_gaps": [
+      {
+        "capability": "external-agent-process-launch",
+        "disposition": "accepted-gap",
+        "reason": "External Codex, Claude, and Antigravity execution requires host credentials and is intentionally excluded from the deterministic offline oracle; preview routing is captured instead."
+      }
+    ],
+    "captured_capabilities": [
+      "cli-command",
+      "mcp-initialize-and-list",
+      "orchestration-preview",
+      "installer-dry-run",
+      "mutable-provider-state"
+    ],
+    "required_capabilities": [
+      "cli-command",
+      "mcp-initialize-and-list",
+      "orchestration-preview",
+      "installer-dry-run",
+      "mutable-provider-state"
+    ]
+  },
+  "oracle_id": "python-full",
+  "profile": "full",
+  "runtime_origin": "python",
+  "schema_version": "2.0",
+  "source": {
+    "access_method": "git-ls-tree-and-cat-file",
+    "peeled_commit": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f",
+    "projections": [
+      {
+        "git_blob_oid": "d925febb940964b95fcb9b082295f91efcdb7435",
+        "path": "content/standards/mcp-agent-capability-map.yaml",
+        "sha256": "b1ff20d2edcec9cfc02669f635ee77c2ec17d5bc23531ed5ebd481c9865a661a",
+        "size_bytes": 62173
+      },
+      {
+        "git_blob_oid": "609cdd9e6616c838b7ec959c7402d37f3f118345",
+        "path": "content/standards/research-workflow-contract.yaml",
+        "sha256": "b77b901b552bb235edde21476763cab6149b63d329d124cf00c92c2fece6cf63",
+        "size_bytes": 41041
+      },
+      {
+        "git_blob_oid": "77bd67e103e52a1346896ec7cbef32cdd9e3746b",
+        "path": "packages/python-qiongli/src/qiongli/bridges/mcp_server_stdio.py",
+        "sha256": "717e1597007138c4cd13a9757febce7f38d4a0a5297a1ba1efe484dc8f3dd400",
+        "size_bytes": 2635
+      },
+      {
+        "git_blob_oid": "173da40211ba04527423f474807f8a773f98d9d1",
+        "path": "packages/python-qiongli/src/qiongli/bridges/mcp_tool_handlers.py",
+        "sha256": "f1aacdc2d00667497416271f20a5121fed04d7198c0bddd88ce4fa4076aeb3fd",
+        "size_bytes": 53455
+      },
+      {
+        "git_blob_oid": "219743fcae7674dc709c311b90df3684ff98435d",
+        "path": "packages/python-qiongli/src/qiongli/bridges/orchestrator.py",
+        "sha256": "e9e5899f69ee1853c2105724100a52096c8f0f5353863ef4c1c794424212cf6e",
+        "size_bytes": 355170
+      },
+      {
+        "git_blob_oid": "3dc93e98a521622c5403c36996029722a3381baf",
+        "path": "packages/python-qiongli/src/qiongli/bridges/provider_config.py",
+        "sha256": "7620b5b162f0b1064c098822dd9b72241628757a81455a6094f369e87a191b59",
+        "size_bytes": 23154
+      },
+      {
+        "git_blob_oid": "4802fddd7a019eb24ea6c69cc5f065e40ee3c61e",
+        "path": "packages/python-qiongli/src/qiongli/cli.py",
+        "sha256": "bab1a374aece96fbf802771774203536830709c3579541987ea46cf650d357bb",
+        "size_bytes": 71311
+      },
+      {
+        "git_blob_oid": "c68d9087d7d32a55b123df67a352a74c231c58df",
+        "path": "packages/python-qiongli/src/qiongli/universal_installer.py",
+        "sha256": "e098bc896e962d6990e830d67216c017e5f747e8fa89b47b8eadf0ab670b7a9a",
+        "size_bytes": 60333
+      }
+    ],
+    "runtime_source": {
+      "kind": "peeled-tag-materialization",
+      "peeled_commit": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f",
+      "source_file_count": 76,
+      "source_root": "packages/python-qiongli/",
+      "source_tree_sha256": "3a91a6dde9a78116fed73358275b2797c3ce7bf3d9a54894e7dbd11d2f0f9781",
+      "tag": "v1.19.0-beta.1"
+    },
+    "tag": "v1.19.0-beta.1"
+  }
+}

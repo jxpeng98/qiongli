@@ -34,10 +34,13 @@ class SkillDocGenerationTests(unittest.TestCase):
             en_doc,
         )
         self.assertIn("| `academic-context-maintainer` | Academic Context Maintainer |", en_doc)
-        self.assertIn(
-            "stage-aware academic state summary that preserves research question scope, locked methodological choices, stable findings, unresolved disputes, and decision rationale",
-            en_doc,
+        registry = yaml.safe_load(
+            (RepoLayout(REPO_ROOT).skills / "registry.yaml").read_text(encoding="utf-8")
         )
+        continuity = next(
+            skill for skill in registry["skills"] if skill["id"] == "academic-context-maintainer"
+        )
+        self.assertIn(continuity["when_to_use"], en_doc)
 
     def test_generated_skill_docs_include_localized_registry_metadata(self) -> None:
         generated = generate_skill_reference_docs(REPO_ROOT)
@@ -75,16 +78,16 @@ class SkillDocGenerationTests(unittest.TestCase):
         self.assertIn(f"Qiongli version: {version}", content)
         self.assertIn(f"Installed Qiongli workflow version: `{version}`", content)
 
-        for token in (
-            "J_proofread/",
-            "academic-context-maintainer",
-            "context/",
-            "statement-generator",
-            "effect-size-calculator",
-            "qualitative-coding",
-            "discussion-writer",
-            "limitation-auditor",
-            "proofread/",
-            "tasks I1–I9",
-        ):
-            self.assertIn(token, content)
+        # Discovery must cover the actual registry, rather than a duplicated
+        # hand-picked list or a stale stage count in the entrypoint.
+        self.assertIn("skills-summary.md", content)
+        summary = (REPO_ROOT / "content" / "skills-summary.md").read_text(encoding="utf-8")
+        registry = yaml.safe_load((REPO_ROOT / "content" / "skills" / "registry.yaml").read_text())
+        discovered = [
+            line.split("|")[1].strip()
+            for line in summary.splitlines()
+            if line.startswith("| ") and not line.startswith("| Skill |")
+        ]
+        self.assertCountEqual([item["id"] for item in registry["skills"]], discovered)
+        for item in registry["skills"]:
+            self.assertTrue((REPO_ROOT / "content" / item["file"]).is_file(), item["id"])

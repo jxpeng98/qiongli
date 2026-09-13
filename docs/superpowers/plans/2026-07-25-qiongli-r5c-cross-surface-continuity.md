@@ -1,0 +1,883 @@
+# Qiongli R5C Cross-Surface Continuity Plan
+
+Status: in progress — C0 through C4 are complete; C5 packaged continuity and
+isolated host installation/restart passed, with live authenticated host
+handoffs still pending
+
+Date: July 25, 2026
+
+Target branch: `feat/r4b-ui-localization-polish`
+
+Baseline: R5A completion commit `12388b7a`
+
+Roadmap:
+`docs/superpowers/roadmaps/2026-07-13-qiongli-2-accelerated-rust-migration-roadmap.md`
+
+## Naming
+
+The acceleration design already reserves `R5B` for legacy Python and Node
+source retirement after `v2.0.0-beta.1` acceptance. This next pre-Beta stage is
+therefore named `R5C`, for cross-surface continuity. R5C must prove that the
+native product owns the supported behavior before R5B is allowed to delete
+superseded source.
+
+## Goal
+
+Make academic work captured from Codex, Claude Code, the CLI, repository
+delivery, and portable files survive offline use, restart, replay, and
+cross-project navigation without turning Qiongli into a model client.
+
+Qiongli remains the native shell and control plane:
+
+- it installs and verifies the Qiongli CLI, Skills, Plugins, and orchestrator;
+- it owns project identity, capture delivery state, reconciliation, and
+  derived portfolio indexes;
+- Codex, Claude Code, and supported CLIs remain the execution surfaces; and
+- no R5C path stores provider credentials or directly invokes a model API.
+
+## Starting point
+
+R5A provides native project identity, migration, recovery, reconciliation,
+rollback, Research Library registration, and deterministic graph rebuilds.
+The current native project crate also provides capture normalization,
+content-derived capture identities, project intake, consolidation receipts,
+capture and repository inbox projections, coverage states, artifact-change
+inspection, graph comparison, and an exact-identity portfolio snapshot.
+
+At plan creation, the remaining continuity gaps were:
+
+1. delivery does not yet have one durable Outbox/acknowledgement ledger for
+   offline queueing, resend, and restart recovery;
+2. duplicate, stale, divergent, and unbound captures can be reported, but the
+   full explicit assignment and conflict-resolution workflow is incomplete;
+3. portfolio construction rebuilds the ready project set as one snapshot and
+   lacks a persistent incremental query boundary, saved views, and bounded
+   cancellation;
+4. timeline, source overlay, capture/decision lineage, and merge-resolution
+   history are not yet one coherent cross-project view; and
+5. the clean-commit packaged macOS client-install journey has not yet been
+   rerun after the R5A and embedded `2.0.0-alpha.2` fixes.
+
+## Execution status
+
+### C0 accepted on July 26, 2026
+
+C0 is complete at product source commit
+`5bd8606c9e6cca31c5321e1b636742b488497acf`.
+
+- `pnpm desktop:macos:acceptance --diagnostics` built the complete embedded
+  Svelte App and passed the non-publishing packaged-product lifecycle.
+- The receipt at
+  `dist/macos-acceptance/current/qiongli-packaged-product-acceptance.receipt.json`
+  is bound to the exact source commit and records every required C0 check as
+  `true`, including the isolated 1.x migration fixture.
+- The packaged App, copied CLI, embedded content, Codex Plugin, and Claude Code
+  Plugin report `2.0.0-alpha.2`.
+- Manual acceptance used only
+  `dist/macos-acceptance/current/manual-home`: the UI previewed and confirmed a
+  receipt-owned batch install, reported `packaged-product-batch-applied`, and
+  rediscovered the managed 2.x installation after App restart.
+- The installed Codex and Claude Code sources use only `qiongli-next`; no
+  `1.19.0` metadata or legacy Plugin/standalone-Skill root was present.
+- Host activation and live MCP attachment remain correctly reported as
+  client-owned or not directly observable. C0 does not claim a live Codex or
+  Claude Code session, publication, notarization, or another platform.
+
+The C0 fixes were committed independently:
+
+1. `86e43b21` upgrades recognized legacy Claude marketplaces in place;
+2. `cb8ee882` aligns canonical embedded workflow metadata to
+   `2.0.0-alpha.2`;
+3. `6c1df166` covers parallel recognized legacy marketplaces;
+4. `4d55ef1c` adds opt-in bounded acceptance diagnostics; and
+5. `5bd8606c` permits verified 2.x additions to shared legacy containers while
+   continuing to reject legacy item drift.
+
+### C1.1 accepted on July 26, 2026
+
+C1.1 is complete at
+`cf557e851ed8fee349524431c35955d555991941`.
+
+- `qiongli-project::capture_delivery` defines strict, versioned, bounded
+  envelope, delivery-record, transition, and acknowledgement contracts.
+- Envelope and acknowledgement identities are derived from canonical JSON;
+  the embedded capture digest, source, delivery class, optional destination,
+  revision, and timestamps are revalidated after parsing.
+- Delivery state is one bounded causal chain across `queued`, `delivering`,
+  `delivered`, `acknowledged`, `retry-required`, `conflicted`, and
+  `cancelled`. Each legal transition has a closed reason vocabulary.
+- Unknown fields, duplicate keys, oversized documents, malformed identities,
+  impossible histories, invalid acknowledgement binding, and path-shaped
+  reason data fail closed. Debug output redacts the embedded capture.
+- Focused validation passed 95 `qiongli-project` tests, Clippy with
+  warnings-as-errors, Rust formatting, and `git diff --check`.
+
+### C1.2 accepted on July 26, 2026
+
+C1.2 is complete at
+`a7c37eaa309081d2299abb2016de4c96be06ca67`.
+
+- The private `capture-delivery/v1` ledger stores immutable envelopes,
+  generation-and-digest CAS records, and immutable acknowledgements beneath
+  the Qiongli state root.
+- Authoritative documents are bounded, owner-private, link-safe, atomically
+  replaced, and rebuilt into a deterministic sorted projection after reopen.
+- Interrupted enqueue and acknowledgement write boundaries recover from the
+  immutable document that was already made durable. Stale writers cannot
+  replace a newer causal record.
+- Focused fixtures cover exact replay, acknowledgement replay, stale CAS,
+  corrupt and oversized records, unknown or orphaned entries, links,
+  broadened permissions, and bounded ledger size without adding a transport
+  runner or external runtime.
+
+### C1.3 accepted on July 26, 2026
+
+C1.3 is complete at
+`1f1145e3aea63fe50b755d9a9aa21fe225a00353`.
+
+- `ProjectStateService` owns typed enqueue, inspect, list, begin, record,
+  acknowledge, retry, and cancel operations over the durable ledger.
+- Acknowledgement is bound to the exact envelope, destination project,
+  accepted capture, expected project revision, and resulting project
+  revision. Wrong-project and wrong-revision acknowledgements persist a
+  causal conflict and never create a second academic capture.
+- Exact transition and acknowledgement replay is idempotent across service
+  reopen. Conflict, cancellation, or failed delivery preserves the immutable
+  envelope.
+- Delivery recovery remains a state operation only; it does not invoke a
+  provider, model, Git, Python, Node, or host CLI.
+
+### C1.4 and C1 accepted on July 26, 2026
+
+C1.4 and the complete C1 gate are accepted at
+`27bcf5c9052c0eae32087480780335578984035e`.
+
+- `qiongli project capture delivery list|inspect|retry|cancel` exposes strict,
+  path-redacted JSON containing causal state, retry count, destination
+  identity, record digests, and acknowledgement summary.
+- The public destination projection excludes the registered root path and the
+  envelope capture body. Mutations require the exact current generation and
+  record digest.
+- Reopen fixtures cover every committed delivery state. Additional fixtures
+  cover exact replay, duplicate acknowledgement, wrong project and revision,
+  cancellation, lock contention without mutation, and corrupt records.
+- A copied native binary outside the checkout inspected, retried, listed,
+  cancelled, and exactly replayed one delivery across isolated process
+  restarts with an empty `PATH`.
+- Closing validation passed all 105 `qiongli-project` tests, all 109
+  `qiongli` library tests, the focused copied-binary restart acceptance,
+  Clippy with warnings-as-errors, Rust formatting, and `git diff --check`.
+  No broad cybersecurity scan was run.
+
+### C2.1–C2.3 accepted on July 26, 2026
+
+The assignment foundation and assignment service are accepted in three
+independently reviewable commits:
+
+1. `aa0adcb8` freezes strict content-addressed assignment, comparison,
+   disposition, plan, and academic-resolution receipt contracts;
+2. `50df353d` adds the private `capture-resolution/v1` assignment ledger and
+   recoverable source-cancel, child-enqueue, and receipt-publication
+   transaction; and
+3. `b1f3ca89` exposes digest-bound assignment preview/apply, inspect, and list
+   operations.
+
+C2.3 classifies direct, rebound, duplicate, resolution-required, and explicit
+rejection outcomes. Exact replay after service reopen returns the original
+intent, receipt, and child identities. Missing or archived targets, stale
+Library or project evidence, missing approval, changed plans, and
+non-assignable source states fail before an assignment write. Assignment
+changes only the private delivery and resolution ledgers; the target
+project's canonical artifacts remain byte-for-byte unchanged.
+
+Closing validation passed all 121 `qiongli-project` tests, including four
+C2.3 service fixtures, Clippy with warnings-as-errors, the complete Rust
+workspace check, Rust formatting, and `git diff --check`. No broad
+cybersecurity scan was run.
+
+### C2.4 accepted on July 26, 2026
+
+C2.4 is complete at `5844c416`.
+
+- `capture_resolution_service` loads one completed assigned outcome and
+  revalidates the immutable assignment receipt, source delivery, derived
+  child and capture, active Library entry, manifest, accepted capture history,
+  consolidation lineage, prior resolution lineage, and four artifact
+  observations.
+- Every semantic change, decision, evidence reference, contradiction, and
+  next action receives one source-index-preserving item identity. Current
+  counterparts come only from exact typed identities in reviewed lineage;
+  ambiguous exact identities fail closed.
+- A content-addressed selection document binds a complete ordered disposition
+  set to the exact resolution plan. Apply requires both `academic-review` and
+  `filesystem-write`, writes only the previewed semantic blocks plus immutable
+  capture/assignment/resolution lineage and the next manifest, then advances
+  the matching Library entry.
+- `accept-current`, `accept-capture`, `retain-both`, and `reject-capture`
+  remain constrained by the frozen C2.1 capability table. Duplicate source
+  text at different indexes retains distinct item identities.
+- The derived child is acknowledged only after the project and Library
+  transaction commits. Interruption after the durable `delivering` or
+  `delivered` transition reopens as the exact existing resolution and
+  completes the same acknowledgement without another academic mutation.
+- Project copies of assignment receipts, derived captures, and resolution
+  receipts survive portable export/import. Linked lineage, changed artifacts,
+  changed selections, missing approvals, rejected assignments, and target
+  drift fail closed.
+
+Closing validation passed all 128 `qiongli-project` tests, including seven
+C2.4 service and recovery fixtures, Clippy with warnings-as-errors, the
+complete Rust workspace check, Rust formatting, and `git diff --check`. No
+broad cybersecurity scan was run.
+
+### C2.5 and C2 accepted on July 26, 2026
+
+C2.5 and the complete C2 gate are accepted at `8b156970`.
+
+- Strict path-redacted assignment commands expose list, inspect, preview, and
+  apply over opaque envelope, project, intent, receipt, and child identities.
+  Apply recomputes the plan and requires its digest plus explicit
+  `assignment-write` approval.
+- Academic resolution commands expose list, inspect, plan preview, complete
+  ordered selection preview, and apply. The four frozen dispositions remain
+  item-capability constrained; apply requires the exact plan and selection
+  digests plus academic and filesystem approval.
+- The repository delivery adapter binds the raw repository document digest,
+  content-addressed envelope, selected destination when known, and stable
+  unattributed registered-artifact change IDs. It invokes no Git, provider,
+  model, Python, Node, or host CLI and infers no author or client.
+- Source delivery, child delivery, assignment receipt, acknowledgement, and
+  academic resolution lineage can be followed across process restarts without
+  exposing an absolute path.
+- Copied-binary fixtures outside the checkout with an empty `PATH` cover
+  direct assignment, stale rebind, duplicate, rejection, every disposition,
+  exact replay, stale and archived targets, lock contention, corrupt record
+  rejection, repository delivery, and path redaction. Existing focused
+  service fixtures retain interruption recovery and atomicity coverage.
+
+Closing validation passed all 130 `qiongli-project` tests, all 113 `qiongli`
+library tests, the assignment/resolution and repository copied-binary
+acceptances, warnings-as-errors Clippy, the complete Rust workspace check,
+formatting, and `git diff --check`. No broad cybersecurity scan was run.
+
+## Product sequence
+
+```text
+host or portable surface creates a bounded capture
+  -> persist a content-addressed delivery envelope
+  -> queue while the destination is unavailable
+  -> deliver or export without changing the envelope identity
+  -> acknowledge the exact envelope and destination revision
+  -> reconcile pending, duplicate, stale, divergent, or unbound state
+  -> apply only an explicitly approved academic mutation
+  -> update the affected derived project and portfolio indexes
+  -> rebuild the same projections after restart
+```
+
+Delivery metadata records transport truth. Canonical academic state remains in
+the registered project. A queue, acknowledgement, index, saved view, or UI
+cache must never become a second authority for research meaning.
+
+## Batches
+
+### C0 — Clean-head macOS package and installation baseline
+
+Purpose: establish that the committed R5A head produces the same complete App
+that was tested from source and installs the current embedded integration.
+
+- build the release-profile macOS App through the documented single-command
+  path;
+- run the product-controlled, non-publishing acceptance from a clean commit;
+- verify the App, copied CLI, embedded content pack, and Plugin manifests all
+  report `2.0.0-alpha.2`;
+- use an isolated home to install and discover the current Codex or Claude Code
+  Plugin and its Skills, restart the client, and verify the installed source is
+  the receipt-owned 2.x location;
+- confirm that a detected 1.x location is offered only as a migration source,
+  never as the current installation; and
+- record a path-redacted local receipt without claiming signing,
+  notarization, publication, or another operating system.
+
+Gate:
+
+- a clean committed checkout produces a complete App rather than an empty
+  shell;
+- the App never reports or installs the previous alpha;
+- install, restart, discovery, and removal affect only the isolated home; and
+- failure leaves the previous usable isolated-client state recoverable.
+
+### C1 — Durable capture delivery ledger
+
+Purpose: add the minimum native persistence needed for offline and restart-safe
+delivery.
+
+- define a bounded content-addressed envelope around the existing normalized
+  capture, project binding, source surface, delivery class, and payload digest;
+- persist Outbox entries and acknowledgements through private, atomic,
+  versioned Rust storage;
+- model `queued`, `delivering`, `delivered`, `acknowledged`,
+  `retry-required`, `conflicted`, and `cancelled` without using a transient
+  process state as authority;
+- bind acknowledgement to envelope identity, destination project identity,
+  accepted capture identity, and resulting project revision;
+- make retry and replay idempotent across process restart; and
+- expose typed service and CLI inspect/retry/cancel operations before adding UI
+  mutation controls.
+
+Gate:
+
+- process loss at every write boundary reconstructs one causal state;
+- replay never creates a second capture or a second acknowledgement;
+- wrong-project or wrong-revision acknowledgements are rejected; and
+- queue recovery does not invoke a provider, model, Git, Python, or Node.
+
+#### C1 implementation batches
+
+C1 will be delivered as four independently reviewable commits.
+
+**C1.1 — Envelope and transition contracts**
+
+- add a `capture_delivery` module to `qiongli-project`;
+- define a strict versioned delivery envelope that binds the existing
+  `ResearchCaptureV1` digest, optional project binding, source surface,
+  delivery class, creation time, and destination identity;
+- derive one content-addressed envelope ID from canonical JSON rather than
+  random or process-local state;
+- define the durable states and legal transition table for `queued`,
+  `delivering`, `delivered`, `acknowledged`, `retry-required`, `conflicted`,
+  and `cancelled`; and
+- reject unknown fields, invalid timestamps, oversized payloads, invalid
+  digests, impossible transitions, and identities that do not match the
+  embedded capture.
+
+**C1.2 — Private atomic ledger storage**
+
+- add a private versioned delivery ledger under the existing Qiongli state
+  root rather than inside a project or UI cache;
+- store immutable envelopes separately from mutable delivery records and
+  acknowledgement records;
+- use the existing bounded-read, private-directory, atomic-replace, lock, and
+  compare-and-swap patterns from `qiongli-project::storage`;
+- make interrupted writes reconstruct either the previous state or the exact
+  next state, never a synthetic intermediate state; and
+- rebuild ledger indexes from authoritative records after restart.
+
+#### C1.2 executable plan
+
+C1.2 remains one independently reviewable storage commit and does not add a
+CLI, Desktop mutation, transport runner, provider call, model call, Git,
+Python, or Node execution.
+
+1. **Private versioned layout**
+   - add one crate-private `CaptureDeliveryStore` rooted at
+     `<qiongli-state-root>/capture-delivery/v1`;
+   - keep owner-private `envelopes/`, `records/`, and `acknowledgements/`
+     directories plus one owner-private ledger lock;
+   - derive every filename only from a validated `env_…` or `dack_…`
+     identifier; and
+   - reuse the existing state-root preparation, private-directory,
+     no-link/single-link file validation, bounded-read, atomic-write, and
+     directory-sync helpers.
+2. **Immutable documents and record CAS**
+   - write an envelope once, accepting an existing file only when its
+     canonical bytes and digest are identical;
+   - create the exact matching queued record after the envelope is durable,
+     with its initial timestamp fixed to the envelope creation time so an
+     interrupted enqueue has one deterministic reconstruction;
+   - replace a mutable record only while holding the ledger lock and only when
+     envelope identity, envelope digest, expected generation, expected state,
+     and expected record digest still match; and
+   - write an acknowledgement once, accepting replay only when its canonical
+     bytes are identical.
+3. **Deterministic recovery and indexing**
+   - treat immutable envelopes and acknowledgements plus the latest valid
+     record as authoritative; no index or in-memory state may override them;
+   - reconstruct an interrupted initial enqueue from the exact envelope and
+     deterministic queued record, while an interrupted acknowledgement remains
+     recoverable from the exact immutable acknowledgement and delivered
+     record;
+   - enumerate only bounded, valid identifier filenames, reject stray or
+     malformed entries, and sort all rebuilt entries by envelope identity; and
+   - expose a derived ledger snapshot that is rebuilt after store reopen and
+     never stores paths or research payload text.
+4. **Focused qualification**
+   - cover clean insert, exact replay, conflicting replay, record CAS success,
+     stale generation/digest rejection, acknowledgement replay, and restart
+     rebuild;
+   - inject interruption after each durable write boundary and prove recovery
+     yields either the previous valid state or the exact intended next state;
+   - reject corrupt, oversized, symlinked, hard-linked, permission-broadened,
+     unknown, and over-count ledger artifacts at the changed persistence
+     boundary; and
+   - run `qiongli-project` tests, Rust formatting, Clippy with
+     warnings-as-errors, and `git diff --check`. No broad cybersecurity scan
+     is part of C1.2.
+
+C1.2 is accepted only when closing and reopening the store rebuilds the same
+bounded causal snapshot, exact replay is idempotent, stale writers cannot
+replace a record, and deleting any derived index cannot remove an envelope,
+record, acknowledgement, or canonical academic state.
+
+**C1.3 — Service acknowledgement, retry, and cancellation**
+
+- expose typed `ProjectStateService` operations to enqueue, inspect, begin
+  delivery, record delivery, acknowledge, retry, and cancel;
+- bind acknowledgement to envelope ID, destination project ID, accepted
+  capture ID, expected pre-apply revision, and resulting project revision;
+- reuse the existing capture intake identity so replay returns the original
+  capture outcome instead of creating a second capture;
+- preserve the envelope on conflict, cancellation, or failed delivery; and
+- keep transport execution outside the ledger service so recovery cannot
+  invoke a provider, model, Git, Python, Node, or host CLI.
+
+**C1.4 — CLI boundary and restart qualification**
+
+- add strict CLI inspect, retry, and cancel commands before any Desktop
+  mutation control;
+- return path-redacted typed JSON with envelope, causal state, retry count,
+  destination binding, and acknowledgement summary;
+- add deterministic process-restart fixtures for every committed transition;
+- add replay, duplicate acknowledgement, wrong-project, wrong-revision,
+  cancellation, lock contention, and corrupted-record tests; and
+- run focused Rust format, warnings, crate tests, CLI parser tests, and one
+  isolated restart acceptance. No broad cybersecurity scan is part of C1.
+
+C1 is complete only when the same envelope can be queued offline, recovered
+after process loss, delivered or retried idempotently, acknowledged exactly
+once, and inspected after restart without creating a second academic
+authority.
+
+### C2 — Assignment and conflict reconciliation
+
+Purpose: turn the existing reported states into explicit, bounded user
+decisions.
+
+- add digest-bound preview/apply for assigning an unbound capture to one
+  selected registered project;
+- compare the capture base revision with the current project revision and
+  produce item-scoped decisions, evidence, contradiction, and next-action
+  differences;
+- add explicit accept-current, accept-capture, retain-both, and reject
+  dispositions only where the artifact type can support them without silent
+  information loss;
+- persist resolution receipts and expose the resulting capture/decision
+  lineage;
+- reconcile repository-delivered artifact changes without requiring Git or
+  inferring a human author; and
+- retain unresolved inputs until the user explicitly rejects or exports them.
+
+Gate:
+
+- unbound assignment cannot target an unregistered, archived, or changed
+  project;
+- stale or divergent capture state is never silently overwritten;
+- every accepted academic mutation has an exact input, approval digest,
+  resulting revision, and resolution receipt; and
+- cancellation or failure retains the original envelope and project state.
+
+#### C2 invariants
+
+C2 extends C1 without weakening its immutable identities.
+
+- The source envelope and source capture are never edited, rebound in place,
+  or deleted by assignment.
+- Assigning an unbound or stale input creates an explicitly derived capture
+  and child delivery envelope. A content-addressed receipt links the source
+  envelope, source capture, derived capture, child envelope, selected project,
+  and observed revisions.
+- The original delivery is cancelled only after the child and receipt are
+  recoverably durable. Rejection produces a receipt without a child. An
+  unresolved input remains inspectable and retryable.
+- Rebinding a capture to the selected project's current revision makes it
+  eligible for that project's Inbox; it does not assert that its academic
+  content is current or approved.
+- Current-project counterparts are claimed only from exact typed identity or
+  exact canonical artifact evidence. C2 does not use fuzzy labels, model
+  output, session history, or Git authorship to invent a match.
+- `accept-current`, `accept-capture`, `retain-both`, and `reject-capture` are
+  permitted per item only when the renderer can preserve their stated
+  meaning. Unsupported dispositions fail closed.
+- Project artifacts change only through a digest-bound academic resolution
+  preview/apply transaction. Assignment alone changes private delivery
+  control state, not canonical academic artifacts.
+
+#### C2 implementation batches
+
+C2 was delivered as five independently reviewable batches. C2.1 through C2.5
+and the complete C2 gate are accepted.
+
+**C2.1 — Resolution identities and bounded contracts**
+
+- add a `capture_resolution` module to `qiongli-project`;
+- define strict versioned identifiers and documents for assignment intent,
+  per-item comparison, selected disposition, assignment receipt, and academic
+  resolution receipt;
+- derive each item ID from source envelope identity, item kind, source index,
+  and canonical item digest so duplicate text cannot collapse two inputs;
+- bind every plan and receipt to source envelope and record digests, source
+  capture digest, target project and Library revisions, target manifest and
+  observed artifact digests, and the complete ordered disposition set;
+- freeze the disposition capability table by item kind and exact-counterpart
+  state; and
+- reject unknown fields, duplicate keys, missing decisions, unsupported
+  dispositions, oversized documents, path-shaped metadata, and identities
+  that do not match their canonical semantics.
+
+C2.1 adds contracts and deterministic fixtures only. It does not write a
+ledger, assign a project, mutate an academic artifact, add a CLI, or change
+the C1 delivery-state vocabulary.
+
+**C2.2 — Private assignment ledger and interruption recovery**
+
+- add a private versioned `capture-resolution/v1` ledger beneath the Qiongli
+  state root;
+- store immutable assignment intents and receipts separately from a bounded
+  recovery journal and derived index;
+- reuse C1 private-directory, bounded-read, link validation, atomic-write,
+  lock, and generation-and-digest CAS patterns;
+- make source cancellation, derived child enqueue, and receipt publication
+  one recoverable sequence whose restart result is either the unchanged
+  source state or the exact completed assignment; and
+- rebuild source-to-child and child-to-resolution lineage from authoritative
+  documents after every reopen.
+
+No C2.2 recovery path invokes a provider, model, Git, Python, Node, or host
+CLI. Injected interruption tests cover every durable write boundary.
+
+**C2.3 — Assignment preview/apply service**
+
+- expose typed preview/apply operations that select one active registered
+  target project for an unresolved source envelope;
+- reject missing, archived, identity-conflicting, Library-revision-drifted, or
+  project-revision-drifted targets before any write;
+- classify exact direct assignment, revision/stage rebind, duplicate target
+  capture, resolution-required, and explicit rejection outcomes;
+- for an accepted assignment, derive a new content-addressed capture with the
+  target's current binding, enqueue one child envelope, persist one assignment
+  receipt, and only then close the original delivery through the recoverable
+  C2.2 sequence; and
+- make exact replay return the original receipt and child identity while a
+  changed target, source record, or decision document fails with a revision or
+  plan conflict.
+
+The derived capture retains the bounded source payload and source surface.
+Its new identity and complete source lineage are explicit; it is never passed
+off as the original capture.
+
+**C2.4 — Item-scoped academic reconciliation**
+
+- compare the assigned capture against the selected project's exact current
+  manifest, registered artifacts, accepted captures, consolidation receipts,
+  and typed evidence identities;
+- return bounded differences for semantic changes, decisions, evidence,
+  contradictions, and next actions, including the allowed dispositions for
+  each item and why a destructive alternative is unavailable;
+- require one current plan digest, complete item decisions,
+  `academic-review`, and `filesystem-write` approval before apply;
+- reuse the recoverable project-file transaction to write only previewed
+  artifact deltas, the next manifest revision, and one immutable resolution
+  receipt;
+- retain the source and derived captures plus assignment receipt as lineage;
+  and
+- project the resolution into capture/decision lineage without making the
+  private assignment ledger an authority for academic meaning.
+
+Exact replay returns the original academic outcome. A changed Library,
+manifest, artifact, capture, receipt, or disposition document aborts before
+mutation. Failure or cancellation preserves both the unresolved input and the
+previous project state.
+
+#### C2.4 execution order
+
+C2.4 is one reviewable product batch, implemented in the following dependency
+order.
+
+1. **Authoritative input loader**
+   - resolve one completed assigned outcome by assignment receipt identity;
+   - re-read the immutable assignment receipt, source delivery record,
+     derived child envelope and capture, active Library entry, current
+     manifest, accepted capture history, consolidation receipts, and the four
+     observed artifact digests;
+   - reject rejected assignments, missing lineage, identity disagreement,
+     broadened or linked files, and any source or target drift before building
+     a plan.
+2. **Deterministic item comparison**
+   - project every semantic change, decision, evidence reference,
+     contradiction, and next action into one ordered
+     `CaptureResolutionItemV1`;
+   - match a current counterpart only through exact typed identity or exact
+     canonical item evidence already present in accepted capture or
+     consolidation lineage;
+   - classify absent, exact-match, and exact-identity-divergent counterparts
+     without labels, fuzzy text, model output, Git metadata, or session
+     history.
+3. **Read-only preview boundary**
+   - add a `capture_resolution_service` module with a path-redacted
+     `VerifiedCaptureResolution` and typed preview;
+   - construct the existing content-addressed `CaptureResolutionPlanV1` from
+     the current authoritative snapshot;
+   - expose every item, counterpart state, allowed disposition, and a bounded
+     explanation when a destructive disposition is unavailable;
+   - require no write approval during preview.
+4. **Reviewed academic apply boundary**
+   - accept a complete ordered `CaptureResolutionSelectionV1` set plus the
+     exact plan digest, `academic-review`, and `filesystem-write` approvals;
+   - render `accept-current`, `accept-capture`, `retain-both`, and
+     `reject-capture` only through the frozen capability table;
+   - stage only the previewed semantic deltas, an immutable project copy of
+     the assignment lineage, the derived capture, one immutable
+     `CaptureResolutionReceiptV1`, and the next manifest;
+   - extend `ProjectFileTransaction` only for those typed bounded targets and
+     commit the matching Research Library revision through the existing
+     recoverable file/Library protocol.
+5. **Replay, recovery, and qualification**
+   - make exact reapply return the original resolution receipt and resulting
+     revision without a second artifact mutation;
+   - test every supported item kind and disposition, duplicate source text at
+     different indexes, mixed decisions, unchanged-current selections,
+     source/assignment/manifest/artifact/selection drift, missing approvals,
+     project-file interruption, Library commit ambiguity, and restart;
+   - prove that failed or cancelled resolution leaves the source delivery,
+     child delivery, assignment receipt, manifest, semantic artifacts, and
+     Library entry at the exact prior state.
+
+Expected implementation boundaries:
+
+- `capture_resolution_service.rs` owns comparison, preview/apply, and public
+  path-redacted result types;
+- `capture_resolution.rs` remains the contract authority and changes only if
+  a service-required validation invariant is missing;
+- `capture_resolution_storage.rs` continues to own private assignment
+  lineage, not academic meaning;
+- `storage.rs` owns the bounded project-file transaction target expansion;
+- `portable.rs` is updated only if the new immutable project lineage
+  directories are not already included by the portable inventory; and
+- `lib.rs` exports the new typed service boundary.
+
+C2.4 acceptance requires focused service and interruption fixtures, the full
+`qiongli-project` test suite, Clippy with warnings-as-errors, the complete Rust
+workspace check, Rust formatting, and `git diff --check`. Copied-binary CLI
+restart qualification was completed in C2.5; Desktop interaction acceptance
+remains owned by C4 and C5 after the strict App API and views exist.
+
+**C2.5 — CLI, repository adapter, and restart qualification**
+
+- add strict path-redacted CLI inspect/preview/apply commands for assignment
+  and academic resolution;
+- route repository-delivered captures and registered-artifact drift through
+  the same service without invoking Git or inferring a human or client author;
+- expose source, child, assignment, acknowledgement, and academic-resolution
+  lineage by opaque identity rather than filesystem path;
+- add copied-binary process-restart fixtures for direct assignment, stale
+  rebind, duplicate, reject, every supported item disposition, exact replay,
+  stale target, archived target, lock contention, interruption recovery, and
+  corrupt record rejection; and
+- run focused Rust crate and CLI tests, formatting, Clippy with
+  warnings-as-errors, and one isolated restart acceptance.
+
+No broad cybersecurity scan is part of C2. Security-specific checks remain
+limited to the changed identity, path, approval, atomicity, and ownership
+boundaries.
+
+### C3 — Incremental portfolio continuity
+
+Purpose: make cross-project graph and search useful without weakening exact
+identity semantics.
+
+- persist a rebuildable derived catalog keyed by Library revision, project
+  semantic revision, and graph projection identity;
+- update only affected project contributions after registration, archive,
+  restore, migration rollback, capture consolidation, or explicit refresh;
+- remove only the derived contribution owned by an archived, unregistered, or
+  rolled-back project;
+- add bounded portfolio queries for project stage, evidence gap,
+  contradiction, manuscript section, shared source/concept/method, transport,
+  capture state, and lineage;
+- add a semantic activity timeline and revision/merge-resolution history;
+- support cancellation and deterministic full rebuild from registered
+  canonical project artifacts; and
+- preserve exact canonical identities and reviewed lineage: similar labels are
+  never merged automatically.
+
+Gate:
+
+- an incremental update equals a clean full rebuild for the same Library
+  revision;
+- deleting every derived index changes no canonical project artifact;
+- archive, restore, unregister, migration rollback, and conflict resolution
+  leave no stale project contribution;
+- a changed Library or project revision aborts a query/update instead of
+  publishing a mixed snapshot; and
+- bounded large-library fixtures meet explicit memory, result, and cancellation
+  limits.
+
+The executable C3.1–C3.5 plan is
+`docs/superpowers/plans/2026-07-26-qiongli-r5c-c3-incremental-portfolio.md`.
+C3 is accepted across `8e9913cf`, `411bd855`, `7caa9d28`, `89f77523`, and
+`863bfbc9`. The private contribution catalog, incremental/full equivalence,
+bounded lineage query, semantic timeline, CLI maintenance, cancellation,
+restart, corruption, deletion, and deterministic reconstruction gates pass.
+The final focused source gates passed 154 `qiongli-project` tests, 115
+App-library tests, warnings-as-errors Clippy, the Rust workspace all-target
+check, formatting, and copied-binary empty-`PATH` acceptance. No broad
+cybersecurity scan was run.
+
+### C4 — Desktop and App API continuity experience
+
+Purpose: expose the native authority without moving business logic into
+Svelte.
+
+- extend the strict App API for delivery status, retry, acknowledgement,
+  assignment, conflict preview/apply, timeline, and portfolio query;
+- add Inbox, Outbox, Conflict, Coverage, Timeline, and Portfolio states with
+  truthful `unknown`, `stale`, and `conflicted` presentation;
+- keep absolute project paths and raw client configuration behind opaque
+  native selections;
+- provide item-scoped explanations before confirmation and recovery actions
+  after restart;
+- add accessible keyboard, focus, reduced-motion, narrow-window, Chinese, and
+  English component fixtures; and
+- ensure cancellation reaches the Rust operation boundary rather than only
+  hiding UI progress.
+
+Gate:
+
+- CLI and Desktop present the same causal and approval states;
+- the UI cannot acknowledge, assign, resolve, or delete without a current
+  native preview;
+- `unknown` is never displayed as observed or connected; and
+- private paths, credentials, sessions, prompts, and transcripts do not cross
+  the App API.
+
+The executable C4.1–C4.5 plan is
+`docs/superpowers/plans/2026-07-26-qiongli-r5c-c4-desktop-continuity.md`.
+C4.1 is accepted in `51c53b1a`. C4.2 is accepted across `d2acf67a`,
+`8c393cc8`, `1d9e5a73`, and `fd00d61c`: coherent native reads, exact
+capture-mutation preview/confirmation, refreshed affected state, bounded
+Portfolio progress/cancellation, stable terminal polling, and restart
+invalidation all pass. C4.3 is accepted in `d3bf7cd5`: the Captures workspace
+now presents coherent Inbox, Outbox, Conflicts, and Coverage state, requires
+explicit retry, assignment, and academic-resolution choices, and separates
+read-only resolution planning from confirmable native previews. The C4.4
+Portfolio vertical is accepted in `8cd3fa2b`: catalog-bound inspection,
+content-bound pagination, doctor, reconcile, rebuild, and derived-state
+deletion now preserve native identity and ordering while retaining canonical
+academic artifacts. The Semantic Timeline vertical is accepted in `627740d9`:
+four catalog-bound modes preserve native order and timestamp evidence, reject
+incompatible cursor pages, and avoid inferred authorship or causal joins.
+C4.5 is accepted across `fd1e166a` and `dedfc7b4`. Independent English and
+Chinese catalogs, route announcements, safe dialog focus, scoped status
+announcements, reduced-motion behavior, narrow layouts, and process-bound
+state invalidation now pass the focused source and interaction matrix. C5 is
+next.
+
+### C5 — Isolated packaged acceptance
+
+Purpose: qualify the complete R5C path on macOS before expanding to the Tier 1
+distribution matrix.
+
+The executable C5 plan is
+`docs/superpowers/plans/2026-07-26-qiongli-r5c-c5-packaged-acceptance.md`.
+
+- use at least three disposable registered projects and exact shared source,
+  concept, method, and reviewed-lineage fixtures;
+- queue captures offline, restart, replay, acknowledge, duplicate, diverge,
+  assign, resolve, archive, restore, and rebuild;
+- remove all derived indexes and prove deterministic reconstruction;
+- restart the packaged App and supported local client from an isolated home to
+  prove installation without authentication;
+- verify Plugin/Skills discovery there, then verify host-driven execution in
+  an already authenticated system Host whose current 2.x registration matches
+  the isolated accepted Plugin, without a Qiongli model backend; and
+- record source commit, package/content identities, bounded fixture counts,
+  state transitions, and path-redacted outcomes.
+
+The clean-head package, three-project automated continuity fixture, packaged
+App restart, and current 2.x Codex/Claude installation and restart discovery
+passed on July 26, 2026. The isolated Host profiles correctly remain
+unauthenticated because they are install-only. Matching current 2.x system
+registrations and the required real revision-bound handoffs remain pending, so
+C5 stays open.
+The path-redacted partial record is
+`docs/superpowers/acceptance/2026-07-26-qiongli-r5c-c5-packaged-acceptance.md`.
+
+Gate:
+
+- all C0 through C4 source and interaction gates pass from one committed head;
+- the packaged App and copied CLI agree after restart;
+- no automated fixture writes outside the isolated home and disposable project
+  roots; system writes are limited to manually approved current 2.x integration
+  migration;
+- the current 2.x Plugin and Skills remain discoverable after client restart;
+  and
+- the receipt makes no Windows, Linux, cloud relay, public distribution,
+  signing, notarization, or Beta claim.
+
+## Implementation order
+
+1. add delivery envelope, storage, ledger validation, and restart tests to
+   `qiongli-project`;
+2. add project-service and CLI inspect/mutation boundaries;
+3. add assignment, conflict, and resolution receipt types;
+4. add incremental portfolio catalog and query services;
+5. extend Desktop service, Tauri adapter, and strict App API;
+6. implement localized Svelte views and component fixtures; and
+7. run the focused source gates, clean-head package gate, then manual macOS
+   acceptance.
+
+Each implementation batch should be committed separately. A schema or App API
+version change must include parser rejection tests and deterministic fixtures
+in the same commit.
+
+## Validation policy
+
+R5C uses focused correctness and boundary checks:
+
+- affected Rust formatting, tests, compile, and warnings-as-errors checks;
+- App API parser, client, and type checks;
+- Svelte component, accessibility fixture, and production-build checks;
+- deterministic restart, replay, reconciliation, incremental/full rebuild,
+  cancellation, and rollback fixtures; and
+- one isolated, non-publishing packaged macOS interaction receipt.
+
+This is not a request for a broader cybersecurity audit. Add security-specific
+tests only for changed trust boundaries such as path containment, envelope
+identity, acknowledgement binding, atomic persistence, and destructive
+ownership.
+
+## Non-goals
+
+R5C does not:
+
+- add a Qiongli model chat surface or direct model backend;
+- store provider credentials or replace Codex/Claude Code as execution hosts;
+- add an unauthenticated or nominally authenticated cloud relay;
+- automatically scan the user's home directory for projects;
+- run or restore a Qiongli 1.x runtime;
+- delete legacy Python or Node source reserved for post-Beta R5B;
+- publish Homebrew, Scoop, WinGet, Marketplace, or release assets;
+- claim Windows/Linux packaged interaction acceptance;
+- claim Developer ID, notarization, Authenticode, Beta, or Stable readiness; or
+- merge projects, concepts, methods, papers, or sources from fuzzy label
+  similarity.
+
+## R5C completion gate
+
+R5C is complete when:
+
+1. offline queueing, process restart, retry, replay, acknowledgement, and
+   cancellation preserve one delivery identity;
+2. duplicate, stale, divergent, and unbound captures have explicit,
+   receipt-backed outcomes;
+3. incremental portfolio state equals a deterministic full rebuild and can be
+   deleted without losing academic state;
+4. portfolio query, timeline, lineage, coverage, and conflict views remain
+   usable on bounded multi-project fixtures;
+5. the clean committed macOS package installs and discovers only the current
+   2.x Plugin and Skills in an isolated home;
+6. CLI, packaged App, and supported host surfaces report the same causal
+   state after restart;
+7. no R5C product path invokes a model provider, Python, Node, or a 1.x runtime;
+   and
+8. all nonclaims remain explicit, leaving Tier 1 distribution and Beta
+   qualification for the following R5 stage.

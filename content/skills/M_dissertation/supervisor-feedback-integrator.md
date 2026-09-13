@@ -39,9 +39,18 @@ Write `dissertation/supervisor_feedback_log.md` and support `dissertation/revisi
 
 ## Inputs
 
+For a direct explanation or local revision, use the supplied feedback and affected
+passage. A complete chapter map is not required when that material identifies
+the target and supports the requested answer. State any unresolved interpretation
+without inventing supervisor intent or approval. Formal M4 runs retain the
+declared chapter-map input and feedback-log output below.
+
 - `DissertationChapterMap`
 - `ReviewComments`
 - Optional draft chapters and current revision plan.
+- If comments, chapter context, or revision evidence are missing or
+  insufficient, record a gap note and ask for clarification before assigning
+  intent or resolution status.
 
 ## Process
 
@@ -49,10 +58,16 @@ Write `dissertation/supervisor_feedback_log.md` and support `dissertation/revisi
 2. Link it to affected chapter, section, claim, method, or evidence.
 3. Assign required action, priority, evidence needed, and status.
 4. Record ambiguity and questions for the supervisor.
+5. Return the requested explanation or changes and stop. A proposed edit is not
+   proof that feedback was applied or accepted; verify actual revision evidence
+   before changing resolution status in a formal log.
 
 ## Output Contract
 
-Write `RESEARCH/[topic]/dissertation/supervisor_feedback_log.md`; update `RESEARCH/[topic]/dissertation/revision_plan.md` when the revision sequence is clear.
+For formal M4, write `RESEARCH/[topic]/dissertation/supervisor_feedback_log.md`;
+update `RESEARCH/[topic]/dissertation/revision_plan.md` when the revision sequence
+is clear. Registered project writes use preview/approval/CAS. A direct explanation
+or passage edit may stay in chat without creating either file or claiming M4 complete.
 
 ## Quality Bar
 
@@ -60,6 +75,9 @@ Write `RESEARCH/[topic]/dissertation/supervisor_feedback_log.md`; update `RESEAR
 - [ ] Each action has an affected artifact.
 - [ ] Ambiguous comments remain marked.
 - [ ] No supervisor approval is implied.
+- [ ] Each finding preserves the supplied comment; interpretation is labeled
+  and calibrated to its wording; implication names a proposed action or a
+  question for supervisor confirmation.
 
 ## Common Pitfalls
 
@@ -68,3 +86,4 @@ Write `RESEARCH/[topic]/dissertation/supervisor_feedback_log.md`; update `RESEAR
 | Inventing intent | Misrepresents supervisor | Mark ambiguity |
 | No artifact link | Hard to execute | Attach each item to chapter/claim |
 | Premature "resolved" | False status | Require evidence of revision |
+| Filling feedback gaps | Creates false authority | Never invent comments, citations, data, supervisor rules, statistics, results, or approval |

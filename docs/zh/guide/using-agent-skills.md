@@ -1,5 +1,46 @@
 # 使用 Agent Skills
 
+本页当前入口面向 2.x。先按[安装指南](cli-2x.md#install-and-upgrade-bundled-content)
+更新并注册 Plugin，再新开 Host 会话检查实际工具。
+
+## 直接提出研究请求
+
+你可以说“阅读这篇论文，列出主要发现和证据局限”“把这些来源整理成文献综述”，
+或“总结已经完成的阶段，保留来源和变化”。窄任务只读取相关指导，不会因为项目存在
+就启动全部研究阶段。稿件润色沿用 J2，保留数字、引用、术语和因果限制。
+
+当前开发源码也让研究设计指导随方法和已批准协议而定。角色不再统一规定文献、
+竞争解释或稳健性检验的数量。提出请求时，说明需要作出的决定、现有材料，以及
+必须保留的要求即可。正式交付仍需相应证据和检查；预注册草稿也不等于已经注册。
+这些调整已包含在 beta.6 中。请先更新 CLI，再刷新 Plugin。
+
+新构建的 Codex Plugin 提供 `$qiongli` 和 20 个 workflow 快捷入口，例如
+`$qiongli-paper-read`、`$qiongli-lit-review`、`$qiongli-stage-close`。
+这些入口先读取共享 Skill，再读取对应工作流；82 张内部技能卡不单独包装。
+Claude 保留一个主 Skill，也可以直接用自然语言调用。旧缓存需要更新才会出现新入口。
+
+## 工具与保存
+
+| 使用方式 | 边界 |
+|---|---|
+| 独立 Skills | 使用 Host 现有工具和授权材料；不假定已经连接 MCP |
+| 原生 Marketplace Plugin | 启动随包 Lite MCP，提供 14 个工具 |
+| CLI 导出的本地 Plugin | 启动随包 Full MCP，提供 32 个工具；Host 和模型由用户选择 |
+| CLI | `qiongli doctor`、`qiongli project` 和 `qiongli help`；不需要 Python 运行时 |
+
+注册和缓存校验通过不等于会话工具已加载。需要的 MCP 工具缺失时，先检查连接；
+可继续独立完成有材料支持的工作，但不能伪造工具调用或直接修改已登记项目来绕过审批。
+项目写入沿用预览、明确授权和当前 revision 校验。阶段总结保留原文件，清理由用户亲自操作。
+
+[Graph 与研究连续性](cli-2x.md#research-graph) · [任务场景](task-recipes.md)
+
+<details>
+<summary>1.x 的旧客户端与运行时说明</summary>
+
+以下说明仅适用于旧版本，保留用于迁移对照；其中的 Python、bootstrap 和旧 CLI
+命令不适用于原生 2.x。
+
+
 Qiongli 安装的是一套 agent-facing skill 系统，但不同客户端暴露入口的方式不一样。安装之后，如果你不知道在 Codex、Claude Code、Antigravity、Hermes 或 shell 里该输入什么，先看这一页。
 
 ## 名称模型
@@ -151,6 +192,26 @@ Claude Code 可以通过 workflow entry markdown 暴露 Qiongli。常用入口�
 
 这些 slash workflows 是便捷入口。它们最终都会路由到同一套 Qiongli task contract 和 skill package。
 
+## 选刊、按期刊调整稿件与投稿前审稿
+
+直接说清你现在要做的判断即可：
+
+- “我已经选定这本期刊。请核查研究论文初投稿的要求，并对这份稿件提出修改建议。”
+  A5 会把适用要求与稿件位置对应起来，说明需要改什么、依据是什么。
+- “请阅读这份稿件，推荐合适的期刊。”H5 先看论文的贡献、方法和证据，再比较
+  接收范围、读者、费用，以及你关心的其他限制。
+- “请审查这篇论文的方法和结论。”H3 提供审稿意见，H4 着重检查有依据的投稿障碍；
+  两者都不会自动转入修稿或投稿。
+
+影响判断的期刊规定会附上来源、核查日期和适用的文章类型、投稿阶段。本地期刊档案
+用于寻找线索，不能替代现行规定。只有摘要或无法核查来源时，会给出暂定建议并说明
+缺少什么，不会凑够固定数量、承诺录用，也不会把期刊不匹配直接说成研究有问题。
+
+修改建议会区分表达与报告补充，以及需要重新分析、补充数据或由作者确认的事项。
+简单咨询可以只在聊天里回答；正式任务继续沿用现有文档和写入确认。同一模型的多个
+审稿视角仍然属于自审，不能算独立复核。处理期刊委托的保密审稿，还要遵守该刊对
+AI 使用和保密的规定。
+
 ## Shell 与 Orchestrator 用法
 
 当你需要检查、升级、验证或运行显式 Task ID 时，使用 shell CLI：
@@ -187,3 +248,4 @@ python3 -m bridges.orchestrator task-run \
 5. 需要可重复 task execution 时，用 `qiongli doctor` 和 `python3 -m bridges.orchestrator task-plan|task-run`。
 
 当 workflow 或 orchestrator task 产生持久产物时，Qiongli 会把研究产物写到 `RESEARCH/[topic]/` 下。只有在你明确运行 `qiongli init` 或选择 project install parts 时，才会写入项目本地集成文件。
+</details>

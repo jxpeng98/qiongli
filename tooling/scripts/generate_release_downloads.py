@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +18,9 @@ for import_root in (Path(__file__).resolve().parent, PYTHON_SOURCE_ROOT, REPO_RO
         sys.path.insert(0, str(import_root))
 
 from build_plugin_artifacts import _desktop_subjects, _is_prerelease_tag, _marketplace_subjects
+from build_lite_mcp import current_host_target
 from qiongli.platform_targets import PlatformTarget, load_platform_targets
+from tooling.scripts.release_version import parse_release_version
 
 
 DEFAULT_REPO_SLUG = "jxpeng98/qiongli"
@@ -26,6 +29,13 @@ NEXT_PLUGIN_NAME = "qiongli-next"
 MCPB_MANIFEST = REPO_ROOT / "packages" / "qiongli-literature-mcpb" / "manifest.json"
 ZOTERO_COMPANION_MANIFEST = REPO_ROOT / "packages" / "qiongli-zotero-companion" / "manifest.json"
 ZOTERO_COMPANION_ASSET_SLUG = "qiongli-zotero-companion"
+ZOTERO_COMPANION_UPDATE_MANIFEST = "qiongli-zotero-companion-updates.json"
+PRODUCT_MANIFEST_RELATIVE_PATH = Path("pyproject.toml")
+LITE_MCP_MANIFEST_RELATIVE_PATH = Path("packages") / "qiongli-lite-mcp" / "Cargo.toml"
+LITERATURE_MCPB_MANIFEST_RELATIVE_PATH = (
+    Path("packages") / "qiongli-literature-mcpb" / "manifest.json"
+)
+LITE_CONTRACT_RELATIVE_PATH = Path("content") / "mcp-contracts" / "lite-tools.json"
 COMPANION_TARGET_REGISTRY_RELATIVE_PATH = Path("content") / "distribution" / "release-companion-targets.yaml"
 COMPANION_TARGET_REQUIRED_FIELDS = (
     "target_id",
@@ -37,6 +47,7 @@ REQUIRED_COMPANION_TARGET_KEYS = frozenset(
     {
         "claude_desktop_literature_mcpb",
         "zotero_desktop_companion",
+        "zotero_desktop_companion_updates",
         "download_guide",
         "download_index",
         "artifact_manifest",
@@ -49,13 +60,75 @@ REQUIRED_RECOMMENDED_TARGET_KEYS = (
     "claude_desktop_skill",
     "claude_desktop_plugin",
 )
+NATIVE_LITE_ASSET_KEYS = frozenset(
+    {
+        "claude_desktop_plugin",
+        "claude_desktop_literature_mcpb",
+        "maintainer_plugin_tarballs",
+        "maintainer_plugin_zips",
+    }
+)
+
+
+def _read_toml_version(path: Path, section: str) -> str:
+    with path.open("rb") as handle:
+        payload = tomllib.load(handle)
+    table = payload.get(section)
+    version = table.get("version") if isinstance(table, dict) else None
+    if not isinstance(version, str) or not version:
+        raise ValueError(f"{path} must define {section}.version")
+    return version
+
+
+def build_component_versions(root: Path = REPO_ROOT) -> dict[str, dict[str, str]]:
+    product_manifest = root / PRODUCT_MANIFEST_RELATIVE_PATH
+    lite_manifest = root / LITE_MCP_MANIFEST_RELATIVE_PATH
+    mcpb_manifest = root / LITERATURE_MCPB_MANIFEST_RELATIVE_PATH
+    contract_path = root / LITE_CONTRACT_RELATIVE_PATH
+
+    product_version = _read_toml_version(product_manifest, "project")
+    lite_version = _read_toml_version(lite_manifest, "package")
+    mcpb_payload = json.loads(mcpb_manifest.read_text(encoding="utf-8"))
+    mcpb_version = mcpb_payload.get("version")
+    if not isinstance(mcpb_version, str) or not mcpb_version:
+        raise ValueError(f"{mcpb_manifest} must define version")
+    if lite_version != mcpb_version:
+        raise ValueError(
+            "Lite MCP crate and MCPB versions must match: "
+            f"{lite_version!r} != {mcpb_version!r}"
+        )
+
+    contract_payload = json.loads(contract_path.read_text(encoding="utf-8"))
+    contract_version = contract_payload.get("schema_version")
+    if not isinstance(contract_version, str) or not contract_version:
+        raise ValueError(f"{contract_path} must define schema_version")
+
+    return {
+        "product": {
+            "version": product_version,
+            "source": PRODUCT_MANIFEST_RELATIVE_PATH.as_posix(),
+        },
+        "lite_mcp": {
+            "version": lite_version,
+            "source": LITE_MCP_MANIFEST_RELATIVE_PATH.as_posix(),
+            "runtime_profile": "lite",
+            "runtime_implementation": "rust",
+            "target_policy": "current-host-only",
+            "native_target": current_host_target(root),
+        },
+        "literature_mcpb": {
+            "version": mcpb_version,
+            "source": LITERATURE_MCPB_MANIFEST_RELATIVE_PATH.as_posix(),
+        },
+        "lite_contract": {
+            "version": contract_version,
+            "source": LITE_CONTRACT_RELATIVE_PATH.as_posix(),
+        },
+    }
 
 
 def _normalize_tag(raw: str) -> str:
-    tag = raw.strip()
-    if not tag:
-        raise ValueError("tag is required")
-    return tag if tag.startswith("v") else f"v{tag}"
+    return parse_release_version(raw).repo_tag
 
 
 def _asset_url(repo_slug: str, tag: str, name: str) -> str:
@@ -102,6 +175,7 @@ def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
             "claude_desktop_legacy_core_skill": "",
             "claude_desktop_literature_mcpb": _mcpb_asset_name(),
             "zotero_desktop_companion": _zotero_companion_asset_name(),
+            "zotero_desktop_companion_updates": ZOTERO_COMPANION_UPDATE_MANIFEST,
             "maintainer_plugin_tarballs": [
                 f"{NEXT_PLUGIN_NAME}-codex-plugin-{tag}.tar.gz",
                 f"{NEXT_PLUGIN_NAME}-claude-plugin-{tag}.tar.gz",
@@ -138,6 +212,7 @@ def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
         "claude_desktop_legacy_core_skill": f"{PLUGIN_NAME}-claude-desktop-skill-{tag}.zip",
         "claude_desktop_literature_mcpb": _mcpb_asset_name(),
         "zotero_desktop_companion": _zotero_companion_asset_name(),
+        "zotero_desktop_companion_updates": ZOTERO_COMPANION_UPDATE_MANIFEST,
         "maintainer_plugin_tarballs": plugin_tarballs,
         "maintainer_plugin_zips": plugin_zips,
     }
@@ -265,13 +340,61 @@ def _recommended_target_ids(targets: dict[str, PlatformTarget]) -> dict[str, str
 
 def build_index(tag: str, repo_slug: str = DEFAULT_REPO_SLUG, root: Path = REPO_ROOT) -> dict[str, Any]:
     tag = _normalize_tag(tag)
+    release_identity = parse_release_version(tag)
+    if release_identity.release_line == "native-2x":
+        raise ValueError(
+            "native 2.x release metadata is isolated from legacy downloads; "
+            "use scripts/native_release_dry_run.py"
+        )
     is_next = _is_prerelease_tag(tag)
     assets = _release_assets(tag, root)
+    component_versions = build_component_versions(root)
+    lite_component = component_versions["lite_mcp"]
+    native_policy = lite_component.get("target_policy")
+    native_marketplace_paused = native_policy == "current-host-only"
     targets = load_platform_targets(root)
     recommended_target_ids = _recommended_target_ids(targets)
     assets_by_target = _assets_by_target(assets, targets)
     companion_targets = load_companion_targets(root)
     assets_by_target.update(_companion_assets_by_target(assets, companion_targets))
+    plugin_tarballs = list(assets["maintainer_plugin_tarballs"])
+    plugin_zips = list(assets["maintainer_plugin_zips"])
+    codex_manual_asset = next(
+        asset for asset in plugin_tarballs if "-codex-plugin-" in asset
+    )
+    claude_manual_asset = (
+        plugin_zips[0]
+        if plugin_zips
+        else next(asset for asset in plugin_tarballs if "-claude-plugin-" in asset)
+    )
+    codex_recommendation: dict[str, Any] = {
+        "target_id": recommended_target_ids["codex"],
+        "install": "marketplace",
+        "command": "codex plugin marketplace add jxpeng98/skillsplace --ref main",
+        "plugin": NEXT_PLUGIN_NAME if is_next else PLUGIN_NAME,
+        "manual_asset": None,
+    }
+    claude_recommendation: dict[str, Any] = {
+        "target_id": recommended_target_ids["claude_code"],
+        "install": "marketplace",
+        "command": "claude plugin marketplace add jxpeng98/skillsplace@main",
+        "plugin": NEXT_PLUGIN_NAME if is_next else PLUGIN_NAME,
+        "manual_asset": None,
+    }
+    if native_marketplace_paused:
+        for recommendation, manual_asset in (
+            (codex_recommendation, codex_manual_asset),
+            (claude_recommendation, claude_manual_asset),
+        ):
+            recommendation.update(
+                {
+                    "install": "download_matching_native_asset",
+                    "command": None,
+                    "manual_asset": manual_asset,
+                    "marketplace_dist_ref": "paused_current_host_only",
+                }
+            )
+
     recommended: dict[str, Any] = {
         "qiongli_cli": {
             "target_id": recommended_target_ids["qiongli_cli"],
@@ -282,20 +405,8 @@ def build_index(tag: str, repo_slug: str = DEFAULT_REPO_SLUG, root: Path = REPO_
                 else 'npx qiongli@latest install --target all --project-dir "$PWD"'
             ),
         },
-        "codex": {
-            "target_id": recommended_target_ids["codex"],
-            "install": "marketplace",
-            "command": "codex plugin marketplace add jxpeng98/skillsplace --ref main",
-            "plugin": NEXT_PLUGIN_NAME if is_next else PLUGIN_NAME,
-            "manual_asset": None,
-        },
-        "claude_code": {
-            "target_id": recommended_target_ids["claude_code"],
-            "install": "marketplace",
-            "command": "claude plugin marketplace add jxpeng98/skillsplace@main",
-            "plugin": NEXT_PLUGIN_NAME if is_next else PLUGIN_NAME,
-            "manual_asset": None,
-        },
+        "codex": codex_recommendation,
+        "claude_code": claude_recommendation,
         "claude_desktop_skill": {
             "target_id": recommended_target_ids["claude_desktop_skill"],
             "install": "download_zip",
@@ -318,12 +429,15 @@ def build_index(tag: str, repo_slug: str = DEFAULT_REPO_SLUG, root: Path = REPO_
         "zotero_desktop_companion": {
             "install": "download_xpi",
             "asset": assets["zotero_desktop_companion"],
+            "automatic_update_manifest": assets["zotero_desktop_companion_updates"],
+            "automatic_update_channel": "latest-stable",
         },
     }
     return {
         "tag": tag,
         "channel": "next" if is_next else "stable",
         "release_url": f"https://github.com/{repo_slug}/releases/tag/{tag}",
+        "component_versions": component_versions,
         "recommended": recommended,
         "assets": {
             key: value for key, value in assets.items()
@@ -438,11 +552,31 @@ def build_artifact_manifest(index: dict[str, Any]) -> dict[str, Any]:
                     }
                 )
 
+    component_versions = index.get("component_versions")
+    lite_component = (
+        component_versions.get("lite_mcp", {})
+        if isinstance(component_versions, dict)
+        else {}
+    )
+    if isinstance(lite_component, dict):
+        native_target = lite_component.get("native_target")
+        component_version = lite_component.get("version")
+        if isinstance(native_target, str) and isinstance(component_version, str):
+            for record in records:
+                if record.get("asset_key") in NATIVE_LITE_ASSET_KEYS:
+                    record["native_variant"] = {
+                        "policy": "current-host-only",
+                        "target_triple": native_target,
+                        "component_version": component_version,
+                        "identity_file": "bin/qiongli-literature-provider.target.json",
+                    }
+
     return {
         "schema_version": "1.0",
         "tag": tag,
         "channel": channel,
         "release_url": str(index["release_url"]),
+        "component_versions": dict(index.get("component_versions") or {}),
         "artifacts": records,
     }
 
@@ -572,14 +706,43 @@ def render_markdown(index: dict[str, Any]) -> str:
     platform_targets = index.get("platform_targets", {})
     if not isinstance(platform_targets, dict):
         platform_targets = {}
+    component_versions = index.get("component_versions", {})
+    lite_component = (
+        component_versions.get("lite_mcp", {})
+        if isinstance(component_versions, dict)
+        else {}
+    )
+    native_target = (
+        lite_component.get("native_target", "unknown")
+        if isinstance(lite_component, dict)
+        else "unknown"
+    )
     desktop_skills = list(assets["claude_desktop_skills"])
     desktop_plugin_asset = str(assets["claude_desktop_plugin"])
     mcpb_asset = str(assets["claude_desktop_literature_mcpb"])
     zotero_asset = str(assets["zotero_desktop_companion"])
+    zotero_updates_asset = str(assets["zotero_desktop_companion_updates"])
     guide_asset = str(assets["download_guide"])
     index_asset = str(assets["download_index"])
     manifest_asset = str(assets["artifact_manifest"])
     plugin_zips = list(assets.get("maintainer_plugin_zips", []))
+    native_marketplace_paused = recommended["codex"]["install"] != "marketplace"
+    if native_marketplace_paused:
+        codex_install_text = (
+            f"Download `{recommended['codex']['manual_asset']}` only when the bundled "
+            f"target identity matches `{native_target}`."
+        )
+        claude_install_text = (
+            f"Download `{recommended['claude_code']['manual_asset']}` only when the bundled "
+            f"target identity matches `{native_target}`."
+        )
+        codex_install_reason = "The generic marketplace dist ref is not advanced by a current-host-only build."
+        claude_install_reason = "The generic marketplace dist ref is not advanced by a current-host-only build."
+    else:
+        codex_install_text = "Use the marketplace command; do not download a plugin tarball."
+        claude_install_text = "Use the marketplace command; do not download a plugin tarball."
+        codex_install_reason = "Marketplace install keeps skills and bundled literature MCP registration together."
+        claude_install_reason = "Marketplace install keeps slash commands, skills, and bundled literature MCP together."
     desktop_core_asset = (
         f"{NEXT_PLUGIN_NAME}-claude-desktop-skill-core-{tag}.zip"
         if channel == "next"
@@ -600,6 +763,7 @@ def render_markdown(index: dict[str, Any]) -> str:
     desktop_plugin_url = str(asset_urls["claude_desktop_plugin"])
     mcpb_url = str(asset_urls["claude_desktop_literature_mcpb"])
     zotero_url = str(asset_urls["zotero_desktop_companion"])
+    zotero_updates_url = str(asset_urls["zotero_desktop_companion_updates"])
     guide_url = str(asset_urls["download_guide"])
     index_url = str(asset_urls["download_index"])
     manifest_url = str(asset_urls["artifact_manifest"])
@@ -617,6 +781,12 @@ def render_markdown(index: dict[str, Any]) -> str:
         else "Next releases are prerelease validation builds. Use them to test `qiongli-next`, "
         "npm `next`, and the beta Desktop/MCP assets before the next stable release."
     )
+    if native_marketplace_paused:
+        channel_description += (
+            " Generic Codex and Claude marketplace dist refs are not advanced by this "
+            "current-host-only build; use only a release asset whose embedded target identity "
+            "matches the install host."
+        )
 
     lines = [
         f"# Qiongli {tag} Download Guide",
@@ -628,6 +798,13 @@ def render_markdown(index: dict[str, Any]) -> str:
         "",
         f"Release page: {release_url}",
         "",
+        (
+            "Native Lite scope: the direct plugin, marketplace maintainer artifacts, and MCPB "
+            f"generated in this release job contain only `{native_target}`. Their bundled "
+            "`bin/qiongli-literature-provider.target.json` identity must match the install host; "
+            "they are not generic multi-platform binaries."
+        ),
+        "",
         "## Direct downloads",
         "",
         "| Need | Link |",
@@ -637,6 +814,7 @@ def render_markdown(index: dict[str, Any]) -> str:
         f"| Default Claude Desktop/Web skill ZIP | {_markdown_link(desktop_core_asset, desktop_core_url)} |",
         f"| Claude Desktop literature MCPB | {_markdown_link(mcpb_asset, mcpb_url)} |",
         f"| Zotero Desktop companion XPI | {_markdown_link(zotero_asset, zotero_url)} |",
+        f"| Zotero automatic-update manifest (client-consumed) | {_markdown_link(zotero_updates_asset, zotero_updates_url)} |",
         f"| Human download guide | {_markdown_link(guide_asset, guide_url)} |",
         f"| Machine-readable download index | {_markdown_link(index_asset, index_url)} |",
         f"| Machine-readable artifact manifest | {_markdown_link(manifest_asset, manifest_url)} |",
@@ -646,8 +824,8 @@ def render_markdown(index: dict[str, Any]) -> str:
         "| You use | Download or install | Why |",
         "|---|---|---|",
         f"| {_recommended_target_label(platform_targets, recommended, 'qiongli_cli', 'Qiongli CLI')} | `{recommended['qiongli_cli']['command']}` | Uses the {cli_channel_label} channel and bundled CLI payload. |",
-        f"| {_recommended_target_label(platform_targets, recommended, 'codex', 'Codex')} | Use the marketplace command; do not download a plugin tarball. | Marketplace install keeps skills and bundled literature MCP registration together. |",
-        f"| {_recommended_target_label(platform_targets, recommended, 'claude_code', 'Claude Code')} | Use the marketplace command; do not download a plugin tarball. | Marketplace install keeps slash commands, skills, and bundled literature MCP together. |",
+        f"| {_recommended_target_label(platform_targets, recommended, 'codex', 'Codex')} | {codex_install_text} | {codex_install_reason} |",
+        f"| {_recommended_target_label(platform_targets, recommended, 'claude_code', 'Claude Code')} | {claude_install_text} | {claude_install_reason} |",
         f"| {_recommended_target_label(platform_targets, recommended, 'claude_desktop_plugin', 'Claude Desktop direct plugin')} | Download `{desktop_plugin_asset}`. | Use this recommended direct plugin for Claude Desktop/plugin install. |",
         f"| {_recommended_target_label(platform_targets, recommended, 'claude_desktop_skill', 'Claude Desktop/Web skills')} | Download exactly one fallback skill ZIP from the table below. | Use skill ZIPs only for manual skill upload. |",
         f"| Claude Desktop literature tools | Download `{mcpb_asset}`. | MCPB adds local literature/provider tools and provider key configuration. |",
@@ -691,11 +869,42 @@ def render_release_notes_download_summary(index: dict[str, Any]) -> str:
     platform_targets = index.get("platform_targets", {})
     if not isinstance(platform_targets, dict):
         platform_targets = {}
+    component_versions = index.get("component_versions", {})
+    lite_component = (
+        component_versions.get("lite_mcp", {})
+        if isinstance(component_versions, dict)
+        else {}
+    )
+    native_target = (
+        lite_component.get("native_target", "unknown")
+        if isinstance(lite_component, dict)
+        else "unknown"
+    )
+    native_marketplace_paused = recommended["codex"]["install"] != "marketplace"
+    if native_marketplace_paused:
+        codex_path = (
+            f"Download `{recommended['codex']['manual_asset']}` only on `{native_target}`; "
+            "the generic marketplace dist ref is not advanced."
+        )
+        claude_path = (
+            f"Download `{recommended['claude_code']['manual_asset']}` only on `{native_target}`; "
+            "the generic marketplace dist ref is not advanced."
+        )
+    else:
+        codex_path = (
+            f"Use `{recommended['codex']['command']}` and install "
+            f"`{recommended['codex']['plugin']}`; no manual tarball download required."
+        )
+        claude_path = (
+            f"Use `{recommended['claude_code']['command']}` and install "
+            f"`{recommended['claude_code']['plugin']}`; no manual tarball download required."
+        )
 
     desktop_skills = list(assets["claude_desktop_skills"])
     desktop_plugin_asset = str(assets["claude_desktop_plugin"])
     mcpb_asset = str(assets["claude_desktop_literature_mcpb"])
     zotero_asset = str(assets["zotero_desktop_companion"])
+    zotero_updates_asset = str(assets["zotero_desktop_companion_updates"])
     guide_asset = str(assets["download_guide"])
     index_asset = str(assets["download_index"])
     manifest_asset = str(assets["artifact_manifest"])
@@ -710,18 +919,27 @@ def render_release_notes_download_summary(index: dict[str, Any]) -> str:
     lines = [
         "Most users should not download plugin tarballs manually from GitHub's flat asset list.",
         "",
+        (
+            f"Rust Lite native assets generated by this release job are scoped to `{native_target}` "
+            "and carry `bin/qiongli-literature-provider.target.json`; they are not generic "
+            "multi-platform binaries."
+        ),
+        "",
         "| You use | Recommended path |",
         "|---|---|",
         f"| {_recommended_target_label(platform_targets, recommended, 'qiongli_cli', 'Qiongli CLI')} | Use `{recommended['qiongli_cli']['command']}`. |",
-        f"| {_recommended_target_label(platform_targets, recommended, 'codex', 'Codex')} | Use `{recommended['codex']['command']}` and install `{recommended['codex']['plugin']}`; no manual tarball download required. |",
-        f"| {_recommended_target_label(platform_targets, recommended, 'claude_code', 'Claude Code')} | Use `{recommended['claude_code']['command']}` and install `{recommended['claude_code']['plugin']}`; no manual tarball download required. |",
+        f"| {_recommended_target_label(platform_targets, recommended, 'codex', 'Codex')} | {codex_path} |",
+        f"| {_recommended_target_label(platform_targets, recommended, 'claude_code', 'Claude Code')} | {claude_path} |",
         f"| {_recommended_target_label(platform_targets, recommended, 'claude_desktop_plugin', 'Claude Desktop direct plugin')} | Download `{desktop_plugin_asset}` as the recommended direct plugin. |",
         f"| {_recommended_target_label(platform_targets, recommended, 'claude_desktop_skill', 'Claude Desktop/Web skills')} | Download `{desktop_core_asset}` as the fallback skill ZIP unless you need a different subject ZIP. |",
         f"| Claude Desktop literature tools | Download `{mcpb_asset}` and pair it with a Desktop skill ZIP when provider calls are required. |",
         f"| Zotero Desktop local writes | Download `{zotero_asset}` and install it from Zotero's add-on manager when local Zotero search/write support is required. |",
         "| Maintainers | Use Codex/Claude plugin tarballs and Claude plugin ZIPs only for manual marketplace artifact checks or direct Claude plugin upload tests. |",
         "",
-        f"The release also includes `{guide_asset}`, `{index_asset}`, and `{manifest_asset}` to group the asset list by install surface and expose per-target artifact policy.",
+        f"The release also includes `{zotero_updates_asset}`, `{guide_asset}`, "
+        f"`{index_asset}`, and `{manifest_asset}` to support Zotero's stable "
+        "automatic-update channel, group the asset list by install surface, "
+        "and expose per-target artifact policy.",
     ]
     return "\n".join(lines)
 
