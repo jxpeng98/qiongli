@@ -27,9 +27,9 @@ features:
 
 ## Start here
 
-These pages cover native 2.x on `main`. Downloads are pinned to **2.0.0-beta.6**;
-later installation fixes are identified in the guide. This is not a stable-release
-announcement. Start with the offline Graph, reply-only Skill, optional hooks or guided installation.
+These pages cover **2.0.0**, the first stable native CLI release from `main`.
+Start with guided installation, the offline Graph, reply-only Skill or optional hooks.
+Coming from 1.x? Read [what changed and how to migrate](guide/whats-new-2.md).
 
 | What you need | Entry |
 |---|---|

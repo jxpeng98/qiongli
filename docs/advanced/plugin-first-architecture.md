@@ -26,8 +26,8 @@ MCP terminal. A Skills-only export must be installed through your Host separatel
 After upgrading the CLI through its original channel, run
 `qiongli install plugin` again. It reuses the registered source directory.
 The file preview and Host registration each require confirmation. Known Codex
-Plugin migration is available in main after beta.6; the published beta.6 package
-requires manual disabling of a conflicting Plugin. See the
+Plugin migration is available in 2.0.0. If you still use beta.6, update the CLI
+first or disable a conflicting Plugin manually. See the
 [installation guide](../guide/cli-2x.md#first-use) for the exact boundary.
 
 Run `qiongli doctor` and `qiongli install list`, then start a new Host session and

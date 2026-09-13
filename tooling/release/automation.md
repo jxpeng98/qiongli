@@ -1,5 +1,45 @@
 # Release Automation Runbook
 
+## Current native CLI release: 2.0.0
+
+Use the native lane for this release. The retained instructions below describe
+the early native dry-run and legacy Python automation, not the current CLI publisher.
+`packages/qiongli-native/Cargo.toml` owns the version; synchronize it with
+`python3 scripts/sync_versions.py 2.0.0`, regenerate the Skills docs, and review
+`tooling/release/v2.0.0.md`. Commit the versioned canonical content first, then
+regenerate its embedded lock with the existing owner:
+
+```sh
+QIONGLI_NATIVE_SOURCE_COMMIT="$(git rev-parse HEAD)" \
+  cargo run --manifest-path packages/qiongli-native/Cargo.toml \
+  -p qiongli-content --example update_qiongli_core_lock --locked --offline
+```
+
+Review and commit the lock, notes and remaining preparation. Qualify clean main with:
+
+```sh
+bash scripts/release_ready.sh --version 2.0.0 --cli-github \
+  --staging-dir /tmp/qiongli-2.0.0-qualified
+```
+
+The staging directory must be new and outside the checkout. After the authorized
+source/tag push, keep remote main frozen at that immutable tag and dispatch:
+
+```sh
+gh workflow run release-automation.yml --ref v2.0.0 \
+  -f mode=post -f tag=v2.0.0 -f create_release=true
+```
+
+The publisher qualifies the tag on macOS ARM64, Windows x64 and Linux x64,
+verifies the combined assets, creates the stable GitHub Release and verifies
+public downloads before dispatching npm, PyPI and Cargo. Stable uses GitHub
+latest and npm latest; npm next can remain on the Beta. Dispatch acceptance does
+not establish publication success. No legacy Python, App promotion, local Cargo
+upload or external Marketplace catalog change is part of this lane. See
+[ADR 0227](../../docs/architecture/decisions/0227-native-main-cutover-and-stable-release-routing.md).
+
+## Retained earlier workflows
+
 This repository standardizes release with four scripts:
 
 - `scripts/release_ready.sh`

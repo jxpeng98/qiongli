@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import tomllib
 from pathlib import Path
 
 
@@ -140,10 +141,13 @@ class DistributionMaterializationDocsTests(unittest.TestCase):
                 self.assertIn("npm package contract tests", content)
 
     def test_publish_docs_use_native_release_gate(self) -> None:
+        manifest = tomllib.loads((REPO_ROOT / "packages/qiongli-native/Cargo.toml").read_text())
+        version = manifest["workspace"]["package"]["version"]
         for path in (PUBLISH_PYPI_DOC, PUBLISH_PYPI_ZH_DOC):
             content = path.read_text(encoding="utf-8")
             with self.subTest(path=path):
-                self.assertIn("--version 2.0.0-beta.6 --cli-github", content)
+                self.assertIn(f"--version {version} --cli-github", content)
+                self.assertIn("--staging-dir", content)
                 self.assertIn("release-automation.yml", content)
                 self.assertIn("mode=post", content)
                 self.assertIn("CARGO_REGISTRY_TOKEN", content)

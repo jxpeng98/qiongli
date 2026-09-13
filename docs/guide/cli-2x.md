@@ -1,8 +1,7 @@
 # Qiongli 2 CLI: installation and command boundaries
 
-This guide follows the 2.x source integrated into `main`. The source version
-remains **2.0.0-beta.6**. Downloads point to the published beta.6; later
-installation fixes are identified separately. Merging main does not publish a stable release.
+This guide covers **2.0.0**, the first stable native CLI release from `main`.
+For changes from the Python-based line, see [the 1.x / 2.0 comparison and migration guide](whats-new-2.md).
 
 Qiongli 2 is CLI-first. GitHub binary archives, npm and PyPI distribute the same
 native executable for a given version and target. No Qiongli App is required.
@@ -21,9 +20,7 @@ or failure; each new source needs its own directory with an existing parent.
 
 Plugin source files do not belong in `~/.agents/skills`. Official registration
 lets the Host load Skills and MCP from its Plugin cache. If another Qiongli Plugin
-is enabled, the installer lists it before exporting. Published beta.6 requires you to
-disable it in the Host and retry; use the Plugin switch, since remove deletes its
-cache. Development builds after beta.6 offer a confirmed Codex migration from
+is enabled, the installer lists it before exporting. Qiongli 2.0 offers a confirmed Codex migration from
 `qiongli-next@personal` and the known Qiongli platform entries to the CLI-bundled
 Plugin. The Host preview lists exactly which previous Plugins will be disabled.
 Codex's official configuration API checks the configuration version and changes
@@ -68,9 +65,9 @@ for the read-only inventory. Redirected bare `install` also retains that output.
 
 Check installation in three steps:
 
-1. Read the file and registration results. Development builds after beta.6 group
+1. Read the file and registration results. The completion summary groups
    version, source/cache paths, verified registration and pending session/Hook
-   checks in one completion summary. Declining registration keeps the export
+   checks together. Declining registration keeps the export
    available for a retry at the same destination.
 2. Run `qiongli mcp check` (or add `--profile lite`) for initialization, tool discovery
    and one read-only call in this CLI. This does not verify a Plugin cache, Host
@@ -132,7 +129,7 @@ retain their full plan values; `--json` is the exact machine-readable representa
 Rust or package-manager setup is needed.** You can run from the extracted folder;
 adding it to PATH is optional.
 
-Download a platform archive from [Release v2.0.0-beta.6](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.6).
+Download a platform archive from [Release v2.0.0](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0).
 It contains `qiongli` (Windows: `qiongli.exe`), `README.md` and `LICENSE`.
 The executable embeds the research Skills, templates and Lite/Full MCP resources;
 you do not need a separate resource directory or a checkout of this repository.
@@ -140,11 +137,11 @@ Configure models, Host applications and online literature services separately.
 
 | Your platform | Complete CLI archive |
 |---|---|
-| macOS Apple Silicon / ARM64 | [qiongli-2.0.0-beta.6-aarch64-apple-darwin.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-aarch64-apple-darwin.tar.gz) |
-| Windows x64 | [qiongli-2.0.0-beta.6-x86_64-pc-windows-msvc.zip](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-x86_64-pc-windows-msvc.zip) |
-| Linux x64 / glibc 2.35+ | [qiongli-2.0.0-beta.6-x86_64-unknown-linux-gnu.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-x86_64-unknown-linux-gnu.tar.gz) |
+| macOS Apple Silicon / ARM64 | [qiongli-2.0.0-aarch64-apple-darwin.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/qiongli-2.0.0-aarch64-apple-darwin.tar.gz) |
+| Windows x64 | [qiongli-2.0.0-x86_64-pc-windows-msvc.zip](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/qiongli-2.0.0-x86_64-pc-windows-msvc.zip) |
+| Linux x64 / glibc 2.35+ | [qiongli-2.0.0-x86_64-unknown-linux-gnu.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/qiongli-2.0.0-x86_64-unknown-linux-gnu.tar.gz) |
 
-Windows beta releases statically link the C runtime, so you do not need to install the
+Windows 2.0 releases statically link the C runtime, so you do not need to install the
 Visual C++ runtime separately. Linux uses system libraries, including glibc 2.35+.
 
 Choose these files under **Assets**. GitHub's **Source code** archives require a
@@ -154,21 +151,21 @@ Windows ARM builds are not part of this release.
 
 ### 1. Verify the download
 
-Download [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/SHA256SUMS)
+Download [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/SHA256SUMS)
 from the same release. In the directory containing your download, run the command
 for your platform and compare its hash with the line for that exact filename in
 `SHA256SUMS`. Continue only if they match.
 
 ```sh
 # macOS
-shasum -a 256 qiongli-2.0.0-beta.6-aarch64-apple-darwin.tar.gz
+shasum -a 256 qiongli-2.0.0-aarch64-apple-darwin.tar.gz
 # Linux
-sha256sum qiongli-2.0.0-beta.6-x86_64-unknown-linux-gnu.tar.gz
+sha256sum qiongli-2.0.0-x86_64-unknown-linux-gnu.tar.gz
 ```
 
 ```powershell
 # Windows
-Get-FileHash .\qiongli-2.0.0-beta.6-x86_64-pc-windows-msvc.zip -Algorithm SHA256
+Get-FileHash .\qiongli-2.0.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
 ```
 
 ### 2. Extract and run
@@ -177,9 +174,9 @@ Extract into a new directory, keeping existing installations and research files
 intact. On macOS:
 
 ```sh
-mkdir qiongli-2.0.0-beta.6-macos-arm64
-tar -xzf qiongli-2.0.0-beta.6-aarch64-apple-darwin.tar.gz -C qiongli-2.0.0-beta.6-macos-arm64
-cd qiongli-2.0.0-beta.6-macos-arm64
+mkdir qiongli-2.0.0-macos-arm64
+tar -xzf qiongli-2.0.0-aarch64-apple-darwin.tar.gz -C qiongli-2.0.0-macos-arm64
+cd qiongli-2.0.0-macos-arm64
 ./qiongli --version
 ./qiongli --help
 ./qiongli content list
@@ -188,9 +185,9 @@ cd qiongli-2.0.0-beta.6-macos-arm64
 On Linux:
 
 ```sh
-mkdir qiongli-2.0.0-beta.6-linux-x64
-tar -xzf qiongli-2.0.0-beta.6-x86_64-unknown-linux-gnu.tar.gz -C qiongli-2.0.0-beta.6-linux-x64
-cd qiongli-2.0.0-beta.6-linux-x64
+mkdir qiongli-2.0.0-linux-x64
+tar -xzf qiongli-2.0.0-x86_64-unknown-linux-gnu.tar.gz -C qiongli-2.0.0-linux-x64
+cd qiongli-2.0.0-linux-x64
 ./qiongli --version
 ./qiongli --help
 ./qiongli content list
@@ -199,14 +196,14 @@ cd qiongli-2.0.0-beta.6-linux-x64
 On Windows, open PowerShell in your download directory:
 
 ```powershell
-Expand-Archive -Path .\qiongli-2.0.0-beta.6-x86_64-pc-windows-msvc.zip -DestinationPath .\qiongli-2.0.0-beta.6-windows-x64
-Set-Location .\qiongli-2.0.0-beta.6-windows-x64
+Expand-Archive -Path .\qiongli-2.0.0-x86_64-pc-windows-msvc.zip -DestinationPath .\qiongli-2.0.0-windows-x64
+Set-Location .\qiongli-2.0.0-windows-x64
 .\qiongli.exe --version
 .\qiongli.exe --help
 .\qiongli.exe content list
 ```
 
-The version output should be `qiongli 2.0.0-beta.6`. The archive supplies the
+The version output should be `qiongli 2.0.0`. The archive supplies the
 `qiongli` executable; npm/PyPI/Cargo additionally provide the `ql` command alias.
 
 ### 3. Optional PATH and Host setup
@@ -253,7 +250,7 @@ the review during npm installation, allow Qiongli's script for that invocation a
 terminal:
 
 ```sh
-npm install -g qiongli@next --allow-scripts=qiongli --foreground-scripts
+npm install -g qiongli@latest --allow-scripts=qiongli --foreground-scripts
 ```
 
 Recent npm versions warn when this `postinstall` script has not been explicitly
@@ -273,16 +270,18 @@ standalone release bundle is suitable for a separate, checksum-verified copy.
 
 ## Package managers
 
-Alternatively, choose one package manager for the command on your PATH:
+Alternatively, choose one package manager for the command on your PATH.
+For stable npm releases use `latest`; `next` may still point to the previous Beta.
+Use `qiongli@2.0.0` to pin this exact npm version:
 
 ```sh
-npm install --global qiongli@next
+npm install --global qiongli@latest
 ```
 
 Or install in a Python virtual environment:
 
 ```sh
-python -m pip install --upgrade "qiongli==2.0.0b6"
+python -m pip install --upgrade "qiongli==2.0.0"
 ```
 
 Both expose `qiongli` and `ql`. Check both with `--version` before comparing
@@ -293,10 +292,10 @@ Cargo builds the CLI from source and requires Rust 1.97+ and the target's native
 linker. It provides both `qiongli` and `ql`.
 
 ```sh
-cargo install qiongli --version 2.0.0-beta.6 --locked
+cargo install qiongli --version 2.0.0 --locked
 ```
 
-Use the exact SemVer prerelease version; Cargo has no `next` channel. Choose the
+The command pins this release; Cargo has no `next` channel. Choose the
 standalone archive if you want to run immediately without a compiler.
 
 If npm reports a successful install but the command is missing, inspect
@@ -344,7 +343,7 @@ MCP; it needs no Python, Node or Cargo runtime. Codex itself must be installed.
 For Claude Code, use `--target claude` and a separate directory, such as
 `$HOME/qiongli-plugins/claude/qiongli-next`, with its parent created first.
 
-Beta.6 also offers optional context reminders during
+Qiongli offers optional context reminders during
 Plugin installation. First install defaults to off; updates preserve your choice.
 Use `qiongli install plugin --hooks context` to include them or `--hooks off` to
 remove their Plugin configuration. The preview shows the exact commands; Host
@@ -363,7 +362,7 @@ separately; each new Host needs its own directory. Omit `--destination` with all
 `update plugin` is an alias. Repeating `install plugin` reconciles an existing
 verified export. Before replacing an old Plugin cache, Qiongli verifies its
 receipt and shows the exact Host remove/install sequence for confirmation. Known Codex Plugin conflicts can follow the confirmed migration described
-above in main after beta.6. A marketplace pointing elsewhere, changed files or
+above. A marketplace pointing elsewhere, changed files or
 an unexpected scope still stops registration and needs manual review.
 
 Enter declines each confirmation. Declining the second step leaves the exported

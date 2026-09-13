@@ -13,8 +13,8 @@ The version source is `packages/qiongli-native/Cargo.toml`.
 For example, `2.0.0-beta.6` maps to Python `2.0.0b6`; a stable `2.0.0` keeps that
 version in each registry. Prereleases use `2.x`, npm `next` and crates.io prerelease
 versions. Stable releases use reviewed `main` and npm `latest`. Cargo has no
-`next` tag. The current source version remains beta.6; main integration alone
-does not publish `v2.0.0`.
+`next` tag. The current source version is `2.0.0`; publication requires the
+explicit tag-bound workflow below, not just a main merge.
 
 ## Beta channel policy
 
@@ -33,10 +33,11 @@ source-package checks. A successful source build is not the entire release gate.
 For a local native CLI release check, the existing entry is:
 
 ```sh
-bash scripts/release_ready.sh --version 2.0.0-beta.6 --cli-github
+bash scripts/release_ready.sh --version 2.0.0 --cli-github \
+  --staging-dir /tmp/qiongli-2.0.0-qualified
 ```
 
-Use the intended version when preparing a new release. Create the immutable tag
+Use the intended version and a new staging directory outside the checkout. Create the immutable tag
 only after the required preparation and explicit publication authority.
 Pushing a tag alone does not publish the native packages. Dispatch **Release
 Automation** (`release-automation.yml`) with `mode=post`, the exact `v2.*` tag and

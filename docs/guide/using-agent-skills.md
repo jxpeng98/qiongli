@@ -18,7 +18,7 @@ and any requirements that must stay in force. Formal deliverables still require
 their evidence and checks; a preregistration draft is not a registered study.
 If you use an older build, update the CLI and refresh the Plugin.
 
-Codex Plugins from beta.6 expose `$qiongli` and 20 workflow shortcuts, including
+Qiongli 2.0 Codex Plugins expose `$qiongli` and 20 workflow shortcuts, including
 `$qiongli-paper-read`, `$qiongli-lit-review` and `$qiongli-stage-close`. Each reads
 the shared Skill before its workflow. The 82 internal skill cards are not wrapped
 separately. Claude retains one main Skill and also accepts natural-language

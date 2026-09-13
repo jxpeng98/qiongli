@@ -19,9 +19,9 @@
 
 ## Qiongli 2.x
 
-`main` now contains native 2.x; `2.x` remains the development and prerelease
-branch. The source version is still `2.0.0-beta.6`; main integration does not
-mean that the stable release has been published.
+`2.0.0` is the first stable release of the native CLI, built from `main`.
+`2.x` remains the development and prerelease branch. See the
+[release notes](tooling/release/v2.0.0.md) for this release's scope and upgrade steps.
 
 Native academic research CLI with embedded Skills, templates and Lite/Full MCP.
 Keep your chosen Codex or Claude Code Host and model settings. Qiongli supplies
@@ -37,36 +37,51 @@ explains the choices and how to verify the first Host session.
 Explore the offline [Research Graph example](docs/examples/research-graph.md),
 then choose the research guidance, reply-only entry or optional context hooks you need.
 
+## What changes from 1.x?
+
+| Area | Late 1.x | 2.0 |
+|---|---|---|
+| Runtime | Python full runtime; native Lite Marketplace bundles | One Rust CLI with embedded content and native Lite/Full MCP |
+| Installation | Different responsibilities across Python/npm entries | Extract-and-run CLI; npm, PyPI and Cargo share the native CLI contract |
+| Daily use | More surface and part options | Guided `install`; `install plugin` also updates the registered Plugin |
+| Research guidance | More prescribed sequences and generic quotas | Task-led guidance with evidence, protocol and approval boundaries |
+| Continuity | Workflow artifacts and literature citation discovery | Structured records, an offline Research Graph and traceable stage summaries |
+
+Late 1.x already had independent native Lite Plugins. The 2.0 change extends
+native delivery to the complete CLI and Full MCP. Models and Hosts remain your
+choice; actual subagents come from the Host. See the [detailed comparison and
+migration guide](docs/guide/whats-new-2.md), including compatibility limits and rollback.
+
 ## Qiongli 2.x Standalone Downloads
 
 **Download, extract, and run. You do not need Python, Node.js, Rust or a package manager.**
 
-Choose the complete CLI from [GitHub Release v2.0.0-beta.6](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.6).
+Choose the complete CLI from [GitHub Release v2.0.0](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0).
 After extraction, run `./qiongli --help` (PowerShell: `.\qiongli.exe --help`).
 The program already includes the research Skills, templates and Lite/Full MCP
 resources. You can use it from that folder; installing an App or changing PATH is optional.
 
 | Platform | Binary archive |
 |---|---|
-| macOS Apple Silicon (ARM64) | [Download `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-aarch64-apple-darwin.tar.gz) |
-| Windows x64 | [Download `.zip`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-x86_64-pc-windows-msvc.zip) |
-| Linux x64 (glibc 2.35+) | [Download `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-x86_64-unknown-linux-gnu.tar.gz) |
+| macOS Apple Silicon (ARM64) | [Download `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/qiongli-2.0.0-aarch64-apple-darwin.tar.gz) |
+| Windows x64 | [Download `.zip`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/qiongli-2.0.0-x86_64-pc-windows-msvc.zip) |
+| Linux x64 (glibc 2.35+) | [Download `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/qiongli-2.0.0-x86_64-unknown-linux-gnu.tar.gz) |
 
-Windows beta releases include the C runtime in the executable; no Visual C++ runtime
+Windows 2.0 releases include the C runtime in the executable; no Visual C++ runtime
 installation is needed. Linux uses system libraries with glibc 2.35+.
 
-Verify with the release's [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/SHA256SUMS)
+Verify with the release's [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/SHA256SUMS)
 before running. See [extraction, PATH and MCP setup](docs/guide/cli-2x.md#standalone-binary-download)
 for step-by-step instructions. Choose these platform archives from **Assets**, rather than
 GitHub's automatic **Source code** downloads. Host applications and online services remain separate.
 
-Package-manager users can use `npm install --global qiongli@next` with Node.js 18+,
+Package-manager users can use `npm install --global qiongli@latest` with Node.js 18+,
 or follow the [PyPI instructions](docs/guide/cli-2x.md#package-managers) with Python 3.9+.
 Both distribute the native executable. Cargo builds it from source with Rust 1.97+
 and a native linker.
 
 ```sh
-cargo install qiongli --version 2.0.0-beta.6 --locked
+cargo install qiongli --version 2.0.0 --locked
 ```
 
 Cargo provides `qiongli` and `ql`. Choose the archives above to skip compilation.
@@ -105,13 +120,13 @@ through the original channel without running a package manager.
 
 Follow the [installation and upgrade examples](docs/guide/cli-2x.md#install-and-upgrade-bundled-content).
 After a Plugin update, start a new Host session and check that its tools are available.
-In beta.6, the Plugin guide also offers optional context
+The Plugin guide offers optional context
 hooks (off by default). `install plugin --hooks context` includes them;
 `--hooks off` removes their Plugin configuration. See [Hook setup and verification](docs/advanced/agent-skill-collaboration.md#optional-context-hooks).
 
 ## Skills, MCP and research records
 
-Beta.6 includes **`no-qiongli`** (`$no-qiongli` in Codex),
+Use **`no-qiongli`** (`$no-qiongli` in Codex),
 also triggered by **“reply only” / “NoQ问理” / “仅回复” / “no 处理”**:
 answer from the conversation without model-invoked tools, agents or file operations.
 See [reply-only scope and limits](docs/advanced/agent-skill-collaboration.md#reply-only).

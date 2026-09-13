@@ -19,8 +19,8 @@
 
 ## 穷理 2.x
 
-`main` 已整合原生 2.x，`2.x` 继续用于开发与预发布。当前版本仍标记为
-`2.0.0-beta.6`；主分支合并不代表正式版已经发布。
+`2.0.0` 是从 `main` 构建的原生 CLI 首个正式版，`2.x` 继续用于开发与预发布。
+本次发布范围与升级步骤见[发布说明](tooling/release/v2.0.0.md)。
 
 穷理是面向学术研究的 Rust 原生 CLI，随包提供 Skills、模板和 Lite/Full MCP。
 你可以继续使用自己的 Codex、Claude Code 和模型设置，穷理负责研究记录、来源、
@@ -34,35 +34,49 @@
 可以先查看离线 [Research Graph 示例页面](docs/zh/examples/research-graph.md)，
 再按需要使用研究指导、仅回复入口和可选上下文 Hook。
 
+## 与 1.x 相比，变了什么？
+
+| 方面 | 1.x 后期 | 2.0 |
+|---|---|---|
+| 运行时 | Python 完整运行时，Marketplace 已有原生 Lite 包 | 一个 Rust CLI，内嵌研究内容与原生 Lite/Full MCP |
+| 安装 | Python/npm 入口承担不同职责 | 完整 CLI 解压即用；npm、PyPI 和 Cargo 共用原生 CLI 能力 |
+| 日常操作 | 较多 surface 和 parts 选项 | `install` 提供向导，`install plugin` 也能更新已登记的插件 |
+| 研究指导 | 更多预设步骤和通用数量要求 | 按任务提供指导，保留证据、协议和批准边界 |
+| 项目连续性 | 工作流产物与文献引文发现 | 结构化记录、离线 Research Graph 和可追溯的阶段总结 |
+
+1.x 后期已经有独立的原生 Lite 插件，2.0 将原生交付扩展到完整 CLI 和 Full MCP。
+你仍可选择 Host 和模型，真正的子代理由 Host 提供。
+[详细对比与迁移指南](docs/zh/guide/whats-new-2.md)进一步说明兼容边界和回退方法。
+
 ## Qiongli 2.x 独立二进制下载
 
 **下载、解压、运行。不用先安装 Python、Node.js、Rust 或包管理器。**
 
-在 [GitHub Release v2.0.0-beta.6](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0-beta.6)
+在 [GitHub Release v2.0.0](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0)
 中选择对应平台的完整 CLI，解压后运行 `./qiongli --help`（Windows PowerShell 使用 `.\qiongli.exe --help`）。
 研究 Skills、模板和 Lite/Full MCP 资源都在程序里，不需要额外安装。
 你可以直接在解压目录使用，安装 App 或配置 PATH 都不是前提。
 
 | 平台 | 二进制压缩包 |
 |---|---|
-| macOS Apple Silicon（ARM64） | [下载 `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-aarch64-apple-darwin.tar.gz) |
-| Windows x64 | [下载 `.zip`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-x86_64-pc-windows-msvc.zip) |
-| Linux x64（glibc 2.35+） | [下载 `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/qiongli-2.0.0-beta.6-x86_64-unknown-linux-gnu.tar.gz) |
+| macOS Apple Silicon（ARM64） | [下载 `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/qiongli-2.0.0-aarch64-apple-darwin.tar.gz) |
+| Windows x64 | [下载 `.zip`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/qiongli-2.0.0-x86_64-pc-windows-msvc.zip) |
+| Linux x64（glibc 2.35+） | [下载 `.tar.gz`](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/qiongli-2.0.0-x86_64-unknown-linux-gnu.tar.gz) |
 
-Windows beta 版本已将 C 运行库编入程序，无需另外安装 Visual C++ 运行库。
+Windows 2.0 版本已将 C 运行库编入程序，无需另外安装 Visual C++ 运行库。
 Linux 使用系统自带库，要求 glibc 2.35+。
 
-运行前使用同一 Release 的 [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0-beta.6/SHA256SUMS)
+运行前使用同一 Release 的 [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/SHA256SUMS)
 核对文件；[完整指南](docs/zh/guide/cli-2x.md)说明解压、PATH 和 MCP 接入步骤。
 请在 **Assets** 中选择上述平台包，GitHub 自动生成的 **Source code** 是源码。
 模型 Host 和在线文献服务仍需单独配置。
 
-使用包管理器时，有 Node.js 18+ 可运行 `npm install --global qiongli@next`；
+使用包管理器时，有 Node.js 18+ 可运行 `npm install --global qiongli@latest`；
 有 Python 3.9+ 可按 [PyPI 安装说明](docs/zh/guide/cli-2x.md#package-managers)安装。
 这两个渠道都自带原生程序。已有 Rust 1.97+ 和本机链接器时，也可以通过 Cargo 从源码安装。
 
 ```sh
-cargo install qiongli --version 2.0.0-beta.6 --locked
+cargo install qiongli --version 2.0.0 --locked
 ```
 
 Cargo 提供 `qiongli` 和 `ql`。如果不想编译，直接下载上方二进制包即可。
@@ -95,7 +109,7 @@ qiongli help install plugin
 
 [安装、升级和注册示例](docs/zh/guide/cli-2x.md#install-and-upgrade-bundled-content)
 说明了完整步骤。更新 Plugin 后，需要新开 Host 会话检查工具是否可用。
-beta.6 的安装向导可选上下文 Hook，首次默认关闭；也可使用
+安装向导可选上下文 Hook，首次默认关闭；也可使用
 `qiongli install plugin --hooks context` 加入，或用 `--hooks off` 移除配置。
 
 ## Skills、MCP 与研究记录

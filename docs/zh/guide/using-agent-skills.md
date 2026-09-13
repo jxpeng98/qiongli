@@ -13,7 +13,7 @@
 必须保留的要求即可。正式交付仍需相应证据和检查；预注册草稿也不等于已经注册。
 仍在使用旧版时，请先更新 CLI，再刷新 Plugin。
 
-从 beta.6 起，Codex Plugin 提供 `$qiongli` 和 20 个工作流快捷入口，例如
+Qiongli 2.0 的 Codex Plugin 提供 `$qiongli` 和 20 个工作流快捷入口，例如
 `$qiongli-paper-read`、`$qiongli-lit-review`、`$qiongli-stage-close`。
 这些入口先读取共享 Skill，再读取对应工作流；82 张内部技能卡不单独包装。
 Claude 保留一个主 Skill，也可以直接用自然语言调用。旧缓存需要更新才会出现新入口。
