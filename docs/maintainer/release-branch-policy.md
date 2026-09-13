@@ -3,7 +3,8 @@
 The accepted Python-led 1.x line is now frozen. This repository uses `2.x` for
 Rust-native development, keeps `release/1.x-python` as the accepted 1.x
 compatibility oracle and critical-fix line, and retains `dev` as the recorded
-post-release handoff branch. `main` remains the legacy stable release branch.
+post-release handoff branch. `main` now carries the integrated native product
+and is the stable 2.x release source (ADR 0227).
 
 ## Branch Roles
 
@@ -12,11 +13,12 @@ post-release handoff branch. `main` remains the legacy stable release branch.
 | `2.x` | Active Rust-native development, integration, and 2.x prerelease source | Native Rust workspace and product features, contract/resource loaders, native CLI/UI/MCP/orchestrator work, installers, tests, docs, CI, and 2.x release tooling. Python and Node may be used only as frozen oracle or build-time test inputs, never as production runtime dependencies. |
 | `dev` | Accepted 1.x handoff and post-release baseline integration endpoint | A8 baseline evidence, branch governance, documentation, tests, and handoff metadata. No new 1.x product features and no Rust-native product implementation. |
 | `release/1.x-python` | Accepted 1.x tag, compatibility oracle, and critical-fix-only maintenance line | Approved security or release-breakage corrections through pull requests, plus the minimum tests, release metadata, and documentation required for those corrections. No normal features. |
-| `main` | Legacy stable release source | Stable release evidence and explicitly approved emergency maintenance. No normal 1.x feature development. |
+| `main` | Integrated native product and stable 2.x release source | Reviewed 2.x integrations, focused corrections, native build qualification and stable release metadata. |
 
 Open native feature pull requests against `2.x`. Use `dev` only for the A8
-handoff and cross-line governance after the final 1.x beta. Do not merge native
-implementation back into `dev`, `main`, or `release/1.x-python`.
+handoff and cross-line governance after the final 1.x beta. Integrate reviewed
+`2.x` into `main` for an authorized cutover or release; do not merge native
+implementation into `dev` or `release/1.x-python`.
 
 ## 1.x Maintenance Governance
 
@@ -61,10 +63,10 @@ remote-rule changes are separate actions. The GitHub policy below describes the
 optional remote route, not a local integration gate.
 
 `2.x` is created from the exact clean A8 handoff commit after the normalized
-1.x baseline is frozen. It owns all subsequent native implementation and 2.x
-release work.
+1.x baseline is frozen. It remains the native development and prerelease source; reviewed integrations
+advance `main` for stable delivery.
 
-`Native CI` runs automatically for pull requests targeting `2.x`; merge pushes
+`Native CI` runs automatically for pull requests targeting `main` or `2.x`; merge pushes
 do not start a duplicate run. It remains manually dispatchable for an explicit
 candidate. Its required checks are:
 
@@ -90,8 +92,8 @@ for the current development loop. The required `Evaluation Truth V1` context
 also runs once on each PR head; it does not require human confirmation.
 
 `Legacy Compatibility CI` and
-`Legacy Checkout Install Check` continue to run automatically for `main`,
-`master`, and `dev`. Both remain manually dispatchable against a named `2.x` ref
+`Legacy Checkout Install Check` run automatically for `dev` and
+`release/1.x-python`. Both remain manually dispatchable against a named `2.x` ref
 when a specific compatibility question requires the frozen Python, Node, Rust
 Lite, distribution, or checkout oracle. Their results are diagnostic and are not required checks for native 2.x work.
 
@@ -105,13 +107,19 @@ asset-backed `capture --check` remain available in the manually dispatched
 legacy workflow for a named compatibility investigation. New conformance
 evidence uses a new versioned path rather than rewriting accepted 1.x evidence.
 
-The active enforcement source is ruleset `18800504`, which requires pull
+The remote `2.x` enforcement source is ruleset `18800504`, which requires pull
 requests, the four native contexts above and `Evaluation Truth V1`, blocks deletion and non-fast-forward
 updates, and has no bypass actors. The immutable guard is preventive only when
 its workflow is required; without server-side enforcement, a direct push would
 be unvalidated because merge pushes do not start `Native CI`.
 
-Production code on `2.x` must be Rust-native and dependency-free for end users.
+Main pushes run Native CLI distribution and Cargo source qualification. Uploads
+still require an explicit verified release. TestPyPI's legacy builder is limited
+to `release/1.x-python`; changing workflows on main does not backport them there.
+Main has no branch protection as observed on September 13, 2026; recheck remote
+rules before the next integration rather than assuming this snapshot persists.
+
+Production code on `main` and `2.x` must be Rust-native and dependency-free for end users.
 Frozen Python Full, Rust Lite, and Node MCPB results remain compatibility
 oracles and test evidence; they are not allowed to become hidden production
 dependencies.
@@ -156,6 +164,16 @@ Windows 11 Arm with x64 emulation is useful day-to-day evidence, not native
 Windows x64 hardware certification, signing, installer, or release acceptance.
 
 ## Official Plugin Linkage
+
+Native release assets include six target-specific Codex/Claude archives and
+`marketplace-plugins.json`. They bundle the matching native executable and keep
+existing `qiongli-next-<target>` IDs for upgrades, including stable versions.
+Stable manifests display Qiongli; Beta manifests display Qiongli Next. A name
+containing `next` is a retained Plugin identifier, not an npm channel selector.
+The official public marketplace in `jxpeng98/skillsplace` consumes immutable
+`<host>/<target>/v<version>` distributions only after separate catalog review.
+See ADR 0223 and ADR 0227. The following generic payloads and refs describe the
+retained **legacy 1.x** flow, not native release assembly.
 
 The official public marketplace entry lives in `jxpeng98/skillsplace` and should point at the stable generated Qiongli plugin payload:
 
@@ -219,8 +237,8 @@ release postflight publishes platform dist refs after it materializes the
 release staging payload and builds the existing plugin artifacts. Legacy stable
 marketplace installs publish `plugins/qiongli`; legacy beta installs publish
 `plugins/qiongli-next`. A native 2.x alpha dry-run never publishes these refs,
-and native postflight remains blocked until target and package identities are
-truthful and accepted.
+and the legacy postflight still refuses native publication. The native Actions
+publisher uses the qualified target archives described above.
 
 Use `scripts/publish-codex-dist-ref.mjs` manually only when backfilling an existing release or intentionally repairing a dist ref from a verified staging directory:
 
@@ -236,8 +254,9 @@ The publisher validates the channel-specific manifest, bundled MCP entrypoint, p
 
 ## Development Flow
 
-1. After A8 records the branch point, start all native feature and packaging
-   work on `2.x` and open pull requests back to `2.x`.
+1. Start native feature and packaging work from local `2.x`; use the local
+   commit and fast-forward loop. Open pull requests only when remote
+   collaboration is requested. Integrate `main` under explicit cutover scope.
 2. Run Focused checks while editing. Keep the pull request in draft while the
    slice is moving; draft events do not expand the native matrix. Once ready,
    `Native CI` runs on the exact pull-request commit. Source-affecting changes
@@ -277,22 +296,24 @@ python3 -m unittest discover -s tests -v
    `2.x` source so target package assembly, packaged acceptance, Lite candidate
    acceptance, and the existing exact promotion dispatch run together. Never
    use an automatic pull-request Slice as candidate or release authorization.
-7. Use the B1 native preflight only as an external-staging dry-run. It now
-   validates alpha syntax, the Cargo version/channel source, isolated channel
-   metadata, a planned target identity, and rollback/promotion semantics. Do
-   not create or publish a 2.x tag until the later native artifact, signing,
-   target acceptance, updater, and release gates remove the explicit
-   `publication_allowed=false` blocker.
+7. The retained B1 preflight is a read-only plan. It validates native versions,
+   channel/source identity and rollback semantics with `publication_allowed=false`.
+   CLI qualification and publication use the separate native owner in
+   CONTRIBUTING; a diagnostic plan never authorizes a release.
 
 ## Stable Release Rule
 
-The accepted `v1.19.0-beta.1` tag is the final planned feature-bearing
-Python-led 1.x beta. `main` remains the legacy stable source, but no routine 1.x
-feature or release-candidate work should move there. An exceptional 1.x release
-requires the maintenance decision, PR evidence, forward-port/equivalence
-evidence, and release gates defined above; do not bypass the current release
-automation's branch checks.
+Native stable releases use the frozen `main` head. Beta/Alpha development stays
+on `2.x`. Local qualification accepts either clean native branch; publication
+requires Actions at an immutable matching tag, reviewed notes, successful
+three-platform qualification and verified assets. Stable publication additionally
+requires that tag to equal remote `main` at dispatch. Keep main frozen during
+that release. GitHub marks stable as latest; npm selects `latest` for stable and
+`next` for prereleases. PyPI wheels and Cargo crates use the same native version.
+A main merge or passing build alone neither publishes nor accepts the program.
 
-The 2.x stable and prerelease rules are established on `2.x` as native release
-tooling lands. Shared Skillsplace entries advance only after the corresponding
-native release gates and artifact acceptance pass.
+`v1.19.0-beta.1` remains the accepted Python oracle. Exceptional 1.x maintenance
+uses `release/1.x-python`, its PR rules and forward-port/equivalence evidence.
+Repair its historical release tooling in a scoped maintenance change if needed;
+never restore Python publication from native main. Existing releases, dist refs
+and accepted baseline records are immutable.

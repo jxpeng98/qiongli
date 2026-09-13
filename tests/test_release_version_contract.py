@@ -95,7 +95,7 @@ class ReleaseVersionContractTests(unittest.TestCase):
                     "channel": "stable",
                     "prerelease_number": None,
                     "package_version": "2.4.0",
-                    "source_branch": "2.x",
+                    "source_branch": "main",
                     "version_source": "packages/qiongli-native/Cargo.toml",
                     "is_prerelease": False,
                 },

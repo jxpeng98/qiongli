@@ -3,6 +3,52 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Native main cutover — September 13
+
+Base `de024290`; branch `codex/native-main-cutover`. The maintainer requests
+consolidation into main and checks after merging. Keep the current beta.6 product
+version during integration; preparing stable routing does not publish v2.0.0.
+ADR 0227 records the new main role without rewriting accepted architecture.
+
+The fresh branch audit found no additional unmerged product behavior. Dev is
+already an ancestor. The workflow wrapper branch is integrated; native bootstrap
+and authorization lifecycle patches are equivalent to integrated work. The
+remaining governance/Host closeout commits are historical bookkeeping. The
+Windows config-root fix is integrated; its only unique remaining patch,
+`457addc5`, adds diagnostic output and temporary feature-branch CI routing, so it
+is not imported. Generated orphan Plugin distribution refs are artifacts, not
+source branches. All these refs and the other clean worktree remain available.
+Main's four unique commits have no net tree change from the common ancestor;
+the pre-change merge simulation equals the 2.x tree. No feature is dropped by
+taking the native integration tree. Remote main was `906fef8f`; remote 2.x was
+`c25fb2c1`. Main had no protection on inspection; protected remote 2.x and the
+Python maintenance rules are unchanged.
+
+Reuse existing release owners: main/2.x native CI routing, main build/install
+qualification, stable GitHub/npm routing and canonical stable Marketplace
+versions. Preserve Plugin IDs, previous archive projections and all verification
+and credential gates. Keep legacy checks separate and restrict the legacy
+TestPyPI builder to release/1.x-python. No release/2.x-python branch exists;
+clarification of the requested Python maintenance branch is pending. Native
+PyPI continues to contain the matching Rust executable, not the frozen Python
+implementation. This integration does not backport workflows to the old branch.
+
+Focused release, branch, archive and package checks pass (82 tests), including
+stable publication refusal on a different main head, CI/asset failures, stable
+Plugin archive round trips and wrong-version rejection. Six stale dry-run Alpha
+expectations failed against the current Beta before this change; tests now derive
+current-channel assertions while retaining deliberate mismatches. Docs build
+passes in 15.90 seconds with existing highlight/chunk warnings. The checks are
+retained under `/private/tmp/qiongli-main-cutover-`.
+
+Next integrate locally into 2.x and main, verify the merged tree, then run the
+existing current-target CLI release-ready owner from clean main before remote
+synchronization. Record merged-source qualification here once. Windows/Linux
+current-candidate execution, browser Graph rendering, live Hook/collaboration
+and formal stable acceptance remain separate; all 46 accepted ledger rows stay
+unchanged. No tag, registry publication or external catalog update is part of
+this main cutover increment.
+
 ## Compact Plugin installation results — September 12 follow-up
 
 Base `68a6abe2`; branch `codex/install-output-summary`. The maintainer reports

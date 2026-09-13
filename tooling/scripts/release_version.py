@@ -124,7 +124,7 @@ def parse_release_version(
         skill_version=version,
         npm_version=version,
         npm_dist_tag="next" if channel != "stable" else "latest",
-        source_branch="2.x"
+        source_branch=("main" if channel == "stable" else "2.x")
         if release_line == "native-2x"
         else ("dev" if channel == "beta" else "primary"),
         version_source=NATIVE_VERSION_SOURCE

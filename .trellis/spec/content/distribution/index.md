@@ -203,9 +203,20 @@ Python wheels and Cargo retain standard installation; the installed native CLI
 owns their subsequent interactive review.
 
 An explicit `release-automation.yml` post dispatch at an immutable native
-prerelease tag qualifies the same tag through Native CLI distribution, verifies
-its packet, creates a GitHub prerelease, then dispatches the existing registry
+release tag qualifies the same tag through Native CLI distribution, verifies
+its packet, creates the matching GitHub release, then dispatches the existing registry
 workflows at that tag. Dispatch uploads are opt-in and tag-only; existing
 credential environments and exact-source CI gates still apply. GITHUB_TOKEN
 release events do not chain jobs, so publisher dispatch is explicit. The local
 Agent may end after submission when requested; no public success is inferred.
+
+ADR 0227 places native stable source on `main` and keeps prerelease development
+on `2.x`. Stable publication requires the tag to equal the frozen remote main
+head, uses GitHub latest and npm latest, and retains matching PyPI/Cargo versions.
+Main pushes qualify builds without publishing. Native Marketplace archives also
+accept stable SemVer; existing qiongli-next target IDs and MCP keys remain stable
+installation identities, while display names distinguish Qiongli from Qiongli
+Next. Previously published projections remain byte-verifiable. The legacy
+TestPyPI builder is restricted to `release/1.x-python`; native PyPI assets never
+use the frozen Python package. A main merge does not update that maintenance
+branch, promote an external catalog or establish product acceptance.

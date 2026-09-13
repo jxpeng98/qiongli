@@ -2,11 +2,11 @@ name: Cargo CLI distribution
 
 on:
   push:
-    branches: ['2.x']
+    branches: ['main', '2.x']
   workflow_dispatch:
     inputs:
       publish_release:
-        description: Publish this immutable native prerelease tag after release verification
+        description: Publish this immutable native release tag after release verification
         type: boolean
         default: false
       verify_public:

@@ -2,7 +2,7 @@ name: Native CLI distribution
 
 on:
   push:
-    branches: ['2.x', 'codex/cli-distribution-*']
+    branches: ['main', '2.x', 'codex/cli-distribution-*']
   workflow_dispatch:
 
 permissions:

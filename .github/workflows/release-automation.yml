@@ -146,7 +146,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Qualify and publish the requested native prerelease
+      - name: Qualify and publish the requested native release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}

@@ -58,8 +58,8 @@ def json_bytes(value) -> bytes:
 
 def identity(version: str, commit: str) -> None:
     parsed = parse_release_version(version)
-    if parsed.release_line != 'native-2x' or not parsed.is_prerelease or parsed.version != version:
-        raise ValueError('public qiongli-next requires a canonical native prerelease SemVer')
+    if parsed.release_line != 'native-2x' or parsed.version != version:
+        raise ValueError('public marketplace archives require a canonical native SemVer')
     if not re.fullmatch(r'[0-9a-f]{40}', commit):
         raise ValueError('source commit must be a full lowercase Git SHA')
 
@@ -204,7 +204,7 @@ def project(content: dict[str, bytes], platform: str, version: str,
                     version=version, skills='./skills/', mcpServers='./.mcp.json')
     manifest['description'] = f'Native academic research workflows for {platform.title()} via the pinned npm CLI.'
     if isinstance(manifest.get('interface'), dict):
-        manifest['interface']['displayName'] = 'Qiongli Next'
+        manifest['interface']['displayName'] = 'Qiongli Next' if parse_release_version(version).is_prerelease else 'Qiongli'
     if target:
         validate_binary(binary, target)
         manifest['description'] = f'Academic research workflows with bundled native Lite MCP for {TARGET_NAMES[target]}.'

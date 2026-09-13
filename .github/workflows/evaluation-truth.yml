@@ -2,7 +2,7 @@ name: Evaluation Truth
 
 on:
   pull_request:
-    branches: ["2.x"]
+    branches: ["main", "2.x"]
   workflow_dispatch:
 
 concurrency:

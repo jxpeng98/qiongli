@@ -8,6 +8,7 @@ import struct
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from tooling.scripts import native_marketplace_plugins as plugins
 
@@ -117,6 +118,24 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
             with self.subTest(commit=commit), self.assertRaises(ValueError):
                 plugins.build_plugins(self.source, self.root / 'bad', VERSION, commit, self.binary, TARGET)
         self.assertFalse((self.root / 'bad').exists())
+
+    def test_stable_archives_preserve_plugin_identity_and_verify_version(self):
+        with patch(f'{__name__}.VERSION', '2.0.0'):
+            for platform in plugins.PLATFORMS:
+                self.content[f'.{platform}-plugin/plugin.json'] = plugins.json_bytes({
+                    'name': 'qiongli', 'version': VERSION, 'interface': {},
+                })
+            self.write_source()
+            for platform, archive in zip(plugins.PLATFORMS, self.build()):
+                verified = plugins.verify_archive(archive, VERSION, COMMIT)
+                self.assertEqual(verified['version'], '2.0.0')
+                root = self.root / 'out' / platform / 'plugins' / plugins.plugin_name(TARGET)
+                manifest = json.loads((root / f'.{platform}-plugin/plugin.json').read_text())
+                self.assertEqual(manifest['name'], plugins.plugin_name(TARGET))
+                self.assertEqual(manifest['interface']['displayName'], 'Qiongli (macos-arm64)')
+                self.assertFalse((root / plugins.BRIDGE).exists())
+                with self.assertRaises(ValueError):
+                    plugins.verify_archive(archive, '2.0.0-beta.6', COMMIT)
 
     def test_workflow_entries_share_canonical_instructions_and_only_codex_exposes_them(self):
         self.add_workflows()

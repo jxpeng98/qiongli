@@ -81,7 +81,12 @@ runtime, signing, installer, or release acceptance.
 
 ## Releases
 
-Release work starts only from an explicit release task after merge to `2.x`.
+`main` carries the integrated native product and is the stable release source.
+`2.x` remains the development and prerelease source. An authorized main cutover
+integrates the reviewed 2.x tree, then checks the merged product. Do not merge
+native code into `dev` or `release/1.x-python` (ADR 0227).
+
+Release work starts from an explicit release task on a clean `2.x` or `main`.
 Follow the Release section of the delivery checklist and run the existing owner:
 
 ```bash
@@ -93,7 +98,7 @@ a separate decision authorizes announcement.
 
 The CLI lane builds no App and requires no Community Alpha signing key. It
 qualifies current-target CLI assets and npm/wheel installs; three-platform CI
-uses `native-cli-distribution.yml`. For an unattended native prerelease, push an immutable tag containing the reviewed
+uses `native-cli-distribution.yml`. For an unattended native release, push an immutable tag containing the reviewed
 release notes, then dispatch the existing workflow at that tag:
 
 ```sh
@@ -109,7 +114,12 @@ dispatch is not proof that publication has finished. Publication uses
 an immutable tag and `gh release`, followed by public download verification.
 The existing npm/PyPI workflows publish native assets on a published GitHub
 Release after exact-source CI checks; npm prereleases use `next`, and PyPI uses
-PEP 440 aN/bN versions. Cargo uses `publish-cargo.yml` and the staged workspace
+PEP 440 aN/bN versions. Stable tags must equal the frozen remote `main` head;
+the same verified pipeline publishes a non-prerelease GitHub Release, npm
+`latest`, and the matching stable PyPI/Cargo version. A main push only qualifies
+builds; it does not publish. The frozen Python package is never a native PyPI
+input. Existing native Plugin IDs are retained across Beta and stable; external
+Marketplace catalog promotion remains a separate action. Cargo uses `publish-cargo.yml` and the staged workspace
 (ADR 0221), with native archive checks before upload and registry install checks
 afterward. Cargo publication runs through GitHub Actions using the
 `CARGO_REGISTRY_TOKEN` repository or `crates-io` environment secret. A missing

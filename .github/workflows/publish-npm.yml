@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_release:
-        description: Publish this immutable native prerelease tag after release verification
+        description: Publish this immutable native release tag after release verification
         type: boolean
         default: false
   release:
@@ -113,10 +113,10 @@ jobs:
         run: |
           gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir "$RUNNER_TEMP/assets"
           python tooling/scripts/native_release_assets.py verify --root "$RUNNER_TEMP/assets" --version "$RELEASE_TAG" --commit "$GITHUB_SHA" --require-ci
-      - name: Publish native prerelease to next
+      - name: Publish to the version-selected native channel
         shell: bash
         run: |
           version=$(python scripts/release_version.py "$RELEASE_TAG" --print-field npm_version)
           channel=$(python scripts/release_version.py "$RELEASE_TAG" --print-field npm_dist_tag)
-          [[ "$channel" == next ]]
-          npm publish "$RUNNER_TEMP/assets/qiongli-$version.tgz" --tag next --provenance
+          [[ "$channel" == next || "$channel" == latest ]]
+          npm publish "$RUNNER_TEMP/assets/qiongli-$version.tgz" --tag "$channel" --provenance

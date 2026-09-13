@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_release:
-        description: Publish this immutable native prerelease tag after release verification
+        description: Publish this immutable native release tag after release verification
         type: boolean
         default: false
   release:

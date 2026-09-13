@@ -145,8 +145,8 @@ def main() -> None:
         return subprocess.check_output(['git', *arguments], cwd=ROOT, text=True).strip()
     commit = git('rev-parse', 'HEAD')
     ci = os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('GITHUB_SHA') == commit
-    if git('status', '--porcelain', '--untracked-files=normal') or (not ci and git('branch', '--show-current') != '2.x'):
-        parser.error('qualify clean local 2.x or the exact GitHub Actions source commit')
+    if git('status', '--porcelain', '--untracked-files=normal') or (not ci and git('branch', '--show-current') not in ('main', '2.x')):
+        parser.error('qualify clean local main/2.x or the exact GitHub Actions source commit')
     out = out.resolve()
     out.mkdir(parents=True)
     assets = out / 'assets'

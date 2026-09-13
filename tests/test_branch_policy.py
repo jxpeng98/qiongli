@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+import yaml
 
 from qiongli.source_layout import RepoLayout
 
@@ -25,8 +26,8 @@ class BranchPolicyTests(unittest.TestCase):
         )
         install_check = read(".github/workflows/install-check.yml")
 
-        legacy_filter = 'branches: ["main", "master", "dev"]'
-        native_filter = 'branches: ["2.x"]'
+        legacy_filter = 'branches: ["dev", "release/1.x-python"]'
+        native_filter = 'branches: ["main", "2.x"]'
         old_filter = 'branches: ["main", "master", "dev", "2.x"]'
 
         self.assertEqual(legacy_ci.count(legacy_filter), 2)
@@ -44,6 +45,16 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("workflow_dispatch:", native_ci)
         self.assertIn("tooling/release/acceptance/**", legacy_ci)
         self.assertIn("tooling/release/acceptance/", native_guard)
+        evaluation = read(".github/workflows/evaluation-truth.yml")
+        self.assertIn(native_filter, evaluation)
+        for name in ('native-cli-distribution.yml', 'publish-cargo.yml'):
+            workflow = yaml.safe_load(read('.github/workflows/' + name))
+            events = workflow.get('on', workflow.get(True))
+            self.assertTrue({'main', '2.x'} <= set(events['push']['branches']))
+        testpypi = yaml.safe_load(read('.github/workflows/publish-testpypi.yml'))
+        guard = testpypi['jobs']['build-and-publish']['if']
+        self.assertIn("github.ref_name == 'release/1.x-python'", guard)
+        self.assertNotIn("github.ref_name == 'main'", guard)
 
     def test_ci_workflow_cancels_stale_runs_and_splits_test_tiers(self) -> None:
         content = read(".github/workflows/ci.yml")

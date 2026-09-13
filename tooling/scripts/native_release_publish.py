@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Finish an explicitly dispatched native prerelease using qualified CI assets."""
+"""Publish an explicitly dispatched native release using qualified CI assets."""
 import argparse
 import json
 import os
@@ -35,10 +35,10 @@ def main():
     commit = run('git', 'rev-parse', 'HEAD')
     version = tomllib.loads((ROOT / 'packages/qiongli-native/Cargo.toml').read_text())['workspace']['package']['version']
     if (os.environ.get('GITHUB_ACTIONS') != 'true' or identity.release_line != 'native-2x'
-            or identity.channel == 'stable' or args.tag != identity.repo_tag
+            or args.tag != identity.repo_tag
             or version != identity.version or os.environ.get('GITHUB_SHA') != commit
             or os.environ.get('GITHUB_REF') != f'refs/tags/{args.tag}'):
-        parser.error('publication requires Actions at the matching immutable native prerelease tag')
+        parser.error('publication requires Actions at the matching immutable native release tag')
     notes = ROOT / 'tooling/release' / f'{args.tag}.md'
     if not notes.is_file():
         parser.error('reviewed release notes are required')
@@ -46,6 +46,10 @@ def main():
     remote_commit = json.loads(run('gh', 'api', f'repos/{repo}/commits/{args.tag}'))['sha']
     if remote_commit != commit:
         raise ValueError('remote tag does not identify the checked-out source')
+    if not identity.is_prerelease:
+        main_commit = json.loads(run('gh', 'api', f'repos/{repo}/commits/main'))['sha']
+        if main_commit != commit:
+            raise ValueError('stable publication requires the frozen main head')
     run('gh', 'workflow', 'run', 'native-cli-distribution.yml', '--repo', repo, '--ref', args.tag)
     deadline = time.monotonic() + 90 * 60
     while time.monotonic() < deadline:
@@ -68,9 +72,11 @@ def main():
     if any(release['tag_name'] == args.tag for release in releases):
         raise RuntimeError('release already exists; inspect it before attempting recovery')
     run('gh', 'release', 'create', args.tag, '--repo', repo, '--verify-tag', '--draft',
-        '--prerelease', '--title', f'Qiongli {args.tag}', '--notes-file', notes,
+        *(['--prerelease'] if identity.is_prerelease else []),
+        '--title', f'Qiongli {args.tag}', '--notes-file', notes,
         *sorted(path for path in assets.iterdir() if path.is_file()))
-    run('gh', 'release', 'edit', args.tag, '--repo', repo, '--draft=false', '--prerelease')
+    run('gh', 'release', 'edit', args.tag, '--repo', repo, '--draft=false',
+        *(['--prerelease'] if identity.is_prerelease else ['--prerelease=false', '--latest']))
     public_assets = Path(os.environ['RUNNER_TEMP']) / 'native-public-assets'
     run('gh', 'release', 'download', args.tag, '--repo', repo, '--dir', public_assets)
     run(sys.executable, ROOT / 'tooling/scripts/native_release_assets.py', 'verify',
@@ -80,7 +86,7 @@ def main():
     for workflow in ('publish-npm.yml', 'publish-pypi.yml', 'publish-cargo.yml'):
         run('gh', 'workflow', 'run', workflow, '--repo', repo, '--ref', args.tag,
             '-f', 'publish_release=true')
-    print(f'Published GitHub prerelease {args.tag}; dispatched npm, PyPI and Cargo uploads.')
+    print(f'Published GitHub {identity.channel} release {args.tag}; dispatched npm, PyPI and Cargo uploads.')
 
 
 if __name__ == '__main__':
