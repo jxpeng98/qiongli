@@ -3,6 +3,53 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## First native CLI stable release — September 13
+
+Base `4d63d249`; branch `codex/release-2-0-0`. The maintainer requests the first
+stable release from main, detailed 1.x/2.0 differences and a concise README
+comparison. Prepare `2.0.0` through the existing CLI-410 / ADR 0227 release lane:
+GitHub standalone binaries and native Marketplace archives, npm latest, PyPI and
+Actions-owned Cargo. This does not accept the broader replacement program,
+retire Desktop/1.x source or promote external Marketplace catalogs.
+
+Versioned canonical content is committed at `74a725d1`; the regenerated lock
+contains 434 resources with pack SHA-256
+`38222b9e2a05ea80aba2e0f26a08366dac58140641e3f58df67e2c6c47e6ffb4` and content root
+`61e853d418b8a07e8cef7efb58daaeab969628cad6999339ae3c0d4d726067d4`.
+The initial focused run correctly rejected the old beta.6 lock before regeneration;
+no version guard was relaxed. Reviewed bilingual release notes, detailed comparison
+and migration pages, README summaries, current installation links and stable channel
+guidance are committed at `327ff6c7`. Humanizer editing preserves protocol, source,
+approval, runtime and migration limits. Late 1.x's native Lite independence is
+acknowledged; Rust is not presented as a measured performance result.
+
+The first clean-main qualification found one Beta-only integration assertion:
+`update status` correctly returned stable, but the test expected beta. Both CLI
+and retained Desktop owners already select the stream from the product version.
+Commit `4a551f30` corrects the test to check the initial stream and an actual
+switch to the other stream, retaining stale-revision refusal and private-file
+checks. The minimal reproduction passes; product behavior is unchanged.
+
+Clean main `4a551f30ea581bd682fb19aa44af3f7743f5bd17` passes the complete existing
+release-ready owner on macOS ARM64 with Rust 1.97.0: format/Clippy, 40 CLI and
+seven MCP tests, standalone empty-PATH Lite 14 / Full 32, isolated npm/wheel
+installs, and both native Marketplace archives with empty-PATH Lite 14. Assets
+and receipts are under `/private/tmp/qiongli-2.0.0-qualified-r2/`; executable
+SHA-256 is `b01de485c53656b840248f351c7a68aa282b6814c092bd8923af47fb316e63d1`.
+The 120 focused release/version/package/documentation checks, 46 content checks,
+two retained Graph example checks and capability contract pass. Documentation
+build passes in 15.37 seconds with existing highlighting/chunk warnings; 2,764
+current-page links and anchors resolve. Logs use `/private/tmp/qiongli-stable-`.
+
+Record this integration without changing runtime, content or packaging inputs;
+the final tag's Actions build binds its own exact source. Submit main and the
+immutable `v2.0.0` tag, then dispatch Release Automation in post mode. Keep main
+frozen while the workflow qualifies the three targets, verifies public downloads
+and dispatches npm/PyPI/Cargo. End after submission without tracking, as requested.
+No remote outcome, universal Host/model behavior, live Hook/browser/collaboration
+result or full migration acceptance is inferred. Retain all 46 accepted ledger
+records unchanged; CLI-410 remains at its existing state pending external evidence.
+
 ## Main documentation alignment and Humanizer review — September 13
 
 Base `5a3ab87f`; branch `codex/main-docs-humanize`. The maintainer requests a
