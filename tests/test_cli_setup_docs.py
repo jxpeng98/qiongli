@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 import unittest
 from tooling.scripts.release_version import parse_release_version
 from pathlib import Path
@@ -18,6 +19,28 @@ DOC_PATHS = (
 
 
 class CLISetupDocsTests(unittest.TestCase):
+    def test_site_search_and_chinese_navigation_keep_current_scope(self) -> None:
+        script = """
+import assert from 'node:assert/strict';
+import config from './docs/.vitepress/config.mjs';
+const render = config.locales.root.themeConfig.search.options._render;
+let calls = 0;
+const md = {render: () => { calls++; return '<p>current guide</p>'; }};
+for (const path of ['superpowers/plans/old.md', 'zh/architecture/decisions/old.md', 'audits/old.md', 'development/ctr-201-cli-runtime-freeze.md', 'maintainer/skill-quality-gap-report.md']) {
+  assert.equal(render('old', {relativePath:path}, md), '');
+}
+assert.equal(calls, 0);
+assert.equal(render('current', {relativePath:'guide/cli-2x.md'}, md), '<p>current guide</p>');
+assert.equal(render('legacy', {relativePath:'guide/install.md', frontmatter:{search:false}}, md), '');
+const zh = config.locales.zh.themeConfig;
+for (const item of [...zh.nav, ...Object.values(zh.sidebar).flatMap(groups => groups.flatMap(group => group.items))]) {
+  assert.ok(item.link.startsWith('/zh/'), item.link);
+}
+"""
+        checked = subprocess.run(["node", "--input-type=module", "-"], input=script,
+                                 cwd=REPO_ROOT, text=True, capture_output=True)
+        self.assertEqual(checked.returncode, 0, checked.stderr)
+
     def test_current_entry_pages_use_the_native_contract(self) -> None:
         for path in ("README.md", "README_CN.md", "docs/index.md", "docs/zh/index.md",
                      "docs/quickstart.md", "docs/zh/quickstart.md"):

@@ -1,95 +1,56 @@
 # Architecture
 
-Qiongli 2 is a Rust-native product delivered through CLI, Plugin/Skills and
-Lite/Full MCP. The default CLI build excludes the graphical stack and runs without
-a Qiongli App. Tauri 2 / Svelte 5 desktop support is retained for maintenance.
-Shared services own embedded content, research state and Zotero integration.
+Qiongli 2 delivers research guidance and tools through a Rust CLI, Plugin/Skills
+and Lite/Full MCP. Your Host owns the model, authentication and conversation.
+Qiongli manages research records, source links, project operations and installation
+receipts. The default CLI build does not require the retained Desktop application.
 
-GitHub archives, npm and PyPI carry the same native binary for each target; Cargo
-builds the CLI from source. Package metadata and content versions must agree.
-Host registration and live-session qualification remain distinct from packaging.
+## One set of sources, several entry points
 
-## Decision Boundary
+`content/` holds shared Skills, workflows, templates and public MCP contracts.
+`qiongli-content` builds the embedded resource pack. Native services under
+`packages/qiongli-native/` use that pack and own project state, revisions, previews,
+approvals, Graph and MCP dispatch. CLI and Host adapters call those same services.
 
-Accepted decisions under `docs/architecture/decisions/` govern the 2.x line.
-ADR 0218 supersedes ADR 0217's App-owned ACP default: users work in their chosen
-External Hosts, which own models, authentication and private conversations.
-This retains ADR 0211's Host-owned authentication and execution boundary.
-Qiongli owns deterministic content, projects, tools, task/candidate/checkpoint
-state, installation receipts and release identity. Same-device collaboration
-precedes any optional cross-device synchronization.
+GitHub archives, npm and PyPI carry the same executable for a given version and
+target; Cargo builds it from source. Native package builders share the product
+description, while each channel supplies its own launcher and installation guide.
+The old Python/npm product sources remain compatibility references.
 
-ADR 0210 still owns the retained Tauri/Svelte presentation. Existing ACP/All Chat
-source and schemas are preserved as deferred development work. ADR 0218 does not
-qualify a standalone package or retire published GUI support. ADRs 0219–0223 define standalone and registry distribution; ADR 0224 adds separately
-approved official Host registration to CLI exports. Earlier accepted ADRs and
-evidence are not rewritten; implementation must preserve package trust,
-preview/approval/CAS and recovery while removing the mandatory App dependency.
+A CLI-exported Plugin includes Full MCP and the shared Skills. The native
+Marketplace platform Plugin includes Lite MCP. The Host loads the Plugin cache
+and starts its stdio process; no separate MCP package or terminal is normally needed.
+See [Plugin contents](advanced/plugin-first-architecture.md).
 
-## Editable Source Boundaries
+## Research changes and evidence
 
-| Boundary | Editable source | Responsibility |
-|---|---|---|
-| Academic content and contracts | `content/` | workflow, Skills, templates, roles, standards, Plugin metadata, MCP profiles and schemas |
-| Native product | `packages/qiongli-native/` | App service, CLI, Lite/Full MCP, project state, embedded pack, integration and release runtime |
-| App wire contract | `packages/qiongli-app-api/` | versioned TypeScript decoding of native snapshots, intents and events |
-| Desktop presentation | `packages/qiongli-desktop/` | Svelte UI and typed transport adapter |
-| Distribution companions | `packages/qiongli-lite-mcp/`, `packages/qiongli-*-mcpb/`, `packages/qiongli-zotero-companion/` | separately packaged MCP and Zotero delivery surfaces |
-| Legacy 1.x | `packages/python-qiongli/`, `packages/npm-qiongli/` | maintained 1.x compatibility and migration evidence; not a 2.x runtime fallback |
-| Maintainer tooling | `tooling/`; stable wrappers in `scripts/` | materialization, validation, packaging, acceptance and release automation |
-| Evidence | `tests/`, `evals/`, `docs/superpowers/acceptance/` | focused regressions, evaluation assets and accepted receipts |
+CLI, Full MCP and the retained App use the same project services and revision
+rules. The Graph projects saved research records, retaining claim IDs, citekeys
+and source locations. It does not turn a summary or reviewer opinion into new
+primary evidence. See [the Graph example](examples/research-graph.md).
 
-Root `scripts/` files are stable wrappers; edit their implementations under
-`tooling/scripts/`. Edit canonical Plugin and Skill inputs under `content/`,
-then materialize generated payloads. Do not edit `dist/`, installed client
-directories, or generated plugin trees as source.
+Full MCP adds project operations to Lite's bounded literature and Zotero tools.
+Its `qiongli_project_capture_apply` write rechecks the preview and requires the
+matching plan digest and `approve_filesystem_write=true`. In-process ToolHost
+remains read-only and rejects that write. One approved operation is not permission
+for unrestricted edits. Zotero direct access uses the local Companion; import-file
+contents remain available when the Companion cannot be reached.
 
-## Product Spine
+Subagents run through actual Host tools. Cross-Host packets carry bounded sources
+and candidates to one coordinator; they do not transfer project write authority.
+The [collaboration guide](advanced/agent-skill-collaboration.md) describes the
+available exchange and the automation still outside its scope.
 
-1. `content/` defines academic behavior, public MCP contracts, and distribution
-   metadata.
-2. `qiongli-content` builds the deterministic resource pack consumed by the
-   native executable.
-3. Native services own configuration, project state, previews, approvals,
-   mutations, CLI output, MCP dispatch, and Host integration.
-4. The App API validates the native wire shape; Svelte renders it and returns
-   typed intents through Tauri.
-5. Selected External Hosts consume Plugin/Skills and native CLI/MCP contracts;
-   their private models and conversations remain outside Qiongli.
-6. Existing task/handoff/checkpoint owners will coordinate local candidates and
-   exact-digest review. Retained All Chat observations do not grant project authority.
-7. The Zotero Companion is reached only through the bounded loopback client;
-   import-file export remains the safe fallback.
+## Decisions and maintenance
 
-App, CLI, Full MCP, and Host handoff must use the same project services and
-revision semantics. The frontend must not construct native plans, paths,
-provider models, or readiness claims.
+Accepted ADRs under `docs/architecture/decisions/` own the architecture. ADR 0218
+sets the CLI-first, Host-owned execution direction; ADRs 0219–0223 define native
+distribution, ADR 0224 defines approved Host registration, and ADR 0227 makes
+integrated `main` the stable source while `2.x` remains the prerelease source.
+A merge does not establish release or live-Host acceptance.
 
-## MCP And Mutation Boundary
-
-Lite MCP owns bounded provider, literature, planning, and Zotero-facing tools.
-Full MCP adds registered-project and Academic Graph operations. The public Full
-MCP includes one explicit project write,
-`qiongli_project_capture_apply`; it re-previews the capture and requires the
-matching plan digest plus `approve_filesystem_write=true`.
-
-In-process ToolHost dispatch remains read-only and rejects that write. Release
-notes must therefore distinguish “one bounded approval-bound capture write”
-from unrestricted Full MCP or ToolHost mutation.
-
-## Dependency Direction
-
-Treat the product as a one-way graph:
-
-1. canonical standards, Skills, MCP schemas and Plugin metadata;
-2. native domain/project/runtime services;
-3. App API and CLI/MCP adapters;
-4. Svelte and Host presentation;
-5. materialized packages and release evidence.
-
-If two surfaces disagree, fix the highest shared owner and regenerate or adapt
-downstream outputs. Do not add a second project format, provider registry,
-release ledger, or product backend.
-
-For exact directory responsibilities, see
-[Repository Structure](/development/repository-structure).
+Tauri/Svelte, App API and earlier ACP/All Chat work remain in maintenance or deferred
+scope under their accepted decisions. They are not prerequisites for CLI use.
+When entry points disagree, fix their shared owner and rebuild affected outputs.
+See [repository structure](development/repository-structure.md) and
+[editing conventions](conventions.md); do not rewrite accepted decision history.

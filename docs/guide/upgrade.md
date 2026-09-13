@@ -1,4 +1,10 @@
-# Upgrade / Auto-Upgrade Guide (No Fork Required)
+---
+search: false
+---
+# Upgrade / Auto-Upgrade Guide (No Fork Required) (1.x legacy)
+
+> This page preserves 1.x behaviour and commands, not the native 2.x setup.
+> Use the [2.x guide](/guide/cli-2x) for current installation and usage.
 
 > This page retains 1.x behavior. For native 2.x, use the [current guide](cli-2x.md).
 
@@ -14,7 +20,7 @@ This guide explains how to:
 This path only needs `bash` plus `curl`/`wget` and `tar`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- \
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/v1.19.0-beta.1/scripts/bootstrap_qiongli.sh | bash -s -- \
   --repo <owner>/<repo> \
   --project-dir /path/to/project \
   --target all \
@@ -105,7 +111,7 @@ qiongli init --project-dir .
 This directly downloads the GitHub release archive and executes the installation script inside it:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- \
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/v1.19.0-beta.1/scripts/bootstrap_qiongli.sh | bash -s -- \
   --repo <owner>/<repo> \
   --project-dir /path/to/your/project \
   --target all \

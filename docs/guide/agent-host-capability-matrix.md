@@ -40,7 +40,7 @@ Status vocabulary:
 | Receipt | Exact observation |
 |---|---|
 | [Codex and Claude MCP compatibility](../superpowers/acceptance/2026-08-24-qiongli-codex-claude-mcp-compatibility.md) | Product source `192ad24fb175f1eaa7c289dfa916f2b5543bfa70`; Codex CLI `0.147.0` and Claude Code `2.1.237`; isolated Plugin, Skill, Lite/Full MCP, and cleanup compatibility |
-| [PILOT-903 real-project receipt](../superpowers/acceptance/2026-08-30-qiongli-pilot903-real-project-receipt.json) | Product source `d0b4113364452d6ff8ff7cb2a3735e7c8d40d3f8`; Codex CLI `0.147.0`; authenticated Skill + Full MCP project/Graph journey, structured output, privacy, and rollback |
+| [PILOT-903 real-project receipt](https://github.com/jxpeng98/qiongli/blob/5a3ab87fcba67dfbe700f895c0321e455bbbc914/docs/superpowers/acceptance/2026-08-30-qiongli-pilot903-real-project-receipt.json) | Product source `d0b4113364452d6ff8ff7cb2a3735e7c8d40d3f8`; Codex CLI `0.147.0`; authenticated Skill + Full MCP project/Graph journey, structured output, privacy, and rollback |
 
 Neither receipt records the exact model identifier, so the model identity is
 **not recorded**. The Claude compatibility receipt does not prove an
@@ -50,6 +50,6 @@ receipt results remain valid only for their named source and scope; they do not
 qualify a changed release candidate.
 
 The canonical machine-readable projection is the
-[PILOT-905 matrix receipt](../superpowers/acceptance/2026-08-30-qiongli-pilot905-host-capability-matrix.json).
+[PILOT-905 matrix receipt](https://github.com/jxpeng98/qiongli/blob/5a3ab87fcba67dfbe700f895c0321e455bbbc914/docs/superpowers/acceptance/2026-08-30-qiongli-pilot905-host-capability-matrix.json).
 `publicationAllowed` remains `false`.
 

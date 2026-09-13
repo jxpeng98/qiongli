@@ -1,4 +1,10 @@
-# Solo Mode
+---
+search: false
+---
+# Solo Mode (1.x legacy)
+
+> This page preserves 1.x behaviour and commands, not the native 2.x setup.
+> Use the [2.x guide](/guide/cli-2x) for current installation and usage.
 
 Solo mode is for running one controller while preserving explicit quality gates. It is useful when only one runtime is available, or when a task needs a single accountable operator before later review.
 

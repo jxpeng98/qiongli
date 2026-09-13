@@ -1,7 +1,7 @@
 <div align="center">
   <h1>Qiongli (穷理)</h1>
   <p><strong>Use AI agents for academic research without losing the evidence trail.</strong></p>
-  <p>Qiongli turns a research goal into a paper route, task IDs, literature and citation evidence, quality gates, agent handoffs, and stable files under <code>RESEARCH/[topic]/</code>.</p>
+  <p>From reading and study design to writing, Qiongli supports the task at hand and keeps sources, decisions and stage outputs in traceable research records.</p>
   <p>
     <a href="https://www.npmjs.com/package/qiongli"><img alt="npm latest version" src="https://img.shields.io/npm/v/qiongli/latest?style=flat-square&amp;logo=npm&amp;label=npm%20latest"></a>
     <a href="https://www.npmjs.com/package/qiongli?activeTab=versions"><img alt="npm next version" src="https://img.shields.io/npm/v/qiongli/next?style=flat-square&amp;logo=npm&amp;label=npm%20next&amp;color=cb3837"></a>
@@ -19,6 +19,10 @@
 
 ## Qiongli 2.x
 
+`main` now contains native 2.x; `2.x` remains the development and prerelease
+branch. The source version is still `2.0.0-beta.6`; main integration does not
+mean that the stable release has been published.
+
 Native academic research CLI with embedded Skills, templates and Lite/Full MCP.
 Keep your chosen Codex or Claude Code Host and model settings. Qiongli supplies
 research records, source links, reviewable changes and stage handoffs; no Qiongli
@@ -30,8 +34,8 @@ MCP protocol with `qiongli mcp check`. A Plugin includes the research Skills and
 MCP runtime; standalone Skills are an optional export. The [2.x guide](docs/guide/cli-2x.md)
 explains the choices and how to verify the first Host session.
 
-Beta.6 adds an offline [Research Graph example](docs/examples/research-graph.md),
-lighter research guidance, a reply-only entry and optional context hooks.
+Explore the offline [Research Graph example](docs/examples/research-graph.md),
+then choose the research guidance, reply-only entry or optional context hooks you need.
 
 ## Qiongli 2.x Standalone Downloads
 
@@ -67,7 +71,7 @@ cargo install qiongli --version 2.0.0-beta.6 --locked
 
 Cargo provides `qiongli` and `ql`. Choose the archives above to skip compilation.
 
-Beta.3 adds shorter commands and readable terminal output. Run `qiongli` for
+Run `qiongli` for
 help, `qiongli project` to list projects, or `qiongli setup` to review installed
 CLI versions and manual archive/uninstall steps. npm can show the review during
 a foreground install; pip and Cargo users run it afterward. No files or settings are changed. See the
@@ -141,7 +145,7 @@ from their canonical sources; installed caches and generated mirrors are not edi
 - [Quickstart](docs/quickstart.md) and [2.x command guide](docs/guide/cli-2x.md)
 - [Architecture](docs/architecture.md) and [contribution workflow](CONTRIBUTING.md)
 - [1.x command reference](docs/reference/cli.md), retained for older installations and migration
-- [Distribution materialization](docs/development/distribution-materialization.md), including staged materialization and npm package contract tests
+- [1.x compatibility materialization](docs/development/distribution-materialization.md), including staged materialization and npm package contract tests
 
 Reuse existing approval, rollback, package-identity and content checks. A Rust rewrite
 alone does not establish a speed or maintenance-cost improvement; those claims need

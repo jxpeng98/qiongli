@@ -103,13 +103,14 @@ class ReleaseAutomationTests(unittest.TestCase):
             )
         )
 
+        docs = " ".join(docs.split())
         self.assertIn("Beta releases are optional validation releases", docs)
         self.assertIn("Beta channel policy", docs)
         self.assertIn("Beta 通道策略", docs)
-        self.assertIn("beta 不是每个 stable release 的必经步骤", docs)
-        self.assertIn("npm `latest` advances", docs)
-        self.assertIn("npm `next` remains on the previous beta", docs)
-        self.assertIn("不要为了移动 `next` 而机械发 beta", docs)
+        self.assertIn("Beta 并非每次正式发布的必经步骤", docs)
+        self.assertIn("A stable release advances npm", docs)
+        self.assertIn("`next` may stay on the earlier beta", docs)
+        self.assertIn("不必只为移动 `next` 再发一个 Beta", docs)
         self.assertIn("before tag creation", docs)
         self.assertIn("创建 tag 前", docs)
         self.assertIn("--resume-after-ready", docs)
@@ -312,7 +313,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("push:", main_content)
         self.assertIn("pull_request:", main_content)
         self.assertIn("workflow_dispatch:", main_content)
-        self.assertIn('branches: ["main", "master", "dev"]', main_content)
+        self.assertIn('branches: ["dev", "release/1.x-python"]', main_content)
+        self.assertNotIn('"main"', main_content)
         self.assertNotIn('branches: ["2.x"]', main_content)
         self.assertIn("os: [ubuntu-latest, macos-latest]", main_content)
         self.assertIn("runs-on: windows-latest", main_content)
@@ -715,7 +717,7 @@ class ReleaseAutomationTests(unittest.TestCase):
             content = output.read_text(encoding="utf-8")
             for token in (
                 "Release Notes",
-                "Stage: Alpha",
+                f"Stage: {'Beta' if '-beta.' in native_tag else 'Alpha' if '-alpha.' in native_tag else 'Stable'}",
                 "Validation Evidence",
                 "Publish Steps",
                 "rollback.md",
@@ -795,8 +797,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         content = PUBLISH_TESTPYPI_WORKFLOW.read_text(encoding="utf-8")
 
         self.assertIn("github.ref_type == 'branch'", content)
-        self.assertIn("github.ref_name == 'main'", content)
-        self.assertIn("github.ref_name == 'dev'", content)
+        self.assertNotIn("github.ref_name == 'main'", content)
+        self.assertNotIn("github.ref_name == 'dev'", content)
         self.assertIn("github.ref_name == 'release/1.x-python'", content)
         self.assertIn('--print-field release_line', content)
         self.assertIn('if [[ "$release_line" != "legacy-1x" ]]; then', content)

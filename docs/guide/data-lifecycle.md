@@ -11,7 +11,7 @@ own records under their own policies.
 | Project files and private Qiongli state | The user owns the project directory, including `<project>/.qiongli/v2`. |
 | Global Qiongli 2 state | The user owns the resolved v2 root: `<user-home>/.config/qiongli/v2` by default, or `$QIONGLI_CONFIG_HOME/v2` when configured. |
 | Provider credentials | The user owns the credential. On supported systems Qiongli stores the secret in the operating-system credential store and keeps only an opaque reference in native configuration. If no supported store is available, Qiongli fails closed instead of writing the secret to ordinary configuration. |
-| Plugins, Skills, CLI files, and client entries | The relevant Agent Host or Qiongli install receipt owns the installed integration state. |
+| Plugins, Skills, CLI files, and client entries | The relevant Agent Host manages these entries, or Qiongli records their ownership in an installation receipt. |
 | Agent Host chats and transcripts | The Agent Host owns these records; they are not Qiongli project data. |
 | Native App All Chat history (development preview) | The user owns `<project>/.qiongli/all-chat/run_*.json`. These private logs are separate from research artifacts and accepted evidence. |
 | Remote provider records | The provider owns retention and deletion behavior for its service. |

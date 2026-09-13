@@ -38,7 +38,7 @@
 | Receipt | 精确观察范围 |
 |---|---|
 | [Codex 与 Claude MCP 兼容性](../../superpowers/acceptance/2026-08-24-qiongli-codex-claude-mcp-compatibility.md) | 产品源码 `192ad24fb175f1eaa7c289dfa916f2b5543bfa70`；Codex CLI `0.147.0` 与 Claude Code `2.1.237`；隔离 Plugin、Skill、Lite/Full MCP 与清理兼容性 |
-| [PILOT-903 真实项目 receipt](../../superpowers/acceptance/2026-08-30-qiongli-pilot903-real-project-receipt.json) | 产品源码 `d0b4113364452d6ff8ff7cb2a3735e7c8d40d3f8`；Codex CLI `0.147.0`；已认证 Skill + Full MCP 项目/Graph 旅程、结构化输出、隐私与回滚 |
+| [PILOT-903 真实项目 receipt](https://github.com/jxpeng98/qiongli/blob/5a3ab87fcba67dfbe700f895c0321e455bbbc914/docs/superpowers/acceptance/2026-08-30-qiongli-pilot903-real-project-receipt.json) | 产品源码 `d0b4113364452d6ff8ff7cb2a3735e7c8d40d3f8`；Codex CLI `0.147.0`；已认证 Skill + Full MCP 项目/Graph 旅程、结构化输出、隐私与回滚 |
 
 两个 receipt 都没有记录精确模型标识，因此模型身份是**未记录**。Claude
 兼容性 receipt 不证明已认证 Claude 模型旅程；Codex CLI 证据不能用于认定
@@ -46,5 +46,5 @@ Codex Desktop，Claude Code 证据也不能用于认定 Claude Desktop。历史 
 只对其命名的源码与范围有效，不能认定发生变更后的 release candidate。
 
 规范的机器可读投影是
-[PILOT-905 矩阵 receipt](../../superpowers/acceptance/2026-08-30-qiongli-pilot905-host-capability-matrix.json)。
+[PILOT-905 矩阵 receipt](https://github.com/jxpeng98/qiongli/blob/5a3ab87fcba67dfbe700f895c0321e455bbbc914/docs/superpowers/acceptance/2026-08-30-qiongli-pilot905-host-capability-matrix.json)。
 `publicationAllowed` 仍为 `false`。

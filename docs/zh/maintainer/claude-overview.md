@@ -1,61 +1,16 @@
-# CLAUDE 指南摘要
+# 维护工作流程
 
-这一页把 `CLAUDE.md` 里的维护者要点压缩成一个更适合站内导航的版本。
+先读仓库的 `AGENTS.md` 和 `CONTRIBUTING.md`，再从总路线图进入当前计划。
+任务状态与已接受证据由进度账本管理。`CLAUDE.md` 补充 Host 使用背景，
+不另行定义发布或研究验收结果。
 
-## `CLAUDE.md` 在解决什么问题
+根据[仓库结构](../development/repository-structure.md)，找到负责所需行为的源文件。
+原生 CLI、MCP 和安装修改位于 `packages/qiongli-native/`，研究指导位于 `content/`。
+生成结果与保留的 1.x 产品源码分别处理。
 
-`CLAUDE.md` 不只是项目介绍，它本质上是一份维护者/操作者手册，覆盖：
+在本地功能分支修改，运行受影响的检查，审阅差异并作范围明确的提交，再整合到本地 `2.x`。
+合入 main 与发布按用户要求及[发布策略](release-branch-policy.md)执行。
+检查结果和缺口集中记录在计划与账本；本地合并不能让尚未验证的 Host 流程或发布渠道自动通过验收。
 
-- 仓库快速定位
-- 常用运行命令
-- 架构预期
-- 质量与证据语言
-- `codex` 与 `claude` 之间的协作方式
-
-## 维护者优先级
-
-### 1. 契约真源优先
-
-当行为发生变化时，优先按下面顺序修：
-
-1. `content/standards/`
-2. `content/roles/` 或 `content/skills/`
-3. `content/templates/`
-4. `tooling/pipelines/`、`content/workflow/workflows/` 或 `content/distribution/plugins.yaml`
-5. `packages/python-qiongli/src/qiongli/`
-6. 只能通过 materialization 生成的 `qiongli-workflow/`
-
-### 2. 把 workflows 当成入口 UX，而不是真源
-
-斜杠命令只是易用入口。产物真相、路由真相、Task 真相仍然在 `content/standards/` 这一层。
-
-### 3. 通过稳定命令驱动仓库
-
-从 `CLAUDE.md` 抽出来的核心命令：
-
-```bash
-python3 -m bridges.orchestrator doctor --cwd .
-python3 -m bridges.orchestrator task-run --task-id F3 --paper-type empirical --topic my-topic --cwd .
-python3 scripts/validate_research_standard.py --strict
-python3 -m unittest tests.test_orchestrator_workflows -v
-```
-
-### 4. 用协作模式思考，而不是只看单命令
-
-维护者应当把执行模式理解成：
-
-- 单 agent：调试、窄任务
-- draft/review/fallback：标准 task 执行链
-- triad：需要独立审查时
-- role split / parallel fanout：任务可以拆分时
-
-## 什么时候回看原始 `CLAUDE.md`
-
-当你需要下面这些内容时，直接回看原始文件更合适：
-
-- 原始命令示例
-- 更长的 workflow 描述
-- 完整术语块
-- 多模型协作与 stage 的完整示例
-
-多数日常维护场景下，这一页加上 [系统架构](/zh/architecture) 与 [规范约定](/zh/conventions) 就足够了。
+协作时划清独立任务的范围，避免并发修改共享研究记录，并保留用户的 Host 和模型设置。
+子代理与跨 Host 交接方式见[协作指南](../advanced/agent-skill-collaboration.md)。

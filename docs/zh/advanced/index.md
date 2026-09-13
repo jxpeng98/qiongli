@@ -5,18 +5,18 @@
 ## 主题
 
 - [扩展 Qiongli](/zh/advanced/extend-qiongli)
-- [Subject Packaging Model](/zh/advanced/subject-packaging-model)
-- [Agent + Skill 协同](/zh/advanced/agent-skill-collaboration)
-- [MCP Providers 接入](/zh/advanced/mcp-providers-setup)
-- [原生桌面 Alpha 安装包](/zh/advanced/native-desktop-alpha)
-- [严格 Academic Literature Search](/zh/advanced/rigorous-literature-search)
+- [学科指导与内容包](/zh/advanced/subject-packaging-model)
+- [代理协作与 Hook](/zh/advanced/agent-skill-collaboration)
+- [文献服务配置](/zh/advanced/mcp-providers-setup)
+- [严谨文献检索](/zh/advanced/rigorous-literature-search)
 - [Zotero 集成](/zh/advanced/mcp-zotero-integration)
-- [发布到 PyPI](/zh/advanced/publish-pypi)
+- [发布原生渠道包](/zh/advanced/publish-pypi)
 
-## 常见场景
+## 如何选择
 
-- 接入新的搜索、全文、统计或运行时 Provider
-- 为某个研究方向做领域专精
-- 理解 core、subject、focused coverage、composite 和 custom overlays 的使用边界
-- 调整 agent、profile、skill 之间的协作方式
-- 维护或发布 Python 包分发链路
+需要增加文献服务时，先配置现有原生 MCP；需要其他代理参与时，按协作指南划定任务与来源。
+学科差异优先通过共享指导和档案表达，发布则沿用原生包的版本与验证流程。
+
+[Plugin 如何接入](/zh/advanced/plugin-first-architecture) · [跨 Host MCP 接入](/zh/advanced/cross-platform-mcp)
+
+[桌面 Alpha 资料](/zh/advanced/native-desktop-alpha)保留用于维护，不是当前 CLI 的安装指南。

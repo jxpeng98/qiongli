@@ -1,44 +1,16 @@
 # Skills 指南
 
-> 本页由 `python3 scripts/generate_skill_docs.py` 基于 `skills/registry.yaml` 自动生成，请不要手工编辑。
+> 本页由 `python3 scripts/generate_skill_docs.py` 根据 `content/skills/registry.yaml` 生成。
+> 需要修改时，请更新注册信息或生成器，再重新生成本页。
 
-这一页是面向使用者的 `skills/` 全景说明。
+在 Host 中描述研究任务，或选择列表中可见的 Qiongli Skill 即可开始。
+Codex 可以使用 `$qiongli` 或 `$qiongli-paper-read` 等快捷入口。
+共享指导帮助模型选择相关工作，不要求执行每个阶段。
+任务 ID 用来标识研究活动，不是原生 CLI 命令。
 
-它主要回答这些问题：
-
-- 当前研究问题应该落在哪个 stage？
-- 每个 stage 里到底包含哪些能力？
-- 哪些 skill 是 canonical、会被系统自动注入？
-- 哪些 markdown 文件只是补充卡片或 Stage-I 镜像目录，不应该和主 skill 混在一起理解？
-
-::: tip Canonical Source
-系统自动路由的 canonical skill 列表以 `skills/registry.yaml` 为准；这一页是在它基础上的用户版说明。
-用户界面会直接读取其中的 `display_name`、`when_to_use`、`summary_zh`、`display_name_zh` 和 `when_to_use_zh`。
-:::
-
-## 使用者应该怎样理解 `skills/`
-
-- **workflow 命令**，例如 `/paper`、`/lit-review`、`/code-build`，是用户入口。
-- **Task ID**，例如 `B2`、`F3`、`I6`，是 contract 层的标准工作单元。
-- **skill** 是 orchestrator 在后台通过 `required_skills` 和 `required_skill_cards` 注入的可复用执行规格。
-
-所以，大多数使用者并不需要手工挑选 `skills/*.md` 去逐个执行。
-你通常只需要选择：
-
-1. 一个 workflow 入口，或
-2. 一个 Task ID（通过 `task-plan` / `task-run`）。
-
-然后系统会自动决定应该加载哪些 skill。
-
-如果你需要看精确命令参数，去 [CLI 参考](/zh/reference/cli)。
-如果你需要理解运行时 Agent 与 Skill 如何协同，去 [Agent + Skill 协同](/zh/advanced/agent-skill-collaboration)。
-如果你要修改系统本身，去 [扩展 Qiongli](/zh/advanced/extend-qiongli)。
-如果你更关心“系统综述 / qualitative paper / methods paper / 审稿回复”这种真实场景怎么选路径，请看 [任务场景](/zh/guide/task-recipes)。
-
-## 先记住几个边界
-
-- 当前 internal skill registry 已覆盖 `A` 到 `K` 的实际 routed stages，其中 `J_proofread`、`K_presentation` 和 `Z_cross_cutting` 都是一级 stage。
-- `skills/` 下面有一部分文件是**补充卡片**，还有一部分是 Stage-I 代码链路的**镜像目录**；它们都很有用，但不等于“独立的 canonical routed skill”。
+下表列出内部研究 Skills，并不意味着每项都有独立的 Host 入口。
+补充卡片和学科档案为这些 Skills 提供参考，也不会创建额外代理或 MCP 工具。
+显示名称、使用场景和中文说明来自注册信息，中英文表格共享同一份技能清单。
 
 ## Stage 总览
 
@@ -72,7 +44,7 @@
 | `hypothesis-generator` | 假设生成 | 当你需要把研究问题转成可检验假设或 propositions 时使用。 | `HypothesisSet` |
 | `theory-mapper` | 理论映射 | 当你需要概念图、理论框架或机制关系图时使用。 | `TheoreticalFramework` |
 | `gap-analyzer` | 研究空白分析 | 当你需要从已有文献中证明 novelty 和贡献空间时使用。 | `GapAnalysis` |
-| `venue-analyzer` | 期刊匹配分析 | 当研究方向已较清楚，需要判断目标期刊或会议匹配度时使用。 | `VenueAnalysis` |
+| `venue-analyzer` | 期刊匹配分析 | 研究初期需要探索投稿方向，或已选定期刊、会议并需要调整稿件时使用。 | `VenueAnalysis` |
 
 ### B. Literature
 
@@ -251,43 +223,13 @@
 | `model-collaborator` | 多模型协作 | 当你需要 Codex、Claude 和 Antigravity 分工协作或交叉复核时使用。 | `CollaborationTrace` |
 | `self-critique` | 自我批判 | 当你需要研究复核或任务要求质量检查时使用；只因具体修复或正式复核要求追加轮次。 | `CritiqueLog` |
 
-## 补充卡片与镜像目录
+## 学科指导
 
-`skills/` 下的每个 markdown 文件都值得参考，但它们不全都是 primary routed skills。
+在请求中说明学科、方法和协议，Host 可以读取相关的随包档案。
+1.x 的 `--domain` 开关不是原生 2.x CLI 选项。
+档案提供研究指导，不能代替证据或现行期刊政策。
 
-### 补充型卡片
-
-下面这些卡片很有价值，但当前不都属于 registry 里的一级 routed skills：
-
-| 文件 | 作用 |
-|---|---|
-| `skills/C_design/data-dictionary-builder.md` | 生成结构化 data dictionary |
-| `skills/C_design/data-management-plan.md` | 生成 FAIR 风格数据管理计划 |
-| `skills/C_design/prereg-writer.md` | 生成预注册材料 |
-| `skills/C_design/variable-operationalizer.md` | 把抽象构念映射为可测量变量 |
-| `skills/H_submission/credit-taxonomy-helper.md` | 生成 CRediT 作者贡献说明 |
-| `skills/I_code/release-packager.md` | 为 Zenodo / GitHub / Dataverse 整理可发布复现包 |
-
-### Stage-I 镜像目录
-
-下面这些目录主要是为了让 Stage-I 代码链路的 prompt 与执行位置靠得更近：
-
-- `skills/I_code/build/`
-- `skills/I_code/planning/`
-- `skills/I_code/run/`
-- `skills/I_code/qa/`
-
-除非你正在修改 Stage-I 代码链路本身，否则阅读时优先以 `skills/I_code/*.md` 顶层 canonical 文件为主。
-
-### Cross-Cutting 别名
-
-`skills/Z_cross_cutting/tone-normalizer.md` 是一个跨阶段别名；真正的 canonical tone normalization 行为仍以 `skills/G_compliance/tone-normalizer.md` 为主。
-
-## Domain Profiles
-
-底层 skill 系统默认保持通用，学科差异通过 `skills/domain-profiles/*.yaml` 在运行时注入。
-
-当前仓库自带的 profile 包括：
+当前包含的档案：
 
 - `accounting`
 - `biomedical`
@@ -303,17 +245,8 @@
 - `political-science`
 - `psychology`
 
-适合使用 domain profile 的情况：
+## 继续阅读
 
-- 默认 framing / design 逻辑太泛
-- Stage-I 代码链需要领域专属诊断
-- 不同学科的 reporting / venue 规范差异明显
-
-例如，Stage-I 代码链可以通过 `--domain` 加载更贴近学科的方法检查规则。
-
-## 接下来该看哪一页？
-
-- 想看命令和参数：去 [CLI 参考](/zh/reference/cli)
-- 想理解层次边界：去 [规范约定](/zh/conventions)
-- 想理解运行时协同：去 [Agent + Skill 协同](/zh/advanced/agent-skill-collaboration)
-- 想新增或改写 skill：去 [扩展 Qiongli](/zh/advanced/extend-qiongli)
+查看[任务示例](/zh/guide/task-recipes)、[CLI 指南](/zh/guide/cli-2x)，
+或[协作指南](/zh/advanced/agent-skill-collaboration)。
+修改框架时，请先读[扩展 Qiongli](/zh/advanced/extend-qiongli)。

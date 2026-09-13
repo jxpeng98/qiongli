@@ -1,86 +1,33 @@
-# Qiongli Framework - Conventions
+# Source and editing conventions
 
-## Terminology
+Qiongli 2 shares research guidance across CLI, Plugin/Skills and MCP. Keep each
+behaviour in its existing owner so the entry points stay consistent.
 
-- `content/` is the canonical academic source tree.
-- `packages/` contains installable or publishable package sources.
-- `tooling/` contains maintainer automation and operational assets.
-- Root `scripts/` is a stable wrapper layer; edit implementations in
-  `tooling/scripts/`.
-- Root `qiongli-workflow/`, `plugins/qiongli/`, `plugins/qiongli-next/`,
-  and `.agent/` are generated distribution shapes; edit their
-  sources in `content/` and `content/distribution/plugins.yaml`.
-
-## Edit Order
-
-When a change spans multiple layers, apply it in this order:
-
-1. `content/standards/` for contract or routing truth.
-2. `content/roles/` and `content/skills/` for responsibility or execution
-   behavior.
-3. `content/templates/` for stable structured outputs.
-4. `tooling/pipelines/`, `content/workflow/workflows/`, and
-   `content/distribution/plugins.yaml` for sequencing, entry UX, or plugin
-   metadata.
-5. `packages/python-qiongli/src/qiongli/` only if runtime execution must
-   change.
-6. Generated payloads only through staged materialization.
-
-## Where To Put Changes
-
-| If the change is mainly... | Put it here |
+| Source | Responsibility |
 |---|---|
-| Artifact paths, task outputs, quality gates | `content/standards/research-workflow-contract.yaml` |
-| Runtime routing, MCP requirements, skill requirements | `content/standards/mcp-agent-capability-map.yaml` |
-| Functional ownership, thresholds, tone | `content/roles/` |
-| Reusable task behavior | `content/skills/` |
-| Reusable markdown/table structure | `content/templates/` |
-| Subject catalog or subject overlays | `content/subjects/` |
-| Domain or venue profile data | `content/skills/domain-profiles/`, `content/venue-profiles/` |
-| Pipeline sequencing | `tooling/pipelines/` |
-| Maintainer automation | `tooling/scripts/` |
-| Public script entrypoint compatibility | root `scripts/` wrapper, only when compatibility changes |
-| Python runtime, CLI, installer, bridges | `packages/python-qiongli/src/qiongli/` |
-| Plugin manifests, prompts, keywords, or platform enablement | `content/distribution/plugins.yaml` |
-| Plugin command wrappers, MCP bundle manifest, or platform entry files | `tooling/scripts/build_plugin_artifacts.py` |
-| npm package wrapper | `packages/npm-qiongli/` |
-| Evaluation cases, rubrics, runners | `evals/` |
+| `content/` | Research Skills, workflows, templates, subject guidance and public contracts |
+| `packages/qiongli-native/` | Rust CLI, project services, Graph, MCP and native installation |
+| `tooling/scripts/` | Maintainer automation, generation and packaging |
+| Root `scripts/` | Stable wrappers around maintainer implementations |
+| `docs/` and `docs/zh/` | English and Chinese documentation |
 
-## Skill Admission Rules
+For a cross-layer change, establish the shared contract first, change the
+implementation that owns it, then rebuild affected outputs. Do not edit
+`qiongli-workflow/`, `.agent/`, generated Plugin trees, package payloads or installed
+Host caches as source. The retained Python and npm product trees belong to the
+1.x compatibility line; native packaging has separate owners.
 
-Create a new internal top-level skill only when all four conditions hold:
+Create a new Skill only for a distinct reusable task. Otherwise extend an existing
+Skill, stage reference, template or subject profile. Keep stable task IDs, artifact
+paths, citekeys and source anchors when revising guidance. A model's freedom to
+choose a method does not remove approval or revision checks.
 
-1. It consumes typed inputs and produces typed outputs.
-2. It owns at least one stable artifact path under `RESEARCH/[topic]/`.
-3. It is worth direct pipeline or task-level dependency wiring.
-4. It carries distinct failure modes, review expectations, or quality-gate
-   value.
+In user documentation, name the action first and explain its result. Distinguish
+CLI installation, Plugin registration, session tools and online services. Use
+current native commands, keep both languages aligned, and label historical guides
+with their version. Update a generated document's source, then regenerate it.
+Humanizer edits should improve flow while preserving requirements and limitations.
 
-Otherwise prefer extending an existing skill, template, provider adapter, role,
-or pipeline step.
-
-## Generated Output Rule
-
-Do not edit generated payloads directly. Use:
-
-```bash
-python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force
-```
-
-Generated paths are ignored and guarded, including:
-
-- `qiongli-workflow/`
-- `plugins/qiongli/`
-- `plugins/qiongli-next/`
-- `.agent/`
-- `packages/python-qiongli/src/qiongli/payload/`
-- `packages/npm-qiongli/payload/`
-- `packages/npm-qiongli/python-runtime/`
-- `packages/qiongli-plugin/`
-- `packages/qiongli-next-plugin/`
-
-## `research_skills`
-
-`research_skills` is a deprecated compatibility shim under
-`packages/python-qiongli/src/research_skills/`. Keep it working during the
-migration window, but use `qiongli` for new imports and docs.
+See [repository structure](/development/repository-structure),
+[extension guidance](/advanced/extend-qiongli) and
+[release policy](/maintainer/release-branch-policy).

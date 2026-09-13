@@ -1,4 +1,10 @@
-# Codex-Claude Duo
+---
+search: false
+---
+# Codex-Claude Duo (1.x legacy)
+
+> This page preserves 1.x behaviour and commands, not the native 2.x setup.
+> Use the [2.x guide](/guide/cli-2x) for current installation and usage.
 
 Use duo mode when Codex and Claude should provide complementary review without requiring a third runtime. Codex is strongest for implementation discipline, command evidence, artifact paths, and reproducibility. Claude is strongest for scholarly argument, reviewer empathy, manuscript structure, and assumption pressure.
 

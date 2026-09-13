@@ -1,7 +1,7 @@
 <div align="center">
   <h1>穷理（Qiongli）</h1>
   <p><strong>用 AI agent 做学术研究，同时保留可复查证据链。</strong></p>
-  <p>穷理把一个研究目标拆成论文路线、Task ID、文献和引用证据、质量门、agent 交接，以及 <code>RESEARCH/[topic]/</code> 下的稳定文件。</p>
+  <p>从阅读、设计到写作，穷理按当前任务提供指导，并把来源、决定和阶段成果保存在可追踪的研究记录中。</p>
   <p>
     <a href="https://www.npmjs.com/package/qiongli"><img alt="npm latest version" src="https://img.shields.io/npm/v/qiongli/latest?style=flat-square&amp;logo=npm&amp;label=npm%20latest"></a>
     <a href="https://www.npmjs.com/package/qiongli?activeTab=versions"><img alt="npm next version" src="https://img.shields.io/npm/v/qiongli/next?style=flat-square&amp;logo=npm&amp;label=npm%20next&amp;color=cb3837"></a>
@@ -19,6 +19,9 @@
 
 ## 穷理 2.x
 
+`main` 已整合原生 2.x，`2.x` 继续用于开发与预发布。当前版本仍标记为
+`2.0.0-beta.6`；主分支合并不代表正式版已经发布。
+
 穷理是面向学术研究的 Rust 原生 CLI，随包提供 Skills、模板和 Lite/Full MCP。
 你可以继续使用自己的 Codex、Claude Code 和模型设置，穷理负责研究记录、来源、
 可审阅的修改以及阶段交接。使用 CLI 不需要安装穷理桌面 App。
@@ -28,8 +31,8 @@
 推荐安装的 Plugin 已包含研究 Skills 和 MCP；独立 Skills 是可选的文件导出。
 [2.x 使用指南](docs/zh/guide/cli-2x.md)说明了各入口与首次 Host 会话的检查方法。
 
-Beta.6 增加了离线 [Research Graph 示例页面](docs/zh/examples/research-graph.md)，
-并带来更精简的研究指导、只回复入口和可选上下文 Hook。
+可以先查看离线 [Research Graph 示例页面](docs/zh/examples/research-graph.md)，
+再按需要使用研究指导、仅回复入口和可选上下文 Hook。
 
 ## Qiongli 2.x 独立二进制下载
 
@@ -64,7 +67,7 @@ cargo install qiongli --version 2.0.0-beta.6 --locked
 
 Cargo 提供 `qiongli` 和 `ql`。如果不想编译，直接下载上方二进制包即可。
 
-Beta.3 简化了命令和终端输出：运行 `qiongli` 查看帮助，`qiongli project` 列出项目，
+运行 `qiongli` 查看帮助，`qiongli project` 列出项目，
 `qiongli setup` 检查已安装的 CLI，并逐项查看归档或卸载说明。npm 可在前台安装时显示向导，
 pip 和 Cargo 在安装后运行。向导不会删除文件或修改设置。
 详见[安装迁移说明](docs/zh/guide/cli-2x.md#检查和迁移已有-cli)。
@@ -109,7 +112,7 @@ beta.6 的安装向导可选上下文 Hook，首次默认关闭；也可使用
 | Research Graph | 从规范研究记录重建，将论点、来源和具体位置连接起来；缺少证据的关系保持未确认 |
 | 阶段总结 | 保留主要内容、来源、前序和变化记录；只在用户要求时列出逐文件保留建议，删除由用户亲自完成 |
 
-新构建的 Codex Plugin 提供 20 个 workflow 快捷入口和 `$qiongli` 主入口，
+新构建的 Codex Plugin 提供 20 个工作流快捷入口和 `$qiongli` 主入口，
 82 张内部技能卡按需读取。Claude 保留研究主 Skill；两个 Host 均包含独立的
 `no-qiongli` 入口。原生 Marketplace 平台包默认
 运行 Lite MCP；CLI 导出的本地 Plugin 运行 Full MCP。相同的 Skill 名称不代表
@@ -128,10 +131,10 @@ npm、PyPI 和 Cargo 使用各自的启动入口与安装说明，共用 CLI 功
 - [快速开始](docs/zh/quickstart.md)与[2.x 命令指南](docs/zh/guide/cli-2x.md)
 - [系统架构](docs/zh/architecture.md)与[开发约定](CONTRIBUTING.md)
 - [1.x 命令参考](docs/zh/reference/cli.md)：仅用于旧版本和迁移对照
-- [分发构建](docs/development/distribution-materialization.md)：staged materialization 与 npm package contract tests
+- [1.x 兼容分发构建](docs/development/distribution-materialization.md)：staged materialization 与 npm package contract tests
 
-本轮沿用现有测试来检查授权、回滚、包身份和内容完整性；没有用语言改写或 Rust
-迁移本身来宣称性能提高。性能和 Host 会话效果需要对应样例的实测。
+现有测试检查授权、回滚、包与源码是否对应，以及内容完整性。
+性能和 Host 会话效果仍以具体样例的实测为准，不能仅凭 Rust 迁移或文案调整判断。
 
 ## 致谢
 

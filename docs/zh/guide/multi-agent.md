@@ -1,133 +1,31 @@
-# 多 Agent 运行
+# 与其他代理协作
 
-当你运行 `parallel`、`task-run`、`team-run`，或任何由 orchestrator 协调 Codex、Claude 和 Antigravity 的流程时，先看这一页。
+Qiongli 2 使用 Codex、Claude Code 等宿主（Host）实际提供的代理能力。
+Plugin 提供研究指导和工具，模型、子代理及通信工具由 Host 提供。
+安装 Qiongli 本身不会启动一个代理团队。
 
-## 支持的 Runtime Agent
+## 请求一次范围明确的审查
 
-当前 runtime agent：
+[安装 Plugin](cli-2x.md#first-use) 后，可以这样提出请求：
 
-- `codex`
-- `claude`
-- `antigravity`
+> 请让一个独立代理根据我提供的研究协议，审查这段方法说明。
+> 先返回带来源位置的问题清单，不要直接改论文。
 
-Gemini CLI 不再是受支持的 runtime target。Antigravity 现在替代之前的 Gemini 协作通道，用于本地 CLI review、verification、triad audit 和 fallback routing。Hermes 仍然是便携 skill package 的安装面，但不是完整 orchestrator runtime。
+协调代理会交代要检查的判断、可用材料和返回格式。只有实际运行的代理返回结果，
+才能算完成独立审查；同一会话切换几个角色仍是自查。如果 Host 无法运行子代理，
+Qiongli 应说明缺少的能力，并继续处理不依赖它的工作。
 
-## 安全边界
+需要并行处理时，为每个代理分配单独的候选文件或输出范围。
+由一个协调代理汇总结果，提出修改并交给用户确认，避免同时覆盖同一份正式研究记录。
 
-`qiongli_task_run` 默认是 preview mode。只有同时满足以下条件时，才会启动本地 agent：
+## 请另一个 Host 参与
 
-- MCP caller 发送 JSON boolean `run_agents: true`
-- 本地 runtime 的 `doctor` 通过
-- task packet 有明确的 `task_id`、`paper_type`、`topic` 和 artifact root
+随包的 `templates/agent-handoff.md` 和 `templates/agent-review-packet.md`
+用于传递任务、允许共享的来源、修订号和具体候选稿。可以通过已获授权的工具传递，
+也可以手动交接。整理好交接包并不代表审查完成；收到结果后，还要核对它是否基于当前材料。
 
-普通 planning、review 或 routing 决策应先使用 preview mode。
+这套 2.x 流程不需要 Python 编排器，也没有原生 `qiongli team-run` 命令。
+交接模板不提供自动跨 Host 调度，也不会把正式记录的写入权限转交给另一方。
 
-## 必需的本地 Runtime
-
-完整本地执行需要：
-
-```bash
-python3
-codex
-claude
-antigravity
-```
-
-认证：
-
-- Codex：`OPENAI_API_KEY` 或已支持的 Codex/ChatGPT 登录态
-- Claude：`ANTHROPIC_API_KEY` 或已支持的 Claude Code 登录态
-- Antigravity：本地 Antigravity CLI 登录态/配置
-
-启动 agent 前先运行健康检查：
-
-```bash
-python3 -m bridges.orchestrator doctor --cwd .
-```
-
-## Preview-First 流程
-
-先用 MCP route tool 或 task plan 检查任务包，再决定是否执行：
-
-```bash
-python3 -m bridges.orchestrator task-plan \
-  --task-id F3 \
-  --paper-type empirical \
-  --topic ai-in-education \
-  --cwd .
-
-python3 -m bridges.orchestrator task-run \
-  --task-id F3 \
-  --paper-type empirical \
-  --topic ai-in-education \
-  --cwd .
-```
-
-只有 preview 可接受后，再加执行参数：
-
-```bash
-python3 -m bridges.orchestrator task-run \
-  --task-id F3 \
-  --paper-type empirical \
-  --topic ai-in-education \
-  --cwd . \
-  --run-agents
-```
-
-## Runtime Routing
-
-需要明确分工时使用这些字段：
-
-```bash
---execution-mode solo|duo|triad
---controller codex|claude|antigravity
---primary codex|claude|antigravity
---reviewer codex|claude|antigravity
---verifier codex|claude|antigravity
---solo-role-gates strict|standard|off
-```
-
-`triad` 现在会在 primary 和 reviewer 是 Codex/Claude 时优先使用 Antigravity 作为可区分的第三 runtime。没有可区分的第三 runtime 时，orchestrator 会记录 routing note，并复用可用 runtime，而不是静默跳过审计。
-
-## Parallel And Team Runs
-
-需要 Codex/Claude/Antigravity 独立分析后再综合时，使用 `parallel`：
-
-```bash
-python3 -m bridges.orchestrator parallel \
-  --prompt "Review this methods section for causal overclaiming and missing robustness checks." \
-  --cwd . \
-  --summarizer claude
-```
-
-fanout/fanin task packet 用 `team-run`：
-
-```bash
-python3 -m bridges.orchestrator team-run \
-  --task-id H3 \
-  --paper-type empirical \
-  --topic acceptance-probe \
-  --cwd .
-```
-
-Team run 必须明确记录 skipped 或 failed workers，不能把缺失 runtime 静默当成已完成 review。
-
-## Worker Adapter Routing
-
-当 `task-run` 包含 `worker_plan` 时，adapter 名称描述的是 dispatch 机制，不代表任务质量：
-
-- `generic_prompt`：适合任意受支持 runtime 或人工分发的便携 worker packet
-- `codex_subagent`：可用时走 Codex-native subagent dispatch
-- `claude_cowork`：可用时走 Claude-native coworker dispatch
-
-adapter fallback 必须写入 routing notes，保证 reviewer handoff 和 merge decision 可审计。
-
-## 故障排除
-
-如果 execution 被阻断：
-
-- 运行 `doctor --cwd .`
-- 确认 `codex` 和 `claude` 在 `PATH` 上
-- 确认对应 auth env 或登录态存在
-- 去掉 `--run-agents` 重新运行 `task-run`，先检查 preview packet
-- 查看 `.qiongli/trace/` 中的 local guidance 和 routing notes
+来源追踪、工作衔接、可选 Hook 和仅回复入口，见
+[代理协作指南](../advanced/agent-skill-collaboration.md)。

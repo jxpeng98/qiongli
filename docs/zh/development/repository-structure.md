@@ -1,74 +1,38 @@
 # 仓库结构
 
-这一页是当前维护者应遵守的 source layout contract。
+`main` 保存整合后的原生产品，`2.x` 继续用于开发和预发布。
+旧 Python 运行时保留用于兼容工作，新的 CLI 与 MCP 行为在 Rust 工作区实现。
 
-```text
-/
-  content/                  学术内容 canonical source
-    workflow/               生成 qiongli-workflow package 的源
-    distribution/           生成 plugin payload 的 metadata 源
-    skills/                 internal skill specs
-    templates/              可复用 artifact templates
-    standards/              contracts、capability maps、policies
-    mcp-contracts/          runtime capability registry、schemas 与 fixtures
-    roles/                  functional-agent role configs
-    subjects/               subject catalog 与 overlays
-    schemas/                JSON/YAML schemas
-    venue-profiles/         venue profile data
+| 路径 | 负责内容 |
+|---|---|
+| `content/workflow/` | 主 Skill、快捷入口和阶段参考 |
+| `content/skills/`、`roles/`、`templates/`、`subjects/` | 均位于 `content/` 下，保存研究指导和可复用产物结构 |
+| `content/standards/` | 研究任务与产物契约 |
+| `content/mcp-contracts/` | MCP 工具、参数契约和测试样例 |
+| `content/distribution/` | 共享 Plugin 元数据 |
+| `packages/qiongli-native/apps/qiongli/` | 原生产品入口、CLI 和 Host 适配 |
+| `packages/qiongli-native/crates/` | 共享领域、项目、运行时及安装服务 |
+| `packages/qiongli-zotero-companion/` | 安装到 Zotero 内部的扩展 |
+| `tooling/scripts/native_*.py` | 原生发布、包管理器和 Marketplace 打包 |
+| `tooling/release/` | 发布契约与证据 |
+| `docs/`、`docs/zh/` | 英文与中文文档 |
+| `docs/architecture/decisions/` | 已接受和已被替代的架构决策 |
+| `docs/superpowers/` | 计划、路线图和证据账本 |
+| `tests/`、`evals/` | 回归与行为检查 |
 
-  packages/
-    qiongli-native/         canonical Rust-native 2.x workspace 与产品 App
-    qiongli-desktop/        编译进原生 App 的 Svelte 5 桌面 UI
-    qiongli-app-api/        有类型的 frontend/native IPC contract 与校验
-    qiongli-lite-mcp/       冻结的 Rust Lite compatibility package
-    python-qiongli/         Python package source 与兼容 shim
-    npm-qiongli/            npm wrapper package source
-    qiongli-literature-mcpb/ MCPB package source
-    qiongli-zotero-companion/ Zotero companion package source
+## 保留的旧版与桌面源码
 
-  tooling/
-    architecture/           machine-readable native decision inventory
-    quality/                repository-only source policy 与 debt baseline
-    scripts/                真实维护脚本实现
-    pipelines/              paper-type DAG descriptors
-    install/                installer manifests 与支持资产
-    release/                release docs、receipts、rollback assets
+`packages/qiongli-desktop/` 和 `packages/qiongli-app-api/` 支持保留的 Svelte/Tauri
+桌面端。桌面维护与当前 CLI 交付分别处理。
+`packages/python-qiongli/`、`packages/npm-qiongli/`、`packages/qiongli-lite-mcp/`
+及旧 MCPB 源码保留用于兼容，不负责生成原生渠道包。
+这些目录里的旧 README 也不是当前原生 npm 或 Python 包随附的说明。
 
-  evals/                    eval cases、rubrics、runner assets
-  tests/                    跨包回归测试
-  docs/                     VitePress 文档
-    architecture/decisions/ 已接受或取代的 native ADR
-  scripts/                  稳定 wrapper entrypoints
-```
+## 生成结果
 
-## 生成 Artifact 形状
+Plugin 目录、`qiongli-workflow/`、`.agent/`、包内资源和已安装缓存都由源文件生成，
+不应直接编辑。原生包在临时目录构建，共用 CLI 元数据，但各渠道保留自己的启动包装和安装说明。
 
-这些路径可能在 staging 或本地维护时出现，但不是 canonical source：
-
-- `qiongli-workflow/`
-- `plugins/qiongli/`
-- `plugins/qiongli-next/`
-- `.agent/`
-- `packages/python-qiongli/src/qiongli/payload/`
-- `packages/npm-qiongli/payload/`
-- `packages/npm-qiongli/python-runtime/`
-- `packages/qiongli-plugin/`
-- `packages/qiongli-next-plugin/`
-
-使用 staged materialization 生成：
-
-```bash
-python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force
-```
-
-## 兼容边界
-
-- 根目录 `scripts/` 为 CI、文档和用户习惯保持稳定。除非 wrapper contract 本身变化，否则编辑 `tooling/scripts/`。
-- `content/mcp-contracts/` 是 canonical MCP runtime-contract boundary，不是学术标准；repository-only RC1 工程策略必须保留在 `tooling/quality/`，不能被 materialize。
-- `packages/qiongli-native/` 是唯一的 Qiongli 2 native workspace，拥有单一的 `apps/qiongli` 产品 executable；native service crates 必须保留在该 workspace 下，不能复制进生成 plugin。
-- `packages/qiongli-desktop/` 负责 Svelte UI，并生成供 Tauri App 使用的静态 `build/`；`packages/qiongli-app-api/` 负责有类型的 IPC contract，UI component 不得复制原生 service logic。
-- `research_skills` 作为 deprecated Python compatibility shim 保留在 `packages/python-qiongli/src/research_skills/`。
-- 根目录 `.agent/` 由 `content/workflow/` 与 `content/distribution/plugins.yaml` 生成。
-- 根目录 `qiongli-workflow/` 由 `content/workflow/` 和同步后的 content mirrors 生成。
-- `docs/architecture/decisions/` 是经过 review 的 Qiongli 2 架构决策源；`tooling/architecture/` 保存 validation records，而不是 runtime payload 或 marketplace metadata。
-- `plugins/qiongli/`、`plugins/qiongli-next/`、`packages/qiongli-plugin/`、`packages/qiongli-next-plugin/` 都是生成后的 plugin payload 形状，不是 source directory。
+根目录 `scripts/` 提供稳定命令入口，真正的实现位于 `tooling/scripts/`。
+旧版内容生成方式保留在已标注版本的[兼容指南](../../development/distribution-materialization.md)。
+新增实现前，请先看[编辑约定](../conventions.md)。

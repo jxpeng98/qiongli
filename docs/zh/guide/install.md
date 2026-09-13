@@ -1,4 +1,10 @@
-# 安装 Qiongli
+---
+search: false
+---
+# 安装 Qiongli（1.x 历史参考）
+
+> 本页保留旧版行为及当时的命令，不代表 2.x 的安装或运行方式。
+> 当前用户请查看 [2.x 指南](/zh/guide/cli-2x)。
 
 > 原生 2.x 可[直接下载独立二进制包](cli-2x.md#standalone-binary-download)，
 > 或使用 [npm / pip 安装](cli-2x.md#package-managers)。
@@ -9,7 +15,7 @@
 
 Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不同。先选能满足目标的最小入口。
 
-## 最新稳定版下载
+## 当时版本的下载记录
 
 当前稳定版是 [v1.17.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.17.0)。下面这些直达链接覆盖常见安装路径；需要 subject 专精 Desktop ZIP 或维护者 artifacts 时，再打开下载指南。
 
@@ -130,14 +136,14 @@ qiongli install --target codex --surface plugin --overwrite
 `partial` 用于安装跨客户端 workflow package，不要求 Python：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/v1.19.0-beta.1/scripts/bootstrap_qiongli.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
 ```
 
 Windows PowerShell 7+：
 
 ```powershell
 winget install --id Microsoft.PowerShell --source winget
-Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.ps1 -OutFile .\bootstrap_qiongli.ps1
+Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/qiongli/v1.19.0-beta.1/scripts/bootstrap_qiongli.ps1 -OutFile .\bootstrap_qiongli.ps1
 pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -ProjectDir "$PWD" -Target all
 ```
 
@@ -148,7 +154,7 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -Pro
 需要本地验证或 orchestrated task execution 时，用 `full`：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile full --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/v1.19.0-beta.1/scripts/bootstrap_qiongli.sh | bash -s -- --profile full --project-dir "$PWD" --target all
 ```
 
 Windows PowerShell 7+：

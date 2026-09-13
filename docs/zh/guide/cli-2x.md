@@ -1,5 +1,8 @@
 # Qiongli 2 CLI：安装与直接下载
 
+本文对应已合入 `main` 的 2.x 源码。源码版本仍为 **2.0.0-beta.6**；
+下载链接指向已发布的 beta.6，之后合入的安装修复会单独标明。合入主分支不等于发布正式版。
+
 Qiongli 2 以原生 CLI 为入口，不需要打开或安装 Qiongli App。
 同一版本、同一平台的 GitHub 二进制包、npm 和 PyPI 包使用相同的原生可执行文件。
 
@@ -72,17 +75,17 @@ CLI 的多版本清理仍由 `qiongli setup` 提供建议，由用户自行操�
 常用操作有简短入口，帮助按操作显示，终端查询提供易读输出。
 `ql` 是 `qiongli` 的短名称，两者用法相同。
 
-| 要做什么 | 简短入口 | 此前 beta.2 的写法 |
-|---|---|---|
-| 查看常用命令 | `qiongli` | `qiongli --help` |
-| 检查本地状态和问题 | `qiongli doctor` | 命令相同，输出为 JSON |
-| 审查已安装的 CLI 版本 | `qiongli setup` | `qiongli install migrate --interactive` |
-| 查看 CLI 安装和 Host | `qiongli install list` | `qiongli install inventory` |
-| 列出研究项目 | `qiongli project` | `qiongli project list` |
-| 查看一个项目 | `qiongli project show <id>` | `qiongli project show --project-id <id>` |
-| 查看配置 | `qiongli config` | `qiongli config show` |
-| 查看内置内容配置档 | `qiongli content` | `qiongli content list` |
-| 以 stdio 接入 Full MCP | `qiongli mcp serve --profile full` | 还需加上 `--transport stdio` |
+| 要做什么  |  简短入口 |
+| --- | --- |
+| 查看常用命令  |  `qiongli` |
+| 检查本地状态和问题  |  `qiongli doctor` |
+| 审查已安装的 CLI 版本  |  `qiongli setup` |
+| 查看 CLI 安装和 Host  |  `qiongli install list` |
+| 列出研究项目  |  `qiongli project` |
+| 查看一个项目  |  `qiongli project show <id>` |
+| 查看配置  |  `qiongli config` |
+| 查看内置内容配置档  |  `qiongli content` |
+| 以 stdio 接入 Full MCP  |  `qiongli mcp serve --profile full` |
 
 不必在一页中查找所有参数。例如，`qiongli help project create` 和
 `qiongli project create --help` 都只显示创建项目的用法。
@@ -193,12 +196,12 @@ macOS / Linux 用 `type -a qiongli`，PowerShell 用 `Get-Command qiongli -All` 
 
 ## 检查和迁移已有 CLI
 
-Beta.2 可以列出本机可见的穷理安装，并提供交互式迁移建议。如果旧版在 PATH 中
+Qiongli 可以列出本机可见的安装，并提供交互式迁移建议。如果旧版在 PATH 中
 排在前面，请用新安装程序的完整路径运行下面的命令：
 
 ```sh
 qiongli install inventory --paths exact
-qiongli install migrate --interactive
+qiongli setup
 ```
 
 清单会合并同一安装的别名，并区分包元数据版本与当前运行版本。检测范围包括
@@ -211,8 +214,7 @@ PATH、常见用户安装目录及已配置的 Cargo、Python、npm 位置；其
 删除、移动或归档任何文件。卸载前要确认文件归属：旧包可能与新版共用启动入口。
 研究文件、配置和 Plugin 缓存不属于 CLI 清理范围。
 
-Beta.3 无参数运行时显示帮助，通过 `qiongli setup` 主动打开向导。
-此前的 beta.2 会在终端中无参数运行时直接打开向导。如需在 npm 安装过程中显示向导，
+无参数运行显示帮助，通过 `qiongli setup` 打开版本审查向导。如需在 npm 安装过程中显示向导，
 可以为本次安装授权穷理的脚本，并让脚本连接终端：
 
 ```sh
@@ -252,7 +254,7 @@ Claude Code 使用 `--target claude`，并另建一个导出父目录，例如
 beta.6 会在安装 Plugin 时提供可选的上下文提醒。首次默认关闭，
 更新时保留已有选择。运行 `qiongli install plugin --hooks context` 可加入提醒，
 `--hooks off` 可移除 Plugin 内的提醒配置。确认页会显示具体命令，Host 信任和实际触发
-仍需分别核对，详见 [Hook 安装与验证](/zh/advanced/agent-skill-collaboration#可选的上下文-hook)。
+仍需分别核对，详见 [Hook 安装与验证](/zh/advanced/agent-skill-collaboration#optional-context-hooks)。
 独立 Skills 导出不安装 Hook。
 
 通过原安装渠道更新 CLI 后，刷新已登记的 Plugin：
@@ -266,8 +268,8 @@ qiongli install plugin --target codex
 
 `update plugin` 与 `upgrade plugin` 等效。重复运行 `install plugin` 也会核对并更新
 已有的完整导出。更新 Host 缓存前会校验收据，只有完全匹配的旧插件才会通过官方命令
-移除并重装，具体命令会列在确认页。其他来源的已启用穷理插件、被修改的文件、来源路径
-冲突或意外的安装范围会阻止注册，需要你在 Host 中自行处理。
+移除并重装，具体命令会列在确认页。主分支在 beta.6 之后支持按前述流程确认迁移已知 Codex 插件。
+被修改的文件、来源路径冲突或意外的安装范围仍会阻止注册，需要手动核对。
 
 每次确认直接按回车都表示取消。取消 Host 注册或 Host 命令失败时，已导出的文件会保留；
 解决问题后，对同一 Host 重新运行 `install plugin` 即可。成功提示表示官方安装状态
@@ -318,7 +320,7 @@ Codex Plugin 同时提供 `$qiongli` 总入口和
 `$no-qiongli`，或自然地说“NoQ问理，仅回复”。入口不调用工具，使用范围和安装说明见
 [仅回复入口](../advanced/agent-skill-collaboration.md#reply-only)。
 
-## npm / pip 安装 {#package-managers}
+## 包管理器安装 {#package-managers}
 
 如果更习惯包管理器，可任选一个入口：
 
@@ -344,8 +346,21 @@ cargo install qiongli --version 2.0.0-beta.6 --locked
 安装后可使用 `qiongli` 和 `ql`。Cargo 没有 `next` 渠道，预发布版需指定完整版本号。
 如果希望解压后立即使用，请选择上方的独立二进制包。
 
-更多命令边界见[英文 CLI 指南](../../guide/cli-2x.md#which-surface-owns-which-command)。
-旧版 `qiongli setup`、`check`、`project init` 等命令属于 1.x，不能直接套用到原生 2.x。
+## 按操作查找入口 {#which-surface-owns-which-command}
+
+| 要做什么 | 入口 | 需要注意 |
+|---|---|---|
+| 检查安装 | `qiongli doctor`、`qiongli install list` | 不代表 Host 会话工具已加载 |
+| 查看和管理项目 | `qiongli project --help` | 写入保留批准和修订检查 |
+| 查看内嵌内容 | `qiongli content --json` | 不会安装 Plugin |
+| 查看配置 | `qiongli config`、`qiongli config backend status` | 模型设置仍由 Host 管理 |
+| 安装或刷新 Plugin | `qiongli install plugin` | 分别确认文件和 Host 注册 |
+| 导出独立 Skills | `qiongli install skills` | 不自动注册 Host 或接入 MCP |
+| 查看 CLI 升级方法 | `qiongli upgrade cli` | 由原包管理器或二进制下载渠道完成升级 |
+
+论文阅读、写作和审稿通过 Host 中的 Skill 或自然语言请求启动，不是 shell 子命令。
+`check`、`provider setup` 和 `project init` 等旧命令不能直接套用到原生 2.x。
+当前 `qiongli setup` 用于审查可见的 CLI 安装。
 
 ## 安装状态与版本一致性 {#installation-state}
 

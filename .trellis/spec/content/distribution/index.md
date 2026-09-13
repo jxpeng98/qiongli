@@ -220,3 +220,16 @@ Next. Previously published projections remain byte-verifiable. The legacy
 TestPyPI builder is restricted to `release/1.x-python`; native PyPI assets never
 use the frozen Python package. A main merge does not update that maintenance
 branch, promote an external catalog or establish product acceptance.
+
+## Current user documentation
+
+`docs/` and `docs/zh/` describe native 2.x; retained 1.x operational guides are
+explicitly labelled and excluded from normal site search. Historical ADRs and
+acceptance records keep their original evidence scope. Main integration does not
+change a published version or establish stable acceptance.
+
+`tooling/scripts/generate_skill_docs.py` owns the current bilingual Skills guide.
+It reuses the frozen registry reader and table renderer as build-time tooling,
+without changing the 1.x product. Update its prose or canonical registry metadata,
+then regenerate both reference pages. Keep channel package README generation in
+the existing native packaging owner.

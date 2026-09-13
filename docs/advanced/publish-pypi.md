@@ -1,332 +1,60 @@
-# PyPI Package Publishing Guide
+# Publish native Qiongli packages
 
-This guide explains how to publish `qiongli` to PyPI, as well as the complete workflow for routine version releases.
+The 2.x PyPI package carries a Python launcher and the native executable. The npm
+package carries its Node launcher and native binaries; Cargo distributes the Rust
+source crates. GitHub Release archives contain the executable, README and licence.
+Each channel uses the same product version and CLI description while retaining
+its own installation instructions. None publishes the old Python application as
+the 2.x runtime.
 
-This is the frozen **legacy 1.x** registry path. Native 2.x releases use the
-Cargo version source and independent alpha/beta/stable channels; `v2.*` tags
-are explicitly excluded from the PyPI and npm jobs. REL-201 supports only a
-non-publishing native dry-run. See `tooling/release/automation.md`; do not use
-this guide to publish `v2.0.0-alpha.1`.
+## Version and source
 
-## 0) Prerequisites (One-time Setup)
+The version source is `packages/qiongli-native/Cargo.toml`.
+For example, `2.0.0-beta.6` maps to Python `2.0.0b6`; a stable `2.0.0` keeps that
+version in each registry. Prereleases use `2.x`, npm `next` and crates.io prerelease
+versions. Stable releases use reviewed `main` and npm `latest`. Cargo has no
+`next` tag. The current source version remains beta.6; main integration alone
+does not publish `v2.0.0`.
 
-### 0.1 PyPI Trusted Publisher
+## Beta channel policy
 
-This project uses the [Trusted Publisher](https://docs.pypi.org/trusted-publishers/) mechanism for publishing (no manual API Token management needed).
+Beta releases are optional validation releases. A stable release advances npm
+`latest`; `next` may stay on the earlier beta. Decide the intended channel before
+tag creation rather than issuing another beta only to move a label.
 
-1. Log in to your account at [pypi.org](https://pypi.org).
-2. If this is the **first time publishing** (the package does not exist on PyPI yet), go to the [Publishing](https://pypi.org/manage/account/publishing/) page. Under "Add a new pending publisher", fill in the following:
-   - **PyPI Project Name**: `qiongli`
-   - **Owner**: `<your-github-username>`
-   - **Repository name**: `qiongli`
-   - **Workflow name**: `publish-pypi.yml`
-   - **Environment name**: `pypi`
-3. If the **package already exists**, go to the package's Settings → Publishing → "Add a new publisher", and fill in the same details.
+## Qualify before publishing
 
-### 0.2 GitHub Environment
+Follow the [release branch policy](../maintainer/release-branch-policy.md) and
+`tooling/release/automation.md`. Native CLI distribution builds and installs on
+macOS ARM64, Windows x64 and Linux x64. The assembly step verifies platform
+artifacts, version identity, hashes and generated packages. Cargo has its own
+source-package checks. A successful source build is not the entire release gate.
 
-1. Go to your GitHub repository Settings → Environments.
-2. Click "New environment" and name it `pypi`.
-3. (Optional) Add protection rules (e.g., only allow deployment from the `main` branch, require approval, etc.).
+For a local native CLI release check, the existing entry is:
 
-### 0.3 TestPyPI Trusted Publisher
-
-This repository includes a dedicated TestPyPI workflow: `.github/workflows/publish-testpypi.yml`.
-
-1. Log in to [test.pypi.org](https://test.pypi.org).
-2. Go to Account settings → Publishing.
-3. Add a pending publisher (or add a publisher under the existing project) with:
-   - **PyPI Project Name**: `qiongli`
-   - **Owner**: `jxpeng98`
-   - **Repository name**: `qiongli`
-   - **Workflow name**: `publish-testpypi.yml`
-   - **Environment name**: `testpypi`
-4. In GitHub repository Settings → Environments, create environment `testpypi`.
-
----
-
-## 1) Routine Publishing Workflow
-
-### 1.1 Run the End-to-End Publish Automation
-
-Recommended maintainer flow:
-
-```bash
-./scripts/release_automation.sh publish --version 0.2.0 --from-tag v0.1.0
-./scripts/release_automation.sh publish --version 0.2.0b1 --from-tag v0.2.0
+```sh
+bash scripts/release_ready.sh --version 2.0.0-beta.6 --cli-github
 ```
 
-`publish` is the canonical release entrypoint. It runs the full local and remote release loop:
-
-1. Normalize versions and run `release_ready.sh`.
-2. Commit release-prep files.
-3. Create and push the release tag.
-4. Let tag-triggered GitHub Actions publish to PyPI and npm.
-5. Wait for required branch workflows on the release commit:
-   - `CI`
-   - `Checkout Install Check`
-6. Wait for required tag publish workflows:
-   - `Publish to PyPI`
-   - `Publish to npm`
-7. Run postflight with `--create-release`, upload plugin artifacts, and write an acceptance receipt.
-
-Routine production publishing must go through `./scripts/release_automation.sh publish`. The production publish workflows are tag-triggered execution surfaces, not manual release entrypoints.
-
-Use a stable version such as `0.2.0` or a beta version such as `0.2.0b1`. The automation normalizes it into three synchronized forms:
-
-| Layer | Stable | Beta |
-|------|------|------|
-| PyPI package | `0.2.0` | `0.2.0b1` |
-| Skill metadata / registry | `0.2.0` | `0.2.0-beta.1` |
-| Portable skill `VERSION` / git tag | `v0.2.0` | `v0.2.0-beta.1` |
-
-Package version format follows [PEP 440](https://peps.python.org/pep-0440/), while skill metadata uses SemVer-compatible prerelease syntax. This legacy registry path supports `stable` and `beta`; the separate native classifier understands `alpha`, but native registry publication remains disabled.
-
-The default release smoke tier is intentionally conservative: builtin literature smoke + `doctor`. If you also want the heavier `parallel` / `task-run` profile-path checks before publishing, add `--maintainer-smoke`.
-
-Optional full-cycle workflow harness:
-
-```bash
-python3 tooling/scripts/run_full_cycle_workflow_harness.py \
-  --fixture tests/fixtures/full_cycle_harness/clean_empirical \
-  --json-report /tmp/qiongli-full-cycle-harness.json
-```
-
-This is preview-only. It verifies stage gates, drift checks, and journal-fit
-readiness without launching local agents.
-
-### Optional subject runtime local-agent smoke
-
-The default release smoke remains preview-first and does not launch local
-agents. Before a release candidate, maintainers can additionally verify the
-adaptive subject runtime with the deterministic checks and, when local runtime
-validation is desired, an opt-in real local-agent run:
-
-```bash
-uv run python tooling/scripts/run_subject_runtime_smoke.py --json
-uv run python tooling/scripts/evaluate_subject_router.py --json
-QIONGLI_SMOKE_RUN_AGENTS=1 \
-uv run python tooling/scripts/run_subject_runtime_smoke.py \
-  --mode local-agent \
-  --case confirmed_finance_guidance_loaded \
-  --json
-```
-
-The local-agent command is opt-in because it launches local runtime agents. Run
-it only in an isolated environment before release when local runtime validation
-is desired. It verifies that confirmed subject guidance is loaded through
-`.qiongli/guidance.d/subject-runtime.md`, that a local guidance trace is
-written, and that Qiongli-visible paths remain inside the isolated smoke root.
-
-Optional parallel multi-agent smoke is a heavier maintainer check and also uses
-the same environment opt-in:
-
-```bash
-QIONGLI_SMOKE_RUN_AGENTS=1 \
-python3 tooling/scripts/smoke_multi_agent.py --run-parallel
-```
-
-Without `QIONGLI_SMOKE_RUN_AGENTS=1`, `--run-parallel` records a WARN case and
-does not launch the parallel Codex/Claude/Antigravity runtime path.
-
-Release doc policy:
-
-- stable releases must be summarized in `CHANGELOG.md`; postflight turns that changelog section into GitHub Release notes with a release-category summary and download guide
-- beta / prerelease releases continue to use `tooling/release/<tag>.md`
-
-Beta channel policy:
-
-- beta is optional; publish it when the release needs prerelease validation for release automation, package payloads, installers, package metadata, CI, or publish workflows
-- routine docs, small fixes, and low-risk maintenance may publish directly as stable
-- if stable publishes without a matching beta, npm `latest` advances while npm `next` remains on the previous beta
-- `next` means "latest prerelease validation build", not "newer than latest stable"; do not publish a mechanical beta only to move `next`
-
-### 1.2 Dry Run / Split Phases
-
-Use `release_ready.sh` when you want to prepare and verify locally without creating a tag:
-
-```bash
-./scripts/release_ready.sh --version 0.2.0
-./scripts/release_ready.sh --version 0.2.0b1 --from-tag v0.2.0
-```
-
-`release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, branch push, the branch CI/check gate, tag push, tag publish wait, GitHub Release creation, plugin artifact upload, and acceptance receipt generation.
-
-Subject runtime gate checks:
-
-```bash
-uv run python tooling/scripts/evaluate_subject_router.py --json
-uv run python tooling/scripts/evaluate_subject_router.py \
-  --subject accounting \
-  --gate runtime-enabled \
-  --json
-uv run python tooling/scripts/evaluate_subject_router.py \
-  --subject finance \
-  --gate runtime-enabled \
-  --json
-uv run python tooling/scripts/evaluate_subject_router.py \
-  --subject economics \
-  --gate runtime-enabled \
-  --json
-uv run python tooling/scripts/evaluate_subject_router.py \
-  --subject business \
-  --gate runtime-enabled \
-  --json
-```
-
-The default router evaluation and accounting, finance, economics, and business
-runtime-enabled gates must pass for release. Promotion-ready remains a
-pre-activation review gate for future eval-ready subjects; it should pass
-before those subjects move to a separate runtime activation PR.
-
-Political economy, geoeconomics, and economics-accounting remain future
-eval-ready candidates.
-
-For subject-scoped JSON, top-level `case_count`, `metrics`, and
-`threshold_failures` are filtered to the requested subject gate. Read
-`subject_gate.eligible_for_eval_ready` or
-`subject_gate.eligible_for_runtime_promotion` or
-`subject_gate.eligible_for_runtime_enabled` for the gate eligibility decision.
-Only `eligible_for_runtime_enabled` represents runtime activation eligibility.
-Treat the command exit code as authoritative: default eval exits 0; accounting,
-finance, economics, and business runtime-enabled checks should exit 0; and
-future candidate eval-ready checks still exit 0 when their fixture packs and
-metadata are ready for review.
-
-For beta releases where GitHub Actions may exceed the default local wait window, extend the hard wait instead of using a soft publish gate:
-
-```bash
-./scripts/release_automation.sh publish --version 0.15.0b2 --from-tag v0.15.0-beta.1 --ci-timeout-seconds 2700
-```
-
-Publish mode must verify `CI` and `Checkout Install Check` on the release-prep commit before it creates or pushes the release tag. Package registry publishing and GitHub Release creation happen only after the tag publish workflows pass. Soft CI mode remains available for manual `post` diagnostics, but not for routine publishing.
-
-If you need manual split phases, they still exist:
-
-```bash
-./scripts/release_automation.sh pre --tag v0.2.0 --from-tag v0.1.0
-./scripts/release_automation.sh post --tag v0.2.0 --create-release
-```
-
-## 2) What Happens After The Tag Is Pushed
-
-`publish` creates and pushes a tag whose format starts with `v*` and uses repo release syntax such as `v0.2.0` or `v0.2.0-beta.1`. That triggers `publish-pypi.yml`, which:
-
-1. Checkout the code.
-2. Run `inject_project_toml.sh` in the checkout so the installed CLI knows its upstream default.
-3. Materialize the release payload into `$RUNNER_TEMP/qiongli-dist`.
-4. Verify the release tag against the staged root.
-5. `python -m build` from the staged root to build the sdist and wheel.
-6. `twine check` to validate staged package metadata.
-7. Publish to PyPI using the Trusted Publisher mechanism.
-
-The same tag also triggers `publish-npm.yml`, which validates the staged bundled npm package and publishes stable versions to `latest` or beta versions to `next`.
-
-Postflight then waits for the release commit's `CI` and `Checkout Install Check` workflows and the tag's `Publish to PyPI` / `Publish to npm` workflows. If a required workflow is missing, the diagnostic includes the observed workflow names for that commit.
-
----
-
-## 3) Local Verification (Manual / Optional)
-
-If you want to run package checks outside `release_ready.sh`, use:
-
-```bash
-python scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force
-bash scripts/verify_release_tag_version.sh --root /tmp/qiongli-dist --tag <tag>
-bash scripts/pypi_preflight.sh --root /tmp/qiongli-dist
-bash scripts/npm_preflight.sh --root /tmp/qiongli-dist
-```
-
-Equivalent manual build steps:
-
-```bash
-# Install build tools
-pip install build twine
-
-# Inject upstream repo info
-bash /tmp/qiongli-dist/scripts/inject_project_toml.sh
-
-# Build
-cd /tmp/qiongli-dist
-python -m build
-
-# Validate
-twine check dist/*
-```
-
-Local dry-run installation:
-
-```bash
-pip install dist/qiongli_installer-*.whl
-qiongli --help
-qiongli check --repo <owner>/<repo>
-```
-
----
-
-## 4) Publishing to TestPyPI (Recommended Before Production)
-
-Use the GitHub Actions workflow (manual trigger, no tag required):
-
-1. Open GitHub Actions.
-2. Select **Publish to TestPyPI**.
-3. Click **Run workflow** on the target branch.
-
-The workflow will build, validate, and publish with Trusted Publishing to
-TestPyPI only from `main`, `dev`, or the frozen `release/1.x-python` branch.
-Runs selected from `2.x` or feature branches are skipped, and the workflow
-also rejects any non-legacy package identity before requesting publication.
-
-Install and verify from TestPyPI:
-
-```bash
-pip install --index-url https://test.pypi.org/simple/ qiongli
-```
-
-Recommended order:
-
-- Run **Publish to TestPyPI** and validate install/CLI behavior.
-- After validation passes, push release tag `v*` to trigger **Publish to PyPI**.
-
----
-
-## 5) Complete Release Checklist
-
-When cutting a release, follow these steps:
-
-- [ ] Confirm all features are merged into `main`.
-- [ ] Ensure CI is passing (Green `ci.yml`).
-- [ ] Optional: run `./scripts/release_ready.sh --version <version>` as a local dry run.
-- [ ] Run `./scripts/release_automation.sh publish --version <version> --from-tag <previous-tag>`.
-- [ ] Confirm `Publish to PyPI`, `CI`, and `Checkout Install Check` succeeded on GitHub Actions.
-- [ ] Confirm postflight created or updated the GitHub Release and wrote `tooling/release/acceptance/<tag>-receipt.md`.
-- [ ] Verify installation: `pipx install qiongli && rsk --help`
-
----
-
-## 6) Frequently Asked Questions (FAQ)
-
-### Q: I pushed a tag but Actions did not trigger?
-
-Ensure the tag format starts with `v` (e.g., `v0.1.0-beta.7`) and that the `.github/workflows/publish-pypi.yml` workflow file is present on the `main` branch.
-
-### Q: PyPI publishing failed with "403 Forbidden"?
-
-This is typically an issue with the Trusted Publisher setup:
-
-- Make sure the workflow name on PyPI exactly matches `publish-pypi.yml`.
-- Make sure the GitHub environment name exactly matches `pypi`.
-- Verify the owner and repository names are correct.
-
-### Q: Upload failed because the version number already exists?
-
-PyPI does not allow overwriting published versions. If you need to ship a fix, you must increment the version number (e.g., `0.1.0b7` → `0.1.0b8`).
-
-### Q: Is TestPyPI auto-triggered?
-
-No. `publish-testpypi.yml` is `workflow_dispatch` only (manual trigger), so it does not create extra tags.
-Production PyPI remains tag-triggered via `publish-pypi.yml` (`v*`).
-
-### Q: How do I recall/withdraw a published version?
-
-You can "yank" a version from the PyPI project page (it will not be deleted from users who already installed it, but new `pip install` commands will skip a yanked version by default).
+Use the intended version when preparing a new release. Create the immutable tag
+only after the required preparation and explicit publication authority.
+Pushing a tag alone does not publish the native packages. Dispatch **Release
+Automation** (`release-automation.yml`) with `mode=post`, the exact `v2.*` tag and
+`create_release=true`; its native publisher qualifies the requested source and
+uses verified assets for the release and registry workflows.
+
+## Registry credentials
+
+PyPI uses the configured Trusted Publisher for `publish-pypi.yml`.
+npm uses its configured publication credentials. Cargo currently uses the
+repository's `CARGO_REGISTRY_TOKEN` in Actions; there is no fallback to a local
+upload. Keep secrets out of release notes, package contents and logs.
+
+The legacy Python builder and TestPyPI route belong to `release/1.x-python`.
+Main's workflow edits do not update that frozen branch. Legacy preflight scripts
+are compatibility checks, not native publication evidence. See the
+[retained 1.x publishing guide](https://github.com/jxpeng98/qiongli/blob/5a3ab87fcba67dfbe700f895c0321e455bbbc914/docs/advanced/publish-pypi.md)
+only when maintaining that line.
+
+Release assets and published versions are immutable. Correct a bad package with
+a new version through the same checks; do not replace the bytes behind a tag.

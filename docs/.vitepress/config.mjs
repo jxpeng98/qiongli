@@ -31,7 +31,7 @@ const enSidebar = {
         { text: '2.x CLI Downloads', link: '/guide/cli-2x' },
         { text: 'Using Agent Skills', link: '/guide/using-agent-skills' },
         { text: 'Research Workflows', link: '/guide/task-recipes' },
-        { text: 'Multi-Agent Runtime', link: '/guide/multi-agent' },
+        { text: 'Work with other agents', link: '/guide/multi-agent' },
         { text: 'Upgrade', link: '/guide/cli-2x#install-and-upgrade-bundled-content' },
         { text: 'Data Ownership and Lifecycle', link: '/guide/data-lifecycle' },
         { text: 'Troubleshooting', link: '/guide/troubleshooting' }
@@ -67,15 +67,12 @@ const enSidebar = {
         { text: 'Overview', link: '/advanced/' },
         { text: 'Extend Qiongli', link: '/advanced/extend-qiongli' },
         { text: 'Subject Packaging Model', link: '/advanced/subject-packaging-model' },
-        { text: 'Agent + Skill Collaboration', link: '/advanced/agent-skill-collaboration' },
-        { text: 'Controller Modes', link: '/advanced/controller-modes' },
-        { text: 'Solo Mode', link: '/advanced/solo-mode' },
-        { text: 'Codex-Claude Duo', link: '/advanced/codex-claude-duo' },
-        { text: 'Plugin-First Architecture', link: '/advanced/plugin-first-architecture' },
+        { text: 'Agents and optional hooks', link: '/advanced/agent-skill-collaboration' },
+        { text: 'How the Plugin connects', link: '/advanced/plugin-first-architecture' },
         { text: 'MCP Providers Setup', link: '/advanced/mcp-providers-setup' },
         { text: 'Rigorous Literature Search', link: '/advanced/rigorous-literature-search' },
         { text: 'Zotero Integration', link: '/advanced/mcp-zotero-integration' },
-        { text: 'Publish to PyPI', link: '/advanced/publish-pypi' }
+        { text: 'Publish native packages', link: '/advanced/publish-pypi' }
       ]
     }
   ],
@@ -84,7 +81,7 @@ const enSidebar = {
       text: 'Maintainer',
       items: [
         { text: 'Overview', link: '/maintainer/' },
-        { text: 'CLAUDE Guide Summary', link: '/maintainer/claude-overview' },
+        { text: 'Maintainer workflow', link: '/maintainer/claude-overview' },
         { text: 'Architecture', link: '/architecture' },
         { text: 'Conventions', link: '/conventions' },
         { text: 'Local Desktop Development', link: '/development/local-desktop-build' },
@@ -92,7 +89,7 @@ const enSidebar = {
         { text: 'Naming Policy', link: '/maintainer/naming-policy' },
         { text: 'External Borrowing', link: '/maintainer/external-borrowing' },
         { text: 'Release Branch Policy', link: '/maintainer/release-branch-policy' },
-        { text: 'Publish to PyPI', link: '/advanced/publish-pypi' }
+        { text: 'Publish native packages', link: '/advanced/publish-pypi' }
       ]
     }
   ],
@@ -142,7 +139,7 @@ const zhSidebar = {
       text: '示例',
       items: [
         { text: '总览', link: '/zh/examples/' },
-        { text: 'Paper Type 路线图', link: '/zh/examples/paper-type-playbooks' },
+        { text: '论文类型示例', link: '/zh/examples/paper-type-playbooks' },
         { text: 'Research Graph 完整示例', link: '/zh/examples/research-graph' }
       ]
     }
@@ -153,13 +150,13 @@ const zhSidebar = {
       items: [
         { text: '总览', link: '/zh/advanced/' },
         { text: '扩展 Qiongli', link: '/zh/advanced/extend-qiongli' },
-        { text: 'Subject Packaging Model', link: '/zh/advanced/subject-packaging-model' },
-        { text: 'Agent + Skill 协同', link: '/zh/advanced/agent-skill-collaboration' },
-        { text: 'Plugin-First 架构', link: '/advanced/plugin-first-architecture' },
-        { text: 'MCP Providers 接入', link: '/zh/advanced/mcp-providers-setup' },
-        { text: '严格 Literature Search', link: '/zh/advanced/rigorous-literature-search' },
+        { text: '学科指导与内容包', link: '/zh/advanced/subject-packaging-model' },
+        { text: '代理协作与 Hook', link: '/zh/advanced/agent-skill-collaboration' },
+        { text: 'Plugin 如何接入', link: '/zh/advanced/plugin-first-architecture' },
+        { text: '文献服务配置', link: '/zh/advanced/mcp-providers-setup' },
+        { text: '严谨文献检索', link: '/zh/advanced/rigorous-literature-search' },
         { text: 'Zotero 集成', link: '/zh/advanced/mcp-zotero-integration' },
-        { text: '发布到 PyPI', link: '/zh/advanced/publish-pypi' }
+        { text: '发布原生渠道包', link: '/zh/advanced/publish-pypi' }
       ]
     }
   ],
@@ -168,14 +165,14 @@ const zhSidebar = {
       text: '维护者',
       items: [
         { text: '总览', link: '/zh/maintainer/' },
-        { text: 'CLAUDE 指南摘要', link: '/zh/maintainer/claude-overview' },
+        { text: '维护工作流程', link: '/zh/maintainer/claude-overview' },
         { text: '系统架构', link: '/zh/architecture' },
         { text: '规范约定', link: '/zh/conventions' },
         { text: '本地桌面开发', link: '/zh/development/local-desktop-build' },
         { text: '仓库结构', link: '/zh/development/repository-structure' },
         { text: '命名策略', link: '/zh/maintainer/naming-policy' },
         { text: '发布分支策略', link: '/zh/maintainer/release-branch-policy' },
-        { text: 'PyPI 发布', link: '/zh/advanced/publish-pypi' }
+        { text: '发布原生渠道包', link: '/zh/advanced/publish-pypi' }
       ]
     }
   ],
@@ -188,6 +185,18 @@ const zhSidebar = {
       ]
     }
   ]
+}
+
+const localSearch = {
+  provider: 'local',
+  options: {
+    _render(src, env, md) {
+      if (/^(?:zh\/)?(?:superpowers|architecture\/decisions|archive|audits)\//.test(env.relativePath)) return ''
+      if (/^(?:zh\/)?(?:development\/(?:ctr-|repository-restructuring)|maintainer\/(?:skill-quality-|skill-set-))/.test(env.relativePath)) return ''
+      const html = md.render(src, env)
+      return env.frontmatter?.search === false ? '' : html
+    }
+  }
 }
 
 const commonHead = [
@@ -210,7 +219,7 @@ export default {
       themeConfig: {
         nav: enNav,
         sidebar: enSidebar,
-        search: { provider: 'local' },
+        search: localSearch,
         outline: { level: [2, 3] },
         socialLinks: [{ icon: 'github', link: 'https://github.com/jxpeng98/qiongli' }],
         footer: {
@@ -226,7 +235,7 @@ export default {
       themeConfig: {
         nav: zhNav,
         sidebar: zhSidebar,
-        search: { provider: 'local' },
+        search: localSearch,
         outline: { level: [2, 3] },
         socialLinks: [{ icon: 'github', link: 'https://github.com/jxpeng98/qiongli' }],
         footer: {

@@ -1,170 +1,47 @@
-# Cross-Platform MCP Server
+# Connect MCP to a Host
 
-Qiongli ships two local MCP runtime profiles. Marketplace Lite is the no-runtime install path for plugin and MCPB users; Full CLI is the complete Python-backed local runtime.
+Qiongli 2 compiles Lite and Full MCP into the native executable. Neither profile
+needs Python or Node. The CLI-exported Plugin configures Full (32 tools); the
+native Marketplace platform Plugin configures Lite (14 tools). Both include
+literature configuration, search and local Zotero tools. Full also provides the
+managed research-project workflow.
 
-| Runtime profile | Install path | Requires user Node/Python | Main capabilities |
-|---|---|---:|---|
-| Marketplace Lite | Codex, Claude Code, Claude Desktop plugin marketplace/direct plugin, or Literature MCPB | No | Rust-built Literature Provider MCP, provider config/status, search planning, literature search, evidence export, Zotero import files, optional Zotero Companion bridge, and preview-only routing/planning |
-| Full CLI | `qiongli install --profile full` or `qiongli mcp serve --transport stdio` | Python Qiongli runtime | Full MCP tools, orchestrator, task-run, project guidance, local agent execution, doctor checks |
+## Codex and Claude Code
 
-## Full CLI Stdio Mode
+Use `qiongli install plugin` and choose the Host. The registered Plugin contains
+the executable and MCP configuration. Start a new session after installation.
+See [first use](../guide/cli-2x.md#first-use) for registration and tool checks.
 
-Use the full CLI server when the desktop or agent client can start a local `qiongli` command:
+## Another local MCP client
 
-```bash
-qiongli mcp config example --target codex --json
-qiongli mcp config example --target claude-code --json
-qiongli mcp config example --target antigravity --json
-qiongli mcp config example --target hermes --json
+If the client accepts a stdio command, configure the absolute path to your
+extracted executable with these arguments:
+
+```text
+mcp serve --profile full --transport stdio
 ```
 
-The server command is:
+Choose `--profile lite` for the smaller tool set. Let the client start the process;
+a command running in a separate terminal is not connected to that client.
+The native CLI supports stdio here; the old Python HTTP server instructions do
+not apply. A client that cannot launch a local process needs a separate supported
+integration, not an invented HTTP URL.
 
-```bash
-qiongli mcp serve --transport stdio
-```
+## Check each layer
 
-This mode does not require a remote server. The client launches the local process, and Qiongli reads provider credentials from the shared provider configuration. It requires the npm, pipx/pip, or `full` bootstrap runtime so that `qiongli` is on `PATH`.
+Run `qiongli mcp check --profile full` to check this executable's initialization,
+tool discovery and a read-only call. Then inspect actual session tools in your
+Host and call `qiongli_config_status`. Use `qiongli_literature_status` for provider
+configuration, and an authorized search to establish that the service responds.
+A local MCP check does not verify the Host connection or online availability.
 
-For Codex and Claude Code, the preferred full local shape is a CLI-generated local plugin bundle:
+`qiongli_search_plan` returns a plan, including `search_execution_mode` and
+suggested native queries. Modes include `provider_connected`, `native_only`,
+`hybrid_search` and `strategy_only`. The separate `provider_capability_mode`
+reports `provider_connected` or `strategy_only`. MCP servers must not call Codex or Claude
+native search directly: the Host runs its own tools and keeps their source records
+separate from provider results and the `user_corpus`.
 
-```bash
-qiongli install --profile full --target codex --surface plugin
-qiongli install --profile full --target claude --surface plugin
-```
-
-Those local plugins are different from the public marketplace lite plugins. They include a plugin-owned `.mcp.json` or plugin manifest entry that launches the full Python-backed `qiongli mcp serve --transport stdio` command.
-
-For Antigravity, Qiongli generates an Antigravity plugin bundle with root `mcp_config.json`. Hermes still receives a managed client-level MCP config:
-
-```bash
-qiongli install --profile full --target antigravity
-qiongli install --profile full --target hermes
-```
-
-Use the combined install when you want the full local surface everywhere:
-
-```bash
-qiongli install --profile full --target all --surface plugin
-```
-
-With `--target all --surface plugin`, Codex, Claude Code, and Antigravity get CLI-managed local plugin bundles. Antigravity follows the official plugin layout by bundling `mcp_config.json` at the plugin root, while Hermes receives its managed MCP config entry. Set `ANTIGRAVITY_CONFIG_PATH` for legacy or explicit `--parts mcp --target antigravity` installs, and set `HERMES_CONFIG_PATH` when Hermes uses a different MCP config file. Existing unmanaged `qiongli` server entries are preserved and reported as skipped.
-
-The full CLI server exposes literature, provider/configuration, and orchestrator tools:
-
-- `qiongli_config_status`, `qiongli_configure_provider`, `qiongli_save_provider_config`, `qiongli_list_provider_env`, and `qiongli_test_provider` for provider configuration and redacted readiness.
-- External evidence adapter: `qiongli_collect_evidence` covers filesystem, builtin workflow adapters, and external evidence adapter commands. Do not use `qiongli_collect_evidence` to judge built-in literature provider config. Direct academic provider names such as `openalex` require `RESEARCH_MCP_<PROVIDER>_CMD`; OpenAlex/Semantic Scholar/Crossref/PubMed/arXiv provider availability is checked through `qiongli_literature_status` and `qiongli_literature_search`.
-- `qiongli_literature_status`, `qiongli_literature_search`, and `qiongli_literature_export_evidence` for literature provider status, search, and auditable evidence snapshots.
-- `qiongli_search_plan` is the workflow-level literature routing contract used by `lit-review`, `paper-read`, and related Stage B skills. It records `search_execution_mode` as `hybrid_search`, `provider_connected`, `native_only`, or `strategy_only`, and records `provider_capability_mode` separately as `provider_connected` or `strategy_only`.
-- `qiongli_orchestrator_route` for deciding whether Codex, Claude Code, Antigravity, or another client should upgrade from skill-only workflow routing to full orchestrator tools.
-- `qiongli_orchestrator_doctor` for local runtime preflight checks.
-- `qiongli_task_plan` for a no-agent task plan.
-- `qiongli_task_run` for a controlled task-run surface. It defaults to preview and does not launch local runtime agents unless the caller explicitly passes JSON boolean `run_agents: true`. It accepts `guidance_mode` (`off`, `read`, `propose`, or `apply`) and echoes that mode in preview arguments. Preview reports whether `.qiongli/` guidance would be bootstrapped, but only actual task execution writes those files.
-
-Literature search routing has a strict MCP boundary:
-
-- `hybrid_search` means provider MCP calls plus platform native search.
-- `provider_connected` means provider MCP calls only.
-- `native_only` means the active agent has platform native search, but the provider layer is not connected.
-- `strategy_only` means neither provider-connected MCP nor usable platform native search is available.
-
-MCP servers must not call Codex or Claude native search directly. The active agent executes `native_search_queries` from `qiongli_search_plan`; the MCP provider layer performs only provider calls. Search evidence must preserve distinct provenance labels, including `mcp:openalex`, `mcp:semantic_scholar`, `mcp:crossref`, `mcp:pubmed`, `mcp:arxiv`, `native:codex_web_search`, `native:claude_web_search`, and `user_corpus`.
-
-When task-run agents are launched, formal artifacts are still expected under `RESEARCH/[topic]/...`. The first non-`off` task run initializes `.qiongli/local_guidance.md` and `.qiongli/trace/` if they are missing. The project-local guidance layer writes auditable run traces under `.qiongli/trace/`; this trace location is separate from formal research outputs and from installed skill assets.
-
-Skill-only Qiongli usage also checks `.qiongli/local_guidance.md` and `.qiongli/guidance.d/*.md` when they are present in the current project. Full orchestrator task-runs remain the stronger path because they write trace bundles, guidance proposals, validator output, and source metadata.
-
-Use the full CLI server when Codex, Claude Code, Antigravity, or another local client needs the complete local product surface: literature tools, provider configuration, routing, planning, doctor checks, or task-run as MCP tools.
-
-## Codex Marketplace Lite MCP
-
-The generated Codex plugin package includes `.mcp.json`, references it from `.codex-plugin/plugin.json`, and bundles the Rust Lite MCP executable at `bin/qiongli-literature-provider`. Codex plugin installs can therefore register and launch the literature-provider MCP server from the plugin bundle instead of requiring users to copy a separate `config.toml` snippet, install Node, install Python, or install the `qiongli` CLI. This bundled server is the marketplace lite/no-CLI runtime, not the full local MCP.
-
-The bundled server entry is:
-
-```bash
-./bin/qiongli-literature-provider --transport stdio
-```
-
-Provider keys are not embedded in the plugin manifest. Desktop users can configure keys with the bundled `qiongli_configure_provider` MCP tool, or script explicit writes with `qiongli_save_provider_config`. CLI users can configure the same shared provider file with `qiongli mcp configure` or `qiongli provider setup`.
-
-Because Codex launches this MCP server from the installed plugin bundle, Codex's MCP settings page should be treated as an enable/disable and tool-policy surface for the bundled server, not as the credential configuration UI. The supported key setup loop is:
-
-1. Call `qiongli_config_status` to inspect the redacted status and shared `config_path`.
-2. Call `qiongli_configure_provider` and open the returned `127.0.0.1` URL.
-3. Enter the OpenAlex API key, optional OpenAlex email, and Semantic Scholar API key in the local browser form.
-4. Call `qiongli_literature_status` before claiming `provider_connected`.
-
-Keep provider secrets out of `.mcp.json`, `.codex-plugin/plugin.json`, marketplace metadata, and release artifacts. The bundled Rust Lite MCP server reads the shared provider config at runtime.
-
-The bundled Codex runtime focuses on literature-provider tools. Use `qiongli install --profile full --target codex --surface plugin` when you need a Codex-native plugin container backed by the unified full MCP surface with both literature and Python-backed orchestration tools.
-
-`qiongli_configure_provider` is the platform-neutral setup contract. Codex Desktop, Claude Desktop MCPB, Claude Code, Cursor-style clients, and any local stdio MCP client should prefer it for credentials because it starts a tokenized `127.0.0.1` setup page and returns its URL without returning provider values. The caller opens that URL; Lite does not promise automatic system-browser launch. `qiongli_open_config_wizard` remains available as a compatibility alias for older clients and docs.
-
-## Claude Code Marketplace Lite MCP
-
-The generated Claude Code plugin package declares a bundled `qiongli` MCP server from `.claude-plugin/plugin.json`. It uses the same Rust Lite MCP executable under `bin/qiongli-literature-provider` as the Codex plugin.
-
-The bundled server entry is:
-
-```bash
-${CLAUDE_PLUGIN_ROOT}/bin/qiongli-literature-provider --transport stdio
-```
-
-This bundled runtime covers literature-provider tools such as provider configuration, status, search, search planning, evidence export, and preview-only route/task planning without requiring the `qiongli` CLI. Use `qiongli install --profile full --target claude --surface plugin` when Claude Code needs Python-backed doctor checks, task execution, project writes, or local agent launch. Use `--target antigravity`, `--target hermes`, or `--target all --surface plugin` for local clients that should load the full MCP server instead of a bundled lite provider runtime.
-
-## Claude Desktop MCPB
-
-The Claude Desktop `qiongli-literature-provider.mcpb` also contains the Rust Lite MCP executable. It exposes the Lite runtime's provider fields, default result limit, and loopback Zotero probe settings, so a Desktop user can install the MCPB without installing `qiongli`, Node, Python, npm, or pip. Current-host beta artifacts carry an explicit Rust target identity and must not be treated as generic multi-platform binaries. While that identity reports `target_policy: current-host-only`, release postflight uploads target-identified beta assets but does not advance the generic Codex or Claude marketplace dist refs. Install such a beta asset only when its target triple matches the host.
-
-For manual Claude Desktop installs, treat the Skill ZIP and MCPB as complementary assets:
-
-- The `qiongli-claude-desktop-skill-*.zip` upload provides the agent instructions, workflows, templates, subject overlays, and skill guidance.
-- The `qiongli-literature-provider.mcpb` install provides literature MCP tools such as `qiongli_literature_search`.
-- The MCPB does not launch orchestrator agents. Its route and task-plan tools are previews only. If the same Desktop or coding client needs doctor checks or `qiongli_task_run`, install the full CLI MCP server separately. For Codex/Claude Code use `qiongli install --profile full --target all --surface plugin`; for a direct stdio integration use `qiongli mcp serve --transport stdio`.
-
-## Provider Keys
-
-CLI users can configure keys directly:
-
-```bash
-qiongli mcp configure --provider openalex --field email --value you@example.com
-qiongli mcp configure --provider semantic-scholar --field api-key --value "$S2_API_KEY"
-qiongli mcp doctor --json
-```
-
-Desktop-only users can use the MCP tools exposed by the bundled Rust Lite MCP server or full CLI server:
-
-- `qiongli_configure_provider`: starts a tokenized loopback form and returns its URL; the caller opens it.
-- `qiongli_open_config_wizard`: compatibility alias for `qiongli_configure_provider`.
-- `qiongli_save_provider_config`: saves one provider field from the desktop client; use it only for explicit scripted writes or when the user deliberately supplied the value in chat.
-- `qiongli_config_status`: reports redacted provider status.
-- `qiongli_literature_search`: performs bounded basic search across selected configured OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv providers, then normalizes, deduplicates, limits, and reports sanitized complete/partial/failed diagnostics. arXiv is enabled without credentials. Query variants, domain deep search, citation expansion, and review-grade coverage diagnostics belong to Full or the explicitly packaged legacy Node reference.
-
-The full CLI server exposes the same `qiongli_configure_provider` flow.
-
-Finance/economics data APIs such as FRED and SEC EDGAR should be exposed through a separate data MCP surface rather than the literature MCPB. See [Finance/Economics Data MCP Boundary](finance-econ-data-mcp.md).
-
-Secrets are written to the same provider config used by `qiongli provider setup` and `qiongli provider doctor`. Tool results and doctor output report only configured/missing status, not raw key values.
-
-## HTTP Mode
-
-Use HTTP only when a platform needs an HTTP endpoint:
-
-```bash
-qiongli mcp serve --transport http --host 127.0.0.1 --port 8765
-```
-
-For normal desktop use, this can still be local. You need a remote server only when the MCP client cannot run local commands, when several machines must share one always-on endpoint, or when your deployment policy requires a central hosted service. If you expose HTTP remotely, put it behind your normal authentication, TLS, and secret-management controls.
-
-## Supported Provider Fields
-
-The MCP server derives provider fields from the Qiongli provider registry. Current fields include:
-
-- `openalex.api_key`
-- `openalex.email`
-- `semantic_scholar.api_key`
-- `crossref.email`
-- `pubmed.api_key`
-
-When new providers or fields are added to the registry, the config wizard and provider env alias tool pick them up from the same source.
+See [provider setup](mcp-providers-setup.md) and
+[Plugin contents](plugin-first-architecture.md). The Host still owns model choice
+and permissions; connecting MCP does not change them.

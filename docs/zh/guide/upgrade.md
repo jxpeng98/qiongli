@@ -1,4 +1,10 @@
-# Upgrade / Auto-Upgrade Guide (No Fork Required)
+---
+search: false
+---
+# Upgrade / Auto-Upgrade Guide (No Fork Required)（1.x 历史参考）
+
+> 本页保留旧版行为及当时的命令，不代表 2.x 的安装或运行方式。
+> 当前用户请查看 [2.x 指南](/zh/guide/cli-2x)。
 
 > 本页保留 1.x 的操作方式。原生 2.x 请使用[当前指南](cli-2x.md)。
 
@@ -12,7 +18,7 @@
 这个路径只需要 `bash` 和 `curl`/`wget`、`tar`：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- \
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/v1.19.0-beta.1/scripts/bootstrap_qiongli.sh | bash -s -- \
   --repo <owner>/<repo> \
   --project-dir /path/to/project \
   --target all \
@@ -103,7 +109,7 @@ qiongli init --project-dir .
 直接下载 GitHub release 压缩包并执行其中的安装脚本：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- \
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/v1.19.0-beta.1/scripts/bootstrap_qiongli.sh | bash -s -- \
   --repo <owner>/<repo> \
   --project-dir /path/to/your/project \
   --target all \

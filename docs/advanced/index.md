@@ -8,16 +8,17 @@ Use this section when the default install and CLI path is already clear and you 
 - [Subject Packaging Model](/advanced/subject-packaging-model)
 - [Agent + Skill Collaboration](/advanced/agent-skill-collaboration)
 - [Cross-Platform MCP Server](/advanced/cross-platform-mcp)
-- [Native Desktop Alpha Packages](/advanced/native-desktop-alpha)
 - [MCP Providers Setup](/advanced/mcp-providers-setup)
 - [Rigorous Literature Search](/advanced/rigorous-literature-search)
 - [Zotero Integration](/advanced/mcp-zotero-integration)
-- [Publish to PyPI](/advanced/publish-pypi)
+- [Publish native packages](/advanced/publish-pypi)
 
-## Typical Use Cases
+## Choose the relevant guide
 
-- connect an external search, full-text, stats, or runtime provider
-- specialize workflows for a domain or research direction
-- understand when to use core, subject, focused coverage, composites, or custom overlays
-- refine how agents, profiles, and skills collaborate
-- publish or maintain the Python package distribution
+Configure an existing provider before adding another integration. For agent work,
+set a bounded task and source scope. Keep subject differences in shared guidance
+or profiles, and use the native version and qualification process for publishing.
+
+[Plugin connection](/advanced/plugin-first-architecture) · [MCP connection](/advanced/cross-platform-mcp)
+
+[Desktop Alpha information](/advanced/native-desktop-alpha) remains available for maintenance; it is not the current CLI installation path.

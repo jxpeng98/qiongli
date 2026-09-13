@@ -1,90 +1,43 @@
-# Repository Structure
+# Repository structure
 
-This page is the current source-layout contract for maintainers.
+`main` contains the integrated native product. `2.x` remains the development and
+prerelease branch. The old Python runtime is retained for compatibility work;
+new CLI and MCP behaviour belongs in the Rust workspace.
 
-```text
-/
-  content/                  canonical academic and runtime-contract source
-    workflow/               source for generated qiongli-workflow package
-    distribution/           plugin metadata source for generated plugin payloads
-    skills/                 internal skill specs
-    templates/              reusable artifact templates
-    standards/              contracts, capability maps, policies
-    mcp-contracts/          runtime capability registry, schemas, and fixtures
-    roles/                  functional-agent role configs
-    subjects/               subject catalog and overlays
-    schemas/                JSON/YAML schemas
-    venue-profiles/         venue profile data
+| Path | Owner |
+|---|---|
+| `content/workflow/` | Main Skill, shortcuts and stage references |
+| `content/skills/`, `roles/`, `templates/`, `subjects/` | Research guidance and reusable outputs, all under `content/` |
+| `content/standards/` | Research task and artifact contracts |
+| `content/mcp-contracts/` | Public MCP tools, schemas and fixtures |
+| `content/distribution/` | Shared Plugin metadata |
+| `packages/qiongli-native/apps/qiongli/` | Native product entry and CLI/Host adapters |
+| `packages/qiongli-native/crates/` | Shared domain, project, runtime and installation services |
+| `packages/qiongli-zotero-companion/` | Extension installed inside Zotero |
+| `tooling/scripts/native_*.py` | Native release, registry and Marketplace packaging |
+| `tooling/release/` | Release contracts and evidence |
+| `docs/`, `docs/zh/` | English and Chinese documentation |
+| `docs/architecture/decisions/` | Accepted and superseded architecture decisions |
+| `docs/superpowers/` | Plans, roadmap and evidence ledger |
+| `tests/`, `evals/` | Regression and behavioural checks |
 
-  packages/
-    qiongli-native/         canonical Rust-native 2.x workspace and product app
-    qiongli-desktop/        Svelte 5 desktop UI compiled into the native app
-    qiongli-app-api/        typed frontend/native IPC contract and validation
-    qiongli-lite-mcp/       frozen Rust Lite compatibility package
-    python-qiongli/         Python package source and compatibility shims
-    npm-qiongli/            npm wrapper package source
-    qiongli-literature-mcpb/ MCPB package source
-    qiongli-zotero-companion/ Zotero companion package source
+## Retained sources
 
-  tooling/
-    architecture/           machine-readable native decision inventory
-    quality/                repository-only source policy and debt baseline
-    scripts/                real maintainer script implementations
-    pipelines/              paper-type DAG descriptors
-    install/                installer manifests and support assets
-    release/                release docs, receipts, rollback assets
+`packages/qiongli-desktop/` and `packages/qiongli-app-api/` support the retained
+Svelte/Tauri Desktop. Desktop maintenance is separate from the current CLI delivery.
+`packages/python-qiongli/`, `packages/npm-qiongli/`, `packages/qiongli-lite-mcp/`
+and the older MCPB sources preserve compatibility; they are not the native registry
+package builders. In particular, their old READMEs are not the README shipped in
+current native npm or Python packages.
 
-  evals/                    eval cases, rubrics, runner assets
-  tests/                    cross-package regression tests
-  docs/                     VitePress documentation
-    architecture/decisions/ accepted and superseded native ADRs
-  scripts/                  stable wrapper entrypoints
-```
+## Generated outputs
 
-## Generated Artifact Shapes
+Plugin trees, `qiongli-workflow/`, `.agent/`, package payloads and installed caches
+are derived from canonical sources. Keep them out of source edits. Native packaging
+builds in a staging directory and uses common CLI metadata while retaining a
+channel-specific wrapper and installation instructions.
 
-These paths may appear during staging or local maintenance, but they are not
-canonical source:
-
-- `qiongli-workflow/`
-- `plugins/qiongli/`
-- `plugins/qiongli-next/`
-- `.agent/`
-- `packages/python-qiongli/src/qiongli/payload/`
-- `packages/npm-qiongli/payload/`
-- `packages/npm-qiongli/python-runtime/`
-- `packages/qiongli-plugin/`
-- `packages/qiongli-next-plugin/`
-
-Use staged materialization to produce them:
-
-```bash
-python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force
-```
-
-## Compatibility Boundaries
-
-- Root `scripts/` remains stable for CI, docs, and user habits. Edit
-  `tooling/scripts/` unless the wrapper contract itself changes.
-- `content/mcp-contracts/` is the canonical MCP runtime-contract boundary. It
-  is not an academic standard, and repository-only RC1 engineering policy must
-  remain under `tooling/quality/` rather than being materialized from it.
-- `packages/qiongli-native/` is the only Qiongli 2 native workspace. It owns
-  the single `apps/qiongli` product executable; native service crates must stay
-  below that workspace and must not be duplicated into generated plugins.
-- `packages/qiongli-desktop/` owns the Svelte UI and emits a static `build/`
-  directory consumed by the Tauri application. `packages/qiongli-app-api/`
-  owns the typed IPC contract; UI components must not duplicate native service
-  logic.
-- `research_skills` remains as a deprecated Python compatibility shim under
-  `packages/python-qiongli/src/research_skills/`.
-- Root `.agent/` is generated from `content/workflow/` and
-  `content/distribution/plugins.yaml`.
-- Root `qiongli-workflow/` is generated from `content/workflow/` plus synced
-  content mirrors.
-- `docs/architecture/decisions/` is the reviewed source of Qiongli 2
-  architecture decisions; `tooling/architecture/` contains validation records,
-  not runtime payloads or marketplace metadata.
-- `plugins/qiongli/`, `plugins/qiongli-next/`, `packages/qiongli-plugin/`,
-  and `packages/qiongli-next-plugin/` are generated plugin payload shapes, not
-  source directories.
+Root `scripts/` keeps stable command wrappers; edit `tooling/scripts/` for their
+implementation. Legacy materialization details remain in the explicitly labelled
+[compatibility guide](distribution-materialization.md).
+See [editing conventions](../conventions.md) before adding a new owner.

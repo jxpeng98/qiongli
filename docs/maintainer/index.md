@@ -4,7 +4,7 @@ This section is for people changing the system itself rather than only operating
 
 ## Maintainer Path
 
-- [CLAUDE Guide Summary](/maintainer/claude-overview)
+- [Maintainer workflow](/maintainer/claude-overview)
 - [Architecture](/architecture)
 - [Conventions](/conventions)
 - [Local Desktop Development and Packaging](/development/local-desktop-build)
@@ -12,13 +12,11 @@ This section is for people changing the system itself rather than only operating
 - [Naming Policy](/maintainer/naming-policy)
 - [Release Branch Policy](/maintainer/release-branch-policy)
 - [Extend Qiongli](/advanced/extend-qiongli)
-- [Publish to PyPI](/advanced/publish-pypi)
+- [Publish native packages](/advanced/publish-pypi)
 
-## Use This Section When
+## Day-to-day maintenance
 
-- you are deciding where a change belongs
-- you are changing routing, standards, or packaging
-- you need to run or package the Svelte/Tauri desktop application locally
-- you are deciding between public names and stable technical identifiers
-- you are moving work between `dev`, `main`, and release tags
-- you need the maintainer mental model distilled from `CLAUDE.md`
+Find the source that owns the behaviour, run affected checks and update both
+languages. Native work integrates on `2.x`; reviewed changes advance `main` when
+authorized. Desktop information remains for maintenance. The old Python branch
+has its separate compatibility and critical-fix scope.

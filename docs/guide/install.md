@@ -1,4 +1,10 @@
-# Install Qiongli
+---
+search: false
+---
+# Install Qiongli (1.x legacy)
+
+> This page preserves 1.x behaviour and commands, not the native 2.x setup.
+> Use the [2.x guide](/guide/cli-2x) for current installation and usage.
 
 > Native 2.x users: [download the standalone binary](cli-2x.md#standalone-binary-download)
 > or follow the [CLI package-manager installation guide](cli-2x.md#package-managers).
@@ -9,9 +15,9 @@
 
 Qiongli has several installation surfaces because users need different levels of runtime control. Start with the smallest surface that gives you the workflow you need.
 
-## Latest Stable Downloads
+## Historical downloads
 
-Current stable release: [v1.17.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.17.0). These direct links cover the common install paths; use the download guide for subject-specific Desktop ZIPs and maintainer artifacts.
+Release recorded in this guide: [v1.17.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.17.0). These direct links cover the common install paths; use the download guide for subject-specific Desktop ZIPs and maintainer artifacts.
 
 | Need | Link or command |
 |---|---|
@@ -150,14 +156,14 @@ qiongli install --target codex --surface plugin --overwrite
 Use `partial` for the cross-client workflow package without Python:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/v1.19.0-beta.1/scripts/bootstrap_qiongli.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
 ```
 
 Windows PowerShell 7+:
 
 ```powershell
 winget install --id Microsoft.PowerShell --source winget
-Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.ps1 -OutFile .\bootstrap_qiongli.ps1
+Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/qiongli/v1.19.0-beta.1/scripts/bootstrap_qiongli.ps1 -OutFile .\bootstrap_qiongli.ps1
 pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -ProjectDir "$PWD" -Target all
 ```
 
@@ -168,7 +174,7 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -Pro
 Use `full` when you need local validation or orchestrated task execution:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile full --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/v1.19.0-beta.1/scripts/bootstrap_qiongli.sh | bash -s -- --profile full --project-dir "$PWD" --target all
 ```
 
 Windows PowerShell 7+:

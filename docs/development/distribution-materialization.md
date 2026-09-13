@@ -1,4 +1,10 @@
-# Distribution Materialization
+---
+search: false
+---
+# Distribution Materialization (1.x legacy)
+
+> This page preserves 1.x behaviour and commands, not the native 2.x setup.
+> Use the [2.x guide](/guide/cli-2x) for current installation and usage.
 
 Qiongli keeps one editable source tree and materializes installable package
 payloads from that source. Development changes should happen in canonical

@@ -1,290 +1,49 @@
-# 发布指南（PyPI Package Publishing）
+# 发布 Qiongli 原生渠道包
 
-本指南说明如何将 `qiongli` 发布到 PyPI，以及日常版本发布的完整流程。
+2.x 的 PyPI 包包含 Python 启动器和原生程序；npm 包包含 Node 启动器和原生程序，
+Cargo 发布 Rust 源码包。GitHub Release 压缩包则包含可执行文件、README 和许可证。
+各渠道使用同一产品版本与 CLI 描述，同时保留各自的安装说明。
+2.x 不会把旧 Python 应用作为运行时发布。
 
-这里描述的是冻结的 **legacy 1.x** registry 路径。原生 2.x 使用 Cargo
-版本源和独立的 alpha/beta/stable channel；`v2.*` tag 会被 PyPI/npm jobs
-明确排除。REL-201 只开放无发布的 native dry-run。请参见
-`tooling/release/automation.md`，不得使用本指南发布 `v2.0.0-alpha.1`。
+## 版本与来源
 
-## 0) 前置条件（一次性配置）
+版本来源是 `packages/qiongli-native/Cargo.toml`。
+例如，`2.0.0-beta.6` 在 Python 中写作 `2.0.0b6`，正式版 `2.0.0` 在各渠道保持同一版本。
+预发布来自 `2.x`，使用 npm 的 `next` 和 crates.io 的预发布版本；
+正式版来自审阅后的 `main`，使用 npm 的 `latest`。Cargo 没有 `next` 标签。
+当前源码仍标记为 beta.6，合入 main 本身不会发布 `v2.0.0`。
 
-### 0.1 PyPI Trusted Publisher
+## Beta 通道策略
 
-本项目使用 [Trusted Publisher](https://docs.pypi.org/trusted-publishers/) 机制发布（无需管理 API Token）。
+Beta 并非每次正式发布的必经步骤。正式版推进 npm `latest`，`next` 可以保留在此前的测试版，
+不必只为移动 `next` 再发一个 Beta。创建 tag 前先确定目标渠道。
 
-1. 登录 [pypi.org](https://pypi.org)，进入你的账号
-2. 如果是**首次发布**（PyPI 上还没有这个包），进入 [Publishing](https://pypi.org/manage/account/publishing/) 页面，在 "Add a new pending publisher" 中填写：
-   - **PyPI Project Name**: `qiongli`
-   - **Owner**: `jxpeng98`
-   - **Repository name**: `qiongli`
-   - **Workflow name**: `publish-pypi.yml`
-   - **Environment name**: `pypi`
-3. 如果**已有该包**，进入包的 Settings → Publishing → "Add a new publisher"，填写同上
+## 先验证，再发布
 
-### 0.2 GitHub Environment
+按[发布分支策略](../maintainer/release-branch-policy.md)和 `tooling/release/automation.md`
+执行。Native CLI distribution 会在 macOS ARM64、Windows x64 和 Linux x64 构建并验证安装，
+组装阶段核对平台产物、版本、摘要和生成的渠道包。Cargo 另有源码包检查。
+一次源码构建通过，不能代替完整发布检查。
 
-1. 进入 GitHub 仓库 Settings → Environments
-2. 点击 "New environment"，名称填 `pypi`
-3. （可选）添加 protection rules（如仅允许 `main` 分支部署、需要审批等）
+本地原生 CLI 发布检查沿用现有入口：
 
-### 0.3 TestPyPI Trusted Publisher
-
-本仓库已提供 TestPyPI 专用 workflow：`.github/workflows/publish-testpypi.yml`。
-
-1. 登录 [test.pypi.org](https://test.pypi.org)
-2. 进入 Account settings → Publishing
-3. 添加 pending publisher（或在已有项目下添加 publisher），填写：
-   - **PyPI Project Name**: `qiongli`
-   - **Owner**: `jxpeng98`
-   - **Repository name**: `qiongli`
-   - **Workflow name**: `publish-testpypi.yml`
-   - **Environment name**: `testpypi`
-4. 回到 GitHub 仓库 Settings → Environments，创建环境 `testpypi`
-
----
-
-## 1) 日常发布流程
-
-### 1.1 一条命令完成发布闭环
-
-推荐维护者直接执行：
-
-```bash
-./scripts/release_automation.sh publish --version 0.2.0 --from-tag v0.1.0
-./scripts/release_automation.sh publish --version 0.2.0b1 --from-tag v0.2.0
+```sh
+bash scripts/release_ready.sh --version 2.0.0-beta.6 --cli-github
 ```
 
-`publish` 是标准发布入口。它会自动走完整本地和远端发布闭环：
+准备新版本时替换为目标版本，完成所需检查并获得明确发布授权后，再创建不可改写的标签。
+仅推送标签不会发布原生包。需要调度 **Release Automation**（`release-automation.yml`），
+设置 `mode=post`、准确的 `v2.*` 标签及 `create_release=true`。
+其中的原生发布器验证指定源码，并将核验后的产物交给 Release 和各渠道发布工作流。
 
-1. 规范版本号并运行 `release_ready.sh`
-2. 自动提交 release-prep 文件
-3. 创建并 push release tag
-4. 让 tag 触发 GitHub Actions，发布到 PyPI 和 npm
-5. 等待 release commit 上必要的 branch workflows：
-   - `CI`
-   - `Checkout Install Check`
-6. 等待必要的 tag publish workflows：
-   - `Publish to PyPI`
-   - `Publish to npm`
-7. 执行 postflight：创建或更新 GitHub Release、上传 plugin artifacts，并写入 acceptance receipt
+## 发布凭据
 
-日常生产发布必须走 `./scripts/release_automation.sh publish`。生产 publish workflows 只是 tag 触发后的执行面，不再作为手动发布入口。
+PyPI 使用为 `publish-pypi.yml` 配置的 Trusted Publisher；npm 使用已配置的发布凭据。
+Cargo 目前在 Actions 中读取仓库的 `CARGO_REGISTRY_TOKEN`，不会退回本地上传。
+密钥不应进入发布说明、包内容或日志。
 
-你可以传入稳定版 `0.2.0`，也可以传入 beta 版 `0.2.0b1`。automation 会自动规范成三种表示：
+旧 Python 构建器和 TestPyPI 路径属于 `release/1.x-python`。
+修改 main 的工作流，不会同步改变冻结分支。旧版预检脚本用于兼容检查，不能作为原生发布证据。
+只有维护 1.x 时，才查阅[保留的旧版发布指南](https://github.com/jxpeng98/qiongli/blob/5a3ab87fcba67dfbe700f895c0321e455bbbc914/docs/zh/advanced/publish-pypi.md)。
 
-| 层 | 稳定版 | Beta |
-|------|------|------|
-| PyPI package | `0.2.0` | `0.2.0b1` |
-| Skill metadata / registry | `0.2.0` | `0.2.0-beta.1` |
-| Portable skill `VERSION` / git tag | `v0.2.0` | `v0.2.0-beta.1` |
-
-其中 package 版本遵循 [PEP 440](https://peps.python.org/pep-0440/)，skill metadata 使用 SemVer 兼容的 prerelease 语法。这个 legacy registry 路径只支持 `stable` 和 `beta`；独立 native classifier 可以识别 `alpha`，但原生 registry publication 仍然禁用。
-
-默认的 release smoke tier 是保守配置：内置 literature smoke + `doctor`。如果你还想在发版前补跑更重的 `parallel` / `task-run` profile 路径检查，再显式加 `--maintainer-smoke`。
-
-可选的 full-cycle workflow harness：
-
-```bash
-python3 tooling/scripts/run_full_cycle_workflow_harness.py \
-  --fixture tests/fixtures/full_cycle_harness/clean_empirical \
-  --json-report /tmp/qiongli-full-cycle-harness.json
-```
-
-这是 preview-only 检查。它会验证 stage gates、drift checks 和 journal-fit
-readiness，且不会启动本地 agents。
-
-### 可选的 subject runtime 本地 agent smoke
-
-默认 release smoke 仍然是 preview-first，不会启动本地 agent。发布候选版本前，
-维护者可以先运行确定性的默认检查；当需要本地 runtime 验证时，再显式 opt in
-运行一次真实本地 agent smoke 来验证 adaptive subject runtime：
-
-```bash
-uv run python tooling/scripts/run_subject_runtime_smoke.py --json
-uv run python tooling/scripts/evaluate_subject_router.py --json
-QIONGLI_SMOKE_RUN_AGENTS=1 \
-uv run python tooling/scripts/run_subject_runtime_smoke.py \
-  --mode local-agent \
-  --case confirmed_finance_guidance_loaded \
-  --json
-```
-
-这个 local-agent 命令必须显式 opt in，因为它会启动本地 runtime agents。只有在
-需要本地 runtime 验证时，才应在发版前的隔离环境中运行它。它会验证已确认
-subject 的 `.qiongli/guidance.d/subject-runtime.md` 被真实 task run 加载、
-local guidance trace 已写入，并且 Qiongli 可见路径仍在隔离 smoke root 内。
-
-可选的 parallel multi-agent smoke 是更重的维护者检查，也使用同一个环境变量
-作为第二层 opt-in：
-
-```bash
-QIONGLI_SMOKE_RUN_AGENTS=1 \
-python3 tooling/scripts/smoke_multi_agent.py --run-parallel
-```
-
-如果没有设置 `QIONGLI_SMOKE_RUN_AGENTS=1`，`--run-parallel` 只会记录一个
-WARN case，不会启动并行的 Codex/Claude/Antigravity runtime 路径。
-
-当前 release 文档策略：
-
-- stable 正式版统一维护在 `CHANGELOG.md`；postflight 会把对应 changelog 段落拼成包含 release 分类说明和下载指南的 GitHub Release notes
-- beta / prerelease 继续使用 `tooling/release/<tag>.md`
-
-Beta 通道策略：
-
-- beta 是可选的预发布验证版本，不是每次 stable 前的必经步骤
-- 当 release 改动发布自动化、package payload、installer、package metadata、CI 或 publish workflows 这类高风险面时，应先发 beta 验证
-- 文档、小修复和低风险维护可以直接发 stable
-- 如果 stable 没有对应的新 beta，npm `latest` 会前进，npm `next` 会继续停在上一个 beta
-- `next` 表示“最新预发布验证版”，不保证比 `latest` 新；不要为了移动 `next` 而机械发 beta
-
-### 1.2 干跑 / 拆分阶段
-
-如果你只想本地准备和验证，不想创建 tag，可以先跑 `release_ready.sh`：
-
-```bash
-./scripts/release_ready.sh --version 0.2.0
-./scripts/release_ready.sh --version 0.2.0b1 --from-tag v0.2.0
-```
-
-`release_ready.sh` 会执行版本同步、strict validator、仓库单元测试、release-tier smoke、release note evidence 更新、包构建检查、`twine check` 和 wheel 安装 smoke。它不会创建 tag，也不会 push。commit、推送 branch、branch CI/check 门禁、推送 tag、等待 tag publish、创建 GitHub Release、上传 plugin artifacts、生成 acceptance receipt 都由 `publish` 模式负责。
-
-如果 beta release 的 GitHub Actions 可能超过默认本地等待窗口，应延长 hard wait，而不是使用 soft publish gate：
-
-```bash
-./scripts/release_automation.sh publish --version 0.15.0b2 --from-tag v0.15.0-beta.1 --ci-timeout-seconds 2700
-```
-
-publish 模式必须先确认 release-prep commit 的 `CI` 和 `Checkout Install Check` 通过，才会创建或推送 release tag。包 registry 发布和 GitHub Release 创建也必须等 tag publish workflows 通过后才继续。soft CI 模式只保留给手动 `post` 诊断或恢复，不再用于日常 publish。
-
-如果你确实需要拆开执行，入口仍然保留：
-
-```bash
-./scripts/release_automation.sh pre --tag v0.2.0 --from-tag v0.1.0
-./scripts/release_automation.sh post --tag v0.2.0 --create-release
-```
-
----
-
-## 2) Tag push 之后会发生什么
-
-`publish` 会创建并 push 以 `v*` 开头的 release tag，例如 `v0.2.0` 或 `v0.2.0-beta.1`。这个 tag 会触发 `publish-pypi.yml`：
-
-1. Checkout 代码
-2. 在 checkout 中运行 `inject_project_toml.sh`，把当前仓库 slug 写入 `qiongli/project.toml`
-3. 将 release payload materialize 到 `$RUNNER_TEMP/qiongli-dist`
-4. 基于 staged root 验证 release tag
-5. 从 staged root 执行 `python -m build` 构建 sdist + wheel
-6. 运行 `twine check` 验证 staged package metadata
-7. 使用 Trusted Publisher 发布到 PyPI
-
-同一个 tag 也会触发 `publish-npm.yml`，它会校验 staged bundled npm package，并把 stable 版本发布到 `latest`，把 beta 版本发布到 `next`。
-
-之后 postflight 会等待 release commit 上的 `CI` 和 `Checkout Install Check`。如果必需 workflow 没有匹配到，诊断会同时打印该 commit 上实际观察到的 workflow 名称。
-
----
-
-## 3) 本地验证（手动 / 可选）
-
-如果你想绕开 `release_ready.sh` 单独跑包预检，可以执行：
-
-```bash
-python scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force
-bash scripts/verify_release_tag_version.sh --root /tmp/qiongli-dist --tag <tag>
-bash scripts/pypi_preflight.sh --root /tmp/qiongli-dist
-bash scripts/npm_preflight.sh --root /tmp/qiongli-dist
-```
-
-等价的手动步骤如下：
-
-```bash
-# 安装构建工具
-pip install build twine
-
-# 注入上游 repo 信息
-bash /tmp/qiongli-dist/scripts/inject_project_toml.sh
-
-# 构建
-cd /tmp/qiongli-dist
-python -m build
-
-# 验证
-twine check dist/*
-```
-
-本地试装：
-
-```bash
-pip install dist/qiongli_installer-*.whl
-qiongli --help
-qiongli check --repo jxpeng98/qiongli
-```
-
----
-
-## 4) 发布到 TestPyPI（建议先做）
-
-使用 GitHub Actions workflow（手动触发，无需打 tag）：
-
-1. 打开 GitHub Actions
-2. 选择 **Publish to TestPyPI**
-3. 在目标分支点击 **Run workflow**
-
-该 workflow 只会从 `main`、`dev` 或冻结的 `release/1.x-python` 分支构建、
-校验并通过 Trusted Publishing 发布到 TestPyPI。选择 `2.x` 或功能分支时
-任务会跳过；请求发布前还会再次拒绝任何非 legacy 的包版本身份。
-
-发布后从 TestPyPI 安装验证：
-
-```bash
-pip install --index-url https://test.pypi.org/simple/ qiongli
-```
-
-推荐顺序：
-
-- 先运行 **Publish to TestPyPI**，验证安装与 CLI 功能
-- 验证通过后，再 push `v*` tag 触发正式 **Publish to PyPI**
-
----
-
-## 5) 完整发布 Checklist
-
-发版时按以下步骤执行：
-
-- [ ] 确认所有功能已合入 `main`
-- [ ] CI 通过（`ci.yml` 绿色）
-- [ ] 可选：先运行 `./scripts/release_ready.sh --version <version>` 做本地干跑
-- [ ] 运行 `./scripts/release_automation.sh publish --version <version> --from-tag <previous-tag>`
-- [ ] 在 GitHub Actions 确认 `Publish to PyPI`、`CI` 和 `Checkout Install Check` 成功
-- [ ] 确认 postflight 创建或更新 GitHub Release，并生成 `tooling/release/acceptance/<tag>-receipt.md`
-- [ ] 验证安装：`pipx install qiongli && rsk --help`
-
----
-
-## 6) 常见问题
-
-### Q: tag 推送后 Actions 没有触发？
-
-确认 tag 格式是 `v` 开头（如 `v0.1.0-beta.7`），且 `.github/workflows/publish-pypi.yml` 文件已在 `main` 分支上。
-
-### Q: PyPI 发布失败 "403 Forbidden"？
-
-通常是 Trusted Publisher 配置问题：
-
-- 确认 PyPI 上的 workflow name 完全匹配 `publish-pypi.yml`
-- 确认 GitHub environment name 完全匹配 `pypi`
-- 确认 owner 和 repository name 正确
-
-### Q: 版本号已存在导致上传失败？
-
-PyPI 不允许覆盖已发布的版本。如果需要修复，必须递增版本号（如 `0.1.0b7` → `0.1.0b8`）。
-
-### Q: TestPyPI 是自动触发吗？
-
-不是。`publish-testpypi.yml` 仅支持 `workflow_dispatch`（手动触发），不会增加仓库 tag。
-正式 PyPI 仍由 `publish-pypi.yml` 在 `v*` tag 上自动触发。
-
-### Q: 如何撤回一个已发布的版本？
-
-在 PyPI 项目页面可以 "yank" 一个版本（不会从已安装用户处删除，但 `pip install` 不会默认选择被 yank 的版本）。
+已发布版本和附件不可改写。包有问题时，应通过同样的检查发布新版本，而不是替换原标签下的文件。

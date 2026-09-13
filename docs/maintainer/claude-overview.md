@@ -1,61 +1,21 @@
-# CLAUDE Guide Summary
+# Maintainer workflow
 
-This page distills the operational guidance from `CLAUDE.md` into a maintainer-facing checklist.
+Start with the repository's `AGENTS.md` and `CONTRIBUTING.md`, then read the current
+bounded plan linked from the master roadmap. The program ledger owns task status
+and accepted evidence. `CLAUDE.md` provides Host-specific context, not a separate
+source of release or research acceptance.
 
-## What `CLAUDE.md` Is Doing
+Trace the requested behaviour to its existing source using
+[repository structure](../development/repository-structure.md). For native CLI,
+MCP or installation work, use `packages/qiongli-native/`; for research guidance,
+use `content/`. Keep generated outputs and retained 1.x product sources separate.
 
-`CLAUDE.md` is not just a project introduction. It acts as a maintainer/operator playbook for:
+Use a local feature branch, run affected checks, review the diff and make scoped
+commits before local integration into `2.x`. Main integration and publication
+follow the requested scope and [release policy](release-branch-policy.md).
+Record checks and gaps once in the plan and ledger. A local merge does not make
+an unverified Host journey or release channel accepted.
 
-- fast repo orientation
-- common runtime commands
-- architectural expectations
-- quality vocabulary
-- collaboration patterns across `codex` and `claude`
-
-## Maintainer Priorities
-
-### 1. Keep contract truth upstream
-
-When behavior changes, maintainers should prefer fixing:
-
-1. `content/standards/`
-2. `content/roles/` or `content/skills/`
-3. `content/templates/`
-4. `tooling/pipelines/`, `content/workflow/workflows/`, or `content/distribution/plugins.yaml`
-5. `packages/python-qiongli/src/qiongli/`
-6. generated `qiongli-workflow/` only through materialization
-
-### 2. Treat workflows as entry UX, not truth
-
-Slash commands are convenient entrypoints. Artifact truth, routing truth, and task truth still live in `content/standards/`.
-
-### 3. Use the repo through stable commands
-
-Common commands pulled from `CLAUDE.md`:
-
-```bash
-python3 -m bridges.orchestrator doctor --cwd .
-python3 -m bridges.orchestrator task-run --task-id F3 --paper-type empirical --topic my-topic --cwd .
-python3 scripts/validate_research_standard.py --strict
-python3 -m unittest tests.test_orchestrator_workflows -v
-```
-
-### 4. Think in collaboration modes
-
-The maintainer mental model is:
-
-- single-agent execution for narrow/debug flows
-- draft/review fallback for standard task execution
-- triad review when independent audit matters
-- role split or parallel fanout when work can be decomposed
-
-## When To Open The Original `CLAUDE.md`
-
-Use the original file when you need:
-
-- raw command examples
-- the long-form workflow descriptions
-- the full project-specific terminology block
-- the exact examples for collaboration and stage usage
-
-For most day-to-day navigation, this summary plus [Architecture](/architecture) and [Conventions](/conventions) should be enough.
+For collaboration, keep independent tasks bounded and avoid concurrent edits to
+shared research records. Preserve the user's Host and model settings. Instructions
+for subagents and handoffs are in the [collaboration guide](../advanced/agent-skill-collaboration.md).

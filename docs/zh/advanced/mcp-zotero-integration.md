@@ -1,202 +1,52 @@
-# Zotero 集成：本地 Reference Database
+# 将 Zotero 用作本地文献库
 
-Qiongli 会把 Zotero 当成本地 reference database 使用，而不是把 Zotero
-替换成 OpenAlex、Semantic Scholar、Crossref、PubMed 或 arXiv 这类发现型 provider。
-推荐流程是：先用 Qiongli 的文献 provider 检索和补全 metadata，再把选中的
-reference 通过 Qiongli Zotero companion 写入本地 Zotero Desktop。
+Qiongli 从在线文献服务查找候选文献，Zotero 保存你的本地资料库。
+Qiongli Zotero Companion 通过本机连接，让原生 MCP 工具访问正在运行的 Zotero Desktop。
+这条本地路径不需要 Zotero Web API 密钥，也不要求云同步。
 
-这个 local-first 路径不需要 Zotero Web API key，也不要求 Zotero 云同步。
-如果本地 Zotero 不可用，Qiongli 仍会生成可导入文件：
-`references.json`、`references.ris`、`bibliography.bib` 和
-`zotero-import-report.md`。
+## 在 Zotero 中安装 Companion
 
-## Runtime Profiles
+从对应的 [Qiongli Release](https://github.com/jxpeng98/qiongli/releases)
+下载 `qiongli-zotero-companion-*.xpi`，通过 Zotero 的扩展管理器安装，再重启 Zotero。
+Companion 0.3.1 声明支持 Zotero 8 至 10.0.x，包括 10.0.2。
+安装 Qiongli 的 Host Plugin，不会自动在 Zotero 内安装扩展。
 
-Marketplace Rust Lite 与 Python Full 的 Zotero 边界不同：
+Companion 源码在 `packages/qiongli-zotero-companion/`。维护者可运行
+`python3 scripts/build_zotero_companion.py --dist-dir dist` 构建 XPI；
+普通用户直接使用 Release 附件，无需下载源码。
 
-| 能力 | Rust Lite | Python Full + Companion |
-|---|---:|---:|
-| Loopback Connector/Companion 状态探测 | 支持 | 支持 |
-| 生成导入文件 | 支持 | 支持 |
-| 检索本地 Zotero library | 不支持 | 支持 |
-| 创建 collections、tags、notes 或 references | 不支持 | 支持，但必须显式请求写入 |
+## 检查连接并检索
 
-Lite 的状态探测不代表 Lite 可以检索或写入 Zotero。下方检索和写入示例都
-需要 Full runtime，并且需要单独安装 Qiongli Zotero Companion。
+原生 Lite 和 Full 都提供 `qiongli_zotero_status`、`qiongli_zotero_search`、
+`qiongli_zotero_upsert_references` 和 `qiongli_zotero_export_import_files`。
+直接检索和写入需要 Companion；生成导入文件内容不需要。
 
-## 组件
-
-| 组件 | 作用 |
-| --- | --- |
-| Qiongli literature MCPB | 规范化 reference、映射 metadata、去重、暴露 Zotero tools，并生成导入文件。 |
-| Qiongli Zotero companion | 一个很薄的 Zotero Desktop plugin，用来注册 `/qiongli/*` 本地 connector endpoints。 |
-| Zotero Desktop | 保存本地 reference library、collections、tags 和用户手动维护的 metadata。 |
-
-companion 位于 `packages/qiongli-zotero-companion/`。它不是独立 MCP server，
-而是 Qiongli MCPB 的本地 Zotero 桥。
-
-直接写入本地 Zotero 需要在 Zotero Desktop 里安装这个 Qiongli companion
-plugin。不需要额外安装第三方 Zotero 插件。没有 companion 时，Qiongli 仍可以
-生成可导入文件。
-
-在仓库根目录构建可安装扩展：
-
-```bash
-python3 scripts/build_zotero_companion.py --dist-dir dist
-```
-
-然后在 Zotero Desktop 的 add-on manager 中安装生成的
-`qiongli-zotero-companion-*.xpi`，并重启 Zotero。
-
-## 检查本地状态
-
-运行：
+先请 Host 调用 `qiongli_zotero_status`。如果 Companion 不可用，检查 Zotero 是否打开、
+扩展是否启用。Connector 正在运行，不代表 Companion 已就绪。
+确认后，可以检索你允许访问的文献范围，例如：
 
 ```json
-{ "tool": "qiongli_zotero_status", "arguments": {} }
+{"tool":"qiongli_zotero_search","arguments":{"title":"platform governance","limit":10}}
 ```
 
-这个工具会检查：
+原生检索接受 `doi`、`title`、`year`、`citekey`、`creator`、`tag` 或
+`collection_path` 等条件，至少要提供一个。查找本地条目时使用这个工具；
+原生文献检索接口不接受旧版的 `include_zotero` 开关。
 
-1. Zotero Desktop connector server：`http://127.0.0.1:23119/connector/ping`。
-2. Qiongli companion endpoint：`http://127.0.0.1:23119/qiongli/ping`。
-3. 可导入文件 fallback 是否可用。
+## 保存前先预览
 
-可能的状态：
+将选定的文献对象通过 `items` 传给 `qiongli_zotero_upsert_references`。
+默认的 `dry_run: true` 只预览变更；`update_policy: "fill_blank"` 保留已有的非空字段。
+确认具体条目、集合和修改内容后，再授权写入。
 
-- `ok`：Zotero Desktop 和 Qiongli Zotero companion 都可用。
-- `companion_missing`：Zotero Desktop 正在运行，但 companion plugin 未安装或未加载。
-- `fallback_only`：无法连接 Zotero Desktop；改用可导入文件。
-- `disabled`：本地 Zotero 模式被配置关闭。
+应用时，保留预览中的计划内容，设置 `dry_run: false`、`write_intent: "apply"`，
+并传回工具返回的 `dry_run_receipt`。计划变动或过期后要重新预览，
+不能编造收据，也不能把检索成功当成保存许可。
 
-## 仅 Full Runtime：显式启用本地 Zotero 来源检索
+无法直接访问时，可用 `qiongli_zotero_export_import_files` 的 `records` 参数生成
+`references.json`、`references.ris`、`bibliography.bib` 和 `zotero-import-report.md`
+的内容。工具返回内容不等于已经保存文件或写入 Zotero；需要确认后保存文件，再通过 Zotero 导入。
 
-`qiongli_literature_search` 默认不会搜索 Zotero。只有当你明确传入
-`include_zotero: true` 时，Zotero 才会作为额外的本地 reference source：
-
-```json
-{
-  "tool": "qiongli_literature_search",
-  "arguments": {
-    "query": "platform governance",
-    "include_zotero": true,
-    "zotero_tag": "project:platform-governance"
-  }
-}
-```
-
-只存在于 Zotero 的本地条目会返回 `provider: "zotero"` 和
-`source_type: "local_reference_database"`。外部 provider 的结果如果 DOI 或
-title/year 已经存在于 Zotero，会带上 `local_zotero_match`，方便判断是否已经保存。
-
-## 仅 Full Runtime：保存检索结果
-
-先检索：
-
-```json
-{
-  "tool": "qiongli_literature_search",
-  "arguments": {
-    "query": "platform governance systematic review",
-    "search_mode": "review",
-    "per_provider_limit": 50
-  }
-}
-```
-
-再 dry-run 写入 Zotero：
-
-```json
-{
-  "tool": "qiongli_zotero_upsert_references",
-  "arguments": {
-    "records": [
-      {
-        "title": "Platform Governance in Practice",
-        "authors": ["Smith, Alex"],
-        "year": 2024,
-        "doi": "10.1000/platform-governance",
-        "venue": "Organization Science",
-        "provider": "openalex",
-        "source_id": "W123"
-      }
-    ],
-    "collection_path": "Qiongli/platform-governance/To Screen",
-    "tags": ["project:platform-governance", "status:to-screen"]
-  }
-}
-```
-
-默认是 dry run，并返回 `write_approval.receipt`。真正写入时，需要在五分钟内
-使用完全相同的参数再次调用，同时设置 `dry_run: false`、
-`write_intent: "apply"`，并把 receipt 作为 `dry_run_receipt` 传入。receipt
-只能使用一次，并绑定到条目、集合、标签、笔记和更新计划；内容变化或过期后必须
-重新 dry-run。
-
-桥接层会优先用 DOI 匹配 Zotero 里已有条目，再用 title/year fallback。默认策略
-只补空字段、追加缺少的 tags 和 collection membership，不覆盖用户已经在 Zotero
-中手动维护的 title、authors、date、publication title、abstract、collections
-或已存在的匹配子笔记。当前要求 Companion endpoint contract `2`；旧端点会显示为
-需要更新，并继续提供可导入文件 fallback。
-
-带 DOI 的写入默认会先使用 Crossref registry metadata 做补全。Crossref
-verification 只填补空字段，不等于人工核查。新建或更新的候选条目仍会加上
-`qiongli:imported` 和 `qiongli:needs-review`。通过 Crossref 匹配的条目会加
-`qiongli:crossref-verified`；如果 incoming metadata 和 Crossref registry
-metadata 在 title 或 year 上存在实质冲突，会加 `qiongli:metadata-conflict`，
-并在 `verification.crossref.conflicts` 中返回冲突详情。
-
-## 可导入文件 Fallback
-
-companion 不可用时，可以生成导入文件：
-
-```json
-{
-  "tool": "qiongli_zotero_export_import_files",
-  "arguments": {
-    "records": [
-      {
-        "title": "Fallback Paper",
-        "authors": ["Smith, Alex"],
-        "year": 2024,
-        "doi": "10.1000/fallback"
-      }
-    ]
-  }
-}
-```
-
-输出包括：
-
-- `references.json`：Zotero CSL-JSON 导入。
-- `references.ris`：Zotero、EndNote、Mendeley 通用。
-- `bibliography.bib`：BibTeX 工作流。
-- `zotero-import-report.md`：导出记录数量和 fallback 操作说明。Full runtime
-  的 enrichment 可以另外生成 verification evidence。
-
-## 配置
-
-本地模式只允许 loopback connector URL。
-
-```bash
-QIONGLI_ZOTERO_LOCAL_ENABLED=true
-QIONGLI_ZOTERO_CONNECTOR_URL=http://127.0.0.1:23119
-QIONGLI_ZOTERO_WRITE_POLICY=explicit
-QIONGLI_ZOTERO_UPDATE_POLICY=fill_blank
-QIONGLI_ZOTERO_DEFAULT_COLLECTION_PATH="Qiongli/[topic]/To Screen"
-QIONGLI_ZOTERO_DEFAULT_REVIEW_TAGS="qiongli:imported,qiongli:needs-review"
-QIONGLI_ZOTERO_CROSSREF_VERIFICATION_ENABLED=true
-```
-
-`QIONGLI_ZOTERO_CONNECTOR_URL` 必须指向 `127.0.0.1`、`localhost` 或 `::1`。
-非 loopback URL 会被拒绝。
-
-Rust Lite 只消费 `QIONGLI_ZOTERO_LOCAL_ENABLED` 和
-`QIONGLI_ZOTERO_CONNECTOR_URL`。Collection、write、update、review tag 与
-Crossref verification 设置属于 Full runtime，不会进入 Rust Lite MCPB overlay。
-
-## 仅 Full Runtime：Web API 模式
-
-Zotero Web API 支持通过具备写权限的 API key 写入。这个模式未来可以用于
-cloud-sync workflow，但它不是 Qiongli 的默认 Zotero 集成路径。默认路径是：
-本地 Zotero Desktop + Qiongli Zotero companion；本地写入不可用时，生成可导入文件。
+原生 CLI 接受 `QIONGLI_ZOTERO_CONNECTOR_URL`
+（通常为 `http://127.0.0.1:23119`），远程 Connector 地址会被拒绝。
+当前指南不承诺提供原生 Zotero Web API 写入路径。

@@ -1,4 +1,10 @@
-# CLI 命令参考（qiongli）
+---
+search: false
+---
+# CLI 命令参考（qiongli）（1.x 历史参考）
+
+> 本页保留旧版行为及当时的命令，不代表 2.x 的安装或运行方式。
+> 当前用户请查看 [2.x 指南](/zh/guide/cli-2x)。
 
 > **1.x 历史参考：**本页描述 Python、npm 与 bootstrap/shell CLI。
 > 当前原生版本请参阅 [2.x CLI 指南](../guide/cli-2x.md)，不需要安装 App。

@@ -1,4 +1,10 @@
-# Controller Modes
+---
+search: false
+---
+# Controller Modes (1.x legacy)
+
+> This page preserves 1.x behaviour and commands, not the native 2.x setup.
+> Use the [2.x guide](/guide/cli-2x) for current installation and usage.
 
 Controller mode records who owns orchestration, review, and verification during `task-run`. Under the resolved execution mode, `--primary` and `--reviewer` also route the draft and review runtimes while the capability map continues to provide task requirements and fallback routes.
 

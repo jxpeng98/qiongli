@@ -1,5 +1,9 @@
 # Qiongli 2 CLI: installation and command boundaries
 
+This guide follows the 2.x source integrated into `main`. The source version
+remains **2.0.0-beta.6**. Downloads point to the published beta.6; later
+installation fixes are identified separately. Merging main does not publish a stable release.
+
 Qiongli 2 is CLI-first. GitHub binary archives, npm and PyPI distribute the same
 native executable for a given version and target. No Qiongli App is required.
 
@@ -90,17 +94,17 @@ Use `qiongli setup` for manual guidance on duplicate CLI installations.
 Use short commands, focused help and readable terminal output.
 `ql` and `qiongli` accept the same commands.
 
-| Task | Short command | Earlier beta.2 equivalent |
-|---|---|---|
-| See common commands | `qiongli` | `qiongli --help` |
-| Check local health | `qiongli doctor` | Same command, JSON output |
-| Review installed CLI versions | `qiongli setup` | `qiongli install migrate --interactive` |
-| List installations and Hosts | `qiongli install list` | `qiongli install inventory` |
-| List research projects | `qiongli project` | `qiongli project list` |
-| Read one project | `qiongli project show <id>` | `qiongli project show --project-id <id>` |
-| Read configuration | `qiongli config` | `qiongli config show` |
-| List embedded content profiles | `qiongli content` | `qiongli content list` |
-| Connect Full MCP over stdio | `qiongli mcp serve --profile full` | Add `--transport stdio` |
+| Task  |  Short command |
+| --- | --- |
+| See common commands  |  `qiongli` |
+| Check local health  |  `qiongli doctor` |
+| Review installed CLI versions  |  `qiongli setup` |
+| List installations and Hosts  |  `qiongli install list` |
+| List research projects  |  `qiongli project` |
+| Read one project  |  `qiongli project show <id>` |
+| Read configuration  |  `qiongli config` |
+| List embedded content profiles  |  `qiongli content` |
+| Connect Full MCP over stdio  |  `qiongli mcp serve --profile full` |
 
 Use `qiongli help project create` or `qiongli project create --help` to see one
 operation's parameters. `qiongli help all` retains the complete reference, including
@@ -223,13 +227,12 @@ rollback; switching binaries does not reverse data migrations.
 
 ## Review existing CLI installations
 
-Beta.2 can show which Qiongli installations are visible and help you review a
-migration. Run the newly installed executable by its full path if an older
+Qiongli can list visible installations and help you review a migration. Run the newly installed executable by its full path if an older
 version appears first on PATH:
 
 ```sh
 qiongli install inventory --paths exact
-qiongli install migrate --interactive
+qiongli setup
 ```
 
 The inventory groups aliases and reports package metadata separately from the
@@ -245,8 +248,7 @@ PATH or Host settings. No file is deleted, moved or archived. Review shared
 command files before uninstalling: an old package may own the same entry as a
 new one. Research files, configuration and Plugin caches are excluded.
 
-Beta.3 uses `qiongli setup` to open this review and shows help on an empty launch.
-Beta.2 opened the review on an empty-argument terminal launch. To open
+Use `qiongli setup` to open this review. An empty-argument launch shows help. To open
 the review during npm installation, allow Qiongli's script for that invocation and connect it to the
 terminal:
 
@@ -284,7 +286,7 @@ python -m pip install --upgrade "qiongli==2.0.0b6"
 ```
 
 Both expose `qiongli` and `ql`. Check both with `--version` before comparing
-behavior. Beta.2 targets macOS ARM64, Windows x64, and Linux x64/glibc 2.35+.
+behavior. The published platform set is macOS ARM64, Windows x64 and Linux x64/glibc 2.35+.
 npm needs Node 18+; PyPI needs Python 3.9+.
 
 Cargo builds the CLI from source and requires Rust 1.97+ and the target's native
@@ -360,9 +362,9 @@ separately; each new Host needs its own directory. Omit `--destination` with all
 
 `update plugin` is an alias. Repeating `install plugin` reconciles an existing
 verified export. Before replacing an old Plugin cache, Qiongli verifies its
-receipt and shows the exact Host remove/install sequence for confirmation. Other
-enabled Qiongli Plugins, a marketplace pointing elsewhere, changed files or an
-unexpected scope stop registration. Resolve those conflicts in the Host yourself.
+receipt and shows the exact Host remove/install sequence for confirmation. Known Codex Plugin conflicts can follow the confirmed migration described
+above in main after beta.6. A marketplace pointing elsewhere, changed files or
+an unexpected scope still stops registration and needs manual review.
 
 Enter declines each confirmation. Declining the second step leaves the exported
 files in place. A Host failure also retains the files and stops at that step;

@@ -27,8 +27,9 @@ features:
 
 ## Start here
 
-These entry pages cover **2.0.0-beta.6**, including the offline Research Graph,
-reply-only Skills, optional hooks and guided Plugin installation. Older packages may not expose these commands.
+These pages cover native 2.x on `main`. Downloads are pinned to **2.0.0-beta.6**;
+later installation fixes are identified in the guide. This is not a stable-release
+announcement. Start with the offline Graph, reply-only Skill, optional hooks or guided installation.
 
 | What you need | Entry |
 |---|---|
