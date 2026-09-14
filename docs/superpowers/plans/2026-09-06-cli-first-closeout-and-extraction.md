@@ -3,6 +3,38 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Current architecture validation increment — September 14
+
+Implementation source: `c91773e50b1d597c4dcf2e33bd0f4062fc0aebfa`, from
+`cab138219850c63390e829e830058edf893683d7` on
+`fix/current-architecture-validation`. The coordinator implemented and
+self-reviewed this tooling baseline fix; no independent acceptance is claimed.
+
+The existing validator reproduced an exact-inventory failure, and the overview
+test failed on eight retired wording requirements. The current registry now
+includes accepted ADRs 0226/0227 with their exact metadata; overview assertions
+check current CLI/Host/service, evidence, approval, release and maintenance
+boundaries. The validator, overview, accepted ADRs and frozen ARC-201 inventory
+are unchanged. No native runtime, package, dependency or Host setting changes.
+
+Validation: the default ADR validator passes for **7 frozen and 27 current
+decisions**; `tests.test_arc_201_adrs` and
+`tests.test_frozen_2x_architecture_baseline` pass **23 tests**, retaining missing,
+extra, duplicate, reordered, metadata/path, schema and symlink negatives. The
+frozen-architecture and native change-boundary guards and diff checks pass.
+Program-ledger checks pass **7 tests** with a current generated index; all 249
+task IDs/states/dependencies and 46 accepted rows match the development base.
+Full discovery was not rerun; the previous interruption and other failures remain
+open. These focused results do not establish whole-repository readiness.
+
+**Next bounded implementation:** reconcile the existing delivery validator's
+legacy release-command marker with the current checklist's explicit
+`--cli-github` lane. Reproduce that failure, trace its existing owner/callers,
+and retain negative release/approval checks. Do not relax publication authority,
+alter stable release refs or remove assertions wholesale. Other validation
+failures and installed-Host qualification remain separately scoped; Host
+registration stays paused.
+
 ## Distribution scan increment — September 14
 
 Implementation source: `ec3d700bfd9452247b57c8f5a0a6ec7d9bcd9614`, from
