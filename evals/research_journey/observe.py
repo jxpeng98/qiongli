@@ -1,4 +1,4 @@
-"""Capture two synthetic Codex journeys; review answer spans and score with Evaluation Truth V1."""
+"""Capture fixed synthetic Codex journeys; review spans with Evaluation Truth V1."""
 from __future__ import annotations
 
 import argparse
@@ -18,9 +18,17 @@ from evals.skill_routing import probe, resource_reader  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 CASES = ("reading-to-manuscript", "source-to-paragraph")
+CONTINUITY_CASES = ("c-stage-summary", "f-stage-continuation")
 INPUTS = ("source.md", "sources.csv", "references.bib", "required_claims.csv")
+CONTEXT_INPUTS = ("context/research_state.md", "context/decision_log.md", "context/stage_handoff.md",
+                  "context/stage_summaries/STG-B-001.md")
+REVISED_INPUTS = ("source.md", "context/research_state.md", "context/stage_handoff.md")
+PREDECESSOR = "context/stage_summaries/STG-C-001.md"
 CHECKS = ("association", "causality", "statistics", "access", "added_claims")
+CONTINUITY_CHECKS = (*CHECKS, "stable_ids", "source_revision", "stage_limits", "summary_history")
 KIND = "qiongli-research-observation/v1"
+CONTINUITY_KIND = "qiongli-research-continuity/v1"
+CONTINUITY_TIMEOUT_SECONDS = 360
 INSTRUCTION = """Use the supplied Qiongli entry to complete the user's bounded request.
 The read_resource tool serves only snapshotted Qiongli guidance. Follow the entry's
 selective reading guidance. Research material is supplied below, not obtained by
@@ -53,21 +61,43 @@ def text(value: object) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
-def file_names() -> set[str]:
-    return {"entry.md", "instruction.txt", "resources.json", "resource_reader.py", "producer.py",
+def file_names(continuity: bool = False) -> set[str]:
+    names = {"entry.md", "instruction.txt", "resources.json", "resource_reader.py", "producer.py",
             "shared-probe.py", *("inputs/" + n for n in INPUTS),
-            *("cases/" + n + ".yaml" for n in CASES),
+            *("cases/" + n + ".yaml" for n in (CONTINUITY_CASES if continuity else CASES)),
             "cases/reading.schema.json", "cases/manuscript.schema.json"}
+    if continuity:
+        names.update("inputs/" + n for n in CONTEXT_INPUTS)
+        names.update("inputs/revision-2/" + n for n in REVISED_INPUTS)
+    return names
 
 
-def request(files: dict, case_id: str) -> str:
+def research_inputs(files: dict, case_id: str) -> dict[str, str]:
+    inputs = {name: files["inputs/" + name] for name in INPUTS}
+    if case_id in CONTINUITY_CASES:
+        inputs.update({name: files["inputs/" + name] for name in CONTEXT_INPUTS})
+        if case_id == CONTINUITY_CASES[1]:
+            inputs.update({name: files["inputs/revision-2/" + name] for name in REVISED_INPUTS})
+    return inputs
+
+
+def request(files: dict, case_id: str, predecessor: str | None = None) -> str:
     case = yaml.safe_load(files[f"cases/{case_id}.yaml"])
+    inputs = research_inputs(files, case_id)
+    if case_id == CONTINUITY_CASES[1]:
+        if not text(predecessor):
+            raise ValueError("Continuation needs its actual captured predecessor")
+        inputs[PREDECESSOR] = predecessor
+    material = "\n".join(f"{name}:\n{value}" for name, value in inputs.items())
+    if case_id in CONTINUITY_CASES:
+        material = "\n".join(f"{name} (supplied snapshot SHA-256: {probe.sha(value)}):\n{value}"
+                             for name, value in inputs.items())
     return (files["instruction.txt"] + "\nQiongli entry:\n" + files["entry.md"]
             + "\nUser request:\n" + case["input"]["topic"] + "\nSupplied synthetic material:\n"
-            + "\n".join(f"{name}:\n{files['inputs/' + name]}" for name in INPUTS))
+            + material)
 
 
-def capture(output: Path) -> bool:
+def capture(output: Path, *, continuity: bool = False) -> bool:
     if output.exists():
         raise FileExistsError("Choose a new capture directory")
     resources = probe.snapshot_resources()
@@ -78,7 +108,10 @@ def capture(output: Path) -> bool:
              "shared-probe.py": Path(probe.__file__).read_text(encoding="utf-8")}
     files.update({"inputs/" + name: read_file(HERE / "fixtures/reading-to-manuscript", name)
                   for name in INPUTS})
-    files.update({name: read_file(HERE, name) for name in file_names() if name.startswith("cases/")})
+    if continuity:
+        files.update({"inputs/" + name: read_file(HERE / "fixtures/c-to-f", name)
+                      for name in (*CONTEXT_INPUTS, *("revision-2/" + n for n in REVISED_INPUTS))})
+    files.update({name: read_file(HERE, name) for name in file_names(continuity) if name.startswith("cases/")})
     version, settings, command = probe.isolated_command(output, read_resources=True)
     output.mkdir(parents=True, exist_ok=False)
     for name, value in files.items():
@@ -86,13 +119,17 @@ def capture(output: Path) -> bool:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(value, encoding="utf-8", newline="")
     probe.write_json(output / "manifest.json", {
-        "kind": KIND, "cases": list(CASES), "files": {k: probe.sha(v) for k, v in files.items()},
+        "kind": CONTINUITY_KIND if continuity else KIND,
+        "cases": list(CONTINUITY_CASES if continuity else CASES),
+        "files": {k: probe.sha(v) for k, v in files.items()},
         "codex_version": version, "configured_settings": settings, "command": command,
     })
-    for case_id in CASES:
+    predecessor = None
+    for case_id in (CONTINUITY_CASES if continuity else CASES):
         directory = output / case_id
         directory.mkdir()
-        raw, code = probe.capture_turn(command, request(files, case_id), directory)
+        raw, code = probe.capture_turn(command, request(files, case_id, predecessor), directory,
+                                      timeout_seconds=CONTINUITY_TIMEOUT_SECONDS if continuity else 180)
         print(f"Captured {case_id}: exit {code}", flush=True)
         try:
             filtered, _ = resource_reader.observed_reads(raw, resources)
@@ -102,25 +139,32 @@ def capture(output: Path) -> bool:
         (directory / "answer.md").write_text(answer, encoding="utf-8", newline="")
         receipt = json.loads((directory / "capture.json").read_text(encoding="utf-8"))
         probe.write_json(directory / "capture.json", {**receipt, "answer_sha256": probe.sha(answer)})
+        predecessor = answer
     return True
 
 
 def captured_files(output: Path) -> tuple[dict, dict]:
     manifest = json.loads(read_file(output, "manifest.json"))
     fields(manifest, {"kind", "cases", "files", "codex_version", "configured_settings", "command"})
-    if manifest["kind"] != KIND or manifest["cases"] != list(CASES):
+    continuity = manifest["kind"] == CONTINUITY_KIND
+    if manifest["kind"] not in (KIND, CONTINUITY_KIND) or manifest["cases"] != list(
+        CONTINUITY_CASES if continuity else CASES
+    ):
         raise ValueError("Changed capture selection or kind")
-    fields(manifest["files"], file_names())
-    files = {name: read_file(output, name) for name in file_names()}
+    fields(manifest["files"], file_names(continuity))
+    files = {name: read_file(output, name) for name in file_names(continuity)}
     if manifest["files"] != {name: probe.sha(value) for name, value in files.items()}:
         raise ValueError("Captured source snapshot changed")
     return manifest, files
 
 
 def observed_answer(output: Path, files: dict, case_id: str) -> tuple[str, dict, list[str]]:
+    predecessor = None
+    if case_id == CONTINUITY_CASES[1]:
+        predecessor = observed_answer(output, files, CONTINUITY_CASES[0])[0]
     receipt = json.loads(read_file(output, case_id + "/capture.json"))
     raw = read_file(output, case_id + "/events.jsonl")
-    if (receipt["prompt_sha256"] != probe.sha(request(files, case_id))
+    if (receipt["prompt_sha256"] != probe.sha(request(files, case_id, predecessor))
             or receipt["events_sha256"] != probe.sha(raw)):
         raise ValueError("Changed prompt or event bytes")
     filtered, reads = resource_reader.observed_reads(raw, json.loads(files["resources.json"]))
@@ -137,32 +181,33 @@ def separate_destination(path: Path, output: Path) -> None:
 
 def prepare(output: Path, destination: Path) -> None:
     separate_destination(destination, output)
-    _, files = captured_files(output)
+    manifest, files = captured_files(output)
+    checks = CONTINUITY_CHECKS if manifest["kind"] == CONTINUITY_KIND else CHECKS
     cases = {}
-    for case_id in CASES:
+    for case_id in manifest["cases"]:
         try:
             answer, receipt, _ = observed_answer(output, files, case_id)
             cases[case_id] = {"answer_sha256": receipt["answer_sha256"],
                 "events_sha256": receipt["events_sha256"],
                 "segments": [{"start": 0, "end": len(answer), "quote": answer, "role": "unmapped",
                               "links": [], "verdict": "unreviewed", "reason": ""}],
-                "checks": {key: {"status": "unreviewed", "segments": [], "reason": ""} for key in CHECKS}}
+                "checks": {key: {"status": "unreviewed", "segments": [], "reason": ""} for key in checks}}
         except (OSError, ValueError, KeyError, TypeError):
             cases[case_id] = None
     with destination.open("x", encoding="utf-8") as handle:
-        json.dump({"kind": KIND, "capture_sha256": probe.digest(output / "manifest.json"),
+        json.dump({"kind": manifest["kind"], "capture_sha256": probe.digest(output / "manifest.json"),
                    "reviewer": {"kind": "unassigned", "id": ""}, "cases": cases}, handle,
                   ensure_ascii=False, indent=2)
         handle.write("\n")
 
 
-def project(answer: str, review: dict, sources: str) -> tuple[dict, dict]:
+def project(answer: str, review: dict, sources: str, *, rubric: tuple = CHECKS) -> tuple[dict, dict]:
     fields(review, {"answer_sha256", "events_sha256", "segments", "checks"})
     registry = {row["source_location"]: row for row in csv.DictReader(io.StringIO(sources))}
     segments, checks = review["segments"], review["checks"]
     if not isinstance(segments, list) or not segments:
         raise ValueError("Missing answer spans")
-    fields(checks, CHECKS)
+    fields(checks, rubric)
     rows = {"reading.csv": [], "manuscript.csv": [], "ledger.csv": []}
     cursor, mapped, failures, pending = 0, 0, 0, 0
     for segment in segments:
@@ -174,7 +219,7 @@ def project(answer: str, review: dict, sources: str) -> tuple[dict, dict]:
             raise ValueError("Missing, overlapping or substituted answer span")
         cursor = end
         role, verdict, links = segment["role"], segment["verdict"], segment["links"]
-        if role not in ("reading", "manuscript", "context", "unmapped") or not isinstance(links, list):
+        if role not in ("reading", "manuscript", "summary", "context", "unmapped") or not isinstance(links, list):
             raise ValueError("Invalid span role or links")
         if verdict not in ("pass", "fail", "unreviewed", "not-evidence") or not isinstance(segment["reason"], str):
             raise ValueError("Invalid semantic verdict")
@@ -200,7 +245,7 @@ def project(answer: str, review: dict, sources: str) -> tuple[dict, dict]:
             if role == "reading":
                 rows["reading.csv"].append({**source, "inference_strength": "direct_evidence",
                     "reading_note": segment["quote"], "summary": segment["quote"]})
-            elif role == "manuscript":
+            elif role in ("manuscript", "summary"):
                 passage = {**source, **link, "passage": segment["quote"]}
                 rows["manuscript.csv"].append(passage)
                 rows["ledger.csv"].append({**source, **link, "claim_text": segment["quote"],
@@ -244,12 +289,14 @@ def score(output: Path, review_path: Path, report: Path) -> bool:
     if review_path.resolve().is_relative_to(report.resolve()):
         raise ValueError("Review must exist outside the new report")
     manifest, files = captured_files(output)
+    selected = manifest["cases"]
+    rubric = CONTINUITY_CHECKS if manifest["kind"] == CONTINUITY_KIND else CHECKS
     review_text = review_path.read_bytes().decode("utf-8")
     review = json.loads(review_text)
     fields(review, {"kind", "capture_sha256", "reviewer", "cases"})
-    fields(review["cases"], CASES)
+    fields(review["cases"], selected)
     fields(review["reviewer"], {"kind", "id"})
-    if (review["kind"] != KIND or review["capture_sha256"] != probe.digest(output / "manifest.json")
+    if (review["kind"] != manifest["kind"] or review["capture_sha256"] != probe.digest(output / "manifest.json")
             or review["reviewer"]["kind"] not in ("human", "model", "unassigned")
             or not isinstance(review["reviewer"]["id"], str)):
         raise ValueError("Unbound review or invalid reviewer")
@@ -260,11 +307,13 @@ def score(output: Path, review_path: Path, report: Path) -> bool:
     for name in ("reading.schema.json", "manuscript.schema.json"):
         (case_dir / name).write_text(files["cases/" + name], encoding="utf-8", newline="")
     observations = {}
-    for case_id in CASES:
+    for case_id in selected:
         target = outputs / case_id
         target.mkdir(parents=True)
-        for name in INPUTS:
-            (target / name).write_text(files["inputs/" + name], encoding="utf-8", newline="")
+        inputs = research_inputs(files, case_id)
+        for name, value in inputs.items():
+            (target / name).parent.mkdir(parents=True, exist_ok=True)
+            (target / name).write_text(value, encoding="utf-8", newline="")
         binding = json.dumps({"capture_sha256": review["capture_sha256"],
                               "review_sha256": probe.sha(review_text), "case": case_id}, sort_keys=True)
         case = yaml.safe_load(files[f"cases/{case_id}.yaml"])
@@ -276,14 +325,14 @@ def score(output: Path, review_path: Path, report: Path) -> bool:
             annotation = review["cases"][case_id]
             if any(annotation[key] != receipt[key] for key in ("answer_sha256", "events_sha256")):
                 raise ValueError("Review belongs to a different answer or trace")
-            rows, semantic = project(answer, annotation, files["inputs/sources.csv"])
+            rows, semantic = project(answer, annotation, inputs["sources.csv"], rubric=rubric)
             if semantic["status"] == "pass" and (
                 review["reviewer"]["kind"] == "unassigned" or not text(review["reviewer"]["id"])
             ):
                 semantic["status"] = "unreviewed"
             for name, columns in (("reading.csv", READING_FIELDS), ("manuscript.csv", MANUSCRIPT_FIELDS),
                                   ("ledger.csv", LEDGER_FIELDS)):
-                if name == "reading.csv" and case_id == "source-to-paragraph":
+                if name == "reading.csv" and case_id != "reading-to-manuscript":
                     continue
                 with (target / name).open("w", newline="", encoding="utf-8") as handle:
                     writer = csv.DictWriter(handle, fieldnames=columns)
@@ -294,27 +343,33 @@ def score(output: Path, review_path: Path, report: Path) -> bool:
             observations[case_id] = {"semantic": semantic, "answer_sha256": receipt["answer_sha256"],
                 "events_sha256": receipt["events_sha256"], "resource_reads": reads,
                 "source_access": "supplied-in-prompt", "elapsed_seconds": receipt.get("elapsed_seconds"),
+                "timeout_seconds": receipt.get("timeout_seconds"),
                 "covered_claims": sorted({row["claim_id"] for row in rows["manuscript.csv"]})}
+            if case_id == CONTINUITY_CASES[1]:
+                parent, parent_receipt, _ = observed_answer(output, files, CONTINUITY_CASES[0])
+                (target / PREDECESSOR).write_text(parent, encoding="utf-8", newline="")
+                observations[case_id]["predecessor"] = {
+                    key: parent_receipt[key] for key in ("answer_sha256", "events_sha256")}
         except (OSError, ValueError, KeyError, TypeError):
             observations[case_id] = {"semantic": {"status": "unreviewed"}, "binding": "missing-or-invalid"}
     with redirect_stdout(io.StringIO()) as log:
         result = run_evals(case_dir, outputs, report / "receipts")
     (report / "score.log").write_text(log.getvalue(), encoding="utf-8")
-    for case_id in CASES:
+    for case_id in selected:
         receipt = json.loads((report / "receipts" / (case_id + ".json")).read_text(encoding="utf-8"))
         observations[case_id]["structural"] = receipt["case"]["status"]
     passed = sum(o["structural"] == "pass" and o["semantic"]["status"] == "pass" for o in observations.values())
-    probe.write_json(report / "summary.json", {"kind": KIND, "capture_sha256": review["capture_sha256"],
+    probe.write_json(report / "summary.json", {"kind": manifest["kind"], "capture_sha256": review["capture_sha256"],
         "review_sha256": probe.sha(review_text), "reviewer": review["reviewer"], "cases": observations,
         "codex_version": manifest["codex_version"], "configured_settings": manifest["configured_settings"],
         "scorer_sha256": probe.digest(Path(__file__)), "shared_probe_sha256": probe.digest(Path(probe.__file__)),
         "resource_reader_sha256": probe.digest(Path(resource_reader.__file__)),
         "runner_sha256": {name: probe.digest(ROOT / "evals/runner" / name) for name in ("run_eval.py", "run_suite.py")},
-        "case_count": len(CASES), "structural_passed": result.passed_cases, "reviewed_passed": passed,
+        "case_count": len(selected), "structural_passed": result.passed_cases, "reviewed_passed": passed,
         "limitations": "Span judgments are reviewer assertions, not automated entailment or authenticated approval. "
                         "Synthetic isolated captures do not qualify installed Plugins, project writes or model superiority."})
-    print(f"Structural {result.passed_cases}/{len(CASES)}; reviewed {passed}/{len(CASES)}. See {report / 'summary.json'}")
-    return passed == len(CASES)
+    print(f"Structural {result.passed_cases}/{len(selected)}; reviewed {passed}/{len(selected)}. See {report / 'summary.json'}")
+    return passed == len(selected)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -323,13 +378,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("output", type=Path)
     parser.add_argument("--review", type=Path)
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--continuity", action="store_true", help="Capture one C-to-F journey with two ordered checkpoints")
     args = parser.parse_args(argv)
     try:
         output = args.output.resolve()
         if args.mode == "capture":
             if args.review or args.report:
                 raise ValueError("Capture takes only a new output directory")
-            return 0 if capture(output) else 1
+            return 0 if capture(output, continuity=args.continuity) else 1
+        if args.continuity:
+            raise ValueError("--continuity is capture-only; review uses the frozen selection")
         if args.review is None or (args.mode == "score") != (args.report is not None):
             raise ValueError("Prepare needs --review; score needs --review and --report")
         if args.mode == "prepare":

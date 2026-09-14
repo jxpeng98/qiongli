@@ -1,0 +1,139 @@
+schema_version: '1.0'
+case_id: c-stage-summary
+pipeline: bounded-c-to-f-continuity
+input:
+  topic: 'Using the supplied synthetic R1 research_state, decision_log, stage_handoff,
+    latest STG-B-001 summary and source, produce a chat-only C-stage study-design
+    boundary summary STG-C-001. Follow the existing stage-summary sections including
+    source coverage and predecessor history. Preserve DEC-001/DEC-002, C1/C2/C3, SyntheticStudy2026
+    and the full abstract-result/abstract-limit locators. Distinguish reported source
+    findings from a study proposal: no data collection, ethics approval, D/E analysis
+    execution or research gate has been completed here. Retain method/access limits,
+    open C3 and revisit triggers. Give substantive source-backed content, not a lifecycle
+    plan alone. Use the supplied source hashes without inventing observations. Return
+    only the requested summary in prose, with no project writes, deletion, separate
+    reading artifact or evaluator annotations.'
+expected_outputs:
+  source:
+    artifact: source.md
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: 19758a19d9d51b6096b59bb4fbdfdabc4d60d02323c4021e3a81eb42c5f0130e
+  source_registry:
+    artifact: sources.csv
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: 86e73fd376b8544dc33686496e44d57068dfa5b679377647607685b40c4e7922
+  bibliography:
+    artifact: references.bib
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: 7509126f9fac8f97fb1b64913ef9c8a7b24e29f1018d2bd8d0352954323664c1
+  ledger:
+    artifact: ledger.csv
+    required: true
+    assertions:
+    - type: citation_identity
+      bibliography: references.bib
+    - type: locator_syntax
+      field: source_location
+    - type: field_constraint
+      field: evidence_type
+      allowed_values:
+      - paper
+      - gap_note
+  requested_claims:
+    artifact: required_claims.csv
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: db02780230ab49a181892946e5e479292c6712d606cf5c837154c46d2a9bae99
+    - type: cross_artifact_consistency
+      field: claim_id
+      other_artifact: manuscript.csv
+      other_field: claim_id
+      relation: subset
+  context/research_state.md:
+    artifact: context/research_state.md
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: a39f1952e68901f076668aa0f73ce532da02f7aa434f026043173517a38d887d
+  context/decision_log.md:
+    artifact: context/decision_log.md
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: ad48d6d530a0969a87f0b6535648f295a822b151181d497fafb3196e190a1a64
+  context/stage_handoff.md:
+    artifact: context/stage_handoff.md
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: 61970b28db1bdc0ff95fdcc88e09d7da5f596c4144aad7e24e4df4f583e8b4c8
+  context/stage_summaries/STG-B-001.md:
+    artifact: context/stage_summaries/STG-B-001.md
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: cc0cdc285bb46f5f7294af1492a739311ff0bdba808463287dd3c1acf3165b0e
+  continuity_identity:
+    artifact: answer.md
+    required: true
+    assertions:
+    - type: contains_all
+      values:
+      - C1
+      - C2
+      - C3
+      - DEC-001
+      - DEC-002
+      - SyntheticStudy2026:abstract-result
+      - SyntheticStudy2026:abstract-limit
+      - STG-C-001
+      - STG-B-001
+      - '## Stage Outcome'
+      - '## Retained Research Content'
+      - '## Source Coverage'
+      - '## Changes Since Previous Summary'
+      - '## Decisions and Open Questions'
+      - '## Next-Stage Handoff'
+  stage_summary:
+    artifact: manuscript.csv
+    required: true
+    assertions:
+    - type: schema
+      schema: manuscript.schema.json
+    - type: cross_artifact_consistency
+      field: &id001
+      - claim_id
+      - source_id
+      - source_location
+      - artifact_path
+      - evidence_limit
+      - status
+      - claim_type
+      other_artifact: ledger.csv
+      other_field: *id001
+      relation: subset
+    - type: cross_artifact_consistency
+      field: &id002
+      - source_id
+      - source_location
+      - artifact_path
+      - evidence_limit
+      other_artifact: sources.csv
+      other_field: *id002
+      relation: subset
+    - type: field_constraint
+      field: status
+      allowed_values:
+      - supported
+    - type: field_constraint
+      field: claim_type
+      allowed_values:
+      - finding
+      - limitation

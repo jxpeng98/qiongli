@@ -111,6 +111,13 @@ required `file_digest` binding artifact, not a second runner or new assertion
 type. Its separate observation summary identifies the reviewer and reports
 structural checks independently from semantic judgments. See the journey README
 for the capture/review contract and its provenance, not authentication, limit.
+Its optional C→F continuity lane preserves a fixed ordered checkpoint pair,
+injects the actual captured C summary into F and binds the current revision's
+state/handoff/source bytes. It reuses `file_digest` and `contains_all` for context
+and literal identity checks; semantic preservation and correction remain named
+reviewer judgments. The original observation manifest and default selection
+remain supported. A failed or replaced predecessor cannot become a valid F
+input by silently substituting a summary fixture.
 
 The primary artifact, bibliography, and cross-artifact references remain under
 the output root. Schema references remain under the case directory. Absolute

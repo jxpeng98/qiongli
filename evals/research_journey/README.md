@@ -86,7 +86,7 @@ For each case, replace `segments` with ordered spans covering every non-whitespa
 character. `start`/`end` are zero-based Python Unicode character offsets, end
 exclusive; `quote` must exactly equal that answer substring. Each segment has:
 
-- `role`: `reading`, `manuscript`, `context` (headings, formatting or task-status
+- `role`: `reading`, `manuscript`, `summary`, `context` (headings, formatting or task-status
   text that makes no research claim), or
   `unmapped` (unresolved content). Do not hide substantive claims as context.
 - `links`: zero or more objects containing exactly `claim_id`, `source_location`,
@@ -137,3 +137,62 @@ answers/source excerpts, review reasons, hashes and redacted metadata. Do not
 publish private research, user configuration, credentials or raw reasoning.
 Two first observations diagnose this configuration; they do not measure an
 accuracy rate, model superiority, longer C→F continuity or cross-Host readiness.
+
+## C→F continuity checkpoint pair
+
+Use `capture NEW_DIRECTORY --continuity` for **one fixed journey with two
+ordered checkpoints**, not two independent research studies. The default
+two-case lane and existing v1 captures remain unchanged. Prepare and score infer
+the frozen lane; do not pass `--continuity` to them or change a capture's selection.
+The continuity pair has an explicit **360-second budget per checkpoint** for
+long-form summaries and guidance reads; the original short-case/routing lanes
+remain at 180 seconds. New capture receipts record `timeout_seconds`. Increasing
+this budget does not upgrade an earlier timeout: keep the earlier attempt and
+its denominator, and label any new capture as a different-budget observation,
+not a same-budget quality improvement. No model setting is changed.
+
+1. `c-stage-summary` receives R1 plus the canonical-shaped synthetic
+   `context/research_state.md`, `decision_log.md`, `stage_handoff.md` and the
+   latest `STG-B-001` summary. It returns a chat-only `STG-C-001` design-boundary
+   summary, not a claim that collection, ethics or analysis has been completed.
+2. `f-stage-continuation` receives that **actual captured C answer**, with its
+   content hash, as `context/stage_summaries/STG-C-001.md`. A new isolated turn
+   also receives R2 source/state/handoff: the synthetic abstract corrects
+   n=120/r=.32 to n=118/r=.23 without changing C1/C2, DEC-001/DEC-002, the
+   citekey, source anchors or abstract-only interpretation limits. The requested
+   output is a bounded F paragraph and `STG-F-001` correction/handoff summary.
+
+R2 is snapshotted before capture but withheld from the C request. The F prompt
+hash binds its exact predecessor text; validating F also validates C's original
+events, final answer and guidance results. A missing/replaced C capture cannot
+qualify F, even if replacement C hashes are locally recomputed. This is explicit
+context transfer, not a resumed installed session or an authenticated transcript.
+No C review is silently promoted to approval of the changed R2 source.
+
+The new `qiongli-research-continuity/v1` manifest fixes both checkpoints and all
+context/revision snapshots. Both remain in the denominator after failures or a
+timeout. Each checkpoint has 19 V1 assertions: the original direct-source checks,
+four context-file digests, one literal identity/section check and the answer
+binding. The shared `manuscript.csv` slot is only a claim-passage projection:
+`summary` spans from C populate it without asking C to draft a manuscript or
+inventing a saved project artifact. F uses `manuscript` or `summary` as appropriate.
+
+Review every substantive span against its **current** source and context, using
+the original five checks plus these four required checks:
+
+| Check | Required review |
+|---|---|
+| `stable_ids` | Keep claim/decision IDs, citekey and locators attached to the same meanings; do not renumber to hide changes |
+| `source_revision` | C uses only R1; F explicitly reconciles old and corrected R2 values, never treating the prior summary as current evidence |
+| `stage_limits` | No invented collection, ethics approval, analysis execution, full lifecycle completion, project writes or cleanup |
+| `summary_history` | Preserve predecessor/history, unresolved C3, decision rationale and revisit triggers; summaries do not replace originals |
+
+Decision/status/history text can be `context` only when it makes no research
+claim; its correctness still belongs to these explicit semantic checks. Mark an
+incorrect unmapped statement `unmapped`/`fail` with an affected check and reason,
+not `not-evidence` merely to hide it. Passing identity-token checks alone cannot
+prove decisions' meaning, complete source coverage, valid relative links or
+corrected scientific values. A stale numeric claim with valid IDs can still
+structurally pass and must remain a semantic failure. Whole-journey success
+requires both checkpoints to pass structure and named review; it is not a
+full-study or installed-Host acceptance gate.

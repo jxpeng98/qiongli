@@ -250,12 +250,12 @@ def isolated_command(output: Path, *, schema: Path | None = None,
     return version, settings, cmd
 
 
-def capture_turn(cmd: list[str], supplied: str, directory: Path) -> tuple[str, int]:
+def capture_turn(cmd: list[str], supplied: str, directory: Path, *, timeout_seconds: int = 180) -> tuple[str, int]:
     started = time.monotonic()
     with tempfile.TemporaryDirectory(prefix="qiongli-intent-") as working:
         try:
             result = subprocess.run(cmd + ["-C", working, "-"], input=supplied,
-                                    capture_output=True, text=True, timeout=180)
+                                    capture_output=True, text=True, timeout=timeout_seconds)
             raw, errors, code = result.stdout, result.stderr, result.returncode
         except subprocess.TimeoutExpired as error:
             raw = error.stdout or ""
@@ -268,7 +268,7 @@ def capture_turn(cmd: list[str], supplied: str, directory: Path) -> tuple[str, i
             code = 124
     (directory / "events.jsonl").write_text(raw, encoding="utf-8")
     (directory / "stderr.log").write_text(errors, encoding="utf-8")
-    write_json(directory / "capture.json", {"exit_code": code,
+    write_json(directory / "capture.json", {"exit_code": code, "timeout_seconds": timeout_seconds,
                "elapsed_seconds": round(time.monotonic() - started, 3),
                "prompt_sha256": sha(supplied),
                "events_sha256": digest(directory / "events.jsonl")})

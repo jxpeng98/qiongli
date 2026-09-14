@@ -17,8 +17,24 @@ FINDING = "In this synthetic survey of 120 students, study time correlated with 
 LIMIT = "Causality cannot be inferred from this abstract; no CI, p-value or adjusted analysis was supplied."
 
 
+def continuity_answer(stage):
+    finding = FINDING if stage == "C" else FINDING.replace("120", "118").replace(".32", ".23")
+    return "\n".join([
+        f"# STG-{stage}-001 — synthetic {'R1' if stage == 'C' else 'R2'} candidate",
+        "## Stage Outcome", "Partial exercise only; D/E collection, ethics and analysis remain unperformed.",
+        "## Retained Research Content", "Finding: C1 " + finding + " SyntheticStudy2026:abstract-result",
+        "Limits: C2 " + LIMIT + " SyntheticStudy2026:abstract-limit",
+        "## Source Coverage", "source.md and the supplied context files only; no full text.",
+        "## Changes Since Previous Summary",
+        ("STG-B-001 precedes STG-C-001; retain originals. R1 source remains current." if stage == "C" else
+         "STG-B-001 precedes STG-C-001; retain originals. R2 corrects 120/.32 to 118/.23, not a new study."),
+        "## Decisions and Open Questions", "DEC-001 and DEC-002 unchanged; C3 pending and unused.",
+        "## Next-Stage Handoff", "Revisit on changed source bytes; prior summary is not new evidence or approval.",
+    ])
+
+
 class ResearchJourneyObservationTests(unittest.TestCase):
-    def capture(self, root, *, bad_answer=False, timeout=False):
+    def capture(self, root, *, bad_answer=False, timeout=False, answers=None):
         output = root / "capture"
         (root / "config.toml").write_text('model="configured-test-model"\nmodel_reasoning_effort="high"\n')
         calls = []
@@ -28,9 +44,11 @@ class ResearchJourneyObservationTests(unittest.TestCase):
                 return subprocess.CompletedProcess(cmd, 0, "codex-cli synthetic", "")
             calls.append((cmd, kwargs))
             if timeout:
-                raise subprocess.TimeoutExpired(cmd, 180, output=b'{"type":"thread.started"}\n', stderr=b"partial error")
+                raise subprocess.TimeoutExpired(cmd, kwargs["timeout"], output=b'{"type":"thread.started"}\n', stderr=b"partial error")
             finding = "Study time causes higher scores." if bad_answer else FINDING
             answer = "\n".join([finding, LIMIT] * (2 if len(calls) == 1 else 1))
+            if answers is not None:
+                answer = answers[len(calls) - 1]
             resources = json.loads((output / "resources.json").read_text())
             item = {"id": "read-1", "type": "mcp_tool_call", "server": resource_reader.SERVER,
                     "tool": resource_reader.TOOL, "arguments": {"path": "workflows/paper-read.md"}}
@@ -45,7 +63,7 @@ class ResearchJourneyObservationTests(unittest.TestCase):
         with patch.dict(os.environ, {"CODEX_HOME": str(root)}), patch.object(
             probe.subprocess, "run", side_effect=codex
         ), redirect_stdout(io.StringIO()):
-            self.assertEqual(not timeout, observe.capture(output))
+            self.assertEqual(not timeout, observe.capture(output, continuity=answers is not None))
         review_path = root / "review.json"
         observe.prepare(output, review_path)
         return output, review_path, calls
@@ -80,6 +98,131 @@ class ResearchJourneyObservationTests(unittest.TestCase):
         self.assertEqual(passed, summary["reviewed_passed"] == 2)
         self.assertEqual(2, summary["case_count"])
         return summary
+
+    def continuity_review(self, review_path):
+        review = json.loads(review_path.read_text())
+        review["reviewer"] = {"kind": "model", "id": "synthetic-test-reviewer"}
+        for case_id, case in review["cases"].items():
+            answer, cursor = case["segments"][0]["quote"], 0
+            case["segments"] = []
+            for line in answer.splitlines():
+                finding, limitation = line.startswith("Finding:"), line.startswith("Limits:")
+                linked = finding or limitation
+                case["segments"].append({"start": cursor, "end": cursor + len(line), "quote": line,
+                    "role": ("summary" if case_id == observe.CONTINUITY_CASES[0] else "manuscript") if linked else "context",
+                    "verdict": "pass" if linked else "not-evidence", "reason": "Synthetic test annotation.",
+                    "links": [{"claim_id": "C1" if finding else "C2",
+                        "source_location": "SyntheticStudy2026:abstract-" + ("result" if finding else "limit"),
+                        "status": "supported", "claim_type": "finding" if finding else "limitation"}] if linked else []})
+                cursor += len(line) + 1
+            case["checks"] = {key: {"status": "pass", "segments": list(range(len(case["segments"]))),
+                "reason": "Synthetic judgment against current source/state/handoff."} for key in observe.CONTINUITY_CHECKS}
+        probe.write_json(review_path, review)
+        return review
+
+    def test_continuity_supplies_actual_predecessor_and_current_revision(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            answers = [continuity_answer("C") + "\nCaptured-only marker.", continuity_answer("F")]
+            output, review_path, calls = self.capture(root, answers=answers)
+            manifest, files = observe.captured_files(output)
+            self.assertEqual(observe.CONTINUITY_KIND, manifest["kind"])
+            self.assertEqual(list(observe.CONTINUITY_CASES), manifest["cases"])
+            self.assertNotIn("synthetic continuity fixture R2", calls[0][1]["input"])
+            self.assertNotIn("Captured-only marker.", calls[0][1]["input"])
+            self.assertIn(answers[0], calls[1][1]["input"])
+            self.assertIn("118", observe.research_inputs(files, observe.CONTINUITY_CASES[1])["source.md"])
+            for _, args in calls:
+                self.assertNotIn("expected_outputs", args["input"])
+                self.assertNotIn("manuscript.csv", args["input"])
+                self.assertEqual(observe.CONTINUITY_TIMEOUT_SECONDS, args["timeout"])
+            self.continuity_review(review_path)
+            summary = self.score(output, review_path, root / "reviewed")
+            self.assertEqual(2, summary["reviewed_passed"])
+            parent = summary["cases"][observe.CONTINUITY_CASES[0]]
+            self.assertEqual(360, parent["timeout_seconds"])
+            self.assertEqual({key: parent[key] for key in ("answer_sha256", "events_sha256")},
+                             summary["cases"][observe.CONTINUITY_CASES[1]]["predecessor"])
+            self.assertEqual(answers[0], (root / "reviewed/outputs/f-stage-continuation" / observe.PREDECESSOR).read_text())
+            for case_id in observe.CONTINUITY_CASES:
+                target = root / "reviewed/outputs" / case_id
+                self.assertFalse((target / "reading.csv").exists())
+                receipt = json.loads((root / "reviewed/receipts" / f"{case_id}.json").read_text())
+                self.assertEqual(19, receipt["summary"]["executed_assertions"])
+
+    def test_continuation_cannot_reuse_a_changed_or_missing_predecessor(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output, review_path, _ = self.capture(root, answers=[continuity_answer("C"), continuity_answer("F")])
+            self.continuity_review(review_path)
+            _, files = observe.captured_files(output)
+            parent = output / observe.CONTINUITY_CASES[0]
+            original = (parent / "answer.md").read_text()
+            (parent / "answer.md").unlink()
+            self.assertEqual(0, self.score(output, review_path, root / "missing-parent")["reviewed_passed"])
+            (parent / "answer.md").write_text(original)
+            # Even a locally rehashed valid replacement of C cannot match F's captured input.
+            events = list(map(json.loads, (parent / "events.jsonl").read_text().splitlines()))
+            replacement = original + "\nDifferent prior candidate."
+            events[-2]["item"]["text"] = replacement
+            (parent / "events.jsonl").write_text("\n".join(map(json.dumps, events)))
+            (parent / "answer.md").write_text(replacement)
+            receipt = json.loads((parent / "capture.json").read_text())
+            probe.write_json(parent / "capture.json", {**receipt, "answer_sha256": probe.sha(replacement),
+                "events_sha256": probe.digest(parent / "events.jsonl")})
+            self.assertEqual(replacement, observe.observed_answer(output, files, observe.CONTINUITY_CASES[0])[0])
+            with self.assertRaisesRegex(ValueError, "Changed prompt"):
+                observe.observed_answer(output, files, observe.CONTINUITY_CASES[1])
+
+    def test_continuity_rejects_changed_state_sources_selection_and_old_rubric(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output, review_path, _ = self.capture(root, answers=[continuity_answer("C"), continuity_answer("F")])
+            review = self.continuity_review(review_path)
+            for name in ("inputs/revision-2/source.md", "inputs/context/decision_log.md",
+                         "inputs/revision-2/context/stage_handoff.md"):
+                path = output / name
+                original = path.read_text()
+                path.write_text(original + "\nChanged revision.")
+                with self.assertRaisesRegex(ValueError, "snapshot changed"):
+                    observe.score(output, review_path, root / "tampered")
+                self.assertFalse((root / "tampered").exists())
+                path.write_text(original)
+            review["cases"][observe.CONTINUITY_CASES[1]]["checks"].pop("source_revision")
+            probe.write_json(review_path, review)
+            self.assertEqual(1, self.score(output, review_path, root / "old-rubric")["reviewed_passed"])
+            manifest = json.loads((output / "manifest.json").read_text())
+            manifest["cases"].reverse()
+            probe.write_json(output / "manifest.json", manifest)
+            with self.assertRaisesRegex(ValueError, "selection"):
+                observe.captured_files(output)
+
+    def test_stale_numbers_and_renamed_decisions_remain_visible_failures(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            stale = continuity_answer("F").replace("Finding: C1 " + FINDING.replace("120", "118").replace(".32", ".23"),
+                                                   "Finding: C1 " + FINDING)
+            output, review_path, _ = self.capture(root, answers=[continuity_answer("C"), stale])
+            review = self.continuity_review(review_path)
+            case = review["cases"][observe.CONTINUITY_CASES[1]]
+            case["segments"][4].update(verdict="fail", reason="R1 numbers were reused as current despite the R2 correction.")
+            case["checks"]["source_revision"] = {"status": "fail", "segments": [4], "reason": "Current source.md supplies 118/.23."}
+            probe.write_json(review_path, review)
+            summary = self.score(output, review_path, root / "stale-values")
+            self.assertEqual((2, 1), (summary["structural_passed"], summary["reviewed_passed"]))
+            nested = root / "renamed"
+            nested.mkdir()
+            output, review_path, _ = self.capture(nested, answers=[continuity_answer("C"), continuity_answer("F").replace("DEC-001", "DEC-999")])
+            self.continuity_review(review_path)
+            self.assertEqual(1, self.score(output, review_path, nested / "lost-id")["structural_passed"])
+
+    def test_continuity_timeout_keeps_both_checkpoints_in_denominator(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output, review_path, calls = self.capture(root, answers=[continuity_answer("C"), continuity_answer("F")], timeout=True)
+            self.assertEqual(1, len(calls))
+            self.assertFalse((output / observe.CONTINUITY_CASES[1]).exists())
+            self.assertEqual(0, self.score(output, review_path, root / "failed")["reviewed_passed"])
 
     def test_capture_review_and_canonical_projection_use_actual_answer(self):
         with tempfile.TemporaryDirectory() as temporary:
