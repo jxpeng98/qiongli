@@ -3,6 +3,83 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Answer-bound implementation increment — September 14
+
+Implementation source: `7c843870a40b8e4070fa77bcf8e74e96e8fa9cea`, from
+`0a1b34dba8f65b63bd588577ae52610021ddc758` on
+`feat/answer-bound-research-observations`. This implements the first bounded
+target from the review below, not the full CLI-405 acceptance gate. No product
+content, native runtime, dependency, configured model, release ref or published
+package changed. Review was performed by the coordinator, not an independent
+reviewer. The local integration does not promote accepted evidence.
+
+Delivered:
+
+- The regression assertion now checks `main` and `2.x`, no push trigger and one
+  canonical suite invocation. CI also runs the offline observation negatives;
+  its trigger/permission policy is unchanged.
+- `evals/research_journey/observe.py` reuses isolated Codex capture/resource
+  validation, binds frozen input/case/guidance snapshots and actual final-answer
+  and event bytes, and requires complete answer-span accounting. Review identity
+  and semantic judgments remain separate from Evaluation Truth V1 receipts.
+- Projections contain only bound answer quotes, with no passing fixture output
+  copied in. Failed/unattempted cases retain the denominator; regrading creates
+  a new report. Timeout traces, stale review/source rejection, Unicode offsets,
+  exact-byte/CRLF substitution checks and source-scope limits are retained.
+
+First real observations used Codex CLI `0.153.4`, the configured
+`gpt-5.6-sol` / `xhigh`, a synthetic abstract supplied in the prompt, no project
+access and no installed-Plugin activation. Both model turns completed on the
+first attempt. No guidance tool calls were observed; do not infer actual Skill
+activation from a correct supplied-entry answer. No operation budget or model
+comparison was predeclared. Token/cost measurements were not collected.
+
+| Fixed case | Source-linked spans / all spans | C1/C2 | Final structural assertions | Coordinator semantic review | Capture time |
+|---|---|---|---|---|---|
+| reading-to-manuscript | 6/9; other 3 are headings/task status | 2/2 | 17/17 | Pass; 0 failed, 0 unreviewed | 22.049 s |
+| source-to-paragraph | 1/1 | 2/2 | 14/14 | Pass; 0 failed, 0 unreviewed | 10.869 s |
+
+The first projection scored **1/2**, not 2/2: separate note spans incorrectly
+multiplied a source's rows and failed the existing multiset check. A focused
+regression reproduced this before the adapter fix. Quotes now group by source
+or complete claim/source tuple, preserving each reviewed span and all existing
+V1 assertions. Offline rescoring of the **same answers and same review** gives
+2/2 structural and 2/2 coordinator-reviewed cases. This corrects the adapter,
+not the model, and establishes no accuracy rate or quality improvement.
+The [portable observation record](../reviews/2026-09-14-answer-bound-observations.json)
+retains source text/hashes, final answers, review reasons, exact scorer identities
+and the original failed scoring result. Raw events/stderr and prior reports
+remain local; none are committed.
+
+Validation at the implementation source:
+
+- Combined Evaluation Truth, academic-quality, research-journey, observation and
+  routing tests: **41 passed**. Includes six observation tests with tamper,
+  omission, timeout, reuse, scope and semantic-negative variants.
+- Canonical academic-quality fixture suite: **12/12**; not model accuracy.
+- Program-ledger checks: **7 passed**, generated index current; the portable
+  record's scorer/review hashes and answer spans were revalidated. All 249 task
+  states/dependencies and the 46 accepted records match the development base.
+- `git diff --check` and the native change-boundary guard: passed. The guard's
+  matrix suggestions start no native/desktop jobs; no runtime source changed.
+- Full `unittest discover -s tests -q` was attempted but **not completed**. After
+  more than six minutes, the process was still CPU-bound in
+  `test_distribution_payloads.test_audit_detects_stale_npm_payload` →
+  `audit_distribution_payloads._file_map` → `sorted(root.rglob("*"))`. It was
+  interrupted (exit 130); this is a validation gap, not a passing full suite or
+  a confirmed new regression. Both owners are unchanged from the development
+  base. Diagnose that scan separately before claiming full-suite readiness.
+
+Next bounded implementation: one longer synthetic **C→F/stage-summary
+continuity** case using existing handoff/revision contracts. Preserve claim and
+decision IDs, citekeys, source anchors and abstract-only/method limits across
+the continuation; changed source/review bytes must not reuse a prior pass.
+Reuse this capture/projection/V1 path, retain failures and review all substantive
+continuation text. Do not add a model matrix, Kernel, new project store or Host
+registration to this increment. Current installed-package approval/write/restart
+and Graph/Hook/browser qualification remain separately scoped. The 249 task IDs
+and all 46 historical accepted records remain unchanged.
+
 ## Post-2.0.0 baseline review — September 14
 
 Reference source: `v2.0.0`, `4f2107f7fda9d8f6dd8874b7dcffb36f5d7751ba`.
