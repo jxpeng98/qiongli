@@ -30,15 +30,20 @@ class Arc201DecisionTests(unittest.TestCase):
             .split()
         )
         for statement in (
-            "Rust-native product",
-            "Tauri 2 / Svelte 5",
-            "Native services own",
-            "ADR 0210",
-            "ADR 0211",
-            "ADR 0217",
-            "ADR 0218",
-            "default CLI build excludes the graphical stack",
-            "Same-device collaboration precedes any optional cross-device synchronization",
+            "Rust CLI, Plugin/Skills and Lite/Full MCP",
+            "Your Host owns the model, authentication and conversation",
+            "default CLI build does not require the retained Desktop application",
+            "own project state, revisions, previews, approvals, Graph and MCP dispatch",
+            "CLI and Host adapters call those same services",
+            "It does not turn a summary or reviewer opinion into new primary evidence",
+            "matching plan digest and `approve_filesystem_write=true`",
+            "In-process ToolHost remains read-only and rejects that write",
+            "ADR 0218 sets the CLI-first, Host-owned execution direction",
+            "ADR 0227 makes integrated `main` the stable source while `2.x` "
+            "remains the prerelease source",
+            "A merge does not establish release or live-Host acceptance",
+            "Tauri/Svelte, App API and earlier ACP/All Chat work remain in "
+            "maintenance or deferred scope",
         ):
             with self.subTest(statement=statement):
                 self.assertIn(statement, overview)

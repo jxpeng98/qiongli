@@ -177,6 +177,20 @@
       "title": "Discoverable CLI content upserts",
       "path": "docs/architecture/decisions/0225-discoverable-cli-content-upserts.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-402",
+      "adr_number": "0226",
+      "title": "Confirmed Codex Plugin source migration",
+      "path": "docs/architecture/decisions/0226-confirmed-codex-plugin-source-migration.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0227",
+      "title": "Native main cutover and stable release routing",
+      "path": "docs/architecture/decisions/0227-native-main-cutover-and-stable-release-routing.md",
+      "status": "Accepted"
     }
   ]
 }
