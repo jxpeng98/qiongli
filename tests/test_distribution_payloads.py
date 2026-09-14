@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from qiongli.source_layout import RepoLayout
 
@@ -37,6 +39,100 @@ def _load_evaluate_router_module():
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+class DistributionFileMapTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.audit_module = _load_audit_module()
+
+    def test_excluded_directories_are_not_scanned(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in (*self.audit_module.EXCLUDED_NAMES, "payload"):
+                (root / "kept" / name / "nested").mkdir(parents=True)
+            (root / "kept/source.md").write_bytes(b"source")
+            # Suffix exclusions historically apply to the entry, not descendants.
+            (root / "cache.pyc").mkdir()
+            (root / "cache.pyc/source.md").write_bytes(b"source")
+            (root / "ignored.pyc").write_bytes(b"ignored")
+            original = os.scandir
+            scanned = []
+
+            def scan(path):
+                scanned.append(Path(path).relative_to(root).as_posix())
+                return original(path)
+
+            with patch("os.scandir", side_effect=scan):
+                files, issues = self.audit_module._file_map(root, extra_excluded_names={"payload"})
+            self.assertEqual([], issues)
+            self.assertEqual(["cache.pyc/source.md", "kept/source.md"], list(files))
+            self.assertEqual([".", "cache.pyc", "kept"], sorted(scanned))
+
+    def test_comparison_retains_missing_extra_and_changed_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            left, right = Path(tmp) / "source", Path(tmp) / "payload"
+            left.mkdir()
+            right.mkdir()
+            for root in (left, right):
+                (root / "nested").mkdir()
+                (root / "nested/same.md").write_bytes(b"same\r\n")
+            (left / "missing.md").write_bytes(b"missing")
+            (right / "extra.md").write_bytes(b"extra")
+            (left / "nested/changed.md").write_bytes(b"source\r\n")
+            (right / "nested/changed.md").write_bytes(b"source\n")
+            issues = self.audit_module._compare_trees(left, right, "payload")
+            self.assertEqual([
+                f"missing in {right}: missing.md",
+                f"extra in {right}: extra.md",
+                "content mismatch: nested/changed.md",
+            ], [issue.detail for issue in issues])
+            files, issues = self.audit_module._file_map(left / "missing.md")
+            self.assertEqual({"missing.md": self.audit_module._hash_file(left / "missing.md")}, files)
+            self.assertEqual([], issues)
+            self.assertEqual("missing", self.audit_module._file_map(left / "absent")[1][0].label)
+
+    def test_symlinks_are_reported_without_following_them(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "payload"
+            root.mkdir()
+            (root / "real.md").write_bytes(b"source")
+            (root / "file-link").symlink_to(root / "real.md")
+            (root / "directory-link").symlink_to(root, target_is_directory=True)
+            (root / "broken-link").symlink_to(root / "absent")
+            (root / "node_modules").mkdir()
+            (root / "node_modules/hidden-link").symlink_to(root / "real.md")
+            files, issues = self.audit_module._file_map(root)
+            self.assertEqual(["real.md"], list(files))
+            self.assertEqual(["broken-link", "directory-link", "file-link"],
+                             [Path(issue.detail).name for issue in issues])
+            self.assertTrue(all(issue.label == "symlink" for issue in issues))
+            self.assertEqual("symlink", self.audit_module._file_map(root / "directory-link")[1][0].label)
+            # The independent generated-tree guard still checks excluded subtrees.
+            guarded = self.audit_module._assert_no_symlinks(root, "generated")
+            self.assertEqual(4, len(guarded))
+            self.assertTrue(any("hidden-link" in issue.detail for issue in guarded))
+
+    def test_unreadable_included_content_cannot_pass(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            denied = root / "included"
+            denied.mkdir()
+            original = os.scandir
+
+            def scan(path):
+                if Path(path) == denied:
+                    raise PermissionError(13, "denied", str(denied))
+                return original(path)
+
+            with patch("os.scandir", side_effect=scan):
+                issues = self.audit_module._compare_trees(root, root, "payload")
+            self.assertEqual(2, len(issues))
+            self.assertTrue(all("scan:" in issue.detail and "denied" in issue.detail for issue in issues))
+            (root / "source.md").write_bytes(b"source")
+            with patch.object(self.audit_module, "_hash_file", side_effect=PermissionError("denied")):
+                with self.assertRaises(PermissionError):
+                    self.audit_module._file_map(root)
 
 
 class DistributionPayloadTests(unittest.TestCase):

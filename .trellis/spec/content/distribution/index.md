@@ -77,6 +77,11 @@ cannot establish model behavior or cross-model performance.
 - Run the closest materialization or payload audit only when its inputs changed.
 - Confirm generated outputs were not edited directly.
 
+The retained `audit_distribution_payloads.py` prunes name-excluded directories
+before hashing, while preserving its file/suffix rules and deterministic results.
+Included-directory scan errors fail the audit; partial inventories cannot pass.
+Its separate generated-tree symlink guard still inspects excluded subtrees.
+
 ## CLI registry packages
 
 `native_cli_release.py` owns standalone GitHub CLI archives and their generated,

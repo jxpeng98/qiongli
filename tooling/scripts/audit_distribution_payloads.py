@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -106,15 +107,23 @@ def _file_map(root: Path, *, extra_excluded_names: set[str] | None = None) -> tu
         files[root.name] = _hash_file(root)
         return files, issues
 
-    for item in sorted(root.rglob("*")):
-        if _is_excluded(item, root, extra_excluded_names):
-            continue
-        if item.is_symlink():
-            issues.append(AuditIssue("symlink", str(item)))
-            continue
-        if item.is_file():
-            files[item.relative_to(root).as_posix()] = _hash_file(item)
-    return files, issues
+    def scan_error(error: OSError) -> None:
+        issues.append(AuditIssue("scan", str(error)))
+
+    excluded_names = EXCLUDED_NAMES | (extra_excluded_names or set())
+    for current, directories, names in os.walk(root, onerror=scan_error, followlinks=False):
+        # Prune before descent; generated payloads are audited by their own callers.
+        directories[:] = sorted(name for name in directories if name not in excluded_names)
+        for name in sorted(directories + names):
+            item = Path(current) / name
+            if _is_excluded(item, root, extra_excluded_names):
+                continue
+            if item.is_symlink():
+                issues.append(AuditIssue("symlink", str(item)))
+                continue
+            if item.is_file():
+                files[item.relative_to(root).as_posix()] = _hash_file(item)
+    return dict(sorted(files.items())), sorted(issues, key=lambda issue: issue.detail)
 
 
 def _compare_trees(
