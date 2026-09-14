@@ -1,0 +1,437 @@
+{
+  "date": "2026-09-14",
+  "scope": "First two fixed synthetic, isolated supplied-entry Codex observations; local diagnostic evidence only.",
+  "development_base": "0a1b34dba8f65b63bd588577ae52610021ddc758",
+  "released_reference": "4f2107f7fda9d8f6dd8874b7dcffb36f5d7751ba",
+  "kind": "qiongli-research-observation/v1",
+  "capture_sha256": "2e82da0a908f29b3816bb46e8da7c16392b6b0c104078042344b8f883c448351",
+  "review_sha256": "7e180534f6e7ece21bd7aed15308fdcf6f0bcce34e6194e7093c93f8968b9a65",
+  "reviewer": {
+    "kind": "model",
+    "id": "Codex coordinator self-review; not independent human approval"
+  },
+  "codex_version": "codex-cli 0.153.4",
+  "configured_settings": {
+    "model": "gpt-5.6-sol",
+    "model_reasoning_effort": "xhigh"
+  },
+  "scorer_sha256": "6c02a6240133d58f371140b7902b038c7da61211d4d0cf744f1c0791a512bcaa",
+  "shared_probe_sha256": "8dcd9da48daed62b92e7967d587a928c52e73c9e80fc27214986eda2328db1ef",
+  "resource_reader_sha256": "605e95e0b7b3fde30fe01b2f51439a7846d2bc64df917c665ee37fe0cf0eb086",
+  "runner_sha256": {
+    "run_eval.py": "a5bb6f49820a3e6bd1f78ff2e2d8edd40635353c1451f99e295fd9c6f9a6234b",
+    "run_suite.py": "3fe3a15b9b9cc765db7d1a81b8700aa71c00159c18bfa1b267640fde19122c2e"
+  },
+  "case_count": 2,
+  "structural_passed": 2,
+  "reviewed_passed": 2,
+  "limitations": "Span judgments are reviewer assertions, not automated entailment or authenticated approval. Synthetic isolated captures do not qualify installed Plugins, project writes or model superiority.",
+  "inputs": {
+    "source_text": "# SyntheticStudy2026 — synthetic test source, not a published paper\n\n## abstract-result\nIn a cross-sectional survey of 120 students, study time was positively\nassociated with examination score (Pearson r = .32).\n\n## abstract-limit\nCausality cannot be inferred. No confidence interval, p-value or adjusted\nanalysis was supplied. Only this abstract is available; no full text was read.\n",
+    "source_hashes": {
+      "inputs/source.md": "19758a19d9d51b6096b59bb4fbdfdabc4d60d02323c4021e3a81eb42c5f0130e",
+      "inputs/sources.csv": "86e73fd376b8544dc33686496e44d57068dfa5b679377647607685b40c4e7922",
+      "inputs/references.bib": "7509126f9fac8f97fb1b64913ef9c8a7b24e29f1018d2bd8d0352954323664c1",
+      "inputs/required_claims.csv": "db02780230ab49a181892946e5e479292c6712d606cf5c837154c46d2a9bae99"
+    },
+    "snapshot_hashes": {
+      "entry.md": "b355117e11917b2ec79d0bab8d590044c74bcc518c02b8f74d5fe062827d1fe0",
+      "instruction.txt": "10ee7d223c68fdc32cc62962a627e0d7814708d71aa3994f1009748ece6002ec",
+      "resources.json": "2e06d83b3a38ea9ac10ace8e505e3988a2c6ea13f9ea8c8a3ca1df215dc5e811",
+      "resource_reader.py": "605e95e0b7b3fde30fe01b2f51439a7846d2bc64df917c665ee37fe0cf0eb086",
+      "producer.py": "62fadf6fafc1dcda203e79574dff79bd17104001043d017044c51e013a04f5e3",
+      "shared-probe.py": "8dcd9da48daed62b92e7967d587a928c52e73c9e80fc27214986eda2328db1ef",
+      "inputs/source.md": "19758a19d9d51b6096b59bb4fbdfdabc4d60d02323c4021e3a81eb42c5f0130e",
+      "inputs/sources.csv": "86e73fd376b8544dc33686496e44d57068dfa5b679377647607685b40c4e7922",
+      "inputs/references.bib": "7509126f9fac8f97fb1b64913ef9c8a7b24e29f1018d2bd8d0352954323664c1",
+      "inputs/required_claims.csv": "db02780230ab49a181892946e5e479292c6712d606cf5c837154c46d2a9bae99",
+      "cases/reading.schema.json": "db506da8028f73f2b903e843665f7b873226d8e08f214364d9adda0d6209f00d",
+      "cases/reading-to-manuscript.yaml": "b0f4069cf4bf9a137dcd75a94fe822c9a733b1f6faf24770bada1a215c73c2b0",
+      "cases/manuscript.schema.json": "1ed1b6d9f2855a775bef71f36adfd599b8491d18357781aa8fb0aba207d8a446",
+      "cases/source-to-paragraph.yaml": "19e07a554c7fc47206880e656e6e0e48ceb3d007937fefc270cc04bcba95b2dc"
+    }
+  },
+  "answers": {
+    "reading-to-manuscript": "### Reading notes\n\n- **Source:** SyntheticStudy2026, synthetic unpublished test fixture; abstract only.\n- **Design/sample:** Cross-sectional survey of 120 students. Recruitment, setting, and measurement procedures were not reported.\n- **C1 — Association:** Study time was positively associated with examination score, with Pearson \\(r=.32\\) (`abstract-result`).\n- **C2 — Causal limitation:** The cross-sectional association does not establish that additional study time causes higher examination scores (`abstract-limit`).\n- **Statistical limits:** No confidence interval, p-value, or adjusted analysis was supplied. Statistical significance, precision, and robustness to confounding therefore cannot be assessed.\n- **C3:** Pending and unused.\n\n### Bounded passage\n\nIn a cross-sectional survey of 120 students, study time was positively associated with examination score (\\(r=.32\\); Qiongli Test Fixture, 2026). This result indicates an association only: causality cannot be inferred, and the abstract provides no confidence interval, p-value, or adjusted analysis with which to assess precision, statistical significance, or potential confounding. These conclusions are limited to the supplied abstract because no full text was reviewed.",
+    "source-to-paragraph": "In a cross-sectional survey of 120 students, study time was positively associated with examination scores (Pearson’s r = .32). However, this association does not establish causality, and its statistical robustness cannot be fully assessed because the abstract reported no confidence interval, p-value, or adjusted analysis; no full text was available (SyntheticStudy2026)."
+  },
+  "review": {
+    "kind": "qiongli-research-observation/v1",
+    "capture_sha256": "2e82da0a908f29b3816bb46e8da7c16392b6b0c104078042344b8f883c448351",
+    "reviewer": {
+      "kind": "model",
+      "id": "Codex coordinator self-review; not independent human approval"
+    },
+    "cases": {
+      "reading-to-manuscript": {
+        "answer_sha256": "9e7f3e90e3de3c6b3af0c718b30ad83a23d4f152ba5116c00af5b7ab7c2c45b7",
+        "events_sha256": "a8b054e519f1acb1fe0b469d8e06067ba9cae7a1b04cb880c85d1447fe1d5b5c",
+        "segments": [
+          {
+            "start": 0,
+            "end": 17,
+            "quote": "### Reading notes",
+            "role": "context",
+            "links": [],
+            "verdict": "not-evidence",
+            "reason": "Section heading only."
+          },
+          {
+            "start": 19,
+            "end": 103,
+            "quote": "- **Source:** SyntheticStudy2026, synthetic unpublished test fixture; abstract only.",
+            "role": "reading",
+            "links": [
+              {
+                "claim_id": "C2",
+                "source_location": "SyntheticStudy2026:abstract-limit",
+                "status": "supported",
+                "claim_type": "limitation"
+              }
+            ],
+            "verdict": "pass",
+            "reason": "The supplied source header identifies an unpublished synthetic fixture; abstract-limit explicitly restricts access to the abstract."
+          },
+          {
+            "start": 104,
+            "end": 232,
+            "quote": "- **Design/sample:** Cross-sectional survey of 120 students. Recruitment, setting, and measurement procedures were not reported.",
+            "role": "reading",
+            "links": [
+              {
+                "claim_id": "C1",
+                "source_location": "SyntheticStudy2026:abstract-result",
+                "status": "supported",
+                "claim_type": "finding"
+              }
+            ],
+            "verdict": "pass",
+            "reason": "abstract-result gives the cross-sectional sample of 120 students; the supplied abstract gives no recruitment, setting or measurement details. This is reviewed as an abstract-only omission, not a claim about unseen full text."
+          },
+          {
+            "start": 233,
+            "end": 361,
+            "quote": "- **C1 — Association:** Study time was positively associated with examination score, with Pearson \\(r=.32\\) (`abstract-result`).",
+            "role": "reading",
+            "links": [
+              {
+                "claim_id": "C1",
+                "source_location": "SyntheticStudy2026:abstract-result",
+                "status": "supported",
+                "claim_type": "finding"
+              }
+            ],
+            "verdict": "pass",
+            "reason": "abstract-result reports a positive study-time/examination-score association with Pearson r = .32."
+          },
+          {
+            "start": 362,
+            "end": 522,
+            "quote": "- **C2 — Causal limitation:** The cross-sectional association does not establish that additional study time causes higher examination scores (`abstract-limit`).",
+            "role": "reading",
+            "links": [
+              {
+                "claim_id": "C2",
+                "source_location": "SyntheticStudy2026:abstract-limit",
+                "status": "supported",
+                "claim_type": "limitation"
+              }
+            ],
+            "verdict": "pass",
+            "reason": "abstract-limit explicitly says causality cannot be inferred; the wording preserves that limit."
+          },
+          {
+            "start": 523,
+            "end": 713,
+            "quote": "- **Statistical limits:** No confidence interval, p-value, or adjusted analysis was supplied. Statistical significance, precision, and robustness to confounding therefore cannot be assessed.",
+            "role": "reading",
+            "links": [
+              {
+                "claim_id": "C2",
+                "source_location": "SyntheticStudy2026:abstract-limit",
+                "status": "supported",
+                "claim_type": "limitation"
+              }
+            ],
+            "verdict": "pass",
+            "reason": "abstract-limit supplies no CI, p-value or adjusted analysis; the answer does not invent significance or claim control of confounding."
+          },
+          {
+            "start": 714,
+            "end": 743,
+            "quote": "- **C3:** Pending and unused.",
+            "role": "context",
+            "links": [],
+            "verdict": "not-evidence",
+            "reason": "Task-status statement only: the supplied request explicitly keeps C3 pending and unused; this is not research evidence."
+          },
+          {
+            "start": 745,
+            "end": 764,
+            "quote": "### Bounded passage",
+            "role": "context",
+            "links": [],
+            "verdict": "not-evidence",
+            "reason": "Section heading only."
+          },
+          {
+            "start": 766,
+            "end": 1238,
+            "quote": "In a cross-sectional survey of 120 students, study time was positively associated with examination score (\\(r=.32\\); Qiongli Test Fixture, 2026). This result indicates an association only: causality cannot be inferred, and the abstract provides no confidence interval, p-value, or adjusted analysis with which to assess precision, statistical significance, or potential confounding. These conclusions are limited to the supplied abstract because no full text was reviewed.",
+            "role": "manuscript",
+            "links": [
+              {
+                "claim_id": "C1",
+                "source_location": "SyntheticStudy2026:abstract-result",
+                "status": "supported",
+                "claim_type": "finding"
+              },
+              {
+                "claim_id": "C2",
+                "source_location": "SyntheticStudy2026:abstract-limit",
+                "status": "supported",
+                "claim_type": "limitation"
+              }
+            ],
+            "verdict": "pass",
+            "reason": "The paragraph preserves the sample, design and association from abstract-result and causal/statistical/access limits from abstract-limit. The author-year label agrees with the supplied fixture bibliography; no extra empirical finding is asserted."
+          }
+        ],
+        "checks": {
+          "association": {
+            "status": "pass",
+            "segments": [
+              2,
+              3,
+              8
+            ],
+            "reason": "The direction, cross-sectional sample of 120 and r = .32 agree with abstract-result."
+          },
+          "causality": {
+            "status": "pass",
+            "segments": [
+              4,
+              8
+            ],
+            "reason": "Both notes and passage explicitly withhold causal inference."
+          },
+          "statistics": {
+            "status": "pass",
+            "segments": [
+              5,
+              8
+            ],
+            "reason": "No CI, p-value, adjusted estimate or significance claim is invented."
+          },
+          "access": {
+            "status": "pass",
+            "segments": [
+              1,
+              2,
+              8
+            ],
+            "reason": "Access remains limited to the supplied abstract; missing methodological detail is not portrayed as inspection of a full paper."
+          },
+          "added_claims": {
+            "status": "pass",
+            "segments": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              8
+            ],
+            "reason": "All research content is bounded to the supplied abstract and bibliography; C3 is expressly pending/unused, not used as evidence."
+          }
+        }
+      },
+      "source-to-paragraph": {
+        "answer_sha256": "6ff3a8a8f8c8abf396db8c258bdb96eaef4ac8ffad90f84483902db6ff1b50bb",
+        "events_sha256": "6a8b0da0c37bab224058a0fd46c12e4a8f12f2d9b164aab9685dfabce42bc456",
+        "segments": [
+          {
+            "start": 0,
+            "end": 372,
+            "quote": "In a cross-sectional survey of 120 students, study time was positively associated with examination scores (Pearson’s r = .32). However, this association does not establish causality, and its statistical robustness cannot be fully assessed because the abstract reported no confidence interval, p-value, or adjusted analysis; no full text was available (SyntheticStudy2026).",
+            "role": "manuscript",
+            "links": [
+              {
+                "claim_id": "C1",
+                "source_location": "SyntheticStudy2026:abstract-result",
+                "status": "supported",
+                "claim_type": "finding"
+              },
+              {
+                "claim_id": "C2",
+                "source_location": "SyntheticStudy2026:abstract-limit",
+                "status": "supported",
+                "claim_type": "limitation"
+              }
+            ],
+            "verdict": "pass",
+            "reason": "The one requested paragraph matches the cross-sectional sample/positive association in abstract-result and preserves the causal/statistical/access restrictions in abstract-limit."
+          }
+        ],
+        "checks": {
+          "association": {
+            "status": "pass",
+            "segments": [
+              0
+            ],
+            "reason": "Sample 120, cross-sectional design, positive association and Pearson r = .32 match abstract-result."
+          },
+          "causality": {
+            "status": "pass",
+            "segments": [
+              0
+            ],
+            "reason": "The paragraph explicitly says the association does not establish causality."
+          },
+          "statistics": {
+            "status": "pass",
+            "segments": [
+              0
+            ],
+            "reason": "Missing CI, p-value and adjusted analysis are retained without inventing a significance result."
+          },
+          "access": {
+            "status": "pass",
+            "segments": [
+              0
+            ],
+            "reason": "No full text or external/project source is claimed; the single paragraph is the complete output."
+          },
+          "added_claims": {
+            "status": "pass",
+            "segments": [
+              0
+            ],
+            "reason": "No additional empirical finding or supported C3 claim is introduced."
+          }
+        }
+      }
+    }
+  },
+  "cases": {
+    "reading-to-manuscript": {
+      "semantic": {
+        "status": "pass",
+        "segments": 9,
+        "mapped_segments": 6,
+        "failed_segments": 0,
+        "pending_segments": 0
+      },
+      "answer_sha256": "9e7f3e90e3de3c6b3af0c718b30ad83a23d4f152ba5116c00af5b7ab7c2c45b7",
+      "events_sha256": "a8b054e519f1acb1fe0b469d8e06067ba9cae7a1b04cb880c85d1447fe1d5b5c",
+      "resource_reads": [],
+      "source_access": "supplied-in-prompt",
+      "elapsed_seconds": 22.049,
+      "covered_claims": [
+        "C1",
+        "C2"
+      ],
+      "structural": "pass"
+    },
+    "source-to-paragraph": {
+      "semantic": {
+        "status": "pass",
+        "segments": 1,
+        "mapped_segments": 1,
+        "failed_segments": 0,
+        "pending_segments": 0
+      },
+      "answer_sha256": "6ff3a8a8f8c8abf396db8c258bdb96eaef4ac8ffad90f84483902db6ff1b50bb",
+      "events_sha256": "6a8b0da0c37bab224058a0fd46c12e4a8f12f2d9b164aab9685dfabce42bc456",
+      "resource_reads": [],
+      "source_access": "supplied-in-prompt",
+      "elapsed_seconds": 10.869,
+      "covered_claims": [
+        "C1",
+        "C2"
+      ],
+      "structural": "pass"
+    }
+  },
+  "structural_receipts": [
+    {
+      "case": {
+        "id": "reading-to-manuscript",
+        "pipeline": "bounded-research-journey",
+        "reason_code": "case-passed",
+        "schema_version": "1.0",
+        "status": "pass"
+      },
+      "summary": {
+        "blocked_assertions": 0,
+        "executed_assertions": 17,
+        "failed_assertions": 0,
+        "required_missing": 0,
+        "unknown_validation_types": 0
+      }
+    },
+    {
+      "case": {
+        "id": "source-to-paragraph",
+        "pipeline": "bounded-research-journey",
+        "reason_code": "case-passed",
+        "schema_version": "1.0",
+        "status": "pass"
+      },
+      "summary": {
+        "blocked_assertions": 0,
+        "executed_assertions": 14,
+        "failed_assertions": 0,
+        "required_missing": 0,
+        "unknown_validation_types": 0
+      }
+    }
+  ],
+  "scoring_history": [
+    {
+      "stage": "first projection",
+      "capture_sha256": "2e82da0a908f29b3816bb46e8da7c16392b6b0c104078042344b8f883c448351",
+      "review_sha256": "7e180534f6e7ece21bd7aed15308fdcf6f0bcce34e6194e7093c93f8968b9a65",
+      "scorer_sha256": "62fadf6fafc1dcda203e79574dff79bd17104001043d017044c51e013a04f5e3",
+      "structural_passed": 1,
+      "reviewed_passed": 1,
+      "case_count": 2,
+      "finding": {
+        "case": "reading-to-manuscript",
+        "output": "reading",
+        "assertion_index": 1,
+        "reason_code": "cross-artifact-consistency-failed",
+        "explanation": "The initial adapter emitted a source record per annotated span, so multiple notes about one source exceeded the source registry's tuple multiset. This is a projection defect, not a deficient answer."
+      }
+    },
+    {
+      "stage": "offline rescore after projection fix",
+      "capture_sha256": "2e82da0a908f29b3816bb46e8da7c16392b6b0c104078042344b8f883c448351",
+      "review_sha256": "7e180534f6e7ece21bd7aed15308fdcf6f0bcce34e6194e7093c93f8968b9a65",
+      "scorer_sha256": "1e6708f59133a6a79f8d67c2ebb5f42e9e792fb428a045d0cd007d950af87b97",
+      "structural_passed": 2,
+      "reviewed_passed": 2,
+      "case_count": 2,
+      "explanation": "Group exact note quotes by source and manuscript/ledger quotes by full claim/source tuple; newline separation only. Both the captured answers and the review are unchanged. The original failed report is retained locally. This measures correction of the adapter, not model improvement."
+    },
+    {
+      "stage": "final byte-binding verification",
+      "capture_sha256": "2e82da0a908f29b3816bb46e8da7c16392b6b0c104078042344b8f883c448351",
+      "review_sha256": "7e180534f6e7ece21bd7aed15308fdcf6f0bcce34e6194e7093c93f8968b9a65",
+      "scorer_sha256": "6c02a6240133d58f371140b7902b038c7da61211d4d0cf744f1c0791a512bcaa",
+      "structural_passed": 2,
+      "reviewed_passed": 2,
+      "case_count": 2,
+      "explanation": "After review, reject CRLF-only substitutions of bound files without universal-newline normalization and preserve snapshot/output newlines. Same capture and review, no model rerun; previous scoring reports retained."
+    }
+  ],
+  "operations_review": {
+    "observed_guidance_tool_calls": 0,
+    "unexpected_tools_in_validated_traces": 0,
+    "paragraph_only_scope": "One paragraph, no reading-note deliverable.",
+    "unnecessary_operations_budget": null,
+    "limit": "No efficiency threshold was predeclared. Zero guidance reads do not demonstrate installed Skill activation. No model rerun was used to replace a failure."
+  },
+  "retention": "Raw events, stderr and complete capture/score directories remain local test output. This portable record includes only synthetic final answers/source evidence, model-review annotations and metadata; it is not a replayable or authenticated raw Host transcript."
+}

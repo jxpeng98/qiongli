@@ -150,7 +150,7 @@ def prompt(case: dict, entry: str | None = None, instruction: str = INSTRUCTION)
     )
 
 
-def trace_observation(raw: str, exit_code: int, fields: tuple = FIELDS) -> dict:
+def final_message(raw: str, exit_code: int) -> str:
     """Fail closed on incomplete, failed or non-text-only Codex JSONL traces."""
     events = [json.loads(line) for line in raw.splitlines() if line.strip()]
     if type(exit_code) is not int or exit_code != 0 or not events or any(not isinstance(e, dict) for e in events):
@@ -178,9 +178,13 @@ def trace_observation(raw: str, exit_code: int, fields: tuple = FIELDS) -> dict:
             raise ValueError("Non-text item: tool activity or unsupported trace")
         if kind == "item.completed" and item["type"] == "agent_message":
             messages.append(item.get("text"))
-    if not messages or not isinstance(messages[-1], str):
+    if not messages or not isinstance(messages[-1], str) or not messages[-1].strip():
         raise ValueError("Missing final message")
-    answer = json.loads(messages[-1])
+    return messages[-1]
+
+
+def trace_observation(raw: str, exit_code: int, fields: tuple = FIELDS) -> dict:
+    answer = json.loads(final_message(raw, exit_code))
     if not isinstance(answer, dict) or set(answer) != {*fields, "answer"} or any(
         not isinstance(value, str) or not value.strip() for value in answer.values()
     ):
@@ -199,6 +203,76 @@ def git_sources(ref: str, paths: dict[str, Path]) -> tuple[str, dict[str, str]]:
                                   cwd=ROOT, capture_output=True, text=True, check=True).stdout
                for key, path in paths.items()}
     return commit, sources
+
+
+def snapshot_resources() -> dict[str, str]:
+    resources = {}
+    for path in sorted((ROOT / "content").rglob("*")):
+        if path.is_file():
+            if path.is_symlink() or not path.resolve().is_relative_to(ROOT / "content"):
+                raise ValueError("Resource source escapes canonical content")
+            relative = path.relative_to(ROOT / "content").as_posix().removeprefix("workflow/")
+            if relative in resources:
+                raise ValueError("Colliding package-relative resource")
+            resources[relative] = path.read_text(encoding="utf-8")
+    return resources
+
+
+def isolated_command(output: Path, *, schema: Path | None = None,
+                     read_resources: bool = False) -> tuple[str, dict, list[str]]:
+    config_home = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
+    config_path = config_home / "config.toml"
+    config = tomllib.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+    if config.get("model_provider", "openai") != "openai" or config.get("profile"):
+        raise ValueError("This isolated probe currently supports the default OpenAI provider without a profile")
+    version = subprocess.run(["codex", "--version"], capture_output=True, text=True, check=True).stdout.strip()
+    cmd = ["codex", "exec", "--ignore-user-config", "--ephemeral", "--skip-git-repo-check",
+           "--sandbox", "read-only", "--json",
+           "-c", 'approval_policy="never"', "-c", 'web_search="disabled"',
+           "-c", "project_doc_max_bytes=0", "-c", "suppress_unstable_features_warning=true",
+           "--enable", "skip_host_skill_discovery"]
+    if schema is not None:
+        cmd += ["--output-schema", str(schema)]
+    settings = {key: config[key] for key in ("model", "model_reasoning_effort") if key in config}
+    for key, value in settings.items():
+        if not isinstance(value, str):
+            raise ValueError("Invalid configured model setting")
+        cmd += ["-c", f"{key}={json.dumps(value)}"]
+    for feature in DISABLED_FEATURES:
+        cmd += ["--disable", feature]
+    if read_resources:
+        server = f"mcp_servers.{resource_reader.SERVER}"
+        for key, value in {"command": sys.executable,
+                           "args": [str(output / "resource_reader.py"), str(output / "resources.json")],
+                           "enabled_tools": [resource_reader.TOOL], "required": True,
+                           "default_tools_approval_mode": "approve"}.items():
+            cmd += ["-c", f"{server}.{key}={json.dumps(value)}"]
+    return version, settings, cmd
+
+
+def capture_turn(cmd: list[str], supplied: str, directory: Path) -> tuple[str, int]:
+    started = time.monotonic()
+    with tempfile.TemporaryDirectory(prefix="qiongli-intent-") as working:
+        try:
+            result = subprocess.run(cmd + ["-C", working, "-"], input=supplied,
+                                    capture_output=True, text=True, timeout=180)
+            raw, errors, code = result.stdout, result.stderr, result.returncode
+        except subprocess.TimeoutExpired as error:
+            raw = error.stdout or ""
+            errors = error.stderr or ""
+            if isinstance(raw, bytes):
+                raw = raw.decode("utf-8", errors="replace")
+            if isinstance(errors, bytes):
+                errors = errors.decode("utf-8", errors="replace")
+            errors += "\nCodex capture timed out"
+            code = 124
+    (directory / "events.jsonl").write_text(raw, encoding="utf-8")
+    (directory / "stderr.log").write_text(errors, encoding="utf-8")
+    write_json(directory / "capture.json", {"exit_code": code,
+               "elapsed_seconds": round(time.monotonic() - started, 3),
+               "prompt_sha256": sha(supplied),
+               "events_sha256": digest(directory / "events.jsonl")})
+    return raw, code
 
 
 def capture(output: Path, selected: list[str], *, entry_ref: str | None = None,
@@ -221,15 +295,7 @@ def capture(output: Path, selected: list[str], *, entry_ref: str | None = None,
     resources = None
     snapshots = SNAPSHOTS
     if read_resources:
-        resources = {}
-        for path in sorted((ROOT / "content").rglob("*")):
-            if path.is_file():
-                if path.is_symlink() or not path.resolve().is_relative_to(ROOT / "content"):
-                    raise ValueError("Resource source escapes canonical content")
-                relative = path.relative_to(ROOT / "content").as_posix().removeprefix("workflow/")
-                if relative in resources:
-                    raise ValueError("Colliding package-relative resource")
-                resources[relative] = path.read_text(encoding="utf-8")
+        resources = snapshot_resources()
         sources.update(instruction=RESOURCE_INSTRUCTION,
                        resources=json.dumps(resources, ensure_ascii=False, sort_keys=True),
                        reader=Path(resource_reader.__file__).read_text(encoding="utf-8"))
@@ -239,35 +305,11 @@ def capture(output: Path, selected: list[str], *, entry_ref: str | None = None,
     if resources is not None and any(path not in resources for case in cases.values()
                                      for key in case["required_reads"] for path in case["expected"][key]):
         raise ValueError("Required guidance missing from resource snapshot")
-    config_home = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
-    config_path = config_home / "config.toml"
-    config = tomllib.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
-    if config.get("model_provider", "openai") != "openai" or config.get("profile"):
-        raise ValueError("This isolated probe currently supports the default OpenAI provider without a profile")
-    version = subprocess.run(["codex", "--version"], capture_output=True, text=True, check=True).stdout.strip()
+    version, settings, cmd = isolated_command(
+        output, schema=output / "response-schema.json", read_resources=read_resources)
     output.mkdir(parents=True, exist_ok=False)
     for key, filename in snapshots.items():
         (output / filename).write_text(sources[key], encoding="utf-8")
-    schema = output / "response-schema.json"
-    cmd = ["codex", "exec", "--ignore-user-config", "--ephemeral", "--skip-git-repo-check",
-           "--sandbox", "read-only", "--json", "--output-schema", str(schema),
-           "-c", 'approval_policy="never"', "-c", 'web_search="disabled"',
-           "-c", "project_doc_max_bytes=0", "-c", "suppress_unstable_features_warning=true",
-           "--enable", "skip_host_skill_discovery"]
-    settings = {key: config[key] for key in ("model", "model_reasoning_effort") if key in config}
-    for key, value in settings.items():
-        if not isinstance(value, str):
-            raise ValueError("Invalid configured model setting")
-        cmd += ["-c", f"{key}={json.dumps(value)}"]
-    for feature in DISABLED_FEATURES:
-        cmd += ["--disable", feature]
-    if read_resources:
-        server = f"mcp_servers.{resource_reader.SERVER}"
-        for key, value in {"command": sys.executable,
-                           "args": [str(output / "resource_reader.py"), str(output / "resources.json")],
-                           "enabled_tools": [resource_reader.TOOL], "required": True,
-                           "default_tools_approval_mode": "approve"}.items():
-            cmd += ["-c", f"{server}.{key}={json.dumps(value)}"]
     manifest = {"kind": "codex-resource-reading-v2" if read_resources else "codex-supplied-entry-intent-v2",
                 "source": {key: sha(value) for key, value in sources.items()},
                 "variant": "no-skill" if no_skill else "preceding" if entry_ref else "candidate",
@@ -279,20 +321,7 @@ def capture(output: Path, selected: list[str], *, entry_ref: str | None = None,
         directory = output / case_id
         directory.mkdir()
         supplied = prompt(cases[case_id], sources["entry"], sources["instruction"])
-        started = time.monotonic()
-        with tempfile.TemporaryDirectory(prefix="qiongli-intent-") as working:
-            try:
-                result = subprocess.run(cmd + ["-C", working, "-"], input=supplied,
-                                        capture_output=True, text=True, timeout=180)
-                raw, errors, code = result.stdout, result.stderr, result.returncode
-            except subprocess.TimeoutExpired:
-                raw, errors, code = "", "Codex capture timed out", 124
-        (directory / "events.jsonl").write_text(raw, encoding="utf-8")
-        (directory / "stderr.log").write_text(errors, encoding="utf-8")
-        write_json(directory / "capture.json", {"exit_code": code,
-                   "elapsed_seconds": round(time.monotonic() - started, 3),
-                   "prompt_sha256": sha(supplied),
-                   "events_sha256": digest(directory / "events.jsonl")})
+        raw, code = capture_turn(cmd, supplied, directory)
         print(f"Captured {case_id}: exit {code}", flush=True)
         try:
             checked = resource_reader.observed_reads(raw, resources)[0] if resources is not None else raw

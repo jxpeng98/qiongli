@@ -52,7 +52,8 @@ the suite succeeds only when at least one case ran and every case passed.
 `tooling/scripts/run_academic_quality_evals.py` and the root `scripts/` entry
 remain compatibility shims over this owner; they must not retain a second batch
 loop or success predicate. `.github/workflows/evaluation-truth.yml` invokes the
-canonical command directly for `2.x` pushes and pull requests. Native CI remains
+canonical command directly for pull requests to `main` and `2.x`, and manual
+dispatches; it has no push trigger. Native CI remains
 free of Python and Node startup.
 
 The checked-in adversarial corpus has exactly six families under
@@ -104,6 +105,12 @@ direct-source scopes with shared synthetic inputs. Requiredness follows each
 declared task; supported active claim links, requested claim IDs and source byte
 bindings remain constraints. These are test observations, not parsed production
 Markdown or scientific entailment. Free prose needs separate semantic review.
+The optional `evals/research_journey/observe.py` adapter binds a complete captured
+answer and reviewer-selected spans to these existing cases. It adds only a
+required `file_digest` binding artifact, not a second runner or new assertion
+type. Its separate observation summary identifies the reviewer and reports
+structural checks independently from semantic judgments. See the journey README
+for the capture/review contract and its provenance, not authentication, limit.
 
 The primary artifact, bibliography, and cross-artifact references remain under
 the output root. Schema references remain under the case directory. Absolute
@@ -245,7 +252,7 @@ temporary file, then atomically replaced; parent directories are created.
 Run:
 
 ```bash
-python -m unittest tests.test_eval_cases tests.test_academic_quality_evals tests.test_research_journey_evals -v
+python -m unittest tests.test_eval_cases tests.test_academic_quality_evals tests.test_research_journey_evals tests.test_research_journey_observations tests.test_skill_routing_probe -v
 python evals/runner/run_suite.py
 ```
 
