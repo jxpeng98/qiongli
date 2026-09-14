@@ -3,6 +3,77 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Distribution scan increment — September 14
+
+Implementation source: `ec3d700bfd9452247b57c8f5a0a6ec7d9bcd9614`, from
+`d01d5417de2448b64ddbe56051314bacc43f3987` on
+`fix/distribution-audit-traversal`. This is a retained distribution-audit tooling
+fix, not a native product, published package or acceptance change. The coordinator
+implemented and reviewed it directly; no independent review is claimed.
+
+The demonstrated defect is **filtering after recursive enumeration** in
+`audit_distribution_payloads._file_map`. `sorted(root.rglob("*"))` descended into
+name-excluded directories before `_is_excluded` discarded them. The minimal
+regression made 38 scan calls instead of the three required calls.
+The existing owner now uses top-down stdlib `os.walk` pruning, preserves file
+and suffix semantics and sorted output, and reports included-directory scan
+errors instead of accepting a partial inventory. The separate generated-tree
+symlink guard still checks excluded subtrees; content hashing and source
+comparison are unchanged.
+
+On the same materialized Python package, excluding its separately audited
+`payload` reduced instrumented scan calls from **1,266 to 3**. Base/current maps
+are exactly equal: **69 paths and SHA-256 values, zero issues**. One instrumented
+timing was 0.268 s versus 0.018 s; this is not a controlled performance benchmark
+or an end-to-end speed claim. A complete audit of the existing staged tree also
+finished **before** the fix in 14.219 s. The first 45-second bounded test attempt
+stopped in `setUpClass` waiting for materialization, not in `_file_map`. Thus the
+earlier six-minute full-run interruption does not prove that this defect caused
+the entire elapsed time or an infinite scan.
+
+Validation:
+
+- The new traversal test failed before the fix and passed afterward. All four
+  focused regressions pass, covering pruning, missing/extra/CRLF-changed bytes,
+  file/directory/broken symlinks, excluded-tree symlink coverage and read errors.
+- All **38 distribution checks** pass in the full discovery retry: 12 payload
+  tests (including the four new regressions), 11 materialization tests, 12
+  distribution-document checks and three source-tree boundary checks. The
+  originally interrupted stale-npm test and current complete payload audit pass.
+- Full discovery (`.venv/bin/python -m unittest discover -s tests -v`) was
+  retried, **not completed**. After all scoped checks passed and unrelated
+  failures were visible, the coordinator stopped it during
+  `test_claude_plugin_manifest_exposes_workflow_skill` materialization
+  (`KeyboardInterrupt`, process exit 1). No worker remained running. Discovery
+  lists 1,895 cases; this is not an executed/passed count. Progress before the
+  interruption records **14 distinct failing methods and five erroring methods**,
+  not a final unittest summary. Other groups include lifecycle/Host-matrix and
+  literature/design/reading assertions, stable release/npm checks and retained
+  artifact builders; these were not fixed or fully diagnosed here.
+- Program-ledger checks: **7 passed**, generated index current. All 249 task
+  IDs/states/dependencies and 46 accepted records match the development base.
+  Diff checks and the native change-boundary guard pass; its matrix suggestions
+  do not represent native/desktop job execution. No full-suite readiness or
+  acceptance is claimed. Diagnostic logs remain local under
+  `/private/tmp/qiongli-distribution-scan-jnKdVE/`; no duplicate evidence report,
+  generated payload or private runtime configuration is committed.
+
+**Next bounded implementation:** refresh the current architecture inventory and
+its documentation assertions. `validate_arc_201_adrs.py` reproduces an exact
+inventory failure: `tooling/architecture/current-decisions.json` omits existing
+ADRs **0226 and 0227**. `test_current_architecture_overview_is_truthful` also
+expects retired literal wording in the current CLI-first overview. Reconcile the
+current inventory with accepted ADR metadata and test the current architectural
+contract without restoring obsolete Desktop requirements or weakening negative
+inventory checks. Do not rewrite accepted ADRs or the frozen ARC-201 record.
+
+The separate delivery-validator failure still requires the old release command
+marker while the current checklist specifies `--cli-github`; retain it for its
+own bounded follow-up, preserving release/approval authority. Other full-suite
+failures require their own diagnosis, not blanket assertion removal. Current
+installed-Host qualification, paused registration, the stable release reference
+and all historical accepted task evidence keep their existing scope.
+
 ## C→F continuity increment — September 14
 
 Implementation source: `7e3de5371441bc3925338e97394ac2304abf267f`, from
