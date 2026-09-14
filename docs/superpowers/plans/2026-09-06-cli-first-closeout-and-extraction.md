@@ -3,6 +3,182 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Post-2.0.0 baseline review — September 14
+
+Reference source: `v2.0.0`, `4f2107f7fda9d8f6dd8874b7dcffb36f5d7751ba`.
+Branch: `docs/post-2-0-research-baseline`, from local `2.x`. The maintainer asks
+for a second review of the post-release recommendations, a new baseline and the
+next implementation goals. This increment updates planning and evidence; the
+implementation targets below are not represented as completed code.
+
+### Review findings and resulting decisions
+
+1. **P1 — a stale evaluation test prevents a green local evaluation baseline.**
+   `tests/test_academic_quality_evals.py:112` expects exactly one
+   `branches: ["2.x"]`; `.github/workflows/evaluation-truth.yml:5` now contains
+   `["main", "2.x"]`, as introduced in `8d330295` under ADR 0227. The combined
+   research-journey/routing/academic-quality check reproduces 20 passed and one
+   failed test. Correct the assertion to verify both PR targets, preserving the
+   no-push and single canonical runner checks. This is not a failed release
+   workflow or evidence of incorrect research output.
+2. **P1 — the previous current horizon understates completed distribution and
+   overstates what remains to be built.** Its NOW row still names beta.1 and
+   CLI-410 says the stable publication outcome is unobserved. Fresh public
+   observations below resolve that distribution uncertainty. The existing
+   `platform_capacity.rs`, `incremental_portfolio.rs` and cancellation services
+   also rule out treating capacity measurement/incremental state as absent.
+   Refresh current evidence and reuse these owners; preserve historical receipts.
+3. **P1 — structural research receipts do not yet bind evaluated records to a
+   model's answer.** `evals/research_journey/README.md` explicitly describes its
+   CSVs as test observations; the cases bind source files and record tuples but
+   have no raw-answer binding. `evals/skill_routing/probe.py` already captures
+   events/resource reads and evaluates routing, but does not evaluate these
+   research journeys. Connect those existing capabilities before claiming
+   semantic quality or implementing a large evidence model. Hashes alone cannot
+   establish that a sentence is supported by a source.
+4. **P2 — the earlier recommendation made the immediate scope too broad.**
+   Five research families, every Host, complete security qualification and a
+   Kernel are separate outcomes. The current Codex-first priority and paused
+   Host registration support a smaller first increment: repair the test, bind
+   the two fixed cases, then observe their actual answers. Keep the later
+   installed-Host, migration and research gates; they do not block independent
+   offline implementation.
+
+This was a targeted review of the release transition, evaluation owners, Graph
+extraction/capacity owners and current planning, not a whole-repository security
+audit. The Graph extractor's declared status/locator checks provide traceability,
+not independent source-authenticity or claim-support verification. Existing
+accepted platform and Graph tasks retain their original source and scope.
+
+### New reference baseline
+
+| Area | Evidence at this review | Remaining qualification |
+|---|---|---|
+| Source and delivery | Native 2.0.0 at `4f2107f7`; CLI/Plugin/Skills, Lite 14 and Full 32; macOS ARM64, Windows x64 and Linux x64 release targets | Installed-session behavior is distinct from building and invoking MCP in package checks |
+| Public release | GitHub stable release published `2026-09-13T16:14:50Z`, 16 assets; all five release/publisher runs below succeeded at the same source | No fresh local download/hash comparison was performed in this review; reuse the qualified workflow evidence within its scope |
+| Registry visibility | npm `latest=2.0.0`, `next=2.0.0-beta.6`; PyPI exposes three non-yanked 2.0.0 wheels; Cargo publication and all three public-install jobs succeeded | The direct crates.io API request returned HTTP 403 here; Cargo evidence is the recorded Actions jobs, not that failed metadata request |
+| Research evaluation | Two fixed evidence cases retain 16/13 structural assertions; the 12-case academic-quality fixture suite passes; combined focused tests are 20/21 | Original-answer binding, full prose review and current installed-Host observations remain open; 12/12 is not model accuracy |
+| Host/research continuity | Historical `dfebb17c` Codex/Claude research, approval, restart and denial observations remain available | These do not qualify a newly installed 2.0.0 session, live Hook delivery or concurrent multi-Host writing |
+| Graph and performance | Source-bound Graph v1, worked synthetic HTML example, capacity profiles, incremental Portfolio and cancellation already exist | Current model normalization, actual browser interactions, migrated-project semantics and measured release-target performance remain separately scoped |
+| Architecture and safety | Existing project transactions, approval/CAS, canonical `content/`, native shared services; accepted ADRs 0218/0227 | Full Host adversarial, package lifecycle and replacement acceptance are not inferred from publication |
+
+Observed read-only on September 14 with GitHub release/run/job APIs and registry
+metadata. All following Actions runs bind source `4f2107f7` and report success:
+
+| Observation | Reference |
+|---|---|
+| Published stable GitHub release | [v2.0.0](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0) |
+| Release Automation | [34767514924](https://github.com/jxpeng98/qiongli/actions/runs/34767514924) |
+| Three-target native builds and combined-package installs | [34767534232](https://github.com/jxpeng98/qiongli/actions/runs/34767534232) |
+| npm publisher | [34768004314](https://github.com/jxpeng98/qiongli/actions/runs/34768004314) |
+| PyPI publisher | [34768005399](https://github.com/jxpeng98/qiongli/actions/runs/34768005399) |
+| Cargo qualification, publish and three public installs | [34768006565](https://github.com/jxpeng98/qiongli/actions/runs/34768006565) |
+
+The canonical pack remains the 434-resource 2.0.0 pack recorded below. This
+review changes no binary, version or pack input. CLI-410 gains current source/run
+evidence while remaining active for its broader baseline scope and dependencies.
+The 46 accepted records, 249 IDs, dependency graph and historical Alpha task
+states remain unchanged. Historical blocked Alpha rows are not instructions to
+restart Alpha publication or a measure of 2.0.0 completion.
+
+### Next implementation target: answer-bound research observations
+
+Use CLI-405's existing research-quality increment and Evaluation Truth V1. The
+user-visible outcome is to inspect an actual answer, find each evidence-bearing
+passage's source and limitation, and distinguish structural checks from reviewed
+semantic findings. Begin with the two existing synthetic cases, not a new corpus.
+
+1. **Restore the local test contract.** Update the stale branch assertion using
+   ADR 0227; verify both `main` and `2.x`, no automatic push trigger and exactly
+   one canonical suite invocation. Do not narrow the workflow to satisfy the old
+   test. Run the affected test plus the existing combined evaluation checks.
+2. **Capture and bind the actual answer.** Reuse the isolation, source snapshots,
+   observed MCP reads and event checks from `evals/skill_routing/probe.py` and
+   `resource_reader.py`. Add only a bounded journey adapter under
+   `evals/research_journey/`. Bind case/request, source/resource hashes, configured
+   Host/model settings, final-answer bytes, event digest and producer version.
+   Missing final output, incomplete turns and unsupported configurations remain
+   visible failures/blocks. Preserve configured models; the current probe's
+   default-provider/no-profile limit must be reported rather than bypassed.
+3. **Make the evaluated projection reviewable.** Derive observation rows from
+   that frozen answer, retaining exact answer spans and source locators. Require
+   every declared span to exist in the bound final answer. Explicitly account for
+   unmapped source-dependent statements and unused/pending claims. Do not fill
+   model omissions with the checked-in passing CSVs. Keep paragraph-only output
+   paragraph-only; evaluator annotations are separate review artifacts, not an
+   extra deliverable imposed on the model.
+4. **Apply existing checks and a bounded semantic review.** V1 owns structural
+   results. Review association direction, causal limits, absent statistics,
+   abstract-only access and unsupported added claims against the actual source.
+   Every finding identifies an answer span, evidence and reviewer; unreviewed
+   output stays unreviewed. Keep advisory/human review distinct from structural
+   PASS. Record requested-claim coverage (C1/C2), mapped-statement counts and
+   unsupported assertions with their denominators, plus unnecessary operations.
+   Timing/token data is optional and unavailable values stay unavailable.
+
+Likely edit boundary: the existing journey README/tests, a small journey
+capture/projection adapter, and the existing probe only where extraction avoids
+duplicating its capture machinery. Update the Evaluation Truth contract only if
+its shared interface changes. Canonical product Skills/native code change only
+for a reproduced defect. No new runtime service, dependency or project store is
+needed for the observation adapter.
+
+Completion criteria for this first increment:
+
+- Both predeclared cases can produce a bound observation packet and canonical
+  structural receipt from real captured answers. A failed answer remains a
+  usable diagnostic result; do not replace it with a passing fixture.
+- Offline checks reject missing/mismatched answer or event bytes, substituted
+  sources, spans not in the answer, missing requested claims, stale projections
+  and invented full-text access. A prose-only causal overclaim with valid record
+  tuples remains an explicit semantic finding, not an automatic structural pass
+  promoted to overall approval.
+- Original failed attempts and all selected cases remain in the report. New
+  scoring creates a new report bound to its rubric; it never overwrites the
+  capture or silently changes task scope. Local hashes establish provenance,
+  not authentication against a deliberately forged local transcript.
+- Synthetic raw events stay in local test output; portable reports contain only
+  necessary final-answer/source evidence and redacted metadata. Private research,
+  personal configuration and raw reasoning are not added to the repository.
+- The first real observations diagnose behavior of the named Host/configuration.
+  Any claim of improvement needs a predeclared comparison using the same cases,
+  access and budget. No installed-Plugin, approval/write or cross-Host acceptance
+  is inferred from the isolated observation lane.
+
+### Following outcomes and entry conditions
+
+After the bound observations, repair their demonstrated content or evidence-link
+failures and run one longer C-to-F/stage-summary continuity case. Refresh the
+installed 2.0.0 Codex preview/approval/write/restart observation under its existing
+Host and research scope; resume previously paused registration only when that
+lane is selected. Exercise refusal/stale-revision cases through existing owners.
+Graph browser and optional Hook checks remain separate advertised-capability
+observations. These qualification gaps do not stop offline implementation.
+
+Then select either the existing CLI-406 local-claim work or an M4 evidence slice
+from the observed need and dependency readiness. M4 starts with stable identity
+and field authority for Claim/EvidenceAssertion/Source/Locator, preserving
+portable records and reversible migration. M5 replay/Q4 depends on those records
+and a manifested analysis run; it is not part of the first observation adapter.
+Capacity optimization reuses existing profiles after a measured regression.
+2.0.x stability and 2.1 expansion describe direction, not release commitments.
+
+### Verification of this planning increment
+
+Fresh `.venv/bin/python -m unittest tests.test_research_journey_evals
+tests.test_skill_routing_probe tests.test_academic_quality_evals -q` ran 21 tests:
+20 passed; the branch assertion above failed. `.venv/bin/python
+evals/runner/run_suite.py` passes all 12 checked-in academic-quality cases. The
+failure remains unfixed in this planning-only increment and is the first code
+target. Existing unchanged release/package checks are reused within their
+recorded scope; no new model run, installation, research write or publication
+was performed. Seven program-ledger tests pass; the generated index matches all
+249 task IDs. Comparison with the release source confirms all 46 accepted rows
+are unchanged. The ten local links in the updated planning sections resolve;
+diff review, whitespace and the frozen-source boundary check pass. The reviewed
+four-file planning change is ready for scoped commit and local fast-forward
+integration into `2.x`; `main` and the published tag retain the release source.
+
 ## First native CLI stable release — September 13
 
 Base `4d63d249`; branch `codex/release-2-0-0`. The maintainer requests the first

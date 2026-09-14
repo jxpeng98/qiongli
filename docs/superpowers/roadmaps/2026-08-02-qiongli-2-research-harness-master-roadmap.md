@@ -12,8 +12,9 @@ Target branch: `2.x`
 
 Live execution projection: generated from the program ledger
 
-Planning horizon: reliable Qiongli 1.19 replacement in `v2.0.0`, followed by a
-separate `2.1` research-harness expansion horizon
+Planning horizon: stabilize the released native CLI 2.0 baseline, qualify its
+research journeys, and select bounded research-harness expansion. Broader 1.19
+replacement and retirement retain their own evidence gates.
 
 ## 1. Purpose and authority
 
@@ -51,192 +52,86 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — September 10, 2026
+## Current execution horizon — September 14, 2026
 
-The maintainer has selected **CLI-first delivery without a Qiongli App window**.
+Use `v2.0.0` at `4f2107f7fda9d8f6dd8874b7dcffb36f5d7751ba` as the
+released product reference. The [current execution plan](../plans/2026-09-06-cli-first-closeout-and-extraction.md)
+records the fresh release observations, bounded source review, local test failure,
+and the next implementation's acceptance criteria. The program ledger owns task
+states; a successful channel publication does not accept its broader Host,
+migration or managed-product task. Dated maturity assessments and execution
+windows below retain their historical candidate scope; this horizon and the
+latest plan section select current work.
+
 [ADR 0218](../../architecture/decisions/0218-cli-first-local-host-collaboration.md)
-supersedes the App-owned ACP default. The September 5 local CLI notes are mapped
-into this roadmap and the existing ledger; their static validation is not
-product acceptance. CLI First is the product direction; CI remains verification.
+and [ADR 0227](../../architecture/decisions/0227-native-main-cutover-and-stable-release-routing.md)
+continue to govern delivery: native CLI, Plugin/Skills and Lite/Full MCP;
+`main` for stable releases and `2.x` for development. Codex is the primary
+development and verification Host. Retain the user's configured models and
+accounts; additional Hosts adapt the shared contracts with scoped observations.
+Desktop/ACP remains maintenance/deferred scope.
 
-September 10 maintainer decision: **Codex is the primary development and
-verification Host**. Design new research interactions and measure quality in
-Codex first; Claude Code and other Agents adapt the same CLI/Skill/MCP contracts
-with focused compatibility checks. Preserve configured models, shared research
-state, approval/CAS and macOS/Windows/Linux delivery. This prioritizes execution;
-it does not supersede the External Host architecture or claim adapter acceptance.
+### Baseline and corrections to the earlier recommendation
 
-Delivery closeout: `2.0.0-alpha.8` is published through GitHub, npm `next` and
-PyPI `2.0.0a8`. Skillsplace's prerelease Plugin now uses the same native research
-resources and an exact npm runtime pin. The
-[distribution evidence](../../../tooling/release/acceptance/v2.0.0-alpha.8-distribution.json)
-records qualified source, public bytes and marketplace parity. Continue with the
-bounded semantic research observation below. Cargo's Windows staged-TOML failure
-and missing registry credentials remain separate release gaps.
+- The standalone 2.0.0 release has public GitHub and registry evidence. Remaining
+  research and Host qualification must name their own scope; do not repeat the
+  completed publication or treat the historical Alpha release chain as a new
+  development queue.
+- The local academic-quality test still expects the pre-cutover `2.x`-only PR
+  trigger; the workflow correctly includes `main` under ADR 0227. Correct this
+  expectation before relying on the combined evaluation checks.
+- The existing two evidence journeys verify synthetic CSV observations. The
+  next missing link is their binding to actual Codex answers and source reads,
+  followed by review of what those answers claim.
+- Capacity profiles, incremental Portfolio and cancellation owners already
+  exist. Reuse them if a measured regression appears; a Rust rewrite alone
+  supplies no speed or maintenance-cost result.
+- Historical accepted records retain their source and scope. The 249-task
+  catalog is not a completion percentage for the standalone 2.0.0 product.
 
-September 10 subsequent maintainer decision: deliver Marketplace Plugins with
-bundled native executables and an explicit platform choice. ADR 0223 and the
-current plan record local source implementation, 23 focused tests and macOS
-empty-PATH checks. The six Codex/Claude target archives and generated platform
-index reuse existing CLI release owners. External catalog adaptation, fresh
-Windows/Linux Plugin observations and publication remain the next distribution
-increment; published alpha.8 continues using its historical npm bridge. Research
-quality work and Cargo qualification remain independently scoped.
+### Ordered implementation
 
-September 10 research-quality increment: the maintainer requested local Graph
-normalization and bilingual scholarly voice improvements. The current plan now
-records multi-source evidence extraction, citekey-based cross-stage joins,
-record-bound source navigation, and Host-assisted candidate-to-canonical guidance.
-J2 reuses its existing Skill and adds English/Chinese voice guidance derived from
-`jxpeng98/skills` humanizer. No graph store, new tool or independent model runtime
-is added. Actual Codex semantic observation remains the next quality check;
-source/pack checks do not establish universal extraction or live Host readiness.
-
-September 10 stage-continuity increment: completed research can now be retained
-in versioned, detailed stage documents with source coverage and an accumulating
-history through the existing context-maintenance Skill. Optional retention
-review is advisory and file-specific; selection and removal belong to the user,
-and confirmation never enables assistant-operated cleanup. Local content/Plugin
-checks and an isolated synthetic forward trial are recorded in the current plan.
-They do not establish installed-Host acceptance or authorize real-project cleanup.
-
-September 10 download-channel clarification: public alpha.8 already includes
-standalone macOS ARM64, Windows x64 and Linux x64 archives. The current plan
-records prominent bilingual download/setup documentation and a target-specific
-README for future archives, reusing the existing release owner. Independent
-public-byte verification and an empty-PATH macOS CLI/MCP observation passed;
-published artifacts and the remaining release qualification gates are unchanged.
-
-September 10 portable-runtime follow-up: the release owner now statically links
-the Windows CRT and inspects final DLL imports; extracted CLI/MCP checks use
-empty PATH. Public Windows alpha.8 still requires `VCRUNTIME140.dll`, disclosed
-beside the download links. A changed-worktree ZIP passed Windows 11 Arm x64
-emulation checks; pinned-toolchain native-x64 qualification and new publication
-remain pending. Stage consolidation now applies the existing Humanizer before
-preview/save, preserving evidence, structured history and user-only retention
-decisions. The current plan records local packaging and language-pass evidence.
-
-September 10 beta publication: **2.0.0-beta.1** is now on GitHub, npm `next`,
-crates.io and PyPI `2.0.0b1`. Native builds/combined installs and Cargo source/archive
-checks passed on all three systems at `a9472e24`. Public bytes and Marketplace
-platform entries are verified. After email verification and the registry's
-new-crate waiting periods, all nine Cargo crates were published from the frozen
-source. Public crate downloads match qualified bytes; isolated macOS registry
-installation passed both commands and Lite/Full MCP. Three-platform public Cargo
-run `34532954182` passed on macOS, Windows and Linux. No managed/App or live-Host acceptance is
-promoted by this publication.
-
-September 11: beta.2 adds cross-channel installation review and an explicit
-Actions publication path. Local macOS packaging and terminal checks passed at
-`91f7f555`; the current plan records the authorized submission. Three-platform
-qualification and publication remain inside Actions. The maintainer requested
-no Agent tracking after submission; no beta.2 remote success is claimed.
-
-| Horizon | Ordered work |
-|---|---|
-| **CLOSEOUT** | App/ACP and authorized Trellis cleanup merged via #181; CLI build separation merged via #182. Retain the old plan/review as history. `PLT-404`—`PLT-408` remain deferred, not accepted. |
-| **NOW** | Beta.1 is published from `a9472e24` on GitHub, npm `next`, PyPI and crates.io. Native run `34525953141` passed three-platform builds/final installs; Cargo run `34525994551` passed source/archive checks. Public files match CI. Skillsplace `39c8963` publishes explicit native platform entries; stable stays 1.17.0 and generic next stays alpha.8. All nine Cargo crates are public and match qualified bytes; isolated macOS registry installation passed. Public Cargo matrix `34532954182` passed on all three platforms. Prior bounded Host evidence remains at `dfebb17c`; full program and managed/App acceptance remain separate. |
-| **NEXT** | Codex-first Skills quality: two bounded evidence-journey cases now check reading-to-manuscript and direct-source scopes through the existing V1 owner. Required outputs follow the task; prose/order/reuse stay flexible, while requested claims, active source links, evidence limits and source bytes remain constrained. Offline receipts pass 16/13 assertions, with missing/stale/mislinked evidence regressions. These are test observations, not full Markdown or semantic verification. Next bind actual Codex answers to these fixed synthetic inputs and review source fidelity, causal limits and unnecessary work alongside structural checks. Original resource-read score stays 4/6; no new model result is claimed. Other Agents adapt shared contracts; Host registration stays paused. Cargo publication and all three public registry installs are complete. Acceptance stays separate. |
-| **AFTER THE BASELINE** | `CLI-406` task/claim/candidate contract, `CLI-407` two real local Hosts, `CLI-408` conflict/crash/revocation checks. `CLI-409` qualifies additional Hosts separately. `CLI-410` can release the CLI baseline before collaboration; `CLI-411` qualifies collaboration separately. |
-| **LATER** | `CLI-412` optional cross-device synchronization only after local collaboration, with new scope authority. M2/M3 replacement and M4+ research expansion retain their independent gates. |
-
-The [current closeout and extraction plan](../plans/2026-09-06-cli-first-closeout-and-extraction.md)
-records the actual branch, dependency/caller inventory, preserved source, checks
-and the precise next increment. The former
-[ACP implementation plan](https://github.com/jxpeng98/qiongli/blob/ab84081fd260cb2914ce86f6dc4b6c77c26c6a58/.trellis/tasks/09-04-app-acp-all-chat-realignment/implement.md)
-and its embedded-Agent review are historical source evidence. Their unfinished
-App stages are no longer the next execution queue.
-
-September 10 research-Skills review: prioritize a research project that keeps
-claims, sources, decisions and revisions traceable, with execution proportional
-to the requested outcome. Skill count, multiple models and lifecycle coverage
-alone do not establish differentiation. The current comparison found overlapping
-capabilities in [Scientific Agent Skills](https://github.com/K-Dense-AI/scientific-agent-skills),
-[Academic Research Skills](https://github.com/Imbad0202/academic-research-skills),
-[Claude Academic Workflow](https://github.com/ericluo04/claude-academic-workflow)
-and [PaperQA](https://github.com/Future-House/paper-qa); these are public-document
-comparisons, not performance results. Keep the existing 82-card library and
-CLI/Plugin/MCP owners while measuring outcome quality and avoidable operations.
-Do not add a new routing service, graph store or model manager for this increment.
-
-September 11 maintainer decision: refine Skills around outcomes and evidence.
-The current plan first trims reading, writing and review defaults plus their shared
-callers, retaining permission/CAS, source continuity and explicitly agreed research
-protocols. Archive decisions and isolated behavioral observations; do not infer
-quality gains from shorter prompts or model names. Keep the current architecture
-and evaluate before extending the same changes to other skill families.
-
-The new user outcome is: install a verified native package, use a chosen Host to
-compare sources and propose a note, approve through existing project owners,
-then recover or continue in another Host on the same device. Models/accounts and
-native conversations stay with Hosts; research state and receipts stay with
-Qiongli. Same-device collaboration shares local authority through existing
-services, not chat copying or cross-device file synchronization.
-
-### Academic relations and presentation under CLI First
-
-September 8 maintainer decision: retain Graph v1 as a rebuildable relationship
-query over canonical research records and receipts. Existing file/ID/source-anchor
-authority, bounded CLI/MCP queries, rebuild and truthful missing/sparse diagnostics
-remain supported. A model-proposed relation remains a candidate until reviewed;
-structural containment never implies scholarly support. Do not introduce a second
-canonical store, graph database or graph-editing write path for presentation.
-
-Presentation follows the user's question rather than opening a whole network:
-
-| Surface | Intended output | Delivery boundary |
+| Order | Bounded outcome | Existing owner and boundary |
 |---|---|---|
-| CLI | Brief summaries, tables and actionable evidence-gap lists, with source anchors | Reuse current query/doctor owners; preserve existing JSON contracts. Human-readable formatting is a bounded follow-up when needed, not a claim about current output. |
-| External Host | Natural-language questions answered from bounded relation queries, citing artifacts and distinguishing proposed/reviewed/unverified relations | Reuse Full MCP; return actual missing data without inventing relations. |
-| On-demand export | A local subset as Markdown or Mermaid; interactive local HTML only when a real research use case needs it | Optional read-only presentation work, not an App dependency or first-stage gate. |
+| **NOW** | Repair the stale Evaluation Truth branch assertion, retaining both supported PR branches, no push trigger and the single canonical suite entry. | `tests/test_academic_quality_evals.py`; use ADR 0227 and the existing workflow as the authority. No runtime or workflow policy change is needed. |
+| **NEXT** | Bind the two existing reading-to-manuscript and source-to-paragraph cases to captured final answers, source/resource bytes and reviewable claim spans. Keep structural results and semantic findings separately visible. | `CLI-405`; reuse `evals/research_journey/`, the isolated capture/resource reader and Evaluation Truth V1. Start with the fixed synthetic source and preserve configured models. |
+| **THEN** | Observe those cases in Codex; retain omissions, causal overclaims, unnecessary work and failures, and repair the smallest demonstrated content or shared-service defect. | Canonical `content/` or its existing native owner. A small diagnostic sample does not establish universal quality improvement. |
+| **QUALIFICATION** | Refresh the named installed-package Codex approval/write/restart journey and separately qualify advertised Graph/Hook/browser behavior. | `CLI-403`–`CLI-405`, `SEC-401`–`SEC-403`, `CLI-410`; reuse existing install, approval/CAS and acceptance owners. The previously paused Host-registration lane needs its own resumed scope; independent offline implementation continues. |
+| **AFTER THE BASELINE** | Complete local atomic task claims, candidate review, conflict/cancellation/revocation and restart handling with two actual Hosts. | `CLI-406`–`CLI-408`, then `CLI-411`, under their existing dependencies. `CLI-409` qualifies additional Hosts individually. |
+| **LATER** | Use observed evidence failures to select a minimum Kernel/Evidence slice, then reproducibility and executable research gates. | M4 precedes dependent M5 schemas; these remain separate expansion decisions. Cross-device `CLI-412`, broad method packs and institutional modes retain their scope gates. |
 
-The first stage requires preserved query/traceability behavior and truthful sparse
-output, alongside the approved research write, restart and Host handoff. It does
-not require every project to produce semantic nodes, a complete literature graph,
-or a dedicated graph UI. The current REALM/RAG example's structural-only graph is
-a disclosed capability limit, not a reason to manufacture scholarly records.
-`PLT-322` retains useful source-bound semantics on a representative migrated
-project in M2; its already-accepted historical task and evidence keep their original
-scope, including visualization. This change does not reopen that task because the
-current small fixture is sparse. Graph v2 stays in M4. Retained Desktop support and its existing
-contracts remain intact. This decision refines roadmap ordering/presentation and
-does not rewrite accepted ADRs or historical acceptance evidence.
+The first implementation increment is evaluation plumbing and its regression
+checks. It does not require a five-domain pilot, every Host, a new graph store,
+a general Agent scheduler, or the full Kernel. An unavailable live model or
+approval blocks that observation, not unrelated local development. Versions
+2.0.x/2.1 are planning categories, not promises to ship all M4/M5 work in 2.1.
 
-All 46 accepted ledger records retain their original scope. `PLT-401`—`PLT-403`
-capacity/bounds are already accepted. The retained App stage proves offline
-source behavior only: reducer/ACP lifecycle, Tauri controls, private observations
-and source-bound Capture integration. Live ACP isolation/authentication/resume,
-packaged sidecars, App multi-Agent acceptance and the research-v2 consumer gate
-remain unverified/deferred. A source-stage close or merge does not accept them.
+### Preserved product boundaries
 
-`v2.0.0-alpha.5` remains an unpublished internal candidate at
-`842f6bb7136fc03551b7a1acf3b612daa3dc6953`, with Native CI run `33525293258`
-and candidate run `33527363262`. Its historical evidence does not qualify a
-standalone CLI package. Public candidates require a fresh version and exact
-source/package qualification under separate publication authority.
+Graph v1 remains a rebuildable query over canonical research records. A source
+anchor and declared support status permit traceability; they do not independently
+verify a publication or entailment. Sparse/structural-only results are valid
+disclosed outcomes. Preserve stable IDs, source navigation, deterministic rebuild
+and truthful missing evidence. The existing offline HTML is a separately tested
+presentation; `PLT-322` retains its historical accepted scope.
 
-Keep Rust, content locks, CLI/MCP, ProjectStateService, Capture/Graph, task and
-checkpoint owners, export/recovery, package trust and preview/approval/CAS.
-The current mixed package and optional Tauri/Svelte desktop remain until the
-CLI split is verified. Do not start React/Electron, embedded chat, direct provider
-APIs, a general Agent daemon or a cross-repository common package. Old GUI
-support and public package retirement require their own explicit decision.
+Reuse ProjectStateService, Capture, task/checkpoint owners, package/content locks,
+and preview/approval/CAS. User project writes, private research disclosure,
+external Host registration and publication retain their existing authorization
+boundaries. Stage summaries preserve sources and decisions; research-file
+selection and deletion remain with the user.
 
-Run affected Focused checks while editing, review and commit the local feature
-branch, then merge it locally into `2.x`. No PR or remote CI wait is required. Missing live/package evidence blocks its own claim, not
-independent offline work. The master and ledger own direction and state;
-Trellis history is retained. The maintainer explicitly authorized integrating
-the existing hook/task-engine cleanup. AGENTS.md and CONTRIBUTING.md own the
-development flow; product approval/CAS and required integration checks remain.
+Follow AGENTS.md and CONTRIBUTING.md for local feature branch, affected checks,
+review, scoped commit and fast-forward integration into `2.x`. Historical
+PR-only development instructions elsewhere do not override this current loop.
+Retained App code, old 1.x recovery paths and accepted ADRs are not retired by the
+CLI release. Preserve historical acceptance gates rather than relabel them as
+current blockers.
 
-September 7 maintainer correction: development and integration happen locally.
-Create a feature branch from local `2.x`, edit, run affected checks, review and
-commit, then merge locally and continue. This standing instruction covers scoped
-local branch/commit/merge without repeated confirmation. No PR, remote CI wait,
-post-merge suite or candidate acceptance is required for each increment. Push and
-remote-rule changes remain separate. Optional CI retains headless/platform
-checks; packages and live Hosts are qualified at named candidates. Acceptance
-records gate claims, not independent implementation.
+The previous September 6–13 delivery notes remain in the
+[current plan](../plans/2026-09-06-cli-first-closeout-and-extraction.md) and the
+[release-source roadmap](https://github.com/jxpeng98/qiongli/blob/4f2107f7fda9d8f6dd8874b7dcffb36f5d7751ba/docs/superpowers/roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md).
+They document earlier candidates and decisions, not a second current queue.
 
 ## 2. North Star
 
