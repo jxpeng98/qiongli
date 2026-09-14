@@ -57,7 +57,7 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 Use `v2.0.0` at `4f2107f7fda9d8f6dd8874b7dcffb36f5d7751ba` as the
 released product reference. The [current execution plan](../plans/2026-09-06-cli-first-closeout-and-extraction.md)
 records the release observations, bounded source review, implemented answer-bound
-increment, remaining validation gap and next continuity target. The program ledger owns task
+and C→F increments, and the next distribution-scan validation target. The program ledger owns task
 states; a successful channel publication does not accept its broader Host,
 migration or managed-product task. Dated maturity assessments and execution
 windows below retain their historical candidate scope; this horizon and the
@@ -78,13 +78,18 @@ Desktop/ACP remains maintenance/deferred scope.
   completed publication or treat the historical Alpha release chain as a new
   development queue.
 - The stale pre-cutover branch assertion is repaired. The combined focused
-  evaluation checks now pass 41 tests; the full repository suite was interrupted
+  evaluation/continuity checks now pass 57 tests; the full repository suite was interrupted
   in the unchanged distribution-payload tree scan and remains unqualified.
 - The two fixed journeys now bind actual Codex final answers and complete review
   spans to synthetic source/event bytes. Same-answer offline rescoring after a
   projection fix gives 2/2 structural and coordinator-reviewed cases; the first
   1/2 result is preserved. Zero guidance reads were observed. This is not an
   installed-Plugin observation, independent review or model-accuracy estimate.
+- The C→F pair now binds an actual C summary to current R2 input and preserves
+  IDs, source limits and history. Its first 180-second attempt remains 1/2 after
+  F timed out; a separate 360-second-budget attempt is 2/2 structural and
+  coordinator-reviewed. Different generated answers/read paths prevent a causal
+  budget or quality comparison. No installed session or program gate is accepted.
 - Capacity profiles, incremental Portfolio and cancellation owners already
   exist. Reuse them if a measured regression appears; a Rust rewrite alone
   supplies no speed or maintenance-cost result.
@@ -96,14 +101,15 @@ Desktop/ACP remains maintenance/deferred scope.
 | Order | Bounded outcome | Existing owner and boundary |
 |---|---|---|
 | **IMPLEMENTED INCREMENT** | Repair the branch assertion and bind/review both fixed synthetic cases, preserving the initial projection failure and later same-answer rescoring. | `CLI-405` remains active; implementation `7c843870`, existing plan and portable observation record. No acceptance promotion. |
-| **NOW** | Add one longer synthetic C→F/stage-summary continuity case with preserved IDs, citekeys, source anchors and method limits; stale source/review bytes must invalidate reuse. | `CLI-405`; reuse the existing capture/projection/V1 and handoff/revision contracts. Preserve configured models; no new project store or Host registration. |
-| **THEN** | Repair demonstrated continuity/content defects and investigate the distribution tree-scan validation gap before full-suite readiness claims. | Canonical `content/` or its current owner; distribution audit only under its scoped diagnosis. A diagnostic sample is not a universal quality-improvement result. |
+| **IMPLEMENTED CONTINUITY** | Bind one C→F pair to actual predecessor and revised source bytes, preserving IDs, limits, stale-review rejection and both real attempts. | `CLI-405` remains active; implementation `7e3de537`, existing plan and portable record. No new store, model change or Host registration. |
+| **NOW** | Diagnose the distribution-payload tree scan, fix only a reproduced traversal defect and retain payload-integrity negatives before retrying full discovery. | Existing `audit_distribution_payloads._file_map` and stale-payload test; bounded regression check, no package publication or acceptance promotion. |
+| **THEN** | Repair demonstrated continuity/content defects and extend observations only when a concrete failure selects the next case. | Canonical `content/` or its current owner; no speculative model matrix. A diagnostic sample is not a universal quality-improvement result. |
 | **QUALIFICATION** | Refresh the named installed-package Codex approval/write/restart journey and separately qualify advertised Graph/Hook/browser behavior. | `CLI-403`–`CLI-405`, `SEC-401`–`SEC-403`, `CLI-410`; reuse existing install, approval/CAS and acceptance owners. The previously paused Host-registration lane needs its own resumed scope; independent offline implementation continues. |
 | **AFTER THE BASELINE** | Complete local atomic task claims, candidate review, conflict/cancellation/revocation and restart handling with two actual Hosts. | `CLI-406`–`CLI-408`, then `CLI-411`, under their existing dependencies. `CLI-409` qualifies additional Hosts individually. |
 | **LATER** | Use observed evidence failures to select a minimum Kernel/Evidence slice, then reproducibility and executable research gates. | M4 precedes dependent M5 schemas; these remain separate expansion decisions. Cross-device `CLI-412`, broad method packs and institutional modes retain their scope gates. |
 
-The first evaluation-plumbing increment is implemented with focused checks and
-two real synthetic observations; longer continuity remains next. It does not
+The answer-bound and longer continuity increments are implemented with focused
+checks and retained synthetic observations, including failures. They do not
 require a five-domain pilot, every Host, a new graph store,
 a general Agent scheduler, or the full Kernel. An unavailable live model or
 approval blocks that observation, not unrelated local development. Versions

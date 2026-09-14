@@ -3,6 +3,87 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## C→F continuity increment — September 14
+
+Implementation source: `7e3de5371441bc3925338e97394ac2304abf267f`, from
+`69e3daa5b2d2a86c12375f0972b5b9936ac98ecd` on
+`feat/c-to-f-continuity-observations`. This completes the next bounded target
+below, not CLI-405 acceptance. The coordinator implemented and self-reviewed it;
+no independent reviewer or human approval is represented. Canonical product
+content, native runtime, dependencies, user model settings, release refs and
+published packages are unchanged.
+
+Delivered through the existing `observe.py`, shared capture helper and V1 runner:
+
+- An optional fixed C→F pair snapshots synthetic state, decision log, handoff
+  and STG-B-001. C receives only R1. F receives the **actual captured C answer**
+  and current R2 source/state/handoff, not a passing summary fixture or resumed
+  installed session. R2 corrects n=120/r=.32 to n=118/r=.23.
+- Exact predecessor, prompt, event, source and review bindings reject stale or
+  substituted inputs. Both checkpoints remain in the denominator after failure.
+  The existing claim-passage projection accepts summary spans; no new runner,
+  assertion type, project store or empirical artifact was introduced.
+- Each checkpoint has 19 structural assertions and nine required semantic
+  review checks. Literal IDs/headings cannot establish corrected numbers,
+  decision meaning or evidence support. The negative case with stale values
+  deliberately passes structure while failing semantic review.
+- The shared helper records a per-turn timeout. Short/routing captures retain
+  180 seconds; this longer lane uses 360 seconds. A larger budget does not repair
+  a failed capture or qualify an earlier answer.
+
+Real observations preserve the current Codex CLI `0.154.0` and configured
+`gpt-6-astra` / `xhigh`. These differ from the earlier short-case observations;
+there is no same-condition model or performance comparison.
+
+| Attempt / checkpoint budget | C completion / verified guidance reads | F completion / verified guidance reads | Structure / coordinator-reviewed checkpoints |
+|---|---|---|---|
+| First / 180 s | 121.249 s / 0 | Timeout at 180.009 s / 11; no completed turn or final answer | 1/2 / 1/2 |
+| Second / 360 s | 118.504 s / 0 | 147.478 s / 5 | 2/2 / 2/2; 19 assertions each |
+
+The first failure was inspected before changing the shared timeout owner. Its
+11 completed guidance results match snapshots; no connection/authentication
+failure was observed. The second attempt regenerated C and followed a different
+F guidance path; it finished under 180 seconds. Therefore success cannot be
+attributed to the larger budget. Both attempts and all final prose/review spans
+are retained in the [portable observation record](../reviews/2026-09-14-c-to-f-continuity-observations.json);
+raw traces, stderr and transient reports remain local, not committed.
+
+The successful F paragraph and summary use corrected R2 values while preserving
+C1/C2/C3, DEC-001/DEC-002, the citekey, full source anchors, abstract-only and
+causal/statistical limits. C3 stays pending; STG-C-001 stays an unreviewed
+historical predecessor, not new evidence or approval. All eight C and nine F
+source-coverage path/hash pairs match supplied bytes. The summaries honestly
+label hashes as supplied rather than independently observed; strict template
+column wording was not a predeclared gate. No D/E execution, ethics approval,
+project persistence, installed-Plugin activation or lifecycle completion is claimed.
+
+Integration checks:
+
+- Focused evaluation, observation/routing and stage/context continuity tests:
+  **57 passed**. The two timeout tests also passed after aligning their mocked
+  timeout value with the actual call. Canonical fixture suite: **12/12**.
+- Both older real short-case captures replay with **2/2** structure and review;
+  their original format/default request remains supported.
+- Both new handoff fixtures pass the existing seven-section audit. Portable
+  review hashes, full answer spans and scorer identities were revalidated.
+- Program-ledger checks: **7 passed**, generated index current; all 249 task
+  states/dependencies and all 46 accepted records match the development base.
+  `git diff --check` and the native change-boundary guard passed. Matrix
+  suggestions do not represent native/desktop test execution.
+- The prior full-suite interruption in the unchanged distribution-payload scan
+  remains a validation gap. Full discovery was not rerun for this increment;
+  affected checks do not qualify the entire repository.
+
+**Next bounded implementation:** reproduce and diagnose
+`test_distribution_payloads.test_audit_detects_stale_npm_payload` →
+`audit_distribution_payloads._file_map` → recursive tree enumeration. Trace the
+existing caller/ownership boundary, fix only a demonstrated traversal defect,
+and preserve stale/missing payload, path and content negatives. Establish a
+bounded scan regression check before attempting full discovery again. Do not
+weaken payload integrity or claim readiness from a timeout increase. Installed
+Codex approval/write/restart and Graph/Hook/browser qualification remain separate;
+Host registration stays paused. No new model matrix or Kernel is needed here.
+
 ## Answer-bound implementation increment — September 14
 
 Implementation source: `7c843870a40b8e4070fa77bcf8e74e96e8fa9cea`, from
