@@ -48,6 +48,10 @@ class NativeReleasePublishTests(unittest.TestCase):
                         assets = Path(temporary) / 'native-release-assets'
                         assets.mkdir()
                         (assets / 'verified-asset').write_text('fixture')
+                        (assets / 'release-manifest.json').write_text(json.dumps({'artifacts': [{'file': 'verified-asset'}]}))
+                        (assets / 'SHA256SUMS').write_text('fixture checksum')
+                        for unlisted in ('qiongli-codex-plugin-v2.0.1.tar.gz', 'arbitrary.txt', 'registry-packages.json'):
+                            (assets / unlisted).write_text('unverified')
                     if len(args) > 1 and args[1].endswith('native_release_assets.py') and outcome == 'asset-failure':
                         raise subprocess.CalledProcessError(1, args)
                     return ''
@@ -62,6 +66,8 @@ class NativeReleasePublishTests(unittest.TestCase):
                 mutations = [args for args in calls if args[:2] == ('gh', 'release') and args[2] in ('create', 'edit')]
                 if outcome == 'success':
                     self.assertEqual([args[2] for args in mutations], ['create', 'edit'])
+                    uploaded = {Path(arg).name for arg in mutations[0] if str(Path(temporary) / 'native-release-assets') in arg}
+                    self.assertEqual(uploaded, {'verified-asset', 'release-manifest.json', 'SHA256SUMS'})
                     self.assertEqual('--prerelease' in mutations[0], not stable)
                     self.assertEqual('--latest' in mutations[1], stable)
                     self.assertIn('--prerelease=false' if stable else '--prerelease', mutations[1])

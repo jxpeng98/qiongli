@@ -242,6 +242,8 @@ def verify(root, version, commit):
             next_ids = {'aarch64-apple-darwin': 'qiongli-next-macos-arm64',
                         'x86_64-unknown-linux-gnu': 'qiongli-next-linux-x64',
                         'x86_64-pc-windows-msvc': 'qiongli-next-windows-x64'}
+            if 'marketplace-plugins.json' not in files:
+                raise ValueError('marketplace platform index mismatch')
             index = json.loads(regular_bytes(files['marketplace-plugins.json']))
             if any(p['name'] != next_ids.get(p['target']) or p['plugin_path'] != 'plugins/' + p['name']
                    for p in index['plugins']):

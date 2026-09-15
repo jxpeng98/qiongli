@@ -503,6 +503,7 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
             verify(assets, VERSION, COMMIT)
         cli_archive.write_bytes(original)
         for change, error in [
+            (lambda p: p['artifacts'].remove(next(a for a in p['artifacts'] if a['file'] == 'marketplace-plugins.json')), 'platform index mismatch'),
             (lambda p: p['target_evidence'][0]['checks']['archive_smoke'].update(runtime_path='inherited'), 'empty-PATH CLI'),
             (lambda p: next(r for r in p['target_evidence'] if r['target'].endswith('msvc'))['checks']['archive_smoke'].pop('windows_system_dlls'), 'system-DLL'),
             (lambda p: p['target_evidence'][0]['checks']['marketplace_plugins']['codex'].update(runtime_path='inherited'), 'smoke evidence'),

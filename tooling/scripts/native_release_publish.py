@@ -67,6 +67,9 @@ def main():
         '--name', 'cli-release-assets', '--dir', assets)
     run(sys.executable, ROOT / 'tooling/scripts/native_release_assets.py', 'verify',
         '--root', assets, '--version', args.tag, '--commit', commit, '--require-ci')
+    manifest = json.loads((assets / 'release-manifest.json').read_text())
+    upload_names = {'release-manifest.json', 'SHA256SUMS',
+                    *(item['file'] for item in manifest['artifacts'])}
     # Refuse an existing release rather than replacing any advertised bytes.
     releases = json.loads(run('gh', 'api', f'repos/{repo}/releases?per_page=100'))
     if any(release['tag_name'] == args.tag for release in releases):
@@ -74,7 +77,7 @@ def main():
     run('gh', 'release', 'create', args.tag, '--repo', repo, '--verify-tag', '--draft',
         *(['--prerelease'] if identity.is_prerelease else []),
         '--title', f'Qiongli {args.tag}', '--notes-file', notes,
-        *sorted(path for path in assets.iterdir() if path.is_file()))
+        *sorted(assets / name for name in upload_names))
     run('gh', 'release', 'edit', args.tag, '--repo', repo, '--draft=false',
         *(['--prerelease'] if identity.is_prerelease else ['--prerelease=false', '--latest']))
     public_assets = Path(os.environ['RUNNER_TEMP']) / 'native-public-assets'
