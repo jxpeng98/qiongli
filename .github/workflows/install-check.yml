@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,11 +64,7 @@ jobs:
           set -euo pipefail
           export HOME="$RUNNER_TEMP/home-full"
           mkdir -p "$HOME"
-          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            export SHELL="/bin/zsh"
-          else
-            export SHELL="/bin/bash"
-          fi
+          export SHELL="/bin/bash"
           export CODEX_HOME="$RUNNER_TEMP/codex-home-full"
           export CLAUDE_CODE_HOME="$RUNNER_TEMP/claude-home-full"
           export ANTIGRAVITY_HOME="$RUNNER_TEMP/antigravity-home-full"

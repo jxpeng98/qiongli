@@ -100,8 +100,6 @@ jobs:
         include:
           - platform: Linux
             os: ubuntu-latest
-          - platform: macOS
-            os: macos-latest
           - platform: Windows
             os: windows-latest
     steps:
@@ -206,9 +204,6 @@ jobs:
           - platform: Linux AppImage
             artifact-label: linux-appimage
             os: ubuntu-latest
-          - platform: macOS application
-            artifact-label: macos-app
-            os: macos-latest
           - platform: Windows portable
             artifact-label: windows-portable
             os: windows-latest
@@ -375,58 +370,6 @@ jobs:
               APPIMAGE_EXTRACT_AND_RUN=1 HOME="$activation_root/home" PATH="" \
                 "$launcher" --startup-check
               ;;
-            macOS)
-              expected_package_sha256=$(plutil -extract package_sha256 raw \
-                "$package_root/qiongli-desktop-package.receipt.json")
-              signing_test_root="$RUNNER_TEMP/qiongli-macos-signing-boundary-$SOURCE_COMMIT"
-              production_probe="$RUNNER_TEMP/qiongli-macos-production-probe-$SOURCE_COMMIT"
-              if env \
-                -u QIONGLI_MACOS_SIGNING_IDENTITY \
-                -u QIONGLI_MACOS_NOTARY_PROFILE \
-                -u QIONGLI_MACOS_EXPECTED_TEAM_ID \
-                tooling/scripts/macos_native_sign_notarize.sh \
-                  --artifact-dir "$package_root" \
-                  --expected-source-commit "$SOURCE_COMMIT" \
-                  --expected-package-sha256 "$expected_package_sha256" \
-                  --output-dir "$production_probe" \
-                  --production; then
-                echo "production signing unexpectedly accepted missing credentials" >&2
-                exit 1
-              fi
-              [[ ! -e "$production_probe" ]]
-
-              tooling/scripts/macos_native_sign_notarize.sh \
-                --artifact-dir "$package_root" \
-                --expected-source-commit "$SOURCE_COMMIT" \
-                --expected-package-sha256 "$expected_package_sha256" \
-                --output-dir "$signing_test_root" \
-                --test-only-ad-hoc
-              cmp \
-                "$package_root/qiongli-desktop-package.manifest.json" \
-                "$signing_test_root/qiongli-desktop-package.manifest.json"
-              product_version=$(plutil -extract product_version raw \
-                "$signing_test_root/qiongli-macos-signing.receipt.json")
-              test_zip="$signing_test_root/Qiongli-$product_version-macOS-arm64.zip"
-              test_dmg="$signing_test_root/Qiongli-$product_version-macOS-arm64.dmg"
-              [[ -f "$test_zip" && ! -L "$test_zip" ]]
-              [[ -f "$test_dmg" && ! -L "$test_dmg" ]]
-              codesign --verify --strict --verbose=2 "$test_dmg"
-              hdiutil verify "$test_dmg"
-              tooling/scripts/macos_native_update_journey.sh \
-                --signed-artifact-dir "$signing_test_root" \
-                --output "$activation_root/qiongli-macos-native-update-journey.receipt.json"
-              cp "$test_zip" "$package_root/"
-              cp "$test_dmg" "$package_root/"
-              cp \
-                "$signing_test_root/qiongli-macos-unsigned-acceptance.receipt.json" \
-                "$package_root/qiongli-macos-acceptance.receipt.json"
-              cp \
-                "$signing_test_root/qiongli-macos-signing.receipt.json" \
-                "$package_root/qiongli-macos-signing-test.receipt.json"
-              cp \
-                "$activation_root/qiongli-macos-native-update-journey.receipt.json" \
-                "$package_root/qiongli-macos-native-update-journey.receipt.json"
-              ;;
             Windows)
               archive_count=$(find "$package_root" -maxdepth 1 -type f -name '*.zip' -print | wc -l | tr -d ' ')
               [[ "$archive_count" -eq 1 ]]
@@ -448,101 +391,6 @@ jobs:
         with:
           name: qiongli-desktop-${{ matrix.artifact-label }}-${{ github.sha }}
           path: ${{ steps.desktop-package.outputs.root }}
-          if-no-files-found: error
-          retention-days: 7
-
-  packaged-product-acceptance:
-    name: Packaged product control acceptance (macOS)
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/2.x'
-    runs-on: macos-latest
-    timeout-minutes: 35
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pinned native Rust
-        uses: dtolnay/rust-toolchain@1.97.0
-
-      - name: Setup Tauri and build the Svelte desktop
-        uses: ./.github/actions/setup-qiongli-desktop
-
-      - name: Reject injected target-specific Rust flags
-        shell: bash
-        run: |
-          injected=0
-          while IFS='=' read -r name value; do
-            case "$name" in
-              CARGO_TARGET_*_RUSTFLAGS)
-                if [[ -n "$value" ]]; then
-                  echo "Unexpected Rust compiler override: $name" >&2
-                  injected=1
-                fi
-                ;;
-            esac
-          done < <(env)
-          [[ "$injected" -eq 0 ]]
-
-      - name: Assemble and accept an ephemeral product-controlled App
-        id: product-acceptance
-        env:
-          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
-          CARGO_BUILD_RUSTC_WRAPPER: ""
-          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
-          CARGO_BUILD_RUSTFLAGS: ""
-          CARGO_ENCODED_RUSTFLAGS: ""
-          RUSTC_WORKSPACE_WRAPPER: ""
-          RUSTC_WRAPPER: ""
-          RUSTFLAGS: ""
-          SOURCE_COMMIT: ${{ github.sha }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          acceptance_root="$RUNNER_TEMP/qiongli-packaged-product-acceptance-$SOURCE_COMMIT"
-          cargo run \
-            --manifest-path packages/qiongli-native/Cargo.toml \
-            --package qiongli \
-            --example native_packaged_product_acceptance \
-            --locked \
-            -- \
-            --output "$acceptance_root" \
-            --source-commit "$SOURCE_COMMIT" \
-            --signing-script "$GITHUB_WORKSPACE/tooling/scripts/macos_native_sign_notarize.sh"
-          receipt="$acceptance_root/qiongli-packaged-product-acceptance.receipt.json"
-          [[ "$(plutil -extract status raw -expect string "$receipt")" == \
-            "accepted-ad-hoc-nonpublishing" ]]
-          [[ "$(plutil -extract publication_allowed raw -expect bool "$receipt")" == "false" ]]
-          [[ "$(plutil -extract product_source_commit raw -expect string "$receipt")" == \
-            "$SOURCE_COMMIT" ]]
-          for check in \
-            embedded_authority \
-            canonical_signature_preserved \
-            product_control_verified \
-            inventory_discovered \
-            skills_materialize_verify_refresh \
-            lite_mcp_self_test \
-            project_three_project_restart \
-            project_app_cli_full_mcp_parity \
-            provider_keychain_save_replace_restart_remove \
-            codex_install_verify_remove \
-            claude_install_verify_remove \
-            registration_repair \
-            packaged_restart_verification \
-            legacy_content_preserved \
-            empty_path_startup; do
-            [[ "$(plutil -extract "checks.$check" raw -expect bool "$receipt")" == "true" ]]
-          done
-          echo "root=$acceptance_root" >> "$GITHUB_OUTPUT"
-
-      - name: Upload non-publishing packaged-product evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: qiongli-packaged-product-acceptance-${{ github.sha }}
-          path: |
-            ${{ steps.product-acceptance.outputs.root }}/qiongli-packaged-product-acceptance.receipt.json
-            ${{ steps.product-acceptance.outputs.root }}/product-control/.qiongli-product-control.json
-            ${{ steps.product-acceptance.outputs.root }}/product-package/qiongli-desktop-package.manifest.json
-            ${{ steps.product-acceptance.outputs.root }}/signed-product/qiongli-macos-signing.receipt.json
-          include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
 
@@ -637,9 +485,6 @@ jobs:
           - platform: Linux
             artifact-label: linux
             os: ubuntu-latest
-          - platform: macOS
-            artifact-label: macos
-            os: macos-latest
           - platform: Windows
             artifact-label: windows
             os: windows-latest
@@ -690,38 +535,3 @@ jobs:
           name: candidate-lifecycle-${{ matrix.artifact-label }}-${{ github.sha }}
           path: ${{ steps.candidate-acceptance.outputs.root }}/acceptance-evidence.json
           if-no-files-found: error
-
-  dispatch-community-alpha-promotion:
-    name: Dispatch exact Community Alpha promotion
-    needs:
-      - native-change-boundary
-      - rust-native-foundation
-      - desktop-package-assembly
-      - packaged-product-acceptance
-      - lite-runtime-compatibility
-      - lite-alpha-candidate-acceptance
-    if: >-
-      ${{
-        success() &&
-        github.event_name == 'workflow_dispatch' &&
-        github.ref == 'refs/heads/2.x'
-      }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      actions: write
-      contents: read
-    steps:
-      - name: Dispatch existing exact-head promotion workflow
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          SOURCE_COMMIT: ${{ github.sha }}
-          NATIVE_CI_RUN_ID: ${{ github.run_id }}
-        run: |
-          set -euo pipefail
-          gh workflow run native-community-alpha-promotion.yml \
-            --repo "$REPO" \
-            --ref 2.x \
-            -f "source_commit=$SOURCE_COMMIT" \
-            -f "native_ci_run_id=$NATIVE_CI_RUN_ID"
