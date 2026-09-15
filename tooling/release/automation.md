@@ -1,12 +1,14 @@
 # Release Automation Runbook
 
-## Current native CLI release: 2.0.0
+## Current native CLI candidate: 2.0.1
 
-Use the native lane for this release. The retained instructions below describe
+Use the compatible native `main` candidate for this release. Development already
+contains the deferred v2/channel-identity migration; do not relabel that runtime
+as 2.0.1 or merge it into the patch candidate. The retained instructions below describe
 the early native dry-run and legacy Python automation, not the current CLI publisher.
 `packages/qiongli-native/Cargo.toml` owns the version; synchronize it with
-`python3 scripts/sync_versions.py 2.0.0`, regenerate the Skills docs, and review
-`tooling/release/v2.0.0.md`. Commit the versioned canonical content first, then
+`python3 scripts/sync_versions.py 2.0.1`, regenerate the Skills docs, and review
+`tooling/release/v2.0.1.md`. Commit the versioned canonical content first, then
 regenerate its embedded lock with the existing owner:
 
 ```sh
@@ -18,16 +20,16 @@ QIONGLI_NATIVE_SOURCE_COMMIT="$(git rev-parse HEAD)" \
 Review and commit the lock, notes and remaining preparation. Qualify clean main with:
 
 ```sh
-bash scripts/release_ready.sh --version 2.0.0 --cli-github \
-  --staging-dir /tmp/qiongli-2.0.0-qualified
+bash scripts/release_ready.sh --version 2.0.1 --cli-github \
+  --staging-dir /tmp/qiongli-2.0.1-qualified
 ```
 
 The staging directory must be new and outside the checkout. After the authorized
 source/tag push, keep remote main frozen at that immutable tag and dispatch:
 
 ```sh
-gh workflow run release-automation.yml --ref v2.0.0 \
-  -f mode=post -f tag=v2.0.0 -f create_release=true
+gh workflow run release-automation.yml --ref v2.0.1 \
+  -f mode=post -f tag=v2.0.1 -f create_release=true
 ```
 
 The publisher qualifies the tag on macOS ARM64, Windows x64 and Linux x64,

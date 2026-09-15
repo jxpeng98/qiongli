@@ -139,6 +139,23 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     plugins.verify_archive(archive, '2.0.0-beta.6', COMMIT)
 
+    def legacy_archive(self, out, platform, target):
+        files = plugins.project(self.content, platform, VERSION, target, BINARIES[target], legacy_identity=True)
+        files[plugins.RECEIPT] = plugins.json_bytes({
+            'schema_version': 2, 'platform': platform, 'target': target, 'source': self.metadata,
+            'source_manifest_bytes': {n: self.content[n].decode() for n in
+                                      ('.codex-plugin/plugin.json', '.claude-plugin/plugin.json')},
+            'files': {n: {'size_bytes': len(d), 'sha256': plugins.digest(d)} for n, d in files.items()},
+        })
+        archive = out / plugins.archive_name(platform, VERSION, target, legacy_identity=True)
+        prefix = archive.name.removesuffix('.tar.gz') + '/plugins/' + plugins.plugin_name(target, VERSION, legacy_identity=True) + '/'
+        with tarfile.open(archive, 'w:gz') as packet:
+            for name, data in files.items():
+                member = tarfile.TarInfo(prefix + name)
+                member.size, member.mode = len(data), plugins.file_mode(name, target)
+                packet.addfile(member, io.BytesIO(data))
+        return archive
+
     def test_legacy_stable_archives_remain_verifiable_and_cannot_claim_new_identity(self):
         from tooling.scripts.native_release_assets import marketplace_index
         with patch(f'{__name__}.VERSION', '2.0.0'):
@@ -148,20 +165,7 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
                 })
             self.write_source()
             for platform in plugins.PLATFORMS:
-                files = plugins.project(self.content, platform, VERSION, TARGET, BINARIES[TARGET], legacy_identity=True)
-                files[plugins.RECEIPT] = plugins.json_bytes({
-                    'schema_version': 2, 'platform': platform, 'target': TARGET, 'source': self.metadata,
-                    'source_manifest_bytes': {n: self.content[n].decode() for n in
-                                              ('.codex-plugin/plugin.json', '.claude-plugin/plugin.json')},
-                    'files': {n: {'size_bytes': len(d), 'sha256': plugins.digest(d)} for n, d in files.items()},
-                })
-                archive = self.root / plugins.archive_name(platform, VERSION, TARGET, legacy_identity=True)
-                prefix = archive.name.removesuffix('.tar.gz') + '/plugins/qiongli-next-macos-arm64/'
-                with tarfile.open(archive, 'w:gz') as packet:
-                    for name, data in files.items():
-                        member = tarfile.TarInfo(prefix + name)
-                        member.size, member.mode = len(data), plugins.file_mode(name, TARGET)
-                        packet.addfile(member, io.BytesIO(data))
+                archive = self.legacy_archive(self.root, platform, TARGET)
                 verified = plugins.verify_archive(archive, VERSION, COMMIT)
                 self.assertEqual(verified['plugin_name'], 'qiongli-next-macos-arm64')
                 index = marketplace_index(VERSION, COMMIT, [verified])['plugins'][0]
@@ -418,10 +422,12 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
             archive = folder / f'qiongli-{VERSION}-{target}.{extension}'
             archive_cli(archive, self.binary, b'fixture', target)
             whl = wheel(folder, plugins.parse_release_version(VERSION).package_version, tag, data, 'fixture')
-            archives = self.build('plugins-' + target, target)
+            archives = ([self.legacy_archive(folder, host, target) for host in plugins.PLATFORMS]
+                        if VERSION == '2.0.1' else self.build('plugins-' + target, target))
             checks = {}
             for host, path in zip(plugins.PLATFORMS, archives):
-                shutil.copyfile(path, folder / path.name)
+                if path.parent != folder:
+                    shutil.copyfile(path, folder / path.name)
                 checks[host] = dict(plugins.verify_archive(path, VERSION, COMMIT),
                                     status='passed', runtime_path='empty', mcp_tools=14)
             receipt = {'version': VERSION, 'source_commit': COMMIT, 'target': target,
@@ -448,7 +454,7 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
         self.assertEqual(len(packet['artifacts']), 14)
         index = json.loads((assets / 'marketplace-plugins.json').read_text())
         self.assertEqual(len(index['plugins']), 6)
-        self.assertEqual({p['name'] for p in index['plugins']}, {plugins.plugin_name(t, VERSION) for t in BINARIES})
+        self.assertEqual({p['name'] for p in index['plugins']}, {plugins.plugin_name(t, VERSION, legacy_identity=VERSION == '2.0.1') for t in BINARIES})
         manifest = assets / 'release-manifest.json'
         if VERSION == '2.0.1':
             for location in (('archive_smoke',), ('registry_install', 'npm'),
@@ -525,7 +531,7 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
             verify(assets, VERSION, COMMIT)
         # Even self-consistent archive hashes cannot substitute another executable.
         packet = json.loads(manifest.read_text())
-        changed_archive = assets / plugins.archive_name('codex', VERSION, TARGET)
+        changed_archive = assets / plugins.archive_name('codex', VERSION, TARGET, legacy_identity=VERSION == '2.0.1')
         def mutate(rows):
             path = plugins.binary_path(TARGET)
             binary_index = next(i for i, (m, _) in enumerate(rows) if m.name.endswith('/' + path))
