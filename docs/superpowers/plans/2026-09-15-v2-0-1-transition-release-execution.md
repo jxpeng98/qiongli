@@ -135,7 +135,136 @@ versioned and tested. Do not auto-promote this follow-up to accepted.
 
 ## Completion record
 
-Plan prepared. Executor dispatch, implementation, review, local integration and
-fresh artifact qualification are pending. External release gates remain pending.
-The coordinator will replace this paragraph with actual commits, checks,
-findings/resolutions and remaining gaps after execution.
+### Execution and review
+
+The user-confirmed **gpt-6-astra / low** executor worked in isolated checkouts.
+Compatible-main implementation commits are `dc4e83f3`, `651bfdb9` and `0d0a6aba`.
+The coordinator inspected the code and callers independently of the executor,
+then returned two repair rounds before integration:
+
+- Require an integer schema version; Python boolean equality must not accept
+  `true` as v1. Pin the six Next archive names and three platform IDs independently
+  of helpers that change on the development branch.
+- Upload only verified manifest-listed artifacts plus the manifest/checksum
+  files. Unlisted staging files must not become public attachments. Retain the
+  missing-index refusal and existing immutable-tag/publication checks.
+
+All selected-scope findings are resolved in the actual final diff. The
+coordinator's policy/docs and main integration are self-reviewed; no independent
+program acceptance is claimed. Main's two publishing guides also needed their
+current-version examples corrected from 2.0.0 to 2.0.1.
+
+Local `main` is **`789b0bbe`** (`release/2.0.1-transition-reviewed`), a fast-forward
+of the compatible candidate. Native runtime and canonical content have no byte
+diff from `fe0d4531`. Canonical versioned content remains at
+`dc73165567cd0df670f71e4dd920e3fa02bf8058`.
+
+Development forward-port commits are `d430a922`, `80e177ff`, `31e5e9d8` and
+**`60f2cf37`**, based on coordinator plan/policy source `bcd21b22`. The coordinator
+reviewed its resolved diff: production channel-aware projectors, v2 runtime and
+legacy receipt readers remain unchanged. Its positive 2.0.1 packet fixture
+reuses the existing legacy projection owner; it does not weaken the new gate or
+pretend the development runtime is a compatible patch.
+
+### Focused validation
+
+| Source / scope | Observed result |
+|---|---|
+| Compatible main release tooling | 40 tests pass across `test_native_cli_release`, `test_native_marketplace_plugins`, `test_native_release_assets`, `test_native_registry_packages`, `test_release_version_contract` and `test_native_release_publish`. |
+| Main architecture/schema | 35 tests pass across `test_arc_201_adrs`, `test_frozen_2x_architecture_baseline` and `test_public_schema_policy`. |
+| Main distribution/install docs | 24 tests covered. The first combined run failed the publishing-guide version examples; after the two guide fixes, all 12 distribution-document tests pass. The other 12 CLI-guide results remain applicable. |
+| Development forward-port | 41 tests pass across the same six release modules; legacy stable packets and 2.0.1 transition negatives remain covered. |
+| Separate retained diagnostic lane | 23/24 pass; `test_schema_rejects_cross_field_channel_mismatch` still fails because its negative replaces stable with stable. Its test/validator sources are unchanged and outside the CLI release/assets/publisher call chain. Full Python discovery remains unqualified. |
+
+### Final-main artifact qualification
+
+The existing owner completed successfully on clean main
+`789b0bbe8b3f9fdfcfae3af00ee7b4b658621aed`:
+
+```sh
+bash scripts/release_ready.sh --version 2.0.1 --cli-github \
+  --staging-dir /private/tmp/qiongli-2.0.1-789b0bbe-qualified
+```
+
+Receipt: `/private/tmp/qiongli-2.0.1-789b0bbe-qualified/assets/release-manifest.json`.
+Observed target: `aarch64-apple-darwin`; Rust **1.97.0**; status
+**qualified-unpublished**; managed product authority **false**. Format and
+Clippy pass, as do **40 CLI + 7 MCP tests**, extracted empty-PATH CLI smoke,
+npm/wheel installs and both bundled native Plugin checks. Localhost permission
+was granted through the normal execution review for the existing Zotero test;
+no check was bypassed. Source remained clean and unchanged throughout.
+
+The coordinator checked all five artifact sizes/hashes and `SHA256SUMS` against
+actual files. The extracted CLI, npm install, wheel install, Codex Plugin and
+Claude Plugin each retain actual both-Host v1/Next observations in the receipt.
+Both Plugin archives verify against the final source and exact executable.
+
+- Executable SHA-256: `7af0316aa141fee061643d0455b5bb5bf71ed68f7e015b2e9cd44fa8a26573b7`.
+- Content pack SHA-256: `2bafecb0a9c217d90151b92b94736233bb0b25402fab24cab1c566e776bfab29`.
+- Content root and versioned content commit are unchanged. The final executable
+  is source-bound to this candidate; the earlier fe0d4531 receipt is historical.
+
+| Artifact | SHA-256 |
+|---|---|
+| `qiongli-2.0.1-aarch64-apple-darwin.tar.gz` | `0cabec055e3895efc9b1bab05451a15ae72f6444c6d67d7c1b4dcd580e6650de` |
+| `qiongli-2.0.1-py3-none-macosx_11_0_arm64.whl` | `0ba06d5bfce271ea3205fb78e181d580011c05cf1d69c521dd8c12e94628dc24` |
+| `qiongli-2.0.1.tgz` | `a22360936e360971432b4c87cbf7d30cba36b8b2dacc5eb56631b3d59fff1dc5` |
+| `qiongli-next-claude-plugin-v2.0.1-aarch64-apple-darwin.tar.gz` | `b31901fc1da27a34fa1a73fb405c78cdda27d9b7bbef8395f5026bfcac9c37fb` |
+| `qiongli-next-codex-plugin-v2.0.1-aarch64-apple-darwin.tar.gz` | `d9ff1f55ae6941490e3eeac27a2944588243e7e73a193f0ccbdbeec5ca83b5a3` |
+
+Windows ACL setup has mocked checks only; neither those checks nor synthetic
+combined packets constitute Windows/Linux runtime qualification. Cargo's real
+final-candidate source-package and public-install checks remain in the external
+release lane; macOS npm/wheel checks do not stand in for them.
+
+### Actual old-to-new upgrade and recovery
+
+The coordinator executed the actual installed 2.0.0 binary and final extracted
+2.0.1 binary in a private, disposable checkout fixture. Report and runnable
+harness are `/private/tmp/qiongli-2.0.1-789b0bbe-qualified/upgrade-check.json`
+and `upgrade-check.py` in the same directory. Old executable SHA-256:
+`bcd93378265d30c5a7b8f09b5b9278afedabddae08b305c6a02967ac37edac5d`; the new
+hash equals the qualified executable above.
+
+Both **Codex and Claude** pass: old source install, approved update to 2.0.1,
+repeat update with identical source hashes, refusal without approval, stale-plan
+refusal preserving the test's added file, retry after removing only that test
+file, restoration with the old 2.0.0 CLI, and a second upgrade to exactly the
+same 2.0.1 source bytes. Final status remains v1/Next and source-current; it
+explicitly reports Host state as not verified. Final source inventories contain
+457 Codex files and 437 Claude files including receipts.
+
+Existing synthetic home/model-setting files remain byte-identical. The only
+new home files are the two expected empty coordination locks. No real Host
+registration, Plugin cache, user model configuration or existing installation
+is changed. This is local Plugin **source** upgrade/recovery evidence, not
+live Host activation or end-to-end Python 1.x product migration evidence.
+
+Harness preparation preserved two earlier fixture failures: reserializing a
+canonical plan caused a refusal, resolved by retaining raw CLI plan output;
+asserting no new home files overlooked the expected empty locks, now checked
+explicitly. Neither failure was bypassed in the successful final run.
+
+
+### Integration checks
+
+All seven program-roadmap tests pass; the generated index is current. The ADR
+validator passes for seven frozen and 29 current decisions. Frozen-architecture,
+native change-boundary and diff checks pass. The native boundary classification
+is conservative for tooling inputs; it does not claim completed Desktop/Lite
+or external platform matrices. Reviewed local branches integrate by fast-forward;
+no changed release source or post-merge-only test rerun is needed.
+
+### Remaining release gates
+
+The local implementation/review scope and external publication scope stay
+separate. No push, tag, remote dispatch, publication, live user Host registration
+or announcement has occurred. Windows x64 and Linux x64 qualification, the real
+three-target packet/combined installs, public registry/download checks and
+explicit publication authority remain required. 2.1 consumer retirement and
+identity migration retain their own upgrade/cancellation/recovery gate.
+
+The next independently actionable implementation is the bounded baseline
+validation diagnosis already in the master roadmap. All 249 task
+states/dependencies and all 46 accepted rows remain unchanged. The plan, ledger
+and generated index record local completion without promoting task acceptance.
