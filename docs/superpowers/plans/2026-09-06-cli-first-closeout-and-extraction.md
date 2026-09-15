@@ -3,6 +3,74 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Compatible patch repairs and local qualification — September 15
+
+The user requested the recommended repairs. Development fixes are
+`e6a89ea00125d5794cefef73ab4c610e111e1f7f` (delivery command) and `f76b406d`
+(legacy publisher assertion), from `ee58d435` on
+`fix/patch-release-compatibility`. The coordinator implemented and self-reviewed
+them; no independent review or task acceptance is claimed. The validator now
+requires the existing native `--cli-github` command, with a regression rejecting
+its removal. The publisher assertion follows the existing push-only guard; no
+release workflow or authorization gate is relaxed.
+
+**Patch scope:** `release/2.0.1-patch` starts from `9c264d3e`, before `dc2500c3`.
+The migration's v2 status response does not preserve consumers of the fixed-ID
+v1 contract merely by retaining old schema files. The chosen patch therefore
+excludes that migration, keeps `qiongli-next` and v1, and changes no native
+runtime or research guidance behavior beyond version metadata. Migration remains
+on `2.x` under ADR 0228 for a separate compatibility design or appropriately
+versioned release. No accepted ADR is rewritten. Do not release the current
+`2.x` tree as this patch.
+
+The compatible candidate was locally fast-forwarded into `main` at
+`fe0d4531c8d5b4d70af5f11b1829f7db56a1ecbe`. Canonical 2.0.1 content is bound to
+`dc73165567cd0df670f71e4dd920e3fa02bf8058`; the existing Rust owner regenerated
+its lock (434 entries). Skills documentation regeneration produces no diff.
+Version verification aligns workspace, lockfiles, content, manifests and notes.
+The candidate also carries the preceding distribution/architecture fixes and
+answer-bound evaluation tooling; published 2.0.0 remains the public reference.
+
+Validation and limits:
+
+- Before version preparation, 79 authorization/architecture/schema/version/
+  asset/Plugin checks and 59 release-automation/version-sync checks passed.
+  Nine native release/registry checks passed; the stale publisher assertion
+  failed before repair and both selected publisher/dist-tag checks then passed.
+  After version preparation, 31 affected version/Plugin/ledger checks passed.
+- The existing `release_ready.sh --cli-github --version 2.0.1` owner completed
+  at the exact clean candidate on **macOS ARM64**, Rust 1.97.0: formatting,
+  headless workspace Clippy, **40 CLI + 7 MCP tests**, archive smoke with empty
+  PATH, npm/wheel local installs and both native Marketplace Plugin checks.
+  Lite exposes 14 tools and Full 32. The first sandboxed attempt passed all CLI
+  tests and six MCP tests but failed at the Zotero fixture's localhost bind;
+  the authorized unrestricted retry passed without changing code or skipping it.
+- Receipt status is `qualified-unpublished`. Five asset hashes were rechecked.
+  Extracted binary SHA-256 is
+  `dacdd49486f0f499c331ded761f771a043addfdef903c333a360ab0a5c48c4ba`;
+  content pack SHA-256 is
+  `2bafecb0a9c217d90151b92b94736233bb0b25402fab24cab1c566e776bfab29`.
+  The extracted binary's missing-source status matches the complete v1 fixture
+  for both Host targets in an isolated owner-secure directory.
+- Local assets and `assets/release-manifest.json` are under
+  `/private/tmp/qiongli-2.0.1-fe0d4531-qualified-retry/`; the additional
+  `v1-compatibility-check.json` records the hashes/status checks. These are local
+  artifact observations, not registry publication, installed-session acceptance
+  or a three-platform result. No user Host registration/model setting changed.
+- Full Python discovery and its separately recorded failures remain open.
+  Windows/Linux target-native qualification, remote source/tag synchronization
+  and publication were not performed. Development integration checks pass
+  **28 tests**, the generated index is current, and the frozen-source boundary
+  and diff checks pass. All 249 task states/dependencies and 46 accepted records
+  match the development base; local preparation does not accept them.
+
+**Next:** for this frozen patch, obtain the separately authorized source/tag and
+three-platform release run through the existing publisher. Continue diagnosing
+remaining baseline test failures in bounded groups on `2.x`. Channel migration
+needs its own public-consumer compatibility decision and package qualification;
+it must not be silently added to 2.0.1. Installed-Host/research acceptance and
+broader replacement work remain separately scoped.
+
 ## Current Plugin channel migration increment — September 15
 
 Implementation source: `dc2500c360459e784ec93cc2ab6cecf1fc5f27c1`, from
