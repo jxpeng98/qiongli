@@ -205,6 +205,13 @@
       "title": "Plugin v1 transition and 2.1 cutoff",
       "path": "docs/architecture/decisions/0229-plugin-v1-transition-and-2-1-cutoff.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0230",
+      "title": "Manual local macOS verification",
+      "path": "docs/architecture/decisions/0230-local-macos-verification.md",
+      "status": "Accepted"
     }
   ]
 }

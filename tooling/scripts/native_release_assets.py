@@ -6,6 +6,8 @@ import json
 import platform
 import os
 import subprocess
+import sys
+import tempfile
 import re
 from pathlib import Path
 import shutil
@@ -14,11 +16,11 @@ import zipfile
 
 try:
     from .native_registry_install_check import require_transition
-    from .native_registry_packages import NPM_INSTALL_REVIEW, TARGETS, npm_package, parse_release_version, regular_bytes, validate_binary
+    from .native_registry_packages import ROOT, NATIVE, NPM_INSTALL_REVIEW, TARGETS, npm_package, parse_release_version, regular_bytes, validate_binary
     from .native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive
 except ImportError:
     from native_registry_install_check import require_transition
-    from native_registry_packages import NPM_INSTALL_REVIEW, TARGETS, npm_package, parse_release_version, regular_bytes, validate_binary
+    from native_registry_packages import ROOT, NATIVE, NPM_INSTALL_REVIEW, TARGETS, npm_package, parse_release_version, regular_bytes, validate_binary
     from native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive
 
 
@@ -132,6 +134,118 @@ def marketplace_index(version, commit, plugins):
                          'sha256': p['sha256'], 'binary_sha256': p['binary_sha256'],
                          'distribution_ref': f"{p['platform']}/{p['target']}/v{version}",
                          'plugin_path': 'plugins/' + p['plugin_name']} for p in plugins]}
+
+
+def packet_digest(manifest):
+    payload = {k: v for k, v in manifest.items() if k != 'local_macos'}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+def require_local_macos(manifest):
+    observed = manifest.get('local_macos', {})
+    if (observed.get('status') != 'passed' or observed.get('execution') != 'manual-local'
+            or observed.get('target') != 'aarch64-apple-darwin'
+            or observed.get('packet_sha256') != packet_digest(manifest)
+            or observed.get('source_commit') != manifest['source_commit']
+            or observed.get('version') != manifest['version']
+            or observed.get('cargo_dry_run') != 'passed'):
+        raise ValueError('missing or stale local macOS qualification')
+    mac = next(r for r in manifest['target_evidence'] if r['target'] == 'aarch64-apple-darwin')
+    pack = mac['checks']['archive_smoke']['content_pack_sha256']
+    for name in ('npm', 'pypi', 'cargo_archives', 'cargo_alias'):
+        check = observed.get('checks', {}).get(name, {})
+        if (check.get('version') != manifest['version'] or check.get('content_pack_sha256') != pack
+                or check.get('mcp_tools') != {'lite': 14, 'full': 32}
+                or check.get('invalid_command_rejected') is not True):
+            raise ValueError('incomplete local macOS package checks')
+        if manifest['version'] == '2.0.1':
+            require_transition(check.get('plugin_source_transition'))
+    if observed.get('marketplace_plugins') != mac['checks']['marketplace_plugins']:
+        raise ValueError('local macOS Plugin checks do not match qualified target')
+
+
+def check_source(commit):
+    def git(*args):
+        return subprocess.check_output(['git', *args], cwd=ROOT, text=True).strip()
+    if git('rev-parse', 'HEAD') != commit or git('status', '--porcelain'):
+        raise ValueError('installation evidence requires the exact clean source')
+
+
+def install_packet(root, out, version, commit, *, local_macos=False):
+    target = {('Darwin', 'arm64'): 'aarch64-apple-darwin', ('Linux', 'x86_64'): 'x86_64-unknown-linux-gnu',
+              ('Windows', 'AMD64'): 'x86_64-pc-windows-msvc'}[(platform.system(), platform.machine())]
+    if local_macos and (target != 'aarch64-apple-darwin' or os.environ.get('GITHUB_ACTIONS') == 'true'):
+        raise ValueError('macOS qualification must run manually on an Apple Silicon Mac')
+    check_source(commit)
+    manifest, npm, wheels = verify(root, version, commit)
+    if not local_macos:
+        require_local_macos(manifest)
+    before = regular_bytes(root / 'release-manifest.json')
+    if out.exists() or out.is_symlink() or ROOT in out.resolve().parents or out.resolve() == ROOT:
+        raise ValueError('install output must be new and outside the checkout')
+    out.mkdir(parents=True)
+    checks = check_plugins(root, version, commit, target)
+    selected = {npm.name, wheels[target].name}
+    (root / 'registry-packages.json').write_text(json.dumps({
+        'version': version, 'artifacts': [a for a in manifest['artifacts'] if a['file'] in selected]}))
+    def run(*args):
+        subprocess.run(list(map(str, args)), cwd=NATIVE, check=True)
+    run(sys.executable, ROOT / 'scripts/native_registry_install_check.py', '--packages', root,
+        '--out-dir', out / 'registry', '--version', version)
+    installed = json.loads((out / 'registry/install-check.json').read_text())['checks']
+    result = {'status': 'passed', 'version': version, 'source_commit': commit, 'target': target,
+              'manifest_sha256': hashlib.sha256(before).hexdigest(), 'checks': installed,
+              'marketplace_plugins': checks}
+    if local_macos:
+        run(sys.executable, ROOT / 'scripts/native_registry_packages.py', '--out-dir', out / 'cargo', '--package-cargo')
+        run('cargo', 'publish', '--manifest-path', out / 'cargo/cargo-source/Cargo.toml',
+            '--workspace', '--no-default-features', '--allow-dirty', '--locked', '--dry-run',
+            '--target-dir', out / 'cargo-build')
+        run(sys.executable, ROOT / 'scripts/native_registry_install_check.py', '--packages', out / 'cargo',
+            '--out-dir', out / 'cargo-install', '--cargo-only', '--cargo-archives',
+            '--cargo-target-dir', out / 'cargo-build', '--version', version)
+        installed.update(json.loads((out / 'cargo-install/install-check.json').read_text())['checks'])
+        result.update(execution='manual-local', packet_sha256=packet_digest(manifest), cargo_dry_run='passed')
+    verify(root, version, commit)
+    check_source(commit)
+    if regular_bytes(root / 'release-manifest.json') != before:
+        raise ValueError('packet changed during installation checks')
+    if local_macos:
+        manifest['local_macos'] = result
+        require_local_macos(manifest)
+        (root / 'release-manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+        names = ['release-manifest.json', *(a['file'] for a in manifest['artifacts'])]
+        (root / 'SHA256SUMS').write_text(''.join(
+            f'{hashlib.sha256(regular_bytes(root / name)).hexdigest()}  {name}\n' for name in sorted(names)))
+    (out / 'install-check.json').write_text(json.dumps(result, indent=2) + '\n')
+
+
+def require_remote_installs(root, manifest, commit):
+    require_local_macos(manifest)
+    repo = os.environ['GITHUB_REPOSITORY']
+    runs = json.loads(subprocess.check_output(['gh', 'api',
+        f'repos/{repo}/actions/workflows/native-cli-distribution.yml/runs?head_sha={commit}&status=success'], text=True))
+    digest = hashlib.sha256(regular_bytes(root / 'release-manifest.json')).hexdigest()
+    for run in runs['workflow_runs']:
+        if (run['head_sha'] != commit or run['conclusion'] != 'success' or run['event'] != 'workflow_dispatch'
+                or run['head_branch'] != 'v' + manifest['version']):
+            continue
+        with tempfile.TemporaryDirectory() as directory:
+            downloaded = subprocess.run(['gh', 'run', 'download', str(run['id']), '--repo', repo,
+                '--pattern', 'install-*', '--dir', directory], capture_output=True, text=True)
+            if downloaded.returncode:
+                continue
+            expected = {'ubuntu-22.04': 'x86_64-unknown-linux-gnu', 'windows-2022': 'x86_64-pc-windows-msvc'}
+            try:
+                receipts = {os_name: json.loads(regular_bytes(Path(directory) / f'install-{os_name}/install-check.json'))
+                            for os_name in expected}
+            except (OSError, ValueError):
+                continue
+            if all(r.get('status') == 'passed' and r.get('target') == expected[name]
+                   and r.get('source_commit') == commit and r.get('version') == manifest['version']
+                   and r.get('manifest_sha256') == digest for name, r in receipts.items()):
+                return
+    raise ValueError('no successful Linux/Windows combined-install run for this exact packet')
 
 
 def verify(root, version, commit):
@@ -258,12 +372,13 @@ def verify(root, version, commit):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('mode', choices=['assemble', 'verify', 'install-input'])
+    parser.add_argument('mode', choices=['assemble', 'verify', 'install-input', 'check-install', 'qualify-macos'])
     parser.add_argument('--root', required=True, type=Path)
     parser.add_argument('--out', type=Path)
     parser.add_argument('--version', required=True)
     parser.add_argument('--commit', required=True)
     parser.add_argument('--require-ci', action='store_true')
+    parser.add_argument('--require-local-macos', action='store_true')
     args = parser.parse_args()
     identity = parse_release_version(args.version)
     if identity.release_line != 'native-2x':
@@ -275,13 +390,17 @@ def main():
             parser.error('--out is required')
         assemble(args.root, args.out, identity.version, args.commit)
         return
+    if args.mode in ('qualify-macos', 'check-install'):
+        if not args.out:
+            parser.error('--out is required')
+        install_packet(args.root.resolve(), args.out.resolve(), identity.version, args.commit,
+                       local_macos=args.mode == 'qualify-macos')
+        return
     manifest, npm, wheels = verify(args.root, identity.version, args.commit)
+    if args.require_local_macos:
+        require_local_macos(manifest)
     if args.require_ci:
-        repo = os.environ['GITHUB_REPOSITORY']
-        runs = json.loads(subprocess.check_output(['gh', 'api',
-            f'repos/{repo}/actions/workflows/native-cli-distribution.yml/runs?head_sha={args.commit}&status=success'], text=True))
-        if not any(r['head_sha'] == args.commit and r['conclusion'] == 'success' for r in runs['workflow_runs']):
-            raise ValueError('no successful three-platform combined-install CI run at this source')
+        require_remote_installs(args.root, manifest, args.commit)
     if args.mode == 'install-input':
         target = {('Darwin', 'arm64'): 'aarch64-apple-darwin', ('Linux', 'x86_64'): 'x86_64-unknown-linux-gnu',
                   ('Windows', 'AMD64'): 'x86_64-pc-windows-msvc'}[(platform.system(), platform.machine())]

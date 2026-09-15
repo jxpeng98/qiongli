@@ -26,7 +26,8 @@ tag creation rather than issuing another beta only to move a label.
 
 Follow the [release branch policy](../maintainer/release-branch-policy.md) and
 `tooling/release/automation.md`. Native CLI distribution builds and installs on
-macOS ARM64, Windows x64 and Linux x64. The assembly step verifies platform
+Windows x64 and Linux x64. macOS ARM64 runs manually with retained local
+receipts under ADR 0230. The assembly step verifies platform
 artifacts, version identity, hashes and generated packages. Cargo has its own
 source-package checks. A successful source build is not the entire release gate.
 
@@ -39,7 +40,9 @@ bash scripts/release_ready.sh --version 2.0.0 --cli-github \
 
 Use the intended version and a new staging directory outside the checkout. Create the immutable tag
 only after the required preparation and explicit publication authority.
-Pushing a tag alone does not publish the native packages. Dispatch **Release
+Follow the [local macOS handoff](../development/local-macos-checks.md): assemble
+all three targets, run `qualify-macos`, then upload the verified packet to a draft
+Release under separate authority. Pushing a tag alone does not publish the native packages. Dispatch **Release
 Automation** (`release-automation.yml`) with `mode=post`, the exact `v2.*` tag and
 `create_release=true`; its native publisher qualifies the requested source and
 uses verified assets for the release and registry workflows.

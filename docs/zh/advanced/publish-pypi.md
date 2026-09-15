@@ -21,7 +21,8 @@ Beta 并非每次正式发布的必经步骤。正式版推进 npm `latest`，`n
 ## 先验证，再发布
 
 按[发布分支策略](../maintainer/release-branch-policy.md)和 `tooling/release/automation.md`
-执行。Native CLI distribution 会在 macOS ARM64、Windows x64 和 Linux x64 构建并验证安装，
+执行。macOS ARM64 改为本地手动验证并保留收据，Windows x64 和 Linux x64
+继续由 Native CLI distribution 自动构建和验证安装（ADR 0230）。
 组装阶段核对平台产物、版本、摘要和生成的渠道包。Cargo 另有源码包检查。
 一次源码构建通过，不能代替完整发布检查。
 
@@ -33,7 +34,9 @@ bash scripts/release_ready.sh --version 2.0.0 --cli-github \
 ```
 
 准备新版本时替换为目标版本，使用仓库之外尚不存在的暂存目录，完成所需检查并获得明确发布授权后，再创建不可改写的标签。
-仅推送标签不会发布原生包。需要调度 **Release Automation**（`release-automation.yml`），
+按[本地 macOS 交接指南](../../development/local-macos-checks.md)组装三平台包，
+运行 `qualify-macos`，并在获得上传授权后把核验的完整包放入 draft Release。
+仅推送标签不会发布原生包。随后调度 **Release Automation**（`release-automation.yml`），
 设置 `mode=post`、准确的 `v2.*` 标签及 `create_release=true`。
 其中的原生发布器验证指定源码，并将核验后的产物交给 Release 和各渠道发布工作流。
 

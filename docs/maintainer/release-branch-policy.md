@@ -72,11 +72,10 @@ candidate. Its required checks are:
 
 - `Native 2.x change boundary`;
 - `Rust native foundation (Linux)`;
-- `Rust native foundation (macOS)`;
 - `Rust native foundation (Windows)`.
 
-For a ready source PR, run headless workspace tests on Linux, macOS and Windows
-and format/CLI Clippy once on Linux. Shared native source/build and desktop
+For a ready source PR, Actions runs headless workspace tests on Linux and Windows
+and format/CLI Clippy once on Linux. macOS checks run manually on the maintainer's Mac with source-bound receipts; see [local macOS checks](../development/local-macos-checks.md). Shared native source/build and desktop
 changes add Linux desktop consumer checks; dedicated CLI/MCP changes skip the
 renderer. Lite compatibility covers changes to Lite, its shared runtime
 dependencies and unknown/tooling inputs.
@@ -86,7 +85,8 @@ do not start a duplicate run.
 For a non-runtime documentation or evidence-only pull request, native contexts
 use lightweight reports. Unknown/workflow/fixture/empty changes conservatively
 select all PR checks; deleted source remains source. Explicit `workflow_dispatch`
-runs the full three-platform desktop, Lite, package and candidate checks.
+runs the Linux/Windows desktop, Lite, package and candidate checks. macOS
+acceptance and three-target Community Alpha aggregation/promotion run locally.
 See [CONTRIBUTING](https://github.com/jxpeng98/qiongli/blob/2.x/CONTRIBUTING.md)
 for the current development loop. The required `Evaluation Truth V1` context
 also runs once on each PR head; it does not require human confirmation.
@@ -108,7 +108,9 @@ legacy workflow for a named compatibility investigation. New conformance
 evidence uses a new versioned path rather than rewriting accepted 1.x evidence.
 
 The remote `2.x` enforcement source is ruleset `18800504`, which requires pull
-requests, the four native contexts above and `Evaluation Truth V1`, blocks deletion and non-fast-forward
+requests, the four original native contexts (including the retired macOS
+context) and `Evaluation Truth V1` as read on September 15. The separately
+authorized rollout removes only the macOS context. It blocks deletion and non-fast-forward
 updates, and has no bypass actors. The immutable guard is preventive only when
 its workflow is required; without server-side enforcement, a direct push would
 be unvalidated because merge pushes do not start `Native CI`.
@@ -144,7 +146,8 @@ Use the smallest tier that matches the delivery boundary:
 Automatic `2.x` pull-request runs do not assemble the three target product
 packages, run packaged-product acceptance, run Lite candidate acceptance, or
 dispatch Community Alpha promotion, and merge pushes do not start `Native CI`.
-Those jobs run only on an explicit `workflow_dispatch` candidate action. A
+Linux/Windows jobs run only on an explicit `workflow_dispatch` candidate action.
+macOS checks and complete Community Alpha aggregation use the existing local owners. A
 green Slice is integration evidence, not release authorization.
 
 For the macOS-first native loop, run these commands from
@@ -162,6 +165,11 @@ affected startup, persistence, and failure smoke paths in a Windows guest or
 runner, and retain the ready-PR native Windows context as the Slice authority.
 Windows 11 Arm with x64 emulation is useful day-to-day evidence, not native
 Windows x64 hardware certification, signing, installer, or release acceptance.
+
+The September 15 read of remote ruleset `18800504` still includes the retired
+`Rust native foundation (macOS)` context. At separately authorized remote sync,
+remove only that context and retain the other checks and PR/ref protections.
+No dummy successful macOS job replaces a missing local receipt (ADR 0230).
 
 ## Official Plugin Linkage
 
