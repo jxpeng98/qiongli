@@ -131,6 +131,11 @@ class AuthorizationPolicyTests(unittest.TestCase):
     def test_delivery_checklists_and_pr_template_fail_closed(self) -> None:
         cases = (
             (
+                self.delivery_checklists.replace(" --cli-github", "", 1),
+                self.pr_template,
+                "missing required marker",
+            ),
+            (
                 self.delivery_checklists.replace(
                     "git diff --cached --check", "git diff --cached", 1
                 ),

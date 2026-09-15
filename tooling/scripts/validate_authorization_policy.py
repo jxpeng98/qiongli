@@ -535,7 +535,7 @@ DELIVERY_REQUIRED_MARKERS = (
     "git rev-parse HEAD",
     "./scripts/check_2x_native_change_boundary.sh --base-ref 2.x",
     "git merge --ff-only",
-    "./scripts/release_ready.sh --version <version> --staging-dir <external-dir>",
+    "./scripts/release_ready.sh --cli-github --version <version> --staging-dir <new-external-dir>",
     "gh workflow run native-ci.yml --ref 2.x",
     "Every head change invalidates stale exact-head",
     "Plain `--force` is forbidden.",
