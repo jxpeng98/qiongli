@@ -271,7 +271,10 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertNotIn("npm publish --tag beta", npm_workflow)
         self.assertIn("scripts/npm_preflight.sh", npm_workflow)
         for workflow in (pypi_workflow, npm_workflow):
-            self.assertIn("if: ${{ !startsWith(github.ref_name, 'v2.') }}", workflow)
+            self.assertIn(
+                "if: ${{ github.event_name == 'push' && !startsWith(github.ref_name, 'v2.') }}",
+                workflow,
+            )
             self.assertIn("scripts/release_version.py", workflow)
             self.assertIn('if [[ "$release_line" == "native-2x" ]]; then', workflow)
             self.assertIn("RLS-201/PKG gate", workflow)
