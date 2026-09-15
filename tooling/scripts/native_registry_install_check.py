@@ -61,6 +61,7 @@ def check_transition(command, *, version, env):
             if status != expected:
                 raise ValueError('2.0.1 requires actual v1 Next Plugin source-status')
             observed[host] = {key: value for key, value in status.items() if key != 'destination'}
+        require_transition(observed)
         return observed
 
 
@@ -69,7 +70,8 @@ def require_transition(observed):
                       'state': 'missing', 'source': None, 'authority': 'user-local-source',
                       'host_state': 'not-verified', 'plugin_id': 'qiongli-next@qiongli-cli-local'}
                 for host in ('codex', 'claude')}
-    if observed != expected:
+    if (observed != expected or
+            any(type(value['schema_version']) is not int for value in observed.values())):
         raise ValueError('missing or wrong 2.0.1 v1 Next transition evidence')
 
 

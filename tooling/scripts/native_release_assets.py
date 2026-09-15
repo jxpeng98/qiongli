@@ -203,7 +203,9 @@ def verify(root, version, commit):
                 require_transition(installed.get('plugin_source_transition'))
             for host in PLATFORMS:
                 require_transition(checks.get('marketplace_plugins', {}).get(host, {}).get('plugin_source_transition'))
-        if native != set(native_names):
+        next_names = {f'qiongli-next-{host}-plugin-v{version}-{target}.tar.gz'
+                      for target in TARGETS for host in PLATFORMS}
+        if native != next_names:
             raise ValueError('2.0.1 requires all six Next marketplace archives')
     required_native = any('marketplace_plugins' in r['checks'] for r in manifest['target_evidence'])
     if (native or required_native) and native != set(native_names):
@@ -236,6 +238,14 @@ def verify(root, version, commit):
                         or observed.get('binary_sha256') != provenance['binary_sha256']):
                     raise ValueError('missing target-native marketplace smoke evidence')
             verified.append(provenance)
+        if version == '2.0.1':
+            next_ids = {'aarch64-apple-darwin': 'qiongli-next-macos-arm64',
+                        'x86_64-unknown-linux-gnu': 'qiongli-next-linux-x64',
+                        'x86_64-pc-windows-msvc': 'qiongli-next-windows-x64'}
+            index = json.loads(regular_bytes(files['marketplace-plugins.json']))
+            if any(p['name'] != next_ids.get(p['target']) or p['plugin_path'] != 'plugins/' + p['name']
+                   for p in index['plugins']):
+                raise ValueError('2.0.1 requires legacy Next marketplace identities')
         if native and ('marketplace-plugins.json' not in files or
                        json.loads(regular_bytes(files['marketplace-plugins.json'])) != marketplace_index(version, commit, verified)):
             raise ValueError('marketplace platform index mismatch')

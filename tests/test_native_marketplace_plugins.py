@@ -465,6 +465,33 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, 'transition evidence'):
                         verify(assets, VERSION, COMMIT)
             manifest.write_text(json.dumps(packet))
+            # Simulate a forward-ported helper accepting stable archive names.
+            renamed = json.loads(json.dumps(packet))
+            for artifact in renamed['artifacts']:
+                if '-plugin-' in artifact['file']:
+                    name = artifact['file'].replace('qiongli-next-', 'qiongli-', 1)
+                    (assets / name).write_bytes((assets / artifact['file']).read_bytes())
+                    artifact['file'] = name
+            manifest.write_text(json.dumps(renamed))
+            with patch('tooling.scripts.native_release_assets.archive_name',
+                       side_effect=lambda *args: plugins.archive_name(*args).replace('qiongli-next-', 'qiongli-', 1)):
+                with self.assertRaisesRegex(ValueError, 'six Next'):
+                    verify(assets, VERSION, COMMIT)
+            manifest.write_text(json.dumps(packet))
+            index_path = assets / 'marketplace-plugins.json'
+            original_index = index_path.read_bytes()
+            wrong_index = json.loads(original_index)
+            wrong_index['plugins'][0].update(name='qiongli-macos-arm64', plugin_path='plugins/qiongli-macos-arm64')
+            index_path.write_text(json.dumps(wrong_index))
+            changed = json.loads(json.dumps(packet))
+            entry = next(a for a in changed['artifacts'] if a['file'] == index_path.name)
+            entry.update(sha256=plugins.digest(index_path.read_bytes()), bytes=index_path.stat().st_size)
+            manifest.write_text(json.dumps(changed))
+            with patch('tooling.scripts.native_release_assets.marketplace_index', return_value=wrong_index):
+                with self.assertRaisesRegex(ValueError, 'legacy Next marketplace identities'):
+                    verify(assets, VERSION, COMMIT)
+            index_path.write_bytes(original_index)
+            manifest.write_text(json.dumps(packet))
         cli_archive = assets / f'qiongli-{VERSION}-{TARGET}.tar.gz'
         original = cli_archive.read_bytes()
         self.rewrite_archive(cli_archive, lambda rows: rows.__setitem__(0, (rows[0][0], BINARIES[TARGET] + b'changed')))
@@ -493,7 +520,7 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
         entry = next(p for p in packet['artifacts'] if p['file'] == target_index.name)
         entry.update(sha256=plugins.digest(target_index.read_bytes()), bytes=target_index.stat().st_size)
         manifest.write_text(json.dumps(packet))
-        with self.assertRaisesRegex(ValueError, 'platform index mismatch'):
+        with self.assertRaisesRegex(ValueError, 'legacy Next marketplace identities' if VERSION == '2.0.1' else 'platform index mismatch'):
             verify(assets, VERSION, COMMIT)
         # Even self-consistent archive hashes cannot substitute another executable.
         packet = json.loads(manifest.read_text())

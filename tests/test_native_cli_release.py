@@ -35,7 +35,7 @@ class NativeCliReleaseTests(unittest.TestCase):
             require_transition(observed)
             self.assertIsNone(check_transition(['candidate'], version='2.0.0', env={}))
             self.assertEqual(run.call_count, 2)
-        for field, wrong in [('schema_version', 2), ('plugin_id', 'qiongli@qiongli-cli-local'),
+        for field, wrong in [('schema_version', 2), ('schema_version', True), ('plugin_id', 'qiongli@qiongli-cli-local'),
                              ('state', 'source-current'), ('target', 'claude'), ('source', {})]:
             changed = json.loads(json.dumps(observed))
             changed['claude'][field] = wrong
@@ -47,6 +47,15 @@ class NativeCliReleaseTests(unittest.TestCase):
         with patch('tooling.scripts.native_registry_install_check.run',
                    return_value=subprocess.CompletedProcess([], 0, json.dumps(dict(golden, schema_version=2)), '')):
             with self.assertRaisesRegex(ValueError, 'actual v1'):
+                check_transition(['candidate'], version='2.0.1', env={})
+        def boolean_response(*args, **kwargs):
+            result = response(*args, **kwargs)
+            value = json.loads(result.stdout)
+            value['schema_version'] = True
+            result.stdout = json.dumps(value)
+            return result
+        with patch('tooling.scripts.native_registry_install_check.run', side_effect=boolean_response):
+            with self.assertRaisesRegex(ValueError, 'transition evidence'):
                 check_transition(['candidate'], version='2.0.1', env={})
         with patch('tooling.scripts.native_registry_install_check.run', side_effect=subprocess.CalledProcessError(1, 'probe')) as failed:
             with self.assertRaises(subprocess.CalledProcessError):
