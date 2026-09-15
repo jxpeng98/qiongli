@@ -198,6 +198,13 @@
       "title": "Channel-specific native Plugin identities",
       "path": "docs/architecture/decisions/0228-channel-specific-native-plugin-identities.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-403 / CLI-410",
+      "adr_number": "0229",
+      "title": "Plugin v1 transition and 2.1 cutoff",
+      "path": "docs/architecture/decisions/0229-plugin-v1-transition-and-2-1-cutoff.md",
+      "status": "Accepted"
     }
   ]
 }

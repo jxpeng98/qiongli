@@ -43,8 +43,11 @@ project writes still require explicit preview and approval arguments.
 
 ## Stable and Next Plugin identities
 
-Channel-specific identities are implemented in source for a subsequent release.
-Published **2.0.0** keeps `qiongli-next`; rerunning its installer retains that identity.
+The **2.0.1 transition retains `qiongli-next` and source-status v1**, as does
+published 2.0.0. Its stable npm package still uses `latest`. The channel-specific
+identity migration below is planned for **2.1**, together with retirement of
+v1 output after consumer and upgrade checks. Reading verified older installation
+receipts remains supported separately.
 
 - Stable: Plugin `qiongli`, display name Qiongli, MCP key `qiongli`.
 - Alpha/Beta (npm `next`): Plugin `qiongli-next`, display name Qiongli Next.

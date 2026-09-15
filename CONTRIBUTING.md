@@ -119,9 +119,11 @@ the same verified pipeline publishes a non-prerelease GitHub Release, npm
 `latest`, and the matching stable PyPI/Cargo version. A main push only qualifies
 builds; it does not publish. The frozen Python package is never a native PyPI
 input. Native CLI-local and Marketplace Plugin identities follow the release channel
-(ADR 0228): stable uses qiongli; Alpha/Beta uses qiongli-next. Existing Next
-installations migrate through the confirmed installer; external Marketplace
-catalog promotion remains a separate action. Cargo uses `publish-cargo.yml` and the staged workspace
+(ADRs 0228/0229): the 2.0.1 transition retains Next identities and the public
+source-status v1 interface. The planned 2.1 cutoff uses qiongli for stable and
+qiongli-next for Alpha/Beta, with v2 output and tested old-installation migration.
+Removing v1 output does not remove verified legacy receipt readers. External
+Marketplace catalog promotion remains a separate action. Cargo uses `publish-cargo.yml` and the staged workspace
 (ADR 0221), with native archive checks before upload and registry install checks
 afterward. Cargo publication runs through GitHub Actions using the
 `CARGO_REGISTRY_TOKEN` repository or `crates-io` environment secret. A missing

@@ -486,7 +486,7 @@
             "packages/qiongli-native/apps/qiongli/src/plugin_source.rs",
             "packages/qiongli-native/apps/qiongli/tests/cli.rs"
           ],
-          "migration_path": "docs/architecture/decisions/0228-channel-specific-native-plugin-identities.md",
+          "migration_path": "docs/architecture/decisions/0229-plugin-v1-transition-and-2-1-cutoff.md",
           "removal_gate": null
         }
       ]

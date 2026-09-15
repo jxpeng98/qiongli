@@ -36,8 +36,9 @@ Plugin 缓存中加载 Skills 和 MCP。如果已启用另一个 Qiongli Plugin�
 
 ## 正式版与 Next 的插件标识
 
-以下标识迁移已在源码实现，将随后续版本发布；公开的 **2.0.0** 仍沿用
-`qiongli-next`，重新运行旧版安装器不会获得新的命名规则。
+**2.0.1 过渡版继续使用 `qiongli-next` 和 source-status v1 接口**，与已发布的
+2.0.0 保持一致；其正式 npm 包仍使用 `latest`。以下标识迁移计划在 **2.1** 交付，
+完成调用方与升级验证后移除 v1 输出支持；旧安装收据的读取和迁移能力单独保留。
 
 - 正式版：Plugin 为 `qiongli`，显示 Qiongli，MCP 标识为 `qiongli`。
 - Alpha/Beta（npm `next`）：Plugin 为 `qiongli-next`，显示 Qiongli Next。
