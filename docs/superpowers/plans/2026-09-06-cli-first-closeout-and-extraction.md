@@ -3,6 +3,9 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+Current execution has moved to the [2.0.1 transition release plan](2026-09-15-v2-0-1-transition-release-execution.md).
+The dated sections below retain their original candidate/evidence scope.
+
 ## Compatible patch repairs and local qualification — September 15
 
 The user requested the recommended repairs. Development fixes are
