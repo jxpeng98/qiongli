@@ -1,4 +1,7 @@
 from pathlib import Path
+import json
+import os
+import subprocess
 import tarfile
 import tempfile
 import unittest
@@ -6,10 +9,58 @@ import zipfile
 from unittest.mock import patch
 
 from tooling.scripts.native_cli_release import archive_cli, archive_readme, check_windows_imports
+from tooling.scripts.native_registry_install_check import check_transition, require_transition
 from tooling.scripts.native_registry_packages import TARGETS, cli_description
 
 
 class NativeCliReleaseTests(unittest.TestCase):
+    def test_transition_probes_both_hosts_and_rejects_wrong_or_absent_v1(self):
+        fixture = Path(__file__).resolve().parents[1] / 'packages/qiongli-native/apps/qiongli/tests/fixtures/plugin-source-v1.status.json'
+        golden = json.loads(fixture.read_text())
+        def response(argv, *, root, env):
+            self.assertNotIn('CODEX_HOME', env)
+            self.assertNotIn('CLAUDE_CONFIG_DIR', env)
+            self.assertNotEqual(env['HOME'], '/real-home')
+            self.assertEqual(root.stat().st_mode & 0o077, 0)
+            value = dict(golden, destination=str(argv[-1]),
+                         target='codex' if argv[-3] == 'codex' else 'claude-code')
+            return subprocess.CompletedProcess(argv, 0, json.dumps(value), '')
+        with patch('tooling.scripts.native_registry_install_check.run', side_effect=response) as run:
+            observed = check_transition(['candidate'], version='2.0.1',
+                                        env={'HOME': '/real-home', 'CODEX_HOME': '/real-host'})
+            self.assertEqual(run.call_count, 2)
+            probe_root = run.call_args.kwargs['root']
+            self.assertFalse(probe_root.exists())
+            self.assertNotIn(str(probe_root), json.dumps(observed))
+            require_transition(observed)
+            self.assertIsNone(check_transition(['candidate'], version='2.0.0', env={}))
+            self.assertEqual(run.call_count, 2)
+        for field, wrong in [('schema_version', 2), ('plugin_id', 'qiongli@qiongli-cli-local'),
+                             ('state', 'source-current'), ('target', 'claude'), ('source', {})]:
+            changed = json.loads(json.dumps(observed))
+            changed['claude'][field] = wrong
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                require_transition(changed)
+        for missing in (None, {}, {'codex': observed['codex']}):
+            with self.assertRaises(ValueError):
+                require_transition(missing)
+        with patch('tooling.scripts.native_registry_install_check.run',
+                   return_value=subprocess.CompletedProcess([], 0, json.dumps(dict(golden, schema_version=2)), '')):
+            with self.assertRaisesRegex(ValueError, 'actual v1'):
+                check_transition(['candidate'], version='2.0.1', env={})
+        with patch('tooling.scripts.native_registry_install_check.run', side_effect=subprocess.CalledProcessError(1, 'probe')) as failed:
+            with self.assertRaises(subprocess.CalledProcessError):
+                check_transition(['candidate'], version='2.0.1', env={})
+            self.assertFalse(failed.call_args.kwargs['root'].exists())
+        with patch('tooling.scripts.native_registry_install_check.sys.platform', 'win32'), \
+             patch.dict(os.environ, {'SYSTEMROOT': 'C:/Windows'}), \
+             patch('tooling.scripts.native_registry_install_check.subprocess.check_output', return_value='"runner","S-1-5-21-123"\n'), \
+             patch('tooling.scripts.native_registry_install_check.subprocess.run') as acl, \
+             patch('tooling.scripts.native_registry_install_check.run', side_effect=response):
+            require_transition(check_transition(['candidate'], version='2.0.1', env={}))
+            self.assertEqual(acl.call_args.args[0][2:], ['/inheritance:r', '/grant:r', '*S-1-5-21-123:F'])
+            self.assertTrue(acl.call_args.kwargs['check'])
+
     def test_windows_import_check_rejects_extra_runtimes_and_unreadable_tables(self):
         with patch('tooling.scripts.native_cli_release.shutil.which', return_value='llvm-objdump'), \
              patch('tooling.scripts.native_cli_release.subprocess.check_output') as inspect:

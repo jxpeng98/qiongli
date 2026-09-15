@@ -406,6 +406,8 @@ def check_plugins(root: Path, version: str, commit: str, target: str) -> dict:
                     or 'error' in messages[3] or messages[3]['result'].get('isError', False)):
                 raise ValueError('bundled Plugin MCP smoke failed')
             checks[host] = dict(provenance, status='passed', runtime_path='empty', mcp_tools=14)
+            if version == '2.0.1':
+                checks[host]['plugin_source_transition'] = observed['plugin_source_transition']
     return checks
 
 

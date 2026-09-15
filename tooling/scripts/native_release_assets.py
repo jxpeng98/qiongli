@@ -13,9 +13,11 @@ import tarfile
 import zipfile
 
 try:
+    from .native_registry_install_check import require_transition
     from .native_registry_packages import NPM_INSTALL_REVIEW, TARGETS, npm_package, parse_release_version, regular_bytes, validate_binary
     from .native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive
 except ImportError:
+    from native_registry_install_check import require_transition
     from native_registry_packages import NPM_INSTALL_REVIEW, TARGETS, npm_package, parse_release_version, regular_bytes, validate_binary
     from native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive
 
@@ -189,6 +191,20 @@ def verify(root, version, commit):
         raise ValueError('mixed legacy and target-specific marketplace packages')
     if legacy and legacy != legacy_names:
         raise ValueError('both marketplace Plugin archives are required')
+    if version == '2.0.1':
+        for receipt in manifest['target_evidence']:
+            checks = receipt['checks']
+            require_transition(checks.get('archive_smoke', {}).get('plugin_source_transition'))
+            for package in ('npm', 'pypi'):
+                installed = checks.get('registry_install', {}).get(package, {})
+                if (installed.get('version') != version or
+                        installed.get('content_pack_sha256') != checks['archive_smoke'].get('content_pack_sha256')):
+                    raise ValueError('missing or mismatched 2.0.1 installed package evidence')
+                require_transition(installed.get('plugin_source_transition'))
+            for host in PLATFORMS:
+                require_transition(checks.get('marketplace_plugins', {}).get(host, {}).get('plugin_source_transition'))
+        if native != set(native_names):
+            raise ValueError('2.0.1 requires all six Next marketplace archives')
     required_native = any('marketplace_plugins' in r['checks'] for r in manifest['target_evidence'])
     if (native or required_native) and native != set(native_names):
         raise ValueError('all six target-specific marketplace archives are required')

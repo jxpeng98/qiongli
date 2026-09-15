@@ -417,7 +417,7 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
             extension = 'zip' if target.endswith('msvc') else 'tar.gz'
             archive = folder / f'qiongli-{VERSION}-{target}.{extension}'
             archive_cli(archive, self.binary, b'fixture', target)
-            whl = wheel(folder, '2.0.0a8', tag, data, 'fixture')
+            whl = wheel(folder, plugins.parse_release_version(VERSION).package_version, tag, data, 'fixture')
             archives = self.build('plugins-' + target, target)
             checks = {}
             for host, path in zip(plugins.PLATFORMS, archives):
@@ -432,6 +432,15 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
                                   'marketplace_plugins': checks},
                        'artifacts': [{'file': p.name, 'sha256': plugins.digest(p.read_bytes()),
                                       'bytes': p.stat().st_size} for p in folder.iterdir()]}
+            if VERSION == '2.0.1':
+                golden = json.loads((Path(__file__).resolve().parents[1] / 'packages/qiongli-native/apps/qiongli/tests/fixtures/plugin-source-v1.status.json').read_text())
+                golden.pop('destination')
+                transition = {'codex': golden, 'claude': dict(golden, target='claude-code')}
+                smoke = receipt['checks']['archive_smoke']
+                smoke['plugin_source_transition'] = transition
+                receipt['checks']['registry_install'] = {name: dict(smoke) for name in ('npm', 'pypi')}
+                for host in checks.values():
+                    host['plugin_source_transition'] = transition
             (folder / 'release-manifest.json').write_text(json.dumps(receipt))
         assets = self.root / 'combined/assets'
         assemble(self.root / 'targets', assets, VERSION, COMMIT)
@@ -441,6 +450,21 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
         self.assertEqual(len(index['plugins']), 6)
         self.assertEqual({p['name'] for p in index['plugins']}, {plugins.plugin_name(t, VERSION) for t in BINARIES})
         manifest = assets / 'release-manifest.json'
+        if VERSION == '2.0.1':
+            for location in (('archive_smoke',), ('registry_install', 'npm'),
+                             ('registry_install', 'pypi'), ('marketplace_plugins', 'codex'),
+                             ('marketplace_plugins', 'claude')):
+                for wrong in (None, {'codex': {'schema_version': 2}},
+                              {'codex': {'plugin_id': 'qiongli@qiongli-cli-local'}}):
+                    changed = json.loads(json.dumps(packet))
+                    evidence = changed['target_evidence'][0]['checks']
+                    for key in location:
+                        evidence = evidence[key]
+                    evidence['plugin_source_transition'] = wrong
+                    manifest.write_text(json.dumps(changed))
+                    with self.assertRaisesRegex(ValueError, 'transition evidence'):
+                        verify(assets, VERSION, COMMIT)
+            manifest.write_text(json.dumps(packet))
         cli_archive = assets / f'qiongli-{VERSION}-{TARGET}.tar.gz'
         original = cli_archive.read_bytes()
         self.rewrite_archive(cli_archive, lambda rows: rows.__setitem__(0, (rows[0][0], BINARIES[TARGET] + b'changed')))
@@ -491,6 +515,14 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
         manifest.write_text(json.dumps(packet))
         with self.assertRaisesRegex(ValueError, 'executable differs'):
             verify(assets, VERSION, COMMIT)
+
+    def test_201_packet_requires_transition_evidence_and_retains_next_identity(self):
+        with patch(__name__ + '.VERSION', '2.0.1'):
+            for host in plugins.PLATFORMS:
+                name = f'.{host}-plugin/plugin.json'
+                self.content[name] = plugins.json_bytes({'name': 'qiongli', 'version': VERSION, 'skills': './'})
+            self.write_source()
+            self.test_complete_platform_packet_binds_plugins_binaries_index_and_smoke()
 
     def test_bridge_windows_shell_has_only_fixed_tokens_and_preserves_exit(self):
         harness = r'''

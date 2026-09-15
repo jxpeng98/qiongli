@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import os
@@ -11,17 +12,65 @@ from pathlib import Path
 import subprocess
 import sys
 import tarfile
+import tempfile
 import tomllib
 
 try:
-    from .native_registry_packages import npm_command
+    from .native_registry_packages import ROOT, npm_command
 except ImportError:
-    from native_registry_packages import npm_command
+    from native_registry_packages import ROOT, npm_command
 
 
 def run(argv, *, root, env, input=None, check=True):
     return subprocess.run([str(arg) for arg in argv], cwd=root, env=env, input=input,
                           text=True, capture_output=True, check=check, timeout=120)
+
+
+def check_transition(command, *, version, env):
+    """Observe the retained patch interface without reading a real Host configuration."""
+    if version != '2.0.1':
+        return None
+    # Export targets reject shared /tmp ancestors. Use a disposable directory
+    # beneath the checkout, whose parent policy the CLI still validates itself.
+    with tempfile.TemporaryDirectory(prefix='.qiongli-transition-', dir=ROOT) as temporary:
+        root = Path(temporary).resolve()
+        if sys.platform == 'win32':
+            # Python 3.12 mkdir mode does not set Windows ACLs. Give this new
+            # probe parent the one explicit current-user ACE required by the CLI.
+            system = Path(os.environ['SYSTEMROOT']) / 'System32'
+            identity = subprocess.check_output([system / 'whoami.exe', '/user', '/fo', 'csv', '/nh'], text=True)
+            sid = next(csv.reader(identity.strip().splitlines()))[1]
+            subprocess.run([system / 'icacls.exe', root, '/inheritance:r', '/grant:r', f'*{sid}:F'],
+                           check=True, capture_output=True, text=True)
+        home = root / 'home'
+        home.mkdir(mode=0o700)
+        isolated = {key: value for key, value in env.items()
+                    if key.upper() in ('PATH', 'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP', 'TMPDIR')}
+        isolated.update(HOME=str(home), USERPROFILE=str(home),
+                        QIONGLI_CONFIG_HOME=str(home / 'config'), XDG_CONFIG_HOME=str(home / 'config'),
+                        APPDATA=str(home / 'AppData/Roaming'), LOCALAPPDATA=str(home / 'AppData/Local'))
+        observed = {}
+        for host in ('codex', 'claude'):
+            destination = root / 'qiongli-next'
+            status = json.loads(run(command + ['app', 'plugin-source-status', '--target', host,
+                                    '--destination', destination], root=root, env=isolated).stdout)
+            expected = {'schema_version': 1, 'command': 'plugin-source-status', 'target': 'claude-code' if host == 'claude' else host,
+                        'destination': str(destination), 'state': 'missing', 'source': None,
+                        'authority': 'user-local-source', 'host_state': 'not-verified',
+                        'plugin_id': 'qiongli-next@qiongli-cli-local'}
+            if status != expected:
+                raise ValueError('2.0.1 requires actual v1 Next Plugin source-status')
+            observed[host] = {key: value for key, value in status.items() if key != 'destination'}
+        return observed
+
+
+def require_transition(observed):
+    expected = {host: {'schema_version': 1, 'command': 'plugin-source-status', 'target': 'claude-code' if host == 'claude' else host,
+                      'state': 'missing', 'source': None, 'authority': 'user-local-source',
+                      'host_state': 'not-verified', 'plugin_id': 'qiongli-next@qiongli-cli-local'}
+                for host in ('codex', 'claude')}
+    if observed != expected:
+        raise ValueError('missing or wrong 2.0.1 v1 Next transition evidence')
 
 
 def check_cli(executable, *, version, root, env):
@@ -57,8 +106,11 @@ def check_cli(executable, *, version, root, env):
         assert len(names) == expected_count and len(set(names)) == expected_count
         assert 'error' not in messages[3] and not messages[3]['result'].get('isError', False)
         tools[profile] = len(names)
-    return {'version': version, 'invalid_command_rejected': True, 'mcp_tools': tools,
-            'content_pack_sha256': content['pack_sha256']}
+    result = {'version': version, 'invalid_command_rejected': True, 'mcp_tools': tools,
+              'content_pack_sha256': content['pack_sha256']}
+    if version == '2.0.1':
+        result['plugin_source_transition'] = check_transition(command, version=version, env=env)
+    return result
 
 
 def install_cargo_archives(package_root, receipt, root, env, target_dir):

@@ -38,6 +38,29 @@ not establish publication success. No legacy Python, App promotion, local Cargo
 upload or external Marketplace catalog change is part of this lane. See
 [ADR 0227](../../docs/architecture/decisions/0227-native-main-cutover-and-stable-release-routing.md).
 
+2.0.1 retains actual `plugin-source-status` v1 and the existing local
+`qiongli-next@qiongli-cli-local` / public `qiongli-next-<platform>` identities.
+This is a stable compatibility patch on npm `latest`. Version 2.1 is the planned
+v1-output removal and stable Qiongli identity boundary; consumer migration and
+stable/Next target-native upgrade, retry, cancellation and recovery evidence
+remain prerequisites. Historical receipt readers and published assets stay intact.
+
+The release owner probes both Hosts through the extracted CLI, installed npm/wheel
+and bundled Plugin executables. Probes use disposable secure checkout directories
+and isolated configuration, because shared `/tmp` parents are deliberately refused
+for Plugin exports. No real Host Plugin is registered. The target receipt retains
+these observations; the final packet requires all three targets, v1/Next evidence,
+six matching Plugin archives, and the existing source/hash/channel checks.
+Historical packets are not required to contain the new 2.0.1 observations.
+
+For 2.0.0 upgrades and recovery, follow the review/update sequence in
+[v2.0.1 notes](v2.0.1.md#upgrade-and-recovery--升级与恢复). Retain prior executable,
+source receipt and user settings. A failed probe is a failed qualification;
+do not change the runtime security policy, skip the probe, or infer Host trust
+from source-current. A local macOS ARM64 receipt qualifies only that target;
+Windows x64, Linux x64, combined installs and public downloads remain external
+gates until their exact-candidate evidence exists.
+
 ## Retained earlier workflows
 
 This repository standardizes release with four scripts:

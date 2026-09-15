@@ -234,7 +234,9 @@ def main() -> None:
                'managed_product_authority': False,
                'rustc': subprocess.check_output(['rustc', '--version'], cwd=NATIVE, text=True).strip(),
                'checks': {'cli_clippy': 'passed' if lint else 'covered-by-linux-job', 'cli_mcp_tests': 'passed', 'archive_smoke': smoke,
-                          'npm_wheel_local_install': 'passed', 'marketplace_plugins': plugin_checks},
+                          'npm_wheel_local_install': 'passed',
+                          'registry_install': json.loads((out / 'install/install-check.json').read_text())['checks'],
+                          'marketplace_plugins': plugin_checks},
                'artifacts': [{'file': p.name, 'sha256': hashlib.sha256(p.read_bytes()).hexdigest(),
                               'bytes': p.stat().st_size} for p in sorted(assets.iterdir())]}
     (assets / 'release-manifest.json').write_text(json.dumps(receipt, indent=2) + '\n')
