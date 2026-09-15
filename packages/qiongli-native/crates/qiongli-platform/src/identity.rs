@@ -17,6 +17,21 @@ pub enum ReleaseChannel {
     Stable,
 }
 
+impl ReleaseChannel {
+    #[must_use]
+    pub const fn plugin_name(self) -> &'static str {
+        match self {
+            Self::Stable => "qiongli",
+            Self::Alpha | Self::Beta => "qiongli-next",
+        }
+    }
+}
+
+/// The executable's validated release version owns its Plugin channel.
+pub fn native_plugin_name(version: &str) -> Result<&'static str, PlatformError> {
+    Ok(local_plugin_identity(version)?.channel.plugin_name())
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum CapabilityProfile {
@@ -183,6 +198,11 @@ mod tests {
                 .is_ok()
         );
         assert!(identity("2.0.0", ReleaseChannel::Stable).validate().is_ok());
+        assert_eq!(native_plugin_name("2.0.0").unwrap(), "qiongli");
+        assert_eq!(native_plugin_name("2.1.0-beta.1").unwrap(), "qiongli-next");
+        assert_eq!(native_plugin_name("2.1.0-alpha.1").unwrap(), "qiongli-next");
+        assert!(native_plugin_name("2.0.0+local").is_err());
+        assert!(native_plugin_name("next").is_err());
 
         for (version, channel) in [
             ("2.0.0", ReleaseChannel::Alpha),

@@ -22,11 +22,11 @@ use crate::{
     IntegrationScope, OperatingSystem, ProductId, VerifiedLaunchGrant,
 };
 
-pub const CLAUDE_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION: u32 = 3;
+pub const CLAUDE_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION: u32 = 4;
 pub const CLAUDE_PLUGIN_BUNDLE_RECEIPT_FILE: &str = ".qiongli-claude-plugin-bundle.json";
 
 const SOURCE_PLUGIN_NAME: &str = "qiongli";
-const PLUGIN_NAME: &str = "qiongli-next";
+const LEGACY_PLUGIN_NAME: &str = "qiongli-next";
 const PLUGIN_MANIFEST_PATH: &str = ".claude-plugin/plugin.json";
 const OTHER_PLUGIN_MANIFEST_PATH: &str = ".codex-plugin/plugin.json";
 const MCP_MANIFEST_PATH: &str = ".mcp.json";
@@ -37,7 +37,7 @@ const CLAUDE_HOST_ADAPTER_GUIDANCE: &str = r#"
 
 ## Claude Code Native Host Adapter
 
-This section is authoritative for the native `qiongli-next` Claude Code Plugin
+This section is authoritative for the native Qiongli Claude Code Plugin
 and supersedes earlier compatibility notes that require a Python Full CLI,
 direct provider execution, or a manually started MCP server. Qiongli is the
 workflow and project shell; the current Claude Code conversation owns model
@@ -163,6 +163,18 @@ pub struct ClaudePluginBundleReceiptV1 {
     pub manifest_sha256: String,
     pub mcp_sha256: String,
     pub entries: Vec<ClaudePluginBundleEntryV1>,
+}
+
+impl ClaudePluginBundleReceiptV1 {
+    #[must_use]
+    pub fn plugin_name(&self) -> &'static str {
+        if self.schema_version < 4 || self.package_kind == ClaudePluginBundleKind::NativeHostFullMcp
+        {
+            LEGACY_PLUGIN_NAME
+        } else {
+            self.artifact.channel.plugin_name()
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -427,7 +439,17 @@ fn compose_claude_plugin_bundle_internal(
             .map_err(|_| ClaudePluginBundleError::ResourcePackMismatch)?;
         (artifact, ClaudePluginBundleKind::UserLocalHostFullMcp, "")
     };
-    if target.path().file_name().and_then(|leaf| leaf.to_str()) != Some(PLUGIN_NAME) {
+    let plugin_name = if kind == ClaudePluginBundleKind::UserLocalHostFullMcp {
+        artifact.channel.plugin_name()
+    } else {
+        LEGACY_PLUGIN_NAME
+    };
+    let leaf = target.path().file_name().and_then(|leaf| leaf.to_str());
+    // Keep verified source directories reusable when switching release channels.
+    if leaf != Some(plugin_name)
+        && !(kind == ClaudePluginBundleKind::UserLocalHostFullMcp
+            && matches!(leaf, Some("qiongli" | "qiongli-next")))
+    {
         return Err(ClaudePluginBundleError::InvalidTarget);
     }
     revalidate_target(target)?;
@@ -458,7 +480,14 @@ fn compose_claude_plugin_bundle_internal(
     }
 
     let binary_path = binary_relative_path(artifact.os).to_string();
-    let mut files = project_bundle_files(pack, &artifact, &binary_path, overrides, context_hooks)?;
+    let mut files = project_bundle_files(
+        pack,
+        &artifact,
+        &binary_path,
+        overrides,
+        context_hooks,
+        plugin_name,
+    )?;
     if files
         .insert(
             binary_path.clone(),
@@ -477,7 +506,7 @@ fn compose_claude_plugin_bundle_internal(
             LOCAL_MARKETPLACE_PATH.to_string(),
             BundleFile {
                 mode: LogicalMode::Regular,
-                bytes: local_marketplace_manifest(&artifact)?,
+                bytes: local_marketplace_manifest(&artifact, plugin_name)?,
             },
         );
     }
@@ -700,11 +729,12 @@ fn validate_composition_identity(
 
 fn local_marketplace_manifest(
     artifact: &ArtifactIdentityV1,
+    plugin_name: &str,
 ) -> Result<Vec<u8>, ClaudePluginBundleError> {
     let marketplace = serde_json::json!({
         "name": "qiongli-cli-local",
         "owner": {"name": "Qiongli"},
-        "plugins": [{"name": PLUGIN_NAME, "version": artifact.version, "source": Value::String("./".to_string())}]
+        "plugins": [{"name": plugin_name, "version": artifact.version, "source": Value::String("./".to_string())}]
     });
     canonical_json(&marketplace)
 }
@@ -715,6 +745,7 @@ fn project_bundle_files(
     binary_path: &str,
     overrides: Option<&WorkflowOverrides>,
     context_hooks: bool,
+    plugin_name: &str,
 ) -> Result<BTreeMap<String, BundleFile>, ClaudePluginBundleError> {
     let resources = project_profile(pack, "marketplace-lite", overrides)
         .map_err(|_| ClaudePluginBundleError::ResourcePackMismatch)?;
@@ -722,9 +753,13 @@ fn project_bundle_files(
         .iter()
         .find(|resource| resource.path() == PLUGIN_MANIFEST_PATH)
         .ok_or(ClaudePluginBundleError::ManifestInvalid)?;
-    let manifest_bytes =
-        generate_plugin_manifest(manifest_resource.bytes(), artifact, context_hooks)?;
-    let mcp_bytes = generate_mcp_manifest(binary_path)?;
+    let manifest_bytes = generate_plugin_manifest(
+        manifest_resource.bytes(),
+        artifact,
+        context_hooks,
+        plugin_name,
+    )?;
+    let mcp_bytes = generate_mcp_manifest(binary_path, plugin_name)?;
 
     let mut files = BTreeMap::new();
     files.insert(
@@ -778,6 +813,7 @@ fn generate_plugin_manifest(
     template: &[u8],
     artifact: &ArtifactIdentityV1,
     context_hooks: bool,
+    plugin_name: &str,
 ) -> Result<Vec<u8>, ClaudePluginBundleError> {
     if template.len() as u64 > MAX_MANIFEST_BYTES {
         return Err(ClaudePluginBundleError::ManifestInvalid);
@@ -790,11 +826,24 @@ fn generate_plugin_manifest(
     if object.get("name").and_then(Value::as_str) != Some(SOURCE_PLUGIN_NAME) {
         return Err(ClaudePluginBundleError::ManifestInvalid);
     }
-    object.insert("name".to_string(), Value::String(PLUGIN_NAME.to_string()));
+    object.insert("name".to_string(), Value::String(plugin_name.to_string()));
     object.insert(
         "version".to_string(),
         Value::String(artifact.version.clone()),
     );
+    if let Some(interface) = object.get_mut("interface").and_then(Value::as_object_mut) {
+        interface.insert(
+            "displayName".into(),
+            Value::String(
+                if artifact.channel.plugin_name() == "qiongli" {
+                    "Qiongli"
+                } else {
+                    "Qiongli Next"
+                }
+                .into(),
+            ),
+        );
+    }
     object.insert("skills".to_string(), Value::String("./skills/".to_string()));
     object.insert(
         "mcpServers".to_string(),
@@ -836,13 +885,16 @@ fn generate_claude_skill(template: &[u8]) -> Result<Vec<u8>, ClaudePluginBundleE
     Ok(projected)
 }
 
-fn generate_mcp_manifest(binary_path: &str) -> Result<Vec<u8>, ClaudePluginBundleError> {
+fn generate_mcp_manifest(
+    binary_path: &str,
+    plugin_name: &str,
+) -> Result<Vec<u8>, ClaudePluginBundleError> {
     let server = ClaudeMcpServer {
         command: format!("${{CLAUDE_PLUGIN_ROOT}}/{binary_path}"),
         args: expected_mcp_args(),
     };
     let manifest = ClaudeMcpManifest {
-        mcp_servers: BTreeMap::from([(PLUGIN_NAME.to_string(), server)]),
+        mcp_servers: BTreeMap::from([(plugin_name.to_string(), server)]),
     };
     canonical_json(&manifest)
 }
@@ -994,7 +1046,7 @@ fn validate_receipt_shape(
         Architecture::current().ok_or(ClaudePluginBundleError::UnsupportedPlatform)?;
     if !matches!(
         receipt.schema_version,
-        2 | CLAUDE_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION
+        2 | 3 | CLAUDE_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION
     ) || (receipt.schema_version == 2
         && (receipt.workflow_variant_sha256.is_some() || receipt.context_hooks))
         || (receipt.context_hooks
@@ -1042,7 +1094,7 @@ fn validate_receipt_shape(
         .iter()
         .find(|entry| entry.path == LOCAL_MARKETPLACE_PATH);
     if receipt.package_kind == ClaudePluginBundleKind::UserLocalHostFullMcp {
-        let bytes = local_marketplace_manifest(&receipt.artifact)?;
+        let bytes = local_marketplace_manifest(&receipt.artifact, receipt.plugin_name())?;
         if !marketplace.is_some_and(|entry| {
             entry.sha256 == sha256_hex(&bytes)
                 && entry.size_bytes == bytes.len() as u64
@@ -1118,7 +1170,7 @@ fn verify_manifest_contract(
     )?;
     let value: Value =
         serde_json::from_slice(&bytes).map_err(|_| ClaudePluginBundleError::ManifestInvalid)?;
-    if value.get("name").and_then(Value::as_str) != Some(PLUGIN_NAME)
+    if value.get("name").and_then(Value::as_str) != Some(receipt.plugin_name())
         || value.get("version").and_then(Value::as_str) != Some(receipt.artifact.version.as_str())
         || value.get("skills").and_then(Value::as_str) != Some("./skills/")
         || value.get("mcpServers").and_then(Value::as_str) != Some("./.mcp.json")
@@ -1149,7 +1201,7 @@ fn verify_mcp_contract(
         serde_json::from_slice(&bytes).map_err(|_| ClaudePluginBundleError::ManifestInvalid)?;
     let expected = ClaudeMcpManifest {
         mcp_servers: BTreeMap::from([(
-            PLUGIN_NAME.to_string(),
+            receipt.plugin_name().to_string(),
             ClaudeMcpServer {
                 command: format!("${{CLAUDE_PLUGIN_ROOT}}/{}", receipt.binary_path),
                 args: expected_mcp_args(),
@@ -1989,5 +2041,111 @@ fn reply_only_entry_has_one_bounded_plugin_path() {
         "skills/no-qiongli-extra/SKILL.md",
     ] {
         assert!(validate_bundle_path(invalid).is_err());
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn channel_receipts_verify_legacy_names_and_reject_mixed_identities() {
+    for (schema, version, name, valid) in [
+        (2, "2.0.0", "qiongli-next", true),
+        (3, "2.0.0", "qiongli-next", true),
+        (4, "2.0.1", "qiongli", true),
+        (4, "2.1.0-alpha.1", "qiongli-next", true),
+        (4, "2.1.0-beta.1", "qiongli-next", true),
+        (4, "2.0.1", "qiongli-next", false),
+        (4, "2.1.0-beta.1", "qiongli", false),
+        (3, "2.0.0", "qiongli", false),
+    ] {
+        let artifact = crate::identity::local_plugin_identity(version).unwrap();
+        let binary_path = binary_relative_path(artifact.os);
+        let files = BTreeMap::from([
+            (
+                binary_path.to_string(),
+                BundleFile {
+                    mode: LogicalMode::Executable,
+                    bytes: b"fixture executable".to_vec(),
+                },
+            ),
+            (
+                SKILL_MANIFEST_PATH.to_string(),
+                BundleFile {
+                    mode: LogicalMode::Regular,
+                    bytes: b"fixture skill".to_vec(),
+                },
+            ),
+            (
+                PLUGIN_MANIFEST_PATH.to_string(),
+                BundleFile {
+                    mode: LogicalMode::Regular,
+                    bytes: generate_plugin_manifest(
+                        br#"{"name":"qiongli","interface":{}}"#,
+                        &artifact,
+                        false,
+                        name,
+                    )
+                    .unwrap(),
+                },
+            ),
+            (
+                MCP_MANIFEST_PATH.to_string(),
+                BundleFile {
+                    mode: LogicalMode::Regular,
+                    bytes: generate_mcp_manifest(binary_path, name).unwrap(),
+                },
+            ),
+            (
+                LOCAL_MARKETPLACE_PATH.to_string(),
+                BundleFile {
+                    mode: LogicalMode::Regular,
+                    bytes: local_marketplace_manifest(&artifact, name).unwrap(),
+                },
+            ),
+        ]);
+        let entries = bundle_entries(&files).unwrap();
+        let receipt = ClaudePluginBundleReceiptV1 {
+            schema_version: schema,
+            package_kind: ClaudePluginBundleKind::UserLocalHostFullMcp,
+            artifact,
+            signed_grant_payload_sha256: String::new(),
+            pack_id: "fixture".into(),
+            content_version: version.into(),
+            source_commit: "a".repeat(40),
+            profile: ProfileId::MarketplaceLite,
+            mcp_profile: ProfileId::Full,
+            resource_pack_sha256: "b".repeat(64),
+            resource_content_root_sha256: "c".repeat(64),
+            workflow_variant_sha256: None,
+            context_hooks: false,
+            package_content_root_sha256: package_content_root(&entries),
+            binary_path: binary_path.into(),
+            binary_sha256: entry_digest(&entries, binary_path).unwrap(),
+            manifest_sha256: entry_digest(&entries, PLUGIN_MANIFEST_PATH).unwrap(),
+            mcp_sha256: entry_digest(&entries, MCP_MANIFEST_PATH).unwrap(),
+            entries,
+        };
+        let root = std::env::temp_dir().join(format!(
+            "qiongli-claude-channel-{}-{}",
+            std::process::id(),
+            transaction_id()
+        ));
+        create_private_directory(&root).unwrap();
+        let cleanup = DirectoryCleanup::new(root.clone());
+        let bytes = canonical_json(&receipt).unwrap();
+        write_bundle_tree(&root, &files, &bytes).unwrap();
+        let observed = verify_bundle_tree(&root);
+        assert_eq!(
+            observed.is_ok(),
+            valid,
+            "{schema} {version} {name}: {observed:?}"
+        );
+        if valid {
+            assert_eq!(observed.unwrap().receipt().plugin_name(), name);
+        }
+        assert_eq!(
+            fs::read(root.join(CLAUDE_PLUGIN_BUNDLE_RECEIPT_FILE)).unwrap(),
+            bytes
+        );
+        drop(cleanup);
     }
 }

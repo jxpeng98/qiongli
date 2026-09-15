@@ -118,8 +118,10 @@ PEP 440 aN/bN versions. Stable tags must equal the frozen remote `main` head;
 the same verified pipeline publishes a non-prerelease GitHub Release, npm
 `latest`, and the matching stable PyPI/Cargo version. A main push only qualifies
 builds; it does not publish. The frozen Python package is never a native PyPI
-input. Existing native Plugin IDs are retained across Beta and stable; external
-Marketplace catalog promotion remains a separate action. Cargo uses `publish-cargo.yml` and the staged workspace
+input. Native CLI-local and Marketplace Plugin identities follow the release channel
+(ADR 0228): stable uses qiongli; Alpha/Beta uses qiongli-next. Existing Next
+installations migrate through the confirmed installer; external Marketplace
+catalog promotion remains a separate action. Cargo uses `publish-cargo.yml` and the staged workspace
 (ADR 0221), with native archive checks before upload and registry install checks
 afterward. Cargo publication runs through GitHub Actions using the
 `CARGO_REGISTRY_TOKEN` repository or `crates-io` environment secret. A missing

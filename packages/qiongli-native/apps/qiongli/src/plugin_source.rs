@@ -16,6 +16,18 @@ use sha2::{Digest, Sha256};
 use crate::command::{CommandEnvironment, config_root};
 use crate::managed_operation::ManagedIntegrationTargetV1;
 
+pub(crate) fn plugin_name() -> &'static str {
+    qiongli_platform::native_plugin_name(env!("CARGO_PKG_VERSION"))
+        .expect("the CLI release version must have a supported Plugin channel")
+}
+
+pub(crate) fn plugin_id() -> &'static str {
+    match plugin_name() {
+        "qiongli" => "qiongli@qiongli-cli-local",
+        _ => "qiongli-next@qiongli-cli-local",
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum PluginSourceAction {
@@ -41,7 +53,10 @@ pub(crate) struct PluginSourcePlan {
 impl PluginSourcePlan {
     pub(crate) fn validate(&self) -> Result<(), &'static str> {
         if !self.destination.is_absolute()
-            || self.destination.file_name().and_then(|s| s.to_str()) != Some("qiongli-next")
+            || !matches!(
+                self.destination.file_name().and_then(|s| s.to_str()),
+                Some("qiongli" | "qiongli-next")
+            )
             || !digest_valid(&self.binary_sha256)
             || (self.action == PluginSourceAction::Install)
                 != self.expected_receipt_sha256.is_none()
@@ -75,6 +90,8 @@ fn digest_valid(value: &str) -> bool {
 
 #[derive(Serialize, schemars::JsonSchema)]
 struct SourceObservation {
+    #[serde(skip)]
+    plugin_name: &'static str,
     receipt_sha256: String,
     binary_sha256: String,
     content_pack_sha256: String,
@@ -103,7 +120,10 @@ fn validate_destination(
     if reserved.iter().any(|root| destination.starts_with(root)) {
         return Err("plugin-source-destination-reserved");
     }
-    if destination.file_name().and_then(|s| s.to_str()) != Some("qiongli-next") {
+    if !matches!(
+        destination.file_name().and_then(|s| s.to_str()),
+        Some("qiongli" | "qiongli-next")
+    ) {
         return Err("plugin-source-destination-invalid");
     }
     // The existing target owner rejects traversal, links, non-directories and unsafe parents.
@@ -152,6 +172,7 @@ fn observe(
                 verify_local_codex_plugin_source(&target).map_err(|e| e.reason_code())?;
             let r = verified.receipt();
             SourceObservation {
+                plugin_name: r.plugin_name(),
                 receipt_sha256: verified.receipt_sha256().to_owned(),
                 binary_sha256: r.binary_sha256.clone(),
                 content_pack_sha256: r.resource_pack_sha256.clone(),
@@ -167,6 +188,7 @@ fn observe(
                 verify_local_claude_plugin_source(&target).map_err(|e| e.reason_code())?;
             let r = verified.receipt();
             SourceObservation {
+                plugin_name: r.plugin_name(),
                 receipt_sha256: verified.receipt_sha256().to_owned(),
                 binary_sha256: r.binary_sha256.clone(),
                 content_pack_sha256: r.resource_pack_sha256.clone(),
@@ -306,6 +328,7 @@ pub(crate) fn status(
             if o.binary_sha256 == hash
                 && o.content_pack_sha256 == content.pack().pack_sha256()
                 && o.version == env!("CARGO_PKG_VERSION")
+                && o.plugin_name == plugin_name()
                 && o.workflow_variant_sha256.as_deref() == variant.variant_sha256() =>
         {
             "source-current"
@@ -313,15 +336,18 @@ pub(crate) fn status(
         Some(_) => "source-update-available",
     };
     serde_json_canonicalizer::to_string(&SourceStatus {
-        schema_version: 1,
+        schema_version: 2,
         command: "plugin-source-status".into(),
         target,
         destination: destination.to_owned(),
         state: state.to_owned(),
+        plugin_id: observed.as_ref().map_or_else(
+            || plugin_id().to_owned(),
+            |o| format!("{}@qiongli-cli-local", o.plugin_name),
+        ),
         source: observed,
         authority: "user-local-source".into(),
         host_state: "not-verified".into(),
-        plugin_id: "qiongli-next@qiongli-cli-local".into(),
     })
     .map_err(|_| "plugin-source-status-invalid")
 }
@@ -329,7 +355,7 @@ pub(crate) fn status(
 #[derive(Serialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct SourceStatus {
-    #[schemars(range(min = 1, max = 1))]
+    #[schemars(range(min = 2, max = 2))]
     schema_version: u32,
     #[schemars(regex(pattern = "^plugin-source-status$"))]
     command: String,
@@ -342,7 +368,7 @@ struct SourceStatus {
     authority: String,
     #[schemars(regex(pattern = "^not-verified$"))]
     host_state: String,
-    #[schemars(regex(pattern = "^qiongli-next@qiongli-cli-local$"))]
+    #[schemars(regex(pattern = "^qiongli(-next)?@qiongli-cli-local$"))]
     plugin_id: String,
 }
 
@@ -360,15 +386,15 @@ pub(crate) fn contract_source() -> PluginSourcePlan {
 
 pub fn plugin_source_contract_json() -> Result<String, serde_json::Error> {
     let status = SourceStatus {
-        schema_version: 1,
+        schema_version: 2,
         command: "plugin-source-status".into(),
         target: ManagedIntegrationTargetV1::Codex,
-        destination: PathBuf::from("/example/qiongli-next"),
+        destination: PathBuf::from("/example/qiongli"),
         state: "missing".into(),
         source: None,
         authority: "user-local-source".into(),
         host_state: "not-verified".into(),
-        plugin_id: "qiongli-next@qiongli-cli-local".into(),
+        plugin_id: "qiongli@qiongli-cli-local".into(),
     };
     serde_json::to_string_pretty(&serde_json::json!({
         "managed": crate::managed_operation::generated_plan_contract(),

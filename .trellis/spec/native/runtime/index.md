@@ -536,15 +536,19 @@ power-loss durability or deletion interrupted inside every application tree.
 `plugin_source.rs` owns the bounded local source export, routed through
 `app plan plugin-source-install|plugin-source-update|plugin-source-remove` and the
 existing `app apply` owner. `app plugin-source-status` is read-only. Both require
-`--target codex|claude --destination <absolute-path/qiongli-next>` under an existing
-secure parent. Host roots and `.qiongli` paths are reserved for their existing
+`--target codex|claude --destination <absolute-path>` ending in `qiongli` or
+`qiongli-next`, under an existing secure parent. Host roots and `.qiongli` paths are reserved for their existing
 owners. Plans bind source binary, content, workflow variant, path, receipt and
 the optional `context_hooks` choice (omitted false preserves legacy digest bytes);
 apply retains expiry, exact digest, filesystem approval, Home/config exclusion
 and target transaction locks. Unknown/drifted/signed exports refuse adoption.
 
 The local bundle receipt kind is separate from signed products (ADR 0222).
-`source-current` means the export matches the running CLI; Host state remains
+ADR 0228 selects qiongli for stable and qiongli-next for Alpha/Beta. The
+version-2 source-status response reports the observed ID (or the selected ID
+when missing); its v1 schema/fixture remain frozen. Verified old source paths
+are reused without renaming. `source-current` means the export identity and
+bytes match the running CLI; Host state remains
 `not-verified`. Export does not register a client or mutate private Host caches.
 Source removal preserves Host state, so unregister through the Host first.
 

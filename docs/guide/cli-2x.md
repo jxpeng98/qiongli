@@ -41,6 +41,29 @@ and `app plan` now show scoped help in a terminal. Script errors remain unchange
 project writes still require explicit preview and approval arguments.
 
 
+## Stable and Next Plugin identities
+
+Channel-specific identities are implemented in source for a subsequent release.
+Published **2.0.0** keeps `qiongli-next`; rerunning its installer retains that identity.
+
+- Stable: Plugin `qiongli`, display name Qiongli, MCP key `qiongli`.
+- Alpha/Beta (npm `next`): Plugin `qiongli-next`, display name Qiongli Next.
+- The CLI version selects the identity. The npm package is always `qiongli`;
+  its mutable dist-tag is not a separate runtime setting.
+
+New installations default to the channel's directory name. Updates reuse the
+verified source directory, including an existing `qiongli-next` path. Codex's
+second confirmation lists the previous IDs to disable before registering the
+selected version. Old caches remain; source files change under the first file
+confirmation. Cancelling Host confirmation leaves Host configuration unchanged;
+the changed source catalog can hide the old ID. Rerun the installer to finish
+migration. To switch back, export the previous CLI's Plugin and re-enable it.
+Claude still requires manual disabling of a conflicting Plugin.
+
+Marketplace platform IDs follow the same rule: for example,
+`qiongli-macos-arm64` for stable and `qiongli-next-macos-arm64` for prereleases.
+Platform selection and Lite/Full tool scopes keep their existing contracts.
+
 ## From installation to first use {#first-use}
 
 Run `qiongli install` in a terminal (`--interactive` remains supported). Choose

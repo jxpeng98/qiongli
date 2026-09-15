@@ -92,14 +92,14 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
         for platform, archive in zip(plugins.PLATFORMS, archives):
             verified = plugins.verify_archive(archive, VERSION, COMMIT)
             self.assertEqual(verified['pack_sha256'], self.metadata['pack_sha256'])
-            root = self.root / 'out' / platform / 'plugins' / plugins.plugin_name(TARGET)
+            root = self.root / 'out' / platform / 'plugins' / plugins.plugin_name(TARGET, VERSION)
             for name, data in self.content.items():
                 if name.startswith(('.codex-plugin/', '.claude-plugin/')):
                     continue
                 self.assertEqual((root / plugins.SKILL_ROOT / name.removeprefix('workflow/')).read_bytes(), data)
             self.assertFalse((root / plugins.SKILL_ROOT / plugins.EXPORT).exists())
             manifest = json.loads((root / f'.{platform}-plugin/plugin.json').read_text())
-            self.assertEqual(manifest['name'], plugins.plugin_name(TARGET))
+            self.assertEqual(manifest['name'], plugins.plugin_name(TARGET, VERSION))
             self.assertEqual(manifest['skills'], './skills/')
             self.assertEqual(manifest['mcpServers'], './.mcp.json')
             mcp = json.loads((root / '.mcp.json').read_text())['mcpServers']['qiongli-next']
@@ -119,7 +119,7 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
                 plugins.build_plugins(self.source, self.root / 'bad', VERSION, commit, self.binary, TARGET)
         self.assertFalse((self.root / 'bad').exists())
 
-    def test_stable_archives_preserve_plugin_identity_and_verify_version(self):
+    def test_stable_archives_use_stable_plugin_identity_and_verify_version(self):
         with patch(f'{__name__}.VERSION', '2.0.0'):
             for platform in plugins.PLATFORMS:
                 self.content[f'.{platform}-plugin/plugin.json'] = plugins.json_bytes({
@@ -129,20 +129,58 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
             for platform, archive in zip(plugins.PLATFORMS, self.build()):
                 verified = plugins.verify_archive(archive, VERSION, COMMIT)
                 self.assertEqual(verified['version'], '2.0.0')
-                root = self.root / 'out' / platform / 'plugins' / plugins.plugin_name(TARGET)
+                root = self.root / 'out' / platform / 'plugins' / plugins.plugin_name(TARGET, VERSION)
                 manifest = json.loads((root / f'.{platform}-plugin/plugin.json').read_text())
-                self.assertEqual(manifest['name'], plugins.plugin_name(TARGET))
+                self.assertEqual(manifest['name'], 'qiongli-macos-arm64')
+                self.assertEqual(set(json.loads((root / '.mcp.json').read_bytes())['mcpServers']), {'qiongli'})
+                self.assertTrue(archive.name.startswith('qiongli-' + platform + '-plugin-'))
                 self.assertEqual(manifest['interface']['displayName'], 'Qiongli (macos-arm64)')
                 self.assertFalse((root / plugins.BRIDGE).exists())
                 with self.assertRaises(ValueError):
                     plugins.verify_archive(archive, '2.0.0-beta.6', COMMIT)
+
+    def test_legacy_stable_archives_remain_verifiable_and_cannot_claim_new_identity(self):
+        from tooling.scripts.native_release_assets import marketplace_index
+        with patch(f'{__name__}.VERSION', '2.0.0'):
+            for platform in plugins.PLATFORMS:
+                self.content[f'.{platform}-plugin/plugin.json'] = plugins.json_bytes({
+                    'name': 'qiongli', 'version': VERSION, 'interface': {},
+                })
+            self.write_source()
+            for platform in plugins.PLATFORMS:
+                files = plugins.project(self.content, platform, VERSION, TARGET, BINARIES[TARGET], legacy_identity=True)
+                files[plugins.RECEIPT] = plugins.json_bytes({
+                    'schema_version': 2, 'platform': platform, 'target': TARGET, 'source': self.metadata,
+                    'source_manifest_bytes': {n: self.content[n].decode() for n in
+                                              ('.codex-plugin/plugin.json', '.claude-plugin/plugin.json')},
+                    'files': {n: {'size_bytes': len(d), 'sha256': plugins.digest(d)} for n, d in files.items()},
+                })
+                archive = self.root / plugins.archive_name(platform, VERSION, TARGET, legacy_identity=True)
+                prefix = archive.name.removesuffix('.tar.gz') + '/plugins/qiongli-next-macos-arm64/'
+                with tarfile.open(archive, 'w:gz') as packet:
+                    for name, data in files.items():
+                        member = tarfile.TarInfo(prefix + name)
+                        member.size, member.mode = len(data), plugins.file_mode(name, TARGET)
+                        packet.addfile(member, io.BytesIO(data))
+                verified = plugins.verify_archive(archive, VERSION, COMMIT)
+                self.assertEqual(verified['plugin_name'], 'qiongli-next-macos-arm64')
+                index = marketplace_index(VERSION, COMMIT, [verified])['plugins'][0]
+                self.assertEqual(index['name'], 'qiongli-next-macos-arm64')
+                self.assertEqual(index['artifact'], archive.name)
+                self.assertEqual(plugins.find_archive({archive.name: archive}, platform, VERSION, TARGET), archive)
+                renamed = self.root / plugins.archive_name(platform, VERSION, TARGET)
+                renamed.write_bytes(archive.read_bytes())
+                with self.assertRaises(ValueError):
+                    plugins.verify_archive(renamed, VERSION, COMMIT)
+                with self.assertRaisesRegex(ValueError, 'duplicate'):
+                    plugins.find_archive({archive.name: archive, renamed.name: renamed}, platform, VERSION, TARGET)
 
     def test_workflow_entries_share_canonical_instructions_and_only_codex_exposes_them(self):
         self.add_workflows()
         self.build()
         slugs = {Path(p).stem for p in self.content if p.startswith('workflow/workflows/')} - {'qiongli'}
         for platform in plugins.PLATFORMS:
-            root = self.root / 'out' / platform / 'plugins' / plugins.plugin_name(TARGET)
+            root = self.root / 'out' / platform / 'plugins' / plugins.plugin_name(TARGET, VERSION)
             entries = {p.relative_to(root).as_posix() for p in root.glob('skills/*/SKILL.md')}
             expected = {plugins.SKILL_ROOT + 'SKILL.md', 'skills/no-qiongli/SKILL.md'}
             self.assertEqual((root / 'skills/no-qiongli/SKILL.md').read_bytes(),
@@ -401,7 +439,7 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
         self.assertEqual(len(packet['artifacts']), 14)
         index = json.loads((assets / 'marketplace-plugins.json').read_text())
         self.assertEqual(len(index['plugins']), 6)
-        self.assertEqual({p['name'] for p in index['plugins']}, {plugins.plugin_name(t) for t in BINARIES})
+        self.assertEqual({p['name'] for p in index['plugins']}, {plugins.plugin_name(t, VERSION) for t in BINARIES})
         manifest = assets / 'release-manifest.json'
         cli_archive = assets / f'qiongli-{VERSION}-{TARGET}.tar.gz'
         original = cli_archive.read_bytes()

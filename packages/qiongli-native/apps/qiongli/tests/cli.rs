@@ -5050,6 +5050,8 @@ fn native_activation_public_entry_refuses_source_authority_without_writes() {
 
 #[test]
 fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
+    let plugin_name = qiongli_platform::native_plugin_name(env!("CARGO_PKG_VERSION")).unwrap();
+    let plugin_id = format!("{plugin_name}@qiongli-cli-local");
     for host in ["codex", "claude"] {
         let fixture = Fixture::new(&format!("plugin-source {host} space"));
         // Cargo may hard-link its build outputs. Exercise an installed copy,
@@ -5156,6 +5158,7 @@ fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
             "source-ready-host-action-required"
         );
         assert_eq!(parse_json(&status())["state"], "source-current");
+        assert_eq!(parse_json(&status())["plugin_id"], plugin_id);
         assert_eq!(parse_json(&status())["host_state"], "not-verified");
         assert_eq!(parse_json(&status())["source"]["context_hooks"], true);
         assert!(!fixture.home.join(".codex").exists());
@@ -5178,7 +5181,8 @@ fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
             let codex = host == "codex";
             let config = fixture.home.join(if codex { ".codex" } else { ".claude" });
             let cache = config
-                .join("plugins/cache/qiongli-cli-local/qiongli-next")
+                .join("plugins/cache/qiongli-cli-local")
+                .join(plugin_name)
                 .join(env!("CARGO_PKG_VERSION"));
             copy_tree(&destination, &cache);
             let bins = fixture.home.join(".local/bin");
@@ -5189,9 +5193,9 @@ fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
                 serde_json::json!([{"name":"qiongli-cli-local","source":"directory","path":destination}])
             };
             let entry = if codex {
-                serde_json::json!({"pluginId":"qiongli-next@qiongli-cli-local","version":env!("CARGO_PKG_VERSION"),"installed":true,"enabled":true,"source":{"source":"local","path":destination}})
+                serde_json::json!({"pluginId":plugin_id,"version":env!("CARGO_PKG_VERSION"),"installed":true,"enabled":true,"source":{"source":"local","path":destination}})
             } else {
-                serde_json::json!({"id":"qiongli-next@qiongli-cli-local","version":env!("CARGO_PKG_VERSION"),"scope":"user","enabled":true,"installPath":cache})
+                serde_json::json!({"id":plugin_id,"version":env!("CARGO_PKG_VERSION"),"scope":"user","enabled":true,"installPath":cache})
             };
             let plugins = if codex {
                 serde_json::json!({"installed":[entry]})
@@ -5274,6 +5278,17 @@ fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
         let manifest_path = destination.join(format!(".{host}-plugin/plugin.json"));
         let manifest_bytes = fs::read(&manifest_path).unwrap();
         let manifest: Value = serde_json::from_slice(&manifest_bytes).unwrap();
+        assert_eq!(manifest["name"], plugin_name);
+        let mcp: Value =
+            serde_json::from_slice(&fs::read(destination.join(".mcp.json")).unwrap()).unwrap();
+        assert_eq!(
+            mcp["mcpServers"]
+                .as_object()
+                .unwrap()
+                .keys()
+                .collect::<Vec<_>>(),
+            vec![plugin_name]
+        );
         let events = if host == "codex" {
             &manifest["hooks"]["hooks"]
         } else {

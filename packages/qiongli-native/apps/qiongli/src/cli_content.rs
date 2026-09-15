@@ -111,7 +111,7 @@ fn guide(
         "3" => {
             let executable =
                 std::env::current_exe().map_err(|_| "plugin-source-executable-unavailable")?;
-            let config = serde_json::json!({"mcpServers":{"qiongli-next":{
+            let config = serde_json::json!({"mcpServers":{(crate::plugin_source::plugin_name()):{
                 "command":executable,"args":["mcp","serve","--profile","full","--transport","stdio"]}}});
             line(
                 writer,
@@ -201,7 +201,7 @@ fn install_plugins(
             let default = environment
                 .platform_home()
                 .ok_or("plugin-source-home-unavailable")?
-                .join("qiongli-next");
+                .join(crate::plugin_source::plugin_name());
             line(
                 writer,
                 "Plugin source files stay here. The Host loads its registered cache, including Skills and MCP; no copy to ~/.agents/skills is needed.\n",
@@ -211,7 +211,7 @@ fn install_plugins(
             if !usable_default {
                 line(
                     writer,
-                    "The default directory belongs to another Host or has unverified files. Enter a different path ending in qiongli-next with an existing parent; Enter cancels.\n",
+                    "The default directory belongs to another Host or has unverified files. Enter a different path ending in qiongli or qiongli-next with an existing parent; Enter cancels.\n",
                 )?;
             }
             let selected = crate::cli_inventory::choice(
@@ -444,7 +444,7 @@ impl BundledContentReview {
 fn installation_failure(code: &'static str) -> CliOutput {
     let hint = match code {
         "plugin-source-destination-invalid" => {
-            "Choose an absolute directory ending in qiongli-next with an existing parent, or omit --destination to reuse the registered source."
+            "Choose an absolute directory ending in qiongli or qiongli-next with an existing parent, or omit --destination to reuse the registered source."
         }
         "plugin-source-destination-reserved" => {
             "Keep Plugin source files outside ~/.agents, Host configuration/cache directories and Qiongli's private state. The Host discovers Skills through Plugin registration."

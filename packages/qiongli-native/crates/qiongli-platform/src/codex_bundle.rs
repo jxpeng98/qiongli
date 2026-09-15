@@ -22,11 +22,11 @@ use crate::{
     IntegrationScope, OperatingSystem, ProductId, VerifiedLaunchGrant,
 };
 
-pub const CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION: u32 = 3;
+pub const CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION: u32 = 4;
 pub const CODEX_PLUGIN_BUNDLE_RECEIPT_FILE: &str = ".qiongli-codex-plugin-bundle.json";
 
 const SOURCE_PLUGIN_NAME: &str = "qiongli";
-const PLUGIN_NAME: &str = "qiongli-next";
+const LEGACY_PLUGIN_NAME: &str = "qiongli-next";
 const PLUGIN_MANIFEST_PATH: &str = ".codex-plugin/plugin.json";
 const OTHER_PLUGIN_MANIFEST_PATH: &str = ".claude-plugin/plugin.json";
 const MCP_MANIFEST_PATH: &str = ".mcp.json";
@@ -38,7 +38,7 @@ const CODEX_HOST_ADAPTER_GUIDANCE: &str = r#"
 
 ## Codex Native Host Adapter
 
-This section is authoritative for the native `qiongli-next` Codex Plugin and
+This section is authoritative for the native Qiongli Codex Plugin and
 supersedes earlier compatibility notes that require a Python Full CLI, direct
 provider execution, or a manually started MCP server. Qiongli is the workflow
 and project shell; the current Codex conversation owns model authentication,
@@ -164,6 +164,18 @@ pub struct CodexPluginBundleReceiptV1 {
     pub manifest_sha256: String,
     pub mcp_sha256: String,
     pub entries: Vec<CodexPluginBundleEntryV1>,
+}
+
+impl CodexPluginBundleReceiptV1 {
+    #[must_use]
+    pub fn plugin_name(&self) -> &'static str {
+        if self.schema_version < 4 || self.package_kind == CodexPluginBundleKind::NativeHostFullMcp
+        {
+            LEGACY_PLUGIN_NAME
+        } else {
+            self.artifact.channel.plugin_name()
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -432,7 +444,17 @@ fn compose_codex_plugin_bundle_internal(
             .map_err(|_| CodexPluginBundleError::ResourcePackMismatch)?;
         (artifact, CodexPluginBundleKind::UserLocalHostFullMcp, "")
     };
-    if target.path().file_name().and_then(|leaf| leaf.to_str()) != Some(PLUGIN_NAME) {
+    let plugin_name = if kind == CodexPluginBundleKind::UserLocalHostFullMcp {
+        artifact.channel.plugin_name()
+    } else {
+        LEGACY_PLUGIN_NAME
+    };
+    let leaf = target.path().file_name().and_then(|leaf| leaf.to_str());
+    // Keep verified source directories reusable when switching release channels.
+    if leaf != Some(plugin_name)
+        && !(kind == CodexPluginBundleKind::UserLocalHostFullMcp
+            && matches!(leaf, Some("qiongli" | "qiongli-next")))
+    {
         return Err(CodexPluginBundleError::InvalidTarget);
     }
     revalidate_target(target)?;
@@ -463,7 +485,14 @@ fn compose_codex_plugin_bundle_internal(
     }
 
     let binary_path = binary_relative_path(artifact.os).to_string();
-    let mut files = project_bundle_files(pack, &artifact, &binary_path, overrides, context_hooks)?;
+    let mut files = project_bundle_files(
+        pack,
+        &artifact,
+        &binary_path,
+        overrides,
+        context_hooks,
+        plugin_name,
+    )?;
     if files
         .insert(
             binary_path.clone(),
@@ -482,7 +511,7 @@ fn compose_codex_plugin_bundle_internal(
             LOCAL_MARKETPLACE_PATH.to_string(),
             BundleFile {
                 mode: LogicalMode::Regular,
-                bytes: local_marketplace_manifest(&artifact)?,
+                bytes: local_marketplace_manifest(&artifact, plugin_name)?,
             },
         );
     }
@@ -705,11 +734,12 @@ fn validate_composition_identity(
 
 fn local_marketplace_manifest(
     artifact: &ArtifactIdentityV1,
+    plugin_name: &str,
 ) -> Result<Vec<u8>, CodexPluginBundleError> {
     let marketplace = serde_json::json!({
         "name": "qiongli-cli-local",
         "owner": {"name": "Qiongli"},
-        "plugins": [{"name": PLUGIN_NAME, "version": artifact.version, "source": serde_json::json!({"source": "local", "path": "./"})}]
+        "plugins": [{"name": plugin_name, "version": artifact.version, "source": serde_json::json!({"source": "local", "path": "./"})}]
     });
     canonical_json(&marketplace)
 }
@@ -720,6 +750,7 @@ fn project_bundle_files(
     binary_path: &str,
     overrides: Option<&WorkflowOverrides>,
     context_hooks: bool,
+    plugin_name: &str,
 ) -> Result<BTreeMap<String, BundleFile>, CodexPluginBundleError> {
     let resources = project_profile(pack, "marketplace-lite", overrides)
         .map_err(|_| CodexPluginBundleError::ResourcePackMismatch)?;
@@ -727,9 +758,13 @@ fn project_bundle_files(
         .iter()
         .find(|resource| resource.path() == PLUGIN_MANIFEST_PATH)
         .ok_or(CodexPluginBundleError::ManifestInvalid)?;
-    let manifest_bytes =
-        generate_plugin_manifest(manifest_resource.bytes(), artifact, context_hooks)?;
-    let mcp_bytes = generate_mcp_manifest(binary_path)?;
+    let manifest_bytes = generate_plugin_manifest(
+        manifest_resource.bytes(),
+        artifact,
+        context_hooks,
+        plugin_name,
+    )?;
+    let mcp_bytes = generate_mcp_manifest(binary_path, plugin_name)?;
 
     let mut files = BTreeMap::new();
     files.insert(
@@ -855,6 +890,7 @@ fn generate_plugin_manifest(
     template: &[u8],
     artifact: &ArtifactIdentityV1,
     context_hooks: bool,
+    plugin_name: &str,
 ) -> Result<Vec<u8>, CodexPluginBundleError> {
     if template.len() as u64 > MAX_MANIFEST_BYTES {
         return Err(CodexPluginBundleError::ManifestInvalid);
@@ -867,11 +903,24 @@ fn generate_plugin_manifest(
     if object.get("name").and_then(Value::as_str) != Some(SOURCE_PLUGIN_NAME) {
         return Err(CodexPluginBundleError::ManifestInvalid);
     }
-    object.insert("name".to_string(), Value::String(PLUGIN_NAME.to_string()));
+    object.insert("name".to_string(), Value::String(plugin_name.to_string()));
     object.insert(
         "version".to_string(),
         Value::String(artifact.version.clone()),
     );
+    if let Some(interface) = object.get_mut("interface").and_then(Value::as_object_mut) {
+        interface.insert(
+            "displayName".into(),
+            Value::String(
+                if artifact.channel.plugin_name() == "qiongli" {
+                    "Qiongli"
+                } else {
+                    "Qiongli Next"
+                }
+                .into(),
+            ),
+        );
+    }
     object.insert("skills".to_string(), Value::String("./skills/".to_string()));
     object.insert(
         "mcpServers".to_string(),
@@ -912,7 +961,10 @@ fn generate_codex_skill(template: &[u8]) -> Result<Vec<u8>, CodexPluginBundleErr
     Ok(projected)
 }
 
-fn generate_mcp_manifest(binary_path: &str) -> Result<Vec<u8>, CodexPluginBundleError> {
+fn generate_mcp_manifest(
+    binary_path: &str,
+    plugin_name: &str,
+) -> Result<Vec<u8>, CodexPluginBundleError> {
     let server = CodexMcpServer {
         command: format!("./{binary_path}"),
         args: expected_mcp_args(),
@@ -922,7 +974,7 @@ fn generate_mcp_manifest(binary_path: &str) -> Result<Vec<u8>, CodexPluginBundle
         tool_timeout_sec: 60,
     };
     let manifest = CodexMcpManifest {
-        mcp_servers: BTreeMap::from([(PLUGIN_NAME.to_string(), server)]),
+        mcp_servers: BTreeMap::from([(plugin_name.to_string(), server)]),
     };
     canonical_json(&manifest)
 }
@@ -1074,7 +1126,7 @@ fn validate_receipt_shape(
         Architecture::current().ok_or(CodexPluginBundleError::UnsupportedPlatform)?;
     if !matches!(
         receipt.schema_version,
-        2 | CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION
+        2 | 3 | CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION
     ) || (receipt.schema_version == 2
         && (receipt.workflow_variant_sha256.is_some() || receipt.context_hooks))
         || (receipt.context_hooks
@@ -1121,7 +1173,7 @@ fn validate_receipt_shape(
         .iter()
         .find(|entry| entry.path == LOCAL_MARKETPLACE_PATH);
     if receipt.package_kind == CodexPluginBundleKind::UserLocalHostFullMcp {
-        let bytes = local_marketplace_manifest(&receipt.artifact)?;
+        let bytes = local_marketplace_manifest(&receipt.artifact, receipt.plugin_name())?;
         if !marketplace.is_some_and(|entry| {
             entry.sha256 == sha256_hex(&bytes)
                 && entry.size_bytes == bytes.len() as u64
@@ -1197,7 +1249,7 @@ fn verify_manifest_contract(
     )?;
     let value: Value =
         serde_json::from_slice(&bytes).map_err(|_| CodexPluginBundleError::ManifestInvalid)?;
-    if value.get("name").and_then(Value::as_str) != Some(PLUGIN_NAME)
+    if value.get("name").and_then(Value::as_str) != Some(receipt.plugin_name())
         || value.get("version").and_then(Value::as_str) != Some(receipt.artifact.version.as_str())
         || value.get("skills").and_then(Value::as_str) != Some("./skills/")
         || value.get("mcpServers").and_then(Value::as_str) != Some("./.mcp.json")
@@ -1226,7 +1278,7 @@ fn verify_mcp_contract(
         serde_json::from_slice(&bytes).map_err(|_| CodexPluginBundleError::ManifestInvalid)?;
     let expected = CodexMcpManifest {
         mcp_servers: BTreeMap::from([(
-            PLUGIN_NAME.to_string(),
+            receipt.plugin_name().to_string(),
             CodexMcpServer {
                 command: format!("./{}", receipt.binary_path),
                 args: expected_mcp_args(),
@@ -2058,6 +2110,111 @@ impl Drop for DirectoryCleanup {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn channel_receipts_verify_legacy_names_and_reject_mixed_identities() {
+        for (schema, version, name, valid) in [
+            (2, "2.0.0", "qiongli-next", true),
+            (3, "2.0.0", "qiongli-next", true),
+            (4, "2.0.1", "qiongli", true),
+            (4, "2.1.0-alpha.1", "qiongli-next", true),
+            (4, "2.1.0-beta.1", "qiongli-next", true),
+            (4, "2.0.1", "qiongli-next", false),
+            (4, "2.1.0-beta.1", "qiongli", false),
+            (3, "2.0.0", "qiongli", false),
+        ] {
+            let artifact = crate::identity::local_plugin_identity(version).unwrap();
+            let binary_path = binary_relative_path(artifact.os);
+            let files = BTreeMap::from([
+                (
+                    binary_path.to_string(),
+                    BundleFile {
+                        mode: LogicalMode::Executable,
+                        bytes: b"fixture executable".to_vec(),
+                    },
+                ),
+                (
+                    SKILL_MANIFEST_PATH.to_string(),
+                    BundleFile {
+                        mode: LogicalMode::Regular,
+                        bytes: b"fixture skill".to_vec(),
+                    },
+                ),
+                (
+                    PLUGIN_MANIFEST_PATH.to_string(),
+                    BundleFile {
+                        mode: LogicalMode::Regular,
+                        bytes: generate_plugin_manifest(
+                            br#"{"name":"qiongli","interface":{}}"#,
+                            &artifact,
+                            false,
+                            name,
+                        )
+                        .unwrap(),
+                    },
+                ),
+                (
+                    MCP_MANIFEST_PATH.to_string(),
+                    BundleFile {
+                        mode: LogicalMode::Regular,
+                        bytes: generate_mcp_manifest(binary_path, name).unwrap(),
+                    },
+                ),
+                (
+                    LOCAL_MARKETPLACE_PATH.to_string(),
+                    BundleFile {
+                        mode: LogicalMode::Regular,
+                        bytes: local_marketplace_manifest(&artifact, name).unwrap(),
+                    },
+                ),
+            ]);
+            let entries = bundle_entries(&files).unwrap();
+            let receipt = CodexPluginBundleReceiptV1 {
+                schema_version: schema,
+                package_kind: CodexPluginBundleKind::UserLocalHostFullMcp,
+                artifact,
+                signed_grant_payload_sha256: String::new(),
+                pack_id: "fixture".into(),
+                content_version: version.into(),
+                source_commit: "a".repeat(40),
+                profile: ProfileId::MarketplaceLite,
+                mcp_profile: ProfileId::Full,
+                resource_pack_sha256: "b".repeat(64),
+                resource_content_root_sha256: "c".repeat(64),
+                workflow_variant_sha256: None,
+                context_hooks: false,
+                package_content_root_sha256: package_content_root(&entries),
+                binary_path: binary_path.into(),
+                binary_sha256: entry_digest(&entries, binary_path).unwrap(),
+                manifest_sha256: entry_digest(&entries, PLUGIN_MANIFEST_PATH).unwrap(),
+                mcp_sha256: entry_digest(&entries, MCP_MANIFEST_PATH).unwrap(),
+                entries,
+            };
+            let root = std::env::temp_dir().join(format!(
+                "qiongli-codex-channel-{}-{}",
+                std::process::id(),
+                transaction_id()
+            ));
+            create_private_directory(&root).unwrap();
+            let cleanup = DirectoryCleanup::new(root.clone());
+            let bytes = canonical_json(&receipt).unwrap();
+            write_bundle_tree(&root, &files, &bytes).unwrap();
+            let observed = verify_bundle_tree(&root);
+            assert_eq!(
+                observed.is_ok(),
+                valid,
+                "{schema} {version} {name}: {observed:?}"
+            );
+            if valid {
+                assert_eq!(observed.unwrap().receipt().plugin_name(), name);
+            }
+            assert_eq!(
+                fs::read(root.join(CODEX_PLUGIN_BUNDLE_RECEIPT_FILE)).unwrap(),
+                bytes
+            );
+            drop(cleanup);
+        }
+    }
 
     #[test]
     fn workflow_wrappers_preserve_metadata_and_reject_unsafe_entries() {

@@ -23,10 +23,15 @@ impl PluginMigration {
         executable: &Path,
         root: &Path,
         plugins: Vec<String>,
-    ) -> Result<Self, &'static str> {
+    ) -> Result<Option<Self>, &'static str> {
         let file = root.join("config.toml");
-        let metadata = std::fs::symlink_metadata(&file)
-            .map_err(|_| "local-host-migration-config-unavailable")?;
+        let metadata = match std::fs::symlink_metadata(&file) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound && plugins.is_empty() => {
+                return Ok(None);
+            }
+            Err(_) => return Err("local-host-migration-config-unavailable"),
+        };
         if !metadata.is_file() || metadata.len() > 1_048_576 {
             return Err("local-host-migration-config-unavailable");
         }
@@ -42,12 +47,11 @@ impl PluginMigration {
 
     fn from_config(
         file: PathBuf,
-        plugins: Vec<String>,
+        mut plugins: Vec<String>,
         response: &Value,
         file_sha256: String,
-    ) -> Result<Self, &'static str> {
-        if plugins.is_empty()
-            || plugins.len() > 16
+    ) -> Result<Option<Self>, &'static str> {
+        if plugins.len() > 16
             || plugins
                 .iter()
                 .collect::<std::collections::BTreeSet<_>>()
@@ -60,11 +64,14 @@ impl PluginMigration {
                     || !id
                         .bytes()
                         .all(|c| c.is_ascii_alphanumeric() || b"@._-".contains(&c))
-                    || id == super::PLUGIN
+                    || id == super::plugin_id()
                     || !matches!(
                         id.split('@').next(),
                         Some(
                             "qiongli"
+                                | "qiongli-macos-arm64"
+                                | "qiongli-windows-x64"
+                                | "qiongli-linux-x64"
                                 | "qiongli-next"
                                 | "qiongli-next-macos-arm64"
                                 | "qiongli-next-windows-x64"
@@ -93,6 +100,22 @@ impl PluginMigration {
         {
             return Err("local-host-migration-config-unavailable");
         }
+        // A renamed local catalog hides the old ID from `plugin list`, while
+        // its user configuration remains enabled. Include that exact sibling.
+        let previous = if super::plugin_name() == "qiongli" {
+            "qiongli-next@qiongli-cli-local"
+        } else {
+            "qiongli@qiongli-cli-local"
+        };
+        if layer["config"]["plugins"][previous]["enabled"] == true
+            && !plugins.iter().any(|id| id == previous)
+        {
+            plugins.push(previous.into());
+        }
+        if plugins.len() > 16 {
+            return Err("local-host-inventory-invalid");
+        }
+        plugins.sort();
         let version = layer["version"]
             .as_str()
             .filter(|version| !version.is_empty() && version.len() <= 128)
@@ -102,12 +125,15 @@ impl PluginMigration {
         if file_sha256 != crate::cli_install::regular_file_sha256(&file)? {
             return Err("local-host-precondition-changed");
         }
-        Ok(Self {
+        if plugins.is_empty() {
+            return Ok(None);
+        }
+        Ok(Some(Self {
             plugins,
             file,
             version: version.into(),
             file_sha256,
-        })
+        }))
     }
 
     pub fn request(&self) -> Value {
@@ -250,6 +276,7 @@ mod tests {
         }]});
         let migration =
             PluginMigration::from_config(file.clone(), vec![id.into()], &response, digest.clone())
+                .unwrap()
                 .unwrap();
         assert_eq!(
             migration.request()["params"]["edits"],
@@ -258,9 +285,8 @@ mod tests {
             }])
         );
         for ids in [
-            vec![],
             vec![id, id],
-            vec![super::super::PLUGIN],
+            vec![super::super::plugin_id()],
             vec!["other@personal"],
             vec!["qiongli-next@x\".model"],
             vec!["qiongli-next@"],
@@ -276,6 +302,29 @@ mod tests {
                 .is_err()
             );
         }
+        assert!(
+            PluginMigration::from_config(file.clone(), vec![], &response, digest.clone())
+                .unwrap()
+                .is_none()
+        );
+        let previous = if super::super::plugin_name() == "qiongli" {
+            "qiongli-next@qiongli-cli-local"
+        } else {
+            "qiongli@qiongli-cli-local"
+        };
+        let mut hidden = response.clone();
+        hidden["layers"][0]["config"]["plugins"][previous] = json!({"enabled": true});
+        let hidden_migration =
+            PluginMigration::from_config(file.clone(), vec![], &hidden, digest.clone())
+                .unwrap()
+                .unwrap();
+        assert_eq!(hidden_migration.plugins, vec![previous]);
+        hidden["layers"][0]["config"]["plugins"][previous]["enabled"] = json!(false);
+        assert!(
+            PluginMigration::from_config(file.clone(), vec![], &hidden, digest.clone())
+                .unwrap()
+                .is_none()
+        );
         for pointer in [
             "/layers/0/name/type",
             "/layers/0/name/profile",

@@ -14,10 +14,10 @@ import zipfile
 
 try:
     from .native_registry_packages import NPM_INSTALL_REVIEW, TARGETS, npm_package, parse_release_version, regular_bytes, validate_binary
-    from .native_marketplace_plugins import PLATFORMS, archive_name, plugin_name, verify_archive, check_plugins
+    from .native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive
 except ImportError:
     from native_registry_packages import NPM_INSTALL_REVIEW, TARGETS, npm_package, parse_release_version, regular_bytes, validate_binary
-    from native_marketplace_plugins import PLATFORMS, archive_name, plugin_name, verify_archive, check_plugins
+    from native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive
 
 
 def checked_assets(root, manifest):
@@ -84,7 +84,7 @@ def assemble(root, out, version, commit):
             raise ValueError('expected one wheel per target')
         for path in [archive, *wheels]:
             shutil.copyfile(path, out / path.name)
-        plugins = [files.get(archive_name(host, version, target)) for host in PLATFORMS]
+        plugins = [find_archive(files, host, version, target) for host in PLATFORMS]
         if any(plugins):
             if not all(plugins):
                 raise ValueError('both marketplace Plugin archives are required for each target')
@@ -107,9 +107,10 @@ def assemble(root, out, version, commit):
     npm_work.mkdir(exist_ok=False)
     packed = npm_package(npm_work, binaries, version)
     shutil.copyfile(packed, out / packed.name)
-    native_plugins = [out / archive_name(host, version, target) for target in TARGETS for host in PLATFORMS]
-    if any(p.exists() for p in native_plugins):
-        if not all(p.exists() for p in native_plugins):
+    output_files = {p.name: p for p in out.iterdir()}
+    native_plugins = [find_archive(output_files, host, version, target) for target in TARGETS for host in PLATFORMS]
+    if any(native_plugins):
+        if not all(native_plugins):
             raise ValueError('all six target-specific marketplace archives are required')
         index = marketplace_index(version, commit, [verify_archive(p, version, commit) for p in native_plugins])
         (out / 'marketplace-plugins.json').write_text(json.dumps(index, indent=2) + '\n')
@@ -124,11 +125,11 @@ def assemble(root, out, version, commit):
 
 def marketplace_index(version, commit, plugins):
     return {'schema_version': 1, 'version': version, 'source_commit': commit,
-            'plugins': [{'name': plugin_name(p['target']), 'host': p['platform'],
-                         'target': p['target'], 'artifact': archive_name(p['platform'], version, p['target']),
+            'plugins': [{'name': p['plugin_name'], 'host': p['platform'],
+                         'target': p['target'], 'artifact': p['artifact'],
                          'sha256': p['sha256'], 'binary_sha256': p['binary_sha256'],
                          'distribution_ref': f"{p['platform']}/{p['target']}/v{version}",
-                         'plugin_path': 'plugins/' + plugin_name(p['target'])} for p in plugins]}
+                         'plugin_path': 'plugins/' + p['plugin_name']} for p in plugins]}
 
 
 def verify(root, version, commit):
@@ -180,7 +181,9 @@ def verify(root, version, commit):
                 raise ValueError('wheel metadata version mismatch')
         wheels[target] = matches[0]
     legacy_names = {archive_name(host, version) for host in PLATFORMS}
-    native_names = [archive_name(host, version, target) for target in TARGETS for host in PLATFORMS]
+    native_names = [p.name if p else archive_name(host, version, target)
+                    for target in TARGETS for host in PLATFORMS
+                    for p in [find_archive(files, host, version, target)]]
     legacy, native = legacy_names.intersection(files), set(native_names).intersection(files)
     if legacy and native:
         raise ValueError('mixed legacy and target-specific marketplace packages')

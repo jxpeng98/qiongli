@@ -191,6 +191,13 @@
       "title": "Native main cutover and stable release routing",
       "path": "docs/architecture/decisions/0227-native-main-cutover-and-stable-release-routing.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-403 / CLI-410",
+      "adr_number": "0228",
+      "title": "Channel-specific native Plugin identities",
+      "path": "docs/architecture/decisions/0228-channel-specific-native-plugin-identities.md",
+      "status": "Accepted"
     }
   ]
 }

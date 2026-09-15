@@ -160,7 +160,7 @@ pub use grant::{
 };
 pub use identity::{
     Architecture, ArtifactIdentityV1, CapabilityProfile, InstallerKind, OperatingSystem, ProductId,
-    ReleaseChannel,
+    ReleaseChannel, native_plugin_name,
 };
 pub use legacy_migration::{
     ApprovedLegacyMigrationPlan, LEGACY_MIGRATION_INVENTORY_SCHEMA_VERSION,

@@ -467,6 +467,27 @@
           ],
           "migration_path": null,
           "removal_gate": null
+        },
+        {
+          "change_id": "public-cli-json/plugin-source-status-v2",
+          "contract_id": "public-cli-json/plugin-source-status",
+          "from_version": "1",
+          "to_version": "2",
+          "classification": "migratable-breaking",
+          "rust_sources": [
+            "packages/qiongli-native/apps/qiongli/src/plugin_source.rs"
+          ],
+          "generated_schema": "packages/qiongli-native/apps/qiongli/schemas/plugin-source-status-v2.schema.json",
+          "golden_fixtures": [
+            "packages/qiongli-native/apps/qiongli/tests/fixtures/plugin-source-v2.status.json"
+          ],
+          "consumer_checks": [
+            "packages/qiongli-native/apps/qiongli/src/managed_operation.rs",
+            "packages/qiongli-native/apps/qiongli/src/plugin_source.rs",
+            "packages/qiongli-native/apps/qiongli/tests/cli.rs"
+          ],
+          "migration_path": "docs/architecture/decisions/0228-channel-specific-native-plugin-identities.md",
+          "removal_gate": null
         }
       ]
     }

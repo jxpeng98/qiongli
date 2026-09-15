@@ -16,10 +16,9 @@ use sha2::{Digest, Sha256};
 use crate::cli_content::{confirm, line, show_json};
 use crate::command::CommandEnvironment;
 use crate::managed_operation::ManagedIntegrationTargetV1;
-use crate::plugin_source::PluginSourcePlan;
+use crate::plugin_source::{PluginSourcePlan, plugin_id, plugin_name};
 
 const MARKETPLACE: &str = "qiongli-cli-local";
-const PLUGIN: &str = "qiongli-next@qiongli-cli-local";
 
 mod codex_config;
 
@@ -59,7 +58,7 @@ pub(crate) fn register(
             "source": source.destination,
             "source_receipt_sha256": plan.source["source"]["receipt_sha256"],
             "cache_receipt_sha256": plan.cache_receipt_sha256,
-            "plugin": PLUGIN,
+            "plugin": plugin_id(),
             "previous_plugins_to_disable": plan.migration.as_ref().map(|migration| &migration.plugins),
             "codex_config_request": plan.migration.as_ref().map(codex_config::PluginMigration::request),
             "commands": plan.commands.iter().map(|args| serde_json::json!({"arguments": serde_json::json!(args).to_string()})).collect::<Vec<_>>(),
@@ -74,7 +73,7 @@ pub(crate) fn register(
         if plan.migration.is_some() {
             line(
                 writer,
-                "Migration: disable only the listed previous Qiongli Plugins through Codex's official configuration API. Keep their sources and caches. This installs the CLI-bundled version in qiongli-cli-local; other Plugins and model settings stay as configured.\n",
+                "Migration: disable only the listed previous Qiongli Plugins through Codex's official configuration API. Keep their cached versions; source changes are covered by the file preview. This installs the CLI-bundled version in qiongli-cli-local; other Plugins and model settings stay as configured.\n",
             )?;
         }
         let reviewed_at = Instant::now();
@@ -101,7 +100,7 @@ pub(crate) fn register(
             migration.apply(environment, &plan.executable)?;
             line(
                 writer,
-                "Previous Qiongli Plugins: disabled; sources and caches retained. If the following registration fails, retry install plugin, or re-enable the listed previous Plugin in Codex to switch back.\n",
+                "Previous Qiongli Plugins: disabled; cached versions retained. If the following registration fails, retry install plugin. To switch back, export the previous CLI Plugin and re-enable its ID in Codex.\n",
             )?;
             let (_, plugins) =
                 read_inventory(environment, &plan.executable, Duration::from_secs(30))?;
@@ -122,12 +121,12 @@ pub(crate) fn register(
         writer,
         &crate::cli_presentation::plugin_install_summary(
             source,
-            PLUGIN,
+            plugin_id(),
             &verified
                 .config_root
                 .join("plugins/cache")
                 .join(MARKETPLACE)
-                .join("qiongli-next")
+                .join(plugin_name())
                 .join(env!("CARGO_PKG_VERSION")),
         ),
     )
@@ -263,7 +262,7 @@ fn inspect_registration(
     let Some(destination) = registered_destination(target, &marketplaces)? else {
         if entries
             .iter()
-            .any(|p| p[if codex { "pluginId" } else { "id" }] == PLUGIN)
+            .any(|p| p[if codex { "pluginId" } else { "id" }] == plugin_id())
         {
             return Err("local-host-marketplace-conflict");
         }
@@ -387,15 +386,10 @@ fn prepare(
     let (marketplaces, plugins) =
         read_inventory(environment, &executable, Duration::from_secs(30))?;
     let conflicts = enabled_conflicts(source.target, &plugins)?;
-    let migration = if conflicts.is_empty() {
+    let migration = if source.target == ManagedIntegrationTargetV1::Codex {
+        codex_config::PluginMigration::read(environment, &executable, &config_root, conflicts)?
+    } else if conflicts.is_empty() {
         None
-    } else if source.target == ManagedIntegrationTargetV1::Codex {
-        Some(codex_config::PluginMigration::read(
-            environment,
-            &executable,
-            &config_root,
-            conflicts,
-        )?)
     } else {
         return Err("local-host-other-qiongli-enabled");
     };
@@ -462,7 +456,7 @@ pub(crate) fn installation_source(
             codex_config::PluginMigration::read(environment, &executable, &root, conflicts)?;
             line(
                 writer,
-                "An earlier Qiongli Plugin is installed from another source. Continue to preview migration to the CLI-bundled Plugin. Its previous source and cache will be kept; disabling it requires the separate Host confirmation below.\n",
+                "An earlier Qiongli Plugin identity or source is enabled. Continue to preview migration to the CLI-bundled Plugin. Only the previewed source files will change; previous caches will be kept. Disabling the old identity requires the separate Host confirmation below.\n",
             )?;
             return Ok(destination);
         }
@@ -539,11 +533,14 @@ fn enabled_conflicts(
         let enabled = plugin["enabled"]
             .as_bool()
             .ok_or("local-host-inventory-invalid")?;
-        if id != PLUGIN
+        if id != plugin_id()
             && matches!(
                 id.split('@').next(),
                 Some(
                     "qiongli"
+                        | "qiongli-macos-arm64"
+                        | "qiongli-windows-x64"
+                        | "qiongli-linux-x64"
                         | "qiongli-next"
                         | "qiongli-next-macos-arm64"
                         | "qiongli-next-windows-x64"
@@ -592,7 +589,7 @@ fn commands(
         if plugin["enabled"].as_bool().is_none() {
             return Err("local-host-inventory-invalid");
         }
-        if id == PLUGIN
+        if id == plugin_id()
             && (installed.replace(plugin).is_some() || (!codex && plugin["scope"] != "user"))
         {
             return Err("local-host-plugin-scope-conflict");
@@ -617,7 +614,7 @@ fn commands(
         let cache = root
             .join("plugins/cache")
             .join(MARKETPLACE)
-            .join("qiongli-next")
+            .join(plugin_name())
             .join(version);
         if !codex && !same_path(&cache, &plugin["installPath"]) {
             return Err("local-host-cache-conflict");
@@ -629,9 +626,9 @@ fn commands(
         cached_receipt = Some(receipt);
         // Only the exact verified local Plugin cache can be replaced by its Host.
         commands.push(if codex {
-            words(&["plugin", "remove", PLUGIN])
+            words(&["plugin", "remove", plugin_id()])
         } else {
-            words(&["plugin", "uninstall", PLUGIN, "--scope", "user"])
+            words(&["plugin", "uninstall", plugin_id(), "--scope", "user"])
         });
     }
     if !registered {
@@ -647,9 +644,9 @@ fn commands(
         ]);
     }
     commands.push(if codex {
-        words(&["plugin", "add", PLUGIN])
+        words(&["plugin", "add", plugin_id()])
     } else {
-        words(&["plugin", "install", PLUGIN, "--scope", "user"])
+        words(&["plugin", "install", plugin_id(), "--scope", "user"])
     });
     Ok((commands, cached_receipt))
 }
@@ -665,7 +662,9 @@ fn cache_receipt(
             verify_local_codex_plugin_source(&target)
                 .map_err(|e| e.reason_code())
                 .and_then(|v| {
-                    if v.receipt().artifact.version != version {
+                    if v.receipt().artifact.version != version
+                        || v.receipt().plugin_name() != plugin_name()
+                    {
                         return Err("local-host-cache-version-mismatch");
                     }
                     Ok(v.receipt_sha256().to_owned())
@@ -676,7 +675,9 @@ fn cache_receipt(
             verify_local_claude_plugin_source(&target)
                 .map_err(|e| e.reason_code())
                 .and_then(|v| {
-                    if v.receipt().artifact.version != version {
+                    if v.receipt().artifact.version != version
+                        || v.receipt().plugin_name() != plugin_name()
+                    {
                         return Err("local-host-cache-version-mismatch");
                     }
                     Ok(v.receipt_sha256().to_owned())
@@ -758,10 +759,11 @@ mod tests {
             let codex = target == ManagedIntegrationTargetV1::Codex;
             let root = base.join(if codex { "codex" } else { "claude" });
             let cache = root
-                .join("plugins/cache/qiongli-cli-local/qiongli-next")
+                .join("plugins/cache/qiongli-cli-local")
+                .join(plugin_name())
                 .join(env!("CARGO_PKG_VERSION"));
             std::fs::create_dir_all(cache.parent().unwrap()).unwrap();
-            let exported = root.join("qiongli-next");
+            let exported = root.join(plugin_name());
             if codex {
                 let target = approve_codex_plugin_bundle_target(&exported).unwrap();
                 qiongli_platform::compose_local_codex_plugin_source(
@@ -800,9 +802,9 @@ mod tests {
                 json!([{"name":MARKETPLACE,"source":"directory","path":base}])
             };
             let entry = if codex {
-                json!({"pluginId":PLUGIN,"version":env!("CARGO_PKG_VERSION"),"installed":true,"enabled":true,"source":{"source":"local","path":base}})
+                json!({"pluginId":plugin_id(),"version":env!("CARGO_PKG_VERSION"),"installed":true,"enabled":true,"source":{"source":"local","path":base}})
             } else {
-                json!({"id":PLUGIN,"version":env!("CARGO_PKG_VERSION"),"scope":"user","enabled":true,"installPath":cache})
+                json!({"id":plugin_id(),"version":env!("CARGO_PKG_VERSION"),"scope":"user","enabled":true,"installPath":cache})
             };
             let plugins = if codex {
                 json!({"installed":[entry]})
@@ -868,6 +870,25 @@ mod tests {
             assert!(receipt.is_none());
             assert!(commands(&source, &root, &Value::Null, &Value::Null, &empty_plugins).is_err());
             assert!(commands(&source, &root, &Value::Null, &empty_markets, &Value::Null).is_err());
+            let previous_id = if plugin_name() == "qiongli" {
+                "qiongli-next@qiongli-cli-local"
+            } else {
+                "qiongli@qiongli-cli-local"
+            };
+            let previous = json!({if codex {"pluginId"} else {"id"}: previous_id, "enabled": true});
+            let previous = if codex {
+                json!({"installed": [previous]})
+            } else {
+                json!([previous])
+            };
+            assert_eq!(
+                enabled_conflicts(target, &previous).unwrap(),
+                vec![previous_id]
+            );
+            assert_eq!(
+                commands(&source, &root, &Value::Null, &empty_markets, &previous).unwrap_err(),
+                "local-host-other-qiongli-enabled"
+            );
             let foreign = json!({if codex {"pluginId"} else {"id"}: "qiongli-next@personal", "enabled": true});
             let plugins = if codex {
                 json!({"installed": [foreign]})
@@ -921,7 +942,7 @@ mod tests {
             let (registered, _) =
                 commands(&source, &root, &Value::Null, &markets, &empty_plugins).unwrap();
             assert_eq!(registered.len(), 1);
-            let plugin = json!({if codex {"pluginId"} else {"id"}: PLUGIN, "scope":"project", "enabled":true});
+            let plugin = json!({if codex {"pluginId"} else {"id"}: plugin_id(), "scope":"project", "enabled":true});
             let plugins = if codex {
                 json!({"installed":[plugin,plugin]})
             } else {

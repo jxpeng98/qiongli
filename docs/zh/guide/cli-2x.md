@@ -34,6 +34,25 @@ Plugin 缓存中加载 Skills 和 MCP。如果已启用另一个 Qiongli Plugin�
 项目写入仍需明确的预览和批准参数。
 
 
+## 正式版与 Next 的插件标识
+
+以下标识迁移已在源码实现，将随后续版本发布；公开的 **2.0.0** 仍沿用
+`qiongli-next`，重新运行旧版安装器不会获得新的命名规则。
+
+- 正式版：Plugin 为 `qiongli`，显示 Qiongli，MCP 标识为 `qiongli`。
+- Alpha/Beta（npm `next`）：Plugin 为 `qiongli-next`，显示 Qiongli Next。
+- CLI 根据自身版本选择身份；npm 的包名一直是 `qiongli`，渠道标签不单独修改运行时。
+
+新版首次安装默认使用与渠道同名的目录。升级时继续复用已核验的源目录，即使
+目录仍叫 `qiongli-next`。Codex 在第二次确认中列出需要停用的旧身份，再注册
+所选版本；旧缓存保留，源文件按第一次确认的计划更新。取消第二次确认会保留
+Host 配置，但已经更新的源目录可能让旧身份从插件列表中消失。重新运行安装器
+可完成迁移；如需退回旧版，先用旧 CLI 导出 Plugin，再启用旧身份。Claude 仍需
+先手动停用冲突插件。
+
+Marketplace 平台包相应使用 `qiongli-macos-arm64` 等正式版 ID，以及
+`qiongli-next-macos-arm64` 等预发布 ID。平台选择和 Lite/Full 工具范围保持原有规则。
+
 ## 从安装到首次使用 {#first-use}
 
 在终端运行 `qiongli install`（仍支持 `--interactive`）。先选择 Plugin，再选择 Codex 或 Claude。

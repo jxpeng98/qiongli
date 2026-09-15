@@ -1,0 +1,11 @@
+{
+  "schema_version": 2,
+  "command": "plugin-source-status",
+  "target": "codex",
+  "destination": "/example/qiongli",
+  "state": "missing",
+  "source": null,
+  "authority": "user-local-source",
+  "host_state": "not-verified",
+  "plugin_id": "qiongli@qiongli-cli-local"
+}

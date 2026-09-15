@@ -2978,11 +2978,11 @@ mod plugin_source_schema_tests {
             ),
             (
                 &generated["status"]["schema"],
-                include_str!("../schemas/plugin-source-status-v1.schema.json"),
+                include_str!("../schemas/plugin-source-status-v2.schema.json"),
             ),
             (
                 &generated["status"]["fixture"],
-                include_str!("../tests/fixtures/plugin-source-v1.status.json"),
+                include_str!("../tests/fixtures/plugin-source-v2.status.json"),
             ),
         ] {
             assert_eq!(

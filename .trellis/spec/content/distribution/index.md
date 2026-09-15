@@ -136,7 +136,9 @@ User-approved local Plugin sources (ADR 0222) reuse the native Codex/Claude
 bundle projectors, include the current executable and use a dedicated
 `qiongli-cli-local` marketplace. They are derived exports, not canonical content
 or signed products. Their `user-local-host-full-mcp` receipts contain no signed
-grant digest; signed bundle APIs reject them. Source updates/removal require the
+grant digest; signed bundle APIs reject them. Local receipt schema 4 follows the
+executable channel; schemas 2/3 keep their historical Next identities and remain
+verifiable. Source updates/removal require the
 expected receipt inside the existing bundle transaction. Host registration,
 cache refresh and live readiness remain separately observed actions.
 ADR 0224's terminal `install/upgrade plugin` flow now offers official Codex/Claude
@@ -164,8 +166,8 @@ qualified target's CLI and directly starts Lite MCP (14 tools) without Node,
 npm, Python, a shell bridge or executable downloads. Full MCP remains available
 through explicit CLI/local Plugin configuration; packaging does not expand tools.
 
-The three targets use explicit `qiongli-next-macos-arm64`,
-`qiongli-next-windows-x64` and `qiongli-next-linux-x64` identities. There is no
+Under ADR 0228, the three targets use explicit `qiongli-<platform>` identities
+for stable and `qiongli-next-<platform>` for Alpha/Beta. There is no
 automatic OS selection in a generic Host manifest. `marketplace-plugins.json`
 maps all six archives to Host, target, digest, plugin path and immutable
 `<host>/<target>/v<version>` distribution ref. External marketplace catalogs must
@@ -219,9 +221,9 @@ ADR 0227 places native stable source on `main` and keeps prerelease development
 on `2.x`. Stable publication requires the tag to equal the frozen remote main
 head, uses GitHub latest and npm latest, and retains matching PyPI/Cargo versions.
 Main pushes qualify builds without publishing. Native Marketplace archives also
-accept stable SemVer; existing qiongli-next target IDs and MCP keys remain stable
-installation identities, while display names distinguish Qiongli from Qiongli
-Next. Previously published projections remain byte-verifiable. The legacy
+accept stable SemVer. ADR 0228 supersedes the shared Next identity: new stable
+archives use qiongli IDs/MCP keys, while Alpha/Beta use qiongli-next. Previously
+published projections remain byte-verifiable. The legacy
 TestPyPI builder is restricted to `release/1.x-python`; native PyPI assets never
 use the frozen Python package. A main merge does not update that maintenance
 branch, promote an external catalog or establish product acceptance.
