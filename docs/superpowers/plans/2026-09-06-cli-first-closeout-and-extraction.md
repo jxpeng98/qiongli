@@ -3,6 +3,67 @@
 Date: 2026-09-06. This is the bounded execution plan selected by the master
 roadmap. The program ledger remains the only task-state authority.
 
+## Current Plugin channel migration increment — September 15
+
+Implementation source: `dc2500c360459e784ec93cc2ab6cecf1fc5f27c1`, from
+`9c264d3e73aea7d1d860d62afe95df352d46d4d0` on
+`fix/plugin-channel-identities`. The maintainer requested stable Qiongli and
+Beta/npm next identities. The coordinator implemented and self-reviewed this
+bounded change; no independent review or program acceptance is claimed.
+
+[ADR 0228](../../architecture/decisions/0228-channel-specific-native-plugin-identities.md)
+supersedes the shared Next identity policy. Stable local Plugin/MCP IDs are
+`qiongli`; Alpha/Beta retain `qiongli-next`. Public platform IDs and archives
+follow that channel. Native receipt v4 and public archive receipt v3 distinguish
+new identities from immutable old projections. The generated source-status v2
+contract retains its v1 predecessor; existing approval and operation-plan
+contracts remain intact. Signed maintenance integrations retain their Next ID.
+
+The installer reuses verified source directories and separate file/Host
+confirmations. Real Codex 0.154.0 exposed a catalog edge: refreshing the source
+hides the old Next ID from inventory while its user configuration stays enabled.
+The existing official configuration owner now includes that exact local sibling
+under version/hash checks. Cancellation preserves Host configuration, but the
+already approved source export can change catalog visibility. Retry completes
+migration; switching back requires the previous export and re-enabling its ID.
+Claude retains its manual conflict-disable boundary.
+
+Validation:
+
+- Channel/receipt checks: **5 passed** with Rust 1.97; CLI Plugin/schema/config
+  checks: **11 passed**. The CLI export/approval/update/drift lifecycle test
+  passes for both Hosts. Codex/Claude bundle suites: **9 passed, 2 ignored**
+  (their optional real-Host cases). Signed/local separation, full content hashes,
+  tampering, exact removal and stale receipts remain covered.
+- Marketplace/release asset checks: **19 passed**, including stable/Alpha/Beta,
+  historical stable Next archives, relabeling and duplicate identities.
+  Public-schema/ADR/frozen-architecture checks: **35 passed**; validators report
+  three public boundaries and 7 frozen / 28 current decisions.
+- Rust **1.97.0** Clippy passes for all targets in `qiongli` and
+  `qiongli-platform`, with no lint allowances; formatting and diff checks pass.
+  An initial unpinned 1.98 Clippy attempt encountered three existing
+  `chunks_exact` lints; the final check uses the repository-pinned toolchain.
+- In an isolated test-owned HOME/CODEX_HOME, the installed 2.0.0 executable
+  first installed Next. The changed executable then passed cancellation and
+  confirmed migration: stable enabled, old Next disabled, synthetic model and
+  reasoning settings preserved. Both caches retain all **456 receipt-bound
+  files**. The first inventory-only attempt exposed the hidden-ID defect above;
+  the corrected run also verified recovery from that interrupted migration.
+  No model request, research data, live user configuration or current user's
+  Plugin registration was used or changed. Logs remain under the ignored
+  native target fixture; this is not installed-session/research acceptance.
+
+- Program-ledger checks: **7 passed**, generated index current. All 249 task
+  states/dependencies and all 46 accepted records match the development base.
+  The frozen-source/native change-boundary guard passes for the implementation
+  commit; its matrix suggestions are not three-platform or Desktop job results.
+
+**Next:** use a separately authorized subsequent release to qualify all target
+packages and public catalog consumers. Published 2.0.0 assets, registry tags,
+current user installations and all historical accepted evidence retain their
+identity. The prior delivery-validator follow-up remains the next independent
+implementation target; whole-repository and broader Host qualification stay open.
+
 ## Current architecture validation increment — September 14
 
 Implementation source: `c91773e50b1d597c4dcf2e33bd0f4062fc0aebfa`, from

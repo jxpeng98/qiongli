@@ -52,13 +52,14 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — September 14, 2026
+## Current execution horizon — September 15, 2026
 
 Use `v2.0.0` at `4f2107f7fda9d8f6dd8874b7dcffb36f5d7751ba` as the
 released product reference. The [current execution plan](../plans/2026-09-06-cli-first-closeout-and-extraction.md)
 records the release observations, bounded source review, implemented answer-bound
 and C→F increments, distribution-scan and architecture-validation fixes, and the
-next delivery-validator target.
+maintainer-requested Plugin channel migration. The delivery-validator follow-up
+remains the next independent implementation target.
 The program ledger owns task
 states; a successful channel publication does not accept its broader Host,
 migration or managed-product task. Dated maturity assessments and execution
@@ -72,6 +73,9 @@ continue to govern delivery: native CLI, Plugin/Skills and Lite/Full MCP;
 development and verification Host. Retain the user's configured models and
 accounts; additional Hosts adapt the shared contracts with scoped observations.
 Desktop/ACP remains maintenance/deferred scope.
+[ADR 0228](../../architecture/decisions/0228-channel-specific-native-plugin-identities.md)
+now selects qiongli for subsequent stable Plugin releases and qiongli-next for
+Alpha/Beta; published 2.0.0 retains its original Next identity.
 
 ### Baseline and corrections to the earlier recommendation
 
@@ -113,6 +117,7 @@ Desktop/ACP remains maintenance/deferred scope.
 | **IMPLEMENTED CONTINUITY** | Bind one C→F pair to actual predecessor and revised source bytes, preserving IDs, limits, stale-review rejection and both real attempts. | `CLI-405` remains active; implementation `7e3de537`, existing plan and portable record. No new store, model change or Host registration. |
 | **IMPLEMENTED SCAN FIX** | Prune excluded directories before descent while retaining exact hashes, symlink coverage and failed-read detection; all 38 distribution checks pass. | Implementation `ec3d700b`; existing audit owner and regression tests. Full discovery failures remain separate; no acceptance promotion. |
 | **IMPLEMENTED ARCHITECTURE FIX** | Register existing ADRs 0226/0227 and check the current CLI-first overview; all 23 architecture checks pass. | Implementation `c91773e5`; existing registry/tests. Accepted ADRs, frozen ARC-201 records and negative inventory checks are preserved. |
+| **IMPLEMENTED PLUGIN MIGRATION** | Select qiongli for stable and qiongli-next for Alpha/Beta; migrate the previous local ID through confirmed Host operations while retaining legacy receipts/caches. | `CLI-403` / `CLI-410`, implementation `dc2500c3` and ADR 0228. Isolated real Codex migration passes; publication, current user installation and session acceptance remain separate. |
 | **NOW** | Reconcile the delivery validator's old release-command marker with the current checklist's explicit `--cli-github` lane. | Existing validator/checklist owners and negative approval/release checks. No release, permission or stable-ref changes. |
 | **THEN** | Diagnose remaining full-suite failures in bounded groups; fix demonstrated content defects before expanding observations. | Existing validation/content owners; preserve permission gates and stable/prerelease negatives. No blanket assertion removal or speculative model matrix. |
 | **QUALIFICATION** | Refresh the named installed-package Codex approval/write/restart journey and separately qualify advertised Graph/Hook/browser behavior. | `CLI-403`–`CLI-405`, `SEC-401`–`SEC-403`, `CLI-410`; reuse existing install, approval/CAS and acceptance owners. The previously paused Host-registration lane needs its own resumed scope; independent offline implementation continues. |
