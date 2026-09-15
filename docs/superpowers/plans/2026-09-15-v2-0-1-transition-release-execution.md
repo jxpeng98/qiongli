@@ -112,8 +112,9 @@ it does not qualify a changed release owner/candidate. The worktree is clean.
 
 1. Synchronize the reviewed source/tag through existing rules without force
    rewriting protected refs or replacing immutable artifacts.
-2. Qualify macOS ARM64, Windows x64 and Linux x64 from that same commit using
-   `native-cli-distribution.yml`; verify the complete combined packet and installs.
+2. Qualify macOS ARM64 manually and Windows/Linux x64 through
+   `native-cli-distribution.yml` at the same commit; assemble locally, retain
+   the Mac receipt and verify the exact combined packet on Linux/Windows.
 3. Bind the publication decision to the exact candidate/assets/channels, then
    use existing release automation and npm/PyPI/Cargo publishers.
 4. Verify public downloads/registry installs. Announcements and external
@@ -154,7 +155,7 @@ coordinator's policy/docs and main integration are self-reviewed; no independent
 program acceptance is claimed. Main's two publishing guides also needed their
 current-version examples corrected from 2.0.0 to 2.0.1.
 
-Local `main` is **`789b0bbe`** (`release/2.0.1-transition-reviewed`), a fast-forward
+Before the CI policy increment below, local `main` was **`789b0bbe`** (`release/2.0.1-transition-reviewed`), a fast-forward
 of the compatible candidate. Native runtime and canonical content have no byte
 diff from `fe0d4531`. Canonical versioned content remains at
 `dc73165567cd0df670f71e4dd920e3fa02bf8058`.
@@ -268,3 +269,72 @@ The next independently actionable implementation is the bounded baseline
 validation diagnosis already in the master roadmap. All 249 task
 states/dependencies and all 46 accepted rows remain unchanged. The plan, ledger
 and generated index record local completion without promoting task acceptance.
+
+
+## Local macOS CI policy increment — September 15
+
+The maintainer explicitly selected manual local macOS checks with retained
+receipts. ADR 0230 supersedes only hosted execution; Linux/Windows remain on
+Actions and all three targets remain required for release qualification.
+
+### Implementation and review
+
+- Development commits **`21e3f43b` / `86714195`** remove all macOS runner rows
+  from the six affected workflows. Retained Community Alpha aggregation and
+  authorization use the existing local owners after all three target results.
+- Existing release assets/publisher owners now require a complete locally
+  assembled packet, manual Mac combined npm/wheel/Plugin/Cargo checks and
+  Linux/Windows install receipts bound to the exact manifest digest. Publication
+  verifies the reviewed draft, source refs and unchanged assets before publishing.
+- Executor **gpt-6-astra / low** implemented four workflow changes and their
+  checks. The coordinator implemented the release handoff and documentation;
+  the executor independently reviewed those six release/tooling/test files.
+  Its one actionable finding (retain Linux tooling tests and all-wheel metadata
+  validation after removing hosted assembly) was fixed. Final source review
+  found no remaining actionable findings; documentation is coordinator-reviewed.
+- The executor ported only these changes onto compatible main. The coordinator
+  reviewed the resolved import and exact diff, then fast-forwarded local main to
+  **`4ebd1825c72e473168b4692a5f9edad99f205ca0`**, after `45330d07`.
+  Main retains its legacy Next/v1 owners, 2.0.1 examples and unchanged native
+  runtime/content. Development's deferred identity migration was not merged.
+- Minimal workflow/test-only maintenance patches are prepared as
+  `ci/local-macos-legacy-dev` **`401b253c`** from `70c5bd9e` and
+  `ci/local-macos-legacy-release` **`7c71ea59`** from `8d2e9986`.
+  The frozen 1.x branch/tag and product code are untouched. These patches apply
+  the explicitly requested CI policy without introducing product changes.
+
+### Observed checks and limits
+
+Development: **165 focused tests pass** across branch policy, release automation,
+CLI assets/publisher, Marketplace/registry packaging, distribution/install docs,
+ADRs and public schema policy. All workflow YAML parses; **37 Bash step bodies**
+pass `bash -n`. The ADR validator passes **7 frozen / 30 current** records; native
+change-boundary, frozen-architecture and diff checks pass. Main port: **144
+focused tests pass**, including its different legacy Marketplace projection.
+Each maintenance patch passes the affected checkout-matrix regression check.
+All seven program-roadmap tests pass; the regenerated index is current. An exact
+ledger comparison confirms all 249 states/dependencies and 46 accepted rows
+remain unchanged.
+
+These are tooling/workflow checks performed locally on macOS. No new complete
+Mac release qualification, Cargo archive installation, three-target draft
+handoff, Linux/Windows Actions run or public installation ran for this source.
+The earlier `789b0bbe` qualification remains historical and cannot qualify
+changed main `4ebd1825`. Fresh exact-source release evidence is still required.
+
+### Remote rollout remains pending
+
+No push, tag, draft upload, remote rule update or publication occurred. A fresh
+read of GitHub ruleset **18800504** still requires `Rust native foundation
+(macOS)`. The prepared update removes only that context and retains Linux,
+Windows, Native 2.x change boundary, Evaluation Truth, PR, deletion and
+non-fast-forward protections. Snapshot and proposed request are
+`/private/tmp/qiongli-macos-ruleset-before.json` and
+`/private/tmp/qiongli-macos-ruleset-update.json`; re-read before applying.
+
+Synchronize reviewed patches to the relevant remote branches under separate
+push/rule authority and existing PR protections. Do not bulk-push unrelated local
+`2.x` work or rewrite frozen tags. Remote branches still execute their old
+workflows until synchronization. The local Mac guide supplies the release
+handoff commands and receipt paths. All 249 task states/dependencies and 46
+accepted records remain unchanged; this increment adds no program acceptance.

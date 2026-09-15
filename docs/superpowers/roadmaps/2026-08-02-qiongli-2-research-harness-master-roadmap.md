@@ -57,7 +57,8 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 Use `v2.0.0` at `4f2107f7fda9d8f6dd8874b7dcffb36f5d7751ba` as the
 released product reference. The [current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md)
 records the maintainer's 2.0.1 v1 transition and planned 2.1 cutoff, completed
-delegated implementation, coordinator review and local macOS qualification.
+delegated implementation, coordinator review, historical macOS qualification
+and the subsequent manual-local macOS CI policy increment.
 The [prior bounded record](../plans/2026-09-06-cli-first-closeout-and-extraction.md)
 retains research observations, tooling fixes, the deferred identity migration
 and the earlier macOS-only patch qualification. Remaining baseline failures and
@@ -80,6 +81,9 @@ sets the transition boundary: 2.0.1 retains Next/v1; 2.1 is the planned v1 outpu
 cutoff and channel-specific identity release. It supersedes ADR 0228's immediate
 switch, preserving verified old-receipt migration and recovery. The current plan
 owns execution and evidence; the decision does not establish release acceptance.
+[ADR 0230](../../architecture/decisions/0230-local-macos-verification.md) moves
+macOS checks to manual local execution with retained receipts; Linux/Windows
+remain on Actions. The exact-source three-target release gate remains required.
 
 ### Baseline and corrections to the earlier recommendation
 
@@ -123,8 +127,9 @@ owns execution and evidence; the decision does not establish release acceptance.
 | **IMPLEMENTED ARCHITECTURE FIX** | Register existing ADRs 0226/0227 and check the current CLI-first overview; all 23 architecture checks pass. | Implementation `c91773e5`; existing registry/tests. Accepted ADRs, frozen ARC-201 records and negative inventory checks are preserved. |
 | **IMPLEMENTED PLUGIN MIGRATION** | Select qiongli for stable and qiongli-next for Alpha/Beta; migrate the previous local ID through confirmed Host operations while retaining legacy receipts/caches. | `CLI-403` / `CLI-410`, implementation `dc2500c3` and ADR 0228. Isolated real Codex migration passes; publication, current user installation and session acceptance remain separate. |
 | **IMPLEMENTED DELIVERY FIX** | Align the delivery command marker and publisher assertion with their existing native/push-only owners, retaining negative checks. | `e6a89ea0` / `f76b406d`; no workflow or authorization relaxation. |
-| **PATCH CANDIDATE** | Final compatible main `789b0bbe` retains Next/v1 and passes fresh macOS ARM64 CLI, npm/wheel and both Plugin checks, plus isolated 2.0.0 upgrade/refusal/retry/restoration. | Exact receipts/hashes in the current plan. Windows/Linux, real combined packet, Cargo/public installs and publication remain pending. Identity migration stays on `2.x` for 2.1. |
+| **PATCH CANDIDATE** | Compatible main `4ebd1825` retains Next/v1 and now includes the local macOS CI handoff. | Prior `789b0bbe` Mac qualification is historical; the changed candidate needs fresh exact-source three-target, Cargo/public and publication evidence. Identity migration stays on `2.x` for 2.1. |
 | **IMPLEMENTED TRANSITION RELEASE** | Require actual v1/Next package observations, reject mixed IDs and missing evidence, and upload only verified packet artifacts. | Executor gpt-6-astra / low; compatible commits `dc4e83f3`–`0d0a6aba`, reviewed development port `60f2cf37`; ADR 0229/current plan. No blocking findings in this patch scope; no acceptance promotion. |
+| **IMPLEMENTED CI POLICY** | Run macOS manually with receipts; keep Linux/Windows automated and require their combined-install receipts for the locally qualified packet. | `21e3f43b` / `86714195`, ADR 0230; 165 development and 144 compatible-main tests pass. Minimal maintenance patches are prepared. Remote synchronization and removal of the retired required macOS context remain separately authorized work. |
 | **NOW** | Diagnose remaining full-suite failures in bounded groups; fix demonstrated content defects before expanding observations. | Existing validation/content owners; preserve permission gates and stable/prerelease negatives. No blanket assertion removal or speculative model matrix. |
 | **QUALIFICATION** | Refresh the named installed-package Codex approval/write/restart journey and separately qualify advertised Graph/Hook/browser behavior. | `CLI-403`–`CLI-405`, `SEC-401`–`SEC-403`, `CLI-410`; reuse existing install, approval/CAS and acceptance owners. The previously paused Host-registration lane needs its own resumed scope; independent offline implementation continues. |
 | **AFTER THE BASELINE** | Complete local atomic task claims, candidate review, conflict/cancellation/revocation and restart handling with two actual Hosts. | `CLI-406`–`CLI-408`, then `CLI-411`, under their existing dependencies. `CLI-409` qualifies additional Hosts individually. |
