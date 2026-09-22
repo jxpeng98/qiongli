@@ -31,7 +31,8 @@ Return the findings in `templates/agent-review-packet.md`. Preserve the configur
 model. The coordinator dispatches through the actual available Host tool and
 collects its result using the original returned execution ID; this packet itself
 does not launch a task. For a configured external Agent tool, use the same result
-format. There is no bundled external runtime adapter or new cross-Host run claim.
+format. When available, the bounded Codex prepare/collect transport follows
+`model-collaborator`; it grants no new cross-Host run claim.
 
 When live candidate schema supports `delegationResults`, the coordinator may
 attach up to eight completed results with `adapter`, `executionId`, `dispatchTool`,

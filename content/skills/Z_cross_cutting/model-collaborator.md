@@ -185,8 +185,8 @@ handoff token and does not grant tool access. Automatic cross-Host task claims a
 simultaneous canonical writes remain a separate capability.
 
 An existing configured, authorized external Agent tool may return the same
-result envelope. Record its actual tool and execution ID; this increment bundles
-no external runtime adapter and grants no new cross-Host claim authority. Manual
+result envelope. The bounded Codex transport below is available when its CLI and
+Host execution tools are present; it grants no new cross-Host claim authority. Manual
 transfer without a tool-returned execution ID remains trace-only, not a fabricated
 `external-agent` receipt.
 
@@ -197,6 +197,46 @@ source revision/digests and candidate identity against current authorized eviden
 A stale or mismatched response needs reconciliation or another review; never apply
 its patch blindly. The coordinator records accepted/rejected findings and applies
 only the approved integrated candidate through the existing write owner.
+
+### Codex external transport, when available
+
+Use the existing configured Codex CLI only for an authorized bounded assignment.
+Preserve its saved authentication, model and reasoning effort: do not add
+`--model` or `--ignore-user-config`, install a runtime or request new credentials.
+If the CLI or Host execution tool is unavailable, use the portable fallback above
+and report that nothing was dispatched.
+
+1. Prepare a packet JSON with exactly `scope` and `sourceText`. Include only the
+   approved source snapshot, IDs, citekeys, anchors and evidence limits. Run
+   `qiongli agent codex prepare --handoff <canonical-handoff.json> --packet <packet.json> --json`.
+   It returns `argv`, bounded `stdin`, `handoffSha256` and `packetSha256`.
+2. Through the actual Host execution tool, start the returned argv in an approved
+   isolated working directory and feed the returned stdin unchanged. The fixed
+   command is `codex exec --json --ephemeral --sandbox read-only --color never --skip-git-repo-check -`.
+   Keep the exact JSONL stdout and observed process identity, status and exit code;
+   the Host tool owns waiting, timeout and cancellation, not a Qiongli daemon.
+3. After observing completed execution with exit code 0, run
+   `qiongli agent codex collect --handoff <canonical-handoff.json> --packet <packet.json> --events <jsonl> --status completed --exit-code 0 --json`.
+   Keep the handoff and packet unchanged. Collection requires a single coherent
+   started/completed turn and a nonblank final agent message containing JSON that
+   acknowledges the exact `handoffSha256`, `packetSha256` and supplies `resultText`,
+   as requested by prepare. It emits the existing `HostDelegationResultV1` with
+   `adapter: external-agent`, `dispatchTool: codex.exec` and `executionId` from
+   `thread.started`. Its result text/digest retain the exact final message, not
+   just the inner `resultText`. Retain the Host process identity in the trace too.
+4. Recheck current source/candidate bindings before optional candidate submission;
+   the coordinator's MCP-authenticated reads and approval boundaries still apply.
+
+`--sandbox read-only` narrows execution but is not full filesystem or MCP isolation.
+Configured hooks and MCP tools remain subject to Host rules: use only approved
+source packets and tools, with no private-library writes. Do not infer permission
+from configuration or the presence of this transport.
+
+On timeout, cancellation, nonzero exit or transport loss, retain the event log and
+gap. Collection accepts observed `completed` plus exit 0 only; never relabel
+`cancelled`, `timed-out` or `failed` as completed because late output exists.
+Inspect the original execution before retrying and obtain fresh authorization and
+bindings. Ephemeral execution has no automatic resume/replay: do not use `--last`.
 
 ### Carry research state forward
 
