@@ -14,7 +14,7 @@ struct CrossrefResponse {
 #[serde(untagged)]
 enum CrossrefMessage {
     Many { items: Vec<CrossrefWork> },
-    One(CrossrefWork),
+    One(Box<CrossrefWork>),
 }
 
 #[derive(Debug, Deserialize)]
@@ -50,7 +50,7 @@ pub fn normalize_crossref_response(payload: &str) -> Result<Vec<LiteratureResult
     let response: CrossrefResponse = serde_json::from_str(payload)?;
     let works = match response.message {
         CrossrefMessage::Many { items } => items,
-        CrossrefMessage::One(work) => vec![work],
+        CrossrefMessage::One(work) => vec![*work],
     };
     Ok(works
         .into_iter()
