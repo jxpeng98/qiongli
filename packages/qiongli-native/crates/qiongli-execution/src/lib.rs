@@ -14,12 +14,17 @@ pub use acp_control::{
 mod all_chat;
 mod artifact_review;
 mod backend;
+mod codex_exec;
 mod control;
 mod dispatch;
 mod error;
 mod fake;
 mod host_acceptance;
 mod host_handoff;
+pub use codex_exec::{
+    CODEX_EXEC_MAX_INPUT_BYTES, CodexExecDispatchV1, CodexExecOutcomeV1, CodexExecPacketV1,
+    collect_codex_exec, prepare_codex_exec,
+};
 mod identity;
 mod openai;
 mod orchestration;

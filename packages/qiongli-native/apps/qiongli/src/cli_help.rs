@@ -29,6 +29,7 @@ fn reference() -> String {
         command::UPDATE_USAGE,
         command::MCP_USAGE,
         HOOKS,
+        crate::external_agent_cli::USAGE,
         command::INSTALL_USAGE,
         CONTENT_INSTALL,
         command::MIGRATION_USAGE,
@@ -64,6 +65,9 @@ pub(crate) fn topic(args: &[OsString]) -> Option<String> {
         ["app"] => APP,
         ["setup"] | ["install", "review"] => SETUP,
         ["hooks"] | ["hooks", "context"] => HOOKS,
+        ["agent"] | ["agent", "codex"] | ["agent", "codex", "prepare" | "collect"] => {
+            crate::external_agent_cli::USAGE
+        }
         ["install", "list"] | ["install", "inventory"] => {
             "Usage: qiongli install list [--paths exact] [--json | --text]\n       qiongli install inventory [--paths exact] [--json | --text]\n\nShow detected CLI versions and Hosts. Use --paths exact to show actual locations.\n"
         }

@@ -419,6 +419,7 @@ pub(crate) fn prepare_action_with_release_authority(
     };
 
     let output = match command {
+        Command::ExternalAgent(command) => crate::external_agent_cli::run(&command),
         Command::Help => CliOutput::success_text(USAGE),
         Command::ContextHook => return ProductAction::ServeContextHook,
         Command::TopicHelp(text) => CliOutput::success_text(text),
@@ -659,6 +660,7 @@ enum Command {
         dry_run: bool,
     },
     Project(crate::project_cli::ProjectCliCommand),
+    ExternalAgent(crate::external_agent_cli::ExternalAgentCommand),
     ContentHelp,
     ContentList,
     ContentMaterialize {
@@ -762,7 +764,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
                 ));
             }
             "update" => return Ok(Command::Update(UpdateCliCommand::Status)),
-            "mcp" | "app" | "migrate-1x" | "upgrade" | "hooks" => {
+            "mcp" | "app" | "migrate-1x" | "upgrade" | "hooks" | "agent" => {
                 return Ok(Command::TopicHelp(crate::cli_help::topic(&args).unwrap()));
             }
             _ => {}
@@ -778,6 +780,12 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "install" => parse_install_args(&args[1..]),
         "migrate-1x" => parse_migration_args(&args[1..]),
         "mcp" => parse_mcp_args(&args[1..]),
+        "agent" => crate::external_agent_cli::parse(&args[1..])
+            .map(Command::ExternalAgent)
+            .map_err(|message| UsageError {
+                message,
+                usage: crate::external_agent_cli::USAGE,
+            }),
         "hooks" if args.len() == 2 && args[1] == OsStr::new("context") => Ok(Command::ContextHook),
         "project"
             if args.get(1).is_some_and(|arg| arg == "graph")
@@ -831,6 +839,7 @@ fn help_scope(usage: &str) -> &'static str {
         INSTALL_USAGE => "install ",
         MIGRATION_USAGE => "migrate-1x ",
         crate::project_cli::PROJECT_USAGE => "project ",
+        crate::external_agent_cli::USAGE => "agent codex ",
         _ => "",
     }
 }

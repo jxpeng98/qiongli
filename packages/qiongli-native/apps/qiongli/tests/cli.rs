@@ -111,6 +111,194 @@ fn run_without_path(args: &[&str]) -> Output {
 }
 
 #[test]
+fn external_codex_adapter_prepares_and_collects_without_launching_a_host() {
+    use serde_json::json;
+    let fixture = Fixture::new("external-codex");
+    let handoff_path = fixture.root.join("handoff.json");
+    let packet_path = fixture.root.join("packet.json");
+    let events_path = fixture.root.join("events.jsonl");
+    let handoff = json!({
+        "schemaVersion":1,"protocolVersion":"qiongli-host-handoff/1",
+        "host":{"schemaVersion":1,"family":"codex","hostVersion":"0.155.1","adapterVersion":"2.0.0",
+            "fullMcpProtocol":"qiongli-full-mcp/1","capabilities":["single-agent"],
+            "pluginState":"ready","registrationState":"ready","enablementState":"ready","trustState":"ready","activationState":"ready"},
+        "runId":format!("run_{}", "1".repeat(32)),"projectId":format!("prj_{}", "2".repeat(32)),
+        "expectedProjectRevision":7,"taskId":"B1","role":"primary","attempt":1,
+        "checkpointGeneration":3,"checkpointDocumentSha256":"3".repeat(64),
+        "workflowSha256":"4".repeat(64),"profileSha256":"5".repeat(64),"taskPacketSha256":"6".repeat(64),
+        "candidateKind":"research-task","instructions":"Review synthetic bibliography metadata; return a proposal only.",
+        "allowedToolIds":["project.read"],"minimumEvidenceCount":1,
+        "limits":{"maxCandidateBytes":32768,"maxToolCalls":16,"maxWallSeconds":900,"maxRetries":1}
+    });
+    let packet = json!({"scope":"Audit supplied synthetic metadata","sourceText":"C-001, Alpha2024, registry:alpha; full text unavailable."});
+    fs::write(&handoff_path, serde_json::to_vec_pretty(&handoff).unwrap()).unwrap();
+    fs::write(&packet_path, packet.to_string()).unwrap();
+    let execute = |mode: &str, extra: &[&str]| {
+        fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), &fixture)
+            .env("PATH", "")
+            .args([
+                "agent",
+                "codex",
+                mode,
+                "--handoff",
+                handoff_path.to_str().unwrap(),
+                "--packet",
+                packet_path.to_str().unwrap(),
+            ])
+            .args(extra)
+            .arg("--json")
+            .output()
+            .unwrap()
+    };
+    let output = execute("prepare", &[]);
+    assert!(output.status.success(), "{}", public_output(&output));
+    let prepared = parse_json(&output);
+    assert_eq!(prepared["argv"][0], "codex");
+    assert!(!fixture.config_root.exists());
+    let reply = json!({"handoffSha256":prepared["handoffSha256"],"packetSha256":prepared["packetSha256"],"resultText":"C-001/Alpha2024: metadata-only proposal; no full text."}).to_string();
+    let events = [
+        json!({"type":"thread.started","thread_id":"fixture-thread"}),
+        json!({"type":"turn.started"}),
+        json!({"type":"item.completed","item":{"type":"agent_message","text":reply}}),
+        json!({"type":"turn.completed"}),
+    ]
+    .iter()
+    .map(ToString::to_string)
+    .collect::<Vec<_>>()
+    .join("\n");
+    fs::write(&events_path, &events).unwrap();
+    let events_arg = events_path.to_str().unwrap();
+    let completed = execute(
+        "collect",
+        &[
+            "--events",
+            events_arg,
+            "--status",
+            "completed",
+            "--exit-code",
+            "0",
+        ],
+    );
+    assert!(completed.status.success(), "{}", public_output(&completed));
+    let result = parse_json(&completed);
+    assert_eq!(result["executionId"], "fixture-thread");
+    assert_eq!(result["resultText"], reply);
+    assert_eq!(result["adapter"], "external-agent");
+    for (status, code) in [
+        ("cancelled", "0"),
+        ("timed-out", "0"),
+        ("failed", "0"),
+        ("completed", "1"),
+    ] {
+        let rejected = execute(
+            "collect",
+            &[
+                "--events",
+                events_arg,
+                "--status",
+                status,
+                "--exit-code",
+                code,
+            ],
+        );
+        assert_eq!(rejected.status.code(), Some(1));
+        assert!(rejected.stdout.is_empty());
+        assert!(public_output(&rejected).contains("codex-exec-not-completed"));
+    }
+    for extra in [
+        vec!["--model", "unrequested-model"],
+        vec!["--packet", packet_path.to_str().unwrap()],
+    ] {
+        assert_eq!(execute("prepare", &extra).status.code(), Some(2));
+    }
+    assert_eq!(
+        execute("collect", &["--events", events_arg]).status.code(),
+        Some(2)
+    );
+    fs::write(
+        &packet_path,
+        json!({"scope":"same scope","sourceText":"Changed R3 source"}).to_string(),
+    )
+    .unwrap();
+    let stale = execute(
+        "collect",
+        &[
+            "--events",
+            events_arg,
+            "--status",
+            "completed",
+            "--exit-code",
+            "0",
+        ],
+    );
+    assert!(public_output(&stale).contains("codex-exec-reply-binding-mismatch"));
+    fs::write(&packet_path, packet.to_string()).unwrap();
+    fs::write(&events_path, [0xff]).unwrap();
+    assert!(
+        !execute(
+            "collect",
+            &[
+                "--events",
+                events_arg,
+                "--status",
+                "completed",
+                "--exit-code",
+                "0"
+            ]
+        )
+        .status
+        .success()
+    );
+    fs::remove_file(&events_path).unwrap();
+    fs::create_dir(&events_path).unwrap();
+    assert!(
+        public_output(&execute(
+            "collect",
+            &[
+                "--events",
+                events_arg,
+                "--status",
+                "completed",
+                "--exit-code",
+                "0"
+            ]
+        ))
+        .contains("codex-exec-input-not-bounded-file")
+    );
+    fs::remove_dir(&events_path).unwrap();
+    fs::write(
+        &events_path,
+        vec![b' '; qiongli_execution::CODEX_EXEC_MAX_INPUT_BYTES + 1],
+    )
+    .unwrap();
+    let collect = || {
+        execute(
+            "collect",
+            &[
+                "--events",
+                events_arg,
+                "--status",
+                "completed",
+                "--exit-code",
+                "0",
+            ],
+        )
+    };
+    assert!(public_output(&collect()).contains("codex-exec-input-not-bounded-file"));
+    #[cfg(unix)]
+    {
+        fs::remove_file(&events_path).unwrap();
+        std::os::unix::fs::symlink(&handoff_path, &events_path).unwrap();
+        assert!(public_output(&collect()).contains("codex-exec-input-not-bounded-file"));
+    }
+    assert!(!fixture.config_root.exists());
+    assert_eq!(
+        serde_json::from_slice::<Value>(&fs::read(&handoff_path).unwrap()).unwrap(),
+        handoff
+    );
+}
+
+#[test]
 fn guided_installation_requires_a_terminal_and_local_mcp_checks_do_not_claim_host_readiness() {
     let fixture = Fixture::new("guided-install-mcp-check");
     for args in [

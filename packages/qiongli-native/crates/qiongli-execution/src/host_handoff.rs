@@ -504,7 +504,10 @@ pub struct HostDelegationResultV1 {
 }
 
 impl HostDelegationResultV1 {
-    fn validate_against(&self, handoff: &OrchestrationHandoffV1) -> Result<(), HostHandoffError> {
+    pub(crate) fn validate_against(
+        &self,
+        handoff: &OrchestrationHandoffV1,
+    ) -> Result<(), HostHandoffError> {
         if self.handoff_sha256 != handoff.digest()? {
             return Err(HostHandoffError::BindingMismatch);
         }
@@ -1106,6 +1109,180 @@ mod tests {
             OrchestrationHandoffV1::from_canonical_json(&pretty),
             Err(HostHandoffError::NonCanonicalJson)
         );
+    }
+
+    #[test]
+    fn codex_transport_collects_only_bound_successful_turns() {
+        use crate::{
+            CodexExecOutcomeV1 as Outcome, CodexExecPacketV1, collect_codex_exec,
+            prepare_codex_exec,
+        };
+        let handoff = handoff();
+        let packet = CodexExecPacketV1 {
+            scope: "Review the supplied bibliography snapshot".into(),
+            source_text: "C-001; D-001; citekey Alpha2024; registry:alpha; synthetic R2.\nFull text unavailable.".into(),
+        };
+        let prepared = prepare_codex_exec(&handoff, &packet).unwrap();
+        assert_eq!(
+            prepared.argv,
+            vec![
+                "codex",
+                "exec",
+                "--json",
+                "--ephemeral",
+                "--sandbox",
+                "read-only",
+                "--color",
+                "never",
+                "--skip-git-repo-check",
+                "-"
+            ]
+        );
+        let reply = serde_json::json!({
+            "handoffSha256": prepared.handoff_sha256,
+            "packetSha256": prepared.packet_sha256,
+            "resultText": "C-001 / Alpha2024: 来源不充分; full text unavailable."
+        })
+        .to_string();
+        let events = vec![
+            serde_json::json!({"type":"thread.started", "thread_id":"fixture-codex-thread"}),
+            serde_json::json!({"type":"turn.started"}),
+            serde_json::json!({"type":"item.completed", "item":{"type":"reasoning","text":"private reasoning canary"}}),
+            serde_json::json!({"type":"item.completed", "item":{"type":"agent_message","text":reply}}),
+            serde_json::json!({"type":"turn.completed"}),
+        ];
+        let encode = |events: &[serde_json::Value]| {
+            events
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("\n")
+                + "\n"
+        };
+        let collected =
+            collect_codex_exec(&handoff, &packet, &encode(&events), Outcome::Completed, 0).unwrap();
+        assert_eq!(collected.execution_id, "fixture-codex-thread");
+        assert_eq!(collected.adapter, HostDelegationAdapterV1::ExternalAgent);
+        assert_eq!(collected.result_text, reply);
+        assert_eq!(collected.result_sha256, sha256(reply.as_bytes()));
+        assert!(
+            !serde_json::to_string(&collected)
+                .unwrap()
+                .contains("private reasoning canary")
+        );
+        let mut candidate = HostCandidateEnvelopeV1::try_new(
+            &handoff,
+            "Coordinator synthesis",
+            vec![evidence()],
+            vec![digest('a')],
+            HostReviewResultV1::NotApplicable,
+            vec![],
+            vec![],
+        )
+        .unwrap();
+        candidate.delegation_results.push(collected);
+        handoff.validate_candidate(&candidate).unwrap();
+
+        for (outcome, exit_code) in [
+            (Outcome::Cancelled, 0),
+            (Outcome::TimedOut, 0),
+            (Outcome::Failed, 0),
+            (Outcome::Completed, 1),
+        ] {
+            assert_eq!(
+                collect_codex_exec(&handoff, &packet, &encode(&events), outcome, exit_code)
+                    .unwrap_err(),
+                "codex-exec-not-completed"
+            );
+        }
+        // An interrupted transport must be re-observed, never promoted by its last message.
+        for end in 0..events.len() {
+            assert!(
+                collect_codex_exec(
+                    &handoff,
+                    &packet,
+                    &encode(&events[..end]),
+                    Outcome::Completed,
+                    0
+                )
+                .is_err()
+            );
+        }
+        for (index, replacement) in [
+            (
+                0,
+                serde_json::json!({"type":"thread.started","thread_id":""}),
+            ),
+            (1, events[0].clone()),
+            (
+                2,
+                serde_json::json!({"type":"error","message":"private provider error"}),
+            ),
+            (4, serde_json::json!({"type":"turn.failed"})),
+            (
+                3,
+                serde_json::json!({"type":"item.completed","item":{"type":"agent_message","text":"not bound JSON"}}),
+            ),
+        ] {
+            let mut invalid = events.clone();
+            invalid[index] = replacement;
+            assert!(
+                collect_codex_exec(&handoff, &packet, &encode(&invalid), Outcome::Completed, 0)
+                    .is_err()
+            );
+        }
+        let mut duplicate = events.clone();
+        duplicate.push(events.last().unwrap().clone());
+        assert!(
+            collect_codex_exec(
+                &handoff,
+                &packet,
+                &encode(&duplicate),
+                Outcome::Completed,
+                0
+            )
+            .is_err()
+        );
+        let mut changed_packet = packet.clone();
+        changed_packet.source_text.push_str(" changed R3");
+        assert_eq!(
+            collect_codex_exec(
+                &handoff,
+                &changed_packet,
+                &encode(&events),
+                Outcome::Completed,
+                0
+            )
+            .unwrap_err(),
+            "codex-exec-reply-binding-mismatch"
+        );
+        let mut changed_handoff = handoff.clone();
+        changed_handoff.checkpoint_generation += 1;
+        assert_eq!(
+            collect_codex_exec(
+                &changed_handoff,
+                &packet,
+                &encode(&events),
+                Outcome::Completed,
+                0
+            )
+            .unwrap_err(),
+            "codex-exec-reply-binding-mismatch"
+        );
+        assert!(collect_codex_exec(&handoff, &packet, "{", Outcome::Completed, 0).is_err());
+        assert_eq!(
+            collect_codex_exec(
+                &handoff,
+                &packet,
+                &" ".repeat(crate::CODEX_EXEC_MAX_INPUT_BYTES + 1),
+                Outcome::Completed,
+                0
+            )
+            .unwrap_err(),
+            "codex-exec-events-too-large"
+        );
+        changed_packet.scope.clear();
+        assert!(prepare_codex_exec(&handoff, &changed_packet).is_err());
     }
 
     #[test]
