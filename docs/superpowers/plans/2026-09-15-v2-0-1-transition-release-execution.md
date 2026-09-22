@@ -543,3 +543,104 @@ and release-candidate acceptance remain their own gates. CLI-405/CLI-410 states,
 all 249 task dependencies and 46 accepted rows remain unchanged. Next increment:
 qualify a fresh installed candidate on the maintainer's actual query and approve
 one bounded Zotero import after reviewing its exact proposed changes.
+
+### September 22 next increment — Host delegation results (2.1 development)
+
+Requested outcome: GPT/Codex coordinates actual Host subagents and reconciles
+their source-bound proposals before one coordinator submits. Extend the existing
+Host candidate with optional, bounded delegation observations: actual dispatch
+tool/execution identity, scope, originating handoff, terminal state and exact
+returned text/digest. Reuse the existing checkpoint CAS, authenticated reads and
+candidate digest; no second task store or execution backend.
+
+1. Add shared validation and the live Full MCP schema, preserving old candidate
+   bytes when the optional field is absent. Reject stale, duplicate, unfinished,
+   cancelled and tampered reports before advancing the checkpoint.
+2. Update the existing collaborator Skill and portable templates to collect
+   actual Host results and distinguish reported execution from authenticated
+   research evidence. Configured external tools may return the same proposal
+   format; shipping a new external runtime adapter is the following increment.
+3. Run focused Rust/stdio compatibility and negative cases, independently review
+   the diff and exercise the Skill with isolated synthetic inputs and actual
+   Host tools. Regenerate the embedded pack through its existing owner.
+4. Record results/gaps here and in the existing ledger, then locally fast-forward
+   into `2.x`. Keep the 2.0.1 patch, accepted evidence and publication unchanged.
+
+This implements ADR 0218's Host-owned boundary. A Host-reported execution ID is
+not server authentication or proof of independence. Cancellation remains owned
+by the dispatching Host; only observed completed, reconciled results are eligible
+for submission. Native task claims across separate Hosts, automatic external
+launch, crash recovery and real library writes remain unqualified.
+
+
+### September 22 execution result — Host delegation results
+
+Canonical Skill source: `051a35dd8dc8cdbac6fbbab991951d416f8a98cd`, developed
+on `feat/host-delegation-results` from `423c1cbb`. Native implementation and pack
+lock: `2e4a5c1e8a09c2f002ed0de9e7c9ecc3211426c8`. Runtime changes stay in the
+existing `HostCandidateEnvelopeV1` and live Full MCP schema. Optional
+`delegationResults` preserves old v2 canonical bytes when absent. Up to eight
+observations bind adapter/execution ID, dispatch tool, scope, handoff and exact
+result bytes/digest. Only completed results pass, with candidate and delegated
+text sharing the handoff byte limit. Existing authenticated evidence, checkpoint
+CAS and artifact-approval owners retain authority; submission stores only the
+candidate digest. No package version or 2.0.1 patch change is included.
+
+The retained executor `astra_light_release_201` updated the three canonical
+Skill/template files. The coordinator implemented Rust validation and stdio
+regressions. Independent `literature_runtime_review` (**gpt-6-astra / low**)
+reviewed source against `423c1cbb` and reported no blocking findings. Its reviewed
+runtime/Skill/template/test diff SHA-256 was
+`4f6bfdce908d77b2e61a58ed216220cb011303a7df13a9076d54d1faa0993786`;
+resource generation and validation records were completed by the coordinator.
+After review, the coordinator added one exact combined-byte-budget assertion
+and its over-budget UTF-8 negative case; production behavior remained unchanged.
+
+The independent Skill forward test actually dispatched
+`/root/literature_runtime_review/fixture_bibliography_audit` through
+`collaboration.spawn_agent`, with an isolated source packet and no prior verdict.
+Dispatch returned that identity; the same child's `FINAL_ANSWER` was collected.
+The coordinator checked the returned corrections against synthetic registry
+records, preserving `C-001`/`D-001`/`Alpha2024`, `C-002`/`D-002`/`Beta2025v2`,
+source anchors, R2 and method limits. It restored the missing second author and
+corrected a preprint's type while retaining its version and unknown venue.
+Requested model/effort is recorded, not independently attested by the runtime.
+
+Raw local artifacts remain under `/private/tmp/qiongli-delegation-forward`:
+`dispatch.json`, `source.json`, `child-result.txt`, `candidate.json` and
+`model_collab_trace.md`. Source SHA-256:
+`807b3e7a91b553c5ca19c016c1aaebce162c664de7e3c95e639fb39434913c70`;
+exact returned text SHA-256:
+`a591a8c00789d5929e30021a5682a0a5bc98b4e44b7e5b7113421a1e330cbd68`.
+Both were independently recomputed before recording. This test used the portable
+trace; no registered Full MCP run, source-read receipt or project write was
+fabricated. The copied-binary MCP tests separately use synthetic Host observations.
+Together they provide development evidence, not installed-Host acceptance.
+
+Validation on pinned Rust/Cargo 1.97.0:
+
+- Execution library: **117 passed**, including old candidate round trips,
+  native/external observation validation, duplicates, unfinished/cancelled states,
+  digest and source-binding substitution, limits and debug redaction. An initial
+  run had six resource-root mismatches after canonical content changed; these
+  passed after regenerating the pack through its existing owner.
+- Copied-binary MCP: **7 passed**, including live schema, completed result digest,
+  cancelled/tampered/stale rejection without consuming evidence, second-process
+  evidence rejection, duplicate submission and result arrival after run cancel.
+- Existing Skill/handoff contracts: **11 passed**.
+- Clippy for `qiongli-execution` and `qiongli`, all targets with `-D warnings`,
+  passed; formatting and diff checks passed. After the final test-only boundary
+  assertion, all six handoff tests and execution all-target Clippy passed again.
+- Native boundary/frozen-baseline guards passed. All **249** task states and
+  dependencies and **46** accepted rows remain unchanged.
+- Embedded pack: **434** entries, bound to `051a35dd`; content root
+  `755de18e25a313eb2db127e040c15efac51bf194d43b3f71398ad6d70a09c073`.
+
+Remaining increment: add one explicitly selected, configured external Agent
+transport through the same coordinator/result contract, then exercise timeout,
+late cancellation and connection recovery with that actual runtime. This change
+provides its result format, not automatic external launching or cross-Host atomic
+claims. Live installed Plugin refresh, real research/library mutations, multi-Host
+qualification, Linux/Windows execution and publication remain separate evidence
+and authorization scopes. CLI-406 remains proposed; local integration is not
+collaboration release acceptance.

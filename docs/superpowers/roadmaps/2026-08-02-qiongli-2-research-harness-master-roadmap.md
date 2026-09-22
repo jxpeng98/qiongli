@@ -63,6 +63,11 @@ under ADR 0231. The selected literature discovery, bibliography delivery and Zot
 increment is implemented at `15a8b901` with local checks and scoped independent
 review. The current plan records public-query/BibTeX observations and remaining
 installed-Host, maintainer-query and approved real-library qualification.
+The maintainer next selects Host delegation for 2.1 development: structured
+source-bound subagent results through the existing candidate/checkpoint owner,
+with actual Host dispatch/collection exercised on synthetic inputs. The current
+plan owns checks and remaining external-adapter/two-Host qualification; this
+does not broaden the 2.0.1 patch or promote collaboration acceptance.
 The [prior bounded record](../plans/2026-09-06-cli-first-closeout-and-extraction.md)
 retains research observations, tooling fixes, the deferred identity migration
 and the earlier macOS-only patch qualification. Remaining baseline failures and
@@ -135,8 +140,9 @@ optional. The proposed removal of the remote macOS context is withdrawn.
 | **PATCH CANDIDATE** | Compatible main `370e250f` retains Next/v1 and restores hosted three-platform CI. | Prior `789b0bbe` Mac qualification is historical; the changed candidate needs fresh exact-source three-target, Cargo/public and publication evidence. Identity migration stays on `2.x` for 2.1. |
 | **IMPLEMENTED TRANSITION RELEASE** | Require actual v1/Next package observations, reject mixed IDs and missing evidence, and upload only verified packet artifacts. | Executor gpt-6-astra / low; compatible commits `dc4e83f3`–`0d0a6aba`, reviewed development port `60f2cf37`; ADR 0229/current plan. No blocking findings in this patch scope; no acceptance promotion. |
 | **RESTORED CI POLICY** | Restore hosted macOS/Linux/Windows builds and release gates; local checks are optional. | `9e1f575d` / compatible main `370e250f`, ADR 0231; 158 development and 140 main checks pass. Local-only maintenance patches and the macOS ruleset-removal proposal are withdrawn. No remote action or fresh release qualification. |
-| **NOW** | Improve relevant literature discovery → verified, field-preserving BibTeX → receipt-bound Zotero linkage. | `CLI-405`, current plan: live known-title/export probes identify ordering, metadata loss and Host schema gaps. Fix existing contracts/runtime before claiming Skill instructions alone deliver reliable references; no library writes or quality acceptance yet. |
-| **AFTER LITERATURE** | Diagnose remaining full-suite failures in bounded groups; fix demonstrated content defects before expanding observations. | Existing validation/content owners; preserve permission gates and stable/prerelease negatives. No blanket assertion removal or speculative model matrix. |
+| **IMPLEMENTED LITERATURE** | Relevant discovery → field-preserving BibTeX → receipt-bound Zotero linkage. | `15a8b901` / `423c1cbb`, current plan; maintainer-topic, installed-Host and real-library qualification remain open. |
+| **IMPLEMENTED HOST DELEGATION** | Bound native Host observations to the current candidate and exercise actual subagent collection. | `CLI-405` / preliminary `CLI-406`, current plan; 117 execution tests, 7 stdio tests and scoped independent review. Configured external tools share the result contract; a bundled external adapter is the following increment. |
+| **REMAINING BASELINE** | Diagnose remaining full-suite failures in bounded groups; fix demonstrated content defects before expanding observations. | Existing validation/content owners; preserve permission gates and stable/prerelease negatives. No blanket assertion removal or speculative model matrix. |
 | **QUALIFICATION** | Refresh the named installed-package Codex approval/write/restart journey and separately qualify advertised Graph/Hook/browser behavior. | `CLI-403`–`CLI-405`, `SEC-401`–`SEC-403`, `CLI-410`; reuse existing install, approval/CAS and acceptance owners. The previously paused Host-registration lane needs its own resumed scope; independent offline implementation continues. |
 | **AFTER THE BASELINE** | Complete local atomic task claims, candidate review, conflict/cancellation/revocation and restart handling with two actual Hosts. | `CLI-406`–`CLI-408`, then `CLI-411`, under their existing dependencies. `CLI-409` qualifies additional Hosts individually. |
 | **LATER** | Use observed evidence failures to select a minimum Kernel/Evidence slice, then reproducibility and executable research gates. | M4 precedes dependent M5 schemas; these remain separate expansion decisions. Cross-device `CLI-412`, broad method packs and institutional modes retain their scope gates. |
