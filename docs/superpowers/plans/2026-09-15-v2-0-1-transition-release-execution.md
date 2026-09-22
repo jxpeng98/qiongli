@@ -754,3 +754,42 @@ real research/Zotero writes, Linux/Windows execution and publication retain thei
 separate scopes. The read-only sandbox is not full MCP/hooks isolation. All
 **249** task states/dependencies and **46** accepted rows remain unchanged;
 CLI-406 stays proposed. `main` and the 2.0.1 release candidate remain unchanged.
+
+### September 23 test result — registered synthetic Full MCP journey
+
+Tested local `2.x` at `130bebf3` with configured Codex CLI 0.155.1. Two isolated
+synthetic projects under `/private/tmp/qiongli-codex-full-mcp-5cdv80_i` were
+created and refreshed through the existing preview/approved-apply owner. A real
+Full MCP stdio process handled `initialize`, doctor, start and an authenticated
+`qiongli_project_read`. The coordinator saved its actual handoff, source snapshot
+and evidence reference, called `agent codex prepare`, executed the returned
+`codex exec` command using existing account/model settings, and passed exact
+JSONL and observed process status through `collect` before submission. The
+Full MCP server exited cleanly with empty stderr. Test-only Python supervised
+the Host processes; it is not a product dependency.
+
+| Case | Actual Codex execution and outcome |
+| --- | --- |
+| Changed source | Thread `01a0cb62-12e9-7ef3-8315-3e68274c74cd` completed in 70.69 seconds and collected successfully. The synthetic project's semantic revision changed from 2 to 3 before `qiongli_orchestration_submit`; the old candidate was rejected as `project-revision-conflict`. JSONL SHA-256: `6f841d940418fcf66764f3a464fdd5ba8f5b1d7f0e3feb9ac4ce6bac46886a1f`. |
+| In-turn timeout | Thread `01a0cb63-2cd5-7a91-9bce-9da9b06be0ae` emitted `thread.started` and `turn.started`; after the Host deadline, SIGTERM was reaped at 0.95 seconds with no `turn.completed`. `collect` rejected it as `codex-exec-not-completed`. JSONL SHA-256: `c94153b20d37eeff0035e943e2fb454c965d41353f3c658c2a20f8fdc1df337a`. |
+| Explicit fresh execution | Thread `01a0cb63-305e-72a0-a700-e0173dce6a3f` completed in 73.14 seconds. The coordinator collected its source-bound reply and submitted a synthetic candidate with the authenticated read evidence to the same Full MCP process. The server returned `candidate-accepted`, digest `909bd0cd8cbb64f69448c3f18292fd72cdb18f501a6f5228d207ab0f925783e1`. JSONL SHA-256: `573aad70239273f7290ea40a52835874ba2ab470b7ce22556299c66eb303c9e9`. |
+
+The coordinator recomputed all three JSONL hashes, both collected result-text
+hashes and their handoff/packet bindings. The fresh task used a new execution
+identity; there was no session resume. The candidate's primary content was a
+fixed synthetic canary, with the exact Codex response attached as a delegation
+result. This validates transport, evidence binding, revision rejection and the
+Full MCP submission path, not the scholarly quality of the model's proposal.
+The source packet contained the authenticated project overview and evidence
+reference plus an explicit synthetic method limit; it did not include a complete
+bibliographic record or private library data.
+
+No product source changed during this test. The existing 177 scoped tests and
+static checks remain applicable to `130bebf3`; no redundant suite was run.
+Installed Plugin behavior, a real research/Zotero journey, network loss and
+persistent reconnection remain unqualified. Host-reported process status is
+observational, not independent execution authentication. CLI-406 remains
+proposed; all 249 task states/dependencies and 46 accepted rows stay unchanged.
+Next qualify the adapter in a named installed-Host candidate and separately
+exercise a user-authorized real research source without promoting these synthetic
+observations into release acceptance.
