@@ -64,10 +64,12 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("cache: pip", content)
         self.assertIn("test-tier: full", content)
         self.assertIn("test-tier: windows-smoke", content)
-        self.assertNotIn("test-tier: macos-smoke", content)
+        self.assertIn("test-tier: macos-smoke", content)
         self.assertIn("if: matrix.test-tier == 'full'", content)
         self.assertIn("if: matrix.test-tier == 'windows-smoke'", content)
+        self.assertIn("if: matrix.test-tier == 'macos-smoke'", content)
         self.assertIn("      - name: Run Windows smoke tests", content)
+        self.assertIn("      - name: Run macOS CTR inventory smoke tests", content)
         windows_modules = (
             "tests.test_install_qiongli",
             "tests.test_bootstrap_qiongli",
@@ -90,7 +92,7 @@ class BranchPolicyTests(unittest.TestCase):
             self.assertIn(module, content)
         windows_start = content.index("      - name: Run Windows smoke tests")
         windows_end = content.index(
-            "  shell-release-gates:", windows_start
+            "      - name: Run macOS CTR inventory smoke tests", windows_start
         )
         windows_block = content[windows_start:windows_end]
         self.assertEqual(
@@ -107,25 +109,56 @@ class BranchPolicyTests(unittest.TestCase):
         )
         self.assertIn('./scripts/release_preflight.sh --quick --materialize-out "$RUNNER_TEMP/qiongli-preflight-dist"', content)
 
-    def test_hosted_workflows_keep_linux_windows_and_no_macos_runners(self) -> None:
-        for name in ('ci.yml', 'native-ci.yml', 'install-check.yml', 'native-community-alpha-promotion.yml'):
-            workflow = yaml.safe_load(read('.github/workflows/' + name))
-            runners = set()
-            for job in workflow['jobs'].values():
-                matrix = job.get('strategy', {}).get('matrix', {})
-                runners.update(matrix.get('os', []))
-                runners.update(row['os'] for row in matrix.get('include', []))
-                runner = job['runs-on']
-                if '${{' not in runner:
-                    runners.add(runner)
-            with self.subTest(workflow=name):
-                self.assertEqual(runners, {'ubuntu-latest', 'windows-latest'})
-        legacy = yaml.safe_load(read('.github/workflows/ci.yml'))['jobs']['cross-platform-tests']
-        steps = {step['name']: step for step in legacy['steps']}
-        self.assertIn('python -m unittest discover', steps['Run full unit tests']['run'])
-        self.assertIn('tests.test_ctr_201_orchestrator_runtime_inventory', steps['Run Windows smoke tests']['run'])
-        names = list(steps)
-        self.assertLess(names.index('Validate CTR-201A/B/C/D/E/F inventories'), names.index('Run Windows smoke tests'))
+    def test_ci_runs_ctr_inventory_smoke_on_macos_after_shared_validation(
+        self,
+    ) -> None:
+        content = read(".github/workflows/ci.yml")
+        job_start = content.index("  cross-platform-tests:")
+        job_end = content.index("  shell-release-gates:", job_start)
+        job = content[job_start:job_end]
+
+        for runner, tier in (
+            ("ubuntu-latest", "full"),
+            ("windows-latest", "windows-smoke"),
+            ("macos-latest", "macos-smoke"),
+        ):
+            with self.subTest(runner=runner):
+                self.assertIn(
+                    f"          - os: {runner}\n            test-tier: {tier}",
+                    job,
+                )
+
+        validate_step = "      - name: Validate CTR-201A/B/C/D/E/F inventories"
+        macos_step = "      - name: Run macOS CTR inventory smoke tests"
+        self.assertIn(validate_step, job)
+        self.assertIn(macos_step, job)
+        macos_start = job.index(macos_step)
+        macos_block = job[macos_start:]
+        self.assertIn("if: matrix.test-tier == 'macos-smoke'", macos_block)
+        self.assertIn("python -m unittest", macos_block)
+        macos_modules = (
+            "tests.test_ctr_201_inventory",
+            "tests.test_ctr_201_cli_inventory",
+            "tests.test_ctr_201_orchestrator_inventory",
+            "tests.test_ctr_201_content_inventory",
+            "tests.test_ctr_201_cli_runtime_inventory",
+            "tests.test_ctr_201_orchestrator_runtime_inventory",
+        )
+        for module in macos_modules:
+            self.assertIn(module, macos_block)
+        self.assertEqual(
+            [macos_block.index(module) for module in macos_modules],
+            sorted(macos_block.index(module) for module in macos_modules),
+        )
+        self.assertNotIn(
+            "scripts/extract_ctr_201_cli_runtime_inventory.py",
+            macos_block,
+        )
+        self.assertNotIn(
+            "scripts/extract_ctr_201_orchestrator_runtime_inventory.py",
+            macos_block,
+        )
+        self.assertLess(job.index(validate_step), macos_start)
 
     def test_ci_validates_ctr_201a_b_c_d_e_f_inventories_before_distribution_work(
         self,
@@ -209,6 +242,7 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("fail-fast: false", job)
         for platform, runner in (
             ("Linux", "ubuntu-latest"),
+            ("macOS", "macos-latest"),
             ("Windows", "windows-latest"),
         ):
             with self.subTest(platform=platform):
@@ -318,9 +352,28 @@ class BranchPolicyTests(unittest.TestCase):
 
     def test_native_promotion_requires_successful_ci_for_exact_head(self) -> None:
         native_ci = read(".github/workflows/native-ci.yml")
-        self.assertNotIn('  dispatch-community-alpha-promotion:', native_ci)
-        self.assertNotIn('  packaged-product-acceptance:', native_ci)
-        self.assertNotIn('actions: write', native_ci)
+        start = native_ci.index("  dispatch-community-alpha-promotion:")
+        dispatch = native_ci[start:]
+
+        for job in (
+            "native-change-boundary",
+            "rust-native-foundation",
+            "desktop-package-assembly",
+            "packaged-product-acceptance",
+            "lite-runtime-compatibility",
+            "lite-alpha-candidate-acceptance",
+        ):
+            self.assertIn(f"      - {job}", dispatch)
+        self.assertIn("success()", dispatch)
+        self.assertIn("github.event_name == 'workflow_dispatch'", dispatch)
+        self.assertIn("github.ref == 'refs/heads/2.x'", dispatch)
+        self.assertIn("actions: write", dispatch)
+        self.assertIn("GH_TOKEN: ${{ github.token }}", dispatch)
+        self.assertIn("gh workflow run native-community-alpha-promotion.yml", dispatch)
+        self.assertIn("--ref 2.x", dispatch)
+        self.assertIn('-f "source_commit=$SOURCE_COMMIT"', dispatch)
+        self.assertIn('-f "native_ci_run_id=$NATIVE_CI_RUN_ID"', dispatch)
+        self.assertNotIn("request_publication_authorization", dispatch)
 
         promotion = read(".github/workflows/native-community-alpha-promotion.yml")
         self.assertNotIn("workflow_run:", promotion)
@@ -328,16 +381,13 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertNotIn("\n  push:\n", promotion)
         self.assertIn("actions: read", promotion)
         self.assertIn("native_ci_run_id:", promotion)
-        self.assertNotIn('request_publication_authorization:', promotion)
-        self.assertNotIn('  aggregate-candidate:', promotion)
-        self.assertNotIn('  authorize-candidate:', promotion)
-        self.assertIn('native_community_alpha_promotion/native_community_alpha_release', promotion)
-        self.assertIn('community-alpha-target-${{ matrix.target_label }}-', promotion)
-        self.assertIn('--example native_linux_appimage', promotion)
-        self.assertIn('Verify Windows complete portable directory', promotion)
-        self.assertIn('-- target', promotion)
-        self.assertNotIn('-- aggregate', promotion)
-        self.assertNotIn('-- authorize-candidate', promotion)
+        authorization_input = promotion[
+            promotion.index("      request_publication_authorization:") :
+            promotion.index("\n\nconcurrency:")
+        ]
+        self.assertIn("        required: false", authorization_input)
+        self.assertIn("        default: false", authorization_input)
+        self.assertIn("        type: boolean", authorization_input)
         self.assertIn("REQUESTED_SOURCE_COMMIT: ${{ inputs.source_commit }}", promotion)
         self.assertIn("NATIVE_CI_RUN_ID: ${{ inputs.native_ci_run_id }}", promotion)
         self.assertIn('"repos/$GITHUB_REPOSITORY/actions/runs/$NATIVE_CI_RUN_ID"', promotion)
@@ -356,14 +406,22 @@ class BranchPolicyTests(unittest.TestCase):
             '$NATIVE_CI_RUN_ID"',
             promotion,
         )
-    def test_candidate_lifecycle_acceptance_runs_on_linux_and_windows(self) -> None:
+        authorization_job = promotion[promotion.index("  authorize-candidate:") :]
+        self.assertIn(
+            "    if: inputs.request_publication_authorization",
+            authorization_job,
+        )
+
+    def test_candidate_lifecycle_acceptance_runs_on_all_tier_one_targets(self) -> None:
         content = read(".github/workflows/native-ci.yml")
         start = content.index("  lite-alpha-candidate-acceptance:")
-        job = content[start:]
+        end = content.index("  dispatch-community-alpha-promotion:", start)
+        job = content[start:end]
 
         self.assertIn("    runs-on: ${{ matrix.os }}", job)
         for platform, artifact_label, os_name in (
             ("Linux", "linux", "ubuntu-latest"),
+            ("macOS", "macos", "macos-latest"),
             ("Windows", "windows", "windows-latest"),
         ):
             with self.subTest(platform=platform):
@@ -380,12 +438,25 @@ class BranchPolicyTests(unittest.TestCase):
 
     def test_native_acceptance_jobs_require_explicit_dispatch(self) -> None:
         content = read(".github/workflows/native-ci.yml")
-        jobs = yaml.safe_load(content)['jobs']
-        for name in ('desktop-package-assembly', 'lite-alpha-candidate-acceptance'):
-            with self.subTest(job=name):
-                self.assertEqual(jobs[name]['if'], "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/2.x'")
-        self.assertNotIn('dispatch-community-alpha-promotion', jobs)
-        self.assertNotIn('packaged-product-acceptance', jobs)
+        jobs = {
+            "desktop-package-assembly": "packaged-product-acceptance",
+            "packaged-product-acceptance": "lite-runtime-compatibility",
+            "lite-alpha-candidate-acceptance": "dispatch-community-alpha-promotion",
+        }
+        for job_name, next_job_name in jobs.items():
+            with self.subTest(job=job_name):
+                start = content.index(f"  {job_name}:")
+                end = content.index(f"  {next_job_name}:", start)
+                job = content[start:end]
+                self.assertIn(
+                    "    if: github.event_name == 'workflow_dispatch' && "
+                    "github.ref == 'refs/heads/2.x'",
+                    job,
+                )
+
+        dispatch = content[content.index("  dispatch-community-alpha-promotion:"):]
+        self.assertIn("github.event_name == 'workflow_dispatch'", dispatch)
+        self.assertNotIn("github.event_name != 'pull_request'", dispatch)
 
     def test_2x_native_ci_does_not_start_legacy_language_runtimes(self) -> None:
         content = read(".github/workflows/native-ci.yml")
@@ -581,6 +652,7 @@ class BranchPolicyTests(unittest.TestCase):
                 self.assertIn("`Native 2.x change boundary`", content)
                 for context in (
                     "`Rust native foundation (Linux)`",
+                    "`Rust native foundation (macOS)`",
                     "`Rust native foundation (Windows)`",
                 ):
                     self.assertIn(context, content)

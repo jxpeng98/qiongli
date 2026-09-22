@@ -62,10 +62,10 @@ commit 创建。该分支继续承接原生开发和预发布；审阅后的集�
 
 - `Native 2.x change boundary`；
 - `Rust native foundation (Linux)`；
+- `Rust native foundation (macOS)`；
 - `Rust native foundation (Windows)`。
 
-ready source PR 在 Actions 的 Linux、Windows 上运行无 GUI workspace 测试；
-macOS 改为本机手动运行并保留绑定源码的收据，见[本地验证指南](../../development/local-macos-checks.md)。
+ready source PR 在 Linux、macOS、Windows 上运行无 GUI 的 workspace 测试；
 format 和 CLI Clippy 只在 Linux 运行一次。共享 native 源码、构建或 Desktop
 改动增加 Linux 桌面消费者检查；专用 CLI/MCP 改动跳过前端。只有 Lite 或未知的
 工具输入、Lite 的共享 runtime 依赖改动运行独立 Lite compatibility。
@@ -73,8 +73,7 @@ draft PR 暂缓 native 测试。
 
 非运行时文档或仅证据 PR 保留轻量 native contexts；未知路径、workflow、fixture
 和空 diff 保守运行全部 PR 检查，删除源码仍按源码处理。`workflow_dispatch`
-才运行 Linux/Windows 的桌面、Lite、package 和 candidate 检查。macOS
-验收、三平台 Community Alpha 汇总和后续授权改由本地现有工具执行。`Evaluation Truth V1`
+才运行完整三平台桌面、Lite、package 和 candidate 检查。`Evaluation Truth V1`
 也只在 PR head 上运行一次；合入后的 push 不会重复启动这两个 workflow。
 日常步骤以 [CONTRIBUTING](https://github.com/jxpeng98/qiongli/blob/2.x/CONTRIBUTING.md)
 为准，不需要逐阶段人工确认。
@@ -93,9 +92,8 @@ baseline 及其 schema，包括
 `capture --check` 仍可在明确的兼容性调查中手动运行；新的 conformance
 evidence 必须写入新的版本化路径。
 
-`2.x` 的远端强制来源为 ruleset `18800504`。9 月 15 日读取时，它要求 pull request 和原来的四个
-native required contexts（包括已退役的 macOS）以及 `Evaluation Truth V1`。
-获得远端同步授权后只移除 macOS 一项；禁止删除与 non-fast-forward 更新，并且没有 bypass
+`2.x` 的远端强制来源为 ruleset `18800504`。它要求 pull request 和以上四个
+native required contexts 以及 `Evaluation Truth V1`，禁止删除与 non-fast-forward 更新，并且没有 bypass
 actor。只有当对应 workflow 是 required 时，immutable guard 才能在合入前
 阻止变更；没有服务端保护时，direct push 将不会被验证，因为合入后的 push
 不会启动 `Native CI`。
@@ -128,8 +126,8 @@ main 没有分支保护；下次集成应重新核查远端规则。
 
 自动 `2.x` PR 不组装三目标产品包，不运行 packaged-product 或 Lite candidate
 acceptance，也不触发 Community Alpha promotion；合入后的 push 不启动
-`Native CI`。Linux/Windows job 只在明确的 `workflow_dispatch` candidate action 中
-运行；macOS 和三平台汇总改为本地执行。Slice 通过只代表集成证据，不代表发布授权。
+`Native CI`。这些 job 只在明确的 `workflow_dispatch` candidate action 中
+运行。Slice 通过只代表集成证据，不代表发布授权。
 
 macOS-first 原生开发从 `packages/qiongli-native/` 运行以下命令，以使用仓库
 固定的 Rust toolchain：
@@ -145,10 +143,6 @@ executable；两者都不等于 Windows runtime pass。受影响的启动、持�
 路径仍需在 Windows guest 或 runner 中运行，ready PR 的原生 Windows context
 仍是 Slice 权威。Windows 11 Arm 的 x64 模拟适合作为日常证据，但不代表原生
 Windows x64 硬件认证、签名、installer 或 release acceptance。
-
-9 月 15 日读取远端 ruleset `18800504` 时，它仍要求
-`Rust native foundation (macOS)`。获得远端同步授权后，只移除这一项旧检查，
-其余检查及 PR/ref 保护保留。不能用虚假的绿色任务代替本地收据（ADR 0230）。
 
 ## 官方 Plugin 接入
 

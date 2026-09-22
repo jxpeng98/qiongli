@@ -316,14 +316,12 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('branches: ["dev", "release/1.x-python"]', main_content)
         self.assertNotIn('"main"', main_content)
         self.assertNotIn('branches: ["2.x"]', main_content)
-        self.assertIn("os: [ubuntu-latest]", main_content)
-        self.assertIn("runs-on: windows-latest", main_content)
-        self.assertNotIn("macos-latest", main_content)
+        self.assertIn("os: [ubuntu-latest, macos-latest]", main_content)
         self.assertIn("runs-on: windows-latest", main_content)
 
         self.assertFalse(
             MACOS_INSTALL_CHECK_WORKFLOW.exists(),
-            msg="macOS checkout checks run locally, not in a hosted workflow.",
+            msg="macOS checkout checks should stay in the main workflow to avoid duplicate checks.",
         )
 
     def test_ci_runs_windows_a1_acceptance_against_the_built_artifact(self) -> None:

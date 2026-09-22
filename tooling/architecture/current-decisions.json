@@ -212,6 +212,13 @@
       "title": "Manual local macOS verification",
       "path": "docs/architecture/decisions/0230-local-macos-verification.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0231",
+      "title": "Hosted three-platform verification",
+      "path": "docs/architecture/decisions/0231-hosted-three-platform-verification.md",
+      "status": "Accepted"
     }
   ]
 }

@@ -17,29 +17,23 @@ QIONGLI_NATIVE_SOURCE_COMMIT="$(git rev-parse HEAD)" \
   -p qiongli-content --example update_qiongli_core_lock --locked --offline
 ```
 
-Review and commit the lock, notes and remaining preparation. macOS runs manually
-under ADR 0230; Actions retains Linux/Windows. Qualify clean main locally with:
+Review and commit the lock, notes and remaining preparation. Qualify clean main with:
 
 ```sh
 bash scripts/release_ready.sh --version 2.0.1 --cli-github \
   --staging-dir /tmp/qiongli-2.0.1-qualified
 ```
 
-The staging directory must be new and outside the checkout. Follow the
-[local macOS handoff](../../docs/development/local-macos-checks.md) to download the
-matching Linux/Windows target artifacts, assemble all three targets and run
-`native_release_assets.py qualify-macos`. Under separate upload authority, create
-a draft Release containing only the verified packet at the existing tag. Keep
-remote main frozen at that immutable tag, then dispatch:
+The staging directory must be new and outside the checkout. After the authorized
+source/tag push, keep remote main frozen at that immutable tag and dispatch:
 
 ```sh
 gh workflow run release-automation.yml --ref v2.0.1 \
   -f mode=post -f tag=v2.0.1 -f create_release=true
 ```
 
-The publisher requires the local macOS receipt and verifies the exact combined
-packet automatically on Windows x64 and Linux x64. It verifies all assets,
-publishes the unchanged reviewed draft and verifies
+The publisher qualifies the tag on macOS ARM64, Windows x64 and Linux x64,
+verifies the combined assets, creates the stable GitHub Release and verifies
 public downloads before dispatching npm, PyPI and Cargo. Stable uses GitHub
 latest and npm latest; npm next can remain on the Beta. Dispatch acceptance does
 not establish publication success. No legacy Python, App promotion, local Cargo

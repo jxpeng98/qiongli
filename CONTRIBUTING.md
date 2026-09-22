@@ -58,8 +58,7 @@ A PR is created only when explicitly requested for remote collaboration; use the
 [optional template](.github/pull_request_template.md). The existing PR-triggered
 CI remains available with these scopes, but is not a local merge prerequisite:
 
-- CLI: headless workspace tests on Linux and Windows in Actions; macOS runs
-  manually with retained local receipts (ADR 0230); format and CLI
+- CLI: headless workspace tests on Linux, macOS and Windows; format and CLI
   Clippy once on Linux. `qiongli-ui`'s GUI tests are excluded from headless work.
 - Desktop: shared native source/build or desktop/frontend changes add Linux
   desktop consumer tests and Clippy. Dedicated CLI/MCP paths skip the renderer.
@@ -68,9 +67,8 @@ CI remains available with these scopes, but is not a local merge prerequisite:
 - Non-runtime docs/process/evidence use lightweight native contexts. Unknown,
   workflow, fixture and empty changes conservatively include desktop and Lite.
 
-Local merges do not change remote rules. The retired macOS required context
-must be removed at separately authorized synchronization; keep the remaining
-checks and PR/ref protections. See [local macOS checks](docs/development/local-macos-checks.md). Do not open a PR or change remote protection merely to complete
+The remote ruleset and context names remain unchanged; local merges do not
+trigger them. Do not open a PR or change remote protection merely to complete
 local development. Full desktop matrices, packages, live Hosts and capacity
 measurements belong to a named candidate, not every extraction increment.
 
@@ -99,21 +97,18 @@ CI supplies evidence. A named human release decision authorizes publication, and
 a separate decision authorizes announcement.
 
 The CLI lane builds no App and requires no Community Alpha signing key. It
-qualifies macOS CLI assets and npm/wheel installs locally;
-`native-cli-distribution.yml` automatically builds Linux/Windows. Assemble all
-three targets locally and run `native_release_assets.py qualify-macos`, including
-combined package/Plugin and Cargo archive checks. Under separate authority,
-upload the verified packet to a draft Release at the immutable reviewed tag,
-then dispatch the existing publisher:
+qualifies current-target CLI assets and npm/wheel installs; three-platform CI
+uses `native-cli-distribution.yml`. For an unattended native release, push an immutable tag containing the reviewed
+release notes, then dispatch the existing workflow at that tag:
 
 ```sh
 gh workflow run release-automation.yml --ref v2.0.0-beta.2 -f mode=post -f tag=v2.0.0-beta.2
 ```
 
 Use the actual new version for both values. The action waits for that tag's
-Linux/Windows combined-install run, verifies the exact manifest digest and
-local macOS receipt, publishes the unchanged draft and checks public downloads before dispatching npm, PyPI and Cargo publishers.
-It refuses already published releases and never replaces their assets. The registry
+three-platform distribution run, verifies its assets, creates the GitHub Release
+and checks its public downloads before dispatching npm, PyPI and Cargo publishers.
+It refuses existing releases and never replaces published assets. The registry
 jobs keep their environments, credentials and exact-source gates. An accepted
 dispatch is not proof that publication has finished. Publication uses
 an immutable tag and `gh release`, followed by public download verification.
@@ -129,9 +124,8 @@ source-status v1 interface. The planned 2.1 cutoff uses qiongli for stable and
 qiongli-next for Alpha/Beta, with v2 output and tested old-installation migration.
 Removing v1 output does not remove verified legacy receipt readers. External
 Marketplace catalog promotion remains a separate action. Cargo uses `publish-cargo.yml` and the staged workspace
-(ADR 0221), with Linux/Windows archive checks before upload and registry install checks
-afterward. macOS Cargo archive checks are part of the local packet receipt;
-macOS public registry checks run manually after publication. Cargo publication runs through GitHub Actions using the
+(ADR 0221), with native archive checks before upload and registry install checks
+afterward. Cargo publication runs through GitHub Actions using the
 `CARGO_REGISTRY_TOKEN` repository or `crates-io` environment secret. A missing
 token fails the publication job; do not fall back to local publication.
 Manual dispatch with `verify_public=true` only checks an already published

@@ -141,6 +141,8 @@ jobs:
         include:
           - platform: Linux
             os: ubuntu-latest
+          - platform: macOS
+            os: macos-latest
           - platform: Windows
             os: windows-latest
     steps:
@@ -221,6 +223,8 @@ jobs:
             test-tier: full
           - os: windows-latest
             test-tier: windows-smoke
+          - os: macos-latest
+            test-tier: macos-smoke
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -372,6 +376,20 @@ jobs:
           tests.test_ctr_201_content_inventory
           tests.test_ctr_201_cli_runtime_inventory
           tests.test_ctr_201_orchestrator_runtime_inventory
+
+      - name: Run macOS CTR inventory smoke tests
+        if: matrix.test-tier == 'macos-smoke'
+        run: >-
+          python -m unittest
+          tests.test_ctr_201_inventory
+          tests.test_ctr_201_cli_inventory
+          tests.test_ctr_201_orchestrator_inventory
+          tests.test_ctr_201_content_inventory
+          tests.test_ctr_201_cli_runtime_inventory
+          tests.test_ctr_201_orchestrator_runtime_inventory
+          tests.test_release_version_contract
+          tests.test_native_release_dry_run
+          tests.test_release_note_versions
 
   shell-release-gates:
     name: Shell and release gates (ubuntu-latest)

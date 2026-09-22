@@ -38,8 +38,7 @@ or accepted-evidence heads.
 Run only for a named candidate under explicit release scope.
 
 - [ ] Freeze version, claims, non-claims, channels, rollback and the merged source; for CLI GitHub releases run `./scripts/release_ready.sh --cli-github --version <version> --staging-dir <new-external-dir>` (ADR 0219). This lane requires CLI checks and download verification, not App/Community Alpha promotion or offline signing keys; managed-product permissions remain unchanged.
-- [ ] For a requested remote candidate run, synchronize the source under separate authority, dispatch `gh workflow run native-ci.yml --ref 2.x` and verify its source/run identity. macOS checks run manually under ADR 0230; keep their exact-source receipts. Bind packages, checksums, SBOM, provenance, signatures and receipts to the same bytes.
-- [ ] For native CLI publication, follow [local macOS handoff](../docs/development/local-macos-checks.md): assemble all three targets, qualify the Mac locally and retain the packet receipt. Upload the reviewed draft only under upload authority; Linux/Windows must verify the identical combined packet.
+- [ ] For a requested remote candidate run, synchronize the source under separate authority, dispatch `gh workflow run native-ci.yml --ref 2.x` and verify its source/run identity. Bind packages, checksums, SBOM, provenance, signatures and receipts to the same bytes.
 - [ ] Obtain the named publication decision for those bytes and channels; after publication, independently download and verify advertised assets.
 - [ ] Obtain a distinct announcement decision and receipt for the verified public bytes and claims. Publication authorization does not authorize announcement.
 

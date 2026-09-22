@@ -212,12 +212,8 @@ Python wheels and Cargo retain standard installation; the installed native CLI
 owns their subsequent interactive review.
 
 An explicit `release-automation.yml` post dispatch at an immutable native
-release tag verifies a reviewed draft packet through Native CLI distribution.
-ADR 0230 moves all macOS execution to the maintainer's Mac with retained receipts;
-Linux/Windows builds and combined installs stay automated. The packet owner
-requires all three targets, local Mac combined/Plugin/Cargo evidence and exact
-manifest-bound Linux/Windows install receipts. The publisher checks the unchanged
-draft and source refs, publishes that draft, then dispatches the existing registry
+release tag qualifies the same tag through Native CLI distribution, verifies
+its packet, creates the matching GitHub release, then dispatches the existing registry
 workflows at that tag. Dispatch uploads are opt-in and tag-only; existing
 credential environments and exact-source CI gates still apply. GITHUB_TOKEN
 release events do not chain jobs, so publisher dispatch is explicit. The local
