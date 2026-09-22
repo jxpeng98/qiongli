@@ -63,11 +63,13 @@ under ADR 0231. The selected literature discovery, bibliography delivery and Zot
 increment is implemented at `15a8b901` with local checks and scoped independent
 review. The current plan records public-query/BibTeX observations and remaining
 installed-Host, maintainer-query and approved real-library qualification.
-The maintainer next selects Host delegation for 2.1 development: structured
-source-bound subagent results through the existing candidate/checkpoint owner,
-with actual Host dispatch/collection exercised on synthetic inputs. The current
-plan owns checks and remaining external-adapter/two-Host qualification; this
-does not broaden the 2.0.1 patch or promote collaboration acceptance.
+Host delegation and the first configured Codex external transport are now
+implemented for 2.1 development through the existing candidate/checkpoint owner.
+The Host executes the prepared command and supervises its process; Qiongli binds
+and validates the returned result. Actual synthetic runs cover successful
+collection, cancellation, startup timeout and an explicit fresh run after cleanup.
+The current plan owns checks and remaining installed-Host/two-Host qualification;
+this does not broaden the 2.0.1 patch or promote collaboration acceptance.
 The [prior bounded record](../plans/2026-09-06-cli-first-closeout-and-extraction.md)
 retains research observations, tooling fixes, the deferred identity migration
 and the earlier macOS-only patch qualification. Remaining baseline failures and
@@ -141,7 +143,8 @@ optional. The proposed removal of the remote macOS context is withdrawn.
 | **IMPLEMENTED TRANSITION RELEASE** | Require actual v1/Next package observations, reject mixed IDs and missing evidence, and upload only verified packet artifacts. | Executor gpt-6-astra / low; compatible commits `dc4e83f3`–`0d0a6aba`, reviewed development port `60f2cf37`; ADR 0229/current plan. No blocking findings in this patch scope; no acceptance promotion. |
 | **RESTORED CI POLICY** | Restore hosted macOS/Linux/Windows builds and release gates; local checks are optional. | `9e1f575d` / compatible main `370e250f`, ADR 0231; 158 development and 140 main checks pass. Local-only maintenance patches and the macOS ruleset-removal proposal are withdrawn. No remote action or fresh release qualification. |
 | **IMPLEMENTED LITERATURE** | Relevant discovery → field-preserving BibTeX → receipt-bound Zotero linkage. | `15a8b901` / `423c1cbb`, current plan; maintainer-topic, installed-Host and real-library qualification remain open. |
-| **IMPLEMENTED HOST DELEGATION** | Bound native Host observations to the current candidate and exercise actual subagent collection. | `CLI-405` / preliminary `CLI-406`, current plan; 117 execution tests, 7 stdio tests and scoped independent review. Configured external tools share the result contract; a bundled external adapter is the following increment. |
+| **IMPLEMENTED HOST DELEGATION** | Bound native Host observations to the current candidate and exercise actual subagent collection. | `CLI-405` / preliminary `CLI-406`, implementation `2e4a5c1e`; existing candidate, evidence and checkpoint CAS owners. |
+| **IMPLEMENTED CODEX TRANSPORT** | Prepare configured `codex exec`, then collect a successful source-bound reply through the same delegation contract. | Current plan; Host-owned launch/cancel/cleanup, actual synthetic complete/cancel/startup-timeout/fresh-run observations and independent review. No persistent-session reconnection, atomic cross-Host claims or collaboration acceptance. |
 | **REMAINING BASELINE** | Diagnose remaining full-suite failures in bounded groups; fix demonstrated content defects before expanding observations. | Existing validation/content owners; preserve permission gates and stable/prerelease negatives. No blanket assertion removal or speculative model matrix. |
 | **QUALIFICATION** | Refresh the named installed-package Codex approval/write/restart journey and separately qualify advertised Graph/Hook/browser behavior. | `CLI-403`–`CLI-405`, `SEC-401`–`SEC-403`, `CLI-410`; reuse existing install, approval/CAS and acceptance owners. The previously paused Host-registration lane needs its own resumed scope; independent offline implementation continues. |
 | **AFTER THE BASELINE** | Complete local atomic task claims, candidate review, conflict/cancellation/revocation and restart handling with two actual Hosts. | `CLI-406`–`CLI-408`, then `CLI-411`, under their existing dependencies. `CLI-409` qualifies additional Hosts individually. |

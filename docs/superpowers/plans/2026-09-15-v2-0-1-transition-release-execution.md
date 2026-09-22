@@ -644,3 +644,113 @@ claims. Live installed Plugin refresh, real research/library mutations, multi-Ho
 qualification, Linux/Windows execution and publication remain separate evidence
 and authorization scopes. CLI-406 remains proposed; local integration is not
 collaboration release acceptance.
+
+### September 22 next increment — configured Codex external transport
+
+The maintainer requests continuing to the external adapter. Select the existing
+configured Codex CLI and its documented `exec --json --ephemeral` interface.
+Preserve ADR 0218: the current Host's execution tools own launch, wait, cancel
+and cleanup. Qiongli prepares the bounded invocation and validates the observed
+event stream through the existing delegation result owner. This reuses native
+Host process supervision rather than adding an App launcher or Agent daemon.
+
+1. Add `agent codex prepare` and `collect`: bind the handoff and authorized source
+   packet, preserve model/effort/auth, collect only completed, successful and
+   matching results; return precise failure codes without private error text.
+2. Update the existing collaborator Skill, help and native contract. Require the
+   original process status and event log, current source checks and explicit
+   recovery after interruption. Never infer success from a final-looking message.
+3. Exercise protocol/CLI negative cases, an actual configured Codex synthetic
+   task, cancellation and timeout. Independently review, regenerate the existing
+   resource pack, record evidence/limitations here, and locally integrate `2.x`.
+
+This is an opt-in Host-executed transport adapter. Multi-Host atomic claims,
+automatic persistent-session reconnection, real research/library writes and
+installed-package/release qualification remain separate. No 2.0.1 version,
+accepted evidence or program task dependencies are changed.
+
+### September 22 execution result — configured Codex external transport
+
+Canonical Skill source: `e99f33876999f9b5796fb4c5ea85efff4f226675`.
+Native implementation and embedded lock:
+`05113e41b58760e3698e382b9b17f5fe0505ab8b`, developed on
+`feat/codex-external-agent` from `cb0898d8` for local integration into `2.x`.
+The native CLI adds `agent codex prepare` and `collect`; the calling Host executes
+the returned fixed argv/stdin and owns process status, deadlines, cancellation
+and cleanup. The adapter preserves configured accounts/model/effort, uses
+`codex exec --json --ephemeral --sandbox read-only`, and returns the existing
+`HostDelegationResultV1`. It adds no launcher, daemon, task store or MCP tool.
+Result text retains the complete exact final message and its source-binding
+wrapper; a proposal still needs coordinator review and authenticated evidence.
+
+The retained executor `astra_light_release_201` updated canonical Skill/template
+instructions. The coordinator implemented the native adapter and tests.
+Independent `literature_runtime_review` (**gpt-6-astra / low**) reviewed the code
+and actual run artifacts, checked result/source/thread bindings and reported no
+blocking findings. Its final review covered the thread-ID guard, CLI help scope
+and added file-boundary cases; the subsequent Clippy fix only replaced the parity
+expression with `is_multiple_of`. This is scoped development review, not package
+or research-quality acceptance.
+
+Validation on pinned Rust/Cargo 1.97.0:
+
+| Check | Result and limit |
+| --- | --- |
+| Execution library | **118 passed**, including successful source-bound collection, old candidate compatibility, malformed/truncated/duplicate events, cancelled/failed/nonzero outcomes, changed sources and byte limits |
+| Native CLI | **41 passed**; prepare/collect works with empty PATH and creates no config; invalid flags, missing status, UTF-8, directories and stale packets fail |
+| Copied-binary MCP | **7 passed**; existing candidate/evidence/CAS validation remains intact |
+| Existing Skill/handoff contracts | **11 passed** |
+| Final focused CLI rerun | Passed after adding oversized-file and Unix-symlink rejection cases and the Clippy correction; included in the 41 cases, not an additional unique test |
+| Static and architecture | All-target execution/CLI Clippy with `-D warnings`, formatting, diff check, native boundary and frozen-baseline guards passed |
+| Embedded content | Existing generator produced **434** entries bound to `e99f3387`; initial source-root mismatch was resolved by regeneration, not a validator exception |
+
+Embedded content-root SHA-256:
+`aed725b4a81a378a96e3487aab8de14d941e72b0a9c8176e48c2aa31578b26dd`;
+pack SHA-256:
+`4171b0b3f982a6f5d26358cc5edd67a858e86ac52cfc4f6d115e1b092b723f73`.
+
+The live probe used configured **Codex CLI 0.155.1**, an isolated working directory
+and synthetic bibliography/source/handoff fixtures. A temporary Host-side Python
+harness executed the prepared command, supervised its process group and passed
+the observed status/exit into collect; Python is not a shipped dependency.
+No model override, installed Plugin refresh, registered Full MCP run or canonical
+research/library write occurred. The original processes were reaped before the
+explicit fresh run.
+
+| Actual run | Observed execution identity | Outcome |
+| --- | --- | --- |
+| Success | `01a0c8dc-7cb7-7351-b150-a18524a81db8` | Exit 0; collected source-bound final reply, 34.09 seconds |
+| Cancellation | `01a0c8de-0c66-72f2-9894-086e064bbef3` | Thread and turn started; Host terminated/reaped process; collection rejected, 2.42 seconds |
+| Startup timeout | No thread ID emitted | 0.2-second startup deadline; empty JSONL; Host terminated/reaped process and collection rejected; 0.45 seconds total |
+| Explicit fresh run | `01a0c8df-921e-76f2-93dd-a57a7d4034cd` | New execution identity, exit 0 and valid collection, 35.5 seconds; not session resume |
+
+Both successful replies restored the missing author and journal metadata for the
+synthetic Alpha record and corrected Beta to a versioned preprint with unknown
+venue. They retained `C-001`/`D-001`/`Alpha2024`, `C-002`/`D-002`/`Beta2025v2`,
+source anchors, R2 and the supplied method limits. These findings were checked
+against the fixture, not promoted to real bibliographic evidence. One successful
+stream contained a nonterminal Skill-context-budget warning; the actual completed
+turn and process exit determined success.
+
+Raw local packets, JSONL, results, receipts and the test harness remain under
+`/private/tmp/qiongli-codex-external`. The independently checked JSONL hashes are:
+
+- Success: `0bdcc26b4c9d11705688f1da776295d8667a94560254dd55ffc33e82fe3393fb`.
+- Cancellation: `d4ea05e0606e4c7aa7d6a737f50d71b3aa11092dad5264b3dbe089670b3c0814`.
+- Startup timeout: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+- Fresh run: `a4a1aa0adce9e49ae91cfc92093c1266ec5fd7ef0831e71187944c7eb66be4c8`.
+
+Handoff SHA-256:
+`f176847b4f855fd398b986abf261fbda1fcbbd995d7b6712a1d3459acf903a4a`;
+packet SHA-256:
+`5a9c343c62e9d4ddff09df3a76a48c2efa1c6096fa075308ad6e1603eef1b438`.
+
+Remaining increment: exercise this same adapter inside a registered synthetic
+Full MCP journey, including source revision change before candidate submission
+and a deadline after the external turn starts. This probe proves startup timeout
+and explicit restart only; in-turn timeout, network reconnection, persistent
+resume and two-Host atomic claims remain unqualified. Installed-Plugin refresh,
+real research/Zotero writes, Linux/Windows execution and publication retain their
+separate scopes. The read-only sandbox is not full MCP/hooks isolation. All
+**249** task states/dependencies and **46** accepted rows remain unchanged;
+CLI-406 stays proposed. `main` and the 2.0.1 release candidate remain unchanged.
