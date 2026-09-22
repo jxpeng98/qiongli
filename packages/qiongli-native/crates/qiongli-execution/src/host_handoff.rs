@@ -23,6 +23,7 @@ const MAX_EVIDENCE_REFERENCES: usize = 32;
 const MAX_KNOWN_FACT_DIGESTS: usize = 32;
 const MAX_DISCLOSURES: usize = 16;
 const MAX_DISCLOSURE_BYTES: usize = 1_024;
+const MAX_DELEGATION_RESULTS: usize = 8;
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
@@ -81,6 +82,8 @@ pub enum HostHandoffError {
     InvalidRuntime,
     InvalidHandoff,
     InvalidCandidate,
+    InvalidDelegation,
+    DelegationNotCompleted,
     BindingMismatch,
     SerializationFailed,
 }
@@ -95,6 +98,8 @@ impl HostHandoffError {
             Self::InvalidRuntime => "host-runtime-invalid",
             Self::InvalidHandoff => "host-handoff-invalid",
             Self::InvalidCandidate => "host-candidate-invalid",
+            Self::InvalidDelegation => "host-delegation-invalid",
+            Self::DelegationNotCompleted => "host-delegation-not-completed",
             Self::BindingMismatch => "host-candidate-binding-mismatch",
             Self::SerializationFailed => "host-handoff-serialization-failed",
         }
@@ -467,6 +472,79 @@ impl HostEvidenceReferenceV1 {
     }
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum HostDelegationAdapterV1 {
+    NativeSubagent,
+    ExternalAgent,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum HostDelegationStatusV1 {
+    Queued,
+    Running,
+    Completed,
+    Failed,
+    Cancelled,
+}
+
+/// Coordinator-reported observations, not authenticated execution or source evidence.
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct HostDelegationResultV1 {
+    pub adapter: HostDelegationAdapterV1,
+    pub execution_id: String,
+    pub dispatch_tool: String,
+    pub scope: String,
+    pub handoff_sha256: String,
+    pub status: HostDelegationStatusV1,
+    pub result_text: String,
+    pub result_sha256: String,
+}
+
+impl HostDelegationResultV1 {
+    fn validate_against(&self, handoff: &OrchestrationHandoffV1) -> Result<(), HostHandoffError> {
+        if self.handoff_sha256 != handoff.digest()? {
+            return Err(HostHandoffError::BindingMismatch);
+        }
+        if self.status != HostDelegationStatusV1::Completed {
+            return Err(HostHandoffError::DelegationNotCompleted);
+        }
+        if !valid_execution_identity(&self.execution_id)
+            || !valid_execution_identity(&self.dispatch_tool)
+            || !valid_private_text(&self.scope, MAX_DISCLOSURE_BYTES)
+            || !valid_private_text(
+                &self.result_text,
+                handoff.limits.max_candidate_bytes as usize,
+            )
+            || self.result_sha256 != sha256(self.result_text.as_bytes())
+            || (self.adapter == HostDelegationAdapterV1::NativeSubagent
+                && !handoff
+                    .host
+                    .capabilities
+                    .contains(&HostCapabilityV1::NativeSubagents))
+        {
+            return Err(HostHandoffError::InvalidDelegation);
+        }
+        Ok(())
+    }
+}
+
+impl Debug for HostDelegationResultV1 {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("HostDelegationResultV1")
+            .field("adapter", &self.adapter)
+            .field("execution_id", &self.execution_id)
+            .field("dispatch_tool", &self.dispatch_tool)
+            .field("handoff_sha256", &self.handoff_sha256)
+            .field("status", &self.status)
+            .field("result_sha256", &self.result_sha256)
+            .finish_non_exhaustive()
+    }
+}
+
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct HostCandidateEnvelopeV1 {
@@ -485,6 +563,8 @@ pub struct HostCandidateEnvelopeV1 {
     pub review_result: HostReviewResultV1,
     pub conflicts: Vec<String>,
     pub evidence_gaps: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub delegation_results: Vec<HostDelegationResultV1>,
 }
 
 impl HostCandidateEnvelopeV1 {
@@ -514,6 +594,7 @@ impl HostCandidateEnvelopeV1 {
             review_result,
             conflicts,
             evidence_gaps,
+            delegation_results: Vec::new(),
         };
         candidate.validate_against(handoff)?;
         Ok(candidate)
@@ -563,6 +644,20 @@ impl HostCandidateEnvelopeV1 {
         }
         let content_limit = usize::try_from(handoff.limits.max_candidate_bytes)
             .map_err(|_| HostHandoffError::InvalidCandidate)?;
+        if self.delegation_results.len() > MAX_DELEGATION_RESULTS {
+            return Err(HostHandoffError::InvalidDelegation);
+        }
+        let mut execution_ids = BTreeSet::new();
+        let mut delegated_bytes = self.content.len();
+        for result in &self.delegation_results {
+            result.validate_against(handoff)?;
+            delegated_bytes += result.result_text.len();
+            if !execution_ids.insert((result.adapter, &result.execution_id))
+                || delegated_bytes > content_limit
+            {
+                return Err(HostHandoffError::InvalidDelegation);
+            }
+        }
         let evidence_calls = self
             .evidence
             .iter()
@@ -638,6 +733,7 @@ impl Debug for HostCandidateEnvelopeV1 {
             .field("review_result", &self.review_result)
             .field("conflict_count", &self.conflicts.len())
             .field("evidence_gap_count", &self.evidence_gaps.len())
+            .field("delegation_result_count", &self.delegation_results.len())
             .finish()
     }
 }
@@ -648,6 +744,14 @@ fn valid_version_token(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-' | b'+'))
+}
+
+fn valid_execution_identity(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 256
+        && value
+            .chars()
+            .all(|character| !character.is_whitespace() && !character.is_control())
 }
 
 fn valid_private_text(value: &str, maximum_bytes: usize) -> bool {
@@ -826,6 +930,155 @@ mod tests {
 
         candidate.expected_project_revision = handoff.expected_project_revision;
         candidate.evidence[0].tool_id = ToolId::parse("project.capture-apply").unwrap();
+        assert_eq!(
+            handoff.validate_candidate(&candidate),
+            Err(HostHandoffError::InvalidCandidate)
+        );
+    }
+
+    #[test]
+    fn delegation_results_bind_exact_completed_outputs_without_changing_legacy_candidates() {
+        let mut handoff = handoff();
+        let mut candidate = HostCandidateEnvelopeV1::try_new(
+            &handoff,
+            "Coordinator synthesis.",
+            vec![evidence()],
+            vec![digest('a')],
+            HostReviewResultV1::NotApplicable,
+            Vec::new(),
+            Vec::new(),
+        )
+        .unwrap();
+        let legacy_bytes = candidate.to_canonical_json(&handoff).unwrap();
+        assert!(!String::from_utf8_lossy(&legacy_bytes).contains("delegationResults"));
+        assert_eq!(
+            HostCandidateEnvelopeV1::from_canonical_json(&handoff, &legacy_bytes).unwrap(),
+            candidate
+        );
+        let result = HostDelegationResultV1 {
+            adapter: HostDelegationAdapterV1::NativeSubagent,
+            execution_id: "fixture/reviewer-1".to_owned(),
+            dispatch_tool: "host.spawn_agent".to_owned(),
+            scope: "private scope canary".to_owned(),
+            handoff_sha256: handoff.digest().unwrap(),
+            status: HostDelegationStatusV1::Completed,
+            result_text: "private result canary: 中文\n".to_owned(),
+            result_sha256: sha256("private result canary: 中文\n".as_bytes()),
+        };
+        candidate.delegation_results = vec![result.clone()];
+        let bytes = candidate.to_canonical_json(&handoff).unwrap();
+        assert_eq!(
+            HostCandidateEnvelopeV1::from_canonical_json(&handoff, &bytes).unwrap(),
+            candidate
+        );
+        assert_ne!(bytes, legacy_bytes);
+        assert!(!format!("{result:?} {candidate:?}").contains("private scope canary"));
+        assert!(!format!("{result:?} {candidate:?}").contains("private result canary"));
+
+        for status in [
+            HostDelegationStatusV1::Queued,
+            HostDelegationStatusV1::Running,
+            HostDelegationStatusV1::Failed,
+            HostDelegationStatusV1::Cancelled,
+        ] {
+            let mut invalid = candidate.clone();
+            invalid.delegation_results[0].status = status;
+            assert_eq!(
+                handoff.validate_candidate(&invalid),
+                Err(HostHandoffError::DelegationNotCompleted)
+            );
+        }
+        for (field, value, expected) in [
+            ("executionId", "", HostHandoffError::InvalidDelegation),
+            (
+                "executionId",
+                "unobserved id",
+                HostHandoffError::InvalidDelegation,
+            ),
+            ("dispatchTool", "", HostHandoffError::InvalidDelegation),
+            ("scope", "\t", HostHandoffError::InvalidDelegation),
+            (
+                "handoffSha256",
+                digest('b').as_str(),
+                HostHandoffError::BindingMismatch,
+            ),
+            (
+                "resultText",
+                "substituted output",
+                HostHandoffError::InvalidDelegation,
+            ),
+            (
+                "resultSha256",
+                digest('b').as_str(),
+                HostHandoffError::InvalidDelegation,
+            ),
+        ] {
+            let mut invalid = serde_json::to_value(&candidate).unwrap();
+            invalid["delegationResults"][0][field] = serde_json::json!(value);
+            let invalid = serde_json::from_value(invalid).unwrap();
+            assert_eq!(
+                handoff.validate_candidate(&invalid),
+                Err(expected),
+                "{field}"
+            );
+        }
+        let mut invalid = candidate.clone();
+        invalid.delegation_results.push(result.clone());
+        assert_eq!(
+            handoff.validate_candidate(&invalid),
+            Err(HostHandoffError::InvalidDelegation)
+        );
+        invalid.delegation_results = (0..9)
+            .map(|i| HostDelegationResultV1 {
+                execution_id: format!("fixture/{i}"),
+                ..result.clone()
+            })
+            .collect();
+        assert_eq!(
+            handoff.validate_candidate(&invalid),
+            Err(HostHandoffError::InvalidDelegation)
+        );
+        let large_text = "a".repeat(handoff.limits.max_candidate_bytes as usize / 2 + 1);
+        invalid.delegation_results = (0..2)
+            .map(|i| HostDelegationResultV1 {
+                execution_id: format!("fixture/{i}"),
+                result_text: large_text.clone(),
+                result_sha256: sha256(large_text.as_bytes()),
+                ..result.clone()
+            })
+            .collect();
+        assert_eq!(
+            handoff.validate_candidate(&invalid),
+            Err(HostHandoffError::InvalidDelegation)
+        );
+
+        let exact_text =
+            "a".repeat(handoff.limits.max_candidate_bytes as usize - candidate.content.len());
+        invalid.delegation_results = vec![HostDelegationResultV1 {
+            result_sha256: sha256(exact_text.as_bytes()),
+            result_text: exact_text,
+            ..result.clone()
+        }];
+        handoff.validate_candidate(&invalid).unwrap();
+        invalid.delegation_results[0].result_text.push('é');
+        invalid.delegation_results[0].result_sha256 =
+            sha256(invalid.delegation_results[0].result_text.as_bytes());
+        assert_eq!(
+            handoff.validate_candidate(&invalid),
+            Err(HostHandoffError::InvalidDelegation)
+        );
+
+        // External tools may return the same proposal format on a single-agent Host.
+        handoff.host.capabilities = vec![HostCapabilityV1::SingleAgent];
+        candidate.handoff_sha256 = handoff.digest().unwrap();
+        candidate.delegation_results[0].handoff_sha256 = candidate.handoff_sha256.clone();
+        assert_eq!(
+            handoff.validate_candidate(&candidate),
+            Err(HostHandoffError::InvalidDelegation)
+        );
+        candidate.delegation_results[0].adapter = HostDelegationAdapterV1::ExternalAgent;
+        handoff.validate_candidate(&candidate).unwrap();
+        candidate.evidence.clear();
         assert_eq!(
             handoff.validate_candidate(&candidate),
             Err(HostHandoffError::InvalidCandidate)

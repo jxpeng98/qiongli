@@ -26,6 +26,29 @@ telling Codex or Claude to install the Full runtime it is already using.
 - Full output must not include Lite-only `preview_only`, `runtime_profile`,
   `recommended_runtime`, or `upgrade` fields.
 
+### Host candidate delegation observations
+
+`qiongli_orchestration_submit` advertises optional `candidate.delegationResults`
+through live `tools/list`. The shared `HostCandidateEnvelopeV1` owner validates
+up to eight native-subagent or configured external-agent observations: actual
+dispatch tool/execution ID, bounded scope, originating handoff SHA-256, completed
+status and exact returned UTF-8 text/SHA-256. Combined candidate and result text
+must fit the handoff's candidate byte limit. Duplicate adapter/execution IDs,
+stale bindings, non-completed states and tampered output fail before checkpoint
+CAS. Native observations also require the declared NativeSubagents capability.
+
+This is an additive candidate v2 field, omitted when empty to preserve existing
+canonical bytes/digests. Clients inspect the live schema before sending it;
+older servers use the existing collaboration trace. Only the accepted candidate
+digest is checkpointed, including these observations; raw delegated content is
+not persisted by submission. Debug output excludes result text and scope.
+
+Observations are coordinator-reported, not authenticated execution, independent
+review certification or source evidence. Full still requires its own process's
+authenticated reads and current run/revision/generation. Host tools own dispatch,
+wait/read/cancel and reconciliation of late/partial results. This adds no model
+launcher, external runtime adapter, cross-Host claim store or artifact approval.
+
 ## 4. Validation & Error Matrix
 
 | Condition | Required result |

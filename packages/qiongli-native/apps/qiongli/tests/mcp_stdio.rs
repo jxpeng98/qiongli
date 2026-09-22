@@ -25,6 +25,7 @@ use qiongli_project::{
 };
 use qiongli_runtime::{FULL_PROJECT_PUBLIC_TOOL_NAMES, LITE_PUBLIC_TOOL_NAMES};
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 
 static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
 const SECRET_CANARY: &str = "copied-native-mcp-secret-canary";
@@ -665,6 +666,14 @@ fn copied_full_binary_completes_host_handoff_round_trip_without_model_transport(
         candidate_schema["properties"]["knownFactDigests"]["minItems"],
         1
     );
+    assert_eq!(
+        candidate_schema["properties"]["delegationResults"]["maxItems"],
+        8
+    );
+    assert_eq!(
+        candidate_schema["properties"]["delegationResults"]["items"]["additionalProperties"],
+        false
+    );
     assert!(
         candidate_schema["required"]
             .as_array()
@@ -877,7 +886,7 @@ fn copied_full_binary_completes_host_handoff_round_trip_without_model_transport(
         "host-candidate-evidence-unauthenticated"
     );
     let fact_digest = evidence.result_sha256.clone();
-    let candidate = HostCandidateEnvelopeV1::try_new(
+    let mut candidate = HostCandidateEnvelopeV1::try_new(
         &handoff,
         "host-owned candidate canary",
         vec![evidence],
@@ -887,6 +896,55 @@ fn copied_full_binary_completes_host_handoff_round_trip_without_model_transport(
         Vec::new(),
     )
     .unwrap();
+    // These are synthetic Host observations; they cannot authenticate the source read.
+    candidate.delegation_results = vec![qiongli_execution::HostDelegationResultV1 {
+        adapter: qiongli_execution::HostDelegationAdapterV1::NativeSubagent,
+        execution_id: "fixture/reviewer-1".to_owned(),
+        dispatch_tool: "host.spawn_agent".to_owned(),
+        scope: "Review the fixture project evidence".to_owned(),
+        handoff_sha256: handoff_sha256.clone(),
+        status: qiongli_execution::HostDelegationStatusV1::Completed,
+        result_text: "Source-bound fixture review.".to_owned(),
+        result_sha256: format!("{:x}", Sha256::digest(b"Source-bound fixture review.")),
+    }];
+    for (index, (field, value, reason)) in [
+        (
+            "status",
+            json!("cancelled"),
+            "host-delegation-not-completed",
+        ),
+        (
+            "handoffSha256",
+            json!("0".repeat(64)),
+            "host-candidate-binding-mismatch",
+        ),
+        ("resultText", json!("tampered"), "host-delegation-invalid"),
+        ("executionId", json!(""), "host-delegation-invalid"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let mut invalid = serde_json::to_value(&candidate).unwrap();
+        invalid["delegationResults"][0][field] = value;
+        let rejected = exchange_rpc(
+            &mut stdout,
+            &mut stdin,
+            &tool_call(
+                30 + index as u64,
+                "qiongli_orchestration_submit",
+                json!({
+                    "projectId": project_id, "expectedProjectRevision": 1,
+                    "runId": run_id, "expectedGeneration": generation,
+                    "expectedDocumentSha256": document_sha256, "host": host,
+                    "candidate": invalid
+                }),
+            ),
+        );
+        assert_eq!(
+            rejected["result"]["structuredContent"]["reason_code"],
+            reason
+        );
+    }
     // A second MCP process sees the checkpoint, but owns none of these reads.
     let (_, replayed) = full_tool_response(
         &fixture,
@@ -932,10 +990,27 @@ fn copied_full_binary_completes_host_handoff_round_trip_without_model_transport(
         submitted["result"]["structuredContent"]["run"]["completedTaskCount"],
         1
     );
-    assert!(
-        submitted["result"]["structuredContent"]["acceptedCandidateSha256"]
-            .as_str()
-            .is_some()
+    assert_eq!(
+        submitted["result"]["structuredContent"]["acceptedCandidateSha256"],
+        candidate.digest(&handoff).unwrap()
+    );
+    let duplicate = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            40,
+            "qiongli_orchestration_submit",
+            json!({
+                "projectId": project_id, "expectedProjectRevision": 1,
+                "runId": run_id, "expectedGeneration": generation,
+                "expectedDocumentSha256": document_sha256, "host": host,
+                "candidate": candidate
+            }),
+        ),
+    );
+    assert_eq!(
+        duplicate["result"]["structuredContent"]["reason_code"],
+        "orchestration-run-reference-stale"
     );
     let accepted_run = &submitted["result"]["structuredContent"]["run"];
     let cancelled = exchange_rpc(
@@ -957,6 +1032,25 @@ fn copied_full_binary_completes_host_handoff_round_trip_without_model_transport(
     assert_eq!(
         cancelled["result"]["structuredContent"]["status"],
         "cancelled"
+    );
+    let cancelled_run = &cancelled["result"]["structuredContent"];
+    let late = exchange_rpc(
+        &mut stdout,
+        &mut stdin,
+        &tool_call(
+            41,
+            "qiongli_orchestration_submit",
+            json!({
+                "projectId": project_id, "expectedProjectRevision": 1,
+                "runId": run_id, "expectedGeneration": cancelled_run["generation"],
+                "expectedDocumentSha256": cancelled_run["documentSha256"], "host": host,
+                "candidate": candidate
+            }),
+        ),
+    );
+    assert_eq!(
+        late["result"]["structuredContent"]["reason_code"],
+        "host-handoff-not-active"
     );
 
     drop(stdin);

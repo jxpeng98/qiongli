@@ -840,7 +840,7 @@ fn orchestration_control_tools() -> impl Iterator<Item = Value> {
         }),
         json!({
             "name": "qiongli_orchestration_submit",
-            "description": "Validate one host-produced candidate and authenticated project-read evidence, persist only its digest, and return the next handoff.",
+            "description": "Validate one host-produced candidate, optional completed delegation observations and authenticated project-read evidence; persist only its digest and return the next handoff. Delegation observations do not authenticate execution or approve project writes.",
             "inputSchema": host_run_input_schema(true),
             "annotations": {
                 "readOnlyHint": false,
@@ -1091,6 +1091,26 @@ fn host_candidate_schema() -> Value {
                 "type": "array",
                 "maxItems": 16,
                 "items": {"type": "string", "minLength": 1, "maxLength": 1024}
+            },
+            "delegationResults": {
+                "type": "array",
+                "maxItems": 8,
+                "description": "Optional coordinator-reported observations. Only completed results may be submitted; use the original tool-returned execution identity and current handoff digest. Combined content and resultText UTF-8 bytes must fit handoff.limits.maxCandidateBytes. Neither execution authentication nor source evidence.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "adapter": {"type": "string", "enum": ["native-subagent", "external-agent"]},
+                        "executionId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\s\\u0000-\\u001f\\u007f]+$"},
+                        "dispatchTool": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\s\\u0000-\\u001f\\u007f]+$"},
+                        "scope": {"type": "string", "minLength": 1, "maxLength": 1024},
+                        "handoffSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                        "status": {"type": "string", "enum": ["queued", "running", "completed", "failed", "cancelled"]},
+                        "resultText": {"type": "string", "minLength": 1, "maxLength": 65536},
+                        "resultSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 of the exact UTF-8 resultText, before JSON escaping."}
+                    },
+                    "required": ["adapter", "executionId", "dispatchTool", "scope", "handoffSha256", "status", "resultText", "resultSha256"],
+                    "additionalProperties": false
+                }
             }
         },
         "required": [
