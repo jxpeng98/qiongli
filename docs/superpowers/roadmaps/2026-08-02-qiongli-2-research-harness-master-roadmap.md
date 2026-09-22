@@ -59,9 +59,10 @@ released product reference. The [current execution plan](../plans/2026-09-15-v2-
 records the maintainer's 2.0.1 v1 transition and planned 2.1 cutoff, completed
 delegated implementation, coordinator review, historical macOS qualification
 and both CI policy increments: hosted three-platform verification is restored
-under ADR 0231. The next selected work is literature discovery, verified
-bibliography delivery and Zotero linkage; the current plan records live
-diagnostics, source gaps, implementation order and acceptance cases.
+under ADR 0231. The selected literature discovery, bibliography delivery and Zotero linkage
+increment is implemented at `15a8b901` with local checks and scoped independent
+review. The current plan records public-query/BibTeX observations and remaining
+installed-Host, maintainer-query and approved real-library qualification.
 The [prior bounded record](../plans/2026-09-06-cli-first-closeout-and-extraction.md)
 retains research observations, tooling fixes, the deferred identity migration
 and the earlier macOS-only patch qualification. Remaining baseline failures and

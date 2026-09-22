@@ -393,12 +393,12 @@ Raw public probe: `/private/tmp/qiongli-literature-probe-2026-09-22.json`.
 | Rust export drops author/citekey/type/detail fields, emits every record as article/journal and generates qiongli1, qiongli2 by list order. | `zotero/export.rs`, shared `LiteratureResult`; rewriting the Skill alone cannot make this a complete accurate bibliography. |
 | Zotero connector and Companion 0.3.1 / endpoint 2 both respond successfully. | Connection check only. Existing Companion already returns item_key/select_uri and supports receipt-bound dry-run/apply; no library search or write was performed. |
 
-### Proposed next increment — implementation order and acceptance
+### Literature increment — authorized implementation order and acceptance
 
 Use the existing provider runtime, metadata/export owner, Companion, B-stage
 skills and preview/approval/CAS. Do not create a new search service, bibliography
-store or mandatory third-party Zotero plugin. This section is a proposed bounded
-implementation plan; no literature runtime or Skill fix is claimed yet.
+store or mandatory third-party Zotero plugin. The maintainer authorized execution on September 22. The ordered scope below
+is implemented in the source increment recorded after its acceptance cases.
 
 1. **Preserve bibliographic records end to end.** Add explicit object schemas and
    compatible optional metadata fields to the existing result/export contract:
@@ -449,3 +449,97 @@ choose its release version after the behavior and compatibility checks. CLI-405
 and CLI-410 retain their current states, dependencies and accepted-evidence
 heads. The new selected priority is literature delivery; unrelated baseline
 failure groups remain recorded for later bounded work.
+
+
+### September 22 execution result — literature delivery
+
+Source: `15a8b901a141df6079fb907a06340dcecba03f4b`, developed on
+`fix/literature-bibliography-delivery` from `3cb7a063`. This remains a development
+increment on `2.x`, separate from the 2.0.1 transition patch on `main`.
+`10fb4199` adds only the reviewed Crossref enum boxing required by Clippy,
+without changing serialization or result semantics; the independent reviewer
+confirmed that final two-line adjustment has no additional finding.
+
+- **Records/export:** the shared Rust owner retains ordered structured or literal
+  authors, publication type/date, source ID/URL, volume/issue/pages, publisher and
+  explicit citekeys. Typed object-array MCP schemas reach native Lite/Full and
+  the Lite compatibility executable. Stable generated keys replace list indices;
+  missing/conflicting metadata is visible and unknown types export generically.
+  DOI normalization, bounded inputs/output, repeat/reordered keys and distinct
+  preprint versions retain regression checks. Export does not verify metadata.
+- **Search:** exact normalized title/DOI selection and year/venue filters precede
+  final truncation; relevance ranking is bounded and never certifies identity.
+  Crossref DOI uses its item endpoint, OpenAlex DOI uses its identifier filter,
+  and arXiv title mode uses a quoted title query. Other filtering is explicitly
+  over returned candidates; unsupported planner-only fields remain Host checks.
+- **Skills:** scoped lookup links discovery → authoritative identity/field check
+  → requested bibliography → optional approved Zotero import. Native-only/hybrid
+  routes preserve actual provenance; stale quota claims are removed. No new
+  service, bibliography store or mandatory Zotero plugin was introduced.
+- **Zotero:** both live bootstrap and testable bridge now guard versions/types
+  before DOI/stable-URL/title-year matching. Within-batch duplicates fail before
+  preview. Existing receipts, fill-blank writes and returned ordered item keys/
+  select URIs own the mapping in the import report. Current scope is personal
+  library; no group support or real user-library write is claimed.
+
+Execution: the coordinator implemented runtime/Companion fixes. The retained
+`astra_light_release_201` executor implemented canonical Skills and schemas.
+Independent `literature_runtime_review` ran as **gpt-6-astra / low**, read source,
+ran targeted Node identity assertions and simulated three Skill routing cases.
+Its findings caught preprint/formal-version merging and `[A,B,A]` citekey order;
+fixes and regressions are included. The same reviewer confirmed no remaining
+blocking findings, including the final `15a8b901` arXiv/schema increment; this is
+not live Host acceptance. The shared Full/Lite export schema stays with its
+existing owner; no fictitious legacy Full export implementation or validator
+exception was added.
+
+The existing resource-lock generator binds 434 embedded entries to `15a8b901`,
+content-root SHA-256 `8eb54a551b9d6a67e190ab5fc7d0daa8ac9f7055b2f849b3e8d86f9c5ef21848`.
+
+Validation:
+
+| Check | Result and limit |
+| --- | --- |
+| Native runtime | 63 tests passed: 48 unit, 6 bibliography, 9 MCP; actual `tools/list` object schema and `tools/call` covered |
+| Native CLI consumers | 9 tests passed (7 copied-binary stdio, 2 provider runtime); rebuilt embedded Lite and Full both accepted object records and exported the eight-author public record |
+| Lite compatibility | 93 tests passed; subsequent arXiv title change passed the 16-provider-HTTP-test suite (adds one case) and rebuilt the binary |
+| Public schema/capability | 55 tests, 54 passed and 1 environment-dependent skip; complete contract validator passed |
+| Companion | 31 tests passed, including both bootstrap/module repeat-import identity, links, changed/expired/replayed receipts and preview-without-write |
+| Literature content | 17 tests run; two pre-existing exact-text assertions fail on unchanged `paper-read.md` (provider ownership phrasing); not new product regressions |
+| Packaging | Existing Companion builder emitted a local XPI; no install/update or release publication performed |
+| Static checks | Runtime Clippy with `-D warnings` passed after boxing the single-work Crossref enum variant; six bibliography regressions rechecked successfully; formatting and diff checks passed |
+| Architecture | Native change-boundary and frozen-baseline guards passed; accepted evidence unchanged |
+
+Public read-only smoke used the newly built Lite candidate with isolated config:
+`Attention Is All You Need`, `search_mode=title`, `from_year=to_year=2017`,
+`providers=[arxiv]`, `per_provider_limit=10`, `total_limit=5`. The initial
+all-field query returned ten candidates but none survived exact filters; the
+quoted title request then returned the intended record with all eight authors,
+2017 date, preprint type and `http://arxiv.org/abs/1706.03762v7`. The candidate
+exported it successfully; system BibTeX 0.99e parsed the result without errors.
+This identifies the repository version, not a substituted NeurIPS proceedings
+citation, and does not prove broad topical recall.
+
+A separate authorized public read from the [Crossref work endpoint](https://api.crossref.org/works/10.1109/CVPR.2016.90)
+returned *Deep Residual Learning for Image Recognition*, DOI
+`10.1109/cvpr.2016.90`, four ordered structured authors and proceedings-article
+type. The candidate exported `@inproceedings` with preserved explicit citekey;
+BibTeX also parsed that file plus a clearly synthetic non-ASCII/corporate-author
+case. This was Host-side public registry retrieval (`native:crossref_registry`),
+not proof that a missing local Crossref configuration was connected.
+Provider request semantics follow the [Crossref API](https://github.com/CrossRef/rest-api-doc),
+[OpenAlex attributes](https://help.openalex.org/data/works/attributes/) and
+[arXiv query contract](https://info.arxiv.org/help/api/user-manual.html).
+Temporary diagnostic files are under `/private/tmp/qiongli-lit-public-probe`;
+search JSON SHA-256 is
+`f3020d06ed5101a975a494378cacfd9b0e6ec2b7a277651e8592fdb406e75d75`.
+
+Remaining qualification: the maintainer-specific topical query has not yet been
+supplied. Installed Plugin/Host refresh and a real library import require their
+concrete previews and approval; neither has occurred. Candidate versions were
+not bumped, so the local XPI is development-only and must receive an immutable
+new Companion version before publication. Provider coverage/quota, Linux/Windows
+and release-candidate acceptance remain their own gates. CLI-405/CLI-410 states,
+all 249 task dependencies and 46 accepted rows remain unchanged. Next increment:
+qualify a fresh installed candidate on the maintainer's actual query and approve
+one bounded Zotero import after reviewing its exact proposed changes.
