@@ -20,8 +20,35 @@ The coordinator checks the returned task and candidate against the current sourc
 records stale or duplicate results, and leaves unavailable verification explicit.
 A copied identity is a binding to verify, not authentication or proof of independence.
 
+## Optional Delegated Result
+
+When supported by live `tools/list`, the coordinator captures this envelope from
+actual execution; it is not an instruction for the reviewer to invent a receipt.
+Native subagents and configured external Agent tools use the same fields:
+
+- adapter: native-subagent / external-agent
+- executionId: actual nonempty dispatch-returned task/session ID
+- dispatchTool: actual dispatch tool
+- scope: bounded assignment
+- handoffSha256: unchanged originating Full handoff digest
+- status: queued / running / completed / failed / cancelled
+- resultText: exact returned text
+- resultSha256: SHA-256 of exact UTF-8 resultText bytes
+
+Submit only completed, reconciled entries, at most eight, with no duplicate
+`(adapter, executionId)` pairs. Native entries require `NativeSubagents` capability.
+Combined delegated text shares `maxCandidateBytes` with the candidate. Keep the
+exact tool-returned text separate from the coordinator's synthesis; do not trim it
+after hashing. Failed, cancelled, late or duplicate results remain in the existing
+trace. Older servers receive no unsupported `delegationResults` field.
+
+These bindings do not prove sender identity, replace authenticated source reads,
+grant approval or launch an Agent. A manual external packet without an observed
+execution ID remains trace-only.
+
 ## Coordinator Reconciliation
 
+- observed_original_execution_state_and_cancellation:
 - current_source_and_candidate_match: unchecked / matched / stale / mismatched
 - result_disposition: pending / accepted / changes-requested / duplicate / rejected
 - accepted_findings_and_unresolved_disagreements:

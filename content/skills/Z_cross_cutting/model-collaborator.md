@@ -25,7 +25,9 @@ domain_aware: false
 
 Coordinate bounded independent review of literature, writing, qualitative coding,
 statistics, analysis code or rebuttals. Match roles to the actual available
-capabilities and evidence needs, not to model or Host brand stereotypes.
+capabilities and evidence needs, not to model or Host brand stereotypes. The
+active GPT/Codex operator coordinates dispatch, collection and synthesis; Qiongli
+validates the submitted candidate and does not spawn collaborators.
 
 ## When to Use
 
@@ -130,6 +132,41 @@ still return an unsupported conclusion, omit part of the agreed scope or propose
 an unauthorized change. Return the smallest necessary correction to that task;
 keep one coordinator responsible for the final approved project write.
 
+### Optional delegated-result envelope
+
+Use live `tools/list` to inspect candidate submission support before sending
+`delegationResults`. When supported, attach at most eight completed, reconciled
+results to the candidate. Omitting this field preserves the v2 wire contract.
+Older servers use the existing collaboration trace: do not send unsupported
+fields or describe that trace as a server-verified receipt.
+
+Each entry uses the same format for native and external execution:
+
+| Field | Value from actual execution |
+|---|---|
+| `adapter` | `native-subagent` or `external-agent` |
+| `executionId` | Nonempty task/session ID returned by the dispatch tool |
+| `dispatchTool` | Actual tool used to dispatch |
+| `scope` | Bounded work assigned |
+| `handoffSha256` | Copy the originating Full handoff digest unchanged |
+| `status` | Observed `queued`, `running`, `completed`, `failed` or `cancelled` |
+| `resultText` | Exact returned text, without trimming or rewriting |
+| `resultSha256` | SHA-256 of the exact UTF-8 bytes of `resultText` |
+
+Only `completed` entries may be submitted. Keep other states, failures, late
+arrivals and duplicates in the existing trace; wait/read using the original
+`executionId` and check cancellation before accepting a late result. Reconcile
+source and candidate snapshots against the coordinator's authenticated reads.
+Do not submit duplicate `(adapter, executionId)` pairs. All delegated result text
+bytes share the originating handoff's `maxCandidateBytes` budget with the
+candidate; shorten the requested deliverable or omit optional receipts rather
+than alter exact returned text. Native receipts require `NativeSubagents`
+capability as well as an actual observed native dispatch and result.
+
+The server checks bindings and digests, not participant identity or research
+truth. Receipts do not replace coordinator-authenticated source reads, grant
+approval, spawn agents or establish independent review by themselves.
+
 ### Cross-Host review and editing
 
 Use `templates/agent-handoff.md` and `templates/agent-review-packet.md`. Include
@@ -146,6 +183,12 @@ keep one coordinator on the originating run; the other Host returns a review or
 edit proposal for the supplied source snapshot. A portable packet is not a native
 handoff token and does not grant tool access. Automatic cross-Host task claims and
 simultaneous canonical writes remain a separate capability.
+
+An existing configured, authorized external Agent tool may return the same
+result envelope. Record its actual tool and execution ID; this increment bundles
+no external runtime adapter and grants no new cross-Host claim authority. Manual
+transfer without a tool-returned execution ID remains trace-only, not a fabricated
+`external-agent` receipt.
 
 Use an available, authorized communication tool when present. Otherwise prepare
 the exact packet for the user to transfer and report `awaiting external review`;
