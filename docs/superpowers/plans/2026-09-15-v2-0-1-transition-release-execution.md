@@ -4,6 +4,11 @@ Date: 2026-09-15. Authority: the maintainer retains a v1 transition in 2.0.1
 and places v1 support removal in 2.1. Program tasks remain CLI-403 / CLI-410;
 the program ledger owns their states and accepted evidence.
 
+Current direction (September 22): ADR 0231 restores hosted three-platform CI.
+The September 15 local-only policy below is historical. The next bounded
+research increment is search → verified bibliography → Zotero linkage, as
+diagnosed and planned in the final section.
+
 ## Outcome and scope
 
 - 2.0.1 is a stable compatibility patch. Its public `plugin-source-status`
@@ -112,9 +117,8 @@ it does not qualify a changed release owner/candidate. The worktree is clean.
 
 1. Synchronize the reviewed source/tag through existing rules without force
    rewriting protected refs or replacing immutable artifacts.
-2. Qualify macOS ARM64 manually and Windows/Linux x64 through
-   `native-cli-distribution.yml` at the same commit; assemble locally, retain
-   the Mac receipt and verify the exact combined packet on Linux/Windows.
+2. Qualify macOS ARM64, Windows x64 and Linux x64 from that same commit using
+   `native-cli-distribution.yml`; verify the complete combined packet and installs.
 3. Bind the publication decision to the exact candidate/assets/channels, then
    use existing release automation and npm/PyPI/Cargo publishers.
 4. Verify public downloads/registry installs. Announcements and external
@@ -271,7 +275,7 @@ states/dependencies and all 46 accepted rows remain unchanged. The plan, ledger
 and generated index record local completion without promoting task acceptance.
 
 
-## Local macOS CI policy increment — September 15
+## Local macOS CI policy increment — September 15 (superseded September 22)
 
 The maintainer explicitly selected manual local macOS checks with retained
 receipts. ADR 0230 supersedes only hosted execution; Linux/Windows remain on
@@ -338,3 +342,110 @@ push/rule authority and existing PR protections. Do not bulk-push unrelated loca
 workflows until synchronization. The local Mac guide supplies the release
 handoff commands and receipt paths. All 249 task states/dependencies and 46
 accepted records remain unchanged; this increment adds no program acceptance.
+
+
+## September 22: restore hosted CI and select literature delivery work
+
+### CI restoration — implemented and reviewed locally
+
+The maintainer restored the previous build approach after checking public-repo
+billing. [GitHub documents](https://docs.github.com/en/billing/concepts/product-billing/github-actions)
+free standard hosted runner time on public repositories, including macOS;
+larger runners and storage have separate terms. ADR 0231 supersedes ADR 0230
+without editing the historical decision.
+
+Executor **gpt-6-astra / low** restored development in **`9e1f575d`** and
+compatible main in **`370e250f`**. The coordinator checked exact diffs: operational
+CI/release files match pre-policy development `5fccfe89` and main `789b0bbe`.
+The v1/Next transition guards and each branch's existing projection owners
+remain intact. Development has **158** relevant checks passing; main has **140**.
+All seven program-roadmap checks, the ADR validator (7 frozen / 31 current),
+frozen-source/native-boundary and diff checks also pass. All 249 task states
+and dependencies plus 46 accepted records remain unchanged.
+This restores hosted Mac/Linux/Windows build, assembly, combined installs and
+publication gates. The local Mac receipt/draft-upload requirement is retired.
+
+The September 15 legacy CI-only branches and proposed ruleset-removal payload
+are withdrawn from rollout and must not be applied. No remote rules, refs,
+Actions runs or publications were changed. These source checks do not freshly
+qualify a changed release candidate.
+
+### Literature diagnosis — actual observations and source bounds
+
+The user's report concerns weak literature-search assistance and reliable BibTeX
+plus Zotero linkage. A specific failing user query was requested but not supplied
+at diagnosis time. A bounded public known-title probe was used instead; it is
+not a topical-search benchmark or proof of the user's exact failure.
+
+Observed through the currently installed Plugin on September 22; the visible
+CLI reports **2.0.0**, while the underlying MCP executable's full source identity
+was not independently verified. Inspected repository source was `6471ec1d`;
+CI restoration leaves the relevant native/content sources byte-identical.
+Raw public probe: `/private/tmp/qiongli-literature-probe-2026-09-22.json`.
+
+| Observation | Existing owner / consequence |
+|---|---|
+| Literature status reports OpenAlex, Semantic Scholar and arXiv configured; Crossref email and PubMed key missing under current runtime policy. | `providers/access.rs`; configuration readiness alone does not establish search quality. No settings or credentials were changed. |
+| All three selected providers returned records for `Attention Is All You Need` (3 per provider, total limit 5). First result is a 2025 same-title record; the 2017 NeurIPS record is fourth. No returned record contains authors or a source URL. | `providers/search.rs`: provider-order concatenation then truncation, no relevance reranking; `LiteratureResult` stores only title/DOI/year/venue/provider(s). This observed ordering does not establish that the same-title 2025 record is fabricated. |
+| The official [NeurIPS record](https://papers.nips.cc/paper/2017/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html) identifies the 2017 work and provides original BibTeX. | Known-item authority for this probe; a matching title or any resolvable DOI is insufficient to identify the intended edition. |
+| Planner accepts `title`/DOI modes and filters; search executor accepts only auto/topic/review/systematic_review and no year/venue arguments. | `searchplan.rs` versus `providers/search.rs` and their schemas: a recorded plan is not evidence that its filters were executed. |
+| Host exposes export `records` as `Array<string>`; passing a serialized synthetic record gives `-32602: records must contain literature results`. Canonical schema has an array without an item schema; Rust requires object records. | `qiongli_zotero_export_import_files` input schema and `zotero/export.rs`; explicit object-item contracts need a fresh Host verification. The missing item schema is a supported diagnosis, not independently proven converter internals. |
+| Rust export drops author/citekey/type/detail fields, emits every record as article/journal and generates qiongli1, qiongli2 by list order. | `zotero/export.rs`, shared `LiteratureResult`; rewriting the Skill alone cannot make this a complete accurate bibliography. |
+| Zotero connector and Companion 0.3.1 / endpoint 2 both respond successfully. | Connection check only. Existing Companion already returns item_key/select_uri and supports receipt-bound dry-run/apply; no library search or write was performed. |
+
+### Proposed next increment — implementation order and acceptance
+
+Use the existing provider runtime, metadata/export owner, Companion, B-stage
+skills and preview/approval/CAS. Do not create a new search service, bibliography
+store or mandatory third-party Zotero plugin. This section is a proposed bounded
+implementation plan; no literature runtime or Skill fix is claimed yet.
+
+1. **Preserve bibliographic records end to end.** Add explicit object schemas and
+   compatible optional metadata fields to the existing result/export contract:
+   stable IDs and source URLs, ordered structured authors, publication type,
+   dates, venue, volume/issue/pages or article number, publisher and existing
+   citekey. Preserve fields from provider response through export. Existing
+   incomplete records stay valid but visibly incomplete. Parse/validate exports;
+   never invent authors, DOI, year or pages. Existing citekeys survive reordering
+   and repeated exports; choose the correct entry type.
+2. **Verify identity and improve targeted retrieval.** Make planned modes/filters
+   executable or explicitly mark unsupported portions for Host-side checking.
+   Reuse configured providers plus available Host search with separate provenance.
+   Compare title, author, year and version, then enrich selected records through
+   DOI/registry or publisher metadata. Official [DOI content negotiation](https://www.crossref.org/documentation/retrieve-metadata/content-negotiation/)
+   provides BibTeX/CSL-JSON across registration agencies; it still needs identity
+   and field validation. Handle no-DOI preprints/books by their real IDs and
+   official source. Rank/deduplicate before the final result limit, retaining
+   contrary/near-miss evidence and rate-limit/coverage failures.
+3. **Give Skills one scoped delivery path.** Reconcile the provider-first prose
+   with the existing hybrid/native-only fallback. A request for a few relevant
+   papers should return verified candidates, brief relevance, persistent source
+   links, requested BibTeX and explicit missing fields. Read the metadata and
+   reference-manager cards when those outputs are requested. Formal B1 retains
+   its protocol/diagnostic gates; bounded lookup needs no systematic-review
+   scaffold. Remove stale hardcoded API quotas and keep configuration guidance
+   tied to observed capability.
+4. **Link selected verified records to Zotero.** Reuse Companion status, exact
+   dry-run, reviewed approval and receipt-bound apply. DOI/stable-ID dedup and
+   fill-blank policy preserve curated records; verify actual results and retain
+   record_id/citekey ↔ item_key/select_uri in the existing import report. Reuse
+   that mapping on retry and verify library scope before constructing group
+   links. Import files remain available when Companion is unavailable; generating
+   a file or succeeding at dry-run never means Zotero import succeeded.
+
+Acceptance starts with a small fixed corpus: the known 2017 paper and a same-title
+wrong-year candidate; a paper with an official DOI/BibTeX; a no-DOI preprint;
+non-ASCII/corporate authors; duplicate/reordered records; and metadata conflicts.
+Check author/order/type/DOI/year/citekey preservation and BibTeX parseability,
+exact filter application, Host object-schema calls, zero fabricated fields,
+Zotero repeat-import identity and refusal after stale/changed/cancelled approval.
+Then run a real topical query supplied by the maintainer and independently review
+relevance and source matching. Fixture success alone does not establish search
+coverage. Live writes require their exact reviewed preview; this planning request
+has not written to the user's library or updated the installed Plugin.
+
+This increment is separate from the already bounded 2.0.1 transition patch;
+choose its release version after the behavior and compatibility checks. CLI-405
+and CLI-410 retain their current states, dependencies and accepted-evidence
+heads. The new selected priority is literature delivery; unrelated baseline
+failure groups remain recorded for later bounded work.
