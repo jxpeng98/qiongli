@@ -16,8 +16,11 @@
         "auto",
         "topic",
         "review",
-        "systematic_review"
-      ]
+        "systematic_review",
+        "title",
+        "doi"
+      ],
+      "description": "title/doi confirm normalized exact identity among bounded provider candidates; they do not prove exhaustive coverage."
     },
     "providers": {
       "type": "array",
@@ -47,6 +50,24 @@
       "type": "integer",
       "minimum": 1,
       "maximum": 1000
+    },
+    "from_year": {
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 9999,
+      "description": "Inclusive publication-year filter on returned candidates; unknown years are excluded. from_year must not exceed to_year."
+    },
+    "to_year": {
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 9999,
+      "description": "Inclusive publication-year filter on returned candidates; unknown years are excluded. from_year must not exceed to_year."
+    },
+    "venue_filter": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Normalized exact venue match on bounded returned candidates; unknown venues are excluded. This is not exhaustive provider-side filtering."
     }
   },
   "additionalProperties": false

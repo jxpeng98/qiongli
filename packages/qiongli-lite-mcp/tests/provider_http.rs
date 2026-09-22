@@ -332,6 +332,7 @@ fn search_input(limit: usize) -> SearchInput {
         limit: Some(limit),
         per_provider_limit: None,
         total_limit: None,
+        ..Default::default()
     }
 }
 
@@ -492,4 +493,53 @@ fn write_response(stream: &mut TcpStream, response: FakeResponse) {
     let _ = stream.write_all(headers.as_bytes());
     let _ = stream.write_all(&response.body);
     let _ = stream.flush();
+}
+
+#[test]
+fn exact_doi_lookup_uses_registry_identity_not_fulltext_search() {
+    let server = FakeServer::start(vec![FakeResponse::json(
+        200,
+        r#"{"message":{"title":["Exact"],"DOI":"10.1234/exact","type":"journal-article","author":[{"family":"Doe","given":"Jane"}]}}"#,
+    )]);
+    let runtime = test_runtime(
+        &server.base_url,
+        ResolvedProviderConfig::from_values(&[("crossref", "email", "person@example.com")])
+            .unwrap(),
+    );
+    let records = search_crossref(
+        &runtime,
+        &SearchInput {
+            query: "https://doi.org/10.1234/EXACT".into(),
+            search_mode: Some("doi".into()),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let request = server.finish().remove(0);
+    assert_eq!(request.url().path(), "/works/10.1234%2Fexact");
+    assert_eq!(query_value(&request.url(), "query"), None);
+    assert_eq!(records[0].authors[0].family.as_deref(), Some("Doe"));
+}
+
+#[test]
+fn exact_title_uses_arxiv_title_phrase() {
+    let server = FakeServer::start(vec![FakeResponse::xml(200, ARXIV_RESPONSE)]);
+    let runtime = test_runtime(
+        &server.base_url,
+        ResolvedProviderConfig::from_values(&[]).unwrap(),
+    );
+    search_arxiv(
+        &runtime,
+        &SearchInput {
+            query: "Attention Is All You Need".into(),
+            search_mode: Some("title".into()),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let request = server.finish().remove(0);
+    assert_eq!(
+        query_value(&request.url(), "search_query").as_deref(),
+        Some("ti:\"Attention Is All You Need\"")
+    );
 }

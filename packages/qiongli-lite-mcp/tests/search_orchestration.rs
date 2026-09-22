@@ -226,6 +226,7 @@ fn limits_use_review_default_and_clamp_explicit_values() {
         limit: None,
         per_provider_limit: None,
         total_limit: None,
+        ..Default::default()
     };
     let explicit = SearchInput {
         per_provider_limit: Some(999),
@@ -321,6 +322,7 @@ fn search_input(total_limit: Option<usize>) -> SearchInput {
         limit: None,
         per_provider_limit: None,
         total_limit,
+        ..Default::default()
     }
 }
 
@@ -332,6 +334,7 @@ fn result(title: &str, doi: Option<&str>, year: Option<i64>, provider: &str) -> 
         venue: None,
         provider: provider.to_string(),
         providers: vec![provider.to_string()],
+        ..Default::default()
     }
 }
 

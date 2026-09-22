@@ -112,6 +112,16 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   reuse Lite validation without returning a Lite profile result.
 - `crates/qiongli-project/src/service.rs` owns project mutations and revision
   checks; App, CLI, and Full MCP route through that service.
+- Literature search retains ordered authors, type, date, source identity/link and
+  bibliography fields through the shared runtime. `title`/`doi` modes and year/
+  venue filters select bounded candidates before the total limit; diagnostics
+  disclose missing metadata and coverage limits. Ranking is not verification.
+  Export accepts record objects, preserves explicit citekeys and generates stable
+  keys from identity when absent. Unknown types remain generic; missing/conflicting
+  fields are reported. Preprint versions remain distinct from formal publication.
+  Companion dedup applies version guards before DOI/source/title-year matching;
+  within-batch duplicates refuse before preview. Returned ordered item keys and
+  select URIs support the existing import-report mapping, not a new write owner.
 - `crates/qiongli-runtime/src/zotero/companion.rs` owns the loopback Companion
   boundary. Only loopback endpoints may be contacted.
 - Companion `0.3.1` retains endpoint contract `2` and supports Zotero 8 through

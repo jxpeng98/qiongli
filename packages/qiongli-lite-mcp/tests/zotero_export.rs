@@ -8,8 +8,10 @@ fn export_import_files_includes_ris_bibtex_csl_and_report() {
         doi: Some("10.1234/example".to_string()),
         year: Some(2025),
         venue: Some("Journal of Tests".to_string()),
+        record_type: Some("article-journal".to_string()),
         provider: "openalex".to_string(),
         providers: vec!["openalex".to_string()],
+        ..Default::default()
     }])
     .unwrap();
 

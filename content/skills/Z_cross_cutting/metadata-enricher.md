@@ -11,7 +11,7 @@ outputs:
   - type: DedupLog
     artifact: "dedup_log.csv"
 constraints:
-  - "Must resolve DOI to canonical metadata"
+  - "Must verify the intended work and edition before adopting DOI metadata"
   - "Must handle missing identifiers gracefully"
 failure_modes:
   - "DOI resolution service unavailable"
@@ -69,6 +69,17 @@ Output: "10.1234/example" (canonical form)
 
 ### Step 2: Metadata Completion
 
+First compare the intended title, author order, year and version with an official
+publisher, DOI registration-agency or repository record. A same-title result or
+resolvable DOI is insufficient. Record the source URL and checked fields; do not
+call unexamined provider metadata verified. Keep disagreements in
+`metadata_conflicts` and the report rather than silently overwriting them.
+
+Use available metadata adapters or authorized Host inspection to fill fields.
+DOI content negotiation can return BibTeX/CSL-JSON, but its identity, author order,
+type and dates still require checking. No-DOI works retain real repository IDs
+and links. Never invent an author, DOI, date, volume, page or publisher.
+
 Query authoritative sources to fill missing fields:
 
 #### Crossref API (for DOI-based lookup)
@@ -120,24 +131,22 @@ Map retrieved metadata to standard fields:
 
 ### Step 4: Citekey Generation
 
-Generate consistent citekeys following the pattern:
+Preserve an existing explicit `citekey` across enrichment, sorting and re-export.
+If absent, use the export owner's stable generated key and retain that mapping;
+do not assign list-position keys or rename an existing key for stylistic reasons.
+Resolve collisions against work identity before exporting; keep unresolved
+collisions visible. A citekey is an artifact identifier, not source evidence or
+a native Zotero field.
 
-**Standard Format:** `lastname[year]keyword`
+Preserve ordered `authors` as supplied `family`/`given` or `literal` for corporate
+or unparsed names. Do not guess East Asian name splits or transliterations.
+Keep `record_type`, `published_date`, year, venue, volume, issue, pages, publisher,
+DOI, `source_id` and URL when supported. Do not turn a preprint into a journal
+article or flatten distinct editions to hide a metadata conflict.
 
-**Rules:**
-1. Take first author's last name (lowercase, ASCII-normalized)
-2. Add publication year
-3. Add first significant word from title (lowercase, no stopwords)
-
-**Examples:**
-| Authors | Year | Title | Citekey |
-|---------|------|-------|---------|
-| John Smith | 2024 | Machine Learning for Healthcare | smith2024machine |
-| María García, Bob Lee | 2023 | Deep Neural Networks | garcia2023deep |
-| 李明 (Li Ming) | 2024 | Transformer Architecture | li2024transformer |
-
-**Conflict Resolution:**
-- If citekey exists, append `a`, `b`, `c`: `smith2024machine`, `smith2024machineb`
+Export the requested formats and validate their syntax/field preservation before
+delivery. Missing metadata stays missing in BibTeX/CSL-JSON/RIS and is identified
+in the report; export success alone does not make an entry publication-ready.
 
 ### Step 5: Deduplication Support
 
@@ -150,13 +159,13 @@ Generate dedup keys for matching:
    - Normalize: lowercase, remove leading "https://doi.org/"
 
 2. **arXiv ID Match** (exact)
-   - Normalize: extract "YYMM.NNNNN" portion
+   - Preserve the version suffix when present; different versions remain distinct
 
 3. **Title + Year + First Author** (fuzzy)
    - Title: lowercase, remove punctuation, normalize whitespace
    - Year: exact match
    - First Author: last name only, lowercase
-   - Similarity threshold: Levenshtein ratio > 0.9
+   - Candidate match only: confirm identity before merging. Never merge conflicting DOI, edition or publication type, or a preprint with its formal publication, on title/year alone.
 ```
 
 ## Output Format
@@ -185,7 +194,7 @@ Generate dedup keys for matching:
 | Citations | - | 150 | OpenAlex |
 | OA URL | - | https://... | OpenAlex |
 
-**Generated Citekey:** `smith2024machine`
+**Preserved explicit citekey (illustrative):** `smith2024machine`
 
 **Dedup Keys:**
 - DOI: `10.1234/example`
@@ -194,22 +203,14 @@ Generate dedup keys for matching:
 **Completeness Score:** 9/10 fields populated
 ```
 
-## API Reference
+## Provider capability
 
-### Crossref
-- Base URL: `https://api.crossref.org`
-- Rate limit: Polite pool (50/sec with mailto header)
-- Auth: None required (add `mailto` for polite pool)
-
-### OpenAlex
-- Base URL: `https://api.openalex.org`
-- Rate limit: 100,000/day (unauthenticated), 10/sec
-- Auth: Optional email for higher limits
-
-### Usage Notes
-- Prefer Crossref for canonical bibliographic data
-- Prefer OpenAlex for OA status and bibliometrics
-- Cache responses to avoid rate limits
+Use current runtime capability and response diagnostics for access requirements,
+rate limits and retry timing. Preserve rate-limit/coverage failures; do not claim
+that provider configuration proves a successful metadata check. Cache verified
+responses with provenance where supported. Prefer the work's publisher or DOI
+registration agency for bibliographic fields, and label secondary bibliometrics
+and access hints separately.
 
 ## Usage
 
@@ -230,7 +231,7 @@ This skill is called by:
 
 - [ ] 所有 DOI 已归一化为标准格式
 - [ ] 作者姓名格式统一（Last, First 或 First Last）
-- [ ] 年份和 venue 信息完整无缺
+- [ ] 年份和 venue 已核对；缺失或冲突明确标注
 - [ ] Citekey 唯一且稳定
 - [ ] Dedup 决策有明确理由记录
 

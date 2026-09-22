@@ -1370,5 +1370,22 @@ class CapabilityContractV2Tests(unittest.TestCase):
         }
 
 
+class BibliographyProfileSchemaTests(unittest.TestCase):
+    def test_lite_targeted_search_modes_and_year_bounds(self) -> None:
+        schema = _load_json(CONTRACT_ROOT / "schemas/qiongli_literature_search.marketplace-lite.input.schema.json")
+        for mode in ("title", "doi"):
+            self.assertEqual(validate_instance({"query": "example", "search_mode": mode, "from_year": 1000, "to_year": 9999, "venue_filter": "Example"}, schema), [])
+        for year in (999, 10000):
+            self.assertTrue(validate_instance({"query": "example", "from_year": year}, schema))
+
+    def test_lite_export_accepts_metadata_objects_and_rejects_strings(self) -> None:
+        schema = _load_json(CONTRACT_ROOT / "schemas/qiongli_zotero_export_import_files.marketplace-lite.input.schema.json")
+        record = {"title": "Example", "provider": "crossref", "authors": [{"family": "Doe", "given": "A"}], "published_date": "2025-01-02", "citekey": "example"}
+        self.assertEqual(validate_instance({"records": [record]}, schema), [])
+        self.assertTrue(validate_instance({"records": ["Example"]}, schema))
+        self.assertTrue(validate_instance({"records": [{"title": "Example"}]}, schema))
+        self.assertTrue(validate_instance({"records": [{**record, "authors": ["Doe"]}]}, schema))
+
+
 if __name__ == "__main__":
     unittest.main()

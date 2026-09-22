@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 use super::runtime::{ProviderRuntime, ProviderRuntimeError};
 use super::search::{
-    LiteratureResult, ProviderError, SearchInput, limit_for, normalize_doi, year_from_text,
+    Author, LiteratureResult, ProviderError, SearchInput, limit_for, normalize_doi, year_from_text,
 };
 
 #[derive(Debug, Deserialize)]
@@ -19,6 +19,13 @@ struct PubmedSearchResult {
 #[derive(Debug, Deserialize)]
 struct PubmedArticle {
     title: Option<String>,
+    #[serde(default)]
+    authors: Vec<serde_json::Value>,
+    volume: Option<String>,
+    issue: Option<String>,
+    pages: Option<String>,
+    #[serde(default)]
+    pubtype: Vec<String>,
     pubdate: Option<String>,
     fulljournalname: Option<String>,
     #[serde(default)]
@@ -65,11 +72,29 @@ pub fn normalize_pubmed_summary_response(
             .and_then(normalize_doi);
         records.push(LiteratureResult {
             title,
+            source_id: Some(format!("pmid:{uid}")),
+            url: Some(format!("https://pubmed.ncbi.nlm.nih.gov/{uid}/")),
+            authors: article
+                .authors
+                .iter()
+                .filter_map(|a| a["name"].as_str())
+                .map(|a| Author::literal(a.to_owned()))
+                .collect(),
+            record_type: article
+                .pubtype
+                .iter()
+                .any(|p| p == "Journal Article")
+                .then(|| "article-journal".to_owned()),
+            published_date: article.pubdate.clone(),
+            volume: article.volume,
+            issue: article.issue,
+            pages: article.pages,
             doi,
             year: article.pubdate.as_deref().and_then(year_from_text),
             venue: article.fulljournalname,
             provider: "pubmed".to_string(),
             providers: vec!["pubmed".to_string()],
+            ..Default::default()
         });
     }
     Ok(records)

@@ -37,8 +37,8 @@ Treat the literature stack as four coordinated layers, not one blob:
 If a workflow touches literature evidence, it should respect those ownership boundaries even when one runtime agent executes multiple steps.
 
 Execution rule:
-- literature discovery and retrieval should flow through MCP/provider adapters (`scholarly-search`, `citation-graph`, `metadata-registry`, `fulltext-retrieval`) rather than hard-coded direct web-tool calls inside skill prose
-- manual spot checks are allowed, but they must be logged as supplemental evidence instead of becoming the default reproducible pipeline
+- use configured MCP/provider adapters where available; the active Host executes authorized native search in `hybrid_search` or `native_only` as defined in `literature-provider-routing.md`
+- record Host and provider provenance separately; manual spot checks are supplemental evidence within that declared mode and never bypass denied access
 
 Builtin baseline expectation:
 - `citation-graph` should first try to derive seed identifiers from `search_results.csv`, `bibliography.bib`, and `notes/` before requiring an explicit `target_paper_id`
@@ -202,7 +202,7 @@ Use when you have 3–10 seed papers to bootstrap the project.
 - `literature/paper_reading_summary.md` organizes targeted reading into grounded themes, method/data patterns, stable single-paper or multi-paper findings, contradictions, gaps, writing-ready citation points, and uncertainty registers
 
 Recommended note filename convention:
-- `notes/{citekey}.md` (citekey derived from first author + year + keyword)
+- `notes/{citekey}.md` (preserve the supplied or export-generated stable citekey)
 
 ### Truthfulness boundary
 
@@ -248,14 +248,27 @@ Write into: `manuscript/manuscript.md` (related work section).
 
 ## B5 — Citation Management & Reference Exports
 
+For bounded reference delivery, follow `academic-searcher` → `metadata-enricher`
+→ `reference-manager-bridge`: targeted retrieval, exact title/DOI and edition
+confirmation, authoritative field checks, then only the requested bibliography
+formats. Preserve supplied citekeys or the export owner's stable generated keys;
+never regenerate them from result order. A provider hit is a candidate until
+identity and metadata are checked. Keep unresolved fields/conflicts visible.
+
+A request to write selected records to Zotero still needs the exact dry-run,
+explicit approval and receipt-bound apply. The existing import report records
+record_id/citekey/source_id ↔ returned item_key/select_uri and result status;
+a generated file or dry-run is not an import. Citekey is a Qiongli mapping key,
+not a native Zotero field. Do not fabricate item keys or group-library links.
+
 **Definition of done**
 - `bibliography.bib` is clean (unique citekeys, required fields present)
-- `references.ris` and `references.json` exist for tool interoperability
+- Requested `references.ris` and/or `references.json` exports exist when needed for interoperability
 
 Basic integrity checks:
 - No duplicate citekeys
 - DOIs normalized (lowercase, no `https://doi.org/`)
-- Venue/year fields present for all included studies
+- Venue/year fields checked against the identified source; absent values remain explicit gaps
 
 ---
 

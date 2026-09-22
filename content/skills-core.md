@@ -340,7 +340,7 @@ requested scope; formal C tasks keep their outputs, Q1/Q4 and protocol requireme
 1. Normalize DOI: `10.xxxx/example` (canonical)
 2. Route provider checks through the metadata registry boundary and preserve
    provider provenance
-3. Generate citekey: `lastname[year]keyword`
+3. Preserve the existing citekey or export-owner stable generated key; never use result order
 4. Create dedup keys for matching
 
 **Output:** `Bibliography`
@@ -355,7 +355,7 @@ requested scope; formal C tasks keep their outputs, Q1/Q4 and protocol requireme
 
 **BibTeX Types:** @article, @inproceedings, @book, @incollection, @misc
 
-**Citekey Format:** `lastname[year]keyword` (e.g., `smith2024machine`)
+**Citekeys:** preserve existing keys and resolve identity collisions; use the export owner for stable missing keys.
 
 **Process:** normalize DOI values, resolve duplicate citekeys, flag missing
 required fields, and write export-ready `bibliography.bib`
@@ -681,11 +681,6 @@ legacy Python controller commands are not native 2.x dependencies.
 
 ## API Quick Reference
 
-| API | Base URL | Rate Limit |
-|-----|----------|------------|
-| Semantic Scholar | `api.semanticscholar.org/graph/v1` | 100/5min |
-| arXiv | `export.arxiv.org/api` | Reasonable use |
-| OpenAlex | `api.openalex.org` | 10/sec |
-| Crossref | `api.crossref.org` | 50/sec (polite) |
-| Unpaywall | `api.unpaywall.org/v2` | 100k/day |
-| CORE | `api.core.ac.uk/v3` | Varies |
+Provider URLs and access policies belong to the current runtime adapters and
+service documentation. Use observed capability, response limits and retry hints;
+do not assume a static quota. Provider provenance alone is not verified metadata.

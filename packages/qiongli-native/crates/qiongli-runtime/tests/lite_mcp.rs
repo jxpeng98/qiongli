@@ -492,3 +492,38 @@ fn serve_recovers_after_malformed_json_suppresses_notifications_and_preserves_fr
         8
     );
 }
+
+#[test]
+fn bibliography_object_schema_and_call_deliver_the_same_contract() {
+    let server = server();
+    let listed = server.handle(request(1, "tools/list", json!({}))).unwrap();
+    let tool = listed["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|t| t["name"] == "qiongli_zotero_export_import_files")
+        .unwrap();
+    assert_eq!(
+        tool["inputSchema"]["properties"]["records"]["items"]["type"],
+        "object"
+    );
+    let exported = call(
+        &server,
+        2,
+        "qiongli_zotero_export_import_files",
+        json!({"records":[{
+            "title":"Conference", "provider":"user_corpus", "authors":[{"family":"García","given":"Ana"}],
+            "record_type":"paper-conference", "citekey":"garcia2017", "year":2017
+        }]}),
+    );
+    let result = &exported["result"]["structuredContent"];
+    assert_eq!(result["status"], "ok");
+    assert!(result.to_string().contains("@inproceedings{garcia2017,"));
+    let invalid = call(
+        &server,
+        3,
+        "qiongli_zotero_export_import_files",
+        json!({"records":["{}"]}),
+    );
+    assert_eq!(invalid["error"]["code"], -32602);
+}

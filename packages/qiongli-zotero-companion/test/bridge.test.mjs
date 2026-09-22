@@ -48,7 +48,7 @@ test("findDuplicateItem matches DOI before title-year", () => {
 test("planUpsert preserves non-empty Zotero fields by default", () => {
   const plan = planUpsert({
     incoming: { title: "Enriched Title", DOI: "10.1000/example", abstractNote: "New abstract" },
-    existing: { key: "ABC123", title: "User Title", DOI: "", abstractNote: "" },
+    existing: { key: "ABC123", title: "User Title", date: "2024", DOI: "", abstractNote: "" },
     updatePolicy: "fill_blank"
   });
 
@@ -315,7 +315,7 @@ test("searchLocalItems qualifies creator tag collection note and bounded attachm
 test("upsertItems dry run returns planned operations without mutating runtime", async () => {
   const calls = [];
   const runtime = {
-    listItems: async () => [{ key: "A", title: "User Title", DOI: "", abstractNote: "" }],
+    listItems: async () => [{ key: "A", title: "User Title", date: "2024", DOI: "", abstractNote: "" }],
     createItem: async (item) => {
       calls.push(["create", item]);
       return { key: "NEW", ...item };
@@ -329,7 +329,7 @@ test("upsertItems dry run returns planned operations without mutating runtime", 
   const result = await upsertItems({
     dry_run: true,
     update_policy: "fill_blank",
-    items: [{ title: "User Title", DOI: "10.1000/user", abstractNote: "Abstract" }]
+    items: [{ title: "User Title", date: "2024", DOI: "10.1000/user", abstractNote: "Abstract" }]
   }, runtime);
 
   assert.equal(result.status, "ok");
@@ -428,7 +428,7 @@ test("upsertItems rejects a changed plan after dry run", async () => {
 test("upsertItems writes creates and updates through runtime when dry_run is false", async () => {
   const calls = [];
   const runtime = {
-    listItems: async () => [{ key: "A", title: "Existing Paper", DOI: "", abstractNote: "" }],
+    listItems: async () => [{ key: "A", title: "Existing Paper", date: "2024", DOI: "", abstractNote: "" }],
     createItem: async (item) => {
       calls.push(["create", item.title]);
       return { key: "NEW1", ...item };
@@ -442,7 +442,7 @@ test("upsertItems writes creates and updates through runtime when dry_run is fal
   const result = await applyApproved({
     update_policy: "fill_blank",
     items: [
-      { title: "Existing Paper", DOI: "10.1000/existing" },
+      { title: "Existing Paper", date: "2024", DOI: "10.1000/existing" },
       { title: "Created Paper", DOI: "10.1000/created" }
     ]
   }, runtime);
@@ -521,7 +521,7 @@ test("upsertItems creates missing collection and adds created items to it", asyn
 test("upsertItems adds unchanged duplicate items to target collection", async () => {
   const calls = [];
   const runtime = {
-    listItems: async () => [{ key: "A", title: "Existing Paper", DOI: "10.1000/existing", collections: [] }],
+    listItems: async () => [{ key: "A", title: "Existing Paper", date: "2024", DOI: "10.1000/existing", collections: [] }],
     ensureCollectionPath: async (collectionPath) => {
       calls.push(["ensureCollectionPath", collectionPath]);
       return { key: "COLL1", path: collectionPath };
@@ -534,7 +534,7 @@ test("upsertItems adds unchanged duplicate items to target collection", async ()
 
   const result = await applyApproved({
     collection_path: "Qiongli/platform-governance",
-    items: [{ title: "Existing Paper", DOI: "10.1000/existing" }]
+    items: [{ title: "Existing Paper", date: "2024", DOI: "10.1000/existing" }]
   }, runtime);
 
   assert.deepEqual(calls, [
@@ -564,6 +564,7 @@ test("upsertItems dry run reports planned child notes without mutating runtime",
     items: [
       {
         title: "Noted Paper",
+      date: "2024",
         DOI: "10.1000/noted",
         qiongli_notes: [{ title: "Qiongli Reading Note", html: "<p>Important finding.</p>" }]
       }
@@ -583,6 +584,7 @@ test("upsertItems does not duplicate an existing matching child note", async () 
     listItems: async () => [{
       key: "A",
       title: "Noted Paper",
+      date: "2024",
       notes: [{
         key: "NOTE1",
         title: "Qiongli Reading Note",
@@ -597,6 +599,7 @@ test("upsertItems does not duplicate an existing matching child note", async () 
   const payload = {
     items: [{
       title: "Noted Paper",
+      date: "2024",
       qiongli_notes: [{
         title: "Qiongli Reading Note",
         html: "<p>Important finding.</p>"
@@ -638,6 +641,7 @@ test("upsertItems creates child notes on written items", async () => {
     items: [
       {
         title: "Noted Paper",
+      date: "2024",
         DOI: "10.1000/noted",
         qiongli_notes: [{ title: "Qiongli Reading Note", html: "<p>Important finding.</p>" }]
       }
@@ -958,4 +962,56 @@ test(`bootstrap endpoints preserve reads and approved writes on Zotero ${zoteroV
   context.shutdown({}, 4);
   assert.deepEqual(Object.keys(Zotero.Server.Endpoints), []);
 });
+}
+
+for (const implementation of ["module", "bootstrap"]) {
+  test(`${implementation}: identity, repeat import links and approval boundaries`, async () => {
+    let now = Date.now();
+    const context = { crypto: webcrypto, console, URL, setTimeout, clearTimeout, Date: class extends Date { static now() { return now; } } };
+    if (implementation === "bootstrap") {
+      vm.runInNewContext(await readFile(path.join(PACKAGE_ROOT, "bootstrap.js"), "utf8"), context);
+    }
+    const duplicate = implementation === "module" ? findDuplicateItem : context.findDuplicateItem;
+    const upsert = implementation === "module" ? upsertItems : context.upsertRuntimeItems;
+    assert.equal(typeof upsert, "function");
+    const old = {key:"OLD",title:"Attention Is All You Need",date:"2017",DOI:"10.1000/original"};
+    assert.equal(duplicate({title:old.title,date:"2025"},[old]),null);
+    assert.equal(duplicate({title:old.title,date:"2017",DOI:"10.1000/other"},[old]),null);
+    assert.equal(duplicate({title:old.title},[old]),null);
+    const preprint = {key:"PRE",title:"Preprint",url:"https://arxiv.org/abs/1706.03762v1"};
+    assert.equal(duplicate({...preprint,title:"Corrected title"},[preprint]).key,"PRE");
+    assert.equal(duplicate({...preprint,url:"https://arxiv.org/abs/1706.03762v2"},[preprint]),null);
+    assert.equal(duplicate({...preprint,date:"2024",itemType:"preprint"},[{key:"FINAL",title:"Preprint",date:"2024",DOI:"10.1234/final",itemType:"journalArticle"}]),null);
+    assert.equal(duplicate({...preprint,date:"2024",itemType:"preprint",DOI:"10.1234/final"},[{key:"FINAL",title:"Preprint",date:"2024",DOI:"10.1234/final",itemType:"journalArticle"}]),null);
+    const library = [];
+    const runtime = {
+      nowMilliseconds: () => now,
+      listItems: async () => library.map(item => ({...item})),
+      createItem: async item => { const created = {...item,key:`KEY${library.length}`}; library.push(created); return created; },
+      updateItem: async () => { throw Error("must preserve curated fields"); }
+    };
+    const input = {items:[{title:"Preprint",url:preprint.url,itemType:"preprint"}]};
+    const preview = await upsert({...input,dry_run:true},runtime);
+    assert.equal(library.length,0); // Declining preview has no write effect.
+    const applied = await upsert({...input,dry_run:false,write_intent:"apply",dry_run_receipt:preview.write_approval.receipt},runtime);
+    assert.equal(applied.status,"ok");
+    assert.equal(applied.results[0].item.select_uri,"zotero://select/library/items/KEY0");
+    const reference = {citekey:"vaswani2017",source_id:"arxiv:1706.03762v1",item_key:applied.results[0].item_key,select_uri:applied.results[0].item.select_uri};
+    const retryPreview = await upsert({...input,dry_run:true},runtime);
+    const retry = await upsert({...input,dry_run:false,write_intent:"apply",dry_run_receipt:retryPreview.write_approval.receipt},runtime);
+    assert.equal(retry.results[0].item_key,reference.item_key);
+    assert.equal(retry.results[0].item.select_uri,reference.select_uri);
+    assert.equal(library.length,1);
+    const replay = await upsert({...input,dry_run:false,write_intent:"apply",dry_run_receipt:retryPreview.write_approval.receipt},runtime);
+    assert.equal(replay.status,"approval_required");
+    const stalePreview = await upsert({...input,dry_run:true},runtime);
+    const changed = await upsert({items:[{...input.items[0],title:"Changed after approval"}],dry_run:false,write_intent:"apply",dry_run_receipt:stalePreview.write_approval.receipt},runtime);
+    assert.equal(changed.status,"approval_required");
+    const expiring = await upsert({...input,dry_run:true},runtime);
+    now += 6 * 60 * 1000;
+    const expired = await upsert({...input,dry_run:false,write_intent:"apply",dry_run_receipt:expiring.write_approval.receipt},runtime);
+    assert.equal(expired.status,"approval_required");
+    const duplicateBatch = await upsert({items:[input.items[0],input.items[0]]},runtime);
+    assert.equal(duplicateBatch.error_code,"duplicate_items");
+  });
 }

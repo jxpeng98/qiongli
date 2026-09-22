@@ -22,9 +22,28 @@ to perform the denied operation.
 - Use `hybrid_search` when provider calls and platform-native search are both available and useful. Use `provider_connected` when the search run is provider-only. Use `native_only` when the active agent has platform native search but no provider-connected MCP. Use `strategy_only` only when neither provider MCP nor platform-native search is available and the workflow can only draft a search strategy or work from supplied corpus.
 - MCP servers must not call Codex or Claude native search directly. The active agent executes `native_search_queries` from `qiongli_search_plan`; the MCP provider layer only performs provider calls and returns provider records. Do not hide native search behind a provider adapter.
 - Preserve distinct provenance labels in `search_log.md`, `search_results.csv`, and diagnostics: provider records use labels such as `mcp:openalex`, `mcp:semantic_scholar`, `mcp:crossref`, `mcp:pubmed`, and `mcp:arxiv`; platform-native records use `native:codex_web_search` or `native:claude_web_search`; user-supplied files, notes, bibliographies, or pasted citations use `user_corpus`.
-- Treat `provider_connected` as the only mode where configured external academic provider credentials are available to the local runtime.
+- `provider_capability_mode: provider_connected` describes available provider access; `search_execution_mode` may still be `hybrid_search`. Neither value proves live query success, coverage or metadata verification.
 - Treat `strategy_only` as a constrained mode: draft the search strategy or use user-supplied corpus, record the limitation, and do not claim review-grade external provider or native-search coverage.
 - Claude Desktop/Web focused ZIPs are skill-only packages kept within the 180-file upload budget. They contain workflows/prompts/templates, store no secrets, and cannot execute OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv API calls by themselves.
 - For a manual Desktop install, upload the `qiongli-claude-desktop-skill-*.zip` first, then add a manual MCP install when provider calls or local orchestration are required. The skill ZIP supplies agent instructions, workflows/prompts/templates, and subject overlays; MCP supplies tool calls.
 - Desktop/Web users need the Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) or another configured provider MCP before claiming `provider_connected` literature search. The MCPB is the separate local Claude Desktop provider for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv configuration/search. Its primary package uses the Rust Lite MCP executable, not a user-installed Node or Python runtime. arXiv is enabled without credentials. Platform-native search alone is `native_only`, not `provider_connected`; if no provider MCP/MCPB and no platform-native search is available, record the run as `strategy_only`.
 - The literature MCPB provides literature MCP tools only. It does not expose project orchestration. To add orchestration, install the native Full MCP server with `qiongli mcp serve --transport stdio --profile full`; the active Codex or Claude host executes each returned handoff and submits a bounded candidate back to Qiongli.
+
+## Targeted references and bibliography delivery
+
+For a few papers or a known item, use a bounded query and preserve its mode,
+limits and sources; do not impose a systematic-review scaffold. `title`/`doi`
+modes and `from_year`/`to_year`/`venue_filter` operate on bounded returned
+candidates, not an exhaustive database filter. Check the visible tool schema;
+an older installed Host may not expose them. Apply unsupported filters visibly
+at the Host and report that limit instead of claiming the provider executed them.
+
+Confirm title/DOI, authors, year and edition against the authoritative
+publisher/registration-agency or repository record. Use `metadata-enricher`
+for field checks and requested BibTeX, then `reference-manager-bridge` for
+Zotero. Provider availability or a search hit is not a verified citation.
+Preserve conflicts and absent fields. Native-only evidence is valid when its
+source was actually inspected and labelled; do not relabel it MCP output.
+Export `records` as objects with structured ordered authors, never JSON strings.
+Use live capability/error responses for quotas and authentication requirements;
+do not infer current service limits from an old static table.

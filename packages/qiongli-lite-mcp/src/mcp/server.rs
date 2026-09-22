@@ -343,9 +343,9 @@ impl McpServer {
             native_search_tools: Vec::new(),
             query_variants: Vec::new(),
             include_working_papers: None,
-            from_year: None,
-            to_year: None,
-            venue_filter: None,
+            from_year: request.from_year.map(|year| year as u16),
+            to_year: request.to_year.map(|year| year as u16),
+            venue_filter: request.venue_filter.clone(),
             document_types: Vec::new(),
             active_providers: PROVIDER_ORDER
                 .iter()
@@ -623,6 +623,9 @@ fn allowed_arguments(tool_id: LiteToolId) -> &'static [&'static str] {
             "limit",
             "per_provider_limit",
             "total_limit",
+            "from_year",
+            "to_year",
+            "venue_filter",
         ],
         LiteToolId::LiteratureExportEvidence => &[
             "cwd",

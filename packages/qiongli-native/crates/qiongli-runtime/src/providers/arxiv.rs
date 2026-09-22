@@ -3,7 +3,7 @@ use quick_xml::events::Event;
 
 use super::runtime::{ProviderRuntime, ProviderRuntimeError};
 use super::search::{
-    LiteratureResult, ProviderError, SearchInput, clean_text, limit_for, normalize_doi,
+    Author, LiteratureResult, ProviderError, SearchInput, clean_text, limit_for, normalize_doi,
     year_from_text,
 };
 
@@ -14,6 +14,7 @@ struct ArxivEntry {
     published: Option<String>,
     doi: Option<String>,
     journal_ref: Option<String>,
+    authors: Vec<Author>,
 }
 
 pub fn normalize_arxiv_response(payload: &str) -> Result<Vec<LiteratureResult>, ProviderError> {
@@ -39,6 +40,7 @@ pub fn normalize_arxiv_response(payload: &str) -> Result<Vec<LiteratureResult>, 
                 if let (Some(entry), Some(field)) = (&mut current, &current_field) {
                     let text = event.unescape()?.into_owned();
                     match local_name(field) {
+                        b"name" => entry.authors.push(Author::literal(clean_text(&text))),
                         b"id" => entry.id = Some(clean_text(&text)),
                         b"title" => entry.title = Some(clean_text(&text)),
                         b"published" => entry.published = Some(clean_text(&text)),
@@ -56,11 +58,17 @@ pub fn normalize_arxiv_response(payload: &str) -> Result<Vec<LiteratureResult>, 
                 {
                     results.push(LiteratureResult {
                         title,
+                        source_id: entry.id.clone(),
+                        url: entry.id,
+                        authors: entry.authors,
+                        record_type: Some("preprint".to_owned()),
+                        published_date: entry.published.clone(),
                         doi: entry.doi.as_deref().and_then(normalize_doi),
                         year: entry.published.as_deref().and_then(year_from_text),
                         venue: entry.journal_ref,
                         provider: "arxiv".to_string(),
                         providers: vec!["arxiv".to_string()],
+                        ..Default::default()
                     });
                 }
                 current_field = None;
@@ -85,7 +93,12 @@ pub fn search_arxiv(
         .map_err(|_| ProviderRuntimeError::InvalidEndpoint)?;
     {
         let mut query = url.query_pairs_mut();
-        query.append_pair("search_query", &format!("all:{}", input.query));
+        let expression = if input.search_mode.as_deref() == Some("title") {
+            format!("ti:\"{}\"", input.query.replace('"', " "))
+        } else {
+            format!("all:{}", input.query)
+        };
+        query.append_pair("search_query", &expression);
         query.append_pair("start", "0");
         query.append_pair("max_results", &limit_for(input).min(200).to_string());
         query.append_pair("sortBy", "relevance");

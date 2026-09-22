@@ -132,7 +132,7 @@ fn search_rejects_unsupported_or_out_of_range_arguments_before_network() {
             "providers must not be empty",
         ),
         (
-            json!({"query": "governance", "search_mode": "title"}),
+            json!({"query": "governance", "search_mode": "unsupported"}),
             "unsupported search_mode",
         ),
     ] {
