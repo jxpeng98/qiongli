@@ -839,7 +839,7 @@ fn help_scope(usage: &str) -> &'static str {
         INSTALL_USAGE => "install ",
         MIGRATION_USAGE => "migrate-1x ",
         crate::project_cli::PROJECT_USAGE => "project ",
-        crate::external_agent_cli::USAGE => "agent codex ",
+        crate::external_agent_cli::USAGE => "agent ",
         _ => "",
     }
 }

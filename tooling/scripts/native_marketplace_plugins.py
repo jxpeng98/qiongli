@@ -200,6 +200,10 @@ def skill_path(source: str) -> str:
 def project(content: dict[str, bytes], platform: str, version: str,
             target: str | None = None, binary: bytes | None = None, *,
             legacy_identity: bool = False) -> dict[str, bytes]:
+    if platform == 'deepseek':
+        if not target or legacy_identity:
+            raise ValueError('DeepSeek bundles require a native target and current identity')
+        return project_deepseek(content, version, target, binary)
     manifest_path = f'.{platform}-plugin/plugin.json'
     manifest = json.loads(content[manifest_path])
     if manifest.get('name') != 'qiongli' or manifest.get('version') != version:
@@ -225,6 +229,81 @@ def project(content: dict[str, bytes], platform: str, version: str,
         files[target] = data
     if platform == 'codex':
         files.update(workflow_wrapper_skills(content))
+    return files
+
+
+def project_deepseek(content: dict[str, bytes], version: str, target: str,
+                     binary: bytes) -> dict[str, bytes]:
+    """A Cordis bundle over existing Skills and MCP; no model or profile override."""
+    validate_binary(binary, target)
+    name = 'dsh-' + plugin_name(target, version)
+    files = {}
+    for path, data in content.items():
+        if path in ('.codex-plugin/plugin.json', '.claude-plugin/plugin.json'):
+            continue
+        destination = skill_path(path)
+        if destination in files:
+            raise ValueError('canonical resource projection collision')
+        files[destination] = data
+    catalog = []
+    for path in ('workflow/SKILL.md', 'workflow/no-qiongli/SKILL.md'):
+        header = content[path].decode().split('\n---\n', 1)[0]
+        fields = {}
+        for key in ('name', 'description'):
+            match = re.search(r'^' + key + r': (.+)$', header, re.M)
+            if not match:
+                raise ValueError('DeepSeek skill requires a single-line name and description')
+            value = match[1]
+            fields[key] = json.loads(value) if value.startswith('"') else value
+        if not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', fields['name']):
+            raise ValueError('invalid DeepSeek skill name')
+        catalog.append(dict(fields, path=skill_path(path)))
+    files['skills.json'] = json_bytes(catalog)
+    files[binary_path(target)] = binary
+    files['package.json'] = json_bytes({
+        'name': name, 'version': version, 'type': 'module', 'main': 'index.mjs',
+        'description': 'Qiongli research Skills and bundled native Full MCP for DeepSeek Harness.',
+        'files': ['index.mjs', 'cordis.patch.yml', 'skills.json', 'skills', 'bin', RECEIPT],
+        'dsh': {'bundle': {'patch': './cordis.patch.yml'}},
+    })
+    files['cordis.patch.yml'] = (
+        '- insert:\n'
+        '    - id: qiongli-bundle\n'
+        f'      name: {name}\n'
+        '    - id: mcp-qiongli\n'
+        "      name: '@deepseek-ai/dsh-mcp-client'\n"
+        '      inject: [qiongliBundle]\n'
+        '      config:\n'
+        '        serverName: qiongli\n'
+        '        transport: stdio\n'
+        '        command: !!js ctx.qiongliBundle.command\n'
+        '        args: [mcp, serve, --profile, full, --transport, stdio]\n'
+    ).encode()
+    files['index.mjs'] = ('''import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+
+export const name = 'qiongli-bundle';
+export const inject = ['skills'];
+export async function apply(ctx) {
+  const catalog = JSON.parse(await readFile(new URL('./skills.json', import.meta.url), 'utf8'));
+  const candidates = catalog.map(({ name, description, path }) => ({
+    name, description, locator: path, provider: 'qiongli', source: 'bundled', rank: 600,
+    invocation: { modelInvocable: true, userInvocable: true },
+    resourceBase: { kind: 'directory', path: fileURLToPath(new URL('./' + path.slice(0, path.lastIndexOf('/') + 1), import.meta.url)) },
+  }));
+  ctx.skills.registerProvider(() => ({
+    name: 'qiongli',
+    list: async () => candidates,
+    async get(candidate) {
+      const entry = candidates.find(item => item.name === candidate.name);
+      if (!entry) throw new Error('Unknown Qiongli skill');
+      return { ...entry, content: await readFile(new URL('./' + entry.locator, import.meta.url), 'utf8') };
+    },
+  }));
+  ctx.provide('qiongliBundle', { command: fileURLToPath(new URL(''' +
+        json.dumps('./' + binary_path(target)) + ''', import.meta.url)) });
+}
+''').encode()
     return files
 
 
@@ -275,7 +354,7 @@ def find_archive(files, platform: str, version: str, target: str | None = None):
 def verify_archive(path: Path, version: str, commit: str) -> dict:
     """Verify projected bytes/identity; this is not a signed product grant."""
     identity(version, commit)
-    selection = next(((p, t) for p in PLATFORMS for t in [None, *TARGETS]
+    selection = next(((p, t) for p in (*PLATFORMS, 'deepseek') for t in [None, *TARGETS]
                       if path.name in {archive_name(p, version, t), archive_name(p, version, t, legacy_identity=True)}), None)
     if selection is None:
         raise ValueError('unexpected marketplace archive name')
@@ -329,7 +408,9 @@ def verify_archive(path: Path, version: str, commit: str) -> dict:
 
 
 def build_plugins(content_dir: Path, out_dir: Path, version: str, commit: str,
-                  binary: Path, target: str) -> list[Path]:
+                  binary: Path, target: str, *, platforms: tuple[str, ...] = PLATFORMS) -> list[Path]:
+    if not platforms or len(set(platforms)) != len(platforms) or any(p not in (*PLATFORMS, 'deepseek') for p in platforms):
+        raise ValueError('unsupported or duplicate plugin platform')
     metadata, content = read_content(content_dir, version, commit)
     data = regular_bytes(binary)
     validate_binary(data, target)
@@ -337,7 +418,7 @@ def build_plugins(content_dir: Path, out_dir: Path, version: str, commit: str,
         raise ValueError('output directory must be new')
     out_dir.mkdir(parents=True)
     archives = []
-    for platform in PLATFORMS:
+    for platform in platforms:
         files = project(content, platform, version, target, data)
         source_names = ('.codex-plugin/plugin.json', '.claude-plugin/plugin.json')
         files[RECEIPT] = json_bytes({
@@ -419,9 +500,12 @@ def main() -> int:
     parser.add_argument('--commit', required=True)
     parser.add_argument('--binary', required=True, type=Path)
     parser.add_argument('--target', required=True, choices=TARGETS)
+    parser.add_argument('--platform', action='append', choices=(*PLATFORMS, 'deepseek'),
+                        help='Build only the selected platform(s); defaults to Codex and Claude.')
     args = parser.parse_args()
     try:
-        archives = build_plugins(args.content_dir, args.out_dir, args.version, args.commit, args.binary, args.target)
+        archives = build_plugins(args.content_dir, args.out_dir, args.version, args.commit, args.binary, args.target,
+                                 platforms=tuple(args.platform) if args.platform else PLATFORMS)
         print(json.dumps([dict(path=str(p), **verify_archive(p, args.version, args.commit)) for p in archives], indent=2))
     except (ValueError, KeyError, TypeError, OSError, tarfile.TarError) as error:
         parser.exit(1, f'marketplace projection failed: {error}\n')

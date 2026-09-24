@@ -65,6 +65,20 @@ matching sources/candidate; the originating Host retains checkpoint authority.
 
 ## Local Pattern
 
+- `external_agent_cli.rs` prepares/collects explicitly selected Codex, Claude Code,
+  DeepSeek Harness and Antigravity CLI proposals. The Host executes the returned
+  argv/stdin and child-only environment, supervises deadlines and supplies observed
+  process outcomes. Shared handoff/packet binding and `HostDelegationResultV1`
+  validation remain in `qiongli-execution`; each adapter validates its actual
+  terminal protocol and session identity. Old Codex commands and serialized
+  dispatches remain compatible. DeepSeek requires machine-readable headless
+  support (absent in observed npm 0.1.5-rc.3); no text-only fallback exists.
+  `native_marketplace_plugins.py --platform deepseek` opt-in projects canonical
+  Skills, a Cordis bundle and native Full MCP through the existing export/receipt
+  verifier. Default release outputs remain Codex/Claude. DeepSeek uses the current
+  `unknown` route / `other-local` descriptor, not a fabricated Codex identity.
+  See [external Host usage](../../../../docs/advanced/external-host-coordination.md).
+
 - `apps/qiongli/src/command.rs` owns public CLI parsing; `cli_help.rs` provides
   short entry pages and selects detailed syntax from the command owners.
   `cli_presentation.rs` formats their results for terminal users without owning

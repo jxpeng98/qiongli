@@ -1286,6 +1286,122 @@ mod tests {
     }
 
     #[test]
+    fn external_transports_reject_incomplete_failed_and_mismatched_runs() {
+        use crate::{
+            CodexExecOutcomeV1 as Outcome, CodexExecPacketV1, ExternalAgentV1 as Agent,
+            collect_external_exec, prepare_external_exec,
+        };
+        use serde_json::json;
+        let h = handoff();
+        let packet = CodexExecPacketV1 {
+            scope: "Review synthetic evidence".into(),
+            source_text: "C-001; full text unavailable".into(),
+        };
+        for agent in [Agent::ClaudeCode, Agent::DeepSeek, Agent::Antigravity] {
+            let prepared = prepare_external_exec(agent, &h, &packet).unwrap();
+            let reply = json!({"handoffSha256":prepared.handoff_sha256,"packetSha256":prepared.packet_sha256,"resultText":"C-001: evidence gap"}).to_string();
+            let rows = match agent {
+                Agent::ClaudeCode => vec![
+                    json!({"type":"result","subtype":"success","is_error":false,"session_id":"run-test","result":reply}),
+                ],
+                Agent::DeepSeek => vec![
+                    json!({"type":"session","sessionId":"run-test"}),
+                    json!({"type":"status","phase":"turn_start","turn":0}),
+                    json!({"type":"status","phase":"turn_end","turn":0,"reason":{"kind":"completed"}}),
+                    json!({"type":"final","text":reply}),
+                ],
+                Agent::Antigravity => vec![
+                    json!({"event":"init","conversation_id":"run-test"}),
+                    json!({"event":"result","result":{"conversation_id":"run-test","status":"SUCCESS","num_turns":1,"response":reply}}),
+                ],
+                _ => unreachable!(),
+            };
+            let encode = |rows: &[serde_json::Value]| {
+                rows.iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            };
+            let collect = |rows: &[serde_json::Value]| {
+                collect_external_exec(agent, &h, &packet, &encode(rows), Outcome::Completed, 0)
+            };
+            let result = collect(&rows).unwrap();
+            assert_eq!(result.result_text, reply);
+            assert_eq!(result.result_sha256, sha256(reply.as_bytes()));
+            for end in 0..rows.len() {
+                assert!(collect(&rows[..end]).is_err());
+            }
+            let mut duplicate = rows.clone();
+            duplicate.extend(rows.clone());
+            assert!(collect(&duplicate).is_err());
+            let mut changed = packet.clone();
+            changed.source_text.push_str(" R3");
+            assert!(
+                collect_external_exec(agent, &h, &changed, &encode(&rows), Outcome::Completed, 0)
+                    .is_err()
+            );
+            for outcome in [Outcome::Cancelled, Outcome::TimedOut, Outcome::Failed] {
+                assert_eq!(
+                    collect_external_exec(agent, &h, &packet, &encode(&rows), outcome, 0)
+                        .unwrap_err(),
+                    "external-exec-not-completed"
+                );
+            }
+            assert!(
+                collect_external_exec(agent, &h, &packet, &encode(&rows), Outcome::Completed, 1)
+                    .is_err()
+            );
+            assert!(collect_external_exec(agent, &h, &packet, "{", Outcome::Completed, 0).is_err());
+            assert!(
+                collect_external_exec(
+                    agent,
+                    &h,
+                    &packet,
+                    &" ".repeat(crate::CODEX_EXEC_MAX_INPUT_BYTES + 1),
+                    Outcome::Completed,
+                    0
+                )
+                .is_err()
+            );
+            let mut failed = rows.clone();
+            let mut wrong_id = rows.clone();
+            match agent {
+                Agent::ClaudeCode => {
+                    failed[0]["is_error"] = json!(true);
+                    wrong_id[0]["session_id"] = json!("");
+                    assert!(prepared.argv.contains(&"--strict-mcp-config"));
+                }
+                Agent::DeepSeek => {
+                    assert_eq!(prepared.env.get("DSH_PERMISSION_MODE"), Some(&"read-only"));
+                    failed[2]["reason"]["kind"] = json!("aborted");
+                    wrong_id[3]["sessionId"] = json!("another-run");
+                    let mut bad = rows.clone();
+                    bad[2]["turn"] = json!(1);
+                    assert!(collect(&bad).is_err());
+                    let mut bad = rows.clone();
+                    bad[0]["truncated"] = json!(true);
+                    assert!(collect(&bad).is_err());
+                    let mut bad = rows.clone();
+                    bad.remove(2);
+                    assert!(collect(&bad).is_err());
+                }
+                Agent::Antigravity => {
+                    failed[1]["result"]["status"] = json!("CANCELLED");
+                    wrong_id[1]["result"]["conversation_id"] = json!("another-run");
+                    let mut bad = rows.clone();
+                    bad[1]["result"]["num_turns"] = json!(2);
+                    assert!(collect(&bad).is_err());
+                    let prompt: serde_json::Value = serde_json::from_str(&prepared.stdin).unwrap();
+                    assert_eq!(prompt["event"], "user");
+                }
+                _ => unreachable!(),
+            }
+            assert!(collect(&failed).is_err());
+            assert!(collect(&wrong_id).is_err());
+        }
+    }
+
+    #[test]
     fn debug_output_redacts_instructions_candidate_and_disclosures() {
         let handoff = handoff();
         let candidate = HostCandidateEnvelopeV1::try_new(

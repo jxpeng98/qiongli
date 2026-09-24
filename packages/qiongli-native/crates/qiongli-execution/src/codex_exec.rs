@@ -22,6 +22,8 @@ pub struct CodexExecPacketV1 {
 pub struct CodexExecDispatchV1 {
     pub argv: Vec<&'static str>,
     pub stdin: String,
+    #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub env: std::collections::BTreeMap<&'static str, &'static str>,
     pub handoff_sha256: String,
     pub packet_sha256: String,
 }
@@ -60,6 +62,7 @@ pub fn prepare_codex_exec(
         "scope": packet.scope, "sourceText": packet.source_text
     });
     Ok(CodexExecDispatchV1 {
+        env: Default::default(),
         argv: vec![
             "codex",
             "exec",
@@ -160,6 +163,27 @@ pub fn collect_codex_exec(
         return Err("codex-exec-stream-incomplete");
     }
     let result_text = result_text.ok_or("codex-exec-reply-invalid")?;
+    collect_bound_reply(
+        handoff,
+        packet,
+        &prepared,
+        execution_id.ok_or("codex-exec-identity-invalid")?,
+        "codex.exec",
+        result_text,
+    )
+}
+
+pub(crate) fn collect_bound_reply(
+    handoff: &OrchestrationHandoffV1,
+    packet: &CodexExecPacketV1,
+    prepared: &CodexExecDispatchV1,
+    execution_id: String,
+    dispatch_tool: &str,
+    result_text: String,
+) -> Result<HostDelegationResultV1, &'static str> {
+    if !valid_text(&result_text, handoff.limits.max_candidate_bytes as usize) {
+        return Err("codex-exec-reply-invalid");
+    }
     let reply: BoundReply =
         serde_json::from_str(&result_text).map_err(|_| "codex-exec-reply-invalid")?;
     if reply.handoff_sha256 != prepared.handoff_sha256
@@ -175,10 +199,10 @@ pub fn collect_codex_exec(
     }
     let result = HostDelegationResultV1 {
         adapter: HostDelegationAdapterV1::ExternalAgent,
-        execution_id: execution_id.ok_or("codex-exec-identity-invalid")?,
-        dispatch_tool: "codex.exec".to_owned(),
+        execution_id,
+        dispatch_tool: dispatch_tool.to_owned(),
         scope: packet.scope.clone(),
-        handoff_sha256: prepared.handoff_sha256,
+        handoff_sha256: prepared.handoff_sha256.clone(),
         status: HostDelegationStatusV1::Completed,
         result_sha256: hash(result_text.as_bytes()),
         result_text,

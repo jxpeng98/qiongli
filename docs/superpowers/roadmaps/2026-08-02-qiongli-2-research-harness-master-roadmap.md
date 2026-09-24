@@ -69,6 +69,11 @@ The Host executes the prepared command and supervises its process; Qiongli binds
 and validates the returned result. Actual synthetic runs cover successful
 collection, cancellation, startup and in-turn timeouts, changed-source rejection,
 an explicit fresh run and a registered synthetic Full MCP submission.
+The September 24 increment adds an opt-in DeepSeek Cordis Plugin and configured
+Claude Code, DeepSeek and Antigravity proposal transports through the same owners.
+Temporary DSH Plugin activation and actual synthetic Claude/Antigravity collection
+have observations in the current plan. Published DSH 0.1.5-rc.3 lacks the required
+machine-readable headless protocol; external DeepSeek execution remains unqualified.
 The current plan owns checks and remaining installed-Host/two-Host qualification;
 this does not broaden the 2.0.1 patch or promote collaboration acceptance.
 The [prior bounded record](../plans/2026-09-06-cli-first-closeout-and-extraction.md)

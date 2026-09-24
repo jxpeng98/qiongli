@@ -18,6 +18,8 @@ mod codex_exec;
 mod control;
 mod dispatch;
 mod error;
+mod external_exec;
+pub use external_exec::{ExternalAgentV1, collect_external_exec, prepare_external_exec};
 mod fake;
 mod host_acceptance;
 mod host_handoff;

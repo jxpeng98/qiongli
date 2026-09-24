@@ -65,9 +65,16 @@ pub(crate) fn topic(args: &[OsString]) -> Option<String> {
         ["app"] => APP,
         ["setup"] | ["install", "review"] => SETUP,
         ["hooks"] | ["hooks", "context"] => HOOKS,
-        ["agent"] | ["agent", "codex"] | ["agent", "codex", "prepare" | "collect"] => {
-            crate::external_agent_cli::USAGE
-        }
+        ["agent"]
+        | [
+            "agent",
+            "codex" | "claude" | "claude-code" | "deepseek" | "dsh" | "antigravity" | "agy",
+        ]
+        | [
+            "agent",
+            "codex" | "claude" | "claude-code" | "deepseek" | "dsh" | "antigravity" | "agy",
+            "prepare" | "collect",
+        ] => crate::external_agent_cli::USAGE,
         ["install", "list"] | ["install", "inventory"] => {
             "Usage: qiongli install list [--paths exact] [--json | --text]\n       qiongli install inventory [--paths exact] [--json | --text]\n\nShow detected CLI versions and Hosts. Use --paths exact to show actual locations.\n"
         }

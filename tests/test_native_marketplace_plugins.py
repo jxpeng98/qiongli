@@ -80,6 +80,68 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
     def build(self, name='out', target=TARGET):
         return plugins.build_plugins(self.source, self.root / name, VERSION, COMMIT, self.binary, target)
 
+    def test_deepseek_bundle_uses_canonical_skills_and_native_full_mcp(self):
+        source = Path(__file__).resolve().parents[1] / 'content/workflow'
+        for name in ('SKILL.md', 'no-qiongli/SKILL.md'):
+            self.content['workflow/' + name] = (source / name).read_bytes()
+        self.write_source()
+        archives = plugins.build_plugins(self.source, self.root / 'dsh', VERSION, COMMIT,
+                                        self.binary, TARGET, platforms=('deepseek',))
+        self.assertEqual(len(archives), 1)
+        verified = plugins.verify_archive(archives[0], VERSION, COMMIT)
+        self.assertEqual(verified['platform'], 'deepseek')
+        root = self.root / 'dsh/deepseek/plugins' / plugins.plugin_name(TARGET, VERSION)
+        manifest = json.loads((root / 'package.json').read_bytes())
+        self.assertEqual(manifest['dsh']['bundle']['patch'], './cordis.patch.yml')
+        self.assertNotIn('scripts', manifest)
+        patch_text = (root / 'cordis.patch.yml').read_text()
+        self.assertIn('args: [mcp, serve, --profile, full, --transport, stdio]', patch_text)
+        self.assertNotIn('model', patch_text)
+        # Execute the actual generated module with a minimal public Cordis service surface.
+        result = subprocess.run(['node', '--input-type=module', '-e', '''
+import assert from 'node:assert/strict';
+import { pathToFileURL } from 'node:url';
+const { apply } = await import(pathToFileURL(process.argv[1]));
+let provider, command;
+await apply({skills:{registerProvider(factory) { provider = factory(); }},
+  provide(name, value) { assert.equal(name, 'qiongliBundle'); command = value.command; }});
+assert.ok(command.endsWith('/bin/qiongli'));
+const entries = await provider.list();
+assert.deepEqual(entries.map(e => e.name), ['qiongli', 'no-qiongli']);
+for (const entry of entries) {
+  const skill = await provider.get(entry);
+  assert.ok(skill.content.includes('name: ' + entry.name));
+  assert.equal(skill.resourceBase.kind, 'directory');
+}
+await assert.rejects(provider.get({name:'../../private'}));
+''', str(root / 'index.mjs')], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for target, binary in BINARIES.items():
+            projected = plugins.project(self.content, 'deepseek', VERSION, target, binary)
+            self.assertIn(plugins.binary_path(target), projected)
+            self.assertIn(plugins.binary_path(target).encode(), projected['index.mjs'])
+        with self.assertRaises(ValueError):
+            plugins.project(self.content, 'deepseek', VERSION)
+        with self.assertRaisesRegex(ValueError, 'projection collision'):
+            plugins.project(dict(self.content, **{'SKILL.md': b'collision'}),
+                            'deepseek', VERSION, TARGET, BINARIES[TARGET])
+        with self.assertRaises(ValueError):
+            plugins.build_plugins(self.source, self.root / 'duplicate', VERSION, COMMIT,
+                                  self.binary, TARGET, platforms=('deepseek', 'deepseek'))
+        def tamper(rows):
+            index = next(i for i, (m, _) in enumerate(rows) if m.name.endswith('/index.mjs'))
+            member, data = rows[index]
+            changed = data + b'\n// modified loader\n'
+            rows[index] = member, changed
+            index = next(i for i, (m, _) in enumerate(rows) if m.name.endswith(plugins.RECEIPT))
+            member, data = rows[index]
+            receipt = json.loads(data)
+            receipt['files']['index.mjs'] = {'size_bytes': len(changed), 'sha256': plugins.digest(changed)}
+            rows[index] = member, plugins.json_bytes(receipt)
+        self.rewrite_archive(archives[0], tamper)
+        with self.assertRaisesRegex(ValueError, 'native projection'):
+            plugins.verify_archive(archives[0], VERSION, COMMIT)
+
     def test_both_archives_preserve_canonical_bytes_and_bundle_runtime(self):
         canonical = Path(__file__).resolve().parents[1] / 'content'
         for relative in ('skills/Z_cross_cutting/model-collaborator.md',

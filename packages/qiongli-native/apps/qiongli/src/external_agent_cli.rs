@@ -1,25 +1,27 @@
-//! Prepare/collect an external Codex turn; the current Host owns process execution.
+//! Prepare/collect an external Agent turn; the current Host owns process execution.
 use std::ffi::OsString;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use qiongli_execution::{
-    CODEX_EXEC_MAX_INPUT_BYTES, CodexExecOutcomeV1, CodexExecPacketV1, OrchestrationHandoffV1,
-    collect_codex_exec, prepare_codex_exec,
+    CODEX_EXEC_MAX_INPUT_BYTES, CodexExecOutcomeV1, CodexExecPacketV1, ExternalAgentV1,
+    OrchestrationHandoffV1, collect_external_exec, prepare_external_exec,
 };
 
 use crate::CliOutput;
 
-pub(crate) const USAGE: &str = "Host-executed external Codex adapter\n\nUsage:\n  qiongli agent codex prepare --handoff <handoff.json> --packet <packet.json> --json\n  qiongli agent codex collect --handoff <handoff.json> --packet <packet.json> --events <events.jsonl> --status <completed|cancelled|timed-out|failed> --exit-code <0..255> --json\n\nPacket fields: scope and sourceText (authorized snapshot with identifiers and limits).\nprepare emits argv and stdin. Run them using your Host's execution tool in an\nauthorized working directory; retain exact stdout JSONL and the observed process\nstatus/exit code. The Host owns timeout, cancellation and process cleanup.\ncollect requires the original packet/handoff, a completed turn, successful process\nexit and a reply bound to both digests. It emits one external-agent delegation\nresult for coordinator review; source evidence and project approval stay separate.\nNo model, profile, credential or user config is changed. Read-only sandbox is not\nisolation from all Host MCP tools/hooks. These commands do not launch a process.\nAfter failure inspect the original execution and current sources before an explicit\nfresh run; no automatic retry, resume --last, canonical writes or apply.\n";
+pub(crate) const USAGE: &str = "Host-executed external Agent adapters\n\nUsage:\n  qiongli agent <codex|claude|deepseek|antigravity> prepare --handoff <handoff.json> --packet <packet.json> --json\n  qiongli agent <codex|claude|deepseek|antigravity> collect --handoff <handoff.json> --packet <packet.json> --events <events.jsonl> --status <completed|cancelled|timed-out|failed> --exit-code <0..255> --json\n\nPacket fields: scope and sourceText (authorized snapshot with identifiers and limits).\nprepare emits argv, stdin and optional per-process env overrides. Merge env into\nonly the child process and use the Host execution tool in an authorized directory.\nRetain exact stdout JSON/JSONL and the observed process status/exit code. The Host owns timeout, cancellation and process cleanup.\ncollect requires the original packet/handoff, a completed turn, successful process\nexit and a reply bound to both digests. It emits one external-agent delegation\nresult for coordinator review; source evidence and project approval stay separate.\nModel, effort, account and saved settings remain Host-owned. DeepSeek selects the\nheadless profile; its --help must expose --json (npm 0.1.5-rc.3 does not).\nTransport flags and proposal instructions are not full isolation from Host hooks\nor configured tools. Use an authorized, isolated working directory.\nThese commands do not launch a process.\nAfter failure inspect the original execution and current sources before an explicit\nfresh run; no automatic retry, resume --last, canonical writes or apply.\n";
 
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) enum ExternalAgentCommand {
     Prepare {
+        agent: ExternalAgentV1,
         handoff: PathBuf,
         packet: PathBuf,
     },
     Collect {
+        agent: ExternalAgentV1,
         handoff: PathBuf,
         packet: PathBuf,
         events: PathBuf,
@@ -29,9 +31,13 @@ pub(crate) enum ExternalAgentCommand {
 }
 
 pub(crate) fn parse(args: &[OsString]) -> Result<ExternalAgentCommand, &'static str> {
-    if args.first().and_then(|v| v.to_str()) != Some("codex") {
-        return Err("external agent must be codex");
-    }
+    let agent = match args.first().and_then(|v| v.to_str()) {
+        Some("codex") => ExternalAgentV1::Codex,
+        Some("claude" | "claude-code") => ExternalAgentV1::ClaudeCode,
+        Some("deepseek" | "dsh") => ExternalAgentV1::DeepSeek,
+        Some("antigravity" | "agy") => ExternalAgentV1::Antigravity,
+        _ => return Err("external agent must be codex, claude, deepseek or antigravity"),
+    };
     let collect = match args.get(1).and_then(|v| v.to_str()) {
         Some("prepare") => false,
         Some("collect") => true,
@@ -77,6 +83,7 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ExternalAgentCommand, &'static 
         .ok_or("packet path is required")?;
     if collect {
         Ok(ExternalAgentCommand::Collect {
+            agent,
             handoff,
             packet,
             events: events
@@ -86,7 +93,11 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ExternalAgentCommand, &'static 
             exit_code: exit_code.ok_or("observed process exit code is required")?,
         })
     } else {
-        Ok(ExternalAgentCommand::Prepare { handoff, packet })
+        Ok(ExternalAgentCommand::Prepare {
+            agent,
+            handoff,
+            packet,
+        })
     }
 }
 
@@ -99,7 +110,9 @@ pub(crate) fn run(command: &ExternalAgentCommand) -> CliOutput {
 
 fn execute(command: &ExternalAgentCommand) -> Result<serde_json::Value, &'static str> {
     let (handoff, packet) = match command {
-        ExternalAgentCommand::Prepare { handoff, packet }
+        ExternalAgentCommand::Prepare {
+            handoff, packet, ..
+        }
         | ExternalAgentCommand::Collect {
             handoff, packet, ..
         } => (handoff, packet),
@@ -109,10 +122,11 @@ fn execute(command: &ExternalAgentCommand) -> Result<serde_json::Value, &'static
     let packet: CodexExecPacketV1 =
         serde_json::from_slice(&read(packet)?).map_err(|_| "codex-exec-packet-invalid")?;
     let value = match command {
-        ExternalAgentCommand::Prepare { .. } => {
-            serde_json::to_value(prepare_codex_exec(&handoff, &packet)?)
+        ExternalAgentCommand::Prepare { agent, .. } => {
+            serde_json::to_value(prepare_external_exec(*agent, &handoff, &packet)?)
         }
         ExternalAgentCommand::Collect {
+            agent,
             events,
             status,
             exit_code,
@@ -120,8 +134,8 @@ fn execute(command: &ExternalAgentCommand) -> Result<serde_json::Value, &'static
         } => {
             let events =
                 String::from_utf8(read(events)?).map_err(|_| "codex-exec-event-invalid")?;
-            serde_json::to_value(collect_codex_exec(
-                &handoff, &packet, &events, *status, *exit_code,
+            serde_json::to_value(collect_external_exec(
+                *agent, &handoff, &packet, &events, *status, *exit_code,
             )?)
         }
     };
