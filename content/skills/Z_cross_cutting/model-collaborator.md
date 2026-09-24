@@ -198,45 +198,61 @@ A stale or mismatched response needs reconciliation or another review; never app
 its patch blindly. The coordinator records accepted/rejected findings and applies
 only the approved integrated candidate through the existing write owner.
 
-### Codex external transport, when available
+### External CLI transports, when available
 
-Use the existing configured Codex CLI only for an authorized bounded assignment.
-Preserve its saved authentication, model and reasoning effort: do not add
-`--model` or `--ignore-user-config`, install a runtime or request new credentials.
-If the CLI or Host execution tool is unavailable, use the portable fallback above
-and report that nothing was dispatched.
+Use an existing configured CLI only for an authorized bounded assignment. Choose
+`codex`, `claude`, `deepseek` (official DeepSeek Harness `dsh`) or `antigravity`
+(`agy`) from the user's request and visible executable capabilities. Preserve the
+Host's saved authentication, model and reasoning effort; do not install a runtime,
+request credentials, add model overrides or silently switch to another Host.
+If the CLI or execution tool is unavailable, use the portable fallback and report
+that nothing was dispatched. DeepSeek uses its configured `headless` profile;
+verify that profile supports `--json` before dispatch, without replacing settings.
+The observed npm `@deepseek-ai/dsh@0.1.5-rc.3` lacks that flag; use a configured
+build with the documented machine-readable headless protocol or report the lane
+unavailable. Never manufacture a session identity from plain text.
 
-1. Prepare a packet JSON with exactly `scope` and `sourceText`. Include only the
+1. Prepare JSON with exactly `scope` and `sourceText`, containing only the
    approved source snapshot, IDs, citekeys, anchors and evidence limits. Run
-   `qiongli agent codex prepare --handoff <canonical-handoff.json> --packet <packet.json> --json`.
-   It returns `argv`, bounded `stdin`, `handoffSha256` and `packetSha256`.
-2. Through the actual Host execution tool, start the returned argv in an approved
-   isolated working directory and feed the returned stdin unchanged. The fixed
-   command is `codex exec --json --ephemeral --sandbox read-only --color never --skip-git-repo-check -`.
-   Keep the exact JSONL stdout and observed process identity, status and exit code;
-   the Host tool owns waiting, timeout and cancellation, not a Qiongli daemon.
-3. After observing completed execution with exit code 0, run
-   `qiongli agent codex collect --handoff <canonical-handoff.json> --packet <packet.json> --events <jsonl> --status completed --exit-code 0 --json`.
-   Keep the handoff and packet unchanged. Collection requires a single coherent
-   started/completed turn and a nonblank final agent message containing JSON that
-   acknowledges the exact `handoffSha256`, `packetSha256` and supplies `resultText`,
-   as requested by prepare. It emits the existing `HostDelegationResultV1` with
-   `adapter: external-agent`, `dispatchTool: codex.exec` and `executionId` from
-   `thread.started`. Its result text/digest retain the exact final message, not
-   just the inner `resultText`. Retain the Host process identity in the trace too.
-4. Recheck current source/candidate bindings before optional candidate submission;
-   the coordinator's MCP-authenticated reads and approval boundaries still apply.
+   `qiongli agent <host> prepare --handoff <canonical-handoff.json> --packet <packet.json> --json`.
+   It returns `argv`, bounded `stdin`, optional per-process `env` overrides,
+   `handoffSha256` and `packetSha256`. Existing Codex usage remains
+   `qiongli agent codex prepare`; all four adapters share this contract.
+2. Start that argv through the actual Host execution tool in an approved isolated
+   working directory. Feed stdin unchanged and merge only the returned `env`
+   overrides into this child process's environment; do not save them globally.
+   Keep exact stdout JSON/JSONL plus observed process identity, status and exit.
+   The Host owns deadlines, waiting, cancellation and cleanup. A prepared command
+   alone is not dispatch. Concurrent assignments require separate logs and packets.
+3. After observing completion with exit code 0, run
+   `qiongli agent <host> collect --handoff <canonical-handoff.json> --packet <packet.json> --events <stdout-file> --status completed --exit-code 0 --json`.
+   Keep the original handoff/packet. Collection checks the transport's terminal
+   success, actual session identity and final JSON reply acknowledging both
+   digests with `resultText`. It emits the existing `HostDelegationResultV1`:
+   `adapter: external-agent`, the transport's `dispatchTool` and `executionId`.
+   Exact final message bytes, including the digest wrapper, remain in the result.
+   Keep the supervising Host's process identity in the trace as well.
+4. Recheck current source/candidate bindings and reconcile the findings before
+   optional submission. Only the coordinator's authenticated MCP reads establish
+   project evidence; external output cannot advance the checkpoint or approve apply.
 
-`--sandbox read-only` narrows execution but is not full filesystem or MCP isolation.
-Configured hooks and MCP tools remain subject to Host rules: use only approved
-source packets and tools, with no private-library writes. Do not infer permission
-from configuration or the presence of this transport.
+| Selection | Prepared transport | Permission boundary |
+|---|---|---|
+| `codex` | `codex exec --json --ephemeral` | Existing read-only sandbox |
+| `claude` | `claude --print --output-format json` | Built-in tools and MCP disabled for the supplied-snapshot proposal; no session persistence |
+| `deepseek` | `dsh --profile headless --json -` | Per-process `DSH_PERMISSION_MODE=read-only`; requires the configured headless profile |
+| `antigravity` | `agy --input-format stream-json --output-format stream-json` | One user message, plan mode and disabled slash-command expansion |
 
-On timeout, cancellation, nonzero exit or transport loss, retain the event log and
-gap. Collection accepts observed `completed` plus exit 0 only; never relabel
-`cancelled`, `timed-out` or `failed` as completed because late output exists.
-Inspect the original execution before retrying and obtain fresh authorization and
-bindings. Ephemeral execution has no automatic resume/replay: do not use `--last`.
+These flags and instructions are not complete isolation from configured hooks,
+MCP tools or Host policy. Do not infer permission from configuration or transport
+availability. Keep all external proposals read-only; project writes remain in the
+existing reviewed preview/approval flow.
+
+On timeout, cancellation, nonzero exit or transport loss, retain the log and gap.
+Collection accepts observed `completed` plus exit 0 only; never relabel cancelled,
+failed or timed-out execution because a late reply exists. Inspect and reap the
+original process before a fresh authorized run with current bindings. No automatic
+retry or persistent resume is implemented; do not use `--last` or continue-latest.
 
 ### Carry research state forward
 

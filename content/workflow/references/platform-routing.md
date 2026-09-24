@@ -168,6 +168,21 @@ operation; do not interpret every use of “review” as a systematic review or 
   its returned host-driven `project_list -> doctor -> start -> read/submit`
   sequence.
 
+## DeepSeek Harness
+
+The DeepSeek Cordis bundle exposes the canonical `qiongli` and `no-qiongli` Skills
+and bundled native Full MCP. Use visible MCP tools and their live schemas; a
+loaded bundle does not prove authentication, available subagents or project
+write authority. For the current shared route schema use `platform: unknown`;
+for the Full MCP Host descriptor use `family: other-local` with actual Host and
+adapter versions and observed component states. Keep that descriptor stable for
+the run. Do not identify DeepSeek as Codex merely to reuse a handoff.
+
+External coordination uses the same bounded packets and coordinator-owned
+submission described in `skills/Z_cross_cutting/model-collaborator.md`.
+DeepSeek, Claude Code and Antigravity can return proposals through their configured
+CLI adapters; the originating Host retains authenticated evidence and checkpoints.
+
 ## CLI And Portable Packages
 
 - Slash-style commands remain stable skill-workflow entry points. Use
