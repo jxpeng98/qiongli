@@ -1194,3 +1194,52 @@ language reading on Windows/Linux and installed-user client refresh remain exter
 qualification gaps. A new authorized release is required to distribute this work;
 client UI language changes alone do not rewrite installed Skills. DSH reloads its
 saved language when the profile/app restarts; creating a chat alone is insufficient.
+
+
+### September 30 stable patch — 2.1.1 release preparation
+
+The maintainer authorizes version consolidation, reviewed local integration,
+normal main push, a new immutable stable tag and submission to the existing
+release automation. Stop local tracking after accepted submission; do not infer
+completed publication or create follow-up automation. No announcement,
+Marketplace promotion, user-profile/model change or research-data access is scoped.
+
+Remote main and v2.1.0 identify `09f669d55b2aa5474cd5460d75f745d2014795e1`.
+The prior release run 36709911779 completed successfully and GitHub exposes
+v2.1.0. The unpublished local main transition draft diverges; retain it rather
+than rewriting it. The release source advances remote main from its existing
+ancestor through reviewed 2.x changes. Tag/npm/PyPI/Cargo lookups found 2.1.1
+unoccupied. Never overwrite published tags or assets.
+
+Source changes `81cf5839`, `1db95c63`, `bc947b5e` supply multi-Host installation,
+concise bilingual Skill metadata and shared auto/zh/en selection. Canonical
+version synchronization at `6fe46a77` uses the existing owner. Its generated
+content lock has 435 resources, content root
+`f69e6eb618642c5df6cb7aa0d57ebd562f137759f0b32b9532f8c6c94e9b075e`
+and pack `30065976c8dd5077ea94bf0d345586243f3c70261ab953667d9568ff13df304d`.
+`tooling/release/v2.1.1.md` records installation, language persistence, DSH restart,
+channels, limits and rollback. No generated mirror was hand-edited.
+
+Preparation checks: 30 version/registry/assets/CLI-release/publisher/program
+checks pass; seven program checks pass after regenerating the existing index.
+Tag/version verification passes. The existing native registry generator creates
+all nine Cargo source archives in `/private/tmp/qiongli-v211-cargo-source`;
+archive creation is not Cargo install verification or publication. Coordinator
+self-review preserves version projection and release authorization negatives.
+The 249 task states/dependencies and 46 accepted rows remain unchanged.
+
+The clean integrated source must next pass
+`./scripts/release_ready.sh --cli-github --version 2.1.1 --staging-dir
+/private/tmp/qiongli-v211-release-final` on macOS ARM64 before remote publication
+submission. This packet owner builds and checks native CLI, npm/wheel installs,
+DSH projection and standalone Plugins. Only its successful result authorizes a
+readiness claim for that target. Existing tag-bound automation must freshly
+qualify all three targets and combined npm/assets before publishing GitHub,
+npm latest, stable PyPI and Cargo. Stable tag must equal frozen remote main HEAD.
+No check or protection is bypassed; no protected 2.x push is needed.
+
+Earlier focused implementation/isolated DSH observations remain scoped to their
+source. Do not claim a final full 236-case library rerun. Windows/Linux OS locale,
+real client refresh, installed-user/model collaboration and broader research
+acceptance remain open. The next independent development increment is real
+Host/library qualification, not duplicate release monitoring.

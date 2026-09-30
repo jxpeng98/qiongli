@@ -64,7 +64,9 @@ three-platform qualification and channel publication to existing automation;
 local tracking stops after accepted submission as requested. Submission does
 not establish completed publication or program acceptance. The current plan also records
 post-release local multi-Host installation and install-time Skill language selection;
-these require a separately authorized new release. The same plan
+the maintainer has now authorized stable 2.1.1 publication for these changes.
+The current plan owns its preparation and existing tag-bound automation;
+accepted dispatch still does not establish completed publication. The same plan
 records the maintainer's 2.0.1 v1 transition and planned 2.1 cutoff, completed
 delegated implementation, coordinator review, historical macOS qualification
 and both CI policy increments: hosted three-platform verification is restored
