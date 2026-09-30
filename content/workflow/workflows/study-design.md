@@ -1,5 +1,5 @@
 ---
-description: 根据研究问题、可用材料和协议要求，制定或评估研究设计
+description: "Plan or assess a study using the research question, available materials, and protocol requirements."
 ---
 
 # Study Design (Empirical)

@@ -1,5 +1,5 @@
 ---
-description: 基于已筛选/提取/质评结果执行证据综合（叙述/定性/定量 Meta-analysis）
+description: "Synthesize screened, extracted, and appraised evidence using narrative, qualitative, or meta-analytic methods."
 ---
 
 # Evidence Synthesis / Meta-analysis

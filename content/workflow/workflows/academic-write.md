@@ -1,5 +1,5 @@
 ---
-description: 撰写或修改指定学术段落、章节或提案，保留证据和主张边界
+description: "Draft or revise a research paragraph, section, or proposal while preserving its evidence and claim limits."
 ---
 
 # Academic Writing

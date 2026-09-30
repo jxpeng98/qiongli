@@ -1,5 +1,5 @@
 ---
-description: Full-cycle academic paper workflow harness from topic selection to journal fit and feedback.
+description: "Work through a research paper from topic selection to journal fit and feedback."
 ---
 
 # Full-Cycle Paper Lifecycle Workflow

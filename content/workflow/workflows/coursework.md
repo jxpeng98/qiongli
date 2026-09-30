@@ -1,5 +1,5 @@
 ---
-description: Coursework and learning-assessment workflow for assignment briefs, rubrics, drafts, and final readiness checks
+description: "Prepare assignment briefs, rubrics, and drafts, then check readiness for submission."
 ---
 
 # Coursework Workflow

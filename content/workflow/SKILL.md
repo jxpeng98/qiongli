@@ -1,6 +1,6 @@
 ---
 name: qiongli
-description: "Qiongli version: v2.1.0. Academic research workflow for reading papers, literature review, study design, scholarly writing, analysis code, reproducibility, rebuttal, submission, presentations, coursework and dissertations. Use for natural academic requests involving claims, sources, methods or reviewer judgment, without requiring a command. Excludes generic coding, file conversion and non-academic editing."
+description: "Qiongli version: v2.1.0. Read papers, plan studies, write manuscripts, and prepare research outputs from the evidence you provide."
 ---
 
 # Qiongli Academic Workflow

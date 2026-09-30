@@ -1,5 +1,5 @@
 ---
-description: 系统性识别研究领域中的学术空白和研究机会
+description: "Identify research gaps and possible directions for further study."
 ---
 
 # Research Gap Identification

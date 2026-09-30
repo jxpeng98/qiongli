@@ -1,5 +1,5 @@
 ---
-description: Dissertation and major-project workflow for planning, chapter architecture, supervisor feedback, readiness, and defense preparation
+description: "Plan a dissertation, organize chapters, address supervisor feedback, and prepare for submission or defense."
 ---
 
 # Dissertation Workflow

@@ -1,5 +1,5 @@
 ---
-description: 研究论文写作工作流入口（选择论文类型 + 当前阶段/要写的部分）
+description: "Choose a paper type and the stage or section you want to work on."
 ---
 
 # Research Paper Workflow (Menu / Router)

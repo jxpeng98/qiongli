@@ -1,5 +1,5 @@
 ---
-description: 执行系统性文献综述，保留协议边界并按 PRISMA 2020 报告方法和结果
+description: "Conduct a systematic literature review within the agreed protocol and report it using PRISMA 2020."
 ---
 
 # Systematic Literature Review

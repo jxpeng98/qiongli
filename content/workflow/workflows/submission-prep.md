@@ -1,5 +1,5 @@
 ---
-description: 投稿前打包（reporting checklist + cover letter + submission checklist + statements）
+description: "Prepare submission checklists, a cover letter, and the required statements."
 ---
 
 # Submission Preparation

@@ -1,5 +1,5 @@
 ---
-description: 从已有研究资料撰写完整论文，保留正式产物、证据映射和适用的报告检查
+description: "Write a full paper from existing research materials, linking claims to evidence and checking reporting requirements."
 ---
 
 # Paper Writing

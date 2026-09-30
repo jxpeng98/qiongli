@@ -1,5 +1,5 @@
 ---
-description: Consolidate completed research into a traceable stage document and a file-by-file retention review; the user alone selects and deletes files.
+description: "Summarize a completed research stage and review which files to keep; you decide what to delete."
 ---
 
 # Stage Consolidation

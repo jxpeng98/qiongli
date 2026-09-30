@@ -1,5 +1,5 @@
 ---
-description: 学术语言与终稿校对 — Improve clarity, scholarly voice, attribution and consistency while preserving claims and evidence
+description: "Proofread an academic manuscript for clear language, consistent terms, and accurate attribution without changing its claims."
 ---
 
 # Scholarly Proofreading Workflow

@@ -1,5 +1,5 @@
 ---
-description: Build academic research code from paper descriptions or methodology names
+description: "Build research analysis code from a paper description or a named method."
 ---
 
 # Code Build Workflow

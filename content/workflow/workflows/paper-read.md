@@ -1,5 +1,5 @@
 ---
-description: 阅读单篇论文或所给片段，按请求解释发现或生成可追溯的 B2 笔记
+description: "Read a paper or excerpt, explain its findings, and create notes linked to the source."
 ---
 
 # Paper Reading

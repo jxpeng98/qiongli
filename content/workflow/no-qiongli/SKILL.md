@@ -1,6 +1,6 @@
 ---
 name: no-qiongli
-description: "Reply in chat without tools or Qiongli workflow execution when the user selects no-qiongli, NoQiongli, NoQ问理, 仅回复, 不处理, no 处理, reply only or no tools. Use for an explicit reply-only request, not for developing, installing or discussing this entry."
+description: "Reply in chat without tools, file changes, or research workflow execution when you request reply only."
 ---
 
 # NoQiongli · 仅回复

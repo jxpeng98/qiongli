@@ -1,5 +1,5 @@
 ---
-description: 执行投稿前的学术依从性检查与风格审查（Reporting, PRISMA, Integrity, Tone）
+description: "Check reporting requirements, research integrity, and writing style before submission."
 ---
 
 # Compliance Check Workflow (G-Stage)
