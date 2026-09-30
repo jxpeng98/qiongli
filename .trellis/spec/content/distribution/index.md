@@ -107,6 +107,14 @@ prerelease npm publication uses `next`. `native_registry_packages.py` owns fixed
 OS/CPU dispatch, executable bytes and platform wheels. The three-platform
 `native-cli-distribution.yml` builds and installs on each target, assembles one
 npm package and three wheels, and tests the combined package on each target.
+From 2.1, this same npm package also exports `dsh/index.mjs` and the bundle patch
+at `dsh/cordis.patch.yml`. The shared DSH projector supplies all 22 Codex-equivalent
+entries and Full MCP, selecting an already packaged native executable by OS/CPU.
+No new package identity, downloader or publisher is added. The source receipt
+reconstructs the canonical pack and projection; combined verification binds it
+to all three CLI packs and executables. Target-native npm install checks load
+the actual provider and run its selected executable through CLI/Full MCP checks.
+Pre-2.1 immutable packets retain their historical verification behavior.
 `native_release_assets.py` refuses mixed source/version, missing targets and
 changed bytes. Registry jobs reuse existing workflow filenames/environments and
 require a successful exact-source distribution run. No App upload is part of this lane; product approval/CAS and managed trust remain unchanged.

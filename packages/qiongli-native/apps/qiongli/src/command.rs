@@ -1210,6 +1210,11 @@ fn parse_managed_skills_preset(value: &OsStr) -> Result<ManagedSkillsPresetV1, U
 }
 
 fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Command, UsageError> {
+    if args == ["plugin", "--target", "deepseek"].map(OsString::from) {
+        return Ok(Command::TopicHelp(
+            crate::cli_help::deepseek_plugin_install(),
+        ));
+    }
     if upgrade && args == [OsString::from("cli")] {
         return Ok(Command::TopicHelp(crate::cli_help::CLI_UPGRADE.to_owned()));
     }

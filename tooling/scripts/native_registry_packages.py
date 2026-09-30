@@ -227,6 +227,24 @@ to remove this package. Run `qiongli setup` after installation to review other C
     }
     if channel not in instructions:
         raise ValueError('unknown package documentation channel')
+    if channel == 'npm' and requires_deepseek_npm(version):
+        instructions[channel] += f"""
+## DeepSeek Harness Plugin
+
+In Desktop's Add plugin dialog, select Official npm registry and enter
+`qiongli@{identity.npm_version}`. The same package includes 22 Skill entries and
+Full MCP; a separate global CLI installation or install script is not required.
+The official local CLI can install it into the Desktop profile:
+
+```sh
+dsh plugin --profile desktop add qiongli@{identity.npm_version}
+```
+
+Replace `desktop` with your own profile name when needed. For a local install,
+replace the package specification with the absolute path to this `.tgz` archive.
+DSH 0.2 upgrades require removing the installed `qiongli` Plugin, then installing
+the new version. Start a fresh session and check the Skill catalog and MCP tools.
+"""
     return f"""# Qiongli {version}
 
 {cli_description()}
@@ -269,8 +287,15 @@ research records and backups when migrating; upgrading a package does not author
 """
 
 
-def npm_package(out: Path, binaries: dict[str, Path], version: str) -> Path:
+def requires_deepseek_npm(version: str) -> bool:
+    return tuple(map(int, version.split('-')[0].split('.'))) >= (2, 1, 0)
+
+
+def npm_package(out: Path, binaries: dict[str, Path], version: str,
+                *, plugin_content: tuple[dict, dict[str, bytes]] | None = None) -> Path:
     identity = parse_release_version(version)
+    if requires_deepseek_npm(version) and plugin_content is None:
+        raise ValueError('2.1+ npm packages require source-bound Plugin content')
     npm = out / 'npm'
     (npm / 'bin').mkdir(parents=True)
     (npm / 'bin/qiongli.mjs').write_text(NPM_LAUNCHER)
@@ -286,7 +311,7 @@ def npm_package(out: Path, binaries: dict[str, Path], version: str) -> Path:
     (npm / 'README.md').write_text(package_readme(version, 'npm'))
     shutil.copyfile(ROOT / 'LICENSE', npm / 'LICENSE')
     # ponytail: bundle three binaries in one package; split only if download size becomes a problem.
-    (npm / 'package.json').write_text(json.dumps({
+    manifest = {
         'name': 'qiongli', 'version': identity.npm_version, 'description': cli_description(),
         'type': 'module', 'license': 'MIT',
         'repository': {'type': 'git', 'url': 'git+https://github.com/jxpeng98/qiongli.git'},
@@ -295,7 +320,23 @@ def npm_package(out: Path, binaries: dict[str, Path], version: str) -> Path:
         'scripts': {'postinstall': 'node bin/install.mjs'},
         'engines': {'node': '>=18'}, 'files': ['bin/', 'native/', 'README.md', 'LICENSE'],
         'publishConfig': {'access': 'public', 'tag': identity.npm_dist_tag},
-    }, indent=2) + '\n')
+    }
+    if requires_deepseek_npm(version):
+        try:
+            from .native_marketplace_plugins import deepseek_npm_files, verify_deepseek_npm
+        except ImportError:
+            from native_marketplace_plugins import deepseek_npm_files, verify_deepseek_npm
+        metadata, content = plugin_content
+        binary_bytes = {target: regular_bytes(binary) for target, binary in binaries.items()}
+        bundle = deepseek_npm_files(metadata, content, version, binary_bytes)
+        verify_deepseek_npm(bundle, version, metadata['source_commit'], binary_bytes)
+        for name, data in bundle.items():
+            dest = npm / 'dsh' / name
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(data)
+        manifest.update(main='dsh/index.mjs', dsh={'bundle': {'patch': './dsh/cordis.patch.yml'}})
+        manifest['files'].append('dsh/')
+    (npm / 'package.json').write_text(json.dumps(manifest, indent=2) + '\n')
     packed = json.loads(subprocess.check_output(npm_command(
         'pack', '--json', '--ignore-scripts', '--pack-destination', out,
         '--cache', out / 'npm-cache'), cwd=npm, text=True))
@@ -308,7 +349,8 @@ def npm_package(out: Path, binaries: dict[str, Path], version: str) -> Path:
 
 
 def binary_packages(out: Path, binary_path: Path, version: str,
-                    target: str = 'aarch64-apple-darwin') -> list[Path]:
+                    target: str = 'aarch64-apple-darwin',
+                    *, plugin_content: tuple[dict, dict[str, bytes]] | None = None) -> list[Path]:
     binary = regular_bytes(binary_path)
     validate_binary(binary, target)
     reported = subprocess.check_output([str(binary_path), '--version'], text=True).strip()
@@ -340,7 +382,7 @@ def binary_packages(out: Path, binary_path: Path, version: str,
                 raise ValueError('Linux executable needs shared library bundling in standalone/npm too')
         whl.unlink()
         whl = Path(shutil.move(files[0], out / files[0].name))
-    return [npm_package(out, {target: binary_path}, version), whl]
+    return [npm_package(out, {target: binary_path}, version, plugin_content=plugin_content), whl]
 
 
 def main() -> None:
@@ -349,6 +391,7 @@ def main() -> None:
     parser.add_argument('--package-cargo', action='store_true', help='also create Cargo archives without claiming verification')
     parser.add_argument('--binary', type=Path, help='optional target-native candidate')
     parser.add_argument('--target', choices=TARGETS, default='aarch64-apple-darwin')
+    parser.add_argument('--plugin-content', type=Path, help='source-bound native content export for 2.1+ npm packages')
     args = parser.parse_args()
     out = args.out_dir.expanduser().absolute()
     if out.exists() or out.is_symlink() or ROOT == out.resolve() or ROOT in out.resolve().parents:
@@ -358,7 +401,16 @@ def main() -> None:
         parser.error('expected native 2.x version')
     out.mkdir(parents=True)
     workspace = stage_cargo(out, version)
-    artifacts = binary_packages(out, args.binary.absolute(), version, args.target) if args.binary else []
+    plugin_content = None
+    if args.plugin_content:
+        try:
+            from .native_marketplace_plugins import EXPORT, read_content
+        except ImportError:
+            from native_marketplace_plugins import EXPORT, read_content
+        commit = json.loads(regular_bytes(args.plugin_content / EXPORT))['source_commit']
+        plugin_content = read_content(args.plugin_content, version, commit)
+    artifacts = binary_packages(out, args.binary.absolute(), version, args.target,
+                                plugin_content=plugin_content) if args.binary else []
     if args.package_cargo:
         subprocess.run(['cargo', 'package', '--manifest-path', str(workspace / 'Cargo.toml'),
                         '--workspace', '--no-default-features', '--no-verify', '--offline',

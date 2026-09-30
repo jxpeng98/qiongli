@@ -281,7 +281,12 @@ def project_deepseek(content: dict[str, bytes], version: str, target: str,
         '        command: !!js ctx.qiongliBundle.command\n'
         '        args: [mcp, serve, --profile, full, --transport, stdio]\n'
     ).encode()
-    files['index.mjs'] = ('''import { readFile } from 'node:fs/promises';
+    files['index.mjs'] = deepseek_entry_module(json.dumps('./' + binary_path(target)))
+    return files
+
+
+def deepseek_entry_module(command_url: str) -> bytes:
+    return ('''import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 export const name = 'qiongli-bundle';
@@ -303,10 +308,69 @@ export async function apply(ctx) {
     },
   }));
   ctx.provide('qiongliBundle', { command: fileURLToPath(new URL(''' +
-        json.dumps('./' + binary_path(target)) + ''', import.meta.url)) });
+        command_url + ''', import.meta.url)) });
 }
 ''').encode()
+
+
+def deepseek_npm_files(metadata: dict, content: dict[str, bytes], version: str,
+                      binaries: dict[str, bytes]) -> dict[str, bytes]:
+    """Reuse the bundle projection with the npm package's already bundled executables."""
+    if not binaries:
+        raise ValueError('DeepSeek npm requires a native executable')
+    first = next(iter(binaries))
+    files = project_deepseek(content, version, first, binaries[first])
+    del files[binary_path(first)], files['package.json']
+    files['cordis.patch.yml'] = files['cordis.patch.yml'].replace(
+        ('name: dsh-' + plugin_name(first, version)).encode(), b'name: qiongli')
+    paths = {}
+    for target, binary in binaries.items():
+        validate_binary(binary, target)
+        os_name, arch, executable = TARGETS[target]
+        paths[os_name + ':' + arch] = '../native/' + target + '/' + executable
+    command_url = ('(() => { const path = ' + json.dumps(paths, sort_keys=True) +
+                   "[process.platform + ':' + process.arch]; if (!path) throw new Error('Unsupported Qiongli platform'); return path; })()")
+    files['index.mjs'] = deepseek_entry_module(command_url)
+    files[RECEIPT] = json_bytes({
+        'schema_version': 1, 'platform': 'deepseek-npm', 'source': metadata,
+        'source_manifest_bytes': {name: content[name].decode() for name in
+                                  ('.codex-plugin/plugin.json', '.claude-plugin/plugin.json')},
+    })
     return files
+
+
+def verify_deepseek_npm(files: dict[str, bytes], version: str, commit: str,
+                       binaries: dict[str, bytes]) -> dict:
+    receipt = json.loads(files[RECEIPT])
+    if receipt.get('schema_version') != 1 or receipt.get('platform') != 'deepseek-npm':
+        raise ValueError('DeepSeek npm receipt identity mismatch')
+    metadata = receipt['source']
+    expected = validate_export(metadata, version, commit)
+    content = {name: receipt['source_manifest_bytes'][name].encode() for name in
+               ('.codex-plugin/plugin.json', '.claude-plugin/plugin.json')}
+    for name, entry in expected.items():
+        if name not in content:
+            content[name] = files[skill_path(name)]
+        check_bytes(content[name], entry)
+    verify_pack(metadata, content)
+    if files != deepseek_npm_files(metadata, content, version, binaries):
+        raise ValueError('DeepSeek npm bundle differs from the native projection')
+    return {'pack_sha256': metadata['pack_sha256'], 'skills': len(json.loads(files['skills.json']))}
+
+
+def read_plugin_content(path: Path, version: str, commit: str) -> tuple[dict, dict[str, bytes]]:
+    verify_archive(path, version, commit)
+    with tarfile.open(path) as archive:
+        files = {m.name.split('/plugins/', 1)[1].split('/', 1)[1]: archive.extractfile(m).read()
+                 for m in archive}
+    receipt = json.loads(files[RECEIPT])
+    metadata = receipt['source']
+    content = {name: receipt['source_manifest_bytes'][name].encode() for name in
+               ('.codex-plugin/plugin.json', '.claude-plugin/plugin.json')}
+    for entry in metadata['entries']:
+        if entry['path'] not in content:
+            content[entry['path']] = files[skill_path(entry['path'])]
+    return metadata, content
 
 
 def workflow_wrapper_skills(content: dict[str, bytes]) -> dict[str, bytes]:

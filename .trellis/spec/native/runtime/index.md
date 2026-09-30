@@ -75,7 +75,11 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   support (absent in observed npm 0.1.5-rc.3); no text-only fallback exists.
   `native_marketplace_plugins.py --platform deepseek` opt-in projects canonical
   Skills, a Cordis bundle and native Full MCP through the existing export/receipt
-  verifier. Default release outputs remain Codex/Claude. DeepSeek uses the current
+  verifier. Standalone release Plugin archives remain Codex/Claude; from 2.1 the
+  existing `qiongli` npm package includes this same DSH bundle with 22 entries and
+  native Full MCP. `install plugin --target deepseek` and terminal choice 4 show
+  official profile-specific installation commands without writing Host settings.
+  DeepSeek uses the current
   `unknown` route / `other-local` descriptor, not a fabricated Codex identity.
   See [external Host usage](../../../../docs/advanced/external-host-coordination.md).
 

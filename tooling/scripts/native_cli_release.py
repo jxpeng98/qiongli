@@ -19,11 +19,11 @@ import tomllib
 
 try:
     from .native_registry_install_check import check_cli
-    from .native_marketplace_plugins import archive_name, check_plugins
+    from .native_marketplace_plugins import archive_name, check_plugins, read_content
     from .native_registry_packages import NATIVE, ROOT, TARGETS, binary_packages, cli_description, regular_bytes, parse_release_version
 except ImportError:
     from native_registry_install_check import check_cli
-    from native_marketplace_plugins import archive_name, check_plugins
+    from native_marketplace_plugins import archive_name, check_plugins, read_content
     from native_registry_packages import NATIVE, ROOT, TARGETS, binary_packages, cli_description, regular_bytes, parse_release_version
 
 
@@ -187,7 +187,10 @@ def main() -> None:
     windows_imports = check_windows_imports(binary) if target.endswith('msvc') else None
     package_work = out / 'packages'
     package_work.mkdir()
-    package_paths = binary_packages(package_work, binary, version, target)
+    run(['cargo', 'run', '-p', 'qiongli', '--example', 'export_marketplace_content',
+         '--release', '--target', target, *cargo_args, '--', str(out / 'plugin-content')])
+    plugin_content = read_content(out / 'plugin-content', version, commit)
+    package_paths = binary_packages(package_work, binary, version, target, plugin_content=plugin_content)
     for path in package_paths:
         (assets / path.name).write_bytes(regular_bytes(path))
     readme = archive_readme(version, target, commit)
@@ -218,8 +221,6 @@ def main() -> None:
     run([sys.executable, str(ROOT / 'scripts/native_registry_install_check.py'),
          '--packages', str(package_work), '--out-dir', str(out / 'install')], cwd=ROOT)
     # Each target ships the exact native executable already qualified above.
-    run(['cargo', 'run', '-p', 'qiongli', '--example', 'export_marketplace_content',
-         '--release', '--target', target, *cargo_args, '--', str(out / 'plugin-content')])
     run([sys.executable, str(ROOT / 'tooling/scripts/native_marketplace_plugins.py'),
          '--content-dir', str(out / 'plugin-content'), '--out-dir', str(out / 'plugins'),
          '--version', version, '--commit', commit, '--binary', str(binary), '--target', target], cwd=ROOT)

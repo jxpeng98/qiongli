@@ -80,6 +80,57 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
     def build(self, name='out', target=TARGET):
         return plugins.build_plugins(self.source, self.root / name, VERSION, COMMIT, self.binary, target)
 
+    def test_npm_pack_contains_source_bound_deepseek_provider_and_platform_dispatch(self):
+        from tooling.scripts.native_registry_packages import npm_package
+        with patch(__name__ + '.VERSION', '2.1.0'):
+            self.add_workflows()
+            self.content['workflow/SKILL.md'] = (Path(__file__).resolve().parents[1] / 'content/workflow/SKILL.md').read_bytes()
+            for host in plugins.PLATFORMS:
+                self.content[f'.{host}-plugin/plugin.json'] = plugins.json_bytes({
+                    'name': 'qiongli', 'version': VERSION, 'skills': './',
+                })
+            self.write_source()
+            binaries = {}
+            for target, data in BINARIES.items():
+                path = self.root / target
+                path.write_bytes(data)
+                binaries[target] = path
+            with self.assertRaisesRegex(ValueError, 'source-bound Plugin content'):
+                npm_package(self.root / 'missing', binaries, VERSION)
+            packed = npm_package(self.root / 'npm-pack', binaries, VERSION,
+                                 plugin_content=(self.metadata, self.content))
+            with tarfile.open(packed) as archive:
+                metadata = json.load(archive.extractfile('package/package.json'))
+                files = {m.name.removeprefix('package/dsh/'): archive.extractfile(m).read()
+                         for m in archive if m.name.startswith('package/dsh/')}
+                archive.extractall(self.root / 'installed', filter='data')
+            self.assertEqual(metadata['main'], 'dsh/index.mjs')
+            self.assertEqual(metadata['dsh'], {'bundle': {'patch': './dsh/cordis.patch.yml'}})
+            self.assertEqual(plugins.verify_deepseek_npm(files, VERSION, COMMIT, BINARIES),
+                             {'pack_sha256': self.metadata['pack_sha256'], 'skills': 22})
+            for target, (os_name, arch, executable) in plugins.TARGETS.items():
+                result = subprocess.run(['node', '--input-type=module', '-e', '''
+import assert from 'node:assert/strict';
+import { pathToFileURL } from 'node:url';
+Object.defineProperty(process, 'platform', {value: process.argv[2]});
+Object.defineProperty(process, 'arch', {value: process.argv[3]});
+const { apply } = await import(pathToFileURL(process.argv[1]));
+let provider, command;
+await apply({skills:{registerProvider(factory) {provider = factory();}},
+  provide(name, value) {command = value.command;}});
+assert.ok(command.endsWith(process.argv[4]));
+assert.equal((await provider.list()).length, 22);
+await assert.rejects(provider.get({name:'../../private'}));
+''', str(self.root / 'installed/package/dsh/index.mjs'), os_name, arch,
+                    '/native/' + target + '/' + executable], capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+            codex = self.build('source-archive')[0]
+            self.assertEqual(plugins.read_plugin_content(codex, VERSION, COMMIT),
+                             (self.metadata, self.content))
+            files['skills.json'] = b'[]'
+            with self.assertRaisesRegex(ValueError, 'native projection'):
+                plugins.verify_deepseek_npm(files, VERSION, COMMIT, BINARIES)
+
     def test_deepseek_bundle_uses_canonical_skills_and_native_full_mcp(self):
         self.add_workflows()
         source = Path(__file__).resolve().parents[1] / 'content/workflow'

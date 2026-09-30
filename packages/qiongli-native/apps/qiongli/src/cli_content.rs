@@ -160,7 +160,9 @@ fn install_plugins(
         let selection = crate::cli_inventory::choice(
             reader,
             writer,
-            &format!("Host: 1 Codex, 2 Claude Code, 3 both, 0 cancel [{default}]: "),
+            &format!(
+                "Host: 1 Codex, 2 Claude Code, 3 both, 4 DeepSeek Harness, 0 cancel [{default}]: "
+            ),
         )
         .map_err(|_| "installation-input-failed")?;
         targets = match if selection.is_empty() {
@@ -171,6 +173,7 @@ fn install_plugins(
             "1" => vec![Host::Codex],
             "2" => vec![Host::ClaudeCode],
             "3" => vec![Host::Codex, Host::ClaudeCode],
+            "4" => return line(writer, &crate::cli_help::deepseek_plugin_install()),
             "0" => return line(writer, "Cancelled; no changes made.\n"),
             _ => return Err("installation-selection-invalid"),
         };

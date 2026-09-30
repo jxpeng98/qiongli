@@ -75,6 +75,14 @@ shared MCP schemas, DeepSeek uses route platform `unknown` and Host family
 Plugin is not project-write approval. Removal uses the same Host manager:
 `dsh plugin --profile web remove dsh-qiongli-macos-arm64`.
 
+For released 2.1+ versions, the standard `qiongli` npm package also contains this
+bundle. Desktop users enter `qiongli@2.1.0` in Add plugin with Official npm
+registry; local users run `dsh plugin --profile desktop add qiongli@2.1.0`
+(substitute the intended profile). The official manager also accepts the local
+npm `.tgz` path. This retains all 22 Codex-equivalent entries and Full MCP while
+reusing the package's platform-selected executable. No global CLI installation
+is required. See [installation and upgrade steps](../guide/cli-2x.md#deepseek-harness-installation-21).
+
 ## Dispatch and collect an external proposal
 
 The coordinator obtains its handoff and authenticated source reads from an

@@ -16,9 +16,9 @@ import tempfile
 import tomllib
 
 try:
-    from .native_registry_packages import ROOT, npm_command
+    from .native_registry_packages import ROOT, npm_command, requires_deepseek_npm
 except ImportError:
-    from native_registry_packages import ROOT, npm_command
+    from native_registry_packages import ROOT, npm_command, requires_deepseek_npm
 
 
 def run(argv, *, root, env, input=None, check=True):
@@ -154,6 +154,40 @@ def install_cargo_archives(package_root, receipt, root, env, target_dir):
     return installed / ('bin/qiongli.exe' if os.name == 'nt' else 'bin/qiongli')
 
 
+def check_deepseek_npm(package, node, *, version, root, env):
+    """Load the installed provider and execute its selected native command."""
+    probe = r'''
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+const root = pathToFileURL(process.argv[1] + '/');
+const metadata = JSON.parse(await readFile(new URL('package.json', root)));
+assert.equal(metadata.main, 'dsh/index.mjs');
+assert.deepEqual(metadata.dsh, {bundle:{patch:'./dsh/cordis.patch.yml'}});
+const { apply } = await import(new URL(metadata.main, root));
+let provider, command;
+await apply({skills:{registerProvider(factory) { provider = factory(); }},
+  provide(name, value) { assert.equal(name, 'qiongliBundle'); command = value.command; }});
+const catalog = JSON.parse(await readFile(new URL('dsh/skills.json', root)));
+const entries = await provider.list();
+assert.equal(entries.length, 22);
+assert.deepEqual(entries.map(e => e.name), catalog.map(e => e.name));
+for (const entry of entries) {
+  const skill = await provider.get(entry);
+  assert.equal(skill.content, await readFile(new URL('dsh/' + entry.locator, root), 'utf8'));
+  assert.deepEqual(skill.invocation, {modelInvocable:true,userInvocable:true});
+  assert.equal(skill.resourceBase.kind, 'directory');
+}
+await assert.rejects(provider.get({name:'../../private'}));
+assert.ok(pathToFileURL(command).href.startsWith(new URL('native/', root).href));
+console.log(JSON.stringify({command, skills:entries.length}));
+'''
+    observed = json.loads(run([node, '--input-type=module', '-e', probe, package], root=root, env=env).stdout)
+    checked = check_cli(observed['command'], version=version, root=root, env=env)
+    return {'skills': observed['skills'], 'mcp_tools': checked['mcp_tools']['full'],
+            'content_pack_sha256': checked['content_pack_sha256']}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--packages', type=Path)
@@ -207,6 +241,10 @@ def main():
         npm_executable = [node, npm_root / 'node_modules/qiongli/bin/qiongli.mjs'] if os.name == 'nt' else npm_root / 'bin/qiongli'
         for name, executable in [('npm', npm_executable), ('pypi', python_bin / ('qiongli' + suffix))]:
             checks[name] = check_cli(executable, version=receipt['version'], root=root, env=env)
+            if name == 'npm' and requires_deepseek_npm(receipt['version']):
+                checks[name]['deepseek_plugin'] = check_deepseek_npm(
+                    npm_root / 'node_modules/qiongli' if os.name == 'nt' else npm_root / 'lib/node_modules/qiongli',
+                    node, version=receipt['version'], root=root, env=env)
             if name == 'npm' and os.name == 'nt':
                 for alias in ('qiongli', 'ql'):
                     assert (npm_root / (alias + '.cmd')).is_file()

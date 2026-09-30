@@ -1,6 +1,6 @@
 # Qiongli 2 CLI: installation and command boundaries
 
-This guide covers **2.0.0**, the first stable native CLI release from `main`.
+This guide covers **2.1.0**, building on the first stable native CLI release 2.0.0 from `main`.
 For changes from the Python-based line, see [the 1.x / 2.0 comparison and migration guide](whats-new-2.md).
 
 Qiongli 2 is CLI-first. GitHub binary archives, npm and PyPI distribute the same
@@ -45,7 +45,7 @@ project writes still require explicit preview and approval arguments.
 
 The **2.0.1 transition retains `qiongli-next` and source-status v1**, as does
 published 2.0.0. Its stable npm package still uses `latest`. The channel-specific
-identity migration below is planned for **2.1**, together with retirement of
+identity migration below takes effect in **2.1**, together with retirement of
 v1 output after consumer and upgrade checks. Reading verified older installation
 receipts remains supported separately.
 
@@ -66,6 +66,33 @@ Claude still requires manual disabling of a conflicting Plugin.
 Marketplace platform IDs follow the same rule: for example,
 `qiongli-macos-arm64` for stable and `qiongli-next-macos-arm64` for prereleases.
 Platform selection and Lite/Full tool scopes keep their existing contracts.
+
+## DeepSeek Harness installation (2.1+)
+
+In the official Desktop Add plugin dialog, select **Official npm registry** and
+enter **`qiongli@2.1.0`**. The existing npm package includes the DSH Cordis bundle,
+22 Skill entries matching Codex, Full MCP and the native executable for macOS
+ARM64, Linux x64 or Windows x64. DSH loads that executable directly; no global
+Qiongli installation or npm installation script is needed for the Plugin.
+
+The official local DSH CLI installs the same package:
+
+```sh
+dsh plugin --profile desktop add qiongli@2.1.0
+```
+
+Use your own profile name in place of `desktop`. To install a local release npm
+archive, replace `qiongli@2.1.0` with its absolute `.tgz` path. To build a local
+directory bundle, follow [the existing native exporter](../advanced/external-host-coordination.md).
+`qiongli install plugin --target deepseek` (also `upgrade`/`update`) displays
+these official commands without changing a profile. The terminal installation
+guide offers DeepSeek as choice 4.
+
+DSH 0.2 does not automatically update installed Plugins. Remove `qiongli` through
+the same DSH manager, then install the new version; retain your profile and model
+settings. Use one Qiongli bundle per profile, start a fresh session, and check
+all 22 Skill entries and 32 Full MCP tools. Actual model task execution remains
+a separate check. See the [official installation contract](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish).
 
 ## From installation to first use {#first-use}
 

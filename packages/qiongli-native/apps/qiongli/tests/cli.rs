@@ -336,6 +336,25 @@ fn external_agent_adapters_prepare_and_collect_without_launching_a_host() {
 }
 
 #[test]
+fn deepseek_installation_guidance_uses_official_manager_without_writes() {
+    let fixture = Fixture::new("deepseek-install-guide");
+    for verb in ["install", "upgrade", "update"] {
+        let result = fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), &fixture)
+            .args([verb, "plugin", "--target", "deepseek", "--text"])
+            .output()
+            .unwrap();
+        assert!(result.status.success());
+        let text = String::from_utf8(result.stdout).unwrap();
+        assert!(text.contains(&format!(
+            "dsh plugin --profile desktop add qiongli@{}",
+            env!("CARGO_PKG_VERSION")
+        )));
+        assert!(text.contains("22 Skill entries and Full MCP"));
+        assert!(!fixture.config_root.exists());
+    }
+}
+
+#[test]
 fn guided_installation_requires_a_terminal_and_local_mcp_checks_do_not_claim_host_readiness() {
     let fixture = Fixture::new("guided-install-mcp-check");
     for args in [

@@ -14,12 +14,12 @@ import zipfile
 
 try:
     from .native_registry_install_check import require_transition
-    from .native_registry_packages import NPM_INSTALL_REVIEW, TARGETS, npm_package, parse_release_version, regular_bytes, validate_binary
-    from .native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive
+    from .native_registry_packages import NPM_INSTALL_REVIEW, TARGETS, npm_package, parse_release_version, regular_bytes, validate_binary, requires_deepseek_npm
+    from .native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive, read_plugin_content, verify_deepseek_npm
 except ImportError:
     from native_registry_install_check import require_transition
-    from native_registry_packages import NPM_INSTALL_REVIEW, TARGETS, npm_package, parse_release_version, regular_bytes, validate_binary
-    from native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive
+    from native_registry_packages import NPM_INSTALL_REVIEW, TARGETS, npm_package, parse_release_version, regular_bytes, validate_binary, requires_deepseek_npm
+    from native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive, read_plugin_content, verify_deepseek_npm
 
 
 def checked_assets(root, manifest):
@@ -58,7 +58,7 @@ def cli_binary(archive, target):
 
 def assemble(root, out, version, commit):
     out.mkdir(parents=True, exist_ok=False)
-    binaries, receipts = {}, []
+    binaries, receipts, plugin_content = {}, [], None
     for target in TARGETS:
         source = root / target
         receipt = json.loads(regular_bytes(source / 'release-manifest.json'))
@@ -95,6 +95,8 @@ def assemble(root, out, version, commit):
                 if provenance['binary_sha256'] != hashlib.sha256(data).hexdigest():
                     raise ValueError('marketplace executable differs from CLI executable')
                 shutil.copyfile(path, out / path.name)
+            if requires_deepseek_npm(version) and plugin_content is None:
+                plugin_content = read_plugin_content(plugins[0], version, commit)
         # Historical alpha.8 packets retain their immutable npm-bridge pair.
         if target.endswith('linux-gnu'):
             legacy = [files.get(archive_name(host, version)) for host in PLATFORMS]
@@ -107,7 +109,7 @@ def assemble(root, out, version, commit):
         receipts.append(receipt)
     npm_work = out.parent / 'npm-combined'
     npm_work.mkdir(exist_ok=False)
-    packed = npm_package(npm_work, binaries, version)
+    packed = npm_package(npm_work, binaries, version, plugin_content=plugin_content)
     shutil.copyfile(packed, out / packed.name)
     output_files = {p.name: p for p in out.iterdir()}
     native_plugins = [find_archive(output_files, host, version, target) for target in TARGETS for host in PLATFORMS]
@@ -145,12 +147,17 @@ def verify(root, version, commit):
         seen.add(receipt['target'])
         if receipt['checks']['cli_mcp_tests'] != 'passed' or receipt['checks']['npm_wheel_local_install'] != 'passed':
             raise ValueError('target-native qualification is incomplete')
+        if requires_deepseek_npm(version):
+            dsh = receipt['checks'].get('registry_install', {}).get('npm', {}).get('deepseek_plugin', {})
+            if (dsh.get('skills') != 22 or dsh.get('mcp_tools') != 32 or
+                    dsh.get('content_pack_sha256') != receipt['checks']['archive_smoke'].get('content_pack_sha256')):
+                raise ValueError('missing target-native DeepSeek npm installation evidence')
     if seen != set(TARGETS):
         raise ValueError('duplicate or missing target evidence')
     files = checked_assets(root, manifest)
     identity = parse_release_version(version)
     npm = files[f'qiongli-{identity.npm_version}.tgz']
-    binary_hashes = {}
+    binary_hashes, binaries = {}, {}
     with tarfile.open(npm) as packet:
         metadata = json.load(packet.extractfile('package/package.json'))
         if metadata['version'] != identity.npm_version or metadata['publishConfig']['tag'] != identity.npm_dist_tag:
@@ -166,10 +173,28 @@ def verify(root, version, commit):
         for target, (_, _, binary) in TARGETS.items():
             data = packet.extractfile(f'package/native/{target}/{binary}').read()
             validate_binary(data, target)
+            binaries[target] = data
             binary_hashes[target] = hashlib.sha256(data).hexdigest()
             extension = 'zip' if target.endswith('msvc') else 'tar.gz'
             if cli_binary(files[f'qiongli-{version}-{target}.{extension}'], target) != data:
                 raise ValueError('CLI executable differs from npm executable')
+        if requires_deepseek_npm(version):
+            if (metadata.get('main') != 'dsh/index.mjs' or
+                    metadata.get('dsh') != {'bundle': {'patch': './dsh/cordis.patch.yml'}} or
+                    'dsh/' not in metadata.get('files', [])):
+                raise ValueError('missing DeepSeek npm Plugin entry')
+            bundle = {}
+            for member in packet:
+                if not member.name.startswith('package/dsh/'):
+                    continue
+                name = member.name.removeprefix('package/dsh/')
+                if not member.isfile() or name in bundle:
+                    raise ValueError('unsafe or duplicate DeepSeek npm member')
+                bundle[name] = packet.extractfile(member).read()
+            observed = verify_deepseek_npm(bundle, version, commit, binaries)
+            if any(observed['pack_sha256'] != r['checks']['archive_smoke'].get('content_pack_sha256')
+                   for r in manifest['target_evidence']):
+                raise ValueError('DeepSeek npm content differs from CLI content')
     expected = {'aarch64-apple-darwin': 'macosx_', 'x86_64-unknown-linux-gnu': 'manylinux_2_35_',
                 'x86_64-pc-windows-msvc': 'win_amd64'}
     wheels = {}

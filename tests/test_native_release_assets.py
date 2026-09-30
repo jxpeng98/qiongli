@@ -11,6 +11,21 @@ from tooling.scripts.native_release_assets import assemble, verify
 
 
 class NativeReleaseAssetsTests(unittest.TestCase):
+    def test_21_requires_target_native_deepseek_install_evidence(self):
+        version, commit = '2.1.0', 'a' * 40
+        receipts = [{'version': version, 'source_commit': commit, 'target': target,
+                     'checks': {'cli_mcp_tests': 'passed', 'npm_wheel_local_install': 'passed',
+                                'archive_smoke': {'content_pack_sha256': 'b' * 64}}}
+                    for target in TARGETS]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'release-manifest.json').write_text(json.dumps({
+                'version': version, 'source_commit': commit, 'targets': list(TARGETS),
+                'target_evidence': receipts,
+            }))
+            with self.assertRaisesRegex(ValueError, 'target-native DeepSeek'):
+                verify(root, version, commit)
+
     def test_assembly_requires_one_source_and_refuses_modified_assets(self):
         version, commit = '2.0.0-alpha.7', 'a' * 40
         fixtures = {
