@@ -626,9 +626,9 @@ mod tests {
             let ProductAction::GuideInstallation(guide) =
                 action(&[command, "plugin", "--target", "all"], true)
             else {
-                panic!("both Hosts required")
+                panic!("multiple Hosts required")
             };
-            assert_eq!(guide.targets.len(), 2);
+            assert_eq!(guide.targets.len(), 3);
         }
         for args in [
             vec!["install", "plugin", "--target", "unknown"],

@@ -281,12 +281,12 @@ def project_deepseek(content: dict[str, bytes], version: str, target: str,
         '        command: !!js ctx.qiongliBundle.command\n'
         '        args: [mcp, serve, --profile, full, --transport, stdio]\n'
     ).encode()
-    files['index.mjs'] = deepseek_entry_module(json.dumps('./' + binary_path(target)))
+    files['index.mjs'] = deepseek_entry_module(json.dumps('./' + binary_path(target)), localized='workflow/references/skill-descriptions.json' in content)
     return files
 
 
-def deepseek_entry_module(command_url: str) -> bytes:
-    return ('''import { readFile } from 'node:fs/promises';
+def deepseek_entry_module(command_url: str, *, localized: bool = False) -> bytes:
+    source = ('''import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 export const name = 'qiongli-bundle';
@@ -310,7 +310,32 @@ export async function apply(ctx) {
   ctx.provide('qiongliBundle', { command: fileURLToPath(new URL(''' +
         command_url + ''', import.meta.url)) });
 }
-''').encode()
+''')
+    if localized:
+        source = source.replace("import { readFile }", "import { lstat, readFile }")
+        source = source.replace("import { fileURLToPath }", "import { join } from 'node:path';\nimport { fileURLToPath, pathToFileURL }")
+        source = source.replace("export const inject = ['skills'];", "export const inject = ['skills', 'profileContext'];")
+        source = source.replace("export async function apply(ctx) {", """export async function apply(ctx, config = {}) {
+  let preference;
+  if (ctx.profileContext?.dir) {
+    const path = pathToFileURL(join(ctx.profileContext.dir, '.qiongli-skill-language.json'));
+    try {
+      const stat = await lstat(path);
+      if (!stat.isFile() || stat.size > 1024) throw new Error('Invalid Qiongli language preference');
+      preference = JSON.parse(await readFile(path, 'utf8')).language;
+      if (!['zh', 'en'].includes(preference)) throw new Error('Invalid Qiongli language preference');
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+  const requested = config.language ?? preference;
+  if (requested !== undefined && !['auto', 'zh', 'en'].includes(requested)) throw new Error('Invalid Qiongli language');
+  const locale = [process.env.LC_ALL, process.env.LC_MESSAGES, process.env.LANGUAGE, process.env.LANG].find(value => value?.trim() && !['C', 'POSIX', 'C.UTF-8'].includes(value)) || Intl.DateTimeFormat().resolvedOptions().locale;
+  const language = requested && requested !== 'auto' ? requested : /^zh(?:[-_.:]|$)/i.test(locale.trim()) ? 'zh' : 'en';
+  const descriptions = JSON.parse(await readFile(new URL('./skills/qiongli-workflow/references/skill-descriptions.json', import.meta.url), 'utf8'));
+""")
+        source = source.replace("name, description, locator: path", "name, description: descriptions[name]?.[language]?.description ?? (() => { throw new Error('Missing Qiongli translation'); })(), locator: path")
+        source = source.replace("return { ...entry, content: await readFile(new URL('./' + entry.locator, import.meta.url), 'utf8') };", """const content = await readFile(new URL('./' + entry.locator, import.meta.url), 'utf8');
+      return { ...entry, content: content.replace(/^description: .*$/m, () => 'description: ' + JSON.stringify(entry.description)) };""")
+    return source.encode()
 
 
 def deepseek_npm_files(metadata: dict, content: dict[str, bytes], version: str,
@@ -330,7 +355,7 @@ def deepseek_npm_files(metadata: dict, content: dict[str, bytes], version: str,
         paths[os_name + ':' + arch] = '../native/' + target + '/' + executable
     command_url = ('(() => { const path = ' + json.dumps(paths, sort_keys=True) +
                    "[process.platform + ':' + process.arch]; if (!path) throw new Error('Unsupported Qiongli platform'); return path; })()")
-    files['index.mjs'] = deepseek_entry_module(command_url)
+    files['index.mjs'] = deepseek_entry_module(command_url, localized='workflow/references/skill-descriptions.json' in content)
     files[RECEIPT] = json_bytes({
         'schema_version': 1, 'platform': 'deepseek-npm', 'source': metadata,
         'source_manifest_bytes': {name: content[name].decode() for name in

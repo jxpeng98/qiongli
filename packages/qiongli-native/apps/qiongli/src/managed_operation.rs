@@ -30,10 +30,10 @@ use crate::desktop::{
     prepare_host_plugin_plans, update_store,
 };
 use crate::managed_content::{
-    ManagedContentEntryV1, ManagedSkillsEntryState, apply_managed_materialization_with_overrides,
-    detach_managed_materialization, load_managed_content_registry, managed_skills_target_id,
-    materialization_receipt_sha256, observe_managed_skills_entry_with_variant,
-    remove_managed_materialization_with_overrides,
+    ManagedContentEntryV1, ManagedSkillsEntryState, apply_managed_materialization_with_language,
+    apply_managed_materialization_with_overrides, detach_managed_materialization,
+    load_managed_content_registry, managed_skills_target_id, materialization_receipt_sha256,
+    observe_managed_skills_entry_with_variant, remove_managed_materialization_with_overrides,
 };
 
 const PLAN_DOCUMENT_KIND: &str = "qiongli-managed-operation-plan";
@@ -115,6 +115,9 @@ pub(crate) enum ManagedOperationV1 {
         source: crate::plugin_source::PluginSourcePlan,
     },
     SkillsReconcilePreset {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schemars(regex(pattern = "^(en|zh)$"))]
+        skill_language: Option<String>,
         preset: ManagedSkillsPresetV1,
         target_id: String,
         #[schemars(schema_with = "profile_schema")]
@@ -192,12 +195,14 @@ pub(crate) enum ManagedOperationCliCommand {
         target: ManagedIntegrationTargetV1,
         destination: PathBuf,
         context_hooks: Option<bool>,
+        language: Option<String>,
     },
     PluginSourceStatus {
         target: ManagedIntegrationTargetV1,
         destination: PathBuf,
     },
     PlanSkillsReconcile {
+        language: Option<String>,
         preset: ManagedSkillsPresetV1,
         profile: ProfileId,
     },
@@ -277,6 +282,7 @@ pub(crate) fn execute(
             target,
             destination,
             context_hooks,
+            language,
         } => {
             let source = crate::plugin_source::plan(
                 environment,
@@ -285,6 +291,7 @@ pub(crate) fn execute(
                 *target,
                 destination,
                 *context_hooks,
+                language.as_deref(),
             )?;
             let semantic = source.digest()?;
             ManagedOperationPlanV1::new(
@@ -300,8 +307,30 @@ pub(crate) fn execute(
             target,
             destination,
         } => crate::plugin_source::status(environment, content, *target, destination),
-        ManagedOperationCliCommand::PlanSkillsReconcile { preset, profile } => {
-            let plan = prepare_skills_reconcile_plan(environment, content, *preset, *profile)?;
+        ManagedOperationCliCommand::PlanSkillsReconcile {
+            preset,
+            profile,
+            language,
+        } => {
+            let mut plan = prepare_skills_reconcile_plan(environment, content, *preset, *profile)?;
+            if let Some(language) = language {
+                let language = if language == "auto" {
+                    environment.skill_language()
+                } else {
+                    language
+                };
+                if !qiongli_content::skill_language_valid(language) {
+                    return Err("skill-language-invalid");
+                }
+                if let ManagedOperationV1::SkillsReconcilePreset { skill_language, .. } =
+                    &mut plan.operation
+                {
+                    *skill_language = Some(language.into());
+                }
+                plan.semantic_digest_sha256 =
+                    language_semantic_digest(&plan.semantic_digest_sha256, Some(language));
+                plan.plan_digest_sha256 = plan.compute_digest()?;
+            }
             plan.to_canonical_json()
         }
         ManagedOperationCliCommand::PlanSkillsUpdate { target_id } => {
@@ -509,6 +538,7 @@ fn prepare_skills_reconcile_plan(
     }
     let target_id = target_id(&observation.target)?;
     let operation = ManagedOperationV1::SkillsReconcilePreset {
+        skill_language: None,
         preset,
         target_id: target_id.clone(),
         profile,
@@ -1042,6 +1072,7 @@ fn apply_prepared_plan(
             }
         }
         ManagedOperationV1::SkillsReconcilePreset {
+            skill_language,
             preset,
             target_id,
             profile,
@@ -1068,15 +1099,23 @@ fn apply_prepared_plan(
                 content.pack().pack_sha256(),
                 observation.workflow_variant_sha256.as_deref(),
             );
+            let semantic = language_semantic_digest(&semantic, skill_language.as_deref());
+            if skill_language
+                .as_deref()
+                .is_some_and(|s| !qiongli_content::skill_language_valid(s))
+            {
+                return Err("skill-language-invalid");
+            }
             if semantic != plan.semantic_digest_sha256 {
                 return Err("managed-operation-precondition-changed");
             }
-            let receipt = apply_managed_materialization_with_overrides(
+            let receipt = apply_managed_materialization_with_language(
                 &root,
                 content,
                 &observation.target,
                 *profile,
                 workflow_variant.overrides(),
+                skill_language.as_deref(),
             )?;
             ManagedOperationResultV1 {
                 schema_version: 1,
@@ -1085,7 +1124,15 @@ fn apply_prepared_plan(
                 targets: vec![target_id.clone()],
                 result: if *expected_state == ManagedSkillsStateV1::Missing {
                     "installed"
-                } else if *expected_state == ManagedSkillsStateV1::Current {
+                } else if *expected_state == ManagedSkillsStateV1::Current
+                    && skill_language.as_deref().is_none_or(|language| {
+                        observation
+                            .receipt
+                            .as_ref()
+                            .and_then(|r| r.skill_language.as_deref())
+                            == Some(language)
+                    })
+                {
                     "already-current"
                 } else {
                     "updated"
@@ -1660,12 +1707,19 @@ fn validate_operation(operation: &ManagedOperationV1) -> Result<(), &'static str
     match operation {
         ManagedOperationV1::PluginSource { source } => source.validate()?,
         ManagedOperationV1::SkillsReconcilePreset {
+            skill_language,
             target_id,
             expected_state,
             expected_receipt_sha256,
             ..
         } => {
             validate_target_id(target_id)?;
+            if skill_language
+                .as_deref()
+                .is_some_and(|s| !qiongli_content::skill_language_valid(s))
+            {
+                return Err("managed-operation-plan-invalid");
+            }
             if *expected_state == ManagedSkillsStateV1::Drifted
                 || ((*expected_state == ManagedSkillsStateV1::Missing)
                     != expected_receipt_sha256.is_none())
@@ -2178,6 +2232,13 @@ const fn integration_mode_name(mode: ManagedIntegrationModeV1) -> &'static str {
     match mode {
         ManagedIntegrationModeV1::Install => "install",
         ManagedIntegrationModeV1::Repair => "repair",
+    }
+}
+
+fn language_semantic_digest(digest: &str, language: Option<&str>) -> String {
+    match language {
+        Some(language) => format!("{:x}", Sha256::digest(format!("{digest}\0{language}"))),
+        None => digest.into(),
     }
 }
 
@@ -2694,6 +2755,7 @@ mod tests {
     fn plan_contract_rejects_unknown_or_path_bearing_fields() {
         let content = crate::embedded_content().unwrap();
         let operation = ManagedOperationV1::SkillsReconcilePreset {
+            skill_language: None,
             preset: ManagedSkillsPresetV1::QiongliManaged,
             target_id: format!("skills-target-{}", "1".repeat(64)),
             profile: ProfileId::SkillOnly,

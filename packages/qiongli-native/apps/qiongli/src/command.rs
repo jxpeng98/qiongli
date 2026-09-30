@@ -68,6 +68,7 @@ pub struct CommandEnvironment {
     codex_config_root: Option<PathBuf>,
     claude_config_root: Option<PathBuf>,
     dsh_config_root: Option<PathBuf>,
+    skill_language: Option<String>,
     project_root: Option<PathBuf>,
     zotero_connector_url: Option<String>,
     cli_search_path: Option<OsString>,
@@ -89,7 +90,7 @@ impl CommandEnvironment {
             discover_client_host("codex", platform_home.as_deref(), true);
         let (claude_host_present, claude_host_version) =
             discover_client_host("claude", platform_home.as_deref(), false);
-        Self {
+        let mut result = Self {
             configured_root: env::var_os("QIONGLI_CONFIG_HOME"),
             cli_search_path: env::var_os("PATH"),
             cli_executable: env::current_exe().ok(),
@@ -125,11 +126,14 @@ impl CommandEnvironment {
             codex_config_root: nonempty_environment_path("CODEX_HOME"),
             claude_config_root: nonempty_environment_path("CLAUDE_CONFIG_DIR"),
             dsh_config_root: nonempty_environment_path("DSH_HOME"),
+            skill_language: None,
             project_root: env::current_dir().ok(),
             zotero_connector_url: env::var("QIONGLI_ZOTERO_CONNECTOR_URL")
                 .ok()
                 .filter(|value| !value.is_empty()),
-        }
+        };
+        result.skill_language = Some(crate::cli_content::system_skill_language(&result).into());
+        result
     }
 
     #[cfg(test)]
@@ -147,6 +151,7 @@ impl CommandEnvironment {
             codex_config_root: None,
             claude_config_root,
             dsh_config_root: None,
+            skill_language: None,
             project_root: None,
             zotero_connector_url: None,
             codex_host_present: false,
@@ -187,6 +192,10 @@ impl CommandEnvironment {
     pub(crate) fn without_client_discovery(mut self) -> Self {
         self.client_discovery_disabled = true;
         self
+    }
+
+    pub(crate) fn skill_language(&self) -> &str {
+        self.skill_language.as_deref().unwrap_or("en")
     }
 
     pub(crate) fn cli_search_path(&self) -> Option<&OsStr> {
@@ -885,7 +894,7 @@ fn parse_app_args(args: &[OsString]) -> Result<Command, UsageError> {
             Ok(Command::AppVerifyManagedSkillsTarget { target_id })
         }
         "plugin-source-status" => {
-            let (target, destination, _) = parse_plugin_source_target(&args[1..], false)?;
+            let (target, destination, _, _) = parse_plugin_source_target(&args[1..], false)?;
             Ok(Command::AppManaged(
                 ManagedOperationCliCommand::PluginSourceStatus {
                     target,
@@ -994,7 +1003,7 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
     };
     match operation {
         "plugin-source-install" | "plugin-source-update" | "plugin-source-remove" => {
-            let (target, destination, context_hooks) =
+            let (target, destination, context_hooks, language) =
                 parse_plugin_source_target(&args[1..], operation != "plugin-source-remove")?;
             let action = match operation {
                 "plugin-source-install" => crate::plugin_source::PluginSourceAction::Install,
@@ -1006,6 +1015,7 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
                 target,
                 destination,
                 context_hooks,
+                language,
             })
         }
         "cli-install" if args.len() == 1 => Ok(ManagedOperationCliCommand::PlanCliInstall),
@@ -1019,6 +1029,7 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
         "skills-reconcile" => {
             let mut preset = None;
             let mut profile = None;
+            let mut language = None;
             let mut index = 1;
             while index < args.len() {
                 let option = args[index]
@@ -1028,6 +1039,9 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
                     .get(index + 1)
                     .ok_or_else(|| app_usage_error("App plan option value is missing"))?;
                 match option {
+                    "--language" if language.is_none() => {
+                        language = Some(parse_skill_language(value)?);
+                    }
                     "--preset" if preset.is_none() => {
                         preset = Some(parse_managed_skills_preset(value)?);
                     }
@@ -1045,6 +1059,7 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
                 index += 2;
             }
             Ok(ManagedOperationCliCommand::PlanSkillsReconcile {
+                language,
                 preset: preset.ok_or_else(|| app_usage_error("App Skills preset is required"))?,
                 profile: profile
                     .ok_or_else(|| app_usage_error("App Skills profile is required"))?,
@@ -1095,11 +1110,20 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
 fn parse_plugin_source_target(
     args: &[OsString],
     allow_hooks: bool,
-) -> Result<(ManagedIntegrationTargetV1, PathBuf, Option<bool>), UsageError> {
+) -> Result<
+    (
+        ManagedIntegrationTargetV1,
+        PathBuf,
+        Option<bool>,
+        Option<String>,
+    ),
+    UsageError,
+> {
     let mut target = None;
     let mut destination = None;
     let mut context_hooks = None;
-    if args.len() != 4 && !(allow_hooks && args.len() == 6) {
+    let mut language = None;
+    if args.len() != 4 && !(allow_hooks && matches!(args.len(), 6 | 8)) {
         return Err(app_usage_error(
             "Plugin source requires --target and --destination",
         ));
@@ -1115,6 +1139,9 @@ fn parse_plugin_source_target(
             }
             Some("--destination") if destination.is_none() => {
                 destination = Some(PathBuf::from(&pair[1]))
+            }
+            Some("--language") if allow_hooks && language.is_none() => {
+                language = Some(parse_skill_language(&pair[1])?);
             }
             Some("--hooks") if allow_hooks && context_hooks.is_none() => {
                 context_hooks = Some(parse_context_hooks(&pair[1])?);
@@ -1137,7 +1164,15 @@ fn parse_plugin_source_target(
         target.ok_or_else(|| app_usage_error("Plugin source target is required"))?,
         destination,
         context_hooks,
+        language,
     ))
+}
+
+fn parse_skill_language(value: &OsStr) -> Result<String, UsageError> {
+    match value.to_str() {
+        Some(s @ ("auto" | "zh" | "en")) => Ok(s.into()),
+        _ => Err(install_usage_error("language must be auto, zh, or en")),
+    }
 }
 
 fn parse_context_hooks(value: &OsStr) -> Result<bool, UsageError> {
@@ -1250,6 +1285,9 @@ fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Comman
                             "choose codex, claude, deepseek, a comma-separated list, or all",
                         )
                     })?;
+                }
+                Some("--language") if options.language.is_none() => {
+                    options.language = Some(parse_skill_language(&pair[1])?);
                 }
                 Some("--hooks") if options.context_hooks.is_none() => {
                     options.context_hooks = Some(parse_context_hooks(&pair[1])?);
@@ -3439,6 +3477,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn installation_languages_share_validation_across_surfaces() {
+        for surface in ["plugin", "skills"] {
+            for language in ["auto", "zh", "en"] {
+                let args = [surface, "--language", language].map(OsString::from);
+                assert!(parse_content_install_args(&args, false).is_ok());
+            }
+            for options in [
+                vec![surface, "--language", "fr"],
+                vec![surface, "--language", "en", "--language", "zh"],
+                vec![surface, "--language"],
+            ] {
+                assert!(
+                    parse_content_install_args(
+                        &options.into_iter().map(OsString::from).collect::<Vec<_>>(),
+                        false
+                    )
+                    .is_err()
+                );
+            }
+        }
+    }
+
+    #[test]
     fn plugin_targets_share_the_interactive_multi_selection_parser() {
         for upgrade in [false, true] {
             for selection in ["deepseek", "codex,deepseek", "all", "1 2 4", "3,4"] {
@@ -3895,6 +3956,7 @@ mod tests {
             ])),
             Ok(Command::AppManaged(
                 ManagedOperationCliCommand::PlanSkillsReconcile {
+                    language: None,
                     preset: ManagedSkillsPresetV1::QiongliManaged,
                     profile: ProfileId::SkillOnly,
                 }

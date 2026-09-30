@@ -88,6 +88,13 @@
         },
         "context_hooks": {
           "type": "boolean"
+        },
+        "skill_language": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(en|zh)$"
         }
       },
       "required": [

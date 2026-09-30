@@ -186,8 +186,8 @@ Do not point an unqualified generic entry at one platform's binary.
 
 Native Codex local exports and Marketplace archives generate workflow Skills from
 `workflow/workflows/*.md` using the shared
-`workflow/references/codex-workflow-wrapper.md` template. Preserve each canonical
-single-line YAML description and the stable `qiongli-<workflow>` name. Exclude
+`workflow/references/codex-workflow-wrapper.md` template. Use the canonical English description by default, or the selected translation
+from `workflow/references/skill-descriptions.json`; preserve the stable `qiongli-<workflow>` name. Exclude
 the duplicate `qiongli` router; the main `$qiongli` Skill remains available.
 Skill cards, references and templates do not get independent wrappers. Each
 entry loads the shared Skill before its workflow, preserving Host tool limits,
@@ -198,13 +198,35 @@ Old packs without the template
 retain their historical projection, so existing archives remain verifiable.
 
 The opt-in DeepSeek Cordis bundle reuses this same wrapper generator and exact
-entry bytes. Its provider registers every generated workflow entry plus `qiongli`
+entry bodies. Its provider registers every generated workflow entry plus `qiongli`
 and `no-qiongli` in `skills.json`, with both model and user invocation enabled.
 Each entry's directory is its resource base. New DeepSeek archive receipts use
 schema 4, which requires the complete generated catalog and wrappers; schema 3
 retains the historical two-entry projection. Codex/Claude receipt schemas and
 the default release platform selection remain unchanged. Host Skill priority
 still applies; live checks verify the winning provider as well as entry names.
+
+Install-time `--language auto|zh|en` selects Skill descriptions. The canonical
+catalog contains concise, faithful English and Chinese copy; it does not translate
+workflow bodies, aliases or invocation names. Codex also projects the main Skill's
+`agents/openai.yaml` display name, short description and default prompt. Locale
+environment variables precede OS preferences; unsupported locales use English.
+Local bundle schema 4 and materialization schema 2 optionally record `skill_language`,
+bind the generated metadata bytes and preserve it on updates/compensation. Old
+receipts omit the field and retain their exact canonical bytes and readers. Signed
+bundles keep their default projection. Language changes stay in the existing
+preview/approval/receipt transaction; they do not create workflow variants.
+
+New DSH providers read the Qiongli-owned `.qiongli-skill-language.json` in the
+public `profileContext.dir`, then apply the selected catalog description to both
+Skill summaries and the returned frontmatter. Restart the DSH profile/app to reload the preference.
+Direct bundle installs use locale auto detection unless plugin config supplies a
+language. The terminal manager plan binds the preference file's previous digest;
+its atomic replacement uses an exclusive Qiongli preference lock. Malformed,
+linked or concurrently changed preferences refuse replacement. Official DSH still
+owns npm installation and profile bundle registration; no client-language/model
+setting or package-cache byte is edited. Packs without the catalog retain their
+historical provider and exact Skill projection.
 
 Schema-2 archive receipts bind the target, executable and resource bytes. The
 release owner verifies the executable against the corresponding CLI/npm bytes,

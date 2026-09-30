@@ -34,6 +34,23 @@ Plugin 缓存中加载 Skills 和 MCP。如果已启用另一个 Qiongli Plugin�
 项目写入仍需明确的预览和批准参数。
 
 
+## Skills 描述语言
+
+交互安装会提供“自动、中文、英文”三个选项，也可直接指定语言：
+
+```sh
+qiongli install plugin --target codex,deepseek --language zh
+qiongli install skills --language en
+```
+
+“自动”优先读取语言环境变量，再读取系统语言；不支持的语言回退到英文。
+选择语言会生成对应的技能描述，以及 Codex 主技能的显示名称和建议提示词。
+固定调用名称与技能正文保持不变。底层本地源更新在未指定语言时保留已有选择。
+切换语言后需要刷新客户端或开启新会话；仅修改客户端语言不会重写已安装的技能。
+DeepSeek 会在所选 profile 中保存语言偏好，切换后需重启该 profile 或桌面客户端；
+直接通过 npm 或桌面版安装时默认自动识别，
+也可通过原生安装器保存明确选择。这些是 2.1.0 发布后的本地修改，需新版本才能分发。
+
 ## 正式版与 Next 的插件标识
 
 **2.0.1 过渡版继续使用 `qiongli-next` 和 source-status v1 接口**，与已发布的
@@ -56,7 +73,7 @@ Marketplace 平台包相应使用 `qiongli-macos-arm64` 等正式版 ID，以及
 
 ## 从安装到首次使用 {#first-use}
 
-在终端运行 `qiongli install`（仍支持 `--interactive`）。先选择 Plugin，再选择 Codex 或 Claude。
+在终端运行 `qiongli install`（仍支持 `--interactive`）。先选择 Plugin，再多选要安装的 Host（例如 `1,2,4`），然后选择描述语言。
 默认导出目录是用户主目录下的 `qiongli-next`，可填写其他绝对路径；父目录必须已存在。
 升级时自动复用已登记且通过核验的源目录，第二个 Host 使用单独的目录。选择菜单不会写文件，后续仍需
 分别确认文件计划和 Host 注册。只需要指导文件时选 Skills；已有接入时可查看 MCP 配置。

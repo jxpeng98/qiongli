@@ -276,6 +276,7 @@ fn inspect_registration(
         target,
         &destination,
         None,
+        None,
     )?;
     let current: Value = serde_json::from_str(&crate::plugin_source::status(
         environment,

@@ -579,6 +579,20 @@ the optional `context_hooks` choice (omitted false preserves legacy digest bytes
 apply retains expiry, exact digest, filesystem approval, Home/config exclusion
 and target transaction locks. Unknown/drifted/signed exports refuse adoption.
 
+`--language auto|zh|en` selects install-time Skill metadata. The terminal guide
+asks once for the selected Hosts; standalone Skills have the same choice. Auto
+uses captured locale environment/system preferences and falls back to English.
+Plans store a resolved `skill_language` (`en`/`zh`), bind it to their digest and
+retain existing expiry, approval and receipt comparisons. Local receipts record
+it separately from the workflow-variant digest; omission on source updates or
+managed Skills updates preserves the saved language. Display names/prompts on the
+main Codex Skill use the same canonical translation catalog as the descriptions.
+Workflow bodies and invocation IDs remain stable. There is no automatic rewrite
+when a client changes its UI language. Older optional-field-free plans/receipts
+keep their compatibility readers. DSH saves a Qiongli-owned profile preference
+under the confirmed official-manager plan; its provider uses public profileContext
+and requires restarting that profile/app to reload it.
+
 The local bundle receipt kind is separate from signed products (ADR 0222).
 ADR 0228 selects qiongli for stable and qiongli-next for Alpha/Beta. The
 version-2 source-status response reports the observed ID (or the selected ID

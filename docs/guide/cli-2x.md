@@ -43,6 +43,26 @@ and `app plan` now show scoped help in a terminal. Script errors remain unchange
 project writes still require explicit preview and approval arguments.
 
 
+## Skill description language
+
+The terminal installer asks for Auto, 中文, or English. You can also choose explicitly:
+
+```sh
+qiongli install plugin --target codex,deepseek --language zh
+qiongli install skills --language en
+```
+
+Auto reads locale environment variables, then the system language, and uses English
+for unsupported languages. Installation changes descriptions and the main Codex
+Skill's display name and suggested prompt; invocation names and workflow bodies
+stay the same. Local source updates preserve a saved language when no language is
+specified. Switching language requires installation/update and a Host refresh or
+new session; changing the client's language alone does not translate an installed
+Skill. DeepSeek saves the choice for the selected profile; restart that profile
+or the Desktop app to reload it. Direct npm/Desktop
+installation uses automatic detection; the native installer can save an explicit
+choice. These changes are local development after 2.1.0 and require a new release.
+
 ## Stable and Next Plugin identities
 
 The **2.0.1 transition retains `qiongli-next` and source-status v1**, as does

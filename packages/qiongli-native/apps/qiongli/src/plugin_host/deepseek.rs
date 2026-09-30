@@ -20,11 +20,13 @@ struct InstallPlan {
     profile_directory: PathBuf,
     profile_files: Vec<(String, Option<String>)>,
     commands: Vec<Vec<String>>,
+    skill_language: Option<String>,
 }
 
 pub(crate) fn install(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
+    language: &str,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> Result<bool, &'static str> {
@@ -64,7 +66,11 @@ pub(crate) fn install(
     } else {
         &profile
     };
-    let plan = prepare(&executable, &root, profile)?;
+    let mut plan = prepare(&executable, &root, profile)?;
+    if !qiongli_content::skill_language_valid(language) {
+        return Err("skill-language-invalid");
+    }
+    plan.skill_language = Some(language.into());
     review(environment, content, &root, plan, reader, writer)
 }
 
@@ -80,6 +86,8 @@ fn review(
         "host": "DeepSeek Harness", "profile": plan.profile, "profile_directory": plan.profile_directory,
         "executable": plan.executable, "package": format!("qiongli@{}", env!("CARGO_PKG_VERSION")),
         "commands": plan.commands.iter().map(|args| serde_json::json!({"arguments": serde_json::json!(args).to_string()})).collect::<Vec<_>>(),
+        "skill_language": plan.skill_language,
+        "language_preference_file": plan.profile_directory.join(".qiongli-skill-language.json"),
         "components": "22 Skills and native Full MCP; loaded by DSH on a new session",
         "approvals_required": ["client-config-change", "host-trust"],
         "plan_digest_sha256": format!("{:x}", Sha256::digest(serde_json_canonicalizer::to_vec(&plan).map_err(|_| "installation-preview-invalid")?))
@@ -100,9 +108,9 @@ fn review(
         )?;
         return Ok(false);
     }
-    if reviewed_at.elapsed() > Duration::from_secs(600)
-        || prepare(&plan.executable, root, &plan.profile)? != plan
-    {
+    let mut current = prepare(&plan.executable, root, &plan.profile)?;
+    current.skill_language.clone_from(&plan.skill_language);
+    if reviewed_at.elapsed() > Duration::from_secs(600) || current != plan {
         return Err("local-host-precondition-changed");
     }
     line(writer, "Installing through the official DSH manager…\n")?;
@@ -110,6 +118,9 @@ fn review(
         run(environment, &plan.executable, args)?;
     }
     verify_installed(&plan.profile_directory, content)?;
+    if let Some(language) = &plan.skill_language {
+        write_language(&plan, language)?;
+    }
     line(
         writer,
         &format!(
@@ -157,8 +168,20 @@ fn prepare(executable: &Path, root: &Path, profile: &str) -> Result<InstallPlan,
             return Err("deepseek-plugin-conflict");
         }
     }
+    if let Some(bytes) = read_optional(&directory.join(".qiongli-skill-language.json"))? {
+        let preference: Value =
+            serde_json::from_slice(&bytes).map_err(|_| "skill-language-invalid")?;
+        if !preference.as_object().is_some_and(|o| o.len() == 1)
+            || !preference["language"]
+                .as_str()
+                .is_some_and(qiongli_content::skill_language_valid)
+        {
+            return Err("skill-language-invalid");
+        }
+    }
     let profile_files = [
         "package.json",
+        ".qiongli-skill-language.json",
         "pnpm-lock.yaml",
         "pnpm-workspace.yaml",
         "cordis.yml",
@@ -200,7 +223,72 @@ fn prepare(executable: &Path, root: &Path, profile: &str) -> Result<InstallPlan,
         profile_directory: directory,
         profile_files,
         commands,
+        skill_language: None,
     })
+}
+
+fn write_language(plan: &InstallPlan, language: &str) -> Result<(), &'static str> {
+    if !qiongli_content::skill_language_valid(language) {
+        return Err("skill-language-invalid");
+    }
+    let path = plan.profile_directory.join(".qiongli-skill-language.json");
+    qiongli_content::approve_materialization_target(&plan.profile_directory)
+        .map_err(|_| "deepseek-profile-unsafe")?;
+    let lock_path = plan.profile_directory.join(".qiongli-skill-language.lock");
+    let lock = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&lock_path)
+        .map_err(|_| "local-host-precondition-changed")?;
+    let result = (|| {
+        let expected = plan
+            .profile_files
+            .iter()
+            .find(|(name, _)| name == ".qiongli-skill-language.json")
+            .ok_or("deepseek-profile-invalid")?
+            .1
+            .as_deref();
+        let digest = read_optional(&path)?.map(|bytes| format!("{:x}", Sha256::digest(bytes)));
+        if digest.as_deref() != expected {
+            return Err("local-host-precondition-changed");
+        }
+        let temporary = plan
+            .profile_directory
+            .join(format!(".qiongli-language-{}.tmp", std::process::id()));
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+            .map_err(|_| "deepseek-profile-unavailable")?;
+        let result = (|| {
+            use std::io::Write as _;
+            file.write_all(
+                serde_json::json!({"language": language})
+                    .to_string()
+                    .as_bytes(),
+            )
+            .map_err(|_| "deepseek-profile-unavailable")?;
+            file.sync_all()
+                .map_err(|_| "deepseek-profile-unavailable")?;
+            // Recheck after staging; stale approved preferences refuse replacement.
+            if read_optional(&path)?
+                .map(|bytes| format!("{:x}", Sha256::digest(bytes)))
+                .as_deref()
+                != expected
+            {
+                return Err("local-host-precondition-changed");
+            }
+            fs::rename(&temporary, &path).map_err(|_| "deepseek-profile-unavailable")
+        })();
+        drop(file);
+        if result.is_err() {
+            let _ = fs::remove_file(temporary);
+        }
+        result
+    })();
+    drop(lock);
+    let cleanup = fs::remove_file(lock_path).map_err(|_| "deepseek-profile-unavailable");
+    result.and(cleanup)
 }
 
 fn read_optional(path: &Path) -> Result<Option<Vec<u8>>, &'static str> {
@@ -385,6 +473,24 @@ mod tests {
                 .len(),
             1
         );
+        let plan = prepare(&executable, &dsh_root, "probe").unwrap();
+        write_language(&plan, "zh").unwrap();
+        assert_eq!(
+            read_json(&directory.join(".qiongli-skill-language.json")).unwrap()["language"],
+            "zh"
+        );
+        assert_eq!(
+            write_language(&plan, "en").unwrap_err(),
+            "local-host-precondition-changed"
+        );
+        let plan = prepare(&executable, &dsh_root, "probe").unwrap();
+        write_language(&plan, "en").unwrap();
+        fs::write(directory.join(".qiongli-skill-language.json"), "{}").unwrap();
+        assert_eq!(
+            prepare(&executable, &dsh_root, "probe").err(),
+            Some("skill-language-invalid")
+        );
+        fs::remove_file(directory.join(".qiongli-skill-language.json")).unwrap();
         fs::write(package.join("dsh/.qiongli-marketplace.json"), "{}").unwrap();
         assert_eq!(
             verify_installed(&directory, &content).unwrap_err(),

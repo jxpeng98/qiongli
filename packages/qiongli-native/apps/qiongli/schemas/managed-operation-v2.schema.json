@@ -84,6 +84,13 @@
         {
           "type": "object",
           "properties": {
+            "skill_language": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^(en|zh)$"
+            },
             "preset": {
               "$ref": "#/$defs/ManagedSkillsPresetV1"
             },
@@ -378,6 +385,13 @@
         },
         "context_hooks": {
           "type": "boolean"
+        },
+        "skill_language": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(en|zh)$"
         }
       },
       "additionalProperties": false,

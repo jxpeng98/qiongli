@@ -6,9 +6,10 @@ use qiongli_config::WorkflowVariantStore;
 use qiongli_content::EmbeddedContent;
 use qiongli_platform::{
     approve_claude_plugin_bundle_target, approve_codex_plugin_bundle_target,
-    compose_local_claude_plugin_source_with_hooks, compose_local_codex_plugin_source_with_hooks,
-    remove_local_claude_plugin_source, remove_local_codex_plugin_source,
-    verify_local_claude_plugin_source, verify_local_codex_plugin_source,
+    compose_local_claude_plugin_source_with_language,
+    compose_local_codex_plugin_source_with_language, remove_local_claude_plugin_source,
+    remove_local_codex_plugin_source, verify_local_claude_plugin_source,
+    verify_local_codex_plugin_source,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -48,11 +49,18 @@ pub(crate) struct PluginSourcePlan {
     pub workflow_variant_sha256: Option<String>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub context_hooks: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(regex(pattern = "^(en|zh)$"))]
+    pub skill_language: Option<String>,
 }
 
 impl PluginSourcePlan {
     pub(crate) fn validate(&self) -> Result<(), &'static str> {
-        if !self.destination.is_absolute()
+        if self
+            .skill_language
+            .as_deref()
+            .is_some_and(|s| !qiongli_content::skill_language_valid(s))
+            || !self.destination.is_absolute()
             || !matches!(
                 self.destination.file_name().and_then(|s| s.to_str()),
                 Some("qiongli" | "qiongli-next")
@@ -98,6 +106,8 @@ struct SourceObservation {
     workflow_variant_sha256: Option<String>,
     version: String,
     context_hooks: bool,
+    #[schemars(regex(pattern = "^(en|zh)$"))]
+    skill_language: Option<String>,
 }
 
 fn validate_destination(
@@ -179,6 +189,7 @@ fn observe(
                 workflow_variant_sha256: r.workflow_variant_sha256.clone(),
                 version: r.artifact.version.clone(),
                 context_hooks: r.context_hooks,
+                skill_language: r.skill_language.clone(),
             }
         }
         ManagedIntegrationTargetV1::ClaudeCode => {
@@ -195,6 +206,7 @@ fn observe(
                 workflow_variant_sha256: r.workflow_variant_sha256.clone(),
                 version: r.artifact.version.clone(),
                 context_hooks: r.context_hooks,
+                skill_language: r.skill_language.clone(),
             }
         }
     }))
@@ -207,6 +219,7 @@ pub(crate) fn plan(
     target: ManagedIntegrationTargetV1,
     destination: &Path,
     context_hooks: Option<bool>,
+    language: Option<&str>,
 ) -> Result<PluginSourcePlan, &'static str> {
     let observed = observe(environment, target, destination)?;
     if (action == PluginSourceAction::Install) != observed.is_none() {
@@ -228,6 +241,18 @@ pub(crate) fn plan(
         binary_sha256: crate::cli_install::regular_file_sha256(&executable)?,
         context_hooks: context_hooks
             .unwrap_or_else(|| observed.as_ref().is_some_and(|o| o.context_hooks)),
+        skill_language: match language {
+            Some("auto") => Some(environment.skill_language().to_owned()),
+            Some(s) if qiongli_content::skill_language_valid(s) => Some(s.to_owned()),
+            Some(_) => return Err("skill-language-invalid"),
+            None => Some(
+                observed
+                    .as_ref()
+                    .and_then(|o| o.skill_language.as_deref())
+                    .unwrap_or(environment.skill_language())
+                    .to_owned(),
+            ),
+        },
         expected_receipt_sha256: observed.map(|o| o.receipt_sha256),
         workflow_variant_sha256: variant.variant_sha256().map(str::to_owned),
     };
@@ -248,6 +273,7 @@ pub(crate) fn apply(
         expected.target,
         &expected.destination,
         Some(expected.context_hooks),
+        expected.skill_language.as_deref(),
     )?;
     if &current != expected {
         return Err("managed-operation-precondition-changed");
@@ -271,7 +297,7 @@ pub(crate) fn apply(
                     prior.ok_or("plugin-source-plan-invalid")?,
                 )
             } else {
-                compose_local_codex_plugin_source_with_hooks(
+                compose_local_codex_plugin_source_with_language(
                     content.pack(),
                     &binary,
                     &expected.binary_sha256,
@@ -279,6 +305,7 @@ pub(crate) fn apply(
                     variant.overrides(),
                     prior,
                     expected.context_hooks,
+                    expected.skill_language.as_deref(),
                 )
             }
             .map_err(|e| e.reason_code())?;
@@ -293,7 +320,7 @@ pub(crate) fn apply(
                     prior.ok_or("plugin-source-plan-invalid")?,
                 )
             } else {
-                compose_local_claude_plugin_source_with_hooks(
+                compose_local_claude_plugin_source_with_language(
                     content.pack(),
                     &binary,
                     &expected.binary_sha256,
@@ -301,6 +328,7 @@ pub(crate) fn apply(
                     variant.overrides(),
                     prior,
                     expected.context_hooks,
+                    expected.skill_language.as_deref(),
                 )
             }
             .map_err(|e| e.reason_code())?;
@@ -381,6 +409,7 @@ pub(crate) fn contract_source() -> PluginSourcePlan {
         expected_receipt_sha256: None,
         workflow_variant_sha256: None,
         context_hooks: false,
+        skill_language: None,
     }
 }
 

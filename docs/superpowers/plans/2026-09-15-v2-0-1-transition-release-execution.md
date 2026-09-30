@@ -1129,3 +1129,68 @@ menu-table entry and their installation branch; selection and all need no new
 parser. Fresh installed-user/model/two-Host research qualification remains the
 next independent scope. A separately authorized patch release is needed to ship
 this fix to existing registry users.
+
+
+### September 30 — install-time Skill language (local development)
+
+The maintainer selected install-time language choice and explicitly required
+humanizer-quality descriptions. Canonical copy at `1db95c63` adds one shared
+22-entry English/Chinese catalog and normalizes default descriptions to clear
+English. Coordinator self-review applies the humanizer English/Chinese guidance:
+faithful scope, concrete verbs, natural phrasing and no inflated promises.
+Descriptions and the main Codex display name/short description/default prompt
+are localized; bodies, resource paths, aliases and invocation names remain stable.
+
+The terminal guide asks Auto/中文/English once for the selected Hosts or standalone
+Skills. `--language auto|zh|en` uses the same validation and skips that prompt.
+Auto captures locale environment settings, then macOS/Windows OS language through
+the existing bounded launcher, with English fallback. It does not claim a universal
+client-language API. Resolved language participates in plan/digest/receipt checks;
+source and managed Skills updates preserve saved language when omitted, including
+compensation. No workflow-variant, model, research-write or Host trust owner changes.
+DSH still installs through its official manager, then atomically saves the chosen
+Qiongli profile preference under digest revalidation and an exclusive preference
+lock. The provider reads public profileContext and applies the shared translation
+to both summaries and loaded frontmatter. Historical catalog-free packets retain
+their exact provider/projection; optional-field-free receipt readers remain.
+
+Validation and limits:
+
+- 22 native Marketplace/npm projection checks and six Skill-document checks pass.
+  Generated DSH modules exercise zh/en on all three npm dispatch targets, profile
+  paths containing spaces/#, malformed preferences and invalid language refusal.
+- Twelve content materialization/variant checks plus the locale parser check pass,
+  preserving body bytes, exact receipts and path/drift/permission negatives. Five
+  platform bundle checks pass, including legacy identities and bounded wrappers.
+- Initial source schema check correctly failed until regenerated with the existing
+  contract example. The broad 236-case CLI library run observed 232 passes, one
+  ignored capacity check and three failures: a language-plan digest was not
+  recomputed, a test retained an invalid preference, and the old all-Hosts fixture
+  expected two. The digest/result behavior and fixtures were corrected; the 40
+  affected CLI checks and 14 Plugin checks pass. The final DSH test passes after
+  adding the preference lock. Clippy and format pass; no negative checks removed.
+- Actual local exports from the built CLI verify Chinese then omitted-language
+  preservation then English for Codex (22) and Claude (2). Standalone Skills switch
+  from zh to en and report updated. Official macOS ARM64 DSH 0.2.0-rc.2 installs a
+  locally staged npm archive in isolated HOME/profile and boots both languages:
+  all 22 winning entries, loaded descriptions, unchanged bodies/resource paths,
+  22 Session catalog entries, 32 Full MCP tools and config status ok; exit 0 and no
+  model run. Logs/result are in ignored
+  `packages/qiongli-native/target/skill-language-live-probe/tmpbchetojk`.
+  Binary SHA-256: `60d704d83b776560c7fed10828233b2236cee3735438ab0346c9b850afd77ccb`;
+  pack SHA-256: `dce758ef109900b793abf9397970be7028da5273aa5a89570373284dbc821e92`.
+  The staging source is the content commit plus this working-tree implementation;
+  this is a development observation, not an immutable release qualification.
+- A real PTY with `LANG=zh_CN.UTF-8` shows Auto(zh), and language cancellation exits
+  0 without source/Skills/DSH writes. Its log is in the same ignored probe parent,
+  `tmp_5_fvehn`. A mistyped ledger test module produced an import error; the actual
+  program-roadmap check initially found its generated index stale; regeneration
+  through the existing owner makes all seven checks pass at integration.
+
+This is local coordinator self-review, not independent or installed-user-session
+acceptance. No remote tracking, push, version bump or publication is performed.
+Existing 249 task states/dependencies and 46 accepted rows remain unchanged. OS
+language reading on Windows/Linux and installed-user client refresh remain external
+qualification gaps. A new authorized release is required to distribute this work;
+client UI language changes alone do not rewrite installed Skills. DSH reloads its
+saved language when the profile/app restarts; creating a chat alone is insufficient.

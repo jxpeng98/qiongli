@@ -69,7 +69,7 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
 
     def add_workflows(self):
         source = Path(__file__).resolve().parents[1] / 'content/workflow'
-        for path in [source / 'references/codex-workflow-wrapper.md', source / 'no-qiongli/SKILL.md',
+        for path in [source / 'references/codex-workflow-wrapper.md', source / 'references/skill-descriptions.json', source / 'no-qiongli/SKILL.md',
                      *sorted((source / 'workflows').glob('*.md'))]:
             self.content['workflow/' + path.relative_to(source).as_posix()] = path.read_bytes()
         self.write_source()
@@ -108,9 +108,13 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
             self.assertEqual(metadata['dsh'], {'bundle': {'patch': './dsh/cordis.patch.yml'}})
             self.assertEqual(plugins.verify_deepseek_npm(files, VERSION, COMMIT, BINARIES),
                              {'pack_sha256': self.metadata['pack_sha256'], 'skills': 22})
+            profile_directory = self.root / 'profile # language'
+            profile_directory.mkdir()
             for target, (os_name, arch, executable) in plugins.TARGETS.items():
                 result = subprocess.run(['node', '--input-type=module', '-e', '''
 import assert from 'node:assert/strict';
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 Object.defineProperty(process, 'platform', {value: process.argv[2]});
 Object.defineProperty(process, 'arch', {value: process.argv[3]});
@@ -120,9 +124,27 @@ await apply({skills:{registerProvider(factory) {provider = factory();}},
   provide(name, value) {command = value.command;}});
 assert.ok(command.endsWith(process.argv[4]));
 assert.equal((await provider.list()).length, 22);
+const cjk = /[\u4e00-\u9fff]/;
+for (const language of ['zh', 'en']) {
+  await apply({skills:{registerProvider(factory) {provider = factory();}}, provide() {}}, {language});
+  for (const entry of await provider.list()) {
+    assert.equal(cjk.test(entry.description), language === 'zh');
+    const loaded = await provider.get(entry);
+    assert.equal(JSON.parse(loaded.content.match(/^description: (.*)$/m)[1]), entry.description);
+    assert.ok(loaded.content.includes('name: ' + entry.name));
+  }
+}
+await assert.rejects(apply({skills:{registerProvider() {}}, provide() {}}, {language:'fr'}));
+const ctx = {profileContext:{dir:process.argv[5]}, skills:{registerProvider(factory) {provider = factory();}}, provide() {}};
+await writeFile(join(process.argv[5], '.qiongli-skill-language.json'), JSON.stringify({language:'zh'}));
+await apply(ctx);
+assert.ok((await provider.list()).every(e => cjk.test(e.description)));
+await writeFile(join(process.argv[5], '.qiongli-skill-language.json'), '{}');
+await assert.rejects(apply(ctx));
+
 await assert.rejects(provider.get({name:'../../private'}));
 ''', str(self.root / 'installed/package/dsh/index.mjs'), os_name, arch,
-                    '/native/' + target + '/' + executable], capture_output=True, text=True)
+                    '/native/' + target + '/' + executable, str(profile_directory)], capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
             codex = self.build('source-archive')[0]
             self.assertEqual(plugins.read_plugin_content(codex, VERSION, COMMIT),

@@ -6,6 +6,100 @@ use qiongli_content::EmbeddedContent;
 use crate::managed_operation::ManagedOperationCliCommand;
 use crate::{CliOutput, CommandEnvironment};
 
+pub(crate) fn system_skill_language(environment: &CommandEnvironment) -> &'static str {
+    #[cfg(not(any(target_os = "macos", windows)))]
+    let _ = environment;
+    for key in ["LC_ALL", "LC_MESSAGES", "LANGUAGE", "LANG"] {
+        if let Ok(value) = std::env::var(key)
+            && !value.trim().is_empty()
+            && !matches!(value.as_str(), "C" | "POSIX" | "C.UTF-8")
+        {
+            return qiongli_content::skill_language_for_locale(&value);
+        }
+    }
+    #[cfg(target_os = "macos")]
+    if let Some(output) = locale_command(
+        environment,
+        std::path::Path::new("/usr/bin/defaults"),
+        &["read", "-g", "AppleLanguages"],
+    ) && let Some(locale) = output
+        .split(['"', '(', ')', ',', '\n'])
+        .map(str::trim)
+        .find(|s| !s.is_empty())
+    {
+        return qiongli_content::skill_language_for_locale(locale);
+    }
+    #[cfg(windows)]
+    if let Some(root) = std::env::var_os("SystemRoot")
+        .map(std::path::PathBuf::from)
+        .filter(|p| p.is_absolute())
+        && let Some(output) = locale_command(
+            environment,
+            &root.join("System32/WindowsPowerShell/v1.0/powershell.exe"),
+            &[
+                "-NoLogo",
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "[System.Globalization.CultureInfo]::CurrentUICulture.Name",
+            ],
+        )
+    {
+        return qiongli_content::skill_language_for_locale(&output);
+    }
+    "en"
+}
+
+#[cfg(any(target_os = "macos", windows))]
+fn locale_command(
+    environment: &CommandEnvironment,
+    executable: &std::path::Path,
+    args: &[&str],
+) -> Option<String> {
+    crate::desktop::bounded_host_os_command_with_timeout(
+        environment,
+        executable,
+        &args
+            .iter()
+            .map(std::ffi::OsString::from)
+            .collect::<Vec<_>>(),
+        std::time::Duration::from_secs(2),
+    )
+    .ok()
+}
+
+fn choose_skill_language(
+    environment: &CommandEnvironment,
+    selection: Option<&str>,
+    reader: &mut impl BufRead,
+    writer: &mut impl Write,
+) -> Result<Option<String>, &'static str> {
+    let selected = match selection {
+        Some(s) => s.to_owned(),
+        None => crate::cli_inventory::choice(
+            reader,
+            writer,
+            &format!(
+                "Skill descriptions: 1 Auto ({}), 2 中文, 3 English, 0 cancel [1]: ",
+                environment.skill_language()
+            ),
+        )
+        .map_err(|_| "installation-input-failed")?,
+    };
+    let language = match selected.as_str() {
+        "0" => return Ok(None),
+        "" | "1" | "auto" => environment.skill_language(),
+        "2" | "zh" => "zh",
+        "3" | "en" => "en",
+        _ => return Err("skill-language-invalid"),
+    };
+    line(
+        writer,
+        &format!("Skill description language: {language}. Invocation names stay the same.\n"),
+    )?;
+    Ok(Some(language.into()))
+}
+
 pub(crate) fn prepare_plan(
     command: &ManagedOperationCliCommand,
     environment: &CommandEnvironment,
@@ -17,6 +111,7 @@ pub(crate) fn prepare_plan(
             target,
             destination,
             context_hooks,
+            language,
             ..
         },
         Err("plugin-source-already-exists"),
@@ -28,6 +123,7 @@ pub(crate) fn prepare_plan(
                 target: *target,
                 destination: destination.clone(),
                 context_hooks: *context_hooks,
+                language: language.clone(),
             },
             environment,
             content,
@@ -46,6 +142,7 @@ pub struct InstallationGuide {
     pub(crate) targets: Vec<PluginInstallHost>,
     pub(crate) destination: Option<std::path::PathBuf>,
     pub(crate) context_hooks: Option<bool>,
+    pub(crate) language: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -147,6 +244,7 @@ impl InstallationGuide {
                 self.targets,
                 self.destination,
                 self.context_hooks,
+                self.language,
                 reader,
                 writer,
             )
@@ -200,14 +298,30 @@ fn guide(
             );
         }
         "2" => ManagedOperationCliCommand::PlanSkillsReconcile {
+            language: choose_skill_language(environment, None, reader, writer)?,
             preset: ManagedSkillsPresetV1::QiongliManaged,
             profile: qiongli_content::ProfileId::Full,
         },
         "" | "1" => {
-            return install_plugins(environment, content, Vec::new(), None, None, reader, writer);
+            return install_plugins(
+                environment,
+                content,
+                Vec::new(),
+                None,
+                None,
+                None,
+                reader,
+                writer,
+            );
         }
         _ => return Err("installation-selection-invalid"),
     };
+    if matches!(
+        &command,
+        ManagedOperationCliCommand::PlanSkillsReconcile { language: None, .. }
+    ) {
+        return line(writer, "Cancelled; no changes made.\n");
+    }
     BundledContentReview {
         plan_json: prepare_plan(&command, environment, content)?,
     }
@@ -215,12 +329,14 @@ fn guide(
     .map(|_| ())
 }
 
+#[allow(clippy::too_many_arguments)] // Shared terminal installer options, including the selected metadata language.
 fn install_plugins(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
     mut targets: Vec<PluginInstallHost>,
     destination: Option<std::path::PathBuf>,
     context_hooks: Option<bool>,
+    language: Option<String>,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> Result<(), &'static str> {
@@ -259,6 +375,10 @@ fn install_plugins(
         writer,
         "Each selected Host has its own preview and confirmation. Cancellation or failure stops here; completed Host steps remain installed.\n",
     )?;
+    let Some(language) = choose_skill_language(environment, language.as_deref(), reader, writer)?
+    else {
+        return line(writer, "Cancelled; no changes made.\n");
+    };
     let multiple = targets.len() > 1;
     for selected in targets {
         let host = PLUGIN_HOSTS
@@ -269,7 +389,13 @@ fn install_plugins(
         line(writer, &format!("\n{host} Plugin — install or update\n"))?;
         let target = match selected {
             PluginInstallHost::DeepSeek => {
-                if !crate::plugin_host::deepseek::install(environment, content, reader, writer)? {
+                if !crate::plugin_host::deepseek::install(
+                    environment,
+                    content,
+                    &language,
+                    reader,
+                    writer,
+                )? {
                     break;
                 }
                 continue;
@@ -336,6 +462,7 @@ fn install_plugins(
             target,
             destination: path,
             context_hooks,
+            language: Some(language.clone()),
         };
         let mut plan_json = prepare_plan(&command, environment, content)?;
         if context_hooks.is_none() {
@@ -428,6 +555,24 @@ impl BundledContentReview {
     ) -> Result<bool, &'static str> {
         let value: serde_json::Value =
             serde_json::from_str(&self.plan_json).map_err(|_| "managed-operation-plan-invalid")?;
+        if value["operation"]["kind"] == "skills-reconcile-preset"
+            && value["operation"]["skill_language"].is_null()
+        {
+            let Some(language) = choose_skill_language(environment, None, reader, writer)? else {
+                return Ok(false);
+            };
+            let command = ManagedOperationCliCommand::PlanSkillsReconcile {
+                preset: serde_json::from_value(value["operation"]["preset"].clone())
+                    .map_err(|_| "managed-operation-plan-invalid")?,
+                profile: serde_json::from_value(value["operation"]["profile"].clone())
+                    .map_err(|_| "managed-operation-plan-invalid")?,
+                language: Some(language),
+            };
+            return Self {
+                plan_json: prepare_plan(&command, environment, content)?,
+            }
+            .review(environment, content, reader, writer);
+        }
         if value["operation"]["kind"] == "plugin-source" {
             let source: crate::plugin_source::PluginSourcePlan =
                 serde_json::from_value(value["operation"]["source"].clone())
@@ -443,6 +588,7 @@ impl BundledContentReview {
             show_json(writer, &serde_json::json!({"installation":"Plugin (Skills included)",
                 "host":source.target,"destination":source.destination,"cli_version":env!("CARGO_PKG_VERSION"),
                 "previous_export_version":previous["source"]["version"],"export_state":previous["state"],
+                "skill_language": source.skill_language,
                 "context_hooks": if source.context_hooks {"include context reminders; Host trust and execution not verified"} else {"off in this Plugin"},
                 "mcp":"Full, 32 tools; started by the Host from the bundled native program"}).to_string())?;
             line(
@@ -609,6 +755,44 @@ pub(crate) fn confirm(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn skill_language_selection_supports_auto_explicit_and_cancel() {
+        let environment = CommandEnvironment::with_paths(None, None, None);
+        for (input, expected) in [
+            ("\n", Some("en")),
+            ("2\n", Some("zh")),
+            ("3\n", Some("en")),
+            ("0\n", None),
+        ] {
+            assert_eq!(
+                choose_skill_language(&environment, None, &mut input.as_bytes(), &mut Vec::new())
+                    .unwrap()
+                    .as_deref(),
+                expected
+            );
+        }
+        assert_eq!(
+            choose_skill_language(
+                &environment,
+                Some("zh"),
+                &mut "".as_bytes(),
+                &mut Vec::new()
+            )
+            .unwrap()
+            .as_deref(),
+            Some("zh")
+        );
+        assert!(
+            choose_skill_language(
+                &environment,
+                Some("fr"),
+                &mut "".as_bytes(),
+                &mut Vec::new()
+            )
+            .is_err()
+        );
+    }
     use crate::managed_operation::ManagedSkillsPresetV1;
     use qiongli_content::ProfileId;
 
@@ -669,7 +853,7 @@ mod tests {
         std::fs::create_dir(&root).unwrap();
         let environment = CommandEnvironment::with_paths(None, Some(root.clone()), None);
         let content = crate::embedded_content().unwrap();
-        for response in ["0\n", "2\nn\n", "3\n", "\n0\n"] {
+        for response in ["0\n", "2\n\nn\n", "3\n", "\n0\n"] {
             let mut output = Vec::new();
             guide(
                 &environment,
@@ -693,6 +877,7 @@ mod tests {
             );
         }
         let command = ManagedOperationCliCommand::PlanSkillsReconcile {
+            language: Some("en".into()),
             preset: ManagedSkillsPresetV1::QiongliManaged,
             profile: ProfileId::Full,
         };
@@ -736,6 +921,7 @@ mod tests {
             crate::managed_operation::ManagedIntegrationTargetV1::ClaudeCode,
         ] {
             let command = ManagedOperationCliCommand::PlanPluginSource {
+                language: None,
                 action: crate::plugin_source::PluginSourceAction::Install,
                 target,
                 destination: root.join("qiongli-next"),

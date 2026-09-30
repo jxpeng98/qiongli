@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use qiongli_content::{
     LoadedResourcePack, LogicalMode, MaterializationAuthorization, MaterializationTarget,
-    ProfileId, WorkflowOverrides, approve_materialization_target, project_profile,
+    ProfileId, WorkflowOverrides, approve_materialization_target,
 };
 use same_file::Handle;
 use semver::Version;
@@ -157,6 +157,8 @@ pub struct ClaudePluginBundleReceiptV1 {
     pub workflow_variant_sha256: Option<String>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub context_hooks: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skill_language: Option<String>,
     pub package_content_root_sha256: String,
     pub binary_path: String,
     pub binary_sha256: String,
@@ -324,6 +326,7 @@ pub fn compose_claude_plugin_bundle_with_overrides(
         false,
         None,
         None,
+        None,
     )
 }
 
@@ -342,6 +345,7 @@ pub fn replace_claude_plugin_bundle_with_overrides(
         target,
         overrides,
         true,
+        None,
         None,
         None,
     )
@@ -367,6 +371,7 @@ pub fn compose_local_claude_plugin_source(
         expected_receipt_sha256.is_some(),
         expected_receipt_sha256,
         None,
+        None,
     )
 }
 
@@ -390,6 +395,33 @@ pub fn compose_local_claude_plugin_source_with_hooks(
         expected_receipt_sha256.is_some(),
         expected_receipt_sha256,
         Some(context_hooks),
+        None,
+    )
+}
+
+/// Local metadata language is part of the approval and receipt-bound transaction.
+#[allow(clippy::too_many_arguments)]
+pub fn compose_local_claude_plugin_source_with_language(
+    pack: &LoadedResourcePack<'_>,
+    source_binary: &Path,
+    expected_binary_sha256: &str,
+    target: &ClaudePluginBundleTarget,
+    overrides: Option<&WorkflowOverrides>,
+    expected_receipt_sha256: Option<&str>,
+    context_hooks: bool,
+    skill_language: Option<&str>,
+) -> Result<VerifiedClaudePluginBundle, ClaudePluginBundleError> {
+    compose_claude_plugin_bundle_internal(
+        pack,
+        None,
+        expected_binary_sha256,
+        source_binary,
+        target,
+        overrides,
+        expected_receipt_sha256.is_some(),
+        expected_receipt_sha256,
+        Some(context_hooks),
+        skill_language,
     )
 }
 
@@ -426,6 +458,7 @@ fn compose_claude_plugin_bundle_internal(
     replace: bool,
     expected_receipt_sha256: Option<&str>,
     context_hooks: Option<bool>,
+    skill_language: Option<&str>,
 ) -> Result<VerifiedClaudePluginBundle, ClaudePluginBundleError> {
     let (artifact, kind, signed_digest) = if let Some(grant) = grant {
         validate_composition_identity(pack, grant)?;
@@ -473,6 +506,17 @@ fn compose_claude_plugin_bundle_internal(
             .as_ref()
             .is_some_and(|bundle| bundle.receipt.context_hooks)
     });
+    let skill_language = skill_language.map(str::to_owned).or_else(|| {
+        existing
+            .as_ref()
+            .and_then(|b| b.receipt.skill_language.clone())
+    });
+    if skill_language
+        .as_deref()
+        .is_some_and(|s| !qiongli_content::skill_language_valid(s))
+    {
+        return Err(ClaudePluginBundleError::ReceiptInvalid);
+    }
     let binary_bytes = read_source_binary(source_binary)?;
     let binary_sha256 = sha256_hex(&binary_bytes);
     if binary_sha256 != expected_binary_sha256 {
@@ -487,6 +531,7 @@ fn compose_claude_plugin_bundle_internal(
         overrides,
         context_hooks,
         plugin_name,
+        skill_language.as_deref(),
     )?;
     if files
         .insert(
@@ -529,6 +574,7 @@ fn compose_claude_plugin_bundle_internal(
         resource_content_root_sha256: manifest.content_root_sha256.clone(),
         workflow_variant_sha256: overrides.map(|value| value.variant_sha256().to_owned()),
         context_hooks,
+        skill_language,
         package_content_root_sha256,
         binary_path,
         binary_sha256,
@@ -746,9 +792,15 @@ fn project_bundle_files(
     overrides: Option<&WorkflowOverrides>,
     context_hooks: bool,
     plugin_name: &str,
+    skill_language: Option<&str>,
 ) -> Result<BTreeMap<String, BundleFile>, ClaudePluginBundleError> {
-    let resources = project_profile(pack, "marketplace-lite", overrides)
-        .map_err(|_| ClaudePluginBundleError::ResourcePackMismatch)?;
+    let resources = qiongli_content::project_profile_with_language(
+        pack,
+        "marketplace-lite",
+        overrides,
+        skill_language,
+    )
+    .map_err(|_| ClaudePluginBundleError::ResourcePackMismatch)?;
     let manifest_resource = resources
         .iter()
         .find(|resource| resource.path() == PLUGIN_MANIFEST_PATH)
@@ -1036,6 +1088,21 @@ fn verify_bundle_tree(root: &Path) -> Result<VerifiedClaudePluginBundle, ClaudeP
 fn validate_receipt_shape(
     receipt: &ClaudePluginBundleReceiptV1,
 ) -> Result<(), ClaudePluginBundleError> {
+    if receipt
+        .skill_language
+        .as_deref()
+        .is_some_and(|s| !qiongli_content::skill_language_valid(s))
+    {
+        return Err(ClaudePluginBundleError::ReceiptInvalid);
+    }
+
+    if receipt.skill_language.is_some()
+        && (receipt.schema_version != 4
+            || receipt.package_kind != ClaudePluginBundleKind::UserLocalHostFullMcp)
+    {
+        return Err(ClaudePluginBundleError::ReceiptInvalid);
+    }
+
     receipt
         .artifact
         .validate()
@@ -2117,6 +2184,7 @@ fn channel_receipts_verify_legacy_names_and_reject_mixed_identities() {
             resource_content_root_sha256: "c".repeat(64),
             workflow_variant_sha256: None,
             context_hooks: false,
+            skill_language: None,
             package_content_root_sha256: package_content_root(&entries),
             binary_path: binary_path.into(),
             binary_sha256: entry_digest(&entries, binary_path).unwrap(),

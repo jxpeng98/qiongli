@@ -141,10 +141,34 @@ pub(crate) fn apply_managed_materialization_with_overrides(
     profile: ProfileId,
     overrides: Option<&WorkflowOverrides>,
 ) -> Result<MaterializationReceiptV1, &'static str> {
+    apply_managed_materialization_with_language(
+        config_root,
+        content,
+        target,
+        profile,
+        overrides,
+        None,
+    )
+}
+
+pub(crate) fn apply_managed_materialization_with_language(
+    config_root: &ConfigRoot,
+    content: &EmbeddedContent,
+    target: &MaterializationTarget,
+    profile: ProfileId,
+    overrides: Option<&WorkflowOverrides>,
+    language: Option<&str>,
+) -> Result<MaterializationReceiptV1, &'static str> {
     let previous = verify_materialization(target).ok();
-    let receipt = content
-        .materialize_profile_with_overrides(profile_name(profile), target, overrides)
-        .map_err(|error| error.reason_code())?;
+    let language = language.or_else(|| previous.as_ref().and_then(|r| r.skill_language.as_deref()));
+    let receipt = qiongli_content::materialize_profile_with_language(
+        content.pack(),
+        profile_name(profile),
+        target,
+        overrides,
+        language,
+    )
+    .map_err(|error| error.reason_code())?;
     let registration = GlobalSettingsStore::new(config_root.clone())
         .prepare_store()
         .map_err(|error| error.reason_code())
@@ -233,9 +257,14 @@ pub(crate) fn restore_managed_materialization_with_overrides(
     {
         return Err("managed-content-registry-recovery-required");
     }
-    let restored = content
-        .materialize_profile_with_overrides(profile_name(receipt.profile), target, overrides)
-        .map_err(|_| "managed-content-registry-recovery-required")?;
+    let restored = qiongli_content::materialize_profile_with_language(
+        content.pack(),
+        profile_name(receipt.profile),
+        target,
+        overrides,
+        receipt.skill_language.as_deref(),
+    )
+    .map_err(|_| "managed-content-registry-recovery-required")?;
     if &restored != receipt {
         return Err("managed-content-registry-recovery-required");
     }
