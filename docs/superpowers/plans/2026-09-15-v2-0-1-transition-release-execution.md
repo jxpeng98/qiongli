@@ -1230,7 +1230,7 @@ The 249 task states/dependencies and 46 accepted rows remain unchanged.
 
 The clean integrated source must next pass
 `./scripts/release_ready.sh --cli-github --version 2.1.1 --staging-dir
-/private/tmp/qiongli-v211-release-final` on macOS ARM64 before remote publication
+/private/tmp/qiongli-v211-release-qualified` on macOS ARM64 before remote publication
 submission. This packet owner builds and checks native CLI, npm/wheel installs,
 DSH projection and standalone Plugins. Only its successful result authorizes a
 readiness claim for that target. Existing tag-bound automation must freshly
@@ -1243,3 +1243,24 @@ source. Do not claim a final full 236-case library rerun. Windows/Linux OS local
 real client refresh, installed-user/model collaboration and broader research
 acceptance remain open. The next independent development increment is real
 Host/library qualification, not duplicate release monitoring.
+
+
+Release-gate correction: the first clean-source macOS attempt at `723f1770`
+passes fmt, Clippy, 42 release CLI checks, seven MCP checks and archive smoke,
+but fails the installed DSH probe: it compared localized loaded descriptions
+against unmodified frontmatter. Reproduction isolates the qiongli description's
+version prefix; bodies remain unchanged. The existing shared registry checker
+now validates auto/zh/en descriptions against the packaged canonical catalog
+and permits exactly that frontmatter substitution while comparing every other
+byte, entry order, invocation flags and path-refusal behavior. Catalog-free
+historical packages retain exact-byte comparison. Its existing npm projection
+test now runs the same installed-provider probe. All 34 affected checks pass,
+and the same installed 2.1.1 packet passes the corrected probe with 22 Skills
+and 32 Full MCP tools. Final qualification must run on the newly frozen source
+at the fresh staging directory above; failed attempt evidence is not reused as
+qualification. Public schema policy and frozen 1.x migration guards pass.
+
+An optional retained Python experience-record check against the checkout finds
+old ignored trace records missing required inputs; it is not a native CLI release
+gate and no records are changed. This failed diagnostic is not a passing schema
+claim. Frozen public schema validation is the applicable compatibility check.

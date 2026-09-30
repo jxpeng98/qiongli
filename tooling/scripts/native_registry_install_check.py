@@ -159,6 +159,7 @@ def check_deepseek_npm(package, node, *, version, root, env):
     probe = r'''
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 const root = pathToFileURL(process.argv[1] + '/');
 const metadata = JSON.parse(await readFile(new URL('package.json', root)));
@@ -166,21 +167,34 @@ assert.equal(metadata.main, 'dsh/index.mjs');
 assert.deepEqual(metadata.dsh, {bundle:{patch:'./dsh/cordis.patch.yml'}});
 const { apply } = await import(new URL(metadata.main, root));
 let provider, command;
-await apply({skills:{registerProvider(factory) { provider = factory(); }},
-  provide(name, value) { assert.equal(name, 'qiongliBundle'); command = value.command; }});
+const ctx = {skills:{registerProvider(factory) { provider = factory(); }},
+  provide(name, value) { assert.equal(name, 'qiongliBundle'); command = value.command; }};
+const translationsUrl = new URL('dsh/skills/qiongli-workflow/references/skill-descriptions.json', root);
+const translations = existsSync(translationsUrl) ? JSON.parse(await readFile(translationsUrl)) : null;
 const catalog = JSON.parse(await readFile(new URL('dsh/skills.json', root)));
+for (const language of translations ? ['auto', 'zh', 'en'] : [undefined]) {
+await apply(ctx, language ? {language} : {});
 const entries = await provider.list();
 assert.equal(entries.length, 22);
 assert.deepEqual(entries.map(e => e.name), catalog.map(e => e.name));
 for (const entry of entries) {
   const skill = await provider.get(entry);
-  assert.equal(skill.content, await readFile(new URL('dsh/' + entry.locator, root), 'utf8'));
+  const original = await readFile(new URL('dsh/' + entry.locator, root), 'utf8');
+  if (translations) {
+    const expected = translations[entry.name];
+    assert.ok(['zh', 'en'].some(key => expected[key].description === entry.description));
+    if (language !== 'auto') assert.equal(entry.description, expected[language].description);
+    assert.equal(skill.content, original.replace(/^description: .*$/m, () => 'description: ' + JSON.stringify(entry.description)));
+  } else {
+    assert.equal(skill.content, original);
+  }
   assert.deepEqual(skill.invocation, {modelInvocable:true,userInvocable:true});
   assert.equal(skill.resourceBase.kind, 'directory');
 }
 await assert.rejects(provider.get({name:'../../private'}));
+}
 assert.ok(pathToFileURL(command).href.startsWith(new URL('native/', root).href));
-console.log(JSON.stringify({command, skills:entries.length}));
+console.log(JSON.stringify({command, skills:catalog.length}));
 '''
     observed = json.loads(run([node, '--input-type=module', '-e', probe, package], root=root, env=env).stdout)
     checked = check_cli(observed['command'], version=version, root=root, env=env)

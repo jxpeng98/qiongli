@@ -108,6 +108,14 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
             self.assertEqual(metadata['dsh'], {'bundle': {'patch': './dsh/cordis.patch.yml'}})
             self.assertEqual(plugins.verify_deepseek_npm(files, VERSION, COMMIT, BINARIES),
                              {'pack_sha256': self.metadata['pack_sha256'], 'skills': 22})
+            from tooling.scripts.native_registry_install_check import check_deepseek_npm
+            import os
+            with patch('tooling.scripts.native_registry_install_check.check_cli', return_value={
+                    'mcp_tools': {'full': 32}, 'content_pack_sha256': self.metadata['pack_sha256']}):
+                observed = check_deepseek_npm((self.root / 'installed/package').resolve(), 'node',
+                    version=VERSION, root=self.root, env=os.environ.copy())
+            self.assertEqual(observed['skills'], 22)
+            self.assertEqual(observed['mcp_tools'], 32)
             profile_directory = self.root / 'profile # language'
             profile_directory.mkdir()
             for target, (os_name, arch, executable) in plugins.TARGETS.items():
