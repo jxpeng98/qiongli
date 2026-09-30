@@ -21,6 +21,7 @@ use crate::plugin_source::{PluginSourcePlan, plugin_id, plugin_name};
 const MARKETPLACE: &str = "qiongli-cli-local";
 
 mod codex_config;
+pub(crate) mod deepseek;
 
 #[derive(Eq, PartialEq, Serialize)]
 struct HostPlan {

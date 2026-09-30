@@ -1,6 +1,7 @@
 # Qiongli 2 CLI: installation and command boundaries
 
-This guide covers **2.1.0**, building on the first stable native CLI release 2.0.0 from `main`.
+This guide covers **2.1.0** and the subsequent local installer fix, building on
+the first stable native CLI release 2.0.0 from `main`.
 For changes from the Python-based line, see [the 1.x / 2.0 comparison and migration guide](whats-new-2.md).
 
 Qiongli 2 is CLI-first. GitHub binary archives, npm and PyPI distribute the same
@@ -12,11 +13,12 @@ native executable for a given version and target. No Qiongli App is required.
 Terminal users can run `qiongli install` or `qiongli upgrade`
 to open the guide. `qiongli install plugin` installs or updates; `upgrade plugin`
 and `update plugin` use that same flow. The guide selects the Host and reuses its
-registered directory. Use `--target codex`, `--target claude` or `--target all` to
+registered directory. Use `--target codex`, `--target claude`, `--target deepseek`,
+a comma-separated list such as `--target codex,deepseek`, or `--target all` to
 skip Host selection. All handles each Host separately, stopping on cancellation
 or failure; each new source needs its own directory with an existing parent.
-`--destination` remains available for a single Host. Scripts keep the explicit
-`--dry-run` plan, and redirected bare install keeps its read-only inventory.
+`--destination` remains available for a single Codex/Claude Host. Scripts keep
+the explicit `--dry-run` Codex/Claude plan, and redirected bare install keeps its read-only inventory.
 
 Plugin source files do not belong in `~/.agents/skills`. Official registration
 lets the Host load Skills and MCP from its Plugin cache. If another Qiongli Plugin
@@ -84,21 +86,36 @@ dsh plugin --profile desktop add qiongli@2.1.0
 Use your own profile name in place of `desktop`. To install a local release npm
 archive, replace `qiongli@2.1.0` with its absolute `.tgz` path. To build a local
 directory bundle, follow [the existing native exporter](../advanced/external-host-coordination.md).
-`qiongli install plugin --target deepseek` (also `upgrade`/`update`) displays
-these official commands without changing a profile. The terminal installation
-guide offers DeepSeek as choice 4.
+`qiongli install plugin --target deepseek` (also `upgrade`/`update`) now selects
+a profile, previews the exact official commands and asks for trust before running
+them. It installs the npm version matching the running CLI and verifies bundle
+registration and the content receipt. No extra manual command is needed. The
+terminal guide accepts `1,2,4`, `1 4`, or `all`; choice `3` retains the original
+Codex+Claude shortcut. Named `--target` lists use the same parser. Each Host has
+its own approval; cancellation or failure stops the remaining steps and keeps
+completed installations.
 
-DSH 0.2 does not automatically update installed Plugins. Remove `qiongli` through
-the same DSH manager, then install the new version; retain your profile and model
-settings. Use one Qiongli bundle per profile, start a fresh session, and check
+An existing Desktop profile is the default when present; otherwise the default
+is `web`. New CLI profiles are initialized from the official `web` template
+inside the same approved command plan. Desktop must initialize its reserved
+profile itself. The selected `DSH_HOME` is passed only to the child CLI. Single
+source `--destination` and context `--hooks` options require separate Codex/Claude
+selections; DSH uses its npm bundle and profile instead.
+
+DSH 0.2 does not automatically update installed Plugins. The CLI installer uses
+`dsh plugin ... add qiongli@<version>` to install/update an exact version through
+the manager. For the Desktop dialog, remove the installed Plugin and add the new
+version as the dialog instructs; retain your profile and model settings. Use one
+Qiongli bundle per profile, start a fresh session, and check
 all 22 Skill entries and 32 Full MCP tools. Actual model task execution remains
 a separate check. See the [official installation contract](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish).
 
 ## From installation to first use {#first-use}
 
 Run `qiongli install` in a terminal (`--interactive` remains supported). Choose
-the recommended Plugin, then Codex or Claude. The default export is `qiongli-next` under your home directory; you can
-enter another absolute path with an existing parent. For upgrades, the guide
+the recommended Plugin, then one or more Hosts (Codex, Claude or DeepSeek).
+Codex/Claude default to the channel directory (`qiongli` for stable) under your
+home directory; you can enter another absolute path with an existing parent. For upgrades, the guide
 reuses the verified registered source directory. A second Host needs a separate
 destination. Menu choices do not approve writes: review the file plan and Host registration separately.
 Choose Skills for guidance files only, or MCP configuration for an existing setup.
@@ -133,7 +150,7 @@ Then try a supplied document: read it with source locations, propose canonical
 research records, review and save them, and inspect the Graph and a stage summary.
 Saving retains the existing approval checks; summaries preserve the originals.
 
-After updating the CLI, use `qiongli doctor` to identify Plugins needing refresh,
+After updating the CLI, use `qiongli doctor` to identify Codex/Claude Plugins needing refresh,
 then `qiongli install plugin`; choose the Host there or specify it with `--target`.
 Each Plugin
 keeps its own executable; equal version strings do not replace receipt/hash checks.
@@ -409,8 +426,9 @@ After updating your CLI through its original channel, refresh the registered sou
 qiongli install plugin --target codex
 ```
 
-The source directory is discovered from the Host. `--target all` handles both Hosts
-separately; each new Host needs its own directory. Omit `--destination` with all.
+The source directory is discovered from the Host. `--target codex,claude` handles
+both Hosts separately; each new Host needs its own directory. Omit `--destination`
+with multiple Hosts.
 
 `update plugin` is an alias. Repeating `install plugin` reconciles an existing
 verified export. Before replacing an old Plugin cache, Qiongli verifies its

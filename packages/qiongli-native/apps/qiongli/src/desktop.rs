@@ -10935,6 +10935,9 @@ pub(crate) fn official_host_command(
     if let Some(root) = environment.claude_config_root() {
         command.env("CLAUDE_CONFIG_DIR", root);
     }
+    if let Some(root) = environment.dsh_config_root() {
+        command.env("DSH_HOME", root);
+    }
     Ok(command)
 }
 

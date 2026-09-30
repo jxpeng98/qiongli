@@ -336,20 +336,21 @@ fn external_agent_adapters_prepare_and_collect_without_launching_a_host() {
 }
 
 #[test]
-fn deepseek_installation_guidance_uses_official_manager_without_writes() {
+fn deepseek_installation_requires_terminal_approval_without_writes() {
     let fixture = Fixture::new("deepseek-install-guide");
     for verb in ["install", "upgrade", "update"] {
         let result = fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), &fixture)
-            .args([verb, "plugin", "--target", "deepseek", "--text"])
+            .args([verb, "plugin", "--target", "deepseek"])
             .output()
             .unwrap();
-        assert!(result.status.success());
-        let text = String::from_utf8(result.stdout).unwrap();
-        assert!(text.contains(&format!(
-            "dsh plugin --profile desktop add qiongli@{}",
-            env!("CARGO_PKG_VERSION")
-        )));
-        assert!(text.contains("22 Skill entries and Full MCP"));
+        assert!(!result.status.success());
+        assert!(result.stdout.is_empty());
+        assert!(
+            String::from_utf8(result.stderr)
+                .unwrap()
+                .contains("requires a terminal")
+        );
+        assert!(!fixture.home.join(".dsh").exists());
         assert!(!fixture.config_root.exists());
     }
 }

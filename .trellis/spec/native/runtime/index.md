@@ -77,8 +77,14 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   Skills, a Cordis bundle and native Full MCP through the existing export/receipt
   verifier. Standalone release Plugin archives remain Codex/Claude; from 2.1 the
   existing `qiongli` npm package includes this same DSH bundle with 22 entries and
-  native Full MCP. `install plugin --target deepseek` and terminal choice 4 show
-  official profile-specific installation commands without writing Host settings.
+  native Full MCP. `install plugin --target deepseek` and terminal choice 4 use the
+  terminal-only `plugin_host/deepseek.rs` adapter. After profile selection, exact command preview,
+  trust confirmation and executable/profile digest revalidation, the official DSH
+  manager installs the pinned npm version from the official registry. New CLI
+  profiles use the official web template; existing profiles are retained. Bundle
+  registration, package version and content receipt are checked afterward. DSH_HOME
+  is captured and propagated only to the child process. Public managed App target
+  enums and file-plan schemas remain Codex/Claude; this adds no App write bypass.
   DeepSeek uses the current
   `unknown` route / `other-local` descriptor, not a fabricated Codex identity.
   See [external Host usage](../../../../docs/advanced/external-host-coordination.md).
@@ -116,7 +122,9 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   redirected/explicit-format queries and setup retain their existing behavior.
   Plugin install/upgrade/update share one upsert path, discover the registered
   source through the official Host inventory and validate its receipt before
-  updating. Optional --target all visits each Host with separate approval and
+  updating. A shared Host table/parser accepts comma/space selections, deduplicates
+  in order, keeps 3/both as Codex+Claude and expands all to Codex/Claude/DeepSeek. Each Host
+  retains its existing installer and separate approval. This selection flow
   stops on cancellation/failure. Foreign enabled Plugins refuse before export
   with their exact names and manual disable guidance. See ADR 0225.
   `mcp check` exercises the existing stdio handlers in-process (initialize, tools

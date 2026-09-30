@@ -1065,3 +1065,67 @@ Stop local tracking upon accepted dispatch; no completed publication is inferred
 Program task states, dependencies and historical accepted evidence remain
 unchanged. Real Host/library/collaboration qualification remains the next
 independent development scope.
+
+
+### September 30 installer fix — multiple Hosts and confirmed DSH npm execution
+
+The maintainer reported that the installed 2.1.0 guide accepted only one menu
+choice and that DeepSeek choice 4 merely displayed another command to run. The
+local `fix/multi-host-plugin-install` increment fixes both owners, based on
+integrated 2.x source `09f669d5`. The published 2.1.0 tag remains immutable; this
+increment is local development, with no push, new release or CI tracking.
+
+One Host table and parser serves the terminal menu and named `--target` option.
+Comma/space lists retain input order and deduplicate; `all` expands the supported
+Hosts, while `3`/`both` retain Codex+Claude. A shared options validator refuses a
+single destination for multiple Hosts and DSH source/hook options before writes.
+Each selected Host retains its own installer and confirmation. Cancellation or
+failure stops remaining Hosts and preserves completed steps.
+
+The terminal-only DSH adapter discovers the official CLI, requires 0.2+, selects
+an existing Desktop profile by default or a Web CLI profile otherwise, and shows
+exact commands before trust confirmation. New CLI profiles use the official Web
+template within that plan. Executable and profile file digests are revalidated
+before execution. The existing bounded Host launcher passes captured DSH_HOME
+only to the child. The official manager installs the matching exact npm version
+with the official registry and disabled install scripts; profile bundle, package
+version and content receipt checks precede the completion message. Conflicting
+old dsh-qiongli-* bundles refuse without automatic deletion. Public managed App
+target enums, schemas and research write owners are unchanged.
+
+Focused validation and coordinator self-review:
+
+- Format and all-target CLI Clippy pass. The 14 focused release unit checks cover
+  multi-selection, CLI aliases/options, empty/partial/negative confirmation,
+  stale profile state, unsafe paths/symlinks, old-bundle conflict, command failure
+  and missing/mismatched registration evidence; existing Host tests remain green.
+- The 42-case release CLI run passed 41 checks; the updated no-terminal assertion
+  initially retained --text and encountered the existing output-option refusal.
+  Removing that fixture flag checks terminal refusal directly, and its rerun
+  passes. The final help and no-terminal checks pass after the last shared parser/
+  help changes. Seven release stdio MCP tests pass outside the sandbox, including
+  the existing loopback fixtures. No permission or compatibility negative is removed.
+- The installed macOS ARM64 DSH 0.2.0-rc.2 / embedded pnpm 11.7.0 receives the
+  actual new terminal flow in an isolated home/profile. Choice `4,1` followed by
+  refusal runs no installation command, creates no DSH profile and stops before
+  Codex. Confirmed installation initializes a Web profile and installs
+  `qiongli@2.1.0` from https://registry.npmjs.org, verifies registration and exits 0.
+  Logs/result are under
+  `packages/qiongli-native/target/multi-host-live-probe/tmp4opoy4rj` (ignored local
+  test artifacts). The first PTY collector failed while collecting process exit
+  after installation had finished; waiting for exit after PTY hangup fixes that
+  test collector. The corrected run exits 0.
+- Booting only that isolated profile with --no-open loads all 22 winning Skill
+  entries with exact bytes/resource paths, both invocation flags, 22 browser
+  Session catalog entries, 32 Full MCP tools and config status ok; it exits 0.
+  No Agent/model is activated. Only the existing Node DEP0180 warning is logged.
+
+This is coordinator self-review and local Host observation, not independent
+review, installed-user-profile qualification or program acceptance. Real user
+profiles/model settings and canonical research data remain untouched. All 249
+program task states/dependencies and 46 historical accepted rows remain unchanged;
+only the CLI-403 observation note is extended. Future supported Hosts add one
+menu-table entry and their installation branch; selection and all need no new
+parser. Fresh installed-user/model/two-Host research qualification remains the
+next independent scope. A separately authorized patch release is needed to ship
+this fix to existing registry users.

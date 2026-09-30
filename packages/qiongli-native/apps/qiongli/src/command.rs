@@ -67,6 +67,7 @@ pub struct CommandEnvironment {
     platform_home: Option<PathBuf>,
     codex_config_root: Option<PathBuf>,
     claude_config_root: Option<PathBuf>,
+    dsh_config_root: Option<PathBuf>,
     project_root: Option<PathBuf>,
     zotero_connector_url: Option<String>,
     cli_search_path: Option<OsString>,
@@ -123,6 +124,7 @@ impl CommandEnvironment {
             platform_home,
             codex_config_root: nonempty_environment_path("CODEX_HOME"),
             claude_config_root: nonempty_environment_path("CLAUDE_CONFIG_DIR"),
+            dsh_config_root: nonempty_environment_path("DSH_HOME"),
             project_root: env::current_dir().ok(),
             zotero_connector_url: env::var("QIONGLI_ZOTERO_CONNECTOR_URL")
                 .ok()
@@ -144,6 +146,7 @@ impl CommandEnvironment {
             platform_home,
             codex_config_root: None,
             claude_config_root,
+            dsh_config_root: None,
             project_root: None,
             zotero_connector_url: None,
             codex_host_present: false,
@@ -218,6 +221,10 @@ impl CommandEnvironment {
 
     pub(crate) fn codex_config_root(&self) -> Option<&Path> {
         self.codex_config_root.as_deref()
+    }
+
+    pub(crate) fn dsh_config_root(&self) -> Option<&Path> {
+        self.dsh_config_root.as_deref()
     }
 
     pub(crate) fn project_root(&self) -> Option<&Path> {
@@ -1210,11 +1217,6 @@ fn parse_managed_skills_preset(value: &OsStr) -> Result<ManagedSkillsPresetV1, U
 }
 
 fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Command, UsageError> {
-    if args == ["plugin", "--target", "deepseek"].map(OsString::from) {
-        return Ok(Command::TopicHelp(
-            crate::cli_help::deepseek_plugin_install(),
-        ));
-    }
     if upgrade && args == [OsString::from("cli")] {
         return Ok(Command::TopicHelp(crate::cli_help::CLI_UPGRADE.to_owned()));
     }
@@ -1240,19 +1242,14 @@ fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Comman
         for pair in args[1..].chunks_exact(2) {
             match pair[0].to_str() {
                 Some("--target") if options.targets.is_empty() => {
-                    options.targets = match pair[1].to_str() {
-                        Some("codex") => vec![ManagedIntegrationTargetV1::Codex],
-                        Some("claude") => vec![ManagedIntegrationTargetV1::ClaudeCode],
-                        Some("all") => vec![
-                            ManagedIntegrationTargetV1::Codex,
-                            ManagedIntegrationTargetV1::ClaudeCode,
-                        ],
-                        _ => {
-                            return Err(install_usage_error(
-                                "Plugin target must be codex, claude or all",
-                            ));
-                        }
-                    };
+                    options.targets = crate::cli_content::plugin_hosts(
+                        pair[1].to_str().unwrap_or_default(),
+                    )
+                    .map_err(|_| {
+                        install_usage_error(
+                            "choose codex, claude, deepseek, a comma-separated list, or all",
+                        )
+                    })?;
                 }
                 Some("--hooks") if options.context_hooks.is_none() => {
                     options.context_hooks = Some(parse_context_hooks(&pair[1])?);
@@ -1273,11 +1270,9 @@ fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Comman
                 }
             }
         }
-        if options.targets.len() > 1 && options.destination.is_some() {
-            return Err(install_usage_error(
-                "all Hosts need separate directories; omit --destination or install each Host separately",
-            ));
-        }
+        crate::cli_content::validate_host_options(
+            &options.targets, options.destination.as_deref(), options.context_hooks,
+        ).map_err(|_| install_usage_error("--destination requires a single Codex/Claude Host; DeepSeek selections do not accept --destination/--hooks"))?;
         return Ok(Command::InstallInteractive(options));
     }
     let mut plan_args = vec![OsString::from(operation)];
@@ -3444,10 +3439,42 @@ mod tests {
     use super::*;
 
     #[test]
+    fn plugin_targets_share_the_interactive_multi_selection_parser() {
+        for upgrade in [false, true] {
+            for selection in ["deepseek", "codex,deepseek", "all", "1 2 4", "3,4"] {
+                let args = ["plugin", "--target", selection].map(OsString::from);
+                let Ok(Command::InstallInteractive(options)) =
+                    parse_content_install_args(&args, upgrade)
+                else {
+                    panic!("expected interactive selection");
+                };
+                assert_eq!(
+                    options.targets,
+                    crate::cli_content::plugin_hosts(selection).unwrap()
+                );
+            }
+        }
+        for args in [
+            vec!["plugin", "--target", "deepseek", "--hooks", "off"],
+            vec!["plugin", "--target", "all", "--destination", "/source"],
+            vec!["plugin", "--target", "deepseek", "--dry-run"],
+            vec!["plugin", "--target", "codex,missing"],
+        ] {
+            assert!(
+                parse_content_install_args(
+                    &args.into_iter().map(OsString::from).collect::<Vec<_>>(),
+                    false
+                )
+                .is_err()
+            );
+        }
+    }
+
+    #[test]
     fn plugin_hook_options_are_explicit_and_scoped_to_install_update() {
         for upgrade in [false, true] {
             for (value, expected) in [("context", true), ("off", false)] {
-                let args: Vec<OsString> = ["plugin", "--target", "all", "--hooks", value]
+                let args: Vec<OsString> = ["plugin", "--target", "codex,claude", "--hooks", value]
                     .map(Into::into)
                     .to_vec();
                 assert!(matches!(parse_content_install_args(&args, upgrade),

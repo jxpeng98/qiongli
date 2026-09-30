@@ -43,9 +43,85 @@ pub struct BundledContentReview {
 #[derive(Default, Debug, Eq, PartialEq)]
 pub struct InstallationGuide {
     pub(crate) plugin: bool,
-    pub(crate) targets: Vec<crate::managed_operation::ManagedIntegrationTargetV1>,
+    pub(crate) targets: Vec<PluginInstallHost>,
     pub(crate) destination: Option<std::path::PathBuf>,
     pub(crate) context_hooks: Option<bool>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PluginInstallHost {
+    Managed(crate::managed_operation::ManagedIntegrationTargetV1),
+    DeepSeek,
+}
+
+use crate::managed_operation::ManagedIntegrationTargetV1 as ManagedHost;
+
+// Keep 3 as the existing Codex/Claude shortcut; new Hosts get their own entry.
+const PLUGIN_HOSTS: &[(&str, &str, &str, PluginInstallHost)] = &[
+    (
+        "1",
+        "codex",
+        "Codex",
+        PluginInstallHost::Managed(ManagedHost::Codex),
+    ),
+    (
+        "2",
+        "claude",
+        "Claude Code",
+        PluginInstallHost::Managed(ManagedHost::ClaudeCode),
+    ),
+    (
+        "4",
+        "deepseek",
+        "DeepSeek Harness",
+        PluginInstallHost::DeepSeek,
+    ),
+];
+
+pub(crate) fn plugin_hosts(selection: &str) -> Result<Vec<PluginInstallHost>, &'static str> {
+    let selection = selection.trim();
+    if selection == "all" {
+        return Ok(PLUGIN_HOSTS.iter().map(|entry| entry.3).collect());
+    }
+    let mut hosts = Vec::new();
+    for selected in selection
+        .split(|c: char| c == ',' || c.is_whitespace())
+        .filter(|s| !s.is_empty())
+    {
+        let entries = if selected == "3" || selected == "both" {
+            &PLUGIN_HOSTS[..2]
+        } else {
+            std::slice::from_ref(
+                PLUGIN_HOSTS
+                    .iter()
+                    .find(|entry| selected == entry.0 || selected == entry.1)
+                    .ok_or("installation-selection-invalid")?,
+            )
+        };
+        for entry in entries {
+            if !hosts.contains(&entry.3) {
+                hosts.push(entry.3);
+            }
+        }
+    }
+    if hosts.is_empty() {
+        return Err("installation-selection-invalid");
+    }
+    Ok(hosts)
+}
+
+pub(crate) fn validate_host_options(
+    targets: &[PluginInstallHost],
+    destination: Option<&std::path::Path>,
+    context_hooks: Option<bool>,
+) -> Result<(), &'static str> {
+    if (targets.len() > 1 && destination.is_some())
+        || (targets.contains(&PluginInstallHost::DeepSeek)
+            && (destination.is_some() || context_hooks.is_some()))
+    {
+        return Err("installation-host-options-invalid");
+    }
+    Ok(())
 }
 
 pub fn guide_installation(
@@ -142,13 +218,12 @@ fn guide(
 fn install_plugins(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
-    mut targets: Vec<crate::managed_operation::ManagedIntegrationTargetV1>,
+    mut targets: Vec<PluginInstallHost>,
     destination: Option<std::path::PathBuf>,
     context_hooks: Option<bool>,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> Result<(), &'static str> {
-    use crate::managed_operation::ManagedIntegrationTargetV1 as Host;
     if targets.is_empty() {
         let default = if environment.client_executable("codex").is_none()
             && environment.client_executable("claude").is_some()
@@ -157,35 +232,50 @@ fn install_plugins(
         } else {
             "1"
         };
+        let entries = PLUGIN_HOSTS
+            .iter()
+            .map(|entry| format!("{} {}", entry.0, entry.2))
+            .collect::<Vec<_>>()
+            .join(", ");
         let selection = crate::cli_inventory::choice(
             reader,
             writer,
             &format!(
-                "Host: 1 Codex, 2 Claude Code, 3 both, 4 DeepSeek Harness, 0 cancel [{default}]: "
+                "Hosts (comma/space separated): {entries}, 3 Codex+Claude, all, 0 cancel [{default}]: "
             ),
         )
         .map_err(|_| "installation-input-failed")?;
-        targets = match if selection.is_empty() {
+        if selection == "0" {
+            return line(writer, "Cancelled; no changes made.\n");
+        }
+        targets = plugin_hosts(if selection.is_empty() {
             default
         } else {
             &selection
-        } {
-            "1" => vec![Host::Codex],
-            "2" => vec![Host::ClaudeCode],
-            "3" => vec![Host::Codex, Host::ClaudeCode],
-            "4" => return line(writer, &crate::cli_help::deepseek_plugin_install()),
-            "0" => return line(writer, "Cancelled; no changes made.\n"),
-            _ => return Err("installation-selection-invalid"),
-        };
+        })?;
     }
+    validate_host_options(&targets, destination.as_deref(), context_hooks)?;
+    line(
+        writer,
+        "Each selected Host has its own preview and confirmation. Cancellation or failure stops here; completed Host steps remain installed.\n",
+    )?;
     let multiple = targets.len() > 1;
-    for target in targets {
-        let host = if target == Host::Codex {
-            "Codex"
-        } else {
-            "Claude Code"
-        };
+    for selected in targets {
+        let host = PLUGIN_HOSTS
+            .iter()
+            .find(|entry| entry.3 == selected)
+            .ok_or("installation-selection-invalid")?
+            .2;
         line(writer, &format!("\n{host} Plugin — install or update\n"))?;
+        let target = match selected {
+            PluginInstallHost::DeepSeek => {
+                if !crate::plugin_host::deepseek::install(environment, content, reader, writer)? {
+                    break;
+                }
+                continue;
+            }
+            PluginInstallHost::Managed(target) => target,
+        };
         let registered = crate::plugin_host::installation_source(
             environment,
             target,
@@ -466,7 +556,17 @@ fn installation_failure(code: &'static str) -> CliOutput {
             "Context hooks need Claude Code 2.1.139 or newer. Update Claude Code, or rerun install plugin --hooks off."
         }
         "host-plugin-executable-unavailable" | "local-host-version-unsupported" => {
-            "Install or update the selected Codex/Claude CLI, then retry this command."
+            "Install or update the selected Host CLI (codex, claude or dsh), then retry this command."
+        }
+        "deepseek-version-unsupported" => "Update DeepSeek Harness to 0.2 or newer, then retry.",
+        "deepseek-desktop-profile-unavailable" => {
+            "Open DeepSeek Desktop once to initialize its profile, or choose a CLI profile."
+        }
+        "deepseek-plugin-conflict" => {
+            "Review the old dsh-qiongli-* bundle in this profile and remove it through the official DSH manager before installing qiongli."
+        }
+        "installation-host-options-invalid" => {
+            "Use separate Codex/Claude selections for --hooks/--destination. DeepSeek uses its own npm profile."
         }
         "local-host-plugin-scope-conflict" => {
             "Review duplicate or project-scoped Qiongli Plugins in the Host; this command uses user scope."
@@ -511,6 +611,29 @@ mod tests {
     use super::*;
     use crate::managed_operation::ManagedSkillsPresetV1;
     use qiongli_content::ProfileId;
+
+    #[test]
+    fn plugin_selection_supports_multiple_hosts_without_duplicate_steps() {
+        let all = PLUGIN_HOSTS.iter().map(|entry| entry.3).collect::<Vec<_>>();
+        for selection in [
+            "1,2,4",
+            "1 2 4",
+            "codex,claude,deepseek",
+            "3,4",
+            "both 4",
+            "all",
+            "1,1,2,4,4",
+        ] {
+            assert_eq!(plugin_hosts(selection).unwrap(), all);
+        }
+        assert_eq!(plugin_hosts("4 1").unwrap(), vec![all[2], all[0]]);
+        for selection in ["", "0", "1,unknown", "1 all", "5"] {
+            assert!(plugin_hosts(selection).is_err());
+        }
+        assert!(validate_host_options(&all, None, None).is_ok());
+        assert!(validate_host_options(&all, None, Some(false)).is_err());
+        assert!(validate_host_options(&all, Some(std::path::Path::new("/source")), None).is_err());
+    }
 
     #[test]
     fn context_hook_choice_preserves_defaults_and_requires_complete_input() {
