@@ -4,7 +4,14 @@ Date: 2026-09-15. Authority: the maintainer retains a v1 transition in 2.0.1
 and places v1 support removal in 2.1. Program tasks remain CLI-403 / CLI-410;
 the program ledger owns their states and accepted evidence.
 
-Current direction (September 22): ADR 0231 restores hosted three-platform CI.
+Current direction (September 30): the maintainer selected stable **2.1.0**,
+including the npm-installable DSH Plugin and post-2.0.0 changes. The final
+September 30 section owns this release increment; the 2.0.1 candidate remains a
+historical compatibility observation, not a publication prerequisite.
+The maintainer requests stopping local tracking once the release command is
+accepted, without waiting for or claiming public publication completion.
+
+September 22: ADR 0231 restores hosted three-platform CI.
 The September 15 local-only policy below is historical. The next bounded
 research increment is search → verified bibliography → Zotero linkage, as
 diagnosed and planned in the final section.
@@ -977,3 +984,84 @@ matrices are not rerun for this opt-in projector change. Existing user profiles,
 models and research data are unchanged; installing the new bundle into a user
 profile and research/model execution remain separate checks. No program state,
 dependency or historical accepted evidence is promoted.
+
+### September 30 release increment — stable 2.1.0 and npm DSH installation
+
+The maintainer selected 2.1.0 stable and authorized publication after consolidating
+post-2.0.0 changes, with no follow-up tracking after the release command is
+accepted. `tooling/release/v2.1.0.md` records user-facing changes, the v2 source
+status cutoff, installation, practical limits and rollback. No announcement or
+external Marketplace promotion is part of this release request.
+
+Canonical version source `17c5df01` sets native/content versions to 2.1.0. The
+supported content-lock generator retains 434 resources with content root
+`e61a1075b347db90a8fc8803b14198998947241d1979708fcdea03f105d8f94c` and pack
+`4c976864755fae55d1b4c4aeea0572194ba91256338a68cf620270919311fc56`.
+Implementation `c10c4b7086ef2220a6dd1ba347fd0270ff1f5f28` was reviewed by the
+coordinator and integrated locally into 2.x. This is self-review, not independent
+review or accepted program evidence.
+
+The existing `qiongli` npm package now exports `dsh/index.mjs` and
+`dsh/cordis.patch.yml`. It reuses the shared 22-entry generator and selects the
+already bundled executable for each of the three platforms; Full MCP remains
+32 tools. There is no separate npm name, runtime download or publisher. The
+combined packet verifier reconstructs the canonical pack and projection and
+binds them to all three executables and target-native install observations.
+Historical pre-2.1 packets and earlier DSH receipt versions remain verifiable.
+`qiongli install plugin --target deepseek`, its aliases and terminal choice 4
+show the official DSH profile-specific manager commands. They do not write a
+Host configuration or silently run a package manager.
+
+Fresh checks at the implementation source:
+
+- 60 focused distribution/version/ledger checks pass; the final additional
+  missing-DSH-evidence negative also passes. The 11 focused native-boundary and
+  release-asset checks pass, as do release-note versions and the diff check.
+- `./scripts/release_ready.sh --cli-github --version 2.1.0 --skip-bump
+  --staging-dir /private/tmp/qiongli-v210-dsh-release` passes on macOS ARM64 with
+  Rust 1.97.0: format, all-target workspace CLI Clippy, 42 release CLI tests,
+  seven release MCP tests, empty-PATH archive smoke, clean npm/wheel installs,
+  installed DSH provider dispatch and both standalone Plugin checks.
+- The debug suite passes 42 CLI and six MCP tests; the remaining Zotero loopback
+  fixture was denied by the sandbox at `TcpListener::bind`. Its focused rerun
+  outside the sandbox passes. No assertion or permission negative was removed.
+- All five candidate artifact digests/sizes match the release manifest. npm
+  SHA-256 is `eba6ef541b016c0e886af9f0495710e167a09d2f812291029c9a05c9b36d9e57`;
+  native binary SHA-256 is
+  `33a5f715dc7f70447d4b7c56e6324ca93e937af9b8eaf3b51e48966f0f27f764`.
+
+Actual installed DSH 0.2.0-rc.2 / embedded pnpm 11.7.0 observations are retained
+in `/private/tmp/qiongli-v210-dsh-install`. The official manager installs the
+local npm archive and `qiongli@2.1.0` from a loopback npm registry serving those
+exact bytes. The registry probe supplies a fresh publication timestamp and an
+empty temporary store; metadata and tarball are both fetched. pnpm's default
+explicit-add behavior records a package-age exclusion in the temporary profile.
+This is registry-protocol compatibility, not public npm publication evidence.
+
+Fresh profiles use the official `--from-default-profile web` template. Both
+local/archive and registry/name installations boot successfully, with all 22
+winning `qiongli` entries, exact source bytes/resource paths, both invocation
+flags, 22 browser-facing Session catalog entries, 32 tools and config status
+`ok`. No Agent/model is activated; `--no-open` keeps the browser closed. Only
+Node DEP0180 is logged. Earlier base-only probe profiles timed out because their
+browser catalog service was absent; adding the Web app only as a patch still
+lacked its launcher-owned webServer. Initializing the official Web template
+resolved that test setup issue. One registry probe expected a tarball fetch
+although pnpm reused a cached copy; the empty-store retry resolves it.
+
+These observations do not attest installed-user profiles, visual browser
+interaction, DeepSeek model execution, other native target runtimes or two-Host
+research acceptance. User research and saved model settings remain unchanged.
+The existing tag-bound release automation owns fresh three-platform builds,
+combined installs, verified GitHub assets and npm/PyPI/Cargo publication. Stable
+source must equal remote main; no release checks, credentials or protection are
+bypassed. Protected remote 2.x is left unchanged, and the unpublished local
+2.0.1 main draft is retained. The selected integrated 2.x source can advance
+remote main normally from the released 2.0.0 ancestor.
+
+After final record checks, freeze the source and immutable v2.1.0 tag, then submit
+`gh workflow run release-automation.yml --ref v2.1.0 -f mode=post -f tag=v2.1.0`.
+Stop local tracking upon accepted dispatch; no completed publication is inferred.
+Program task states, dependencies and historical accepted evidence remain
+unchanged. Real Host/library/collaboration qualification remains the next
+independent development scope.

@@ -52,10 +52,17 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — September 22, 2026
+## Current execution horizon — September 30, 2026
 
 Use `v2.0.0` at `4f2107f7fda9d8f6dd8874b7dcffb36f5d7751ba` as the
 released product reference. The [current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md)
+now selects the maintainer-authorized stable 2.1.0 release, including the DSH
+bundle in the existing npm package and post-2.0.0 changes. Actual isolated DSH
+0.2.0-rc.2 installations from an npm registry fixture and local npm archive expose
+all 22 entries and 32 Full MCP tools on macOS ARM64. The release command delegates
+three-platform qualification and channel publication to existing automation;
+local tracking stops after accepted submission as requested. Submission does
+not establish completed publication or program acceptance. The same plan
 records the maintainer's 2.0.1 v1 transition and planned 2.1 cutoff, completed
 delegated implementation, coordinator review, historical macOS qualification
 and both CI policy increments: hosted three-platform verification is restored

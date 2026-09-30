@@ -182,7 +182,7 @@ retain their full plan values; `--json` is the exact machine-readable representa
 Rust or package-manager setup is needed.** You can run from the extracted folder;
 adding it to PATH is optional.
 
-Download a platform archive from [Release v2.0.0](https://github.com/jxpeng98/qiongli/releases/tag/v2.0.0).
+Download a platform archive from [Release v2.1.0](https://github.com/jxpeng98/qiongli/releases/tag/v2.1.0).
 It contains `qiongli` (Windows: `qiongli.exe`), `README.md` and `LICENSE`.
 The executable embeds the research Skills, templates and Lite/Full MCP resources;
 you do not need a separate resource directory or a checkout of this repository.
@@ -190,35 +190,35 @@ Configure models, Host applications and online literature services separately.
 
 | Your platform | Complete CLI archive |
 |---|---|
-| macOS Apple Silicon / ARM64 | [qiongli-2.0.0-aarch64-apple-darwin.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/qiongli-2.0.0-aarch64-apple-darwin.tar.gz) |
-| Windows x64 | [qiongli-2.0.0-x86_64-pc-windows-msvc.zip](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/qiongli-2.0.0-x86_64-pc-windows-msvc.zip) |
-| Linux x64 / glibc 2.35+ | [qiongli-2.0.0-x86_64-unknown-linux-gnu.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/qiongli-2.0.0-x86_64-unknown-linux-gnu.tar.gz) |
+| macOS Apple Silicon / ARM64 | [qiongli-2.1.0-aarch64-apple-darwin.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.1.0/qiongli-2.1.0-aarch64-apple-darwin.tar.gz) |
+| Windows x64 | [qiongli-2.1.0-x86_64-pc-windows-msvc.zip](https://github.com/jxpeng98/qiongli/releases/download/v2.1.0/qiongli-2.1.0-x86_64-pc-windows-msvc.zip) |
+| Linux x64 / glibc 2.35+ | [qiongli-2.1.0-x86_64-unknown-linux-gnu.tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.1.0/qiongli-2.1.0-x86_64-unknown-linux-gnu.tar.gz) |
 
-Windows 2.0 releases statically link the C runtime, so you do not need to install the
+Windows 2.x releases statically link the C runtime, so you do not need to install the
 Visual C++ runtime separately. Linux uses system libraries, including glibc 2.35+.
 
 Choose these files under **Assets**. GitHub's **Source code** archives require a
-build; the `.tgz` npm package, `.whl` Python packages and `qiongli-next-…-plugin-…`
+build; the `.tgz` npm package, `.whl` Python packages and `qiongli-…-plugin-…`
 archives serve different installation paths. Intel macOS, Linux ARM and native
 Windows ARM builds are not part of this release.
 
 ### 1. Verify the download
 
-Download [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.0.0/SHA256SUMS)
+Download [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.1.0/SHA256SUMS)
 from the same release. In the directory containing your download, run the command
 for your platform and compare its hash with the line for that exact filename in
 `SHA256SUMS`. Continue only if they match.
 
 ```sh
 # macOS
-shasum -a 256 qiongli-2.0.0-aarch64-apple-darwin.tar.gz
+shasum -a 256 qiongli-2.1.0-aarch64-apple-darwin.tar.gz
 # Linux
-sha256sum qiongli-2.0.0-x86_64-unknown-linux-gnu.tar.gz
+sha256sum qiongli-2.1.0-x86_64-unknown-linux-gnu.tar.gz
 ```
 
 ```powershell
 # Windows
-Get-FileHash .\qiongli-2.0.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
+Get-FileHash .\qiongli-2.1.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
 ```
 
 ### 2. Extract and run
@@ -227,9 +227,9 @@ Extract into a new directory, keeping existing installations and research files
 intact. On macOS:
 
 ```sh
-mkdir qiongli-2.0.0-macos-arm64
-tar -xzf qiongli-2.0.0-aarch64-apple-darwin.tar.gz -C qiongli-2.0.0-macos-arm64
-cd qiongli-2.0.0-macos-arm64
+mkdir qiongli-2.1.0-macos-arm64
+tar -xzf qiongli-2.1.0-aarch64-apple-darwin.tar.gz -C qiongli-2.1.0-macos-arm64
+cd qiongli-2.1.0-macos-arm64
 ./qiongli --version
 ./qiongli --help
 ./qiongli content list
@@ -238,9 +238,9 @@ cd qiongli-2.0.0-macos-arm64
 On Linux:
 
 ```sh
-mkdir qiongli-2.0.0-linux-x64
-tar -xzf qiongli-2.0.0-x86_64-unknown-linux-gnu.tar.gz -C qiongli-2.0.0-linux-x64
-cd qiongli-2.0.0-linux-x64
+mkdir qiongli-2.1.0-linux-x64
+tar -xzf qiongli-2.1.0-x86_64-unknown-linux-gnu.tar.gz -C qiongli-2.1.0-linux-x64
+cd qiongli-2.1.0-linux-x64
 ./qiongli --version
 ./qiongli --help
 ./qiongli content list
@@ -249,14 +249,14 @@ cd qiongli-2.0.0-linux-x64
 On Windows, open PowerShell in your download directory:
 
 ```powershell
-Expand-Archive -Path .\qiongli-2.0.0-x86_64-pc-windows-msvc.zip -DestinationPath .\qiongli-2.0.0-windows-x64
-Set-Location .\qiongli-2.0.0-windows-x64
+Expand-Archive -Path .\qiongli-2.1.0-x86_64-pc-windows-msvc.zip -DestinationPath .\qiongli-2.1.0-windows-x64
+Set-Location .\qiongli-2.1.0-windows-x64
 .\qiongli.exe --version
 .\qiongli.exe --help
 .\qiongli.exe content list
 ```
 
-The version output should be `qiongli 2.0.0`. The archive supplies the
+The version output should be `qiongli 2.1.0`. The archive supplies the
 `qiongli` executable; npm/PyPI/Cargo additionally provide the `ql` command alias.
 
 ### 3. Optional PATH and Host setup
@@ -325,7 +325,7 @@ standalone release bundle is suitable for a separate, checksum-verified copy.
 
 Alternatively, choose one package manager for the command on your PATH.
 For stable npm releases use `latest`; `next` may still point to the previous Beta.
-Use `qiongli@2.0.0` to pin this exact npm version:
+Use `qiongli@2.1.0` to pin this exact npm version:
 
 ```sh
 npm install --global qiongli@latest
@@ -334,7 +334,7 @@ npm install --global qiongli@latest
 Or install in a Python virtual environment:
 
 ```sh
-python -m pip install --upgrade "qiongli==2.0.0"
+python -m pip install --upgrade "qiongli==2.1.0"
 ```
 
 Both expose `qiongli` and `ql`. Check both with `--version` before comparing
@@ -345,7 +345,7 @@ Cargo builds the CLI from source and requires Rust 1.97+ and the target's native
 linker. It provides both `qiongli` and `ql`.
 
 ```sh
-cargo install qiongli --version 2.0.0 --locked
+cargo install qiongli --version 2.1.0 --locked
 ```
 
 The command pins this release; Cargo has no `next` channel. Choose the
