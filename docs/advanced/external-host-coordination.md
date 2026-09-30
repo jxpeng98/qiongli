@@ -100,10 +100,18 @@ The DeepSeek protocol was checked against official source
 including the [headless runner](https://github.com/deepseek-ai/deepseek-harness/blob/477b4f420553e8a52c2fbccc464d7561b239c443/packages/bundle/headless/README.md),
 [bundle contract](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish)
 and [Skill provider](https://deepseek-harness.github.io/deepseek-harness/en/reference/subsystems/skills).
-The observed npm `@deepseek-ai/dsh@0.1.5-rc.3` supports bundles but its headless
-help does **not** expose `--json`. It cannot satisfy this external collector;
-use a configured build supporting the documented protocol and check its help.
-Plain-text output is deliberately insufficient to identify a completed run.
+The September 24 npm `@deepseek-ai/dsh@0.1.5-rc.3` observation supported bundles
+but its headless help did **not** expose `--json`. That build cannot satisfy the
+external collector. Plain-text output is deliberately insufficient to identify
+a completed run.
+
+On September 30, the installed macOS ARM64 Desktop CLI `0.2.0-rc.2` accepted the
+current Qiongli bundle through `dsh plugin`. In isolated profiles, repeat
+installation preserved the profile, both Skills loaded, 32 Full MCP tools were
+registered, and `qiongli_config_status` returned `ok`; activation exited 0.
+Removal preserved the other bundles. This version also exposes headless `--json`.
+Actual headless model execution and installation into the user's profile remain
+separate checks; the execution plan records the exact source and observations.
 
 The other protocol references are the official
 [Claude Code CLI](https://code.claude.com/docs/en/cli-reference) and

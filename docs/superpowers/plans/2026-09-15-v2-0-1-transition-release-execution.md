@@ -889,3 +889,49 @@ Focused validation and review for this increment:
   formatting and diff checks pass. The final CLI help wrapping is checked through
   the existing nested-help integration test; no behavior suite is rerun merely
   for the upcoming scoped commit/local fast-forward.
+
+### September 30 observation — installed DeepSeek Harness 0.2.0-rc.2
+
+Maintainer request: check whether the newly installed Harness supports Qiongli
+Plugin installation. The actual `/usr/local/bin/dsh` resolves into the installed
+DeepSeek Harness App and reports `0.2.0-rc.2`. A fresh macOS ARM64 development
+bundle was built with pinned Rust/Cargo 1.97.0 from clean source
+`c2e10fb18fe58d9edc76a04588fefb12831cd859`, using the existing content exporter,
+projector and archive verifier. No runtime or canonical Skill change was needed.
+
+- Official `dsh plugin --profile qiongli-probe add <bundle-directory>` passed,
+  exit 0, using the App's pnpm 11.7.0. Repeat installation left `package.json`
+  byte-identical, with one bundle registration and one MCP row.
+- The same bundle installed into the isolated Web-based `qiongli-test` profile.
+  Real Cordis activation loaded `qiongli` and `no-qiongli`, exposed 32 Full MCP
+  tools, called `qiongli_config_status` successfully (`status: ok`), and exited 0.
+  Its only stderr diagnostic was Node's `DEP0180` deprecation warning.
+- Official removal from `qiongli-probe` passed and retained its original base
+  and headless bundles. The isolated Web test profile is retained for inspection.
+- `dsh headless --help` now exposes `--json`. This removes the observed missing
+  flag in 0.1.5-rc.3; no actual headless model run or collector result is claimed.
+
+The initial headless bootstrap had no task and correctly rejected it; this was
+a probe-profile mismatch. The initial sandbox Web bootstrap timed out; the same
+isolated bootstrap passed outside the sandbox. These failed attempts do not
+establish a Plugin incompatibility or a diagnosed Harness runtime defect.
+Installer/help commands emitted an Electron codesign diagnostic while exiting 0.
+
+The temporary root is `/private/tmp/qiongli-dsh-020-vtekjgcb`, with separate
+`DSH_HOME` and `QIONGLI_CONFIG_HOME`; `result.json` summarizes results
+and limits alongside the retained probe and stdout/stderr. Archive SHA-256:
+`242d569ce41b449bc6c6123345056b77c9a412e42d821454135c6d6ed9f138e8`;
+binary SHA-256:
+`d7365ad81678067950e1edec32cbd94522a09349bbdc879c881c76f7dfe4a10c`.
+The embedded pack remains `5c6c02cc6964d8d2011323f1dc597250edd150987b9a193261b62372dd167d31`.
+
+This is installed-runtime Plugin compatibility on one target, with a development
+binary. The user's profiles/models, research data and published artifacts were
+unchanged. Actual headless execution, installed-user activation, research
+journeys, other targets and release acceptance remain open. CLI-403/CLI-406
+states, dependencies and accepted evidence remain unchanged.
+
+Recording checks: all seven program-ledger tests pass, the generated index is
+current, and the diff check passes. A direct before/after comparison preserves
+all 249 task states/dependencies/evidence and every historical accepted row;
+only CLI-403/CLI-406 observation notes and their update dates changed.
