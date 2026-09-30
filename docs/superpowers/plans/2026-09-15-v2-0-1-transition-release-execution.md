@@ -935,3 +935,45 @@ Recording checks: all seven program-ledger tests pass, the generated index is
 current, and the diff check passes. A direct before/after comparison preserves
 all 249 task states/dependencies/evidence and every historical accepted row;
 only CLI-403/CLI-406 observation notes and their update dates changed.
+
+### September 30 increment — matching Codex and DSH workflow entries
+
+Maintainer follow-up: preserve Codex's multiple workflow entrances in DSH. The
+two-entry DSH catalog was reproduced by the packaging test (`2 != 22`). Source
+`92f1f7d4e48f13cca4c0ba7e810bdac60b44d0a3` reuses the existing workflow wrapper
+generator and registers all 20 workflow wrappers alongside `qiongli` and
+`no-qiongli`. Names, descriptions and entry bytes match Codex; each directory
+is its resource base, and both model/user invocation flags are enabled. Academic
+content and the embedded pack are unchanged. New DSH receipt schema 4 verifies
+the complete wrappers/catalog; schema 3 retains the old two-entry projection.
+Codex/Claude defaults and receipt schemas remain unchanged.
+
+A fresh clean-source macOS ARM64 bundle, built with Rust/Cargo 1.97.0, was
+installed through the actual DSH 0.2.0-rc.2 manager into a temporary Web profile.
+The real registry's complete snapshot exposed all 22 expected entries with the
+winning provider `qiongli`. Every entry loaded with exact packaged bytes,
+canonical descriptions, both invocation flags and valid shared resource paths.
+The actual `sessionSkillCatalog.list` service used by the browser returned all
+22 entries for an isolated cold coding Session, without activating an Agent.
+Full MCP still exposed 32 tools and config status returned `ok`; the probe
+exited 0, with only Node's DEP0180 warning. `--no-open` kept the browser closed.
+This checks the directory API and loader, not visual browser interaction or a
+model's task execution.
+
+Temporary root: `/private/tmp/qiongli-dsh-multi-77efi1o_`, with isolated
+`DSH_HOME` and `QIONGLI_CONFIG_HOME`. Archive SHA-256:
+`65f537a47a7d4ab555bac6a1c0dcb69d14d897166a630d9cc788ce2f5e366952`;
+binary SHA-256:
+`119ab9a27aa778e2310fdfebd2bc37c5d5d2f42aef79dce1936ab0937240463d`.
+All 22 entry files also match the fresh Codex projection byte-for-byte.
+
+All 21 packaging tests pass, covering the real generated provider, parity,
+three-target projection, invalid workflow metadata, missing/changed wrappers
+and catalogs with rewritten receipts, and historical schema-3 projection.
+The actual previous two-entry archive retains its recorded SHA-256 and passes
+the current verifier. Seven program-ledger tests and the generated-index check
+pass; frozen/native boundary and diff checks pass. Broader Desktop/Lite/platform
+matrices are not rerun for this opt-in projector change. Existing user profiles,
+models and research data are unchanged; installing the new bundle into a user
+profile and research/model execution remain separate checks. No program state,
+dependency or historical accepted evidence is promoted.
