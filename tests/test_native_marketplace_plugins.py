@@ -81,6 +81,7 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
         return plugins.build_plugins(self.source, self.root / name, VERSION, COMMIT, self.binary, target)
 
     def test_deepseek_bundle_uses_canonical_skills_and_native_full_mcp(self):
+        self.add_workflows()
         source = Path(__file__).resolve().parents[1] / 'content/workflow'
         for name in ('SKILL.md', 'no-qiongli/SKILL.md'):
             self.content['workflow/' + name] = (source / name).read_bytes()
@@ -107,15 +108,23 @@ await apply({skills:{registerProvider(factory) { provider = factory(); }},
   provide(name, value) { assert.equal(name, 'qiongliBundle'); command = value.command; }});
 assert.ok(command.endsWith('/bin/qiongli'));
 const entries = await provider.list();
-assert.deepEqual(entries.map(e => e.name), ['qiongli', 'no-qiongli']);
+assert.deepEqual(entries.map(e => e.name).sort(), JSON.parse(process.argv[2]).sort());
 for (const entry of entries) {
   const skill = await provider.get(entry);
   assert.ok(skill.content.includes('name: ' + entry.name));
   assert.equal(skill.resourceBase.kind, 'directory');
+  assert.deepEqual(skill.invocation, {modelInvocable:true,userInvocable:true});
 }
 await assert.rejects(provider.get({name:'../../private'}));
-''', str(root / 'index.mjs')], capture_output=True, text=True)
+''', str(root / 'index.mjs'), json.dumps(['qiongli', 'no-qiongli',
+     *sorted('qiongli-' + Path(p).stem for p in self.content
+             if p.startswith('workflow/workflows/') and Path(p).stem != 'qiongli')])],
+                                capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+        codex = plugins.project(self.content, 'codex', VERSION, TARGET, BINARIES[TARGET])
+        dsh_entries = {p.relative_to(root).as_posix(): p.read_bytes() for p in root.glob('skills/*/SKILL.md')}
+        self.assertEqual(dsh_entries, {p: data for p, data in codex.items()
+                                     if p.startswith('skills/') and p.count('/') == 2 and p.endswith('/SKILL.md')})
         for target, binary in BINARIES.items():
             projected = plugins.project(self.content, 'deepseek', VERSION, target, binary)
             self.assertIn(plugins.binary_path(target), projected)
@@ -141,6 +150,32 @@ await assert.rejects(provider.get({name:'../../private'}));
         self.rewrite_archive(archives[0], tamper)
         with self.assertRaisesRegex(ValueError, 'native projection'):
             plugins.verify_archive(archives[0], VERSION, COMMIT)
+
+    def test_deepseek_legacy_two_entry_archive_remains_verifiable(self):
+        self.add_workflows()
+        self.content['workflow/SKILL.md'] = b'---\nname: qiongli\ndescription: Research\n---\n'
+        self.write_source()
+        archive = plugins.build_plugins(self.source, self.root / 'legacy-dsh', VERSION, COMMIT,
+                                        self.binary, TARGET, platforms=('deepseek',))[0]
+        legacy = plugins.project_deepseek(self.content, VERSION, TARGET, BINARIES[TARGET],
+                                         workflow_entries=False)
+        def mutate(rows):
+            prefix = archive.name.removesuffix('.tar.gz') + '/plugins/' + plugins.plugin_name(TARGET, VERSION) + '/'
+            kept = []
+            for member, data in rows:
+                name = member.name.removeprefix(prefix)
+                if name == plugins.RECEIPT:
+                    receipt = json.loads(data)
+                    receipt['schema_version'] = 3
+                    receipt['files'] = {n: {'size_bytes': len(d), 'sha256': plugins.digest(d)}
+                                        for n, d in legacy.items()}
+                    kept.append((member, plugins.json_bytes(receipt)))
+                elif name in legacy:
+                    kept.append((member, legacy[name]))
+            rows[:] = kept
+        self.rewrite_archive(archive, mutate)
+        self.assertEqual(plugins.verify_archive(archive, VERSION, COMMIT)['platform'], 'deepseek')
+        self.assertEqual([e['name'] for e in json.loads(legacy['skills.json'])], ['qiongli', 'no-qiongli'])
 
     def test_both_archives_preserve_canonical_bytes_and_bundle_runtime(self):
         canonical = Path(__file__).resolve().parents[1] / 'content'
@@ -295,26 +330,33 @@ await assert.rejects(provider.get({name:'../../private'}));
 
     def test_changed_or_missing_wrapper_is_rejected_even_with_updated_receipt(self):
         self.add_workflows()
-        archive = self.build()[0]
-        original = archive.read_bytes()
-        name = 'skills/qiongli-paper-read/SKILL.md'
-        for replacement in [None, b'---\nname: substituted\n---\nSkip the shared workflow.\n']:
-            archive.write_bytes(original)
-            def mutate(rows):
-                index = next(i for i, (m, _) in enumerate(rows) if m.name.endswith('/' + name))
-                member, _ = rows.pop(index)
-                if replacement is not None:
-                    rows.append((member, replacement))
-                index = next(i for i, (m, _) in enumerate(rows) if m.name.endswith(plugins.RECEIPT))
-                member, data = rows[index]
-                receipt = json.loads(data)
-                receipt['files'].pop(name)
-                if replacement is not None:
-                    receipt['files'][name] = {'size_bytes': len(replacement), 'sha256': plugins.digest(replacement)}
-                rows[index] = member, plugins.json_bytes(receipt)
-            self.rewrite_archive(archive, mutate)
-            with self.assertRaisesRegex(ValueError, 'native projection'):
-                plugins.verify_archive(archive, VERSION, COMMIT)
+        self.content['workflow/SKILL.md'] = b'---\nname: qiongli\ndescription: Research\n---\n'
+        self.write_source()
+        archives = plugins.build_plugins(self.source, self.root / 'wrappers', VERSION, COMMIT,
+                                        self.binary, TARGET, platforms=('codex', 'deepseek'))
+        for archive in archives:
+            original = archive.read_bytes()
+            names = ['skills/qiongli-paper-read/SKILL.md']
+            if 'deepseek' in archive.name:
+                names.append('skills.json')
+            for name in names:
+                for replacement in [None, b'---\nname: substituted\n---\nSkip the shared workflow.\n']:
+                    archive.write_bytes(original)
+                    def mutate(rows):
+                        index = next(i for i, (m, _) in enumerate(rows) if m.name.endswith('/' + name))
+                        member, _ = rows.pop(index)
+                        if replacement is not None:
+                            rows.append((member, replacement))
+                        index = next(i for i, (m, _) in enumerate(rows) if m.name.endswith(plugins.RECEIPT))
+                        member, data = rows[index]
+                        receipt = json.loads(data)
+                        receipt['files'].pop(name)
+                        if replacement is not None:
+                            receipt['files'][name] = {'size_bytes': len(replacement), 'sha256': plugins.digest(replacement)}
+                        rows[index] = member, plugins.json_bytes(receipt)
+                    self.rewrite_archive(archive, mutate)
+                    with self.assertRaisesRegex(ValueError, 'native projection'):
+                        plugins.verify_archive(archive, VERSION, COMMIT)
 
     def test_invalid_workflow_names_and_descriptions_refuse_generation(self):
         self.add_workflows()

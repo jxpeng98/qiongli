@@ -189,6 +189,15 @@ Claude retains the main research Skill and the independent reply-only entry.
 Old packs without the template
 retain their historical projection, so existing archives remain verifiable.
 
+The opt-in DeepSeek Cordis bundle reuses this same wrapper generator and exact
+entry bytes. Its provider registers every generated workflow entry plus `qiongli`
+and `no-qiongli` in `skills.json`, with both model and user invocation enabled.
+Each entry's directory is its resource base. New DeepSeek archive receipts use
+schema 4, which requires the complete generated catalog and wrappers; schema 3
+retains the historical two-entry projection. Codex/Claude receipt schemas and
+the default release platform selection remain unchanged. Host Skill priority
+still applies; live checks verify the winning provider as well as entry names.
+
 Schema-2 archive receipts bind the target, executable and resource bytes. The
 release owner verifies the executable against the corresponding CLI/npm bytes,
 requires the same embedded pack across targets and binds target-native empty-PATH

@@ -6,6 +6,32 @@ Host can also prepare and collect bounded proposals from Codex, Claude Code,
 DeepSeek Harness and Antigravity CLI. The Host executes and supervises the child
 process; Qiongli validates the result against the original task and sources.
 
+## Workflow entries in DeepSeek Harness
+
+New bundles expose the same 22 Skill entries as Codex: `qiongli`, `no-qiongli`
+and 20 `qiongli-<workflow>` entries, including `qiongli-paper-read`,
+`qiongli-lit-review`, `qiongli-study-design` and `qiongli-paper-write`.
+The existing canonical workflow wrapper generator supplies identical entry
+bytes for both Hosts; every wrapper points to the shared Skill and its workflow.
+Descriptions come from the canonical workflows. Adding a workflow through that
+owner adds its entry to both projections on regeneration.
+
+The bundle's `skills.json` provider catalog registers each entry separately,
+with `modelInvocable` and `userInvocable` both enabled. DSH can therefore list the
+entries on its Skill surfaces and load one by name, such as
+`ctx.skills.get('qiongli-paper-read')`; the model-facing interface is
+`skill({name: 'qiongli-paper-read'})`. See the official
+[Skill contract](https://deepseek-harness.github.io/deepseek-harness/en/reference/subsystems/skills).
+The entry's directory is its resource base, so its shared relative paths resolve.
+DSH's normal project/user override priority remains in force; verify that the
+winning entries belong to provider `qiongli` when checking an installation.
+
+The earlier two-entry bundle remains verifiable, but it does not acquire these
+entries automatically. Regenerate and install the new bundle into the selected
+profile, then check the actual catalog and load every entry. Packaging checks
+compare the complete entry sets and bytes with Codex and reject changed or missing
+wrappers/catalogs even when their receipt hashes are rewritten.
+
 ## Build and load the DeepSeek bundle
 
 This is an opt-in development artifact, not a published package or an addition to

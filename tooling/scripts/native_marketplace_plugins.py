@@ -233,7 +233,7 @@ def project(content: dict[str, bytes], platform: str, version: str,
 
 
 def project_deepseek(content: dict[str, bytes], version: str, target: str,
-                     binary: bytes) -> dict[str, bytes]:
+                     binary: bytes, *, workflow_entries: bool = True) -> dict[str, bytes]:
     """A Cordis bundle over existing Skills and MCP; no model or profile override."""
     validate_binary(binary, target)
     name = 'dsh-' + plugin_name(target, version)
@@ -245,9 +245,11 @@ def project_deepseek(content: dict[str, bytes], version: str, target: str,
         if destination in files:
             raise ValueError('canonical resource projection collision')
         files[destination] = data
+    wrappers = workflow_wrapper_skills(content) if workflow_entries else {}
+    files.update(wrappers)
     catalog = []
-    for path in ('workflow/SKILL.md', 'workflow/no-qiongli/SKILL.md'):
-        header = content[path].decode().split('\n---\n', 1)[0]
+    for path in [skill_path('workflow/SKILL.md'), skill_path('workflow/no-qiongli/SKILL.md'), *sorted(wrappers)]:
+        header = files[path].decode().split('\n---\n', 1)[0]
         fields = {}
         for key in ('name', 'description'):
             match = re.search(r'^' + key + r': (.+)$', header, re.M)
@@ -257,7 +259,7 @@ def project_deepseek(content: dict[str, bytes], version: str, target: str,
             fields[key] = json.loads(value) if value.startswith('"') else value
         if not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', fields['name']):
             raise ValueError('invalid DeepSeek skill name')
-        catalog.append(dict(fields, path=skill_path(path)))
+        catalog.append(dict(fields, path=path))
     files['skills.json'] = json_bytes(catalog)
     files[binary_path(target)] = binary
     files['package.json'] = json_bytes({
@@ -375,7 +377,8 @@ def verify_archive(path: Path, version: str, commit: str) -> dict:
                 raise ValueError('marketplace archive permissions mismatch')
             files[name] = archive.extractfile(member).read()
     receipt = json.loads(files.pop(RECEIPT))
-    if (receipt.get('platform') != platform or receipt.get('schema_version') not in ((2, 3) if target else (1,))
+    schemas = (3, 4) if platform == 'deepseek' else (2, 3) if target else (1,)
+    if (receipt.get('platform') != platform or receipt.get('schema_version') not in schemas
             or receipt.get('target') != target):
         raise ValueError('marketplace receipt identity mismatch')
     legacy_identity = receipt['schema_version'] < 3
@@ -399,7 +402,10 @@ def verify_archive(path: Path, version: str, commit: str) -> dict:
         check_bytes(content[name], expected[name])
     verify_pack(metadata, content)
     binary = files.get(binary_path(target)) if target else None
-    if project(content, platform, version, target, binary, legacy_identity=legacy_identity) != files:
+    projected = (project_deepseek(content, version, target, binary, workflow_entries=receipt['schema_version'] >= 4)
+                 if platform == 'deepseek' else
+                 project(content, platform, version, target, binary, legacy_identity=legacy_identity))
+    if projected != files:
         raise ValueError('marketplace wrapper differs from the native projection')
     return {'version': version, 'source_commit': commit, 'platform': platform,
             'target': target, 'plugin_name': slug, 'artifact': path.name, 'binary_sha256': digest(binary) if target else None,
@@ -422,7 +428,8 @@ def build_plugins(content_dir: Path, out_dir: Path, version: str, commit: str,
         files = project(content, platform, version, target, data)
         source_names = ('.codex-plugin/plugin.json', '.claude-plugin/plugin.json')
         files[RECEIPT] = json_bytes({
-            'schema_version': 3, 'platform': platform, 'target': target, 'source': metadata,
+            'schema_version': 4 if platform == 'deepseek' else 3,
+            'platform': platform, 'target': target, 'source': metadata,
             'source_manifest_bytes': {name: content[name].decode() for name in source_names},
             'files': {name: {'size_bytes': len(data), 'sha256': digest(data)} for name, data in sorted(files.items())},
         })
