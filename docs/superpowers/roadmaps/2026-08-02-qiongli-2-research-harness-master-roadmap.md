@@ -59,6 +59,9 @@ and research-lifecycle Skill reinforcement as the next local increment. Reuse th
 [current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md):
 deepen shared canonical guidance and existing A–M stages, verify native content
 delivery and bounded synthetic behavior, then integrate locally into `2.x`.
+After the first guide expansion, the maintainer selects explicit decision,
+evidence and continuation guidance for C/E/F, with complete bounded candidate
+tasks and a changed-source continuation to check its use across stages.
 This scope does not authorize a new release or installed-user-profile update;
 real study, domain-expert and installed-Host qualification remain separate evidence.
 

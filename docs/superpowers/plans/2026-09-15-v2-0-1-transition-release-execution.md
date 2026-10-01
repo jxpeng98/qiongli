@@ -1355,3 +1355,103 @@ The next increment is qualification against maintainer-selected real study cases
 and relevant domain review, then installed-Host observations when authorized.
 All 249 task states/dependencies and 46 historical accepted rows remain unchanged;
 CLI-405 records only this source progress and its remaining qualification limits.
+
+### October 1 — evidence-bound C/E/F decisions (local development)
+
+The maintainer selects the next increment around three questions: what must be
+decided now, what evidence settles it, and what can proceed under which conditions.
+Canonical source `8289e3f0effdc4fbe3a2cb20a29c0b4892ff52f3` places that contract in
+the shared academic output rubric and specializes it for study design, synthesis
+and results/writing. Models retain choice of method, tools, sequence and form.
+Existing stage artifacts, decision/claim IDs and handoffs carry the source basis,
+limits and resumption conditions; changed sources reopen only dependent work.
+No new decision service, state machine, interview or formal gate is introduced.
+
+Synthesis and interpretation cards now guide supported execution and partial
+completion instead of imposing a fixed interview, default random-effects model,
+universal qualitative procedure, interpretation ladder or citation quota. Missing
+variance, appraisal or practical benchmarks remain specific unmet requirements.
+The effect interpretation card also uses the existing F3 `EffectInterpretation`
+type and `manuscript/effect_interpretation.md` path; a regression check covers both
+F3 cards against registry types and task outputs. Legacy files remain readable
+prior material, never silently renamed. The handoff template gains three headings
+already required by its owner. Preview/approval/CAS, model settings and the native
+runtime are unchanged. The source change removes 218 net lines.
+
+Focused checks and delivery:
+
+- 52 distinct Python tests pass across resource links, structure lint, skill
+  contract alignment, stage handoff, cross-platform routing/grill and native
+  Marketplace projection modules; overlapping reruns are not additional tests.
+  Existing projection permission, path and drift negatives remain covered.
+  Direct canonical structure validation passes 649 checks with no errors and
+  eight advisory warnings. Capability-contract and skill-creator root validation
+  pass. The final diff was reviewed against its existing owners.
+- Regenerated the native lock with `update_qiongli_core_lock`; the actual product
+  `embedded_pack` test passes. The 443-resource pack has content root
+  `b59fbb053182b20dcffc75c0d7f8fecd208d8966b603cdcf44ec55673e5b8eab`
+  and pack SHA-256
+  `317e9f315c6ca1e0fd4df8ad49ce955652003401c7d21827c650ccbf90edb2d1`.
+- The macOS ARM64 debug CLI and `export_marketplace_content` export that pack to
+  `/private/tmp/qiongli-decision-content-8289e3f0`. The existing projection owner
+  verifies its digest and produces Codex/Claude/DeepSeek content with 22/2/22 Skill
+  entries. Each preserves all 15 changed content resources exactly and has no
+  missing resource links. Binary SHA-256:
+  `61724d214d0b4f9059677ff99032aac2e13377120b109cc9fd3c41971b2ba103`.
+- Initial system-Python test imports failed because PyYAML was unavailable;
+  rerunning with the existing `.venv/bin/python` passed. Initial native commands
+  could not resolve the registry and offline cache lacked locked dependencies;
+  an authorized locked fetch/build recovered, followed by successful offline
+  export/build. An existing platform atomic deprecation warning remains outside
+  this content change. No dependency or lockfile version was changed.
+
+Two actual configured Host subagents, `/root/decision_quant_trial` and
+`/root/decision_qual_trial`, independently executed bounded fictional tasks with
+no model override. They read frozen candidate guidance and their own authorized
+inputs, then wrote only isolated candidate files. Each reports 19 guidance paths
+actually read. The coordinator inspects the substantive outputs and calculations;
+this is independent task execution with coordinator assessment, not an independent
+expert review, cross-model benchmark or installed-Host acceptance.
+
+The fixed denominator is two complete C/E/F candidate cases, with a further
+changed-source checkpoint for the quantitative case. Inputs, criteria and guidance
+remain under `/private/tmp/qiongli-decision-trial-53k4h9oi`. Criteria and the R2
+correction were fixed before execution; the correction was withheld until R1
+completed. Input/criteria manifest SHA-256:
+`10b303ca8141705977e0e8308b74b5ae95ef26dfa0127a31b9e72e997021dd76`;
+282-file guidance manifest SHA-256:
+`b380a50f138411ee8e5b8604376cab1c610a44f2c4ae87967ed977225fa96329`.
+The coordinator retained all 19 quantitative R1 files before releasing R2;
+history manifest SHA-256:
+`fe69d02ab54cfa4d00d019609b5e92db5e9154a0b61c4c32d56eda823a6893b2`.
+These temporary artifacts support local observations, not durable accepted evidence.
+
+| Checkpoint | Coordinator-observed result |
+|---|---|
+| Quantitative R1 | Actual design, analysis, synthesis, ledger, Chinese results and handoff; R01/R01b counted as one study. Executed common-effect O1 MD 2.615385 (95% CI 0.984596–4.246173), with assumptions and small-study sensitivity limits. O2 stays a 3.0-point estimate without invented error or denominator; attrition and practical importance stay unresolved. |
+| Qualitative Q1 | Actual design, analysis, source-linked matrix/codebook, ledger, interpretive Chinese paragraph and handoff. Four quotations are preserved; Q01's two excerpts share P01, Q02 identities remain unknown, and Q03 is abstract-only. Supported help/expression tension is interpreted without inventing efficacy, prevalence, saturation, coding agreement or formal confidence. |
+| Quantitative R2 continuation | The released correction changes only S02/O1 from +2.0 to -1.0. Re-executed inverse-variance MD is 0.538462 (95% CI -1.092327–2.169250); DL sensitivity is 1.375 (-3.518781–6.268781). DEC-003 retains the estimator but narrows interpretation to these two fixed studies; current synthesis, CLM-004, Chinese prose and handoff all reflect the opposing estimates without claiming no effect/equivalence. DEC-001/002, unaffected claim rows and O2/attrition gaps remain; the old decision log and all 19 R1 files are intact. |
+
+All three checkpoints meet the fixed bounded criteria on coordinator inspection.
+Separate numeric assertions reconcile both quantitative outputs, unchanged claim
+rows and current source anchors; quotation coverage and input/guidance/history
+hashes also pass. The candidates contain 19 R1 files, 20 R2 files and 13 qualitative
+files. The extra R2 file records the read-only history check, not a new workflow
+contract. No trial-triggered source repair or discarded case is hidden. The
+quantitative agent recovered one nonexistent guidance-path read; during R2 a
+login-shell startup attempted a mise cache write, which the sandbox denied, and
+subsequent commands disabled login startup. These do not establish research or
+external-write acceptance. Exact execution model IDs were not exposed; none is
+invented or configured by this increment.
+
+All seven program-roadmap tests and index freshness pass. A before/after ledger
+comparison retains all 249 task states/dependencies, all 46 accepted rows, and
+every other row unchanged; only CLI-405 progress text changes. `git diff --check`
+passes. Integration follows the required frozen-source guard and local fast-forward
+merge without rerunning unchanged checks solely for the commit/merge.
+
+The next increment remains maintainer-selected real-study and domain review, then
+installed-Host qualification when authorized. These two small fictional tasks do
+not establish broad discipline coverage, formal stage acceptance or production
+research quality. No private research access, push, release/version bump,
+publication or installed-plugin update occurred.
