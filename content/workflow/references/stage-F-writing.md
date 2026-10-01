@@ -53,6 +53,19 @@ A direct paragraph answer does not require the full artifact set or a gate repor
 - Interpret qualitative themes when supported, keeping quotations and episodes
   as evidence anchors. Do not invent mechanisms, negative cases or theoretical
   contributions to satisfy a writing template.
+- Preserve the design's claim type from Stage A/C and the selected discipline
+  guide. A predictor is not necessarily a cause, an indirect path is not a
+  demonstrated mechanism, and a source interpretation is not a measured effect.
+- Check numerical statements against the actual result: population, denominator,
+  units, direction, time window and uncertainty. Distinguish statistical from
+  substantive importance. A nonsignificant result does not establish equivalence;
+  equivalence/noninferiority claims need their own design, margin and analysis.
+- Separate planned from performed methods and confirmatory from exploratory
+  analyses. Account for deviations, missing observations and null/contradictory
+  findings before compressing results into an abstract or recommendation.
+- For theory/humanities, make premises, source interpretation, objections and
+  scope inspectable without forcing empirical section names. For mixed methods,
+  explain what integration adds and where the strands disagree.
 
 ### Review and completion
 

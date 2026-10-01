@@ -42,6 +42,12 @@ Ensure systematic review meets PRISMA 2020 requirements by:
 
 ## Process
 
+Use `references/stage-G-compliance.md` to verify the applicable standard and
+extensions, recording edition, source and access limits. This card's default is
+PRISMA 2020 for systematic reviews. For another review type, use
+`skills/G_compliance/reporting-checker.md` with its actual standard instead of
+forcing this pipeline. Reporting completeness is not methodological quality.
+
 ### Step 1: Gather Review Artifacts
 
 Locate and verify existence of required files:
@@ -103,12 +109,17 @@ Extract and verify counts across documents:
 **Consistency Rules:**
 | Check | Formula | Status |
 |-------|---------|--------|
-| Pre-dedup total | Sum of all database results = Total identified | ✓/✗ |
-| Post-dedup | Total - Duplicates = Records after dedup | ✓/✗ |
-| Screening flow | Screened = Included + Excluded | ✓/✗ |
+| Identification | Reconcile counts by actual database/register/other-source route | ✓/✗ |
+| Before screening | Identified records - duplicates - other documented pre-screen removals = records screened (within that route) | ✓/✗ |
+| Screening flow | Records screened = records excluded + records proceeding to retrieval | ✓/✗ |
 | Full-text flow | Sought = Retrieved + Not Retrieved | ✓/✗ |
-| Final count | Included = Extracted = Assessed = Synthesized | ✓/✗ |
-| Bibliography | BibTeX entries ≥ Included studies | ✓/✗ |
+| Eligibility | Reports assessed = reports excluded with reasons + reports included | ✓/✗ |
+| Study identity | Map included reports to unique studies and each synthesis subset; these counts need not be equal | ✓/✗ |
+| Bibliography | Every included report links to a verified citation; background citations do not inflate study counts | ✓/✗ |
+
+Use actual screening/retrieval IDs to explain pending records, linked reports,
+overlapping samples and update searches. Do not force all reports, studies,
+appraisal rows, effect-size rows and synthesis subsets to have equal counts.
 
 ### Step 3: PRISMA Checklist Completion
 
@@ -119,13 +130,15 @@ For each PRISMA 2020 item, verify:
 - ○ Partially addressed (needs improvement)
 - ✗ Not addressed (missing)
 - N/A Not applicable (with justification)
+- Unverified (required source or manuscript section unavailable)
 
 ### Step 4: Quality Indicators
 
 Check for best practices:
 
 **Protocol & Registration:**
-- [ ] Protocol registered (PROSPERO/OSF ID present)
+- [ ] Actual registration status reported, with registry/ID if registered or
+  an honest statement if not; enforce registration only when the protocol/venue requires it
 - [ ] Amendments documented with rationale
 - [ ] Deviations from protocol explained
 
@@ -167,11 +180,10 @@ Check for best practices:
 
 | Category | Score | Status |
 |----------|-------|--------|
-| Artifact Completeness | X/12 files | ✓/○/✗ |
-| Count Consistency | X/6 checks | ✓/○/✗ |
-| PRISMA Checklist | X/40 items | ✓/○/✗ |
-| Best Practices | X/15 items | ✓/○/✗ |
-| **Overall Compliance** | **X%** | **Ready/Needs Work** |
+| Artifact Completeness | Addressed / applicable files | Complete/Partial/Unknown |
+| Count Consistency | Reconciled / applicable checks | Complete/Partial/Unknown |
+| PRISMA Checklist | Addressed / applicable items or subitems (state counting basis) | Complete/Partial/Unknown |
+| Remaining requirements | List unresolved required items | Ready only within verified scope / Needs work |
 
 ---
 
@@ -213,14 +225,14 @@ Check for best practices:
 
 | Section | Addressed | Partial | Missing |
 |---------|-----------|---------|---------|
-| Title | /1 | | |
-| Abstract | /1 | | |
-| Introduction | /2 | | |
-| Methods | /17 | | |
-| Results | /11 | | |
-| Discussion | /4 | | |
-| Other | /4 | | |
-| **Total** | **/40** | | |
+| Title | | | |
+| Abstract | | | |
+| Introduction | | | |
+| Methods | | | |
+| Results | | | |
+| Discussion | | | |
+| Other | | | |
+| **Total (state counting basis; list N/A and unverified separately)** | | | |
 
 **Critical Missing Items:**
 - [ ] Item X: [Description]
@@ -233,7 +245,7 @@ Check for best practices:
 ### Protocol & Registration
 | Item | Status | Notes |
 |------|--------|-------|
-| Protocol registered | ✓/✗ | ID: [if applicable] |
+| Registration status accurately reported | ✓/✗/Unknown | ID if registered; actual status otherwise |
 | Amendments logged | ✓/✗ | |
 
 ### Search Transparency
@@ -267,7 +279,7 @@ Check for best practices:
 | PRISMA checklist complete | ✓/✗ |
 | Flow diagram accurate | ✓/✗ |
 | All counts consistent | ✓/✗ |
-| Protocol registered | ✓/✗ |
+| Registration reporting / applicable obligations met | ✓/✗/Unknown |
 | No critical issues | ✓/✗ |
 
 **Recommendation:** [Ready for submission / Address X issues first]
@@ -282,6 +294,11 @@ Check for best practices:
 
 The full PRISMA 2020 checklist is available in:
 `templates/prisma-checklist.md`
+
+This is a local working template. Check it against the
+[official PRISMA 2020 resources](https://www.prisma-statement.org/prisma-2020)
+and applicable extensions; preserve item IDs and distinguish numbered items from
+expanded subitems. A percentage cannot override a missing required item.
 
 ## Usage
 
@@ -311,7 +328,7 @@ This skill is called by:
 | 数字不一致 | Flow diagram 与正文数字不match | 从数据源重新计数并核验 |
 | 用旧版 PRISMA | 使用 2009 版而非 2020 | 确认使用 PRISMA 2020 |
 | Checklist 项笼统回答 | 写见方法但位置不精确 | 标注段落/页码 |
-| 忽略 protocol registration | 未报告 protocol DOI | 在 Methods 中标注 PROSPERO 等 |
+| 隐瞒或虚构注册状态 | 未说明实际注册情况 | 如实报告已注册或未注册，并核查适用要求 |
 | NA 项无理由 | 标 NA 但不解释原因 | 每个 NA 附简要说明 |
 
 ## When to Use

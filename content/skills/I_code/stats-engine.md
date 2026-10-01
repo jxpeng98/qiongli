@@ -49,6 +49,11 @@ Statistical modeling, hypothesis testing, and analytics execution with domain-pr
 
 Use this tree to recommend the appropriate statistical approach based on the research goal and data structure. Always justify why the selected method fits the research question.
 
+This is a shortlist, not an automatic selector. Settle the estimand, sampling/
+assignment unit, dependence, measurement and missingness first. Prediction needs
+honest held-out evaluation; causal interpretation needs identification beyond a
+model fit. Use `references/discipline-guidance.md` for the relevant setting.
+
 ```text
 What is the research goal?
 │
@@ -124,7 +129,12 @@ What is the research goal?
 
 ### Method-Pack Execution Constraints
 
-When `--domain` is specified, load `skills/domain-profiles/[domain].yaml` and treat `method_templates[*].required_diagnostics` and `minimum_report_fields` as mandatory output checks. The model or script recommendation must name which diagnostics can be executed with the available inputs and which are blocked.
+When `--domain` is specified, load the available `skills/domain-profiles/[domain].yaml`
+and match the selected method before applying `method_templates[*].required_diagnostics`
+and `minimum_report_fields` as mandatory output checks. Do not schedule every method
+in that profile. Name diagnostics executable with the available inputs, inapplicable
+items with reasons, and required checks blocked by missing evidence. Numerical
+heuristics are not universal gates; retain actual protocol and method requirements.
 
 1. **Select model(s)** aligned to estimand and data type (use decision tree above).
 2. **Load domain diagnostics** from domain profile if `--domain` is specified.
@@ -142,11 +152,11 @@ Do not maintain local domain diagnostic checklists in this skill. When a domain 
 | Pitfall | Impact | Fix |
 |---------|--------|-----|
 | Reporting only p-values | Low reproducibility | Always report effect size + CI |
-| Multiple comparisons without correction | Inflated Type I error | Bonferroni / Holm / FDR |
-| Ignoring nested data | Inflated standard errors | HLM / cluster-robust SE |
-| Post-treatment control | Biased causal estimate | Only condition on pre-treatment |
-| Single imputation | Underestimated uncertainty | Multiple imputation (MICE / FIML) |
-| Confusing OR with RR | Misleading interpretation | Use RR when prevalence > 10% |
+| Unplanned multiplicity | Misstated error rates or selective inference | Define the testing family and justified control, or label exploration |
+| Ignoring nested data | Misestimated uncertainty, often too small | Account for assignment/sampling and dependence with a justified model or variance estimator |
+| Inappropriate adjustment | Biased causal estimate, including from colliders | Justify the adjustment set causally; pre-treatment timing alone is insufficient |
+| Ignoring missing-data uncertainty | Biased estimates or overstated precision | Justify complete-case, likelihood or multiple-imputation assumptions and sensitivity |
+| Confusing OR with RR | Misleading magnitude | Report the actual effect scale; derive risks only with the needed baseline and model assumptions |
 
 ## Minimal report format (`analysis/stats_report.md`)
 
@@ -191,6 +201,6 @@ Do not maintain local domain diagnostic checklists in this skill. When a domain 
 
 - [ ] 模型选择有统计学依据（而非仅因常用）
 - [ ] 假设检验结果包含 effect size + CI（不止 p-value）
-- [ ] 诊断检验已执行（residuals, multicollinearity, heteroscedasticity）
-- [ ] 多重比较已校正（Bonferroni / FDR / 等效方法）
+- [ ] 已执行所选方法适用的诊断，缺失输入和未完成检查明确列出
+- [ ] 多重比较的检验族、控制策略或探索性定位已说明
 - [ ] domain profile 对应的统计方法已正确适用

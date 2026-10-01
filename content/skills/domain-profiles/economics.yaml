@@ -130,7 +130,7 @@ method_templates:
     tier: standard
     library: linearmodels / ivreg / ivreghdfe
     checklist:
-      - "First-stage F-stat > 10 (Stock-Yogo critical values)"
+      - "Report first-stage strength and diagnostics appropriate to the design/error structure; no universal F threshold establishes instrument validity"
       - "Exclusion restriction argument (narrative, not testable)"
       - "Over-identification test (Sargan/Hansen J) if >1 instrument"
       - "Reduced-form estimate for interpretation"
@@ -275,7 +275,7 @@ reporting_guidelines:
 common_pitfalls:
   - "Staggered DID with TWFE → biased estimates (use robust estimators)"
   - "Clustering SE at wrong level (too narrow → over-rejection)"
-  - "Weak instruments → misleading 2SLS (use tF > 10 rule)"
+  - "Weak instruments can invalidate conventional 2SLS inference; use justified weak-instrument-robust procedures"
   - "Cherry-picking bandwidth in RD (report MSE-optimal + sensitivity)"
   - "P-hacking via specification search (pre-register primary spec)"
   - "Bad controls: conditioning on post-treatment variables"
@@ -303,10 +303,10 @@ default_databases:
   query_syntax_notes: "EconLit uses controlled vocabulary (JEL codes); SSRN uses free text"
 
 methodology_priors:
-  identification: "Requires credible causal identification strategy"
-  robustness: "Minimum 3 robustness checks expected"
-  standard_hierarchy: [RCT, IV, RD, DID, Matching, OLS]
-  estimation_norms: "Report clustered SE, show progressive controls"
+  identification: "Causal claims require credible identification; descriptive, predictive and theoretical questions retain their own evidence requirements"
+  robustness: "Choose checks for consequential identification, measurement and sample threats; no generic minimum count"
+  standard_hierarchy: []  # Design must fit the estimand; no universal method ranking.
+  estimation_norms: "Justify dependence-aware inference and control selection; do not add post-treatment controls by default"
 
 venue_norms:
   aer:

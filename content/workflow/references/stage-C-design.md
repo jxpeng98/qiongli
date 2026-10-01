@@ -20,6 +20,24 @@ This stage converts framing into an executable plan: design choices, measurement
 
 ## Design judgment contract
 
+When disciplinary choices matter, select the relevant section through
+`references/discipline-guidance.md`. Retain the same C outputs and gates.
+Before selecting a statistical model, distinguish sampling, assignment,
+measurement and analysis units; repeated observations do not create independent
+participants, organizations, sites or biological replicates.
+
+For quantitative plans, name the outcome, population, comparator/exposure,
+time horizon and estimand. For interpretive/theoretical work, state the analytic
+target, source/corpus boundary and reasoning procedure. Mixed methods also need
+the strands' relationship and integration point, with a plan for divergent results.
+Document instrument/version provenance, translations and intended-use validity;
+a published scale or high reliability coefficient alone does not establish fit.
+
+Set exclusions, missingness handling, primary/secondary outcomes, evaluation
+splits and stopping rules when applicable before using their results. Distinguish
+prespecified, amended and exploratory decisions with their actual timing. Carry
+these choices into Stage I and the F methods/results narrative.
+
 Start with the requested decision or deliverable and reuse known project context.
 A role supplies a perspective, not extra tasks or authority. A narrow design
 question can be answered in chat; formal C tasks retain their canonical outputs,

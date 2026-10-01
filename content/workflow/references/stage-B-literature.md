@@ -20,6 +20,24 @@ This stage builds the *evidence base* for positioning: search → screening → 
 
 ## Literature Provider Contract
 
+Choose the review question and corpus before choosing a pipeline: targeted
+reading, narrative/integrative review, scoping review, systematic review and
+living update are different outcomes. Use `references/discipline-guidance.md`
+for relevant terminology, databases and source types. A scoping review does not
+automatically need pooled effects; a targeted bibliography is not a systematic review.
+
+For formal reviews, keep records, reports and studies distinct. Link preprints,
+protocols, follow-up reports, corrections and overlapping cohorts to their study
+without discarding their provenance. Check consequential corrections/retractions
+when verifying a source. Record untranslated/unretrieved material as an access
+limit, not automatically as an exclusion on scientific grounds.
+
+Pilot eligibility and extraction on available material when it can expose an
+ambiguous rule; preserve the protocol's reviewer/independence requirements.
+Resolve disagreements explicitly and retain reasons. A single agent cannot
+claim two independent screeners. An update preserves the previous search cutoff,
+query changes and new versus previously screened records.
+
 Treat the literature stack as four coordinated layers, not one blob:
 
 1. `scholarly-search`
@@ -168,7 +186,7 @@ Provider JSON output can be materialized with `scripts/materialize_literature_se
 Purpose: expand beyond the initial keywords to reduce confirmation bias.
 
 **Definition of done**
-- A concept list grouped into 2–5 “concept buckets”
+- A concept list grouped by the question's distinct concepts
 - Synonyms, controlled vocabulary candidates (if relevant), and “near misses”
 - A revised seed query that can be dropped into `search_strategy.md`
 
@@ -192,7 +210,7 @@ Purpose: expand beyond the initial keywords to reduce confirmation bias.
 
 ## B2 — Targeted Key Paper Reading
 
-Use when you have 3–10 seed papers to bootstrap the project.
+Use for the supplied or selected seed papers, including a single paper.
 
 **Definition of done**
 - `notes/` contains structured notes for each seed paper
@@ -235,10 +253,11 @@ Suggested `snowball_log.md` table:
 
 ## B4 — Related Work Writing
 
-Related work should be *taxonomy/argument*-based, not chronological.
+Organize related work around the argument; chronology is useful when development
+over time is part of that argument.
 
 **Definition of done**
-- A taxonomy with 3–6 clusters
+- A source-grounded structure with the distinctions needed for the argument
 - Positioning paragraph: “we differ because…”
 - Claims are supported by citations that actually match the statement
 

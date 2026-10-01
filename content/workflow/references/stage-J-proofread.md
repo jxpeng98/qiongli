@@ -69,3 +69,10 @@ requested style. Verify acronyms, figures, tables, equations and citations only
 against available materials. Retain the original voice and valid style choices;
 record inaccessible targets and venue rules as unverified. A formal checklist
 contains corrections, style decisions, reviewed scope and remaining items.
+
+For multilingual or technical work, preserve terminology, variable labels,
+notation, units, transliteration and source-language quotations. Check whether a
+translation changes agency, causal strength or uncertainty; flag ambiguity instead
+of selecting a scientifically different meaning. Verify table/figure references,
+denominators and abstract numbers against the same manuscript version. A correct
+language edit does not close an unresolved methods or evidence issue from G/H.

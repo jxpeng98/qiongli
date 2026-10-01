@@ -67,8 +67,9 @@ class SkillContractAlignmentTests(unittest.TestCase):
         self.assertIn("开题报告", proposal)
 
         academic_write = ACADEMIC_WRITE_WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("Research Proposal", academic_write)
-        self.assertIn("Opening Report", academic_write)
+        self.assertIn("`proposal-writer`", academic_write)
+        self.assertIn("research proposal", academic_write)
+        self.assertIn("Proposal / opening report", academic_write)
         self.assertIn("开题报告", academic_write)
 
         stage_f = STAGE_F_REFERENCE.read_text(encoding="utf-8")

@@ -157,6 +157,18 @@ Address each actual reviewer point once in `revision/response_matrix.md` and
 `revision/response_letter.md`. Cite changed locations; distinguish completed work
 from proposed commitments. Respectful disagreement supported by evidence is valid.
 
+Keep reviewer/round and stable comment IDs, the original request, response,
+changed manuscript location and verification status together. Split compound
+comments when needed for a complete answer. If comments conflict, explain the
+chosen resolution rather than promising incompatible changes. New analyses retain
+their exploratory/amendment status and authorization needs; a response letter
+cannot retroactively make them prespecified.
+
+Before delivery, reconcile clean/tracked versions, figure/table numbers,
+supplements, author facts and response locations against the same manuscript
+version. Preparing a package is not portal submission or permission to contact
+editors/reviewers. Preserve the actual submission status in the handoff.
+
 ### H2_5 — Reviewer empathy check
 
 In `revision/reviewer_empathy_check.md`, check completeness and respectful tone.

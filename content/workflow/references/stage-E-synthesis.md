@@ -20,6 +20,29 @@ Supporting artifact (core for transparency):
 - `Q2` (claim-evidence traceability): synthesis statements must map back to extracted evidence.
 - `Q4` (reproducibility baseline): analytic choices and transformations are documented.
 
+## Check comparability before combining
+
+Preserve study/report/cohort identity, outcome definition, time point, effect
+direction and scale. Record transformations with their inputs and source anchors.
+Shared controls, repeated outcomes and overlapping samples require an explicit
+dependence strategy; extra rows are not extra independent studies.
+
+Choose pooling from the question and substantive/design compatibility, not an
+I² threshold alone. A random-effects model does not repair incomparable studies.
+Report uncertainty and heterogeneity at the level the data support; very few
+studies limit both estimation and diagnostic power. Narrative synthesis should
+compare magnitude, context, design and bias, not count significant p-values.
+
+Keep study-level risk of bias, reporting completeness and outcome-level certainty
+separate. Select appraisal/ certainty frameworks appropriate to the question;
+GRADE is not a mandatory score for every discipline or qualitative synthesis.
+For qualitative work, preserve the analytic tradition and source/interpretation
+trail. Mixed-method synthesis must explain integration and unresolved divergence.
+Carry exclusions, dependence, uncertainty and contradictory findings into Stage F.
+
+For quantitative synthesis, consult the applicable methods in
+[Cochrane Handbook Chapter 10](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-10).
+
 ---
 
 ## E1 — Synthesis Strategy / Meta-analysis Plan
@@ -100,8 +123,10 @@ Include:
 ## E3_5 — Publication Bias / Missing-Results Bias
 
 **Definition of done**
-- At least one bias check appropriate for the dataset (not always possible with small k)
-- Interpretation is cautious (bias checks are low power)
+- Missing-results risk is assessed with methods appropriate to the evidence;
+  explain when statistical checks are uninformative or inapplicable
+- Funnel asymmetry is not proof of publication bias; a nonsignificant test is
+  not proof of its absence, and trim-and-fill does not recover known truth
 
 Write into: `synthesis/publication_bias.md`.
 

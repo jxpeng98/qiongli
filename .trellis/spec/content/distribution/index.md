@@ -65,6 +65,21 @@ deletion. Validate shared-reference reachability and projection bytes; use
 isolated behavioral trials for response quality, since text assertions alone
 cannot establish model behavior or cross-model performance.
 
+`content/workflow/references/discipline-guidance.md` routes to conditional field
+guides under `references/disciplines/`. The root Skill and relevant design/analysis
+cards select only needed sections; the guides refine existing A–M tasks rather
+than adding workflow entries, Task IDs, runtime subjects or permission owners.
+Existing domain profiles retain their IDs and method contracts. A focused package
+may lack a neighboring profile; guidance must disclose that limit instead of
+claiming a read or switching the locked project subject. Profile heuristics and
+library/venue lists do not become universal thresholds or installation requests.
+
+Stage G owns reporting-standard selection and current edition/extension checks;
+`reporting-checker` consumes the applicable official or supplied checklist instead
+of maintaining copied, stale item tables. Preserve Q3 and evidence-linked item
+statuses, including unavailable verification. Reporting completeness does not
+establish methodological validity, ethics approval or submission.
+
 ## Pre-Development Checklist
 
 - Identify the canonical source and every generated consumer.

@@ -105,7 +105,8 @@ general entry; skill cards, references and templates are loaded only as needed.
 | Consolidate a completed stage, track progress, or review files for manual cleanup | `workflows/stage-close.md`; only the user selects and deletes files |
 | Read a paper, PDF or DOI | `workflows/paper-read.md` (B2) |
 | Find a bounded set of references | `skills/B_literature/academic-searcher.md` (targeted discovery) |
-| Systematically search, screen or review literature | `workflows/lit-review.md` (formal B1) |
+| Conduct a systematic literature review | `workflows/lit-review.md` (formal B1) |
+| Scope/map a literature or prepare another specified review type | `references/stage-B-literature.md`; use the declared review protocol and relevant cards |
 | Synthesize findings or meta-analysis | `workflows/synthesize.md` (E) |
 | Design a study or analysis plan | `workflows/study-design.md` (C) |
 | Ethics, consent or availability statement | `workflows/ethics-check.md` (D) |
@@ -197,6 +198,11 @@ append safely or propose a diff, and verify the actual write result.
 - For formal tasks, retain required outputs and gates. Inspect relevant
   project-local guidance through `references/platform-routing.md`; subject and
   venue lenses refine the task, not the evidence or permission requirements.
+- When discipline or method changes the advice, use
+  `references/discipline-guidance.md` to select one relevant guide and the
+  available `skills/domain-profiles/[domain].yaml`. Load only the needed sections.
+  Keep the selected stage's playbook as the output/gate owner; a discipline guide
+  adds concrete research choices, not extra tasks or a new runtime subject.
 - For unsettled Stage A ideas, use `boundary-interviewer` to record the Academic
   Idea Funnel in `context/idea_funnel.md` and boundaries in
   `context/boundary_review.md`. Ask the next consequential scholarly question;

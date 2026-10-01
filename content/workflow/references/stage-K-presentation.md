@@ -11,6 +11,16 @@ Use Stage K when a paper or research project needs a conference talk, seminar de
 
 If inputs are missing, write `RESEARCH/[topic]/context/gap_notes.md` and mark the deck as a planning draft.
 
+For a formal deck, keep claim IDs/source locators in the slide specification or
+speaker notes, including units, uncertainty and limitations of shown results.
+An illustrative diagram is not observed data. Use readable labels, sufficient
+contrast and captions/alternative descriptions for consequential visuals; avoid
+color-only distinctions. Check the rendered/exported artifact for clipping,
+equations, citations and legibility when tools permit, and disclose unverified
+exports. Estimate delivery time and trim to the audience's needs rather than
+shrinking everything. A defense also needs questions on the weakest assumption,
+alternative explanation and contribution boundary, answered from actual evidence.
+
 ## K1 — Presentation Planning
 
 Use `presentation-planner`.
