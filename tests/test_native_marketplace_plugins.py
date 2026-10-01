@@ -80,6 +80,27 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
     def build(self, name='out', target=TARGET):
         return plugins.build_plugins(self.source, self.root / name, VERSION, COMMIT, self.binary, target)
 
+    def test_plugin_smoke_binds_named_reader_inventory_to_verified_binary(self):
+        self.build()
+        for extension in (0, 1):
+            names = [f'base_tool_{index}' for index in range(14)]
+            if extension:
+                names.append('qiongli_literature_read_fulltext')
+            output = '\n'.join(json.dumps(message) for message in [
+                {'id': 1, 'result': {'serverInfo': {'version': VERSION}}},
+                {'id': 2, 'result': {'tools': [{'name': name} for name in names]}},
+                {'id': 3, 'result': {'structuredContent': {'status': 'ok'}}},
+            ])
+            observed = {'content_pack_sha256': self.metadata['pack_sha256'],
+                        'mcp_tools': {'lite': 14 + extension, 'full': 32 + extension}}
+            with patch.object(plugins, 'check_cli', return_value=observed), \
+                    patch.object(plugins, 'run', return_value=subprocess.CompletedProcess([], 0, output, '')):
+                checks = plugins.check_plugins(self.root / 'out', VERSION, COMMIT, TARGET)
+                self.assertTrue(all(check['mcp_tools'] == 14 + extension for check in checks.values()))
+                observed['mcp_tools'] = {'lite': 15 - extension, 'full': 33 - extension}
+                with self.assertRaisesRegex(ValueError, 'inventory differs'):
+                    plugins.check_plugins(self.root / 'out', VERSION, COMMIT, TARGET)
+
     def test_npm_pack_contains_source_bound_deepseek_provider_and_platform_dispatch(self):
         from tooling.scripts.native_registry_packages import npm_package
         with patch(__name__ + '.VERSION', '2.1.0'):
@@ -619,6 +640,7 @@ await assert.rejects(provider.get({name:'../../private'}));
                        'checks': {'cli_mcp_tests': 'passed', 'cli_clippy': 'passed',
                                   'npm_wheel_local_install': 'passed',
                                   'archive_smoke': {'version': VERSION, 'content_pack_sha256': self.metadata['pack_sha256'],
+                                                    'mcp_tools': {'lite': 14, 'full': 32},
                                                     'runtime_path': 'empty', 'windows_system_dlls': ['KERNEL32.dll']},
                                   'marketplace_plugins': checks},
                        'artifacts': [{'file': p.name, 'sha256': plugins.digest(p.read_bytes()),
@@ -641,6 +663,27 @@ await assert.rejects(provider.get({name:'../../private'}));
         self.assertEqual(len(index['plugins']), 6)
         self.assertEqual({p['name'] for p in index['plugins']}, {plugins.plugin_name(t, VERSION, legacy_identity=VERSION == '2.0.1') for t in BINARIES})
         manifest = assets / 'release-manifest.json'
+        current = json.loads(json.dumps(packet))
+        for receipt in current['target_evidence']:
+            receipt['checks']['archive_smoke']['mcp_tools'] = {'lite': 15, 'full': 33}
+            for installed in receipt['checks'].get('registry_install', {}).values():
+                installed['mcp_tools'] = {'lite': 15, 'full': 33}
+            for observed in receipt['checks']['marketplace_plugins'].values():
+                observed['mcp_tools'] = 15
+        manifest.write_text(json.dumps(current))
+        verify(assets, VERSION, COMMIT)
+        for change, message in [
+            (lambda p: p['target_evidence'][0]['checks']['archive_smoke'].update(mcp_tools={'lite': 14, 'full': 33}), 'incoherent MCP profile'),
+            (lambda p: p['target_evidence'][0]['checks']['archive_smoke'].update(mcp_tools={'lite': 14, 'full': 32}), 'MCP inventor'),
+            (lambda p: p['target_evidence'][0]['checks']['marketplace_plugins']['codex'].update(mcp_tools=14), 'marketplace smoke evidence'),
+            (lambda p: p['target_evidence'][0]['checks']['archive_smoke'].update(mcp_tools={'lite': 16, 'full': 34}), 'incoherent MCP profile'),
+        ]:
+            changed = json.loads(json.dumps(current))
+            change(changed)
+            manifest.write_text(json.dumps(changed))
+            with self.assertRaisesRegex(ValueError, message):
+                verify(assets, VERSION, COMMIT)
+        manifest.write_text(json.dumps(packet))
         if VERSION == '2.0.1':
             for location in (('archive_smoke',), ('registry_install', 'npm'),
                              ('registry_install', 'pypi'), ('marketplace_plugins', 'codex'),

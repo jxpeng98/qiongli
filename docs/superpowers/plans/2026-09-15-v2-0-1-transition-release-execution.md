@@ -1455,3 +1455,128 @@ installed-Host qualification when authorized. These two small fictional tasks do
 not establish broad discipline coverage, formal stage acceptance or production
 research quality. No private research access, push, release/version bump,
 publication or installed-plugin update occurred.
+
+
+## October 2 — selected public fulltext and Host search increment
+
+The maintainer authorized the proposed discovery → document retrieval → anchored
+reading path, including additional search channels and the active Agent's native
+search. Implementation `fb3d6d76` preserves the five existing providers rather
+than introducing another configurable search service: OpenAlex/Semantic metadata,
+Crossref links, PubMed-reported PMC identifiers and arXiv PDF links retain optional
+abstracts, external identifiers, candidate format/version/license and deduplication
+provenance. Numeric reported IDs, including Semantic CorpusId and OpenAlex MAG,
+are normalized to strings; they are not invented identifiers or access proof.
+
+`qiongli_literature_read_fulltext` is the shared native Lite/Full and standalone
+Rust Lite reader. It fetches public HTTPS PDF/TEI/JATS, reports source digest,
+retrieval time, page/section/segment anchors, pagination, identity status and
+parser warnings. Nonzero offsets require the prior digest; explicit refresh,
+changed bytes, wrong DOI, abstract-only XML and multi-paper XML have distinct
+outcomes. Public reads need no configured provider. The exact OpenAlex content
+endpoint may use the existing key; this increment did not access that key.
+
+Network boundaries reject credentials, private destinations and unsafe redirects,
+pin public DNS results per hop, disable proxies and bound download/decoded gzip.
+The session cache holds at most eight documents, with emitted-text, segment and
+PDF-page limits. The pinned pure-Rust `pdf-extract` dependency avoids a separately
+installed reader; existing quick-xml and flate2 handle XML and gzip. PDF internal
+stream/font decompression remains library-owned: this is not a hard process
+memory/time sandbox. HTML/OCR, private attachments and authenticated publisher
+browsing remain available-Host responsibilities. No canonical research write,
+Graph ingestion, new research store, model selection or registration was added.
+
+The fulltext Skill and B2 route now request actual document reading and preserve
+identity/version, evidence limits and existing manifest/approval/CAS owners.
+Existing hybrid/native-only plans keep native search execution in the Host;
+provider search, Host-discovered URLs, parsed text and inspected passages remain
+separate. Fulltext availability does not decide review eligibility. The explicit
+native extension brings Lite/Full to 15/33 tools while preserving the frozen
+CTR-201/Python v2 inventories. CLI help reflects the current native inventory.
+
+Focused verification and repaired failures:
+
+- Runtime checks cover 62 unit, six bibliography and ten Lite MCP cases. Changed
+  parser/provider cases were rerun after repair; unchanged cases were reused.
+  Runtime all-target Clippy passes. Tests include SSRF URL/IP rejection, credential
+  redaction, continuation/digest/refresh, wrong DOI, metadata-only/HTML/multi-paper
+  responses, bounded extraction, PDF page anchors and TEI/JATS section text.
+- Standalone Rust Lite passes 30 focused checks and offline locked all-target
+  checking. One cache/reader owner is reused; wrappers do not duplicate parsing.
+- Canonical contract, resource links, literature routing and native Marketplace
+  projection tests pass (49 tests). The capability validator passes while retaining
+  missing/unknown-tool and schema-drift negatives. Two previous paper-read literal
+  assertions now follow its explicit shared routing reference instead of requiring
+  duplicated instructions; no ownership requirement was removed.
+- Product embedded-pack, seven copied-binary MCP and one guided-install/local
+  MCP check pass. An initial hardcoded 14-tool assertion was corrected to the
+  registry length. The existing platform atomic deprecation warning remains.
+- The initial sandboxed Cargo fetch lacked network access; authorized fetch
+  recovered. Some existing loopback fixtures required authorized escalation.
+  An initial pytest invocation failed because the existing environment uses
+  unittest; tests then ran with `.venv/bin/python`. An outdated MAG omission
+  assertion failed after numeric-ID preservation and was corrected and rerun.
+
+The actual macOS ARM64 native export contains 445 resources, content source
+`fb3d6d7641461d35aac168713018ab0987440172`, content root
+`98602d3d7ebcefa494ba1ed746a1292eab24c0b79d0428faa426110db4af3917`, and pack
+`dea7da3fa371dd30eeb330b40ba76f69a3fe1e3ec88834c8146f2a5232dbbe0f`.
+Existing Codex/Claude/DeepSeek projectors produce 22/2/22 Skill entries and preserve
+all seven changed exported content resources byte-for-byte. Development binary
+SHA-256 is `f67c4a4a28566248818e75632eb107a0a0f16504e3000369633a37d3b3757e65`.
+Export directory: `/private/tmp/qiongli-fulltext-content-fb3d6d76`.
+
+The existing distribution checks now recognize only coherent legacy 14/32 or
+named-fulltext 15/33 inventories, require agreement between local and stdio
+profiles, and bind DSH/Marketplace counts to the same archive smoke receipt.
+Unknown additions, duplicate names, mixed profiles/targets and mismatched hashes
+remain failures; old immutable packages retain their original inventory.
+All 33 focused distribution/release-script tests pass, including legacy alpha and
+2.0.1 packet checks, the named reader extension and mixed-count/hash negatives.
+Actual temporary Codex/Claude macOS ARM64 native archives pass extracted,
+empty-PATH `check_plugins` with 15 Lite tools and the same embedded pack; their
+binary checks also exercise 33 Full tools. Archives are development artifacts
+under `/private/tmp/qiongli-fulltext-plugins-fb3d6d76`, not published v2.1.1 assets.
+
+Public-source probes used no provider credentials or private library:
+
+| Source | Actual observation |
+|---|---|
+| `https://arxiv.org/pdf/1706.03762` | PDF parsed to 27 segments; the first two returned excerpts have page-1 anchors. The second request used the digest and session cache. DOI identity was not checked; no complete-reading claim. Source SHA-256 `bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697`. |
+| PMC EFetch `db=pmc&id=3433999&retmode=xml` | JATS parsed to 25 segments, with title and Introduction anchors; structured DOI `10.1002/ece3.315`. Cached continuation passed. Source SHA-256 `fe7a0b0098f8d9d6e70022bd47af74a2dd3168d17b8db259e06348df7472f75d`. Repeated after document-scope repair. |
+| Actual Full MCP binary, isolated temporary configuration | 33 tools discovered; the same public PMC read returned `readable_text`, `identity_status: matched`, 25 segments and the same digest. Exit 0, empty stderr. This is a CLI protocol observation, not an installed-Host session. |
+
+Temporary smoke responses live under `/private/tmp/qiongli-fulltext-*`; no paper
+was added to a canonical research project. These probes demonstrate public-source
+transport/parse/continuation, not scientific interpretation or database coverage.
+
+Actual Host subagents `/root/literature_metadata` and `/root/fulltext_contracts`
+implemented bounded disjoint provider/contract work. The latter independently
+reviewed the coordinator's reader and identified multi-paper and wrapper-header
+identity leakage, unbounded emitted PDF output, XML heading/segment amplification,
+HTML misclassification and concatenated table cells. All reported issues received
+source fixes and regression cases; the final read-only recheck reports no remaining
+blocker from that review scope. The coordinator ran checks and retains integration
+responsibility; parser-internal decompression remains the disclosed limitation.
+
+One independent synthetic forward observation, `/root/fulltext_forward_trial`,
+read the two actual guides and addressed three records: a DOI mismatch, an
+unverified preprint with only introductory excerpts, and an abstract-only 403.
+It proposed actual Host search including education-specific discovery, retained
+all citekeys/evidence gaps, required digest-bound continuation and did not infer
+unseen methods or exclude a study for missing fulltext. No simulated research
+calls or writes were reported. A final source re-read found the routing
+clarification did not change its response. Final guidance SHA-256 values:
+`fulltext-fetcher.md` = `05391737262a054b71f892f487bd5ad032a737a317b3d7758435adf719953b89`;
+`literature-provider-routing.md` = `16a93c3a80ee6f1f9e74c585b4cacf9a4bdcf0dce15424b0912cec6d6338aede`.
+This single supplied-material case is coordinator-assessed behavior, not a model
+benchmark, source evidence, domain-expert review or installed-Plugin acceptance.
+No model override was selected and unavailable model identities are not inferred.
+
+The next increment is maintainer-selected real-study/installed-Host qualification,
+with parser isolation and additional document formats assessed from actual needs.
+Authenticated OpenAlex content, paid/subscription/private sources, OCR and
+Windows/Linux target-native behavior were not qualified. No release/version bump,
+installed-plugin update, push or publication is included. The existing plan and
+CLI-405 progress own this work; all 249 task states/dependencies and all 46 accepted
+rows remain unchanged. Seven program-roadmap tests and index freshness pass.

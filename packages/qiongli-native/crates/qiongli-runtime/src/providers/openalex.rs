@@ -290,7 +290,7 @@ mod tests {
         );
         assert!(record.fulltext_candidates[1].license.is_none());
         assert!(record.fulltext_candidates[2].version.is_none());
-        assert!(!record.external_ids.contains_key("mag"));
+        assert_eq!(record.external_ids["mag"], "123");
     }
 
     #[test]

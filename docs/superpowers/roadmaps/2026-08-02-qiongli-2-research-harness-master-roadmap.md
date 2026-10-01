@@ -52,7 +52,7 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — October 1, 2026
+## Current execution horizon — October 2, 2026
 
 The current 2.1.1 source baseline now selects the maintainer-requested discipline
 and research-lifecycle Skill reinforcement as the next local increment. Reuse the
@@ -62,6 +62,12 @@ delivery and bounded synthetic behavior, then integrate locally into `2.x`.
 After the first guide expansion, the maintainer selects explicit decision,
 evidence and continuation guidance for C/E/F, with complete bounded candidate
 tasks and a changed-source continuation to check its use across stages.
+The next selected increment preserves search abstracts and fulltext leads, reads
+public PDF/TEI/JATS sources with digest-bound excerpts, and combines existing
+Crossref/PubMed/arXiv discovery with actually available Host search. Native Lite
+and Full share the reader; frozen Python contracts and canonical write owners
+remain unchanged. The current plan records implementation, public-source probes
+and remaining parser/Host qualification limits.
 This scope does not authorize a new release or installed-user-profile update;
 real study, domain-expert and installed-Host qualification remain separate evidence.
 

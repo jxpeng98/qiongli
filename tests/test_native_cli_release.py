@@ -9,11 +9,56 @@ import zipfile
 from unittest.mock import patch
 
 from tooling.scripts.native_cli_release import archive_cli, archive_readme, check_windows_imports
-from tooling.scripts.native_registry_install_check import check_transition, require_transition
+from tooling.scripts.native_registry_install_check import check_cli, check_transition, require_transition
 from tooling.scripts.native_registry_packages import TARGETS, cli_description
 
 
 class NativeCliReleaseTests(unittest.TestCase):
+    def test_cli_smoke_accepts_only_coherent_named_reader_extension(self):
+        version = '2.1.1'
+        def check(lite, full, *, local_delta=0, reader_name='qiongli_literature_read_fulltext'):
+            def response(argv, *, root, env, input=None, check=True):
+                args = argv[1:]
+                if args == ['--version']:
+                    value = f'qiongli {version}\n'
+                elif args == ['--help']:
+                    value = 'Usage: qiongli project'
+                elif args == ['project', '--help']:
+                    value = 'qiongli project'
+                elif args == ['content', 'list']:
+                    value = json.dumps({'content_version': version, 'pack_sha256': 'a' * 64})
+                elif args == ['not-a-command']:
+                    return subprocess.CompletedProcess(argv, 1, '', 'error: invalid command')
+                else:
+                    profile = args[args.index('--profile') + 1]
+                    base, extension = (14, lite) if profile == 'lite' else (32, full)
+                    if args[1] == 'check':
+                        value = json.dumps({'scope': 'local-in-process-protocol',
+                            'tool_count': base + extension + local_delta, 'read_only_call': 'passed',
+                            'host_session': 'not-checked'})
+                    else:
+                        names = [f'base_tool_{index}' for index in range(base)]
+                        if extension:
+                            names.append(reader_name)
+                        value = '\n'.join(json.dumps(message) for message in [
+                            {'id': 1, 'result': {'serverInfo': {'version': version}}},
+                            {'id': 2, 'result': {'tools': [{'name': name} for name in names]}},
+                            {'id': 3, 'result': {'structuredContent': {'status': 'ok'}}},
+                        ])
+                return subprocess.CompletedProcess(argv, 0, value, '')
+            with patch('tooling.scripts.native_registry_install_check.run', side_effect=response):
+                return check_cli('candidate', version=version, root=Path('.'), env={})
+        for extension in (0, 1):
+            self.assertEqual(check(extension, extension)['mcp_tools'],
+                             {'lite': 14 + extension, 'full': 32 + extension})
+        for lite, full in ((0, 1), (1, 0)):
+            with self.assertRaisesRegex(ValueError, 'incoherent'):
+                check(lite, full)
+        with self.assertRaisesRegex(ValueError, 'unsupported MCP'):
+            check(1, 1, reader_name='unrelated_extension')
+        with self.assertRaises(AssertionError):
+            check(1, 1, local_delta=-1)
+
     def test_transition_probes_both_hosts_and_rejects_wrong_or_absent_v1(self):
         fixture = Path(__file__).resolve().parents[1] / 'packages/qiongli-native/apps/qiongli/tests/fixtures/plugin-source-v1.status.json'
         golden = json.loads(fixture.read_text())
