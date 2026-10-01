@@ -51,12 +51,17 @@ Use after the Results section has been drafted and the primary findings are fina
 
 ## Process
 
+Use **Result-to-claim decisions** in `references/stage-F-writing.md`. Reuse the
+current results and inherited claim limits; a changed upstream source requires
+checking dependent interpretations before drafting. The structure below is an
+aid for the requested discussion, not a quota of mechanisms or recommendations.
+
 ### Step 1: Build the Story Spine
 Map the principal findings to the core narrative using a structured spine:
 1. **The Core Answer:** A direct, concise answer to the main research question based on the findings.
 2. **The Contextualization:** How these findings compare, contrast, or add nuance to the existing literature.
 3. **The 'So What' (Theoretical Implications):** How the findings change our understanding of the phenomenon or theoretical model.
-4. **The 'Now What' (Practical Implications):** Actionable recommendations for practitioners or policymakers.
+4. **Practical implications, when supported:** What the findings imply for a specified use, with its assumptions and limits.
 
 ### Step 2: Draft the Opening Paragraph
 - Start strong by restating the primary aim of the study.
@@ -65,8 +70,8 @@ Map the principal findings to the core narrative using a structured spine:
 
 ### Step 3: Draft the Interpretation and Comparison
 - Dedicate paragraphs to each major finding or theme.
-- For each, provide interpretation: *Why did this happen? What is the underlying mechanism?*
-- Compare explicitly with prior literature: *Does this align with Author X (Year) or contradict Author Y (Year)? Why?*
+- Interpret the supported pattern and consequential alternatives. An untested explanation remains a hypothesis; a descriptive finding need not establish a mechanism.
+- Compare with the actual available literature. Preserve unresolved disagreement and mark missing comparison evidence rather than inventing a source or explanation.
 
 ### Step 4: Draft the Implications
 - Separate theoretical implications from practical/managerial implications.
@@ -95,7 +100,7 @@ Map the principal findings to the core narrative using a structured spine:
 
 - [ ] Does not unnecessarily repeat raw results or P-values
 - [ ] Explicitly answers the primary research question stated in the Introduction
-- [ ] Connects findings meaningfully to at least 2-3 key papers from the literature review
+- [ ] Uses relevant inspected literature for comparisons, with missing evidence explicit
 - [ ] Theoretical and practical implications are logically derived from the findings
 
 ## Common Pitfalls
@@ -103,5 +108,5 @@ Map the principal findings to the core narrative using a structured spine:
 | Pitfall | Problem | Fix |
 |---------|---------|-----|
 | Restating Results | Reads like a second results section | Focus on *interpretation* and *meaning*, omit raw data |
-| Overclaiming | Claiming causality or broad generalizability not supported by design | Use cautious language ("suggests", "indicates") |
+| Overclaiming | Claiming causality or broad generalizability not supported by design | Narrow or remove the unsupported claim; cautious verbs alone do not supply evidence |
 | Ignoring Contradictions | Failing to discuss why results differ from established norms | Directly address unexpected findings and propose potential reasons |

@@ -20,6 +20,25 @@ This stage converts framing into an executable plan: design choices, measurement
 
 ## Design judgment contract
 
+Use the three questions in `references/academic-output-rubric.md` at the choices
+below. Inspect the available material first; these are decision points, not a
+required questionnaire or a fixed sequence.
+
+| What must be decided? | Evidence needed | What can proceed? |
+|---|---|---|
+| Which claim can this design address? | RQ, intended claim, target population/corpus and actual comparison or interpretive basis | Choose and justify a feasible design. If its central premise is missing, offer a narrower supported option and identify what would enable the requested claim; do not silently change the RQ |
+| What are the independent units and usable observations? | Sampling/assignment process, groups, repeated records, exclusions and available material | Specify analysis at the right level. Unknown group allocation or dependence blocks affected inference, while a descriptive inventory or conditional design can proceed |
+| Do the measures/sources represent the target? | Construct definition, instrument/source version, collection timing, provenance and usable fields | Map the target to verified measures. Missing measurement blocks that claim; propose a source or measurement revision without assuming it exists |
+| Which analysis could answer the question? | Estimand/analytic target, identification or interpretive assumptions, adequacy rationale and relevant threats | Choose a procedure and decisive checks. State what a failed check changes: method, claim scope or feasibility. Do not declare a planned check passed |
+| Can the proposed work start? | Access and ethics decisions for this use, resources and approved protocol commitments | Advance authorized work with satisfied prerequisites. A required permission blocks the affected access/collection, while planning and other supported tasks continue |
+
+For a formal design, place these answers in the relevant sections of
+`study_design.md` and `analysis_plan.md`, with evidence pointers and unresolved
+conditions. Carry the same RQ/decision IDs, variable/source versions, claim limits
+and required checks into Stage I/E/F. A complete plan may describe analyses whose
+execution is still conditional; report plan completeness and execution readiness
+separately. Revisit a choice when its named evidence or assumption changes.
+
 When disciplinary choices matter, select the relevant section through
 `references/discipline-guidance.md`. Retain the same C outputs and gates.
 Before selecting a statistical model, distinguish sampling, assignment,

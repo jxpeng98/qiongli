@@ -80,6 +80,15 @@ of maintaining copied, stale item tables. Preserve Q3 and evidence-linked item
 statuses, including unavailable verification. Reporting completeness does not
 establish methodological validity, ethics approval or submission.
 
+The shared academic output rubric owns three questions at consequential choices:
+the decision, its evidence basis, and conditions for continuing. C/E/F references
+specialize those questions; synthesis and interpretation cards consume the same
+owners. Models choose execution paths within scope. Record consequences in existing
+stage artifacts, decision logs and handoffs, preserving IDs, source revisions and
+unresolved dependencies; do not add a parallel state machine or mandatory interview.
+Behavioral checks should inspect completed candidate artifacts and continuation
+after changed evidence, not treat matching instructional text as research quality.
+
 ## Pre-Development Checklist
 
 - Identify the canonical source and every generated consumer.

@@ -36,282 +36,92 @@ domain_aware: true
 
 # Analysis Interpreter Skill
 
-Turn statistical output, qualitative evidence, or synthesis results into manuscript-ready interpretation that is analytically deep, honestly uncertain, and defensible under review.
-
 ## Purpose
 
-Translate quantitative, qualitative, or synthesized findings into analytical narratives that preserve uncertainty, surface mechanisms, and narrow claims to defensible scope conditions.
+Turn quantitative, qualitative or synthesized findings into the requested result
+interpretation. Read **Result-to-claim decisions** in
+`references/stage-F-writing.md`; it owns the writing contract and three-question
+guidance. Choose the depth and structure supported by the actual evidence.
 
 ## Related Task IDs
 
-- `F3` (full manuscript draft — results interpretation component)
-
-## Output (contract path)
-
-- `RESEARCH/[topic]/manuscript/results_interpretation.md`
-
-## When to Use
-
-- After primary analysis is complete
-- When writing the Results or Discussion section
-- When a reviewer says "the interpretation is superficial" or "overclaimed"
+- `F3` — results interpretation component.
+- A bounded explanation or sentence correction can stay in chat without claiming
+  a completed F3 run.
 
 ## Inputs
 
-- `StatsReport`: Model results, diagnostics, and robustness checks
-- `EvidenceTable`: Coded qualitative evidence, case summaries, fieldnotes, or synthesis matrices
-- `AnalysisPlan`: Pre-specified estimands and decision rules
-- `RobustnessPlan`: Planned robustness checks and threats
-- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
-- Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
+Read the available result/source, relevant C/E/I decisions, analysis plan and
+applicable checks. Reuse the current handoff and existing claim IDs. A previous
+summary does not replace the output when a number, method or source has changed.
+Missing diagnostics limit the affected inference; they need not block an accurate
+explanation of the reported result.
 
 ## Process
 
-For a bounded explanation or sentence correction, use the supplied results and
-answer in chat. Formal saved interpretations use the output and ledger contracts
-below through the project's write owner. Inspect only inputs needed for the
-requested interpretation; missing diagnostics limit the claim, not the ability
-to explain the observed result.
+### Establish what the result says
 
-### Step 1: Read the Result Pattern
+For quantitative work, verify the estimate, metric, units, direction, denominator,
+comparison, time window and available uncertainty against the actual output.
+Check relevant assumptions and robustness results, distinguishing performed from
+planned analyses. Do not infer a p-value, confidence interval or power calculation
+from the label "significant" or from sample size alone.
 
-Before interpreting, fully inventory what the analysis produced:
+For qualitative work, inspect the source episodes/quotes, context, case boundaries,
+analytic procedure and counterevidence. Describe prevalence or coding agreement
+only when recorded and appropriate to that procedure. Evidence breadth is not
+established by counting excerpts as independent participants.
 
-#### For Quantitative Results
+For synthesis, retain contributing-study identities, exclusions/dependence,
+appraisal and uncertainty. An aggregate conclusion cannot exceed those sources.
 
-| Element | What to Record | Where It Matters |
-|---------|---------------|-----------------|
-| **Primary estimate** | Coefficient, direction, magnitude | Core finding |
-| **Precision** | 95% CI width, standard error | How confident are we? |
-| **Statistical significance** | p-value, but NEVER as sole indicator | Gateway, not conclusion |
-| **Effect size** | See `effect-size-interpreter` for contextualization | Practical importance |
-| **Diagnostics** | Model fit (R², AIC), residual plots, VIF | Does the model hold? |
-| **Robustness** | Which sensitivity checks passed/failed | How fragile is the result? |
-| **Null findings** | Which hypotheses were NOT supported | Often more interesting than confirmations |
-| **Heterogeneity** | Subgroup differences, interaction effects | Boundary conditions |
-| **Failed assumptions** | Non-normality, heteroskedasticity, endogeneity | Qualification needed? |
+### Choose the supported interpretation
 
-#### For Qualitative Results
+| Observed situation | Decision and permitted result |
+|---|---|
+| Estimate with documented uncertainty | Report magnitude and precision on the actual scale; use `effect-size-interpreter` if a practical translation is supported |
+| Estimate without usable uncertainty | Explain the reported value and identify the missing input; do not invent precision or significance |
+| Association with an untested causal mechanism | State the association; a proposed mechanism remains an explicit hypothesis, linked to its basis |
+| Imprecise or null finding | Describe the compatible range and inferential limit; use a practical/equivalence margin only if justified and actually assessed |
+| Theme grounded in contextual evidence | Explain the analytic pattern with source anchors; retain differing cases and the tradition's limits |
+| Conflicting or failed sensitivity result | Show how the claim changes and what remains unresolved; a significance vote cannot settle it |
+| Changed upstream result or source | Recheck dependent interpretations and name affected prose/tables before reusing them |
 
-| Element | What to Record | Where It Matters |
-|---------|---------------|-----------------|
-| **Core themes/categories** | Labels, definitions, relationships | Organizing structure |
-| **Theme prevalence** | How many cases/participants exhibited each theme | Not frequency counting — but evidence breadth |
-| **Focal episodes/quotes** | Specific instances that exemplify the theme | Evidence grounding |
-| **Deviant/negative cases** | Cases that contradict the dominant pattern | Credibility + boundary conditions |
-| **Process/temporal patterns** | How phenomena unfold over time | For process research |
-| **Cross-case variation** | How themes differ across cases/contexts | Transferability |
-| **Evidence strength by source** | Interview vs document vs observation convergence | Triangulation |
-| **Coding reliability** | Inter-rater agreement, codebook evolution | Dependability signal |
+Mechanisms, rivals, boundary conditions and implications are useful when they
+help answer the requested question and have a basis. They are not a mandatory
+ladder for every finding. A supported descriptive interpretation is complete for
+that purpose. Do not add a theory, negative case, citation or managerial
+recommendation merely to fill an example structure.
 
-### Step 2: Climb the Interpretive Depth Ladder
+### Write and check the requested unit
 
-For each major finding, move through five levels — stopping at the level your evidence supports:
+Keep the observation, supported interpretation and possible implication distinct.
+Place consequential limitations beside the claim they limit. Compare with prior
+work only when its actual finding and context are available; mark a needed
+comparison as unresolved rather than inventing one.
 
-```
-Level 1 — DESCRIPTION:     What happened? What pattern emerged?
-                           "We observe that X is positively associated with Y"
-
-Level 2 — MECHANISM:       Why might it have happened? What process connects X → Y?
-                           "This is consistent with [theory], which posits that M mediates..."
-
-Level 3 — RIVAL:           What else could explain it? What alternative stories fit the data?
-                           "However, this pattern could also reflect [rival], because..."
-
-Level 4 — BOUNDARY:        When or where does the claim narrow or break?
-                           "This relationship holds for [context] but may not extend to [other context]"
-
-Level 5 — IMPLICATION:     Why does it matter? For theory, practice, or method?
-                           "This finding suggests that [theory] needs revision in [specific way]"
-```
-
-> **Rule**: Stop at the depth the evidence supports. A descriptive association with an explicit causal caveat is a valid result. Add mechanisms only as supported explanations or clearly labelled hypotheses; never invent one to satisfy this ladder.
-
-> **Anti-pattern**: Jumping directly from Level 1 to Level 5 (description → implication) without mechanism or boundary. This produces shallow "interesting finding → companies should…" writing that reviewers reject.
-
-### Step 3: Write at the Right Level for Each Finding Type
-
-#### Reporting Confirmed Hypotheses
-
-```markdown
-Template:
-"Hypothesis H[n] predicted that [IV] would be [direction] associated with [DV].
-Consistent with this prediction, the coefficient was [β = X, 95% CI [L, U], p = Y],
-corresponding to [practical interpretation: see effect-size-interpreter].
-This result aligns with [theory/prior work], which suggests that [mechanism].
-However, we note that [alternative explanation] cannot be fully ruled out given
-[design limitation]."
-```
-
-**Example**:
-```
-H1a predicted that remote work adoption would be positively associated with
-individual productivity. Consistent with this prediction, the estimated
-coefficient was β = 0.31 (95% CI [0.14, 0.48], p < .001), suggesting that
-a one-standard-deviation increase in remote work ratio is associated with
-approximately a 0.31 SD increase in quarterly output index. This aligns with
-autonomy theory (Deci & Ryan, 2000), which posits that reduced interruptions
-and increased schedule control enhance deep work. However, selection effects
-cannot be fully excluded: higher-performing employees may negotiate remote
-arrangements more successfully (see robustness check R1).
-```
-
-#### Reporting Null Results
-
-```markdown
-Template:
-"Contrary to H[n], we did not find a statistically significant association
-between [IV] and [DV] (β = X, 95% CI [L, U], p = Y). The confidence interval
-is consistent with effects ranging from [L interpretation] to [U interpretation],
-meaning we cannot rule out [substantively meaningful effects if CI is wide].
-With our sample of N = [n], we had [power]% power to detect effects of d ≥ [MDE],
-so effects smaller than this threshold remain plausible."
-```
-
-> **Never write**: "There was no effect of X on Y." This conflates **absence of evidence** with **evidence of absence**. The CI tells you what effects are plausible.
-
-#### Reporting Qualitative Findings
-
-```markdown
-Template:
-"A central finding was the theme of [label] ([n/N] participants / [n/N] cases),
-which captures [definition and analytic interpretation, not just label].
-This theme was most pronounced among [subgroup/context] and manifested through
-[specific practice/process]. A representative instance is [informant/case]:
-'[quote]' ([ID], [context]).
-
-However, this pattern was not universal. In [n] cases, we observed [deviant
-pattern], which suggests [boundary condition or alternative explanation].
-[Informant/case] described: '[counter-quote]' ([ID]).
-
-Theoretically, this resonates with [framework]'s concept of [specific construct],
-particularly the idea that [mechanism]. It extends prior understanding by showing
-that [novel contribution: process variant / new mechanism / boundary condition]."
-```
-
-> **Anti-pattern**: "Theme 1 is X. Participant A said '...' Participant B said '...' Participant C said '...'" — this is quote dumping, not analysis. Every quote must serve an analytic purpose.
-
-#### Reporting Robustness Results
-
-```markdown
-Template:
-"To assess the sensitivity of our results, we conducted [n] robustness checks
-(see Table [n] in the Appendix). The primary estimate remained [stable/changed]
-across specifications:
-- [Check 1: result] — addresses [threat]
-- [Check 2: result] — addresses [threat]
-When [most challenging check], the coefficient [changed direction / reduced to
-non-significance / remained stable], suggesting [interpretation of fragility or robustness]."
-```
-
-### Step 4: Handle Special Interpretation Challenges
-
-| Challenge | How to Handle |
-|-----------|---------------|
-| **Contradictory results** | Report both; discuss when they diverge and why; do not bury the inconvenient finding |
-| **Marginal significance (p ≈ .05)** | Report exact p-value; emphasize CI and effect size; do not spin as "trending" |
-| **Unexpected findings** | Label as exploratory; propose mechanism; add to future work; do not treat as confirmed |
-| **Suppressor effects** | When adding a control flips a sign — explain the mechanism transparently |
-| **Strong theory, weak evidence** | Narrow the claim; discuss possible reasons (measurement, power, context) |
-| **Strong evidence, no theory** | Present as empirical regularity; call for theoretical development |
-| **Qualitative: single compelling case** | Use as "paradigmatic" or "revelatory" case — but note it is one instance |
-| **Qualitative: informant disagreement** | Report the disagreement as a finding — it reveals tensions, not errors |
-
-### Step 5: Flag Limitations at Point of Interpretation
-
-Don't defer all limitations to a separate section. At the point where a claim is made, note:
-
-| Limitation Type | Where to Mention |
-|----------------|-----------------|
-| Identification / causal caveat | Immediately after causal-sounding claims |
-| External validity | When discussing implications for other contexts |
-| Measurement validity | When reporting on specific variables |
-| Missing data impact | When reporting affected analyses |
-| Single-source / common-method | When correlations are discussed |
-| Reflexivity (qualitative) | When interpretation could be shaped by researcher positionality |
-
-### Step 6: Write the Discussion Bridge
-
-Connect results to the broader conversation:
-
-```
-For each key finding:
-1. State the finding (1 sentence — reference the result, don't re-argue)
-2. Compare to prior literature (agreements + disagreements)
-3. Explain WHY it agrees/disagrees (mechanism, context, method differences)
-4. State the theoretical implication (how does this update our understanding?)
-5. State one practical implication (if warranted — do not overclaim)
-6. Identify the boundary condition (when might this NOT hold?)
-```
+Before returning the text, check its central claims against the current sources,
+its consistency with inherited decisions, and any unresolved contradiction. Use
+`references/academic-output-rubric.md`. Report the supported result and the exact
+claim/action awaiting evidence; continue independent supported drafting.
 
 ## Output Contract
 
-- `ResultInterpretation`: write `RESEARCH/[topic]/manuscript/results_interpretation.md`.
-- Separate finding, interpretation, and implication in the final artifact.
-- Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
-- Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
+For formal saved interpretation, use
+`RESEARCH/[topic]/manuscript/results_interpretation.md` through the existing
+preview/approval/CAS owner. Preserve user text and claim/decision IDs. Record the
+finding, source/output anchor, interpretation, limiting assumption and unresolved
+continuation condition at the level needed for reuse; no fixed paragraph format.
 
 ### Evidence Ledger and Source Integrity
 
-- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when producing, revising, or validating central scholarly claims.
-- Follow `references/evidence-ledger-contract.md`: supported claims need source pointers; unsupported central claims become `gap_note` rows and `RESEARCH/[topic]/context/gap_notes.md` entries.
-- For final writing, proofread, submission, rebuttal, citation, or presentation-facing outputs, apply `references/citation-risk-policy.md` and write or update `RESEARCH/[topic]/proofread/citation-risk-report.md` when citation risk is material.
+Follow `references/evidence-ledger-contract.md` for central claims in
+`evidence/claim-evidence-ledger.csv`. Keep source locators and citekeys distinct
+from the interpretation; an unsupported central claim remains a gap note. Reuse
+those IDs and exact claim text in the F4 map when that task is in scope. Use
+`references/citation-risk-policy.md` for material citation risks.
 
-## Quality Bar
-
-The results interpretation is **ready** when:
-
-- [ ] Every finding uses the strongest supported interpretation and states its limits
-- [ ] Hypothesis assessments report available estimates, precision and effect size; mechanisms and rivals are evidence-backed or explicitly hypothetical
-- [ ] Null results are reported as precision statements, not as "no effect"
-- [ ] Qualitative themes are analytically interpreted, not just illustrated with quotes
-- [ ] Deviant/negative cases are reported and interpreted
-- [ ] Robustness results are summarized with threat → check → result structure
-- [ ] Limitations are mentioned at the point of interpretation, not all deferred
-- [ ] No claim exceeds the identification strategy (correlational design ≠ causal language)
-
-## Common Pitfalls
-
-| Pitfall | Problem | Fix |
-|---------|---------|-----|
-| "Results show that X causes Y" with observational data | Overclaiming causation | Use "is associated with" / "predicts" |
-| Quoting Cohen's benchmarks without field context | Generic interpretation | Use `effect-size-interpreter` for contextualization |
-| All limitations in one paragraph at the end | Looks perfunctory | Mention at point of interpretation + collect in section |
-| Qualitative: quote dumping without analysis | Weak analytical contribution | Every quote must serve an analytic purpose (explain the quote after presenting it) |
-| Hiding null results in supplementary | Reviewer will find them | Report null results in the main text |
-| "Future research should…" without foundation | Vague; reviewer sees it as filler | Each "future" direction should emerge from a specific limitation of this study |
-
-## Minimal Output Format
-
-```markdown
-# Results Interpretation
-
-## Finding 1: [H1a / Theme 1 / Primary Result]
-
-### Description (Level 1)
-[What the data show — estimate, CI, pattern]
-
-### Mechanism (Level 2)
-[Why this pattern — theory, prior evidence]
-
-### Rival Explanations (Level 3)
-[Alternative interpretations — with evidence for/against]
-
-### Boundary Conditions (Level 4)
-[When this may not hold — moderators, context, time]
-
-### Implications (Level 5)
-[Theoretical + practical, calibrated to evidence strength]
-
-## Finding 2: ...
-
-## Null / Unexpected Results
-[Report with precision framing and power context]
-
-## Robustness Summary
-| Check | Threat Addressed | Result | Primary Conclusion Changes? |
-|-------|-----------------|--------|----------------------------|
-
-## Cross-Finding Synthesis
-[How findings relate to each other — do they tell a coherent story?]
-```
+For a formal transition, use `references/stage-handoff-contract.md`. Pass current
+source/output identity, claim limits, unresolved checks and next supported action.
+A complete interpretation draft does not itself establish a passed formal gate,
+an independent review, a refreshed graph or submission readiness.

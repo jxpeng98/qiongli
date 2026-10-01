@@ -198,6 +198,11 @@ append safely or propose a diff, and verify the actual write result.
 - For formal tasks, retain required outputs and gates. Inspect relevant
   project-local guidance through `references/platform-routing.md`; subject and
   venue lenses refine the task, not the evidence or permission requirements.
+- At consequential C/E/F choices, use the three questions in
+  `references/academic-output-rubric.md`: what must be decided, what evidence
+  settles it, and what can proceed under which conditions. Use the selected
+  stage's decision guidance and carry unresolved dependencies into the handoff.
+  Choose the execution path; reuse answers instead of conducting a fixed interview.
 - When discipline or method changes the advice, use
   `references/discipline-guidance.md` to select one relevant guide and the
   available `skills/domain-profiles/[domain].yaml`. Load only the needed sections.

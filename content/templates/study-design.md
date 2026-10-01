@@ -26,11 +26,14 @@ Save to: RESEARCH/[topic]/study_design.md
 - **Setting/context**:
 
 ### Design decision log
-| Decision | Chosen option | Rejected alternatives | Reason |
-|---|---|---|---|
-| Study type | | | |
-| Unit of analysis | | | |
-| Timing / panel structure | | | |
+Reuse existing decision IDs; link consequential decisions to
+`context/decision_log.md` rather than creating a competing register.
+
+| Decision / ID | Chosen option | Rejected alternatives | Reason / source basis | Condition to proceed / revisit trigger |
+|---|---|---|---|---|
+| Study type | | | | |
+| Unit of analysis | | | | |
+| Timing / panel structure | | | | |
 
 ## 4) Population, Sampling, Recruitment
 - **Target population**:
