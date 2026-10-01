@@ -1264,3 +1264,94 @@ An optional retained Python experience-record check against the checkout finds
 old ignored trace records missing required inputs; it is not a native CLI release
 gate and no records are changed. This failed diagnostic is not a passing schema
 claim. Frozen public schema validation is the applicable compatibility check.
+
+
+### October 1 — discipline guidance and lifecycle reinforcement (local development)
+
+The maintainer requests more precise discipline/common-method content and another
+pass over the full research lifecycle on the 2.1.1 baseline. Canonical source
+`cf42c26fff29de3b640ef36f8868e99a75038ba8` adds one conditional index and seven
+field guides: economics/finance/accounting, business/society/policy,
+education/psychology, health/biomedical, computing/engineering,
+environment/spatial, and humanities/language/law. Reuse existing profiles and
+stage artifacts; the guides add no Host entries, subject IDs, model choices,
+permission owners or research-write paths. Focused packages disclose missing
+profiles rather than pretending to load them. This is local development, not a
+release or installation request.
+
+All A–M references now carry more concrete source, unit, measurement, method,
+interpretation and handoff decisions. Selected existing design, statistics,
+reporting and profile cards replace universal numerical heuristics and method
+rankings with design-specific reasoning. Stage G owns applicable standard/version
+selection; the general reporting card stops copying stale checklist tables.
+PRISMA distinguishes records, reports, studies and synthesis subsets, reports
+actual registration status, and fixes the working template's expanded-item total
+from 40 to 42. Reporting completeness does not establish study quality. Existing
+formal gates, method contracts, approval/CAS and user-configured models remain.
+English/Chinese public Skills guides are regenerated through their existing owner.
+
+Validation and review:
+
+- Across affected batches, 59 distinct Python checks pass in
+  `test_skill_resource_links`, `test_skill_structure_lint`,
+  `test_skill_contract_alignment`, `test_domain_method_packs`,
+  `test_skill_doc_generation`, `test_subject_catalog` and
+  `test_native_marketplace_plugins`. The first batch found an obsolete proposal
+  heading assertion; its assertions now track the existing unchanged
+  proposal-writer route and retain the opening-report/artifact checks. Final
+  source link/structure/contract/document checks pass after the PRISMA and routing
+  edits; the last generated-copy edit passes all six document checks.
+- Capability-contract validation and the skill-creator root validator pass.
+  All domain YAML profiles parse. A direct count reconciles the PRISMA template's
+  27 numbered items, 42 expanded rows and section totals. Isolated materialization
+  for core, economics, business, finance and accounting retains all seven guides
+  byte-for-byte with no missing internal links.
+- The 48 `qiongli-content` tests pass, retaining path/symlink, authorization,
+  drift and data-preservation negatives. The final product `embedded_pack` test
+  passes after regenerating the native lock through `update_qiongli_core_lock`.
+  The 443-resource pack has content root
+  `5420d53526eb2246abea97fe11f63b45d4ba066d2af0f470df9db92e7b087ab0`
+  and pack SHA-256
+  `9cad4dac8aa825524bc509f48cf631ee8a689264893b886c1cfe38091ff2961a`.
+- The built macOS ARM64 debug CLI and existing `export_marketplace_content`
+  example export the verified final content into
+  `/private/tmp/qiongli-skill-depth-cf42c26f-content`.
+  `native_marketplace_plugins.read_content` reconstructs its native pack digest;
+  `project` produces Codex/Claude/DeepSeek content with 22/2/22 Skill entries.
+  All three projections preserve the index and seven guides exactly and pass
+  the resource-link audit. Binary SHA-256:
+  `8510dac1e5519e50eff3af0991685f92f582f4cbdcce87b49580224b89f0859d`.
+  This is local packaging evidence, not installation or release qualification.
+- All seven program-roadmap checks and the generated-index freshness check pass.
+  A before/after ledger comparison preserves every state, dependency and accepted
+  row. Coordinator diff review and `git diff --check` pass; integration uses the
+  required frozen-source boundary guard and local fast-forward merge.
+
+The actual configured Host sub-agent `/root/skill_forward_trial`, with no model
+override, performed read-only synthetic forward trials from the candidate sources
+while editing. It returned answers and the paths read to the coordinator; it did
+not write canonical research files or use private studies. The coordinator found
+all nine cases consistent with the intended boundaries:
+
+| Synthetic input | Observed decision |
+|---|---|
+| Accounting DID with announcement/effective-date ambiguity and a financing control | Preserve timing ambiguity; assess post-treatment control risk and identification |
+| Eight organizational excerpts for reflexive thematic analysis | Do not invent participant count, coding agreement or saturation |
+| Two schools, 400 pupils, one intervention school | Retain two assignment units; no causal/significance claim from pupil count |
+| Repeated patient records split across training/test, AUC 0.91 | Identify leakage and missing external validation; qualify prediction reporting |
+| Five correlated CV folds and a closed LLM | Reject independent-fold inference and unsupported training-contamination assurances |
+| Neighboring pixels used to claim next-year/new-region accuracy | Require validation for the spatial/temporal generalization target |
+| Two incomplete 1910 legal transcriptions | Preserve provenance, historical scope and transcription uncertainty |
+| Mixed-methods thesis with r = 0.32 and contradictory interviews | Integrate divergence; do not invent causality, mediation or supervisor approval |
+| PRISMA: 100 records → 80 screened → 30 sought → 25 assessed → 18 reports → 14 studies → 10 pooled | Reconcile each unit; no forced equal counts or invented registration requirement |
+
+The ninth case followed the PRISMA correction. The final root review-route label
+and generated documentation were clarified after the earlier trials; those small
+edits received coordinator review and the affected checks, not a fresh behavioral
+trial. These observations are bounded sub-agent trials assessed by the coordinator,
+not expert, cross-model, installed-Host or program acceptance. No private research
+access, push, version bump, publication or installed-plugin update occurred.
+The next increment is qualification against maintainer-selected real study cases
+and relevant domain review, then installed-Host observations when authorized.
+All 249 task states/dependencies and 46 historical accepted rows remain unchanged;
+CLI-405 records only this source progress and its remaining qualification limits.

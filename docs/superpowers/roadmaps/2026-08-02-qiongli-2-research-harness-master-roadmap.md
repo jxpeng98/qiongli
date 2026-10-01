@@ -52,7 +52,15 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — September 30, 2026
+## Current execution horizon — October 1, 2026
+
+The current 2.1.1 source baseline now selects the maintainer-requested discipline
+and research-lifecycle Skill reinforcement as the next local increment. Reuse the
+[current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md):
+deepen shared canonical guidance and existing A–M stages, verify native content
+delivery and bounded synthetic behavior, then integrate locally into `2.x`.
+This scope does not authorize a new release or installed-user-profile update;
+real study, domain-expert and installed-Host qualification remain separate evidence.
 
 Use `v2.0.0` at `4f2107f7fda9d8f6dd8874b7dcffb36f5d7751ba` as the
 released product reference. The [current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md)
