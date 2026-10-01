@@ -4,6 +4,10 @@ import json
 import unittest
 from pathlib import Path
 
+from tooling.scripts.validate_capability_contract import (
+    validate_capability_contract,
+    validate_instance,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_ROOT = REPO_ROOT / "content" / "mcp-contracts"
@@ -23,6 +27,7 @@ class MCPContractFixtureTests(unittest.TestCase):
                 "qiongli_literature_status",
                 "qiongli_search_plan",
                 "qiongli_literature_search",
+                "qiongli_literature_read_fulltext",
                 "qiongli_literature_export_evidence",
                 "qiongli_zotero_status",
                 "qiongli_zotero_export_import_files",
@@ -119,3 +124,54 @@ class MCPContractFixtureTests(unittest.TestCase):
         self.assertEqual(search["properties"]["per_provider_limit"]["minimum"], 1)
         self.assertEqual(search["properties"]["per_provider_limit"]["maximum"], 200)
         self.assertEqual(search["properties"]["total_limit"]["maximum"], 1000)
+
+    def test_native_fulltext_contract_bounds_read_inputs_and_success_evidence(self) -> None:
+        name = "qiongli_literature_read_fulltext"
+        schema = json.loads((CONTRACT_ROOT / f"{name}.input.schema.json").read_text())
+        valid = {"url": "https://example.org/paper.xml", "expected_sha256": "a" * 64}
+        self.assertEqual(validate_instance(valid, schema), [])
+        self.assertEqual(validate_instance({**valid, "offset": 2}, schema), [])
+        for invalid in (
+            {}, {"url": "file:///tmp/paper.pdf"}, {**valid, "offset": -1},
+            {"url": valid["url"], "offset": 1},
+            {**valid, "limit": 0}, {**valid, "limit": 51}, {**valid, "refresh": "true"},
+            {**valid, "expected_sha256": "A" * 64}, {**valid, "cwd": "/tmp"},
+        ):
+            with self.subTest(arguments=invalid):
+                self.assertTrue(validate_instance(invalid, schema))
+        output = json.loads((CONTRACT_ROOT / f"{name}.output.schema.json").read_text())
+        result = {
+            "status": "readable_text", "source_url": valid["url"],
+            "resolved_url": valid["url"], "source_sha256": "a" * 64,
+            "format": "jats_xml", "retrieved_at_unix_seconds": 1, "cached": False,
+            "total_segments": 1, "segments": [{"index": 0, "anchor": "section:1", "text": "Source text"}],
+            "identity_status": "unverified", "warnings": [],
+        }
+        self.assertEqual(validate_instance(result, output), [])
+        for invalid in (
+            {**result, "source_sha256": ""}, {**result, "status": "downloaded"},
+            {**result, "segments": [{"index": 0, "text": "Unanchored"}]},
+            {**result, "document_doi": None},
+        ):
+            with self.subTest(result=invalid):
+                self.assertTrue(validate_instance(invalid, output))
+
+    def test_native_extension_does_not_relax_frozen_tool_inventory(self) -> None:
+        contract = json.loads((CONTRACT_ROOT / "lite-tools.json").read_text())
+        tools = {item["name"]: item for item in contract["tools"]}
+        self.assertEqual(validate_capability_contract(REPO_ROOT, lite_tool_definitions=tools), [])
+        missing = dict(tools)
+        del missing["qiongli_literature_read_fulltext"]
+        self.assertTrue(validate_capability_contract(REPO_ROOT, lite_tool_definitions=missing))
+        extra = {**tools, "qiongli_unregistered_native_tool": {
+            "name": "qiongli_unregistered_native_tool", "description": "Unexpected",
+            "inputSchema": {"type": "object"},
+        }}
+        self.assertTrue(validate_capability_contract(REPO_ROOT, lite_tool_definitions=extra))
+        missing_legacy = dict(tools)
+        del missing_legacy["qiongli_literature_search"]
+        self.assertTrue(validate_capability_contract(REPO_ROOT, lite_tool_definitions=missing_legacy))
+        drift = dict(tools)
+        name = "qiongli_literature_read_fulltext"
+        drift[name] = {**tools[name], "inputSchema": {"type": "object"}}
+        self.assertTrue(validate_capability_contract(REPO_ROOT, lite_tool_definitions=drift))

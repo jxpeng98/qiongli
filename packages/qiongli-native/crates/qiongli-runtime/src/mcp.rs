@@ -11,6 +11,7 @@ use serde::Deserialize;
 use serde_json::{Map, Value, json};
 
 use crate::evidence::{EvidenceInput, build_evidence_snapshot};
+use crate::fulltext::{FulltextReader, FulltextRequest};
 use crate::orchestration::dispatch_lite_orchestration;
 use crate::protocol::{read_message, write_message};
 use crate::providers::search::{PROVIDER_ORDER as SEARCH_PROVIDER_ORDER, SearchRequest};
@@ -125,6 +126,7 @@ pub struct LiteMcpServer {
     registry: LiteToolRegistry,
     providers: ProviderState,
     zotero: Option<CompanionClient>,
+    fulltext: FulltextReader,
 }
 
 impl LiteMcpServer {
@@ -142,6 +144,7 @@ impl LiteMcpServer {
             registry,
             providers: ProviderState::Available(Box::new(ProviderServices { access, runtime })),
             zotero: default_zotero_client(),
+            fulltext: FulltextReader::default(),
         }
     }
 
@@ -189,6 +192,7 @@ impl LiteMcpServer {
                 timeout,
             })),
             zotero: default_zotero_client(),
+            fulltext: FulltextReader::default(),
         }
     }
 
@@ -204,6 +208,7 @@ impl LiteMcpServer {
             registry,
             providers: ProviderState::ConfigUnavailable,
             zotero: default_zotero_client(),
+            fulltext: FulltextReader::default(),
         }
     }
 
@@ -225,6 +230,7 @@ impl LiteMcpServer {
                 runtime: Some(runtime),
             })),
             zotero: default_zotero_client(),
+            fulltext: FulltextReader::default(),
         }
     }
 
@@ -432,6 +438,7 @@ impl LiteMcpServer {
                 tool_result(id, json!(build_search_plan(input)))
             }
             LiteLiteratureHandler::Search => self.literature_search(id, arguments),
+            LiteLiteratureHandler::ReadFulltext => self.literature_read_fulltext(id, arguments),
             LiteLiteratureHandler::ExportEvidence => {
                 let input = match EvidenceInput::from_arguments(arguments) {
                     Ok(input) => input,
@@ -441,6 +448,35 @@ impl LiteMcpServer {
                 };
                 tool_result(id, json!(build_evidence_snapshot(input)))
             }
+        }
+    }
+
+    fn literature_read_fulltext(&self, id: Value, arguments: &Value) -> Value {
+        let request = match FulltextRequest::from_arguments(arguments) {
+            Ok(request) => request,
+            Err(error) if error.code == "invalid-input" => {
+                return json_rpc_error(Some(id), -32602, error.message);
+            }
+            Err(error) => return tool_error(id, error.code, error.message),
+        };
+        // Public sources need no provider configuration or credential lookup.
+        let access = if request.requires_openalex_key() {
+            match &self.providers {
+                ProviderState::Available(services) => Some(services.access.clone()),
+                ProviderState::Deferred(services) => {
+                    services.load().map(|services| services.access)
+                }
+                ProviderState::ConfigUnavailable => None,
+            }
+        } else {
+            None
+        };
+        let key = access
+            .as_ref()
+            .and_then(|access| access.value(ProviderId::OpenAlex, ProviderField::ApiKey));
+        match self.fulltext.read(&request, key) {
+            Ok(output) => tool_result(id, json!(output)),
+            Err(error) => tool_error(id, error.code, error.message),
         }
     }
 
@@ -674,6 +710,14 @@ fn allowed_arguments(tool_id: LiteToolId) -> &'static [&'static str] {
     match tool_id {
         LiteToolId::ConfigStatus | LiteToolId::LiteratureStatus => &["cwd"],
         LiteToolId::ZoteroStatus => &[],
+        LiteToolId::LiteratureReadFulltext => &[
+            "url",
+            "offset",
+            "limit",
+            "refresh",
+            "expected_sha256",
+            "expected_doi",
+        ],
         LiteToolId::ZoteroSearch => &[
             "doi",
             "title",

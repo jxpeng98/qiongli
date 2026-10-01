@@ -17,6 +17,25 @@ packets do not transfer Host-bound checkpoints or authenticated evidence authori
 The Qiongli 2 executable, CLI, Desktop service, Full MCP, project state, and
 embedded resources live under `packages/qiongli-native/`.
 
+Native Lite and Full expose `qiongli_literature_read_fulltext` from the shared
+`qiongli-runtime::fulltext` owner. Search records preserve optional abstracts,
+reported fulltext candidates and external IDs; none establishes retrieved text.
+The reader accepts one public HTTPS PDF/TEI/JATS source, rejects credentials,
+private destinations and unsafe redirects, pins DNS results per hop and limits
+downloads/decoded gzip to 12 MiB. OpenAlex keys go only to its exact supported
+content endpoint. Public sources do not require provider configuration.
+
+Segments carry the decoded source SHA-256 and page/section anchors; continuation
+requires the same digest. The eight-document session cache is not a project store.
+Emitted text is capped at 2 MiB, 10,000 segments and 300 PDF pages; parser-internal
+PDF stream/font allocations are library-owned, not a hard process memory/time
+sandbox. HTML/OCR, private attachments and authenticated publisher browsing stay
+with available authorized Host tools. Structured DOI conflicts, multi-paper XML,
+abstract-only responses and heading-only bodies cannot report readable fulltext.
+Reading passages does not authorize manifest, Graph or canonical writes; Skills
+retain the existing identity/version, evidence and preview/approval/CAS owners.
+The native extension has standalone schemas; frozen Python v2 inventory is unchanged.
+
 Academic Graph v1 remains a rebuildable projection over registered canonical
 artifacts. `academic_graph_extract.rs` permits one claim ID/text/type across
 multiple evidence rows, diagnoses conflicting records, and requires source

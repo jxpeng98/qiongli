@@ -427,6 +427,65 @@ impl Author {
     }
 }
 
+/// A provider-reported access lead, not proof of retrieval or readable full text.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct FulltextCandidate {
+    pub url: String,
+    pub source: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub format: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub license: Option<String>,
+}
+
+impl FulltextCandidate {
+    pub fn new(
+        url: &str,
+        source: &str,
+        format: Option<&str>,
+        version: Option<&str>,
+        license: Option<&str>,
+    ) -> Option<Self> {
+        let url = url.trim();
+        let (_, authority) = url.split_once("://")?;
+        let parsed = url::Url::parse(url).ok()?;
+        if !matches!(parsed.scheme(), "http" | "https")
+            || parsed.host_str().is_none()
+            || !parsed.username().is_empty()
+            || parsed.password().is_some()
+            || authority.split(['/', '?', '#']).next()?.contains('@')
+            || url.chars().any(|c| c.is_whitespace() || c.is_control())
+        {
+            return None;
+        }
+        Some(Self {
+            url: url.to_owned(),
+            source: source.to_owned(),
+            format: format.map(str::to_owned),
+            version: version.map(str::to_owned),
+            license: license.map(str::to_owned),
+        })
+    }
+}
+
+pub(crate) fn string_identifiers(value: Option<&Value>) -> BTreeMap<String, String> {
+    value
+        .and_then(Value::as_object)
+        .into_iter()
+        .flatten()
+        .filter_map(|(key, value)| {
+            let identifier = value
+                .as_str()
+                .filter(|s| !s.trim().is_empty())
+                .map(str::to_owned)
+                .or_else(|| value.as_u64().map(|id| id.to_string()));
+            identifier.map(|id| (key.clone(), id))
+        })
+        .collect()
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LiteratureResult {
     pub title: String,
@@ -461,6 +520,12 @@ pub struct LiteratureResult {
     pub authors: Vec<Author>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub metadata_conflicts: Vec<String>,
+    #[serde(default, rename = "abstract", skip_serializing_if = "Option::is_none")]
+    pub abstract_text: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub fulltext_candidates: Vec<FulltextCandidate>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub external_ids: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -746,6 +811,21 @@ pub fn deduplicate_results(records: Vec<LiteratureResult>) -> Vec<LiteratureResu
         record.title = clean_text(&record.title);
         record.doi = record.doi.as_deref().and_then(normalize_doi);
         record.providers = ordered_providers(&record.provider, &record.providers);
+        if let Some(source_id) = &record.source_id {
+            record
+                .external_ids
+                .entry(record.provider.clone())
+                .or_insert_with(|| source_id.clone());
+        }
+        let mut candidates = Vec::new();
+        for candidate in record.fulltext_candidates {
+            if FulltextCandidate::new(&candidate.url, &candidate.source, None, None, None).is_some()
+                && !candidates.contains(&candidate)
+            {
+                candidates.push(candidate);
+            }
+        }
+        record.fulltext_candidates = candidates;
         let key = dedupe_key(&record);
         if let Some(group) = key.as_ref().and_then(|key| positions.get(key)) {
             let matching = group
@@ -916,6 +996,31 @@ fn merge_record(existing: &mut LiteratureResult, incoming: LiteratureResult) {
         publisher,
         citekey
     );
+    if existing.abstract_text.is_none() {
+        existing.abstract_text = incoming.abstract_text;
+    } else if incoming.abstract_text.is_some() && existing.abstract_text != incoming.abstract_text {
+        existing.metadata_conflicts.push("abstract".to_owned());
+    }
+    for candidate in incoming.fulltext_candidates {
+        if !existing.fulltext_candidates.contains(&candidate) {
+            existing.fulltext_candidates.push(candidate);
+        }
+    }
+    for (key, value) in incoming.external_ids {
+        if let Some(previous) = existing.external_ids.get(&key) {
+            if previous != &value {
+                existing
+                    .metadata_conflicts
+                    .push(format!("external_ids.{key}"));
+                existing
+                    .external_ids
+                    .entry(format!("{}:{key}", incoming.provider))
+                    .or_insert(value);
+            }
+        } else {
+            existing.external_ids.insert(key, value);
+        }
+    }
     if existing.source_id.is_none() {
         existing.source_id = incoming.source_id;
     }
@@ -1135,5 +1240,107 @@ mod tests {
             vec!["openalex", "semantic_scholar"]
         );
         assert_eq!(deduplicated[0].venue.as_deref(), Some("Venue"));
+    }
+
+    #[test]
+    fn access_leads_are_optional_and_legacy_records_stay_readable() {
+        let record: LiteratureResult = serde_json::from_value(json!({
+            "title": "Legacy paper", "provider": "crossref"
+        }))
+        .unwrap();
+        let value = serde_json::to_value(record).unwrap();
+        for absent in [
+            "abstract",
+            "fulltext_candidates",
+            "external_ids",
+            "fulltext",
+        ] {
+            assert!(value.get(absent).is_none());
+        }
+        for url in [
+            "file:///tmp/paper.pdf",
+            "javascript:alert(1)",
+            "https:paper.example/a",
+            "https://user:secret@paper.example/a",
+            "https://@paper.example/a",
+            "/paper.pdf",
+            "https://paper.example/a\nb",
+            "https://paper.example/a b",
+        ] {
+            assert!(
+                FulltextCandidate::new(url, "fixture", Some("pdf"), None, None).is_none(),
+                "{url}"
+            );
+        }
+        assert!(
+            FulltextCandidate::new(
+                "http://paper.example/a.pdf",
+                "fixture",
+                Some("pdf"),
+                None,
+                None
+            )
+            .is_some()
+        );
+    }
+
+    #[test]
+    fn dedup_preserves_access_provenance_versions_licenses_and_identity_conflicts() {
+        let lead = |source: &str, version: &str, license: &str| {
+            FulltextCandidate::new(
+                "https://paper.example/full.pdf",
+                source,
+                Some("pdf"),
+                Some(version),
+                Some(license),
+            )
+            .unwrap()
+        };
+        let first = lead("openalex", "acceptedVersion", "cc-by");
+        let second = lead("semantic_scholar", "publishedVersion", "cc-by-nc");
+        let third = lead("openalex", "publishedVersion", "cc-by");
+        let records = deduplicate_results(vec![
+            LiteratureResult {
+                title: "Paper".into(),
+                doi: Some("10.1000/test".into()),
+                provider: "openalex".into(),
+                source_id: Some("https://openalex.org/W1".into()),
+                abstract_text: Some("An abstract, not the body.".into()),
+                fulltext_candidates: vec![first.clone(), first.clone()],
+                external_ids: BTreeMap::from([("DOI".into(), "10.1000/test".into())]),
+                ..Default::default()
+            },
+            LiteratureResult {
+                title: "Paper".into(),
+                doi: Some("10.1000/test".into()),
+                provider: "semantic_scholar".into(),
+                source_id: Some("semantic_scholar:123".into()),
+                abstract_text: Some("Different abstract.".into()),
+                fulltext_candidates: vec![second.clone(), third.clone()],
+                external_ids: BTreeMap::from([
+                    ("DOI".into(), "10.1000/TEST".into()),
+                    ("PubMedCentral".into(), "PMC1".into()),
+                ]),
+                ..Default::default()
+            },
+        ]);
+        assert_eq!(records.len(), 1);
+        let record = &records[0];
+        assert_eq!(record.fulltext_candidates, vec![first, second, third]);
+        assert_eq!(record.external_ids["openalex"], "https://openalex.org/W1");
+        assert_eq!(
+            record.external_ids["semantic_scholar"],
+            "semantic_scholar:123"
+        );
+        assert_eq!(record.external_ids["PubMedCentral"], "PMC1");
+        assert_eq!(record.external_ids["semantic_scholar:DOI"], "10.1000/TEST");
+        assert_eq!(
+            record.metadata_conflicts,
+            vec!["abstract", "external_ids.DOI"]
+        );
+        let value = serde_json::to_value(record).unwrap();
+        assert_eq!(value["abstract"], "An abstract, not the body.");
+        assert!(value.get("fulltext").is_none());
+        assert!(value["fulltext_candidates"][0].get("retrieved").is_none());
     }
 }

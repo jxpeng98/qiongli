@@ -69,8 +69,12 @@ ambiguous. Use the templates for their field structure:
 
 Record the evidence limit, retrieval status/version, source anchors and inference
 strength alongside findings, method, theory, limitations and project relevance.
-Use `fulltext-fetcher` for required retrieval planning and record actual access
-in `retrieval_manifest.csv`; do not repeat a completed retrieval.
+Use `fulltext-fetcher` for required body retrieval. When exposed, call
+`qiongli_literature_read_fulltext` for a public PDF/TEI/JATS candidate; otherwise
+use an available authorized Host reader. Preserve source digest and page/section
+anchors, inspect relevant passages, and record actual access in
+`retrieval_manifest.csv`; do not repeat a completed retrieval or promote a
+search snippet to full text.
 
 Preserve human-written notes and prior source anchors. Propose a bounded merge;
 when a safe merge is unclear, append a dated entry and keep unresolved material

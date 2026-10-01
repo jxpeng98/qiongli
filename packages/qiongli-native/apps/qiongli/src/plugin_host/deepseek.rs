@@ -124,7 +124,7 @@ fn review(
     line(
         writer,
         &format!(
-            "DeepSeek Harness: qiongli {} installed and registered in profile {}.\nProfile: {}\nSession tools: not checked. Start a new DSH session, check 22 Skills/32 Full MCP tools and call qiongli_config_status.\n",
+            "DeepSeek Harness: qiongli {} installed and registered in profile {}.\nProfile: {}\nSession tools: not checked. Start a new DSH session, check 22 Skills/33 Full MCP tools and call qiongli_config_status.\n",
             env!("CARGO_PKG_VERSION"),
             plan.profile,
             plan.profile_directory.display()

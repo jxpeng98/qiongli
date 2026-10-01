@@ -2,7 +2,8 @@ use serde::Deserialize;
 
 use super::runtime::{ProviderRuntime, ProviderRuntimeError};
 use super::search::{
-    Author, LiteratureResult, ProviderError, SearchInput, limit_for, normalize_doi, year_from_text,
+    Author, FulltextCandidate, LiteratureResult, ProviderError, SearchInput, limit_for,
+    normalize_doi, year_from_text,
 };
 
 #[derive(Debug, Deserialize)]
@@ -65,13 +66,33 @@ pub fn normalize_pubmed_summary_response(
         };
         let doi = article
             .articleids
-            .into_iter()
+            .iter()
             .find(|id| id.idtype.as_deref() == Some("doi"))
-            .and_then(|id| id.value)
-            .as_deref()
+            .and_then(|id| id.value.as_deref())
             .and_then(normalize_doi);
+        let external_ids = article
+            .articleids
+            .iter()
+            .filter_map(|id| {
+                Some((
+                    id.idtype.clone()?,
+                    id.value.clone().filter(|s| !s.trim().is_empty())?,
+                ))
+            })
+            .collect();
+        let fulltext_candidates = article.articleids.iter()
+            .filter(|id| id.idtype.as_deref() == Some("pmc"))
+            .filter_map(|id| id.value.as_deref())
+            .filter_map(|id| id.strip_prefix("PMC"))
+            .filter(|digits| !digits.is_empty() && digits.bytes().all(|c| c.is_ascii_digit()))
+            .filter_map(|digits| FulltextCandidate::new(
+                &format!("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id={digits}&retmode=xml"),
+                "pubmed", Some("jats_xml"), None, None))
+            .collect();
         records.push(LiteratureResult {
             title,
+            external_ids,
+            fulltext_candidates,
             source_id: Some(format!("pmid:{uid}")),
             url: Some(format!("https://pubmed.ncbi.nlm.nih.gov/{uid}/")),
             authors: article
@@ -172,4 +193,32 @@ pub fn search_pubmed(
             .header("Accept", "application/json"),
     )?;
     normalize_pubmed_summary_response(&summary_payload).map_err(|_| ProviderRuntimeError::Decode)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn summary_keeps_reported_ids_and_resolves_only_valid_pmc_leads() {
+        let records = normalize_pubmed_summary_response(&json!({"result":{
+            "uids":["123", "124"],
+            "123":{"title":"Paper", "articleids":[{"idtype":"doi","value":"10.1000/TEST"},
+                {"idtype":"pmc","value":"PMC456"}, {"idtype":"pubmed","value":"123"}]},
+            "124":{"title":"No fulltext", "articleids":[{"idtype":"pmc","value":"PMC456&api_key=secret"}]}
+        }}).to_string()).unwrap();
+        assert_eq!(records[0].doi.as_deref(), Some("10.1000/test"));
+        assert_eq!(records[0].external_ids["pmc"], "PMC456");
+        assert_eq!(
+            records[0].fulltext_candidates[0].url,
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id=456&retmode=xml"
+        );
+        assert_eq!(
+            records[0].fulltext_candidates[0].format.as_deref(),
+            Some("jats_xml")
+        );
+        assert!(records[0].abstract_text.is_none());
+        assert!(records[1].fulltext_candidates.is_empty());
+    }
 }

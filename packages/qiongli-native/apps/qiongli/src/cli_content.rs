@@ -269,7 +269,7 @@ fn guide(
     line(
         writer,
         &format!(
-            "Qiongli {} — connect your research tools\nVisible CLI installations: {}. The running CLI supplies this installation.\n\n1. Plugin (recommended): Skills + native program + Full MCP (32 tools).\n2. Skills files only: export guidance; no MCP or automatic Host registration.\n3. MCP connection only: show configuration for your existing Host.\n4. Review CLI versions and manual cleanup guidance.\n0. Cancel.\n",
+            "Qiongli {} — connect your research tools\nVisible CLI installations: {}. The running CLI supplies this installation.\n\n1. Plugin (recommended): Skills + native program + Full MCP (33 tools).\n2. Skills files only: export guidance; no MCP or automatic Host registration.\n3. MCP connection only: show configuration for your existing Host.\n4. Review CLI versions and manual cleanup guidance.\n0. Cancel.\n",
             env!("CARGO_PKG_VERSION"),
             inventory.installations.len()
         ),
@@ -590,7 +590,7 @@ impl BundledContentReview {
                 "previous_export_version":previous["source"]["version"],"export_state":previous["state"],
                 "skill_language": source.skill_language,
                 "context_hooks": if source.context_hooks {"include context reminders; Host trust and execution not verified"} else {"off in this Plugin"},
-                "mcp":"Full, 32 tools; started by the Host from the bundled native program"}).to_string())?;
+                "mcp":"Full, 33 tools; started by the Host from the bundled native program"}).to_string())?;
             line(
                 writer,
                 "This also installs the research Skills. A separate Skills installation or MCP package is unnecessary.\nFile changes and Host registration are confirmed separately below.\n",

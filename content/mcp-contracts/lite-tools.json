@@ -669,6 +669,71 @@
         },
         "additionalProperties": false
       }
+    },
+    {
+      "name": "qiongli_literature_read_fulltext",
+      "description": "Read bounded, source-anchored text from a public HTTPS PDF, TEI XML, or JATS XML document without writing project files.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://",
+            "description": "Public HTTPS document URL; credentials, nonstandard ports and local/private destinations are rejected."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0,
+            "description": "Zero-based segment index."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10
+          },
+          "refresh": {
+            "type": "boolean",
+            "default": false,
+            "description": "Fetch the source again instead of reusing the session cache."
+          },
+          "expected_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Require these exact source bytes; required for offset greater than zero and recommended for an explicit refresh."
+          },
+          "expected_doi": {
+            "type": "string",
+            "description": "Expected article DOI; a conflicting document DOI is rejected; absence remains unverified."
+          }
+        },
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "offset": {
+                "maximum": 0
+              }
+            }
+          },
+          {
+            "required": [
+              "offset",
+              "expected_sha256"
+            ],
+            "properties": {
+              "offset": {
+                "minimum": 1
+              }
+            }
+          }
+        ]
+      }
     }
   ]
 }

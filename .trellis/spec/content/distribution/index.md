@@ -89,6 +89,14 @@ unresolved dependencies; do not add a parallel state machine or mandatory interv
 Behavioral checks should inspect completed candidate artifacts and continuation
 after changed evidence, not treat matching instructional text as research quality.
 
+Native Lite and Full share `qiongli_literature_read_fulltext` through the existing
+Lite tool registry. Its standalone input/output schemas under
+`content/mcp-contracts/` define bounded read-only public document access;
+`fulltext-fetcher` consumes the segments without writing canonical artifacts.
+The validator checks this explicit native addition separately from the frozen
+CTR-201 v2/Python Full inventory. Do not imply the retained runtime implements it
+or relax legacy tool equality to admit arbitrary native additions.
+
 ## Pre-Development Checklist
 
 - Identify the canonical source and every generated consumer.
@@ -195,7 +203,7 @@ existing defaults; standalone Skills exports do not install Hook configuration.
 Public Marketplace Plugins (ADR 0223) use `native_marketplace_plugins.py` and
 the CLI's `export_marketplace_content` example. Shared research resources retain
 the exact `marketplace-lite` pack bytes. Each Codex/Claude archive bundles its
-qualified target's CLI and directly starts Lite MCP (14 tools) without Node,
+qualified target's CLI and directly starts Lite MCP (15 tools) without Node,
 npm, Python, a shell bridge or executable downloads. Full MCP remains available
 through explicit CLI/local Plugin configuration; packaging does not expand tools.
 

@@ -42,6 +42,35 @@ fn call(server: &LiteMcpServer, id: u64, name: &str, arguments: Value) -> Value 
 }
 
 #[test]
+fn fulltext_validation_is_available_without_provider_configuration_and_redacts_errors() {
+    let server = LiteMcpServer::config_unavailable(
+        "qiongli-test",
+        "test",
+        LiteToolRegistry::from_json(CONTRACT).unwrap(),
+    );
+    let missing = call(&server, 1, "qiongli_literature_read_fulltext", json!({}));
+    assert_eq!(missing["error"]["code"], -32602);
+    let blocked = call(
+        &server,
+        2,
+        "qiongli_literature_read_fulltext",
+        json!({"url":format!("https://127.0.0.1/{SECRET_CANARY}")}),
+    );
+    assert_eq!(
+        blocked["result"]["structuredContent"]["reason_code"],
+        "fulltext-url-blocked"
+    );
+    assert!(!blocked.to_string().contains(SECRET_CANARY));
+    let continuation = call(
+        &server,
+        3,
+        "qiongli_literature_read_fulltext",
+        json!({"url":"https://example.org/paper.pdf", "offset":1}),
+    );
+    assert_eq!(continuation["error"]["code"], -32602);
+}
+
+#[test]
 fn initialize_list_ping_and_notifications_use_bounded_static_protocol_results() {
     let server = server();
     let initialized = server
@@ -337,7 +366,7 @@ fn config_failure_keeps_handshake_available_and_dependent_calls_redacted() {
             .as_array()
             .unwrap()
             .len(),
-        14
+        LITE_PUBLIC_TOOL_NAMES.len()
     );
     for (id, name, arguments) in [
         (3, "qiongli_config_status", json!({})),

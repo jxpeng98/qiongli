@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qiongli.dev/schemas/tools/qiongli_literature_read_fulltext.native.output.json",
+  "title": "qiongli_literature_read_fulltext native successful structured output",
+  "description": "Native Lite and Full only. Failures use the existing MCP tool_error envelope, never this successful result.",
+  "type": "object",
+  "required": [
+    "status",
+    "source_url",
+    "resolved_url",
+    "source_sha256",
+    "format",
+    "retrieved_at_unix_seconds",
+    "cached",
+    "total_segments",
+    "segments",
+    "identity_status",
+    "warnings"
+  ],
+  "properties": {
+    "status": {
+      "const": "readable_text"
+    },
+    "source_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "resolved_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "source_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "format": {
+      "type": "string",
+      "enum": [
+        "pdf",
+        "tei_xml",
+        "jats_xml"
+      ]
+    },
+    "retrieved_at_unix_seconds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cached": {
+      "type": "boolean"
+    },
+    "total_segments": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "segments": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "required": [
+          "index",
+          "anchor",
+          "text"
+        ],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "anchor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "section": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "next_offset": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "document_title": {
+      "type": "string"
+    },
+    "document_doi": {
+      "type": "string"
+    },
+    "identity_status": {
+      "type": "string",
+      "enum": [
+        "not_checked",
+        "matched",
+        "unverified"
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

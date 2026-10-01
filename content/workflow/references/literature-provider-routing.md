@@ -2,6 +2,10 @@
 
 Read this reference when searching, configuring providers, or selecting search execution mode. Tool availability and permissions come from the active Host session.
 
+The MCP/provider capability names `scholarly-search`, `metadata-registry` and
+`fulltext-retrieval` identify routing owners; use the actual exposed tool schema
+for execution. A capability name by itself does not establish an available reader.
+
 For a supplied-excerpt explanation, no external search or search plan is needed.
 When a search needs a plan but `qiongli_search_plan` is unavailable, record the
 plan and capability limits in the response or proposed artifact. Execute only
@@ -47,3 +51,35 @@ source was actually inspected and labelled; do not relabel it MCP output.
 Export `records` as objects with structured ordered authors, never JSON strings.
 Use live capability/error responses for quotas and authentication requirements;
 do not infer current service limits from an old static table.
+
+## From discovery to source text
+
+Select among the existing OpenAlex, Semantic Scholar, Crossref, PubMed and arXiv
+providers for the question and source type; use actual capability/error responses
+for access. Crossref can help confirm DOI metadata, PubMed biomedical records,
+and arXiv repository versions. They complement discovery; none guarantees full
+text. Do not apply an OA-only discovery filter unless the agreed protocol requires
+it. Preserve source IDs, abstracts and `fulltext_candidates` through deduplication,
+including each candidate's provider, format, version and license when supplied.
+Absent fields remain unknown; a DOI or landing-page link is not a PDF.
+
+Use actual Host search when it adds a missing repository, publisher page, known
+item or full-text locator. Execute those queries in the declared `hybrid_search`
+or `native_only` mode, record the Host tool/query/date/source URL, then inspect
+the source. Search snippets and model recollection are not article body evidence.
+The MCP plan can suggest `native_fulltext_queries`; only the active Host can
+execute them. Respect denied access across both surfaces.
+
+When `qiongli_literature_read_fulltext` is visible, the native Lite and Full tool
+reads a selected public HTTPS PDF, TEI XML or JATS XML with bounded segment
+pagination and source digests. Prefer available structured body text, then PDF;
+HTML pages and scanned documents may require a separate available Host reader.
+Known OpenAlex content endpoints use the existing configured OpenAlex access;
+do not place credentials in tool URLs or artifacts. A quota/authentication error
+is an access result, not permission to change provider configuration.
+
+Follow `skills/B_literature/fulltext-fetcher.md` for identity checks, digest-bound
+continuation, actual passage reading and the existing retrieval manifest. If the
+tool is absent, disclose that capability gap and use only available authorized
+readers or supplied files. The retained Python Full runtime and planning stub do
+not gain this native read capability merely because a Skill names it.
