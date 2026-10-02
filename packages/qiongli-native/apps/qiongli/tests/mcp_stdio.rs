@@ -1240,12 +1240,48 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     .into_capture()
     .unwrap();
 
+    let mut draft = json!(capture);
+    for field in ["schema_version", "document_kind", "capture_id"] {
+        draft.as_object_mut().unwrap().remove(field);
+    }
+    let mut partial_identity = draft.clone();
+    partial_identity["schema_version"] = json!(1);
+    let mut forged_identity = json!(capture);
+    forged_identity["capture_id"] = json!(format!("cap_{}", "0".repeat(64)));
+    let mut portable_draft = draft.clone();
+    portable_draft["delivery"] = json!("portable");
     let mut command = fixture.command_with_profile("full");
     let mut child = spawn_with_executable_busy_retry(&mut command)
         .expect("copied canonical binary must start in full profile");
     let requests = [
         rpc(1, "initialize", json!({})),
         rpc(2, "tools/list", json!({})),
+        tool_call(
+            30,
+            "qiongli_project_capture_preview",
+            json!({"capture": draft}),
+        ),
+        tool_call(
+            31,
+            "qiongli_project_capture_preview",
+            json!({"capture": partial_identity}),
+        ),
+        tool_call(
+            32,
+            "qiongli_project_capture_preview",
+            json!({"capture": forged_identity}),
+        ),
+        tool_call(
+            33,
+            "qiongli_project_capture_apply",
+            json!({"capture": draft,
+            "plan_digest": "0".repeat(64), "approve_filesystem_write": true}),
+        ),
+        tool_call(
+            34,
+            "qiongli_project_capture_preview",
+            json!({"capture": portable_draft}),
+        ),
         tool_call(3, "qiongli_project_list", json!({})),
         tool_call(
             4,
@@ -1472,6 +1508,17 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     );
     assert_eq!(by_id(5)["error"]["code"], -32602);
     assert_eq!(by_id(6)["error"]["code"], -32602);
+    assert_eq!(
+        by_id(30)["result"]["structuredContent"]["capture"],
+        json!(capture)
+    );
+    assert_eq!(
+        by_id(30)["result"]["structuredContent"]["planDigest"],
+        by_id(7)["result"]["structuredContent"]["planDigest"]
+    );
+    for id in [31, 32, 33, 34] {
+        assert_eq!(by_id(id)["error"]["code"], -32602);
+    }
     assert_eq!(
         by_id(7)["result"]["structuredContent"]["captureId"],
         capture_id

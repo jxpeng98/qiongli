@@ -45,6 +45,16 @@ abstract-only responses and heading-only bodies cannot report readable fulltext.
 Reading passages does not authorize manifest, Graph or canonical writes; Skills
 retain the existing identity/version, evidence and preview/approval/CAS owners.
 The native extension has standalone schemas; frozen Python v2 inventory is unchanged.
+Its advertised input is a plain object so Host parameter projection retains URL;
+cross-field continuation digest requirements remain enforced by the runtime.
+
+Full MCP capture preview also accepts a connected `ResearchCaptureDraftV1` with
+all three top-level identity fields omitted. The existing project owner validates
+and computes the identity, and preview returns the normalized `capture` alongside
+the existing plan fields. A supplied or partial identity is never repaired.
+Apply still requires the exact normalized capture, preview digest and explicit
+filesystem approval; project revision checks and pending-history semantics stay
+unchanged. Draft normalization grants no academic consolidation authority.
 
 Academic Graph v1 remains a rebuildable projection over registered canonical
 artifacts. `academic_graph_extract.rs` permits one claim ID/text/type across
