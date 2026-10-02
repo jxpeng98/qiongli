@@ -2690,3 +2690,103 @@ carrying source digests and actual body anchors into reviewed paper notes throug
 existing write owners. Signed publisher redirects, authenticated-provider and
 installed-Plugin qualification remain separate. No user profile/model, private
 library, publication, task-state/dependency or accepted-evidence change is made.
+
+### October 3 — native body-to-note Host journey
+
+This follow-up uses unchanged source baseline
+`b5c91e1e26ef860c6b0938e33c22102e8ecd5782`, the prior 446-resource pack and copied
+CLI SHA-256 `a3463a9dc69a3f1ff35f16af81b3818998ad62993f068e8588417bedeb7b7479`.
+No runtime, Skill, pack or configured user model is changed. Observations remain
+under `packages/qiongli-native/target/native-body-note-q1mpz2lt/`; native Unix
+receipt timestamps are retained exactly as returned. Two actual ephemeral Codex
+processes use explicit `gpt-6.1-sol / low`, read-only sandbox, ignored user config,
+disabled apps/Plugins and allowlisted read-only MCP tools with isolated Qiongli
+state. Auth environment is unchanged. This is process-local Host/MCP validation,
+not installed-Plugin qualification; model identity evidence is the retained
+launch configuration/events, not a persistent turn-context file.
+
+The author reads the current paper-reading/fulltext/extraction guidance and makes
+four actual MCP calls: provider metadata status, targeted search planning, then
+native fulltext reads at offset 0/limit 2 and returned offset 2/limit 2 with the
+returned digest. No provider search executes. The selected public arXiv URL
+`https://arxiv.org/pdf/1706.03762` returns PDF digest
+`bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697` and exposes
+segments 0–3 of 27, pages 1–2. The first read is uncached, the second cached;
+continuation does not recheck the remote version. The visible title, NIPS 2017
+label and v7/2 Aug 2023 marking remain source observations; structured identity
+is `not_checked`, DOI/original-version verification is absent.
+
+The original author JSON, SHA-256
+`f026de660e5034aee42d6eb1a448a7f5bc554a88a251e893e47e0237c6c56308`, preserves
+Vaswani2017Attention and V2017-C1/C2 with exact PDF digest and page/segment
+anchors. C1 is the authors' Introduction rationale about recurrent sequential
+computation and attention-based parallelization; C2 correctly identifies the
+Background comparison with convolutional models and its resolution tradeoff.
+It does not turn abstract benchmark numbers into evaluated findings. The actual
+requested lightweight verifier `/root/handoff_persistence_check` checks the
+candidate against complete MCP results and returns no additional issue beyond
+the coordinator's planned persistence-status and operation-count clarifications.
+This is source-bound dependent verification, not blind or expert assessment.
+
+The coordinator retains the original answer, removes obsolete pre-save wording
+from the reviewed note, and explicitly limits C2's constant-operation comparison
+to relationships between positions, not total model computation. Five reviewed
+files are staged outside any registered project: the note, actual raw source
+results, a retrieval manifest, research state and handoff. The manifest retains
+`not_retrieved:oa_candidate`/unknown version pending independent identity checks,
+while its notes explicitly record readable body excerpts and the actual reader;
+no full PDF, bibliography, evidence ledger or Graph is claimed. The local source
+JSON digest `3b2c9a9c45779984e5c608c36912d66a4d372978ec502b72f4d75cc4ceae93d8`
+is distinct from the recorded remote PDF digest.
+
+Inspection establishes that capture consolidation has no arbitrary paper-note
+write target. The existing native migration owner legitimately supports reviewed
+unregistered research files copied into a new project, so this test uses that
+route without a new writer or hand-editing portable packages/receipts. Migration
+preview binds complete file inventory and source/destination identity but does
+not show note Markdown; the coordinator reviews exact staged text separately.
+An apply lacking filesystem approval exits 2 without mutation. After the first
+preview, the coordinator appends a cache/remote-version caveat to the note while
+preserving the earlier draft; approved apply with the old digest exits 1 with
+`project-plan-mismatch`, leaving the same five files and no destination. A fresh
+preview/approved apply copies all five files, 15,562 bytes, into new project
+`prj_65fcd82fb53ef633cde60cd4f46a552b`, revision 1/literature, library revision 1.
+All staged source bytes remain unchanged, and all destination copies match.
+This filesystem approval is not academic acceptance.
+
+The saved note is `project/notes/Vaswani2017Attention.md`, SHA-256
+`693a2f5c278f81a9ff1c81ad3543cfbcdc447d5f2e797fead38d7201e45aa036`.
+Migration receipt SHA-256 is
+`22612d7ad29a1632ab164fcb46d1333318933a22afc5d5609036bab0543a6be5`;
+its aggregate inventory digest is
+`644cd7fe4894263fed4e5c6c3fb60759d0abaa35ee3a94a39efe68c763d6229b`.
+Coordinator and verifier independently reconstruct that inventory and confirm
+manifest, plan, registration and file bindings. The receipt contains aggregate
+inventory provenance, not individual per-file hash rows.
+
+A fresh ephemeral process reads the actual registered revision with two MCP
+project tools, then reads and hashes the note, source packet, continuity and
+receipts. It verifies all five destination bytes and the inventory/manifest
+hashes, preserves C1/C2 and all source limits, and distinguishes the JSON file
+hash from the PDF digest, whose bytes are not locally available for rehashing.
+It reports the missing canonical/Graph artifacts even though the project service
+reports ready/current. Final answer SHA-256:
+`16503ddd5c0d7f4aae06ad1098de0ed21b4e48cdac2801fd0e4d787bca41832d`.
+Actual process durations are 96.684 and 73.282 seconds, not a performance
+comparison. Both exit 0; the author's initial empty research scope and the fresh
+reader's 16 project/staging/state files remain unchanged. The lightweight
+verifier independently rechecks actual calls, hash-command results, final answer
+and current snapshot without actionable findings. Only four source segments were
+exposed; there is no complete reading, domain acceptance or research-quality gain.
+
+This completes first-note import and restart using existing owners. It does not
+establish note creation/update inside an already registered project. The next
+bounded increment is to add that reviewed paper-note save path through the
+existing project transaction and preview/approval/revision boundaries, preserving
+source bindings and prior notes. No private-library access, user installation,
+publication, stage advancement or program acceptance is implied. Unchanged
+native/content checks from the prior increment are reused; the wider validator's
+24 unrelated failures and toolchain warning remain outside this observation.
+Seven roadmap checks, generated-index consistency and ledger invariance pass;
+all 249 task states/dependencies and 46 accepted rows remain unchanged. Only
+CLI-405 progress/date changes, with the frozen-source guard retained at integration.

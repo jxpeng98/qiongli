@@ -52,21 +52,21 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — October 2, 2026
+## Current execution horizon — October 3, 2026
 
 The 2.1.1 development baseline has the discipline/lifecycle guidance, explicit
 C/E/F decision contracts, five-provider discovery, public fulltext reader and
 on-demand source-bound review increments recorded in the
 [current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md).
-The selected **October 2 public fulltext transport diagnostics** increment
-identifies signed publisher redirects separately from DNS failures, preserves
-all network guards, and observes successful digest-checked public PDF body reads.
-Its exact candidates, checks and evidence limits belong in that plan and
-CLI-405's ledger record. The next bounded follow-up is an isolated Host journey
-using the working native public-PDF route, carrying source digests and actual
-body anchors into reviewed paper notes through existing write owners. Signed
-publisher redirects, installed-Plugin and authenticated-provider qualification
-remain separately scoped.
+The selected **October 3 native body-to-note Host journey** increment verifies
+actual public PDF reading, source-bound note review, first-note import into a
+new project and fresh-process recovery through existing owners. Its exact
+candidates, source limits and observations belong in that plan and CLI-405's
+ledger record. The next bounded follow-up is reviewed paper-note creation/update
+inside an already registered project, reusing the current transaction and
+preview/approval/revision boundaries while preserving source bindings and prior
+notes. Signed publisher redirects, installed-Plugin and authenticated-provider
+qualification remain separately scoped.
 
 Use existing canonical content, source/review bindings, native provider/runtime,
 project preview/approval/CAS and evaluation owners. One coordinator integrates
