@@ -58,12 +58,12 @@ The 2.1.1 development baseline has the discipline/lifecycle guidance, explicit
 C/E/F decision contracts, five-provider discovery, public fulltext reader and
 on-demand source-bound review increments recorded in the
 [current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md).
-After the six-part workflow reliability increment, the maintainer selects its
-**October 2 public channel qualification follow-up**: bounded configured-provider
-queries, credential/transport diagnosis and retention of usable search results.
-Its exact candidates, checks and remaining qualification gaps belong in that plan
-and CLI-405's ledger record. Representative discipline assessment and an explicitly
-selected formal handoff persistence flow follow this bounded channel increment.
+After public channel qualification, the maintainer selects its **October 2
+representative discipline transition assessment**: two bounded public-source
+education/computing exercises and source-backed corrections to existing guidance.
+Its exact candidates, self-review limits, checks and remaining gaps belong in that
+plan and CLI-405's ledger record. Formal handoff persistence is the next bounded
+increment to select; authenticated-provider/transport qualification remains open.
 
 Use existing canonical content, source/review bindings, native provider/runtime,
 project preview/approval/CAS and evaluation owners. One coordinator integrates

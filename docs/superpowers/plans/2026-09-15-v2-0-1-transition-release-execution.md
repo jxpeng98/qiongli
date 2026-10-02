@@ -2133,3 +2133,83 @@ fast-forward integration. No push, publication, version bump or normal user
 Plugin/profile update occurs. Next select representative discipline assessment
 and, if needed, the formal handoff persistence flow using existing write owners;
 unresolved credential/transport qualification stays explicit.
+
+## October 2 — representative discipline transition assessment
+
+Continue from `61de2204bda88e29dd8e19836e1268b9ee7223fe`. The smallest outcome is
+two source-bound C-to-F exercises: the existing education experiment with its
+actual Q3 predecessor, and a computing benchmark with newly inspected public
+source passages. Assess whether design decisions and final prose preserve the
+same evidence limits, source/claim IDs and unresolved prerequisites. The main
+agent executes and reviews both; this is transparent self-review, not a blind
+forward test or evidence of model accuracy improvement. Existing frozen failures
+remain unchanged. No private data, experiment execution, installation or canonical
+research-project writes are selected. Formal handoff persistence follows separately.
+
+Before drafting, retain each task, source/predecessor hashes and review criteria:
+education must preserve measurement timing, adjusted versus unadjusted evidence,
+unit/denominator uncertainty and DEC-Q1; computing must preserve source version,
+benchmark/evaluation split, measured versus estimated quantities and actual
+execution status. A changed source or unsupported claim must reopen only the
+affected decision. Update existing guidance only where the source-backed exercise
+identifies a useful missing decision rule; do not add another agent registry,
+workflow schema or store.
+
+### Bounded results and candidate
+
+Implementation `14e33e19384665dc0d96b5366a466e9d041ed7e9` adds the missing
+adjustment-timing decision at the shared Stage C owner and benchmark quantity/split
+boundaries in the computing guide. The two exercises and frozen self-review
+annotations live in `evals/research_journey/public-papers/discipline-transition/`.
+Education retains Q-C1/Q-C2/Q-C3, DEC-Q1 and the actual Q3 predecessor while carrying
+the adjustment and unresolved table limits into proposed prose. Computing keeps
+M-C1/M-C2 and DEC-M1 conditional on the evidence appropriate to each claim.
+Neither exercise executes a study, benchmark or canonical project handoff.
+
+The computing source notes come from actual Host reads of the
+[versioned paper HTML](https://arxiv.org/html/1706.03762v7) and
+[PDF text](https://arxiv.org/pdf/1706.03762v7). The read exposed a table/body
+discrepancy; its cause stays unresolved. PDF screenshot requests returned references
+without viewable pixels in this tool surface, so no visual-table inspection is
+claimed. Raw download hashes are unavailable; the note digest identifies only the
+coordinator's short paraphrase. The adjustment reference's PMC body presented a
+browser check; its [PubMed abstract](https://pubmed.ncbi.nlm.nih.gov/19525685/) was
+read, without claiming full-article review or working around that check.
+
+The tasks were declared before drafting; the same agent then refined guidance,
+wrote candidates and annotated two selected manuscript spans. Their source-bound
+self-review supports these bounded decisions, not a claim that a model's failure
+rate improved. The original 20 corpus files are byte-identical to the baseline.
+Existing five-span replay remains three supported/two failed; the two additional
+spans are separately labeled self-review. Four new negative mutations reject
+changed source notes, changed answers, forged anchors and independent-review
+misattribution. The same existing projection owner evaluates all spans; no new
+semantic grader or schema is introduced.
+
+Tasks SHA-256 `a1e5bfe363b85f25250d603e4aa81b1527ca25e41f558a23011046837506a9b1`;
+notes `904356512006f0ffc76fd148d98986eab2924623089b0d048241709006872322`;
+answers `e78915208a65133b503a4da5f0de4627cb4a1d5a186bd953bea29383473c31a4`;
+observations `47bc9346ea418d260d702ac83742b253f56f05b13e542aef2f81a835e20499b3`.
+
+Regenerated-pack candidate `f9a1fc071bf9142f770e8f3a199990f22bb8ff73` builds on
+macOS arm64. Binary SHA-256
+`df12856a78d7e59083128bb80c785efbf68fa0466142d29ddbd0e810592365d5`;
+content source `14e33e19384665dc0d96b5366a466e9d041ed7e9`, root
+`53786224f3d80ad7392a9a99d993d31ed2096b0bcce2715a5592b98d88d52008`, pack
+`4c355799192f0036eb58c95820af20ca42ccc3fe69b4765be8c99d51a1079be6`.
+Its binary/export/projection observations are retained in the private temporary
+directory `qiongli-discipline-transition-ex6h89u7`; these are not installation or
+release receipts. All 446 resources export; 444 non-manifest resources match each
+of Codex/Claude/DeepSeek, with 22/2/22 Skill entries and no broken resource links.
+
+Verification: 32 focused research-journey, continuity and Skill tests, corpus
+integrity/replay with all negative mutations, capability validation and root Skill
+validation pass. Both CLI embedded-pack/registry checks pass; the existing platform
+atomic deprecation warning is unchanged. Runtime logic did not change, so prior
+search/transport tests are reused without another live query.
+
+The next bounded increment is a formal stage-handoff persistence/resume flow
+through the existing preview/approval/CAS owner. This exercise does not resolve
+that gap. Broader disciplines, blind forward evaluation, domain-expert review and
+authenticated-provider/transport qualification remain open. Integration records
+only CLI-405 progress; task states, dependencies and accepted evidence stay fixed.
