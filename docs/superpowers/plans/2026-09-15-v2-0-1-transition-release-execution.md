@@ -2790,3 +2790,62 @@ native/content checks from the prior increment are reused; the wider validator's
 Seven roadmap checks, generated-index consistency and ledger invariance pass;
 all 249 task states/dependencies and 46 accepted rows remain unchanged. Only
 CLI-405 progress/date changes, with the frozen-source guard retained at integration.
+
+
+### October 3 — reviewed paper notes in registered projects
+
+Implementation `dd95e732bc77e2413a2ce1afce75852c86d4ef01` adds optional
+`--paper-note-file <absolute-draft.json>` to the existing native capture
+consolidation preview/apply owner. The strict draft binds citekey, prior-note
+SHA-256, 1–64 bounded local source fingerprints and the reviewed Markdown
+addition. Preview exposes exact resulting `paperNoteContent`; apply retains dual
+approval, plan/library/project revisions, source rechecks, transaction recovery
+and receipts. A missing prior hash means create-only, while append requires the
+exact existing hash and preserves prior bytes. New note publication never
+replaces a competing file, including identical bytes during collision rollback.
+The seven-file transaction can combine note, summary/history, handoff, ordinary
+capture artifacts, manifest and receipt. Sources reuse the existing bounded
+reader; no new dependency, arbitrary writer, MCP endpoint or store is added.
+
+The existing paper-reading guide documents the conditional CLI route, current
+capture requirement, supported citekeys, exact review and source limits. It
+separates a local excerpt-packet hash from the recorded remote-body digest and
+preserves claim IDs, citekeys, anchors, coverage and identity/version uncertainty.
+Notes remain outside registered semantic artifacts and Graph; this operation
+alone does not complete the B2 artifact set. Source snapshots and the existing
+transaction CAS boundary do not serialize arbitrary external editors. Old
+receipts/no-option output and API wrappers remain readable; older binaries reject
+new `paper-note` artifact receipts. Unsupported citekeys are refused rather than
+renamed, and existing sources must already be available through authorized owners.
+
+The requested actual `gpt-6.1-sol / low` sub-agent
+`/root/handoff_persistence_check` adds bounded copied-CLI tests and independently
+reviews final runtime/CLI/documentation changes without actionable findings. The
+coordinator runs 197 project tests (one existing capacity test ignored), three
+CLI parser tests, four copied-CLI tests and the embedded-pack/Lite-registry test.
+The note test covers both first creation and append to existing text; each command
+runs in a separate process with isolated state and empty PATH. Preview/disk/receipt
+bytes match, prior text remains intact, draft/source/note drift refuses without
+writes, and missing approvals, stale digests, held locks, restart and replay retain
+existing behavior. Shared negative cases cover malformed/oversize input, unsafe
+paths and symlinks, library/semantic drift, competing creates and seven-file
+rollback for both new and existing notes. The expanded rollback case passes its
+focused rerun. Thirty-one literature/continuity/resource-link checks pass.
+Project all-target Clippy with warnings denied, formatting and diff checks pass;
+the existing platform deprecation warning and broader CLI Clippy debt are outside
+this increment. The wider research validator is not rerun or claimed green.
+
+Pack candidate `c438449d1dc03925caef982a5e5075d75b9fa7e9` binds the implementation
+commit above and contains 446 resources. Content root:
+`d6154da5cf39b14dd1b61d471ff822a0ce7d5640ae95f282743cc03f75ff2072`;
+pack: `366fcd05294777f5294ae25a9dd12ac765dbf938f95594ce1a2d35d61bf005c4`.
+These are local synthetic persistence observations, not research-quality,
+installed-Plugin, target-platform or program acceptance. No user profile/model,
+private-library, publication or remote configuration changes occur. The next
+bounded increment is an isolated public-evidence Host continuation: review and
+append to the already registered paper note, then verify source/receipt bindings
+and actual saved bytes in a fresh process. New source-packet persistence, signed
+publisher redirects and authenticated-provider qualification remain separate.
+At integration, seven roadmap checks, generated-index consistency and the
+frozen-source guard pass; all 249 task states/dependencies and 46 accepted rows
+remain unchanged, with only CLI-405 progress/date updated.
