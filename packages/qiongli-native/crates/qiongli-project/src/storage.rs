@@ -674,7 +674,7 @@ pub(crate) fn read_semantic_artifact(
     Ok(Some((bytes, digest)))
 }
 
-/// Bounded project-local inputs explicitly named by a summary draft.
+/// Bounded project-local inputs explicitly named by a reviewed draft.
 pub(crate) fn read_project_source(
     root: &Path,
     relative_path: &str,
@@ -928,7 +928,9 @@ impl ProjectFileTransaction {
     fn rollback_failed_write(&mut self, index: usize, error: ProjectError) -> ProjectError {
         // Later targets were never attempted and may now belong to another writer.
         self.backups.truncate(index + 1);
-        if crate::stage_summary::valid_summary_path(&self.backups[index].relative_path)
+        if self.backups[index].previous_bytes.is_none()
+            && (crate::stage_summary::valid_summary_path(&self.backups[index].relative_path)
+                || crate::paper_note::valid_note_path(&self.backups[index].relative_path))
             && error == ProjectError::PersistenceFailed(io::ErrorKind::AlreadyExists)
         {
             // We never published this create-only target. Preserve even
@@ -1197,7 +1199,7 @@ fn consolidation_transaction_directory(root: &Path) -> PathBuf {
 }
 
 fn validate_project_file_updates(updates: &[ProjectFileUpdate]) -> Result<(), ProjectError> {
-    const MAX_TRANSACTION_FILES: usize = 6;
+    const MAX_TRANSACTION_FILES: usize = 7;
 
     if updates.is_empty() || updates.len() > MAX_TRANSACTION_FILES {
         return Err(ProjectError::InvalidProjectDocument);
@@ -1232,6 +1234,7 @@ fn valid_transaction_target(relative_path: &str) -> bool {
     if SEMANTIC_ARTIFACTS.contains(&relative_path)
         || relative_path == "context/project_manifest.json"
         || crate::stage_summary::valid_summary_path(relative_path)
+        || crate::paper_note::valid_note_path(relative_path)
     {
         return true;
     }
@@ -1278,6 +1281,10 @@ fn write_transaction_target(root: &Path, update: &ProjectFileUpdate) -> Result<(
         if update.expected_digest.is_some() {
             return Err(ProjectError::InvalidProjectDocument);
         }
+        atomic_write_with_replace(parent, file_name, &update.next_bytes, false, false)
+    } else if crate::paper_note::valid_note_path(&update.relative_path)
+        && update.expected_digest.is_none()
+    {
         atomic_write_with_replace(parent, file_name, &update.next_bytes, false, false)
     } else {
         atomic_write(parent, file_name, &update.next_bytes, false)
@@ -1759,13 +1766,15 @@ mod summary_transaction_tests {
     use super::*;
 
     #[test]
-    fn create_collision_rollback_preserves_an_identical_competing_summary() {
+    fn create_collision_rollback_preserves_competing_summary_or_note() {
         for attempted_summary in [false, true] {
-            check_collision_rollback(attempted_summary);
+            for path in ["context/stage_summaries/STG-B-001.md", "notes/Smith2024.md"] {
+                check_collision_rollback(attempted_summary, path);
+            }
         }
     }
 
-    fn check_collision_rollback(attempted_summary: bool) {
+    fn check_collision_rollback(attempted_summary: bool, path: &str) {
         let mut token = [0u8; 12];
         getrandom::fill(&mut token).unwrap();
         let root =
@@ -1774,6 +1783,7 @@ mod summary_transaction_tests {
         let root = fs::canonicalize(root).unwrap();
         fs::create_dir(root.join("context")).unwrap();
         fs::create_dir(root.join("context/stage_summaries")).unwrap();
+        fs::create_dir(root.join("notes")).unwrap();
         let state = root.join("context/research_state.md");
         fs::write(&state, b"old state").unwrap();
         let mut transaction = ProjectFileTransaction::apply(
@@ -1787,7 +1797,7 @@ mod summary_transaction_tests {
         .unwrap();
         // Model the already-observed absent target at the next transaction write.
         let update = ProjectFileUpdate {
-            relative_path: "context/stage_summaries/STG-B-001.md".to_string(),
+            relative_path: path.to_string(),
             expected_digest: None,
             next_bytes: b"same summary".to_vec(),
         };

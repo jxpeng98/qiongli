@@ -81,6 +81,29 @@ when a safe merge is unclear, append a dated entry and keep unresolved material
 in the uncertainty register. Registered project persistence requires the existing
 preview/approval/CAS owner and a verified result.
 
+When native CLI help advertises `--paper-note-file`, save one reviewed addition
+through `project capture consolidate preview/apply` for a pending capture at the
+current project revision. Supply the same absolute JSON draft on both commands:
+`schemaVersion: 1`, `citekey`, `previousSha256`, `sources` (1–64 objects containing
+project-relative `relativePath` and observed lowercase SHA-256 `sha256`), and
+`markdown` containing only the reviewed addition. A new note uses null
+`previousSha256`; an existing note requires the exact hash of its current bytes.
+The supported citekey is 1–128 ASCII letters/digits/underscores/hyphens, begins
+with a letter/digit and excludes Windows device names; an unsupported existing
+citekey remains a limitation, never silently rename it.
+
+Review the exact resulting `paperNoteContent` before applying with the returned
+review time/plan digest and both academic-review and filesystem-write approvals.
+The owner creates or appends `notes/<citekey>.md`, retaining prior bytes and
+recording source hashes and capture lineage. Source, draft or prior-note changes
+require a new preview; a later addition needs a new current-revision capture.
+Bind only project-local sources already available through authorized access and
+persistence. A local excerpt-packet hash differs from the reader's remote PDF
+hash: retain both, source anchors, claim IDs, identity/version uncertainty and
+actual reading coverage in the note. This operation saves a note, not a complete
+B2 artifact set or Graph reconciliation. If the flag is unavailable, return the
+reviewed candidate and the persistence gap without claiming it was saved.
+
 For project records, follow `references/academic-graph-continuity.md`: reconcile
 paper/claim candidates into the literature map and evidence ledger, reuse
 citekeys and disambiguate note-local claim IDs. Do not invent clusters or support

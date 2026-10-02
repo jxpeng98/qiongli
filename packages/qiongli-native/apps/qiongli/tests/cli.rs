@@ -3076,20 +3076,27 @@ fn copied_binary_accepts_repository_capture_without_runtime() {
 
 #[test]
 fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
-    consolidation_journey(false, false);
+    consolidation_journey(false, false, None);
 }
 
 #[test]
 fn copied_binary_persists_and_resumes_stage_handoff_without_runtime() {
-    consolidation_journey(true, false);
+    consolidation_journey(true, false, None);
 }
 
 #[test]
 fn copied_binary_persists_and_resumes_stage_summary_without_runtime() {
-    consolidation_journey(false, true);
+    consolidation_journey(false, true, None);
 }
 
-fn consolidation_journey(with_handoff: bool, with_summary: bool) {
+#[test]
+fn copied_binary_creates_and_appends_reviewed_paper_notes_without_runtime() {
+    for existing in [false, true] {
+        consolidation_journey(false, false, Some(existing));
+    }
+}
+
+fn consolidation_journey(with_handoff: bool, with_summary: bool, paper_note: Option<bool>) {
     use sha2::{Digest, Sha256};
 
     fn snapshot(root: &Path) -> std::collections::BTreeMap<PathBuf, Vec<u8>> {
@@ -3347,6 +3354,29 @@ fn consolidation_journey(with_handoff: bool, with_summary: bool) {
             summary_file.as_os_str().to_owned(),
         ]);
     }
+    let note_file = fixture.root.join("private-paper-note-draft.json");
+    let note_path = project_root.join("notes/example.md");
+    let prior_note = if paper_note == Some(true) {
+        "# Existing note\nOriginal bytes without final newline"
+    } else {
+        ""
+    };
+    let note = serde_json::json!({
+        "schemaVersion": 1, "citekey": "example",
+        "previousSha256": if prior_note.is_empty() { None } else { Some(format!("{:x}", Sha256::digest(prior_note))) },
+        "sources": [{"relativePath": "sources/current.md", "sha256": format!("{:x}", Sha256::digest(source))}],
+        "markdown": "## Reviewed addition\nCLM-001 / EV-001; abstract only, no causal conclusion."
+    });
+    if paper_note.is_some() {
+        fs::create_dir_all(source_file.parent().unwrap()).unwrap();
+        fs::write(&source_file, source).unwrap();
+        if !prior_note.is_empty() {
+            fs::create_dir_all(note_path.parent().unwrap()).unwrap();
+            fs::write(&note_path, prior_note).unwrap();
+        }
+        fs::write(&note_file, serde_json::to_vec(&note).unwrap()).unwrap();
+        continuity_args.extend(["--paper-note-file".into(), note_file.as_os_str().to_owned()]);
+    }
     let consolidation_preview = run_configured_os(
         &copied,
         &fixture,
@@ -3430,6 +3460,25 @@ fn consolidation_journey(with_handoff: bool, with_summary: bool) {
                 .get("researchStateContent")
                 .is_none()
         );
+    }
+    if paper_note.is_some() {
+        assert!(!output_contains_path(&consolidation_preview, &note_file));
+        let content = consolidation_preview_json["paperNoteContent"]
+            .as_str()
+            .unwrap();
+        assert!(content.starts_with(prior_note));
+        assert!(content.contains(note["markdown"].as_str().unwrap()));
+        assert!(content.contains(note["sources"][0]["sha256"].as_str().unwrap()));
+        assert_eq!(
+            fs::read(&note_path).ok(),
+            if prior_note.is_empty() {
+                None
+            } else {
+                Some(prior_note.as_bytes().to_vec())
+            }
+        );
+    } else {
+        assert!(consolidation_preview_json.get("paperNoteContent").is_none());
     }
     let reviewed_at_unix = consolidation_preview_json["preview"]["reviewedAtUnix"]
         .as_u64()
@@ -3609,6 +3658,37 @@ fn consolidation_journey(with_handoff: bool, with_summary: bool) {
         );
         fs::write(&source_file, source).unwrap();
     }
+    if paper_note.is_some() {
+        let mut changed = note.clone();
+        changed["markdown"] = "Unreviewed note addition".into();
+        fs::write(&note_file, serde_json::to_vec(&changed).unwrap()).unwrap();
+        let rejected = run_configured_os(&copied, &fixture, &approved_args, true);
+        assert_eq!(rejected.status.code(), Some(1));
+        assert_eq!(rejected.stderr, b"error: project-plan-mismatch\n");
+        assert_eq!(
+            before_consolidation,
+            (snapshot(&project_root), snapshot(&fixture.config_root))
+        );
+        fs::write(&note_file, serde_json::to_vec(&note).unwrap()).unwrap();
+        for changed_path in [&source_file, &note_path] {
+            let original = fs::read(changed_path).ok();
+            fs::create_dir_all(changed_path.parent().unwrap()).unwrap();
+            fs::write(changed_path, "Concurrent unreviewed bytes").unwrap();
+            let drift_snapshot = (snapshot(&project_root), snapshot(&fixture.config_root));
+            let rejected = run_configured_os(&copied, &fixture, &approved_args, true);
+            assert_eq!(rejected.status.code(), Some(1));
+            assert_eq!(rejected.stderr, b"error: project-revision-conflict\n");
+            assert_eq!(
+                drift_snapshot,
+                (snapshot(&project_root), snapshot(&fixture.config_root))
+            );
+            if let Some(bytes) = original {
+                fs::write(changed_path, bytes).unwrap();
+            } else {
+                fs::remove_file(changed_path).unwrap();
+            }
+        }
+    }
     let consolidation_apply = run_configured_os(&copied, &fixture, &approved_args, true);
     assert!(
         consolidation_apply.status.success(),
@@ -3626,6 +3706,8 @@ fn consolidation_journey(with_handoff: bool, with_summary: bool) {
         consolidation_apply_json["commit"]["artifactsUpdated"],
         if with_summary {
             serde_json::json!(["research-state", "stage-summary", "stage-handoff"])
+        } else if paper_note.is_some() {
+            serde_json::json!(["research-state", "paper-note"])
         } else if with_handoff {
             serde_json::json!(["research-state", "stage-handoff"])
         } else {
@@ -3669,6 +3751,42 @@ fn consolidation_journey(with_handoff: bool, with_summary: bool) {
                         && artifact["digest"] == format!("{:x}", Sha256::digest(&saved))
                 })
         );
+    }
+    if paper_note.is_some() {
+        let saved = fs::read_to_string(&note_path).unwrap();
+        assert_eq!(
+            saved,
+            consolidation_preview_json["paperNoteContent"]
+                .as_str()
+                .unwrap()
+        );
+        assert!(saved.as_bytes().starts_with(prior_note.as_bytes()));
+        assert_eq!(fs::read_to_string(&source_file).unwrap(), source);
+        let receipt: Value =
+            serde_json::from_slice(&fs::read(project_root.join(receipt_entry)).unwrap()).unwrap();
+        assert!(
+            receipt["artifacts"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|artifact| {
+                    artifact["relativePath"] == "notes/example.md"
+                        && artifact["digest"] == format!("{:x}", Sha256::digest(&saved))
+                })
+        );
+        let reopened = run_configured_os(
+            &copied,
+            &fixture,
+            &[
+                "project".into(),
+                "show".into(),
+                "--project-id".into(),
+                project_id.clone().into(),
+            ],
+            true,
+        );
+        assert!(reopened.status.success(), "{}", public_output(&reopened));
+        assert_eq!(fs::read_to_string(&note_path).unwrap(), saved);
     }
     if with_handoff || with_summary {
         assert_eq!(

@@ -12,6 +12,7 @@ use crate::model::{
     ArticleProjectManifestV1, MAX_SEMANTIC_REVISION, ProjectId, ProjectLifecycle, ProjectStage,
     RegisteredProjectV1, valid_lower_hex,
 };
+use crate::paper_note::valid_note_path;
 use crate::service::ProjectStateService;
 use crate::stage_summary::valid_summary_path;
 use crate::storage::{
@@ -20,7 +21,7 @@ use crate::storage::{
     read_consolidation_document, read_manifest, read_project_source, read_semantic_artifact,
     semantic_digest, semantic_digest_with_overrides, sha256_bytes, validate_existing_project_root,
 };
-use crate::{ProjectError, StageSummaryDraftV1};
+use crate::{PaperNoteDraftV1, ProjectError, StageSummaryDraftV1};
 
 pub const ACADEMIC_CONSOLIDATION_SCHEMA_VERSION: u32 = 1;
 const CONSOLIDATION_DOCUMENT_KIND: &str = "qiongli-capture-consolidation";
@@ -28,7 +29,7 @@ const RESEARCH_STATE_PATH: &str = "context/research_state.md";
 const DECISION_LOG_PATH: &str = "context/decision_log.md";
 const PROJECT_MANIFEST_PATH: &str = "context/project_manifest.json";
 const STAGE_HANDOFF_PATH: &str = "context/stage_handoff.md";
-const MAX_CONSOLIDATED_ARTIFACTS: usize = 4;
+const MAX_CONSOLIDATED_ARTIFACTS: usize = 5;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -60,6 +61,7 @@ pub enum ConsolidationArtifact {
     DecisionLog,
     StageHandoff,
     StageSummary,
+    PaperNote,
 }
 
 impl ConsolidationArtifact {
@@ -68,13 +70,16 @@ impl ConsolidationArtifact {
             Self::ResearchState => Some(RESEARCH_STATE_PATH),
             Self::DecisionLog => Some(DECISION_LOG_PATH),
             Self::StageHandoff => Some(STAGE_HANDOFF_PATH),
-            Self::StageSummary => None,
+            Self::StageSummary | Self::PaperNote => None,
         }
     }
 
     fn accepts_path(self, path: &str) -> bool {
-        self.relative_path()
-            .map_or_else(|| valid_summary_path(path), |fixed| fixed == path)
+        match self {
+            Self::StageSummary => valid_summary_path(path),
+            Self::PaperNote => valid_note_path(path),
+            _ => self.relative_path() == Some(path),
+        }
     }
 }
 
@@ -211,6 +216,7 @@ pub struct VerifiedCaptureConsolidation {
     artifacts: Vec<PlannedArtifact>,
     next_manifest: Option<ArticleProjectManifestV1>,
     stage_summary: Option<StageSummaryDraftV1>,
+    paper_note: Option<PaperNoteDraftV1>,
 }
 
 impl VerifiedCaptureConsolidation {
@@ -228,6 +234,11 @@ impl VerifiedCaptureConsolidation {
     #[must_use]
     pub fn stage_summary_content(&self) -> Option<&str> {
         self.artifact_content(ConsolidationArtifact::StageSummary)
+    }
+
+    #[must_use]
+    pub fn paper_note_content(&self) -> Option<&str> {
+        self.artifact_content(ConsolidationArtifact::PaperNote)
     }
 
     /// Include the exact history-table edit whenever a summary is planned.
@@ -315,6 +326,8 @@ struct ConsolidationPlanSemantics<'a> {
     artifact_deltas: &'a [ConsolidationArtifactDeltaV1],
     #[serde(skip_serializing_if = "Option::is_none")]
     stage_summary: Option<&'a StageSummaryDraftV1>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    paper_note: Option<&'a PaperNoteDraftV1>,
 }
 
 impl ProjectStateService {
@@ -359,6 +372,29 @@ impl ProjectStateService {
         stage_handoff: Option<&str>,
         stage_summary: Option<&StageSummaryDraftV1>,
     ) -> Result<VerifiedCaptureConsolidation, ProjectError> {
+        self.preview_capture_consolidation_with_paper_note(
+            project_id,
+            capture_id,
+            reviewed_at_unix,
+            stage_handoff,
+            stage_summary,
+            None,
+        )
+    }
+
+    /// Create or append one source-bound note through the same reviewed transaction.
+    pub fn preview_capture_consolidation_with_paper_note(
+        &self,
+        project_id: &ProjectId,
+        capture_id: &CaptureId,
+        reviewed_at_unix: u64,
+        stage_handoff: Option<&str>,
+        stage_summary: Option<&StageSummaryDraftV1>,
+        paper_note: Option<&PaperNoteDraftV1>,
+    ) -> Result<VerifiedCaptureConsolidation, ProjectError> {
+        if let Some(note) = paper_note {
+            note.validate()?;
+        }
         if let Some(summary) = stage_summary {
             summary.validate()?;
         }
@@ -414,6 +450,9 @@ impl ProjectStateService {
         if let Some(summary) = stage_summary {
             summary.revalidate_sources(&root)?;
         }
+        if let Some(note) = paper_note {
+            note.revalidate_sources(&root)?;
+        }
         let disposition = classify_capture(&capture, false);
         let root_reference_digest = sha256_bytes(project_root_string(&root)?.as_bytes());
         let mut conflicts = Vec::new();
@@ -429,6 +468,7 @@ impl ProjectStateService {
                     &capture,
                     stage_handoff,
                     stage_summary,
+                    paper_note,
                     reviewed_at_unix,
                 ) {
                     Ok(planned) => artifacts = planned,
@@ -441,7 +481,7 @@ impl ProjectStateService {
             if conflicts.is_empty() {
                 let updates = artifacts
                     .iter()
-                    .filter(|artifact| artifact.artifact != ConsolidationArtifact::StageSummary)
+                    .filter(|artifact| artifact.artifact.relative_path().is_some())
                     .map(|artifact| ProjectFileUpdate {
                         relative_path: artifact.relative_path.clone(),
                         expected_digest: artifact.previous_digest.clone(),
@@ -487,6 +527,7 @@ impl ProjectStateService {
             conflicts: &conflicts,
             artifact_deltas: &artifact_deltas,
             stage_summary,
+            paper_note,
         };
         let preview = CaptureConsolidationPreviewV1 {
             schema_version: ACADEMIC_CONSOLIDATION_SCHEMA_VERSION,
@@ -523,6 +564,7 @@ impl ProjectStateService {
             artifacts,
             next_manifest,
             stage_summary: stage_summary.cloned(),
+            paper_note: paper_note.cloned(),
         })
     }
 
@@ -828,6 +870,7 @@ fn plan_artifacts(
     capture: &ResearchCaptureV1,
     stage_handoff: Option<&str>,
     stage_summary: Option<&StageSummaryDraftV1>,
+    paper_note: Option<&PaperNoteDraftV1>,
     reviewed_at_unix: u64,
 ) -> Result<Vec<PlannedArtifact>, ArtifactPlanError> {
     let mut artifacts = Vec::new();
@@ -866,6 +909,34 @@ fn plan_artifacts(
                     capture.binding.base_revision,
                     reviewed_at_unix,
                 )
+                .into_bytes(),
+        });
+    }
+    if let Some(note) = paper_note {
+        let relative_path = note.relative_path();
+        let previous = read_project_source(root, &relative_path)?;
+        if previous.as_ref().map(|(_, digest)| digest) != note.previous_sha256.as_ref() {
+            return Err(ProjectError::RevisionConflict.into());
+        }
+        let bytes = previous
+            .as_ref()
+            .map_or(&[][..], |(bytes, _)| bytes.as_slice());
+        let text = std::str::from_utf8(bytes).map_err(|_| ProjectError::InvalidProjectDocument)?;
+        if text.contains('\0')
+            || text.contains(&format!(
+                "<!-- qiongli:capture {} begin -->",
+                capture.capture_id.as_str()
+            ))
+        {
+            return Err(ProjectError::ConsolidationConflict.into());
+        }
+        artifacts.push(PlannedArtifact {
+            artifact: ConsolidationArtifact::PaperNote,
+            relative_path,
+            previous_digest: note.previous_sha256.clone(),
+            previous_bytes: bytes.len(),
+            next_bytes: note
+                .render(text, &capture.capture_id, reviewed_at_unix)
                 .into_bytes(),
         });
     }
@@ -1196,6 +1267,7 @@ fn validate_plan(plan: &VerifiedCaptureConsolidation) -> Result<(), ProjectError
         conflicts: &plan.preview.conflicts,
         artifact_deltas: &plan.preview.artifact_deltas,
         stage_summary: plan.stage_summary.as_ref(),
+        paper_note: plan.paper_note.as_ref(),
     };
     if canonical_digest(&semantics)? != plan.preview.plan_digest {
         return Err(ProjectError::PlanMismatch);
@@ -1235,6 +1307,9 @@ fn revalidate_apply_state(
     }
     if let Some(summary) = &plan.stage_summary {
         summary.revalidate_sources(&root)?;
+    }
+    if let Some(note) = &plan.paper_note {
+        note.revalidate_sources(&root)?;
     }
     for artifact in &plan.artifacts {
         if !artifact.artifact.accepts_path(&artifact.relative_path) {
@@ -2139,6 +2214,345 @@ Inspect the source table before dependent analysis.
         );
     }
 
+    fn note_draft(fixture: &Fixture) -> PaperNoteDraftV1 {
+        PaperNoteDraftV1 {
+            schema_version: 1,
+            citekey: "Smith2024".into(),
+            previous_sha256: None,
+            sources: summary_draft(fixture).sources,
+            markdown:
+                "# @Smith2024\n\nCLM-001: source R1; abstract only, denominator unresolved.\n"
+                    .into(),
+        }
+    }
+
+    #[test]
+    fn paper_note_create_append_and_restart_preserve_exact_prior_bytes() {
+        let fixture = fixture();
+        let mut note = note_draft(&fixture);
+        let mut previous = String::new();
+        for revision in 1..=2 {
+            let mut candidate = draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired);
+            candidate.binding.base_revision = revision;
+            candidate.captured_at_unix = 100 + revision * 10;
+            let capture = intake(&fixture, candidate);
+            let plan = fixture
+                .service
+                .preview_capture_consolidation_with_paper_note(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    110 + revision * 10,
+                    None,
+                    None,
+                    Some(&note),
+                )
+                .unwrap();
+            let content = plan.paper_note_content().unwrap().to_string();
+            assert!(content.starts_with(&previous));
+            assert!(content.contains(&note.markdown));
+            assert!(content.contains(&note.sources[0].sha256));
+            let debug = format!("{plan:?}");
+            assert!(!debug.contains(&note.markdown));
+            assert!(!debug.contains(&fixture.project_root.to_string_lossy().to_string()));
+            fixture
+                .service
+                .apply_capture_consolidation(
+                    &plan,
+                    &ApprovedCaptureConsolidation::new(
+                        plan.preview.plan_digest.clone(),
+                        true,
+                        true,
+                    ),
+                )
+                .unwrap();
+            assert_eq!(
+                fs::read_to_string(fixture.project_root.join(note.relative_path())).unwrap(),
+                content
+            );
+            let restarted = ProjectStateService::new(
+                resolve_config_root(None, &fixture.base.join("home")).unwrap(),
+            );
+            assert_eq!(
+                restarted.snapshot().unwrap().projects[0].semantic_revision,
+                revision + 1
+            );
+            let (receipt, _) =
+                read_consolidation_receipt(&fixture.project_root, &capture.capture_id)
+                    .unwrap()
+                    .unwrap();
+            let artifact = receipt
+                .artifacts
+                .iter()
+                .find(|a| a.artifact == ConsolidationArtifact::PaperNote)
+                .unwrap();
+            assert_eq!(artifact.digest, sha256_bytes(content.as_bytes()));
+            assert_eq!(artifact.relative_path, note.relative_path());
+            let mut forged = receipt;
+            forged
+                .artifacts
+                .iter_mut()
+                .find(|a| a.artifact == ConsolidationArtifact::PaperNote)
+                .unwrap()
+                .relative_path = "context/research_state.md".into();
+            forged.acknowledgement = acknowledgement(&forged).unwrap();
+            assert_eq!(forged.validate(), Err(ProjectError::InvalidProjectDocument));
+            note.previous_sha256 = Some(sha256_bytes(content.as_bytes()));
+            note.markdown =
+                "## Correction\nCLM-001 retains its source anchor; still no causal conclusion."
+                    .into();
+            previous = content;
+        }
+    }
+
+    #[test]
+    fn paper_note_rejects_changed_inputs_or_missing_approval_without_writes() {
+        for mutation in [
+            "source",
+            "missing-source",
+            "note",
+            "draft",
+            "academic",
+            "filesystem",
+            "digest",
+            "library",
+            "semantic",
+        ] {
+            let fixture = fixture();
+            let mut note = note_draft(&fixture);
+            fs::create_dir(fixture.project_root.join("notes")).unwrap();
+            fs::write(
+                fixture.project_root.join(note.relative_path()),
+                "Human note without final newline",
+            )
+            .unwrap();
+            note.previous_sha256 = Some(sha256_bytes(b"Human note without final newline"));
+            let capture = intake(
+                &fixture,
+                draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+            );
+            let mut plan = fixture
+                .service
+                .preview_capture_consolidation_with_paper_note(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    120,
+                    None,
+                    None,
+                    Some(&note),
+                )
+                .unwrap();
+            let digest = plan.preview.plan_digest.clone();
+            match mutation {
+                "source" => fs::write(
+                    fixture.project_root.join("sources/current.md"),
+                    "Changed source",
+                )
+                .unwrap(),
+                "missing-source" => {
+                    fs::remove_file(fixture.project_root.join("sources/current.md")).unwrap()
+                }
+                "note" => fs::write(
+                    fixture.project_root.join(note.relative_path()),
+                    "New human text",
+                )
+                .unwrap(),
+                "semantic" => fs::write(
+                    fixture.project_root.join(RESEARCH_STATE_PATH),
+                    "Changed registered state",
+                )
+                .unwrap(),
+                "draft" => {
+                    note.markdown.push_str("Changed reviewed addition.");
+                    plan = fixture
+                        .service
+                        .preview_capture_consolidation_with_paper_note(
+                            &fixture.project_id,
+                            &capture.capture_id,
+                            120,
+                            None,
+                            None,
+                            Some(&note),
+                        )
+                        .unwrap();
+                }
+                "library" => {
+                    let archive = fixture
+                        .service
+                        .preview_archive(&fixture.project_id)
+                        .unwrap();
+                    fixture
+                        .service
+                        .apply(
+                            &archive,
+                            &ApprovedProjectMutation::new(
+                                archive.preview().plan_digest.clone(),
+                                true,
+                            ),
+                            121,
+                        )
+                        .unwrap();
+                    assert_ne!(
+                        fixture.service.snapshot().unwrap().revision,
+                        plan.preview.expected_library_revision
+                    );
+                }
+                _ => {}
+            }
+            let paths = [
+                RESEARCH_STATE_PATH,
+                DECISION_LOG_PATH,
+                PROJECT_MANIFEST_PATH,
+                "notes/Smith2024.md",
+                "sources/current.md",
+            ];
+            let before = paths.map(|path| fs::read(fixture.project_root.join(path)).ok());
+            let library = fixture.service.snapshot().unwrap();
+            let result = fixture.service.apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(
+                    if mutation == "digest" {
+                        "0".repeat(64)
+                    } else {
+                        digest
+                    },
+                    mutation != "filesystem",
+                    mutation != "academic",
+                ),
+            );
+            assert!(result.is_err(), "{mutation}");
+            assert_eq!(
+                paths.map(|path| fs::read(fixture.project_root.join(path)).ok()),
+                before,
+                "{mutation}"
+            );
+            assert_eq!(fixture.service.snapshot().unwrap(), library);
+            assert!(
+                !fixture
+                    .project_root
+                    .join(&plan.preview.receipt_entry)
+                    .exists()
+            );
+        }
+    }
+
+    #[test]
+    fn paper_note_draft_and_paths_are_strict_and_bounded() {
+        let fixture = fixture();
+        let valid = note_draft(&fixture);
+        let json = serde_json::to_string(&valid).unwrap();
+        let file = fixture.base.join("note.json");
+        fs::write(&file, &json).unwrap();
+        assert!(PaperNoteDraftV1::read_file(&file).is_ok());
+        for invalid in [
+            json.replacen("{", "{\"schemaVersion\":1,", 1),
+            json.replacen("{", "{\"unknown\":true,", 1),
+            json.replace("\"sha256\":", "\"sha256\":\"bad\",\"sha256\":"),
+        ] {
+            fs::write(&file, invalid).unwrap();
+            assert!(PaperNoteDraftV1::read_file(&file).is_err());
+        }
+        for key in [
+            "", "../Smith", "a/b", "a\\b", "a:b", ".hidden", "A.md", "a b", "CON", "lpt9", "COM1",
+            "a`b",
+        ] {
+            let mut note = valid.clone();
+            note.citekey = key.into();
+            assert!(note.validate().is_err(), "{key}");
+        }
+        for field in [
+            "previousSha256",
+            "schemaVersion",
+            "markdown",
+            "sources",
+            "citekey",
+        ] {
+            let mut value = serde_json::to_value(&valid).unwrap();
+            value[field] = serde_json::json!(false);
+            fs::write(&file, serde_json::to_vec(&value).unwrap()).unwrap();
+            assert!(PaperNoteDraftV1::read_file(&file).is_err(), "{field}");
+        }
+        for mutation in [
+            "schema",
+            "hash",
+            "source-hash",
+            "path",
+            "self-source",
+            "duplicate",
+            "empty",
+            "many",
+            "blank",
+            "nul",
+            "marker",
+            "large",
+            "long-key",
+        ] {
+            let mut note = valid.clone();
+            match mutation {
+                "schema" => note.schema_version = 2,
+                "hash" => note.previous_sha256 = Some("A".repeat(64)),
+                "source-hash" => note.sources[0].sha256 = "g".repeat(64),
+                "path" => note.sources[0].relative_path = "../source".into(),
+                "self-source" => note.sources[0].relative_path = note.relative_path(),
+                "duplicate" => note.sources.push(note.sources[0].clone()),
+                "empty" => note.sources.clear(),
+                "many" => {
+                    note.sources = (0..65)
+                        .map(|i| crate::StageSummarySourceV1 {
+                            relative_path: format!("sources/{i}.md"),
+                            sha256: "a".repeat(64),
+                        })
+                        .collect()
+                }
+                "blank" => note.markdown = " ".into(),
+                "nul" => note.markdown = "bad\0body".into(),
+                "marker" => note.markdown = "<!-- qiongli:capture forged -->".into(),
+                "large" => note.markdown = "x".repeat(4 * 1024 * 1024 + 1),
+                "long-key" => note.citekey = "a".repeat(129),
+                _ => unreachable!(),
+            }
+            assert!(note.validate().is_err(), "{mutation}");
+        }
+        fs::write(&file, [0xff]).unwrap();
+        assert!(PaperNoteDraftV1::read_file(&file).is_err());
+        fs::write(&file, vec![b'x'; 4 * 1024 * 1024 + 1]).unwrap();
+        assert_eq!(
+            PaperNoteDraftV1::read_file(&file).err(),
+            Some(ProjectError::DocumentTooLarge)
+        );
+        assert!(PaperNoteDraftV1::read_file(std::path::Path::new("relative.json")).is_err());
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::symlink;
+            let link = fixture.base.join("linked.json");
+            symlink(&file, &link).unwrap();
+            assert!(PaperNoteDraftV1::read_file(&link).is_err());
+            let source = fixture.project_root.join("sources/current.md");
+            fs::remove_file(&source).unwrap();
+            symlink(&file, &source).unwrap();
+            assert!(valid.revalidate_sources(&fixture.project_root).is_err());
+            fs::remove_file(&source).unwrap();
+            fs::write(&source, "Observed source R1\n").unwrap();
+            symlink(&fixture.base, fixture.project_root.join("notes")).unwrap();
+            let capture = intake(
+                &fixture,
+                draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+            );
+            assert!(
+                fixture
+                    .service
+                    .preview_capture_consolidation_with_paper_note(
+                        &fixture.project_id,
+                        &capture.capture_id,
+                        120,
+                        None,
+                        None,
+                        Some(&valid)
+                    )
+                    .is_err()
+            );
+        }
+    }
+
     fn summary_draft(fixture: &Fixture) -> StageSummaryDraftV1 {
         fs::create_dir_all(fixture.project_root.join("sources")).unwrap();
         fs::write(
@@ -2450,68 +2864,79 @@ Inspect the source table before dependent analysis.
     }
 
     #[test]
-    fn stage_summary_six_file_transaction_rolls_back_new_document_and_history() {
-        let fixture = fixture();
-        let summary = summary_draft(&fixture);
-        let capture = intake(
-            &fixture,
-            draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
-        );
-        let plan = fixture
-            .service
-            .preview_capture_consolidation_with_summary(
-                &fixture.project_id,
-                &capture.capture_id,
-                120,
-                None,
-                Some(&summary),
-            )
-            .unwrap();
-        let mut receipt = build_receipt(&plan).unwrap();
-        receipt.acknowledgement = acknowledgement(&receipt).unwrap();
-        let mut updates: Vec<_> = plan
-            .artifacts
-            .iter()
-            .map(|artifact| ProjectFileUpdate {
-                relative_path: artifact.relative_path.clone(),
-                expected_digest: artifact.previous_digest.clone(),
-                next_bytes: artifact.next_bytes.clone(),
-            })
-            .collect();
-        updates.push(ProjectFileUpdate {
-            relative_path: plan.preview.receipt_entry.clone(),
-            expected_digest: None,
-            next_bytes: encode_project_document(&receipt).unwrap(),
-        });
-        updates.push(ProjectFileUpdate {
-            relative_path: PROJECT_MANIFEST_PATH.to_string(),
-            expected_digest: Some(plan.observed_manifest_digest.clone()),
-            next_bytes: encode_project_document(plan.next_manifest.as_ref().unwrap()).unwrap(),
-        });
-        assert_eq!(updates.len(), 6);
-        let before: Vec<_> = updates
-            .iter()
-            .map(|update| fs::read(fixture.project_root.join(&update.relative_path)).ok())
-            .collect();
-        let transaction = ProjectFileTransaction::apply(&fixture.project_root, &updates).unwrap();
-        assert!(fixture.project_root.join(summary.relative_path()).exists());
-        transaction.rollback().unwrap();
-        assert_eq!(
-            updates
+    fn summary_and_note_seven_file_transaction_rolls_back_documents_and_history() {
+        for existing_note in [false, true] {
+            let fixture = fixture();
+            let summary = summary_draft(&fixture);
+            let mut note = note_draft(&fixture);
+            if existing_note {
+                fs::create_dir(fixture.project_root.join("notes")).unwrap();
+                let prior = b"Human note\r\nCLM-001 and its old source anchor.";
+                fs::write(fixture.project_root.join(note.relative_path()), prior).unwrap();
+                note.previous_sha256 = Some(sha256_bytes(prior));
+            }
+            let capture = intake(
+                &fixture,
+                draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+            );
+            let plan = fixture
+                .service
+                .preview_capture_consolidation_with_paper_note(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    120,
+                    None,
+                    Some(&summary),
+                    Some(&note),
+                )
+                .unwrap();
+            let mut receipt = build_receipt(&plan).unwrap();
+            receipt.acknowledgement = acknowledgement(&receipt).unwrap();
+            let mut updates: Vec<_> = plan
+                .artifacts
+                .iter()
+                .map(|artifact| ProjectFileUpdate {
+                    relative_path: artifact.relative_path.clone(),
+                    expected_digest: artifact.previous_digest.clone(),
+                    next_bytes: artifact.next_bytes.clone(),
+                })
+                .collect();
+            updates.push(ProjectFileUpdate {
+                relative_path: plan.preview.receipt_entry.clone(),
+                expected_digest: None,
+                next_bytes: encode_project_document(&receipt).unwrap(),
+            });
+            updates.push(ProjectFileUpdate {
+                relative_path: PROJECT_MANIFEST_PATH.to_string(),
+                expected_digest: Some(plan.observed_manifest_digest.clone()),
+                next_bytes: encode_project_document(plan.next_manifest.as_ref().unwrap()).unwrap(),
+            });
+            assert_eq!(updates.len(), 7);
+            let before: Vec<_> = updates
                 .iter()
                 .map(|update| fs::read(fixture.project_root.join(&update.relative_path)).ok())
-                .collect::<Vec<_>>(),
-            before
-        );
-        assert!(
-            !fixture
-                .project_root
-                .join(".qiongli/consolidation-transaction")
-                .exists()
-        );
-        assert_eq!(
-            fixture.service.snapshot().unwrap().projects[0].semantic_revision,
-            1
-        );
+                .collect();
+            let transaction =
+                ProjectFileTransaction::apply(&fixture.project_root, &updates).unwrap();
+            assert!(fixture.project_root.join(summary.relative_path()).exists());
+            transaction.rollback().unwrap();
+            assert_eq!(
+                updates
+                    .iter()
+                    .map(|update| fs::read(fixture.project_root.join(&update.relative_path)).ok())
+                    .collect::<Vec<_>>(),
+                before
+            );
+            assert!(
+                !fixture
+                    .project_root
+                    .join(".qiongli/consolidation-transaction")
+                    .exists()
+            );
+            assert_eq!(
+                fixture.service.snapshot().unwrap().projects[0].semantic_revision,
+                1
+            );
+        }
     }
 }

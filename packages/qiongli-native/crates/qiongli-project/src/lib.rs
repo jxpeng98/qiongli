@@ -24,6 +24,7 @@ mod incremental_portfolio;
 mod json;
 mod migration;
 mod model;
+mod paper_note;
 #[cfg(test)]
 mod platform_capacity;
 mod portable;
@@ -227,5 +228,6 @@ pub use service::{
     ProjectStateService, RegisteredProjectRoot, VerifiedProjectMutation,
 };
 
+pub use paper_note::PaperNoteDraftV1;
 pub use stage_summary::{StageSummaryDraftV1, StageSummarySourceV1, StageSummaryStatus};
 pub use storage::read_stage_handoff_file;

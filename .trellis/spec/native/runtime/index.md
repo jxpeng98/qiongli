@@ -112,6 +112,31 @@ Markdown is retained with generated save-basis metadata; scholarly coverage,
 humanization, claim continuity and status remain review obligations. No summary
 read/save MCP endpoint or automatic stage/Graph transition is added.
 
+The same consolidation owner accepts `--paper-note-file <absolute-draft.json>`.
+`PaperNoteDraftV1` strictly binds schema version 1, citekey, optional
+`previousSha256`, 1–64 local source path/SHA-256 pairs and reviewed Markdown.
+It creates `notes/<citekey>.md` only when the prior hash is absent and the target
+is absent; append requires the exact old note hash and preserves every prior
+byte. Citekeys are 1–128 ASCII alphanumeric/underscore/hyphen characters, begin
+alphanumerically and exclude Windows device names; unsupported keys are refused,
+never normalized. Source checks reuse the summary reader's bounded-file and
+16 MiB aggregate limits. Drafts reject duplicate/unknown JSON fields, unsafe paths,
+NULs, empty/oversize text and generated lineage-marker injection. Source files
+remain snapshots, not locks against external editors or remote-body verification.
+
+Preview returns exact `paperNoteContent`. Apply rechecks source/prior-note hashes
+and the existing dual approval, plan, library/project revision and semantic-drift
+boundaries. It uses the shared transaction (up to seven files with summary and
+handoff), receipt and recovery owner. New note publication never replaces a
+competing file, and collision rollback preserves that file. Existing-note updates
+retain the shared transaction CAS boundary; arbitrary external writes after that
+check are not serialized by Qiongli's lock. Receipts add the closed `paper-note`
+artifact; old receipts and no-option output/plan serialization remain unchanged,
+while older binaries reject new-artifact receipts. Notes remain outside the
+registered semantic/Graph set. Academic review retains citekeys, claim IDs,
+anchors and coverage/identity limits; no content parser, new MCP writer, source
+packet store, automatic bibliography or Graph update is introduced.
+
 Academic Graph v1 remains a rebuildable projection over registered canonical
 artifacts. `academic_graph_extract.rs` permits one claim ID/text/type across
 multiple evidence rows, diagnoses conflicting records, and requires source

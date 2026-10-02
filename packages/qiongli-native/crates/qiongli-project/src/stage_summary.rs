@@ -97,19 +97,10 @@ impl StageSummaryDraftV1 {
 
     pub(crate) fn revalidate_sources(&self, root: &Path) -> Result<(), ProjectError> {
         self.validate()?;
-        let mut total = 0usize;
-        for source in self.sources.iter().chain(self.previous_summary.iter()) {
-            let (bytes, digest) = read_project_source(root, &source.relative_path)?
-                .ok_or(ProjectError::RevisionConflict)?;
-            if digest != source.sha256 {
-                return Err(ProjectError::RevisionConflict);
-            }
-            total = total
-                .checked_add(bytes.len())
-                .filter(|total| *total <= 16 * 1024 * 1024)
-                .ok_or(ProjectError::DocumentTooLarge)?;
-        }
-        Ok(())
+        revalidate_sources(
+            root,
+            self.sources.iter().chain(self.previous_summary.iter()),
+        )
     }
 
     pub(crate) fn render(&self, stage: &str, revision: u64, reviewed_at: u64) -> String {
@@ -241,6 +232,25 @@ pub(crate) fn valid_summary_id(value: &str) -> bool {
                     c.is_ascii_uppercase() || c.is_ascii_digit() || matches!(c, b'-' | b'_')
                 })
         })
+}
+
+pub(crate) fn revalidate_sources<'a>(
+    root: &Path,
+    sources: impl Iterator<Item = &'a StageSummarySourceV1>,
+) -> Result<(), ProjectError> {
+    let mut total = 0usize;
+    for source in sources {
+        let (bytes, digest) = read_project_source(root, &source.relative_path)?
+            .ok_or(ProjectError::RevisionConflict)?;
+        if digest != source.sha256 {
+            return Err(ProjectError::RevisionConflict);
+        }
+        total = total
+            .checked_add(bytes.len())
+            .filter(|total| *total <= 16 * 1024 * 1024)
+            .ok_or(ProjectError::DocumentTooLarge)?;
+    }
+    Ok(())
 }
 
 pub(crate) fn valid_summary_path(value: &str) -> bool {
