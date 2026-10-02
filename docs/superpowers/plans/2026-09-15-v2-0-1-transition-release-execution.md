@@ -2213,3 +2213,76 @@ through the existing preview/approval/CAS owner. This exercise does not resolve
 that gap. Broader disciplines, blind forward evaluation, domain-expert review and
 authenticated-provider/transport qualification remain open. Integration records
 only CLI-405 progress; task states, dependencies and accepted evidence stay fixed.
+
+## October 2 — formal stage-handoff persistence and resume
+
+The maintainer continues the selected next increment and requests lightweight
+`gpt-6.1-sol` reasoning for checks. Baseline `d03dfbed` already reads registered
+handoffs but capture consolidation can write only research state and decisions.
+Implementation `fafd68014b7c2bf4007c7ebbdc9b9e9a295d2db6` adds the optional CLI
+`--stage-handoff-file` to that existing owner. It appends explicitly supplied
+Markdown, previews the complete resulting handoff, preserves all earlier bytes,
+and binds the new content to the existing digest, dual approval, transaction,
+receipt and revision checks. No automatic handoff is inferred from a capture's
+summary. The native boundary validates bounded UTF-8 data; scholarly completeness
+and the required handoff sections remain review obligations.
+
+Both preview and apply now recheck the registered semantic digest, including
+inputs that are not write targets. Unrefreshed drift is rejected rather than
+silently adopted into the next manifest. Non-registered sources and versioned
+stage summaries remain outside this digest and require separate source-byte
+checks. Default API/output behavior and old receipts remain readable; an older
+binary cannot read receipts containing the new closed `stage-handoff` variant.
+No MCP save endpoint, storage subsystem, stage advance, automatic Graph rebuild,
+summary creation or model/profile change is introduced.
+
+Two isolated copied-CLI journeys pass on macOS arm64: the existing default
+capture flow and the optional handoff flow. Separate processes perform preview,
+approved apply, explicit Graph snapshot and source read; revision 2 returns the
+exact previewed handoff, while revision 1 fails. Changed draft bytes, changed
+registered inputs, incomplete approval, held library lock, a killed waiting
+writer, altered review timestamp and replay leave the expected project/config
+bytes intact. The existing fixture restores its deliberately changed test input
+before the positive save; this is not production recovery guidance. Service tests
+also append a second capture without erasing the first entry. These are storage
+fixtures with synthetic claims/limits, not completed research-stage examples or
+installed-Host observations.
+
+The requested native sub-agent `/root/handoff_persistence_check` ran as
+`gpt-6.1-sol / low`. Its read-only review identified a draft-path Debug disclosure
+and wording that could imply native revision coverage for arbitrary summaries;
+both were corrected. It directly ran 20 existing compatibility tests: capture
+12, artifact drift 2, semantic timeline 5, revision-bound reader 1. Test-binary
+SHA-256 `6e37b7450a1063516466070d8bb2f1b6b9e7de1f5722299848b966ecd8d9469b`.
+The coordinator ran 11 consolidation tests, 3 CLI parser tests, the 2 copied-CLI
+journeys, 13 handoff/continuity/resource-link checks and 7 roadmap checks. All
+pass. An initial negative fixture named a non-registered evidence path and was
+corrected to the actual registered boundary-review artifact; no protection of
+arbitrary files is claimed.
+
+`qiongli-project --all-targets` Clippy, touched-file rustfmt and diff checks pass.
+The wider CLI Clippy check is not green under Rust 1.99.0: the new
+`chunks_exact_to_as_chunks` lint stops at three unchanged platform locations
+(`community_alpha_integrity.rs`, `grant.rs`, `release_authority.rs`); a
+`--no-deps` check also exposes four unchanged CLI locations (`command.rs` three,
+`external_agent_cli.rs` one). This increment neither changes those files nor
+weakens their lints. The existing atomic deprecation warning remains.
+
+Regenerated-pack candidate `4b82685bf977f97f34d843d76b5f4fd21b5588cf` contains 446
+resources, with content source `fafd68014b7c2bf4007c7ebbdc9b9e9a295d2db6`, root
+`8b7c2014d01fbf496cfaa1f59ce4a786fc9d9d5f514bc232ce07dedde06d7b1c` and pack
+`8d2ef5f713f369bf8d6ac04c3cb538dd8ee5deb2c07a7694c58eeabbd624b9e8`.
+Both embedded-pack/registry checks pass. The rebuilt local CLI SHA-256 is
+`9bde87915e5ce1e6be783e37163c308b1ef5fb261804cceacea7e7255717e3fc`;
+the earlier two runtime journeys used SHA-256
+`6c4d661b94b0bf31fa637b6ee8c31064227af883046ed53d04e53b190e339887` with identical
+runtime source and content bytes, before the pack source-commit metadata was
+rebound. Their results are reused without claiming an additional installed run.
+
+Next: exercise this save/resume from a configured Host in an isolated project
+using public evidence, including continuation after a source changes. Native
+versioned stage-summary/history writes remain separately scoped. Installed-Host,
+domain-expert, authenticated-provider and fulltext-transport qualification remain
+open. Integration updates only CLI-405 progress: all 249 task states/dependencies
+and 46 accepted rows remain unchanged. No private research access, installed
+Plugin/profile update, publication or program acceptance is claimed.
