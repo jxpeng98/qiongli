@@ -84,6 +84,27 @@ The bound regular-file reader is shared with portable capture intake, rejects
 final symlinks/non-UTF-8/oversize handoffs, and never treats file text as authority.
 No MCP endpoint, new store, Host model setting or installed profile changes.
 
+The same CLI owner accepts optional `--stage-summary-file <absolute-draft.json>`:
+strict `StageSummaryDraftV1` names a new uppercase `STG-` ID, document status,
+predecessor path/digest, 1–64 project-local source fingerprints and reviewed
+Markdown. Sources and predecessor are bounded regular files, rechecked at preview
+and apply, and included in the plan digest. Reads are snapshots, not locks against
+external editors; omitted/external sources are not implicitly covered. Preview
+returns exact summary, research-state/history and handoff bytes. The transaction
+creates `context/stage_summaries/<ID>.md`, preserves prior history and adds its
+handoff link alongside ordinary capture artifacts. Existing summary paths refuse;
+publication uses a non-replacing filesystem operation, and rollback preserves a
+competing file when that create fails. A six-file transaction retains the current
+approval, revision, recovery and receipt owners. Summary documents remain outside
+the registered semantic/Graph artifact set. Readers accept the additional closed
+`stage-summary` receipt artifact; older binaries do not. Without the option,
+existing APIs, plan digest serialization and output/receipt fields stay unchanged.
+History uses the existing six columns and review time in Unix UTC seconds;
+ambiguous tables or a predecessor different from the last row refuse. Supplied
+Markdown is retained with generated save-basis metadata; scholarly coverage,
+humanization, claim continuity and status remain review obligations. No summary
+read/save MCP endpoint or automatic stage/Graph transition is added.
+
 Academic Graph v1 remains a rebuildable projection over registered canonical
 artifacts. `academic_graph_extract.rs` permits one claim ID/text/type across
 multiple evidence rows, diagnoses conflicting records, and requires source

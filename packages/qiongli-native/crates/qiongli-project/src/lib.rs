@@ -35,6 +35,7 @@ mod repository_inbox;
 mod runtime_state;
 mod semantic_timeline;
 mod service;
+mod stage_summary;
 mod storage;
 
 pub use academic_graph::{
@@ -226,4 +227,5 @@ pub use service::{
     ProjectStateService, RegisteredProjectRoot, VerifiedProjectMutation,
 };
 
+pub use stage_summary::{StageSummaryDraftV1, StageSummarySourceV1, StageSummaryStatus};
 pub use storage::read_stage_handoff_file;

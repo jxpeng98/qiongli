@@ -674,6 +674,24 @@ pub(crate) fn read_semantic_artifact(
     Ok(Some((bytes, digest)))
 }
 
+/// Bounded project-local inputs explicitly named by a summary draft.
+pub(crate) fn read_project_source(
+    root: &Path,
+    relative_path: &str,
+) -> Result<Option<(Vec<u8>, String)>, ProjectError> {
+    validate_existing_project_root(root)?;
+    if !crate::stage_summary::valid_source_path(relative_path) {
+        return Err(ProjectError::InvalidProjectDocument);
+    }
+    let path = root.join(relative_path);
+    let Some(metadata) = project_metadata_if_exists(root, &path)? else {
+        return Ok(None);
+    };
+    let bytes = read_bounded_project_file(root, &path, &metadata, MAX_ARTIFACT_BYTES, false)?;
+    let digest = sha256(&bytes);
+    Ok(Some((bytes, digest)))
+}
+
 pub(crate) fn read_graph_semantic_links(root: &Path) -> Result<Option<Vec<u8>>, ProjectError> {
     validate_existing_project_root(root)?;
     let path = root.join(GRAPH_SEMANTIC_LINKS_RELATIVE_PATH);
@@ -894,18 +912,33 @@ impl ProjectFileTransaction {
             _lock: lock,
         };
         if let Err(error) = transaction.persist_recovery_evidence(updates) {
+            // No project target has been attempted while writing the journal.
+            transaction.backups.clear();
             let _ = transaction.rollback_in_place();
             return Err(error);
         }
-        for update in updates {
+        for (index, update) in updates.iter().enumerate() {
             if let Err(error) = write_transaction_target(root, update) {
-                return match transaction.rollback_in_place() {
-                    Ok(()) => Err(error),
-                    Err(_) => Err(ProjectError::RecoveryRequired),
-                };
+                return Err(transaction.rollback_failed_write(index, error));
             }
         }
         Ok(transaction)
+    }
+
+    fn rollback_failed_write(&mut self, index: usize, error: ProjectError) -> ProjectError {
+        // Later targets were never attempted and may now belong to another writer.
+        self.backups.truncate(index + 1);
+        if crate::stage_summary::valid_summary_path(&self.backups[index].relative_path)
+            && error == ProjectError::PersistenceFailed(io::ErrorKind::AlreadyExists)
+        {
+            // We never published this create-only target. Preserve even
+            // identical bytes from a competing writer during rollback.
+            self.backups.remove(index);
+        }
+        match self.rollback_in_place() {
+            Ok(()) => error,
+            Err(_) => ProjectError::RecoveryRequired,
+        }
     }
 
     pub(crate) fn rollback(mut self) -> Result<(), ProjectError> {
@@ -1173,6 +1206,8 @@ fn validate_project_file_updates(updates: &[ProjectFileUpdate]) -> Result<(), Pr
     let mut total = 0usize;
     for update in updates {
         if !valid_transaction_target(&update.relative_path)
+            || (crate::stage_summary::valid_summary_path(&update.relative_path)
+                && update.expected_digest.is_some())
             || relative_paths.contains(&update.relative_path.as_str())
             || update.next_bytes.len() > MAX_ARTIFACT_BYTES
             || update.expected_digest.as_deref().is_some_and(|value| {
@@ -1196,6 +1231,7 @@ fn validate_project_file_updates(updates: &[ProjectFileUpdate]) -> Result<(), Pr
 fn valid_transaction_target(relative_path: &str) -> bool {
     if SEMANTIC_ARTIFACTS.contains(&relative_path)
         || relative_path == "context/project_manifest.json"
+        || crate::stage_summary::valid_summary_path(relative_path)
     {
         return true;
     }
@@ -1238,7 +1274,14 @@ fn write_transaction_target(root: &Path, update: &ProjectFileUpdate) -> Result<(
         .file_name()
         .and_then(|value| value.to_str())
         .ok_or(ProjectError::InvalidProjectDocument)?;
-    atomic_write(parent, file_name, &update.next_bytes, false)
+    if crate::stage_summary::valid_summary_path(&update.relative_path) {
+        if update.expected_digest.is_some() {
+            return Err(ProjectError::InvalidProjectDocument);
+        }
+        atomic_write_with_replace(parent, file_name, &update.next_bytes, false, false)
+    } else {
+        atomic_write(parent, file_name, &update.next_bytes, false)
+    }
 }
 
 fn validate_project_path_shape(path: &Path) -> Result<(), ProjectError> {
@@ -1420,6 +1463,16 @@ pub(crate) fn atomic_write(
     bytes: &[u8],
     private_existing: bool,
 ) -> Result<(), ProjectError> {
+    atomic_write_with_replace(directory, file_name, bytes, private_existing, true)
+}
+
+fn atomic_write_with_replace(
+    directory: &Path,
+    file_name: &str,
+    bytes: &[u8],
+    private_existing: bool,
+    replace: bool,
+) -> Result<(), ProjectError> {
     let destination = directory.join(file_name);
     if let Some(metadata) = metadata_if_exists(&destination)? {
         validate_file(&destination, &metadata, private_existing)?;
@@ -1434,7 +1487,7 @@ pub(crate) fn atomic_write(
         return Err(ProjectError::PersistenceFailed(error.kind()));
     }
     drop(file);
-    if let Err(error) = replace_file(&staging, &destination, true) {
+    if let Err(error) = replace_file(&staging, &destination, replace) {
         let _ = fs::remove_file(&staging);
         return Err(error);
     }
@@ -1630,8 +1683,14 @@ fn open_or_create_private_lock(_path: &Path) -> Result<File, ProjectError> {
 }
 
 #[cfg(unix)]
-fn replace_file(source: &Path, destination: &Path, _replace: bool) -> Result<(), ProjectError> {
-    fs::rename(source, destination).map_err(map_io)
+fn replace_file(source: &Path, destination: &Path, replace: bool) -> Result<(), ProjectError> {
+    if replace {
+        fs::rename(source, destination).map_err(map_io)
+    } else {
+        // Link publication atomically refuses any destination created after preview.
+        fs::hard_link(source, destination).map_err(map_io)?;
+        fs::remove_file(source).map_err(map_io)
+    }
 }
 
 #[cfg(windows)]
@@ -1693,4 +1752,70 @@ fn lower_hex(bytes: &[u8]) -> String {
         let _ = write!(output, "{byte:02x}");
     }
     output
+}
+
+#[cfg(test)]
+mod summary_transaction_tests {
+    use super::*;
+
+    #[test]
+    fn create_collision_rollback_preserves_an_identical_competing_summary() {
+        for attempted_summary in [false, true] {
+            check_collision_rollback(attempted_summary);
+        }
+    }
+
+    fn check_collision_rollback(attempted_summary: bool) {
+        let mut token = [0u8; 12];
+        getrandom::fill(&mut token).unwrap();
+        let root =
+            std::env::temp_dir().join(format!("qiongli-summary-collision-{}", lower_hex(&token)));
+        fs::create_dir(&root).unwrap();
+        let root = fs::canonicalize(root).unwrap();
+        fs::create_dir(root.join("context")).unwrap();
+        fs::create_dir(root.join("context/stage_summaries")).unwrap();
+        let state = root.join("context/research_state.md");
+        fs::write(&state, b"old state").unwrap();
+        let mut transaction = ProjectFileTransaction::apply(
+            &root,
+            &[ProjectFileUpdate {
+                relative_path: "context/research_state.md".to_string(),
+                expected_digest: Some(sha256(b"old state")),
+                next_bytes: b"new state".to_vec(),
+            }],
+        )
+        .unwrap();
+        // Model the already-observed absent target at the next transaction write.
+        let update = ProjectFileUpdate {
+            relative_path: "context/stage_summaries/STG-B-001.md".to_string(),
+            expected_digest: None,
+            next_bytes: b"same summary".to_vec(),
+        };
+        transaction.backups.push(ProjectFileBackup {
+            relative_path: update.relative_path.clone(),
+            previous_bytes: None,
+            next_digest: sha256(&update.next_bytes),
+        });
+        let target = root.join(&update.relative_path);
+        fs::write(&target, &update.next_bytes).unwrap();
+        let (index, error) = if attempted_summary {
+            let error = write_transaction_target(&root, &update).unwrap_err();
+            assert_eq!(
+                error,
+                ProjectError::PersistenceFailed(io::ErrorKind::AlreadyExists)
+            );
+            (1, error)
+        } else {
+            // An earlier target failed after publication; this summary was never attempted.
+            (
+                0,
+                ProjectError::PersistenceFailed(io::ErrorKind::PermissionDenied),
+            )
+        };
+        assert_eq!(transaction.rollback_failed_write(index, error), error);
+        assert_eq!(fs::read(&target).unwrap(), update.next_bytes);
+        assert_eq!(fs::read(state).unwrap(), b"old state");
+        assert!(!root.join(".qiongli/consolidation-transaction").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
 }

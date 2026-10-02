@@ -97,6 +97,62 @@ new summary documents as semantic authority. Explicit refresh/verification is
 still required for a registered project. No new MCP tool or deletion endpoint
 is introduced by this workflow.
 
+## Native versioned summary save
+
+For a registered project, the existing CLI capture consolidation accepts
+`--stage-summary-file <absolute-draft.json>` on both `preview` and `apply`.
+Use a new, reviewable capture at the current project revision. Prepare and polish
+the substantive Markdown first, then place it in this strict JSON envelope:
+
+```json
+{
+  "schemaVersion": 1,
+  "summaryId": "STG-B-001",
+  "status": "partial",
+  "previousSummary": null,
+  "sources": [
+    {"relativePath": "sources/current.md", "sha256": "<observed 64-character lowercase SHA-256>"}
+  ],
+  "markdown": "<reviewed stage-summary Markdown>"
+}
+```
+
+Use an unused `STG-` ID with uppercase ASCII letters, digits, hyphens or
+underscores, at most 64 characters in total. Status is `complete`, `partial` or
+`correction`; it describes this document, not acceptance of the research stage.
+For a continuation, `previousSummary` is an object with `relativePath` and
+`sha256` for the last history entry's `context/stage_summaries/<ID>.md` file.
+Read that actual file and check its dependencies; a predecessor link alone does
+not make its conclusions current.
+
+List the actual project-local files used as `sources`, including non-registered
+attachments. At least one and at most 64 unique sources are supported. The native
+reader refuses hidden/traversal paths, symlinks and unsafe files; each file and
+the JSON draft are capped at 4 MiB, and source reads including the predecessor
+at 16 MiB total. Report unsupported inputs rather than omitting a dependency to
+pass the save. All listed hashes are rechecked at preview and apply; omitted or
+external sources remain review obligations, not implicitly verified inputs.
+
+Preview exposes exact `stageSummaryContent`, `researchStateContent` and
+`stageHandoffContent`. The summary retains the supplied Markdown and adds its
+save basis. It creates one immutable document, appends a row to the existing
+`Stage Summary History` table and adds a handoff link. Old rows and documents
+remain intact. The table's `Date` is the review time in Unix UTC seconds. An
+ambiguous/incompatible history table or mismatched predecessor requires a
+reviewed repair; never discard the old history to force a save. Use
+`--stage-handoff-file` as well when substantive handoff text is needed; the
+automatic link is only a continuity reference.
+
+Apply with the same draft, review timestamp, preview digest and existing academic
+and filesystem approvals. Changed bytes require a fresh review; an existing
+summary path is refused even if its content matches. A repeated request should
+reuse the verified saved summary, not create another version merely to retry.
+After restart, follow the current history/handoff link, read the summary and its
+receipt, and check actual source bytes before dependent work. This CLI extension
+does not advance the stage, rebuild the Graph, provide a new MCP save tool or
+authorize removal. Older binaries cannot read receipts with `stage-summary`;
+keep the updated reader for projects using this option.
+
 ## Optional file-by-file retention review
 
 Only include this review when the user asks about cleanup. All files default to

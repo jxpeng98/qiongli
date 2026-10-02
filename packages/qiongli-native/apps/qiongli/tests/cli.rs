@@ -3076,15 +3076,22 @@ fn copied_binary_accepts_repository_capture_without_runtime() {
 
 #[test]
 fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
-    consolidation_journey(false);
+    consolidation_journey(false, false);
 }
 
 #[test]
 fn copied_binary_persists_and_resumes_stage_handoff_without_runtime() {
-    consolidation_journey(true);
+    consolidation_journey(true, false);
 }
 
-fn consolidation_journey(with_handoff: bool) {
+#[test]
+fn copied_binary_persists_and_resumes_stage_summary_without_runtime() {
+    consolidation_journey(false, true);
+}
+
+fn consolidation_journey(with_handoff: bool, with_summary: bool) {
+    use sha2::{Digest, Sha256};
+
     fn snapshot(root: &Path) -> std::collections::BTreeMap<PathBuf, Vec<u8>> {
         let mut files = std::collections::BTreeMap::new();
         if root.exists() {
@@ -3311,7 +3318,7 @@ fn consolidation_journey(with_handoff: bool) {
 
     let handoff_file = fixture.root.join("private-handoff-draft.md");
     let handoff = "### Decision Summary\nDEC-001 / CLM-001 retains @example.\n### Evidence Dependencies\nevidence/claim-evidence-ledger.csv#EV-001; abstract only.\n### Unresolved Questions\nDenominator unresolved; no causal conclusion.\n";
-    let handoff_args: Vec<OsString> = if with_handoff {
+    let mut continuity_args: Vec<OsString> = if with_handoff {
         fs::write(&handoff_file, handoff).unwrap();
         vec![
             "--stage-handoff-file".into(),
@@ -3320,6 +3327,26 @@ fn consolidation_journey(with_handoff: bool) {
     } else {
         Vec::new()
     };
+    let summary_file = fixture.root.join("private-summary-draft.json");
+    let source_file = project_root.join("sources/current.md");
+    let source = "CLM-001 / EV-001 / @example: abstract only; denominator unresolved.\n";
+    let summary = serde_json::json!({
+        "schemaVersion": 1,
+        "summaryId": "STG-W-001",
+        "status": "partial",
+        "previousSummary": null,
+        "sources": [{"relativePath": "sources/current.md", "sha256": format!("{:x}", Sha256::digest(source))}],
+        "markdown": "# Writing stage summary\n\nDEC-001 / CLM-001 retains @example; abstract only, no causal conclusion."
+    });
+    if with_summary {
+        fs::create_dir_all(source_file.parent().unwrap()).unwrap();
+        fs::write(&source_file, source).unwrap();
+        fs::write(&summary_file, serde_json::to_vec(&summary).unwrap()).unwrap();
+        continuity_args.extend([
+            "--stage-summary-file".into(),
+            summary_file.as_os_str().to_owned(),
+        ]);
+    }
     let consolidation_preview = run_configured_os(
         &copied,
         &fixture,
@@ -3334,7 +3361,7 @@ fn consolidation_journey(with_handoff: bool) {
             capture_id.clone().into(),
         ]
         .into_iter()
-        .chain(handoff_args.clone())
+        .chain(continuity_args.clone())
         .collect::<Vec<_>>(),
         true,
     );
@@ -3364,10 +3391,43 @@ fn consolidation_journey(with_handoff: bool) {
                 .contains(handoff)
         );
         assert!(!project_root.join("context/stage_handoff.md").exists());
-    } else {
+    } else if !with_summary {
         assert!(
             consolidation_preview_json
                 .get("stageHandoffContent")
+                .is_none()
+        );
+    }
+    if with_summary {
+        assert!(!output_contains_path(&consolidation_preview, &summary_file));
+        assert!(
+            consolidation_preview_json["stageSummaryContent"]
+                .as_str()
+                .unwrap()
+                .contains(summary["markdown"].as_str().unwrap())
+        );
+        for field in ["stageHandoffContent", "researchStateContent"] {
+            assert!(
+                consolidation_preview_json[field]
+                    .as_str()
+                    .unwrap()
+                    .contains("[STG-W-001](stage_summaries/STG-W-001.md)")
+            );
+        }
+        assert!(
+            !project_root
+                .join("context/stage_summaries/STG-W-001.md")
+                .exists()
+        );
+    } else {
+        assert!(
+            consolidation_preview_json
+                .get("stageSummaryContent")
+                .is_none()
+        );
+        assert!(
+            consolidation_preview_json
+                .get("researchStateContent")
                 .is_none()
         );
     }
@@ -3395,7 +3455,7 @@ fn consolidation_journey(with_handoff: bool) {
         "--expected-plan-digest".into(),
         consolidation_digest.clone().into(),
     ];
-    apply_args.extend(handoff_args);
+    apply_args.extend(continuity_args);
     let mut approved_args = apply_args.clone();
     approved_args.extend([
         "--approve-academic-review".into(),
@@ -3524,6 +3584,31 @@ fn consolidation_journey(with_handoff: bool) {
         );
         fs::remove_file(changed_input).unwrap();
     }
+    if with_summary {
+        let mut changed = summary.clone();
+        changed["markdown"] = "Unreviewed replacement".into();
+        fs::write(&summary_file, serde_json::to_vec(&changed).unwrap()).unwrap();
+        let rejected = run_configured_os(&copied, &fixture, &approved_args, true);
+        assert_eq!(rejected.stderr, b"error: project-plan-mismatch\n");
+        assert_eq!(
+            before_consolidation,
+            (snapshot(&project_root), snapshot(&fixture.config_root))
+        );
+        fs::write(&summary_file, serde_json::to_vec(&summary).unwrap()).unwrap();
+        fs::write(
+            &source_file,
+            "Expanded source; the reviewed hash no longer matches.",
+        )
+        .unwrap();
+        let before_drift_apply = (snapshot(&project_root), snapshot(&fixture.config_root));
+        let rejected = run_configured_os(&copied, &fixture, &approved_args, true);
+        assert_eq!(rejected.stderr, b"error: project-revision-conflict\n");
+        assert_eq!(
+            before_drift_apply,
+            (snapshot(&project_root), snapshot(&fixture.config_root))
+        );
+        fs::write(&source_file, source).unwrap();
+    }
     let consolidation_apply = run_configured_os(&copied, &fixture, &approved_args, true);
     assert!(
         consolidation_apply.status.success(),
@@ -3539,7 +3624,9 @@ fn consolidation_journey(with_handoff: bool) {
     assert_eq!(consolidation_apply_json["commit"]["semanticRevision"], 2);
     assert_eq!(
         consolidation_apply_json["commit"]["artifactsUpdated"],
-        if with_handoff {
+        if with_summary {
+            serde_json::json!(["research-state", "stage-summary", "stage-handoff"])
+        } else if with_handoff {
             serde_json::json!(["research-state", "stage-handoff"])
         } else {
             serde_json::json!(["research-state"])
@@ -3554,7 +3641,36 @@ fn consolidation_journey(with_handoff: bool) {
     assert!(research_state.contains(&capture_id));
     assert!(research_state.contains(&capture.summary));
 
-    if with_handoff {
+    if with_summary {
+        let saved =
+            fs::read_to_string(project_root.join("context/stage_summaries/STG-W-001.md")).unwrap();
+        assert_eq!(
+            saved,
+            consolidation_preview_json["stageSummaryContent"]
+                .as_str()
+                .unwrap()
+        );
+        assert_eq!(
+            research_state,
+            consolidation_preview_json["researchStateContent"]
+                .as_str()
+                .unwrap()
+        );
+        assert_eq!(fs::read_to_string(&source_file).unwrap(), source);
+        let receipt: Value =
+            serde_json::from_slice(&fs::read(project_root.join(receipt_entry)).unwrap()).unwrap();
+        assert!(
+            receipt["artifacts"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|artifact| {
+                    artifact["relativePath"] == "context/stage_summaries/STG-W-001.md"
+                        && artifact["digest"] == format!("{:x}", Sha256::digest(&saved))
+                })
+        );
+    }
+    if with_handoff || with_summary {
         assert_eq!(
             fs::read_to_string(project_root.join("context/stage_handoff.md")).unwrap(),
             consolidation_preview_json["stageHandoffContent"]
