@@ -68,6 +68,12 @@ Crossref/PubMed/arXiv discovery with actually available Host search. Native Lite
 and Full share the reader; frozen Python contracts and canonical write owners
 remain unchanged. The current plan records implementation, public-source probes
 and remaining parser/Host qualification limits.
+The maintainer next selects three bounded public-paper tasks, an on-demand
+source-bound evidence reviewer, and the same review task on configured Codex and
+Claude Code. Reuse existing Skills, portable packets and prepare/collect owners;
+keep frozen criteria separate from task inputs and distinguish actual execution,
+source-grounded review and installed-Plugin qualification. The current plan owns
+the observed results, costs where available and remaining gaps.
 This scope does not authorize a new release or installed-user-profile update;
 real study, domain-expert and installed-Host qualification remain separate evidence.
 

@@ -1580,3 +1580,138 @@ Windows/Linux target-native behavior were not qualified. No release/version bump
 installed-plugin update, push or publication is included. The existing plan and
 CLI-405 progress own this work; all 249 task states/dependencies and all 46 accepted
 rows remain unchanged. Seven program-roadmap tests and index freshness pass.
+
+
+## October 2 — selected public-paper and evidence-review increment
+
+The maintainer selected real-paper tasks, an on-demand evidence reviewer and a
+same-task comparison on the configured Codex and Claude Code Hosts. Content
+`d44c45d2` adds one shared source-bound verification guide, routes existing
+self-critique/collaboration to it and extends the existing review packet with
+claim coverage. It checks substantive claims, source access, units, methods,
+uncertainty and changed-evidence dependencies. There is no permanent agent per
+discipline, new runtime service, Host adapter, model override or research-write
+owner. Revision `2a368167` incorporates defects observed in the actual reviews.
+
+Corpus `b4ce372f` adds three attributed public-paper packets under
+`evals/research_journey/public-papers/`, with source/task hashes, XML paragraph
+selectors, licenses and a stdlib integrity check. These are supplied-excerpt
+appraisal and writing tasks, not new searches, full reviews or data reanalyses:
+
+| Paper | Bounded task |
+|---|---|
+| Ritchie et al. (2013), DOI `10.1371/journal.pone.0078976` | Quantitative school experiment; Q1 appraisal and Q2 continuation with actual previously withheld sensitivity paragraphs from the same article. |
+| Severe et al. (2024), DOI `10.1371/journal.pone.0297771` | Qualitative interview appraisal, source-author interpretation and a bounded Chinese writing task. |
+| Trumble et al. (2023 online / 2024 issue), DOI `10.1007/s10459-023-10274-3` | Audit of a published health-professions systematic review, not execution of another systematic review. |
+
+Manifest SHA-256 is
+`fb9f1279115f22d41fca225642a16ad2cfcf66c882115b4fd8c8f814c28b5b0a`;
+withheld criteria SHA-256 is
+`c05a5ad7f2fd4bb1c8e8d0baa14f10b0946a7895dfd9d193be5db4cf5796c611`.
+The initial guidance snapshot binds content `d44c45d2`, with manifest SHA-256
+`8d05a63c4ef86825ebdab807b9b8d4a9b015f9e3948affbd3f48ae7488e24b17`.
+Raw publisher/PMC XML was retrieved to `/private/tmp/qiongli-public-papers` and
+matched against the attributed excerpts, DOI, license and paragraph selectors.
+The XML, figures, tables, supplements and underlying data were not supplied to
+task runners. The quantitative XML names CC BY without a version; none is added.
+
+Actual native tasks `/root/public_quantitative_trial`,
+`/root/public_qualitative_trial` and `/root/public_review_trial` produced all four
+preselected checkpoints. Q2 received the actual Q1 bytes; originals remain
+unchanged. Runners did not receive the rubric, sibling answers or parent verdict.
+No configured model was replaced; exact native model/token/cost data was unavailable.
+
+| Checkpoint | Observed result and coordinator assessment |
+|---|---|
+| Q1, 260.709 s | Distinguishes 109 pupils from 108 learning sheets, within-class retrieval from between-class mind-map allocation, adjusted analysis from causal mechanism, and a pilot proposal from implementation. Initial assessment passed; final reconciliation reopens the post-hoc computation/units check below. |
+| Q2, 207.528 s | Actual added evidence narrows Q-C2/Q-C3/DEC-Q1: without the covariate, retrieval p=.14 and interaction p=.41. Retains prior history and IDs, does not infer no effect, and attributes the GLMM report without claiming the supplement was read. Passes the fixed bounded checks. |
+| L1, 238.706 s | Retains 19 interviews, 68 invitations, recruitment/context limits, labeled quotation translation and the difference between author-reported saturation and independent verification. Passes the fixed bounded checks. |
+| S1, 271.250 s | Separates seven databases from the EBSCO platform; 1,818 records, 56 studies, 63 experiments and 43 positive experiments. Flags abstract/body terminology differences and missing screening/appraisal details; invents no pooled or clinical effect. Passes the fixed bounded checks. |
+
+Artifacts are under `/private/tmp/qiongli-evidence-trials-tzjdi7x9`. Initial
+whole-answer span assessment `coordinator-review.json` has SHA-256
+`a41d1c436e9ea1025f3a8c0648a5a19e4caad7a5a6e5a806fb777a27312fdadf`.
+Final addendum `final-reconciliation.json` has SHA-256
+`2bc019a9239a2f90ecbd8718c19534f7fc4810264bb5615e77ad36c57d70fa12`.
+It preserves the initial assessment but records the final denominator as four
+completed checkpoints, three passing coordinator review and Q1 with one reopened
+`method/denominator` check marked unreviewed. These are model judgments, not
+automated entailment, human expert review or program acceptance. Native task
+recovery included one unavailable `TextEncoder` helper and one nonexistent
+guidance-path read; both recovered without changing sources or fabricating work.
+
+The configured Codex CLI 0.159.3 and Claude Code 2.1.287 independently reviewed
+the same Q1 source/candidate through existing `qiongli agent ... prepare/collect`.
+Both received identical 33,338-byte stdin, SHA-256
+`534962d026c2aa9d98a12ee0cafecc1dec482118b41e50f240575cec2e23c8b7`,
+without the rubric, Q2 or the other's report. Transport run/project IDs were
+explicit synthetic fixtures with unknown component readiness; these were not
+registered Full MCP runs or installed-Plugin qualification. Actual process exit
+and collection both succeeded, with zero retries and process groups reaped.
+
+| Host / actual execution ID | Observed time and usage |
+|---|---|
+| Codex / `01a0fbec-0df8-7823-823d-1d1a80055f0a` | 231.637 s; input 29,555, cached input 13,184, output 9,278, reasoning output 5,696 tokens as separately reported fields. Exact model and cost unavailable. |
+| Claude Code / `ff9bc908-9735-4bca-b8ae-7e162a391ff2` | 207.124 s; input 12,334, output 22,103, cached input 0. Configured model reported as `deepseek-v4-pro[1m]`; Host name does not imply an Anthropic model. Host-reported USD 0.614245 has unknown cost basis, not verified billing. |
+
+Both reports initially found no mandatory candidate correction. Their successful
+transport is separate from quality: Codex inferred self-review because the prompt
+could not supply its future execution ID; Claude described model comparison as
+human comparison and stated a possible covariate pathway too categorically.
+The guide now leaves unavailable identity to coordinator reconciliation and
+preserves uncertainty in the review itself. Original reports remain unchanged.
+Codex also emitted configured MCP startup diagnostics; no tool-call items appear
+in its completed JSONL. Transport flags do not prove complete config isolation.
+Allowlisted comparison observations are in
+`/private/tmp/qiongli-two-host-zrn6vurm/comparison-observation.json`, SHA-256
+`30c714b8d7f33b6e5b04d8f5c62bee60a2cce2607d935fdc5db8a08a9e397df2`.
+
+A fresh `/root/review_reconciliation_trial` received the updated guide, actual
+sources/candidate/reviews and allowlisted execution receipts, without parent
+findings. Its unchanged 5,053-byte answer, SHA-256
+`df2cbb3df9488d353d745707dc356a9a504d53731d210b6426e43ccf08ef9c93`,
+corrects execution/human-review labels, retains the possible-path qualifier and
+distinguishes old review guidance from the new guide. It also questions Q-C2's
+percentage-point/adjusted-mean wording. The source reports descriptive percentages,
+z-score analyses and post-hoc mean differences labeled 14.93% and −6.16%; Codex
+accepts percentage points, while the fresh reviewer requests narrower wording.
+This is not a demonstrated numeric error, but the supplied excerpts do not resolve
+the exact post-hoc computation. The coordinator preserves that disagreement and
+reopens the check; proposed wording retains the author's labels and the missing
+calculation scope. Captured answers are not repaired or silently rescored as passes.
+This follow-up tests the changed reconciliation guidance only; the earlier author
+tasks and external reviews were not rerun under it.
+
+Focused verification passes: 60 distinct Python tests covering content contracts,
+links, handoffs, structure, Marketplace projection and existing journey evaluators;
+the capability validator; root Skill validation; and corpus integrity against raw
+XML with changed-count, swapped-paper and forged-anchor negative cases. Resource
+links were rechecked after the small guide correction. Final embedded-pack test
+and fresh native export/projections pass. An initial lock-generation invocation
+used a short commit hash and correctly failed before writing; it was rerun with
+the full source commit. The existing atomic API deprecation warning is unchanged.
+
+Final native pack: content source `2a36816760437a9b09ce307837ce03728ebc8c78`,
+446 resources, content root
+`21ca4da75c492d9b420b14a3868f05f76b5673be896e23c65e30080c51da3688`,
+pack `cdd51be04eaf129ac08305f70f4585be2cd5623e269a9016c32baf72e5566355`.
+The development binary SHA-256 is
+`d0f8c13ee511e9cc1f78a930740a6c5b8169bfb43d3cf70b942e960824bca200`.
+Codex/Claude/DeepSeek projections preserve all 444 non-manifest content resources
+byte-for-byte, expose 22/2/22 Skill entries and have no missing resource links.
+Final exports and `projection-check-final.json` remain beside the trial artifacts.
+The original external trials used the earlier pinned binary/guidance; these final
+package checks do not relabel those runs as final-package qualification.
+
+All seven program-roadmap tests and index freshness pass. The ledger comparison
+preserves all 249 task states/dependencies and all 46 accepted rows; every row
+except CLI-405 progress is unchanged. Final diff review and whitespace checks
+pass; integration uses the frozen-source guard and local fast-forward merge,
+without rerunning unchanged checks solely for commit/merge.
+
+This increment records progress under CLI-405 without changing any task state,
+dependency or accepted row. The next increment is maintainer-selected review of
+actual tables/supplements and installed-Host/project end-to-end qualification.
+One candidate pair does not estimate accuracy gain, Host superiority or an optimal
+agent count; retain on-demand bounded collaboration. No release/version bump,
+installed-user Plugin update, private research access, push or publication occurred.
