@@ -1,5 +1,15 @@
 # Bounded research evidence journey
 
+The additive public-paper regression packet preserves actual Q1/Q2/Q3 answers
+and the external model review. Run
+`.venv/bin/python evals/research_journey/public-papers/check_integrity.py --observations --self-test`
+to replay five frozen, coordinator-reviewed spans through `observe.project`:
+units, denominators, abstract/body disagreement, expanded source access and
+review attribution. The original unit conversion and human-attribution failures
+remain failures. Byte, span, anchor, attribution and failed-to-pass mutations are
+rejected. This checks recorded judgments and bindings; it does not grade new
+answers, certify whole answers or establish installed-Host acceptance.
+
 These two Evaluation Truth V1 cases share one explicitly synthetic abstract and
 source registry. They check declared evidence links and requested claim coverage,
 not academic truth or real Host execution. No private research or model call is

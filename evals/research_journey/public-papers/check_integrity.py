@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Offline corpus byte/anchor checks; never scores a research answer."""
 import argparse
+import csv
 import hashlib
+import io
 import json
 from pathlib import Path
 import re
 import shutil
+import sys
 import tempfile
 import xml.etree.ElementTree as ET
 
@@ -100,12 +103,84 @@ def self_test():
             raise AssertionError(f"Negative mutation passed: {mutation}")
 
 
+def check_observations(root):
+    """Replay frozen coordinator judgments; do not judge new research prose."""
+    sys.path.insert(0, str(ROOT.parents[2]))
+    from evals.research_journey.observe import project
+
+    record = json.loads((root / "regressions.json").read_text())
+    assert record["schema"] == "qiongli-public-paper-regressions/v1"
+    assert record["reviewer"]["kind"] == "model"
+    expected = {"units": "fail", "denominators": "pass", "abstract_body": "pass",
+                "source_revision": "pass", "review_attribution": "fail"}
+    assert [c["id"] for c in record["cases"]] == list(expected)
+    for name, sha in record["files"].items():
+        path = root / name
+        assert path.resolve().is_relative_to(root.resolve()) and not path.is_symlink()
+        assert digest(path.read_bytes()) == sha, name
+    addendum = json.loads((root / "quantitative-education/tables-manifest.json").read_text())
+    assert addendum["base_manifest_sha256"] == digest((root / "manifest.json").read_bytes())
+    for item in addendum["files"]:
+        assert digest((root / item["file"]).read_bytes()) == item["sha256"]
+    receipt = json.loads((root / "quantitative-education/observations/claude-execution.json").read_text())
+    assert receipt["actor_kind"] == "model"
+    assert digest((root / receipt["review_file"]).read_bytes()) == receipt["review_sha256"]
+    for case in record["cases"]:
+        assert case["answer_file"] in record["files"]
+        assert case["source"]["artifact_path"] in record["files"]
+        raw = (root / case["answer_file"]).read_bytes()
+        assert digest(raw) == case["answer_sha256"]
+        answer = raw.decode()[case["start"]:case["end"]]
+        assert digest(answer.encode()) == case["review"]["answer_sha256"]
+        registry = io.StringIO()
+        writer = csv.DictWriter(registry, fieldnames=list(case["source"]))
+        writer.writeheader()
+        writer.writerow(case["source"])
+        _, judgment = project(answer, case["review"], registry.getvalue(), rubric=(case["id"],))
+        assert judgment["status"] == case["expected"] == expected[case["id"]]
+
+
+def observation_self_test():
+    for mutation in ("answer", "denominator", "revision", "anchor", "attribution", "promoted"):
+        with tempfile.TemporaryDirectory(prefix="qiongli-observation-integrity-") as tmp:
+            root = Path(tmp) / "corpus"
+            shutil.copytree(ROOT, root)
+            path = root / "regressions.json"
+            record = json.loads(path.read_text())
+            if mutation in ("answer", "denominator", "revision"):
+                name = {"answer": record["cases"][0]["answer_file"],
+                        "denominator": "quantitative-education/tables-source.md",
+                        "revision": "quantitative-education/continuation-source.md"}[mutation]
+                with (root / name).open("a") as file:
+                    file.write("\nchanged bytes\n")
+            elif mutation == "anchor":
+                record["cases"][0]["review"]["segments"][0]["links"][0]["source_location"] = "forged:anchor"
+            elif mutation == "attribution":
+                record["reviewer"]["kind"] = "human"
+            else:
+                case = record["cases"][0]
+                case["review"]["segments"][0]["verdict"] = "pass"
+                case["review"]["checks"]["units"]["status"] = "pass"
+            path.write_text(json.dumps(record))
+            try:
+                check_observations(root)
+            except (AssertionError, ValueError):
+                continue
+            raise AssertionError(f"Negative observation passed: {mutation}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--raw-dir", type=Path, help="Optional retrieved quant.xml, qual.xml, review.xml directory")
     parser.add_argument("--self-test", action="store_true", help="Also reject three isolated negative mutations")
+    parser.add_argument("--observations", action="store_true", help="Replay five frozen selected-span judgments, not new answers")
     args = parser.parse_args()
     check(ROOT, args.raw_dir)
     if args.self_test:
         self_test()
+    if args.observations:
+        check_observations(ROOT)
+        if args.self_test:
+            observation_self_test()
+        print("Five frozen span judgments reproduced (3 supported, 2 failed); no whole-answer or Host acceptance.")
     print("Corpus integrity passed; no research answer or Host has been evaluated.")
