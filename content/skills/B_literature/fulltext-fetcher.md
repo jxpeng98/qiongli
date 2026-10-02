@@ -98,6 +98,15 @@ failure reason and try a different authorized representation or available Host
 reader when useful. Do not repeat an unchanged failing input or disable the
 boundary to force a result.
 
+A DNS result in a private or special-use range can block a public-looking URL
+before HTTP executes. Record that as a transport/access limitation, not a paywall
+or unavailable body. A proxy/DNS mapping is one possible cause, not a diagnosis
+from the URL alone. Do not whitelist that address, replace DNS, enable a proxy or
+weaken redirect checks to force the native read. When public access is otherwise
+authorized, an available Host reader may inspect the publisher/repository page;
+retain that Host provenance and any unknown byte hash. A permission or publisher
+access denial still applies and must not be bypassed on another surface.
+
 ### Record access through the existing owners
 
 Use the existing preview/approval/CAS path for project writes. Do not overwrite

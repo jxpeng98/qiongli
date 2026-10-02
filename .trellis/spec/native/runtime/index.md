@@ -25,6 +25,15 @@ private destinations and unsafe redirects, pins DNS results per hop and limits
 downloads/decoded gzip to 12 MiB. OpenAlex keys go only to its exact supported
 content endpoint. Public sources do not require provider configuration.
 
+Provider status describes configured metadata, not successful credential access
+or a live query. If the bounded shared credential load cannot finish, combined
+searches retain usable selected channels without caching incomplete access.
+Unresolved credentials are never sent. The result preserves partial/failed status
+and names unsearched providers in warnings with `provider_credentials_unavailable`
+as the diagnostic reason; omitted provider counts do not mean zero hits. A solely
+blocked selection retains the existing tool error. No secret-store permissions,
+configuration writes, network guards or loader concurrency limits are changed.
+
 Segments carry the decoded source SHA-256 and page/section anchors; continuation
 requires the same digest. The eight-document session cache is not a project store.
 Emitted text is capped at 2 MiB, 10,000 segments and 300 PDF pages. PDF/XML parsing

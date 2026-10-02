@@ -15,7 +15,9 @@ use crate::fulltext::{FulltextReader, FulltextRequest};
 use crate::orchestration::dispatch_lite_orchestration;
 use crate::protocol::{read_message, write_message};
 use crate::providers::search::{PROVIDER_ORDER as SEARCH_PROVIDER_ORDER, SearchRequest};
-use crate::providers::{ProviderAccess, ProviderField, ProviderId, ProviderRuntime};
+use crate::providers::{
+    ProviderAccess, ProviderAvailability, ProviderField, ProviderId, ProviderRuntime,
+};
 use crate::searchplan::{PLAN_PROVIDER_ORDER, SearchPlanInput, build_search_plan};
 use crate::zotero::companion::{CompanionClient, DEFAULT_CONNECTOR_URL, ZoteroStatus};
 use crate::zotero::export::{ZoteroExportError, ZoteroExportRequest, export_selected_import_files};
@@ -92,7 +94,22 @@ impl DeferredProviderServices {
                 })
             });
         if needs_values {
-            self.load()
+            self.load().or_else(|| {
+                // Keep usable selected channels when the shared loader stalls.
+                // Never cache this fallback or send unresolved credentials.
+                let access = self.preview.without_unresolved_credentials();
+                access
+                    .status()
+                    .iter()
+                    .any(|status| {
+                        access.is_active(status.provider)
+                            && selected.is_none_or(|names| names.contains(&status.provider))
+                    })
+                    .then(|| ProviderServices {
+                        runtime: ProviderRuntime::production(access.clone()).ok(),
+                        access,
+                    })
+            })
         } else {
             // Public-only or inactive selections must not touch unrelated
             // credential stores, including after another request timed out.
@@ -560,15 +577,36 @@ impl LiteMcpServer {
             active_providers,
         });
         match crate::providers::search::execute_bounded_search(runtime, &request) {
-            Ok(output) => tool_result(
-                id,
-                json!({
-                    "status": output.status,
-                    "search_plan": plan,
-                    "diagnostics": output.diagnostics,
-                    "results": output.results
-                }),
-            ),
+            Ok(mut output) => {
+                let unavailable: Vec<_> = access
+                    .status()
+                    .into_iter()
+                    .filter(|status| {
+                        status.readiness == ProviderAvailability::SecretStoreUnavailable
+                            && selected.is_none_or(|names| names.contains(&status.provider))
+                    })
+                    .collect();
+                if !unavailable.is_empty() {
+                    if output.diagnostics.status == "complete" {
+                        output.status = "warning".into();
+                        output.diagnostics.status = "partial".into();
+                    }
+                    output.diagnostics.status_reason =
+                        Some("provider_credentials_unavailable".into());
+                    output.diagnostics.warnings.extend(unavailable.iter().map(|status| {
+                        format!("{}: not searched because configured credentials were unavailable; not a zero-result search", status.provider)
+                    }));
+                }
+                tool_result(
+                    id,
+                    json!({
+                        "status": output.status,
+                        "search_plan": plan,
+                        "diagnostics": output.diagnostics,
+                        "results": output.results
+                    }),
+                )
+            }
             Err(_) => tool_error(
                 id,
                 "provider-search-cancelled",
@@ -1232,4 +1270,56 @@ fn credential_bearing_key(key: &str) -> bool {
         || compact.ends_with("privatekey")
         || compact.ends_with("clientsecret")
         || has_sensitive_marker
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stalled_credentials_preserve_selected_public_channels_without_caching_fallback() {
+        let mut preview = ProviderAccess::builder();
+        preview
+            .set_availability(ProviderId::OpenAlex, ProviderAvailability::Ready)
+            .set_field_configured(ProviderId::OpenAlex, ProviderField::ApiKey)
+            .set_availability(ProviderId::Arxiv, ProviderAvailability::Ready);
+        let services = DeferredProviderServices {
+            preview: preview.build(),
+            loader: Arc::new(|| panic!("an in-flight load must not be started again")),
+            cached: Arc::new(Mutex::new(None)),
+            loading: Arc::new(AtomicBool::new(true)),
+            timeout: Duration::from_millis(10),
+        };
+        let fallback = services.for_search(None).unwrap();
+        assert!(fallback.access.is_active(ProviderId::Arxiv));
+        assert_eq!(
+            fallback.access.availability(ProviderId::OpenAlex),
+            ProviderAvailability::SecretStoreUnavailable
+        );
+        assert!(
+            fallback
+                .access
+                .value(ProviderId::OpenAlex, ProviderField::ApiKey)
+                .is_none()
+        );
+        assert!(services.cached.lock().unwrap().is_none());
+        assert!(services.preview.is_active(ProviderId::OpenAlex));
+        assert!(services.for_search(Some(&[ProviderId::OpenAlex])).is_none());
+
+        let mut loaded = ProviderAccess::builder();
+        loaded
+            .set_availability(ProviderId::OpenAlex, ProviderAvailability::Ready)
+            .set_value(ProviderId::OpenAlex, ProviderField::ApiKey, "test-key");
+        *services.cached.lock().unwrap() = Some(ProviderServices {
+            access: loaded.build(),
+            runtime: None,
+        });
+        assert!(
+            services
+                .for_search(Some(&[ProviderId::OpenAlex]))
+                .unwrap()
+                .access
+                .is_active(ProviderId::OpenAlex)
+        );
+    }
 }

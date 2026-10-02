@@ -227,6 +227,88 @@ fn deferred_provider_credential_load_is_bounded_and_cached() {
 }
 
 #[test]
+fn mixed_search_keeps_public_results_and_names_only_selected_unavailable_channels() {
+    use qiongli_runtime::providers::{ProviderEndpoints, ProviderRuntime};
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let endpoint = format!("http://{}/", listener.local_addr().unwrap());
+    let worker = thread::spawn(move || {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut stream = loop {
+            if let Ok((stream, _)) = listener.accept() {
+                break stream;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "public provider was not contacted"
+            );
+            thread::sleep(Duration::from_millis(10));
+        };
+        stream
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
+        let mut request = [0; 4096];
+        let read = stream.read(&mut request).unwrap();
+        assert!(String::from_utf8_lossy(&request[..read]).starts_with("GET /api/query?"));
+        let body = "<feed><entry><id>https://arxiv.org/abs/1706.03762v1</id><title>Attention Is All You Need</title><author><name>Ashish Vaswani</name></author><published>2017-06-12T17:57:34Z</published></entry></feed>";
+        write!(
+            stream,
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        )
+        .unwrap();
+    });
+    let mut access = ProviderAccess::builder();
+    access
+        .set_availability(ProviderId::Arxiv, ProviderAvailability::Ready)
+        .set_availability(
+            ProviderId::OpenAlex,
+            ProviderAvailability::SecretStoreUnavailable,
+        )
+        .set_availability(
+            ProviderId::SemanticScholar,
+            ProviderAvailability::SecretStoreUnavailable,
+        );
+    let endpoints =
+        ProviderEndpoints::from_urls(&endpoint, &endpoint, &endpoint, &endpoint, &endpoint)
+            .unwrap();
+    let server = LiteMcpServer::with_provider_runtime(
+        "test",
+        "test",
+        LiteToolRegistry::from_json(CONTRACT).unwrap(),
+        ProviderRuntime::with_endpoints(endpoints, access.build()).unwrap(),
+    );
+    let response = call(
+        &server,
+        1,
+        "qiongli_literature_search",
+        json!({"query":"Attention Is All You Need", "search_mode":"title", "providers":["openalex","arxiv"], "limit":3}),
+    );
+    worker.join().unwrap();
+    let output = &response["result"]["structuredContent"];
+    assert_eq!(output["status"], "warning");
+    assert_eq!(output["results"][0]["title"], "Attention Is All You Need");
+    assert_eq!(output["diagnostics"]["status"], "partial");
+    assert_eq!(
+        output["diagnostics"]["status_reason"],
+        "provider_credentials_unavailable"
+    );
+    assert!(output["diagnostics"]["providers"].get("openalex").is_none());
+    let warnings = output["diagnostics"]["warnings"].as_array().unwrap();
+    assert_eq!(warnings.len(), 1);
+    assert!(
+        warnings[0]
+            .as_str()
+            .unwrap()
+            .starts_with("openalex: not searched")
+    );
+}
+
+#[test]
 fn every_frozen_lite_public_name_has_a_safe_native_response() {
     let server = server();
 
