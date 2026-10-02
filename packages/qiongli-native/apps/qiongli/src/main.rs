@@ -4,6 +4,9 @@ use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let args = env::args_os().skip(1).collect::<Vec<_>>();
+    if let Some(exit) = qiongli_runtime::fulltext::run_worker_if_requested(&args) {
+        return exit;
+    }
     // Hooks must not discover/launch Hosts or load project configuration.
     if args == ["hooks", "context"] {
         return render_output(qiongli::run_context_hook(io::stdin().lock()));

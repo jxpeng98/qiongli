@@ -934,6 +934,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "qiongli-bounded-alloc"
+version = "2.1.1"
+
+[[package]]
 name = "qiongli-config"
 version = "2.1.1"
 dependencies = [
@@ -998,6 +1002,7 @@ version = "2.1.1"
 dependencies = [
  "flate2",
  "pdf-extract",
+ "qiongli-bounded-alloc",
  "qiongli-project",
  "quick-xml",
  "reqwest",

@@ -79,6 +79,30 @@ struct DeferredProviderServices {
 }
 
 impl DeferredProviderServices {
+    fn for_search(&self, selected: Option<&[ProviderId]>) -> Option<ProviderServices> {
+        let needs_values = SEARCH_PROVIDER_ORDER
+            .iter()
+            .filter_map(|name| ProviderId::parse(name).ok())
+            .filter(|provider| selected.is_none_or(|names| names.contains(provider)))
+            .filter(|provider| self.preview.is_active(*provider))
+            .any(|provider| {
+                provider_fields(provider).iter().any(|field| {
+                    self.preview.is_field_configured(provider, *field)
+                        && self.preview.value(provider, *field).is_none()
+                })
+            });
+        if needs_values {
+            self.load()
+        } else {
+            // Public-only or inactive selections must not touch unrelated
+            // credential stores, including after another request timed out.
+            Some(ProviderServices {
+                runtime: ProviderRuntime::production(self.preview.clone()).ok(),
+                access: self.preview.clone(),
+            })
+        }
+    }
+
     fn load(&self) -> Option<ProviderServices> {
         if let Some(cached) = self.cached.lock().ok().and_then(|cached| cached.clone()) {
             return Some(cached);
@@ -457,7 +481,7 @@ impl LiteMcpServer {
             Err(error) if error.code == "invalid-input" => {
                 return json_rpc_error(Some(id), -32602, error.message);
             }
-            Err(error) => return tool_error(id, error.code, error.message),
+            Err(error) => return tool_error(id, &error.code, &error.message),
         };
         // Public sources need no provider configuration or credential lookup.
         let access = if request.requires_openalex_key() {
@@ -476,7 +500,7 @@ impl LiteMcpServer {
             .and_then(|access| access.value(ProviderId::OpenAlex, ProviderField::ApiKey));
         match self.fulltext.read(&request, key) {
             Ok(output) => tool_result(id, json!(output)),
-            Err(error) => tool_error(id, error.code, error.message),
+            Err(error) => tool_error(id, &error.code, &error.message),
         }
     }
 
@@ -488,7 +512,7 @@ impl LiteMcpServer {
         let services = match &self.providers {
             ProviderState::Available(services) => (**services).clone(),
             ProviderState::Deferred(services) => {
-                let Some(services) = services.load() else {
+                let Some(services) = services.for_search(request.providers()) else {
                     return tool_error(
                         id,
                         "provider-credentials-unavailable",
@@ -682,7 +706,7 @@ fn tool_result(id: Value, structured_content: Value) -> Value {
     }
 }
 
-fn tool_error(id: Value, reason_code: &'static str, message: &'static str) -> Value {
+fn tool_error(id: Value, reason_code: &str, message: &str) -> Value {
     json_rpc_result(
         id,
         json!({

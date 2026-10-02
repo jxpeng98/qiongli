@@ -14,6 +14,9 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use url::Url;
 
+mod worker;
+pub use worker::run_worker_if_requested;
+
 const MAX_BYTES: usize = 12 * 1024 * 1024;
 const MAX_TEXT: usize = 2 * 1024 * 1024;
 const SEGMENT_CHARS: usize = 2_000;
@@ -79,24 +82,27 @@ impl FulltextRequest {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct FulltextError {
-    pub code: &'static str,
-    pub message: &'static str,
+    pub code: String,
+    pub message: String,
 }
 
 impl std::fmt::Display for FulltextError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.message)
+        f.write_str(&self.message)
     }
 }
 impl std::error::Error for FulltextError {}
 
 fn failure(code: &'static str, message: &'static str) -> FulltextError {
-    FulltextError { code, message }
+    FulltextError {
+        code: code.into(),
+        message: message.into(),
+    }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FulltextSegment {
     index: usize,
     anchor: String,
@@ -107,13 +113,13 @@ pub struct FulltextSegment {
     page: Option<u32>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FulltextOutput {
-    status: &'static str,
+    status: String,
     source_url: String,
     resolved_url: String,
     source_sha256: String,
-    format: &'static str,
+    format: String,
     retrieved_at_unix_seconds: u64,
     cached: bool,
     total_segments: usize,
@@ -124,7 +130,7 @@ pub struct FulltextOutput {
     document_title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     document_doi: Option<String>,
-    identity_status: &'static str,
+    identity_status: String,
     warnings: Vec<String>,
     #[serde(skip)]
     text_bytes: usize,
@@ -143,13 +149,25 @@ impl FulltextReader {
         request: &FulltextRequest,
         openalex_key: Option<&str>,
     ) -> Result<FulltextOutput, FulltextError> {
-        self.read_with(request, || fetch(&request.url, openalex_key))
+        self.read_using(request, || fetch(&request.url, openalex_key), worker::parse)
     }
 
+    #[cfg(test)]
     fn read_with(
         &self,
         request: &FulltextRequest,
         fetch: impl FnOnce() -> Result<(String, Vec<u8>), FulltextError>,
+    ) -> Result<FulltextOutput, FulltextError> {
+        self.read_using(request, fetch, |source, resolved, bytes| {
+            parse_document(source, resolved, &bytes)
+        })
+    }
+
+    fn read_using(
+        &self,
+        request: &FulltextRequest,
+        fetch: impl FnOnce() -> Result<(String, Vec<u8>), FulltextError>,
+        parse: impl FnOnce(&str, &str, Vec<u8>) -> Result<FulltextOutput, FulltextError>,
     ) -> Result<FulltextOutput, FulltextError> {
         let mut cached = self
             .cache
@@ -167,7 +185,7 @@ impl FulltextReader {
             (doc, true)
         } else {
             let (resolved_url, bytes) = fetch()?;
-            let doc = parse_document(&request.url, &resolved_url, &bytes)?;
+            let doc = parse(&request.url, &resolved_url, bytes)?;
             let mut cached = self
                 .cache
                 .lock()
@@ -202,7 +220,7 @@ impl FulltextReader {
                     doc.warnings.push("Paper identity is unverified: no structured document DOI; check the title, authors and version against the candidate".into());
                     "unverified"
                 }
-            };
+            }.into();
         }
         if request.offset >= doc.total_segments {
             return Err(failure(
@@ -498,11 +516,11 @@ fn parse_document(
         ));
     }
     let mut doc = FulltextOutput {
-        status: "readable_text", source_url: source.into(), resolved_url: resolved.into(),
-        source_sha256: format!("{:x}", Sha256::digest(bytes)), format: "pdf",
+        status: "readable_text".into(), source_url: source.into(), resolved_url: resolved.into(),
+        source_sha256: format!("{:x}", Sha256::digest(bytes)), format: "pdf".into(),
         retrieved_at_unix_seconds: SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs(),
         cached: false, total_segments: 0, segments: Vec::new(), next_offset: None,
-        document_title: None, document_doi: None, identity_status: "not_checked",
+        document_title: None, document_doi: None, identity_status: "not_checked".into(),
         warnings: vec!["Only returned segments have been exposed for inspection; parsing does not establish complete reading or evidence eligibility".into()], text_bytes: 0,
     };
     if bytes.starts_with(b"%PDF-") {
@@ -594,9 +612,8 @@ impl std::io::Write for BoundedText {
 }
 
 fn parse_pdf(bytes: &[u8], doc: &mut FulltextOutput) -> Result<(), FulltextError> {
-    // Download and emitted-text caps are not a PDF parser sandbox: the library
-    // still owns internal stream/font decompression. Do not promise a hard
-    // process memory/time budget or execute embedded PDF resources.
+    // Production calls run in a supervised child with a Rust-heap ceiling.
+    // This parser must never execute embedded resources or fetch network data.
     let pdf = pdf_extract::Document::load_mem(bytes).map_err(|_| {
         failure(
             "fulltext-parse-error",
@@ -695,7 +712,7 @@ fn parse_xml(bytes: &[u8], doc: &mut FulltextOutput) -> Result<(), FulltextError
                             "Expected one TEI or JATS paper; HTML and multi-paper XML require a different reader",
                         ));
                     }
-                    doc.format = if name == "tei" { "tei_xml" } else { "jats_xml" };
+                    doc.format = if name == "tei" { "tei_xml" } else { "jats_xml" }.into();
                     recognized = true;
                     paper_depth = Some(stack.len());
                 }

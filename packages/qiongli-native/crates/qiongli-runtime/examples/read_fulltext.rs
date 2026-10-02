@@ -4,6 +4,15 @@ use qiongli_runtime::fulltext::{FulltextReader, FulltextRequest};
 use serde_json::json;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(exit) = qiongli_runtime::fulltext::run_worker_if_requested(
+        &std::env::args_os().skip(1).collect::<Vec<_>>(),
+    ) {
+        std::process::exit(if exit == std::process::ExitCode::SUCCESS {
+            0
+        } else {
+            1
+        });
+    }
     let url = std::env::args()
         .nth(1)
         .ok_or("supply a public HTTPS PDF, TEI or JATS URL")?;

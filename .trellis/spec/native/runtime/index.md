@@ -27,9 +27,19 @@ content endpoint. Public sources do not require provider configuration.
 
 Segments carry the decoded source SHA-256 and page/section anchors; continuation
 requires the same digest. The eight-document session cache is not a project store.
-Emitted text is capped at 2 MiB, 10,000 segments and 300 PDF pages; parser-internal
-PDF stream/font allocations are library-owned, not a hard process memory/time
-sandbox. HTML/OCR, private attachments and authenticated publisher browsing stay
+Emitted text is capped at 2 MiB, 10,000 segments and 300 PDF pages. PDF/XML parsing
+runs in a fresh same-executable child before config/Host discovery, with a cleared
+environment, byte-only stdin, 30-second deadline and 16 MiB protocol output cap.
+The shared supervisor kills and waits for timed-out, failed or overflowing work
+before joining its pipe threads. A child watchdog also exits after 30 seconds if
+the parent is terminated and cannot run cleanup. CLI, Desktop's canonical runtime and standalone
+Lite use this entrypoint; embedding executables must dispatch it too. No extra
+packaged executable or inline fallback exists. The isolated stdlib-only
+`qiongli-bounded-alloc` unsafe boundary tracks Rust allocations and activates a
+512 MiB heap ceiling only in the child; the parent stays unlimited. This is not
+an OS RSS/stack/native-mapping limit or a security sandbox. Parser abort/OOM is
+contained in the child and reported without replacing cached source identity.
+HTML/OCR, private attachments and authenticated publisher browsing stay
 with available authorized Host tools. Structured DOI conflicts, multi-paper XML,
 abstract-only responses and heading-only bodies cannot report readable fulltext.
 Reading passages does not authorize manifest, Graph or canonical writes; Skills

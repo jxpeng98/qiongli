@@ -181,6 +181,7 @@ class NativeChangeBoundaryTests(unittest.TestCase):
             ("packages/qiongli-native/apps/qiongli/examples/native_candidate_acceptance.rs", False, False),
             ("packages/qiongli-native/crates/qiongli-project/src/service.rs", True, True),
             ("packages/qiongli-native/crates/qiongli-runtime/src/lib.rs", True, True),
+            ("packages/qiongli-native/crates/qiongli-bounded-alloc/src/lib.rs", True, True),
             ("packages/qiongli-native/crates/qiongli-execution/src/lib.rs", True, False),
             ("packages/qiongli-native/apps/qiongli/build.rs", True, False),
             ("packages/qiongli-native/Cargo.lock", True, True),

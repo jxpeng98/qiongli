@@ -121,6 +121,7 @@ while IFS= read -r -d '' path; do
     packages/qiongli-native/apps/qiongli/examples/native_candidate_acceptance.rs)
       ;;
     packages/qiongli-native/crates/qiongli-runtime/*|\
+    packages/qiongli-native/crates/qiongli-bounded-alloc/*|\
     packages/qiongli-native/crates/qiongli-project/*|\
     packages/qiongli-native/crates/qiongli-config/*|\
     packages/qiongli-native/crates/qiongli-content/*|\

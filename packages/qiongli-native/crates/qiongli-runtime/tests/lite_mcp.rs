@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::protocol::{Framing, read_message};
-use qiongli_runtime::providers::ProviderAccess;
+use qiongli_runtime::providers::{ProviderAccess, ProviderAvailability, ProviderField, ProviderId};
 use qiongli_runtime::{LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
 use serde_json::{Value, json};
 
@@ -160,11 +160,15 @@ fn deferred_provider_credential_load_is_bounded_and_cached() {
     let loader_loads = Arc::clone(&loads);
     let loader_finished = Arc::clone(&finished);
     let loader_release = Arc::clone(&release_receiver);
+    let mut preview = ProviderAccess::builder();
+    preview
+        .set_availability(ProviderId::OpenAlex, ProviderAvailability::Ready)
+        .set_field_configured(ProviderId::OpenAlex, ProviderField::ApiKey);
     let server = LiteMcpServer::production_deferred_with_timeout(
         "qiongli-test",
         "2.0.0-test",
         LiteToolRegistry::from_json(CONTRACT).unwrap(),
-        ProviderAccess::default(),
+        preview.build(),
         Arc::new(move || {
             loader_loads.fetch_add(1, Ordering::SeqCst);
             loader_release.lock().unwrap().recv().unwrap();
@@ -181,6 +185,17 @@ fn deferred_provider_credential_load_is_bounded_and_cached() {
         json!({"query": "governance"}),
     );
     let finished_before_release = finished.load(Ordering::SeqCst);
+    let no_credentials_needed = call(
+        &server,
+        9,
+        "qiongli_literature_search",
+        json!({"query": "governance", "providers": ["arxiv"]}),
+    );
+    assert_ne!(no_credentials_needed["result"]["isError"], true);
+    assert_eq!(
+        no_credentials_needed["result"]["structuredContent"]["diagnostics"]["status"],
+        "not_run"
+    );
     release_sender.send(()).unwrap();
     assert!(!finished_before_release);
     assert_eq!(timed_out["result"]["isError"], true);
