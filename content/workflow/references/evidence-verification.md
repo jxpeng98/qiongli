@@ -4,7 +4,11 @@ Use when checking whether a draft's substantive claims follow from its sources,
 or when new source material may change an earlier conclusion. This is a bounded
 review of the selected claims, not a new literature review or reporting checklist.
 For independent execution, use `skills/Z_cross_cutting/model-collaborator.md` and
-an actual authorized Host reviewer. Otherwise label the check self-review.
+an actual authorized Host reviewer. Changing roles within one conversation is
+self-review. A reviewer may not see its dispatch receipt: leave unavailable
+execution identity or independence unverified for the coordinator to reconcile,
+rather than infer either independent execution or same-conversation self-review.
+Text comparison performed by a model remains model review, not human review.
 
 ## Select the review and its inputs
 
@@ -36,6 +40,7 @@ unavailable data or establish professional expertise from an Agent's name.
   outcome, direction, magnitude, uncertainty and time point where relevant.
   Separate reported findings, the authors' interpretation and the draft's added
   inference. Qualify only the unsupported part; do not discard supported evidence.
+  Preserve that uncertainty in the review itself as well as in proposed revisions.
 - For numbers, check units, denominators, assignment versus analysis units,
   repeated observations and study/report overlap. Preserve table headings,
   footnotes and model/adjustment labels. Recompute a derived value only when its
