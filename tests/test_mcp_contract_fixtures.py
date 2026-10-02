@@ -128,12 +128,15 @@ class MCPContractFixtureTests(unittest.TestCase):
     def test_native_fulltext_contract_bounds_read_inputs_and_success_evidence(self) -> None:
         name = "qiongli_literature_read_fulltext"
         schema = json.loads((CONTRACT_ROOT / f"{name}.input.schema.json").read_text())
+        # Host tool projection must retain URL instead of exposing only an
+        # offset branch. Cross-field continuation checks stay in the runtime.
+        self.assertNotIn("oneOf", schema)
+        self.assertEqual(schema["required"], ["url"])
         valid = {"url": "https://example.org/paper.xml", "expected_sha256": "a" * 64}
         self.assertEqual(validate_instance(valid, schema), [])
         self.assertEqual(validate_instance({**valid, "offset": 2}, schema), [])
         for invalid in (
             {}, {"url": "file:///tmp/paper.pdf"}, {**valid, "offset": -1},
-            {"url": valid["url"], "offset": 1},
             {**valid, "limit": 0}, {**valid, "limit": 51}, {**valid, "refresh": "true"},
             {**valid, "expected_sha256": "A" * 64}, {**valid, "cwd": "/tmp"},
         ):

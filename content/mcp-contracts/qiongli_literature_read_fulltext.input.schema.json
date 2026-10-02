@@ -17,7 +17,7 @@
       "type": "integer",
       "minimum": 0,
       "default": 0,
-      "description": "Zero-based segment index."
+      "description": "Zero-based segment index. Values greater than zero require expected_sha256; the native runtime enforces this before reading."
     },
     "limit": {
       "type": "integer",
@@ -40,25 +40,5 @@
       "description": "Expected article DOI; a conflicting document DOI is rejected; absence remains unverified."
     }
   },
-  "additionalProperties": false,
-  "oneOf": [
-    {
-      "properties": {
-        "offset": {
-          "maximum": 0
-        }
-      }
-    },
-    {
-      "required": [
-        "offset",
-        "expected_sha256"
-      ],
-      "properties": {
-        "offset": {
-          "minimum": 1
-        }
-      }
-    }
-  ]
+  "additionalProperties": false
 }

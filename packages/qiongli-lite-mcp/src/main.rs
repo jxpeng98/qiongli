@@ -8,7 +8,11 @@ fn main() {
     if let Some(exit) = qiongli_runtime::fulltext::run_worker_if_requested(
         &std::env::args_os().skip(1).collect::<Vec<_>>(),
     ) {
-        std::process::exit(if exit == std::process::ExitCode::SUCCESS { 0 } else { 1 });
+        std::process::exit(if exit == std::process::ExitCode::SUCCESS {
+            0
+        } else {
+            1
+        });
     }
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
