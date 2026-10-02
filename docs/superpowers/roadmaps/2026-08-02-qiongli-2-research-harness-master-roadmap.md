@@ -54,71 +54,30 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 2, 2026
 
-The current 2.1.1 source baseline now selects the maintainer-requested discipline
-and research-lifecycle Skill reinforcement as the next local increment. Reuse the
-[current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md):
-deepen shared canonical guidance and existing A–M stages, verify native content
-delivery and bounded synthetic behavior, then integrate locally into `2.x`.
-After the first guide expansion, the maintainer selects explicit decision,
-evidence and continuation guidance for C/E/F, with complete bounded candidate
-tasks and a changed-source continuation to check its use across stages.
-The next selected increment preserves search abstracts and fulltext leads, reads
-public PDF/TEI/JATS sources with digest-bound excerpts, and combines existing
-Crossref/PubMed/arXiv discovery with actually available Host search. Native Lite
-and Full share the reader; frozen Python contracts and canonical write owners
-remain unchanged. The current plan records implementation, public-source probes
-and remaining parser/Host qualification limits.
-The maintainer next selects three bounded public-paper tasks, an on-demand
-source-bound evidence reviewer, and the same review task on configured Codex and
-Claude Code. Reuse existing Skills, portable packets and prepare/collect owners;
-keep frozen criteria separate from task inputs and distinguish actual execution,
-source-grounded review and installed-Plugin qualification. The current plan owns
-the observed results, costs where available and remaining gaps.
-This scope does not authorize a new release or installed-user-profile update;
-real study, domain-expert and installed-Host qualification remain separate evidence.
+The 2.1.1 development baseline has the discipline/lifecycle guidance, explicit
+C/E/F decision contracts, five-provider discovery, public fulltext reader and
+on-demand source-bound review increments recorded in the
+[current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md).
+The maintainer now selects its **October 2 workflow reliability execution plan**:
+actual table/supplement reconciliation; bounded native parsing; an isolated
+installed development Host/project journey; fixed-query provider/Host search
+observations; durable actual-failure regressions; and consolidation of repeated
+Skill guidance. These six outcomes form one selected increment. Their status,
+exact candidates, checks and gaps belong in that plan and CLI-405's ledger record.
 
-Use `v2.0.0` at `4f2107f7fda9d8f6dd8874b7dcffb36f5d7751ba` as the
-released product reference. The [current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md)
-now selects the maintainer-authorized stable 2.1.0 release, including the DSH
-bundle in the existing npm package and post-2.0.0 changes. Actual isolated DSH
-0.2.0-rc.2 installations from an npm registry fixture and local npm archive expose
-all 22 entries and 32 Full MCP tools on macOS ARM64. The release command delegates
-three-platform qualification and channel publication to existing automation;
-local tracking stops after accepted submission as requested. Submission does
-not establish completed publication or program acceptance. The current plan also records
-post-release local multi-Host installation and install-time Skill language selection;
-the maintainer has now authorized stable 2.1.1 publication for these changes.
-The current plan owns its preparation and existing tag-bound automation;
-accepted dispatch still does not establish completed publication. The same plan
-records the maintainer's 2.0.1 v1 transition and planned 2.1 cutoff, completed
-delegated implementation, coordinator review, historical macOS qualification
-and both CI policy increments: hosted three-platform verification is restored
-under ADR 0231. The selected literature discovery, bibliography delivery and Zotero linkage
-increment is implemented at `15a8b901` with local checks and scoped independent
-review. The current plan records public-query/BibTeX observations and remaining
-installed-Host, maintainer-query and approved real-library qualification.
-Host delegation and the first configured Codex external transport are now
-implemented for 2.1 development through the existing candidate/checkpoint owner.
-The Host executes the prepared command and supervises its process; Qiongli binds
-and validates the returned result. Actual synthetic runs cover successful
-collection, cancellation, startup and in-turn timeouts, changed-source rejection,
-an explicit fresh run and a registered synthetic Full MCP submission.
-The September 24 increment adds an opt-in DeepSeek Cordis Plugin and configured
-Claude Code, DeepSeek and Antigravity proposal transports through the same owners.
-Temporary DSH Plugin activation and actual synthetic Claude/Antigravity collection
-have observations in the current plan. Published DSH 0.1.5-rc.3 lacks the required
-machine-readable headless protocol; external DeepSeek execution remains unqualified.
-The current plan owns checks and remaining installed-Host/two-Host qualification;
-this does not broaden the 2.0.1 patch or promote collaboration acceptance.
-The [prior bounded record](../plans/2026-09-06-cli-first-closeout-and-extraction.md)
-retains research observations, tooling fixes, the deferred identity migration
-and the earlier macOS-only patch qualification. Remaining baseline failures and
-target-native release qualification retain separate scopes.
-The program ledger owns task
-states; a successful channel publication does not accept its broader Host,
-migration or managed-product task. Dated maturity assessments and execution
-windows below retain their historical candidate scope; this horizon and the
-latest plan section select current work.
+Use existing canonical content, source/review bindings, native provider/runtime,
+project preview/approval/CAS and evaluation owners. One coordinator integrates
+bounded independent work; no permanent Agent registry or fixed agent count is
+selected. Preserve the configured models. A source-bound answer, successful
+transport or local test is not installed-Plugin or program acceptance.
+
+Earlier release, migration, DSH installation and external-Host observations remain
+historical evidence in the plan under their exact candidate scope; they are not
+new release work or current execution instructions. This increment authorizes
+local development and isolated public research observations. It does not authorize
+private-library access, updates to the user's installed Plugin profile, push,
+publication or remote rule changes. The program ledger remains authoritative for
+task states and accepted evidence; the dated maturity windows below are context.
 
 [ADR 0218](../../architecture/decisions/0218-cli-first-local-host-collaboration.md)
 and [ADR 0227](../../architecture/decisions/0227-native-main-cutover-and-stable-release-routing.md)
