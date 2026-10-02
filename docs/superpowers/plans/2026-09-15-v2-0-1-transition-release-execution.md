@@ -2036,3 +2036,100 @@ All other changed lines pass whitespace checks. The frozen-source guard, generat
 program index freshness and seven program-roadmap tests are run before the local
 fast-forward merge. No additional checks are scheduled solely because of a commit
 or merge; no push, publication, version bump or user-profile installation occurs.
+
+
+## October 2 — public channel qualification follow-up
+
+The maintainer selects the next public-channel increment after the six-part
+reliability work. Smallest useful outcome: execute bounded public queries with
+existing configured providers, distinguish credential/DNS/HTTP failures, and
+retain usable provider results when another configured channel cannot load its
+credentials. Preserve network guards, configured models and existing project
+write owners; no private corpus or user-profile installation changes.
+
+Predeclared hypotheses: shared credential loading blocks selected channels before
+network; special-use DNS answers explain the native fulltext guard; provider
+transport failures differ from credentials and zero results. Start with the same
+known-item title and at most three records per active provider, without retries;
+retain original observations. Validate the earliest owner with deterministic
+negative cases and repeat only the changed combined search. Record current quota
+access as unavailable when no authenticated request executes. Formal handoff and
+representative discipline assessment follow this bounded channel increment.
+
+### Observations, correction and integration
+
+Base `4ca98350079cb7b515465c5034cef7e4fa236d0b`; implementation
+`ef7885ded17dc4f53f9a89eee0fe1876168202c9`; regenerated-pack candidate
+`a432ea356c8f979e9a16ac639ba614707ae47ce7`. The before process uses the unchanged
+prior candidate `d1b3af4ff985bc37bc306755ccba7cb43800da0e`, binary SHA-256
+`e0a8aace09729fac8f3a152b9390ccfe3f66b973a0f40347c218051bdec0ba79`.
+The new macOS arm64 development binary has SHA-256
+`f318a4ef2052186164d6d3f3fddb19803abcae974742036090b7d976e0915749`, content source
+`ef7885ded17dc4f53f9a89eee0fe1876168202c9`, content root
+`f4e87b2e1c57ce5f9d40a988451efd16082dd3e3954907d19053884a0a46635a` and pack
+`2014a0a12df531522820d5e0a815d5275caf6d37d8617f86e0f97005e8ec568a`.
+
+Actual JSON-lines MCP probes use the native Lite CLI and existing configuration
+owner, without Host/model overrides or credential inspection. Redacted status
+reports OpenAlex, Semantic Scholar and arXiv configured; Crossref lacks email
+and PubMed lacks a key. Only the known-item title **Attention Is All You Need**
+was executed, with limits of three and no retries. The other two queries retained
+in the observation plan were not executed; there is no three-query comparison or
+provider-quality ranking. A title-filtered result is distinct from the raw count.
+
+| Actual call | Outcome |
+|---|---|
+| Before: OpenAlex alone | Credential-load tool error after 3.007 s; hits unknown; no provider HTTP response. |
+| Before: Semantic Scholar alone | Immediate same error while the shared loader remains busy; not proof that its own key was attempted. |
+| Before: arXiv alone | Complete, raw count 3, one retained known-title record in 1.308 s. |
+| Before: all three selected | Credential-load tool error after 3.003 s; arXiv never executes. |
+| After: identical combined request | Partial in 4.108 s; arXiv raw count 3 and one retained `1706.03762v7` record; two explicit credential-unavailable warnings. |
+
+The shared deferred credential loader was the earliest failing owner: a timeout
+returned before usable selected channels could execute. It now derives an
+uncached fallback from the metadata preview, disables entries with unresolved
+values, and executes usable selected channels. A completed credential load still
+supersedes the fallback. Sole blocked selections retain the bounded error;
+unselected channels receive no warnings and unavailable channels receive no
+fabricated zero-result counts. This does not repair secret-store access itself.
+
+An authorized DNS-only probe returned `198.18.0.0/15` addresses for the four
+selected public domains. This is non-globally-reachable benchmarking space in
+the [IANA registry](https://www.iana.org/assignments/iana-ipv4-special-registry).
+System HTTP/HTTPS proxy flags were enabled; proxy environment variables were
+absent. The specific mapping/secret-store cause is unproven. The earlier sandbox
+DNS attempt could not resolve and is not counted as a provider failure. The
+unchanged native fulltext guard correctly refuses these addresses before HTTP;
+the prior fulltext failure is reused, not presented as a fresh body retrieval.
+No DNS/proxy/permission change or network-guard bypass was attempted. No
+authenticated provider request completed, so API authentication and quota
+qualification remain unavailable, not failed or accepted. arXiv transport
+succeeded; that does not qualify other endpoints or fulltext access.
+
+Canonical Skills now distinguish metadata configuration from credential/query
+success, explain mixed-search partial results and correct native setup guidance:
+native configuration writes/wizard remain unavailable. Standalone Lite's wizard
+is unchanged. Public Host reading remains a separately attributed option under
+the existing access rules; no Host body read was executed in this follow-up.
+
+Validation: one fallback/cache unit case, all 11 runtime Lite-MCP cases, all 95
+standalone Lite cases, 21 focused Python contract/content checks, capability
+validation, runtime all-target Clippy, native formatting and both CLI embedded
+pack/registry cases pass. The pre-existing platform atomic deprecation warning
+is unchanged. Native export verifies 446 resources; all 444 non-manifest bytes
+match Codex/Claude/DeepSeek projections, with 22/2/22 entries and no broken
+resource links. These are package projections, not new installed-Host trials.
+
+Local observations are under the private temporary directory
+`qiongli-channel-qualification-dukx8djh`: `plan.json`, redacted status and
+`known-attention-*.json`, `mixed-before.json`, `dns-network-permitted.json`,
+`candidate.json`, `after/mixed-after.json` and `projection-checks.json`.
+The original binary hash and before responses remain unchanged. Temporary files
+are local observations, not durable accepted evidence. Main-agent review is
+self-review. At integration, only CLI-405 progress changes; all 249 task states
+and dependencies and all 46 accepted rows remain unchanged. The generated index,
+seven roadmap tests, whitespace check and frozen-source guard pass before local
+fast-forward integration. No push, publication, version bump or normal user
+Plugin/profile update occurs. Next select representative discipline assessment
+and, if needed, the formal handoff persistence flow using existing write owners;
+unresolved credential/transport qualification stays explicit.

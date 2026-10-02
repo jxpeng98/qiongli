@@ -58,12 +58,12 @@ The 2.1.1 development baseline has the discipline/lifecycle guidance, explicit
 C/E/F decision contracts, five-provider discovery, public fulltext reader and
 on-demand source-bound review increments recorded in the
 [current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md).
-The maintainer now selects its **October 2 workflow reliability execution plan**:
-actual table/supplement reconciliation; bounded native parsing; an isolated
-installed development Host/project journey; fixed-query provider/Host search
-observations; durable actual-failure regressions; and consolidation of repeated
-Skill guidance. These six outcomes form one selected increment. Their status,
-exact candidates, checks and gaps belong in that plan and CLI-405's ledger record.
+After the six-part workflow reliability increment, the maintainer selects its
+**October 2 public channel qualification follow-up**: bounded configured-provider
+queries, credential/transport diagnosis and retention of usable search results.
+Its exact candidates, checks and remaining qualification gaps belong in that plan
+and CLI-405's ledger record. Representative discipline assessment and an explicitly
+selected formal handoff persistence flow follow this bounded channel increment.
 
 Use existing canonical content, source/review bindings, native provider/runtime,
 project preview/approval/CAS and evaluation owners. One coordinator integrates
