@@ -24,6 +24,13 @@ The reader accepts one public HTTPS PDF/TEI/JATS source, rejects credentials,
 private destinations and unsafe redirects, pins DNS results per hop and limits
 downloads/decoded gzip to 12 MiB. OpenAlex keys go only to its exact supported
 content endpoint. Public sources do not require provider configuration.
+Error messages distinguish input URL policy, blocked redirect targets and DNS
+failures without exposing locator/query values or resolved addresses. Signed or
+credential-bearing query parameters remain unsupported, including publisher
+redirects. Empty DNS answers, resolver failures and worker timeout/disconnection
+use `fulltext-network-error`; any nonpublic answer, including mixed answers,
+retains `fulltext-url-blocked` before contacting that destination. These local
+transport/policy outcomes do not establish a paywall or absent article body.
 
 Provider status describes configured metadata, not successful credential access
 or a live query. If the bounded shared credential load cannot finish, combined

@@ -91,6 +91,17 @@ read. A `tool_error` means this tool has no readable result; retain its specific
 reason. Do not substitute an abstract and label it `full_text`. Continue useful
 bounded work at the actual evidence limit or resolve another authorized source.
 
+A `fulltext-url-blocked` error can concern the input URL, a redirect destination,
+or a nonpublic DNS answer; read its message before assigning the failure stage.
+The reader refuses signed or credential-bearing query parameters, including on
+redirects from public publishers. Such a redirect does not establish a paywall
+or an invalid original locator. Preserve the failure stage without copying
+signed URLs or token values into notes; do not strip parameters or weaken the
+guard to force access. Use another supported public representation when useful;
+Host reading remains subject to the authorization and provenance limits below.
+DNS failure, timeout, or an empty answer is a network failure, not proof that the
+publisher denied access or that the paper has no body.
+
 A parser timeout, worker failure or resource limit is a reading failure, not a
 paywall or proof that the paper lacks a body. The native reader isolates parsing
 with time and Rust-heap limits; it is not an OS memory/security sandbox. Keep the

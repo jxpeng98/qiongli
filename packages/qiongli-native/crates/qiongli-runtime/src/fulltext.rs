@@ -256,23 +256,28 @@ fn public_url(raw: &str) -> Result<Url, FulltextError> {
         || url.fragment().is_some()
         || url.port_or_known_default() != Some(443)
         || url.host_str().is_none()
-        || url.query_pairs().any(|(name, _)| {
-            let name = name.to_ascii_lowercase();
-            matches!(
-                name.as_str(),
-                "api_key"
-                    | "apikey"
-                    | "key"
-                    | "token"
-                    | "access_token"
-                    | "auth"
-                    | "authorization"
-                    | "signature"
-            ) || name.starts_with("x-amz-")
-                || name.starts_with("x-goog-")
-        })
     {
         return Err(error());
+    }
+    if url.query_pairs().any(|(name, _)| {
+        let name = name.to_ascii_lowercase();
+        matches!(
+            name.as_str(),
+            "api_key"
+                | "apikey"
+                | "key"
+                | "token"
+                | "access_token"
+                | "auth"
+                | "authorization"
+                | "signature"
+        ) || name.starts_with("x-amz-")
+            || name.starts_with("x-goog-")
+    }) {
+        return Err(failure(
+            "fulltext-url-blocked",
+            "Signed or credential-bearing query parameters are unsupported by the public fulltext reader",
+        ));
     }
     match url.host() {
         Some(url::Host::Ipv4(ip)) if !public_ip(ip.into()) => return Err(error()),
@@ -332,22 +337,54 @@ fn resolve(url: &Url, remaining: Duration) -> Result<Vec<SocketAddr>, FulltextEr
             let _ = sender.send(result);
         })
         .map_err(|_| failure("fulltext-network-error", "Cannot start DNS lookup"))?;
-    let addresses = receiver
-        .recv_timeout(remaining.min(Duration::from_secs(5)))
-        .map_err(|_| failure("fulltext-network-error", "DNS lookup timed out"))?
+    checked_resolution(receiver.recv_timeout(remaining.min(Duration::from_secs(5))))
+}
+
+fn checked_resolution(
+    result: Result<std::io::Result<Vec<SocketAddr>>, mpsc::RecvTimeoutError>,
+) -> Result<Vec<SocketAddr>, FulltextError> {
+    let addresses = result
+        .map_err(|error| {
+            failure(
+                "fulltext-network-error",
+                match error {
+                    mpsc::RecvTimeoutError::Timeout => "DNS lookup timed out; no request was sent to this destination",
+                    mpsc::RecvTimeoutError::Disconnected => "DNS lookup worker stopped without a result; no request was sent to this destination",
+                },
+            )
+        })?
         .map_err(|_| {
             failure(
                 "fulltext-network-error",
-                "Public host could not be resolved",
+                "Public host could not be resolved; no request was sent to this destination",
             )
         })?;
-    if addresses.is_empty() || addresses.iter().any(|address| !public_ip(address.ip())) {
+    if addresses.is_empty() {
+        return Err(failure(
+            "fulltext-network-error",
+            "DNS lookup returned no addresses; no request was sent to this destination",
+        ));
+    }
+    if addresses.iter().any(|address| !public_ip(address.ip())) {
         return Err(failure(
             "fulltext-url-blocked",
-            "The source resolves to a nonpublic address",
+            "DNS returned a private or special-use address; no request was sent to this destination. This does not establish a paywall or missing fulltext",
         ));
     }
     Ok(addresses)
+}
+
+fn redirect_url(url: &Url, location: &str) -> Result<Url, FulltextError> {
+    let next = url
+        .join(location)
+        .map_err(|_| failure("fulltext-redirect-error", "Invalid redirect"))?;
+    public_url(next.as_str()).map_err(|mut error| {
+        error.message = format!(
+            "Redirect destination blocked before contacting it: {}",
+            error.message
+        );
+        error
+    })
 }
 
 fn openalex_content(url: &Url) -> bool {
@@ -417,10 +454,7 @@ fn fetch(source: &str, openalex_key: Option<&str>) -> Result<(String, Vec<u8>), 
                 .ok_or_else(|| {
                     failure("fulltext-redirect-error", "Redirect has no valid location")
                 })?;
-            let next = url
-                .join(location)
-                .map_err(|_| failure("fulltext-redirect-error", "Invalid redirect"))?;
-            url = public_url(next.as_str())?;
+            url = redirect_url(&url, location)?;
             continue;
         }
         match response.status().as_u16() {
@@ -972,11 +1006,43 @@ mod tests {
         ] {
             assert!(FulltextRequest::from_arguments(&arguments).is_err());
         }
-        let redirect = Url::parse(URL)
-            .unwrap()
-            .join("//127.0.0.1/private")
-            .unwrap();
-        assert!(public_url(redirect.as_str()).is_err());
+        let base = Url::parse(URL).unwrap();
+        for location in [
+            "//127.0.0.1/private-canary",
+            "http://example.org/private-canary",
+            "https://user:private-canary@example.org/paper.pdf",
+            "https://example.org/paper.pdf#private-canary",
+            "https://example.org:8443/private-canary",
+            "https://storage.googleapis.com/paper?X-Goog-Signature=private-canary",
+            "https://example.org/paper?token=private-canary",
+        ] {
+            let error = redirect_url(&base, location).unwrap_err();
+            assert_eq!(error.code, "fulltext-url-blocked");
+            assert!(
+                error
+                    .message
+                    .starts_with("Redirect destination blocked before contacting it:")
+            );
+            assert!(!error.message.contains("private-canary"));
+            if location.contains('?') {
+                assert!(
+                    error
+                        .message
+                        .contains("Signed or credential-bearing query parameters")
+                );
+                assert_eq!(
+                    error.message,
+                    format!(
+                        "Redirect destination blocked before contacting it: {}",
+                        public_url(location).unwrap_err().message
+                    )
+                );
+            }
+        }
+        assert_eq!(
+            redirect_url(&base, "/body.xml").unwrap().as_str(),
+            "https://example.org/body.xml"
+        );
         assert!(openalex_content(
             &Url::parse("https://content.openalex.org/works/W123.pdf").unwrap()
         ));
@@ -986,6 +1052,68 @@ mod tests {
         assert!(!openalex_content(
             &Url::parse("https://content.openalex.org/arbitrary").unwrap()
         ));
+    }
+
+    #[test]
+    fn dns_failures_are_distinct_redacted_and_mixed_answers_still_refuse() {
+        let public = "8.8.8.8:443".parse::<SocketAddr>().unwrap();
+        let private = "10.0.0.1:443".parse::<SocketAddr>().unwrap();
+        let special = "198.18.0.1:443".parse::<SocketAddr>().unwrap();
+        for (result, code, message) in [
+            (
+                Err(mpsc::RecvTimeoutError::Timeout),
+                "fulltext-network-error",
+                "DNS lookup timed out",
+            ),
+            (
+                Err(mpsc::RecvTimeoutError::Disconnected),
+                "fulltext-network-error",
+                "DNS lookup worker stopped",
+            ),
+            (
+                Ok(Err(std::io::Error::other("dns-secret-canary"))),
+                "fulltext-network-error",
+                "Public host could not be resolved",
+            ),
+            (
+                Ok(Ok(vec![])),
+                "fulltext-network-error",
+                "DNS lookup returned no addresses",
+            ),
+            (
+                Ok(Ok(vec![private])),
+                "fulltext-url-blocked",
+                "DNS returned a private or special-use address",
+            ),
+            (
+                Ok(Ok(vec![special])),
+                "fulltext-url-blocked",
+                "DNS returned a private or special-use address",
+            ),
+            (
+                Ok(Ok(vec![public, private])),
+                "fulltext-url-blocked",
+                "DNS returned a private or special-use address",
+            ),
+        ] {
+            let error = checked_resolution(result).unwrap_err();
+            assert_eq!(error.code, code);
+            assert!(error.message.starts_with(message));
+            assert!(
+                error
+                    .message
+                    .contains("no request was sent to this destination")
+            );
+            for sensitive in ["dns-secret-canary", "8.8.8.8", "10.0.0.1", "198.18.0.1"] {
+                assert!(!error.message.contains(sensitive));
+            }
+        }
+        let public_v6 = "[2606:4700:4700::1111]:443".parse().unwrap();
+        let addresses = vec![public, public_v6];
+        assert_eq!(
+            checked_resolution(Ok(Ok(addresses.clone()))).unwrap(),
+            addresses
+        );
     }
 
     #[test]
