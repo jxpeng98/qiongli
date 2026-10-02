@@ -2464,3 +2464,137 @@ qualification remain separate gaps. Integration updates CLI-405 progress only;
 seven roadmap checks, generated-index consistency and the frozen-source guard
 pass, with all 249 task states/dependencies and 46 accepted rows unchanged.
 No private-library access, publication or program acceptance is claimed.
+
+## October 2 — actual Host versioned-summary save and source continuation
+
+The maintainer selects the preceding next increment. Baseline
+`cd18e16d0f2827b319bdf9ac15f1636869ea348c` supplies the unchanged copied CLI,
+SHA-256 `0fef9a01064dca078caad66bf4d15c7568dab5dd30bb490a1c3ca874a2b41f36`,
+and the previously recorded 446-resource pack. The existing isolated public
+project `prj_3a086024bffea4d334bc246eae9a8667` resumes from actual revision-3
+state, decisions and handoff, with no summary present. New raw observations are
+retained under `packages/qiongli-native/target/handoff-host-fncseb5l/summary-continuation`;
+they are local development evidence, not durable accepted evidence. The earlier
+trial, source packets and outputs remain separately identified. Predeclared
+criteria SHA-256:
+`407e4bfccbdc33de9e3460b47317df64d8a4c48542955a33b5146796974cdcf8`.
+
+Actual Codex session `01a0fd9f-5453-71c2-8b36-2d4bee06d0d5` uses
+`gpt-6.1-sol / low`, read-only sandbox and approval `never`. Process-local Full
+MCP exposes only config/project/artifact/coverage reads with the copied candidate
+and isolated state. Apps, Plugins and user configuration are disabled; this is
+not an installed-Plugin observation. The first sandbox-network attempt fails
+before tool use and leaves project/state unchanged. Its original logs remain;
+normal network escalation permits the subsequent actual processes. No user
+profile, model configuration or credential-store changes are made.
+
+The first author reads and hashes all three continuity files and the R2 excerpt
+packet. Its partial `STG-B-001` preserves Q-C1–Q-C3, tentative DEC-Q1,
+Ritchie2013Retrieval, adjusted/unadjusted results, source anchors and open
+allocation, denominator, covariate, clustering and mechanism limits. It
+explicitly attributes original-unmerged status to the continuity records rather
+than claiming direct inspection. Answer SHA-256:
+`b673fe6c058ba959ea9eae17b2f62f6e9ebf8d0063dc1570caf426a4ff19d812`.
+The coordinator checks those claims, input hashes and relative links, then adds
+only a preface identifying the retained author text as revision-3 pre-save
+observations. Native preview, dual approval and CAS persist revision 4; exact
+preview, receipt and disk bytes agree. Summary SHA-256:
+`15f37b016b1b9136d56c196c98ac233a3edd504ae885668f0ef6db45c2fe1383`.
+
+A fresh process resumes the same author session and reads actual revision 4,
+canonical history/handoff, summary, receipt and sources. It verifies all three
+receipt artifact hashes. State/handoff input hashes differ because of the
+expected save, while decision/source bytes match the pre-save basis; it correctly
+distinguishes that from research-source drift. Answer SHA-256:
+`7e32d42f80dbdaa5c6ecf3a89418392400977452b9396fe208841fa05f53c5ce`.
+Both author and resumed processes leave their starting project/state bytes
+unchanged. Saved continuity grants no subsequent approval or stage acceptance.
+
+The coordinator prepares a clearly labeled synthetic second-summary negative
+fixture through actual capture intake and consolidation preview. The R2 source
+is then preserved as `sources/r2-before-tables.md`, and the current packet gains
+links to the already retrieved same-paper tables/supplement packet and manifest.
+Current-source SHA-256 changes from
+`8d3e35193922b5da1a33d98845971397f0020abe8b52e44d8c3a68a721e6852e` to
+`84b915d5c736009802548084a94818ded2b9d6373442601a7e8c91b991f1371b`.
+The table packet and manifest remain exact copies of the prior public corpus,
+SHA-256 `3eca31d16e9ddf2803697236fe9f904c3a86f4743756f8b0bb930c92d4b7ac34`
+and `f865b00eac01a6903974317f19a9f535e2819da276730b2fdb1323adfaca8530`.
+Only the current packet changes among existing files; 18 other files remain
+identical and native revision stays 4. This expands local reading scope, not the
+paper, and adds no new network retrieval or original image/DOC inspection.
+Approved application of the stale preview returns `project-revision-conflict`
+without changing any of the 22 project/state files. The rejected synthetic
+capture remains unmerged; no second summary is written and no source is restored
+to stale bytes to force acceptance.
+
+Another fresh process resumes that author session at revision 4 and detects the
+changed packet despite current native artifacts. It reads nine actual project
+files, including the first summary/receipt, preserved R2, table packet and
+manifest; all declared input and predecessor hashes match. The selected tables
+supply reported recall cells and model details, narrowing the earlier absence
+statements without erasing them. It retains S4's printed Primary 5 total 38
+alongside the calculated cell sum 58, differing S2 distributions, and Table 1's
+N=108 versus S5's 109 observations. Participant-ID random effects are not
+misrepresented as class adjustment; supplementary-model reporting is not data
+reanalysis, and the same learning-phase covariate keeps sensitivity unresolved.
+Original answer SHA-256:
+`e2902c500082ca9521732147b31d13de23c03d814313743eccafb46c52772399`.
+
+The requested actual sub-agent `/root/handoff_persistence_check`, running as
+`gpt-6.1-sol / low`, independently checks execution identity, tools, file hashes,
+receipts and selected source-bound conclusions. This verifier has seen the
+criteria and candidate; it is a dependent validation pass, not blind evaluation
+or domain-expert review. It flags one missing explicit limit: reported S5
+coefficients must not be read directly as marginal percentages/percentage-point
+effects without verified link, coding, scaling and estimand. The coordinator adds
+that qualification without inventing a link function, clarifies one S2/S4
+sentence so an equal cell count is not grouped ambiguously with a differing
+count, and adds a revision-4 pre-save attribution preface. The exact original
+Host answer remains unchanged. No model-quality improvement is estimated.
+
+After coordinator source review, a separate native capture/preview and dual
+approval/CAS save `STG-B-002` at revision 5, including a new tentative DEC-Q1
+coverage qualification. All four artifact digests match receipt, preview and
+disk. The second summary is 21,395 bytes, SHA-256
+`17c2f06933ceafd1044125587e7ea9d3780560021952f04ab31d9f01fe5e5b13`;
+its receipt SHA-256 is
+`109c900d5ddc0bfcfd67fc7428834110f6573a85f69f6287df078a61aa2cc04c`.
+The first summary is byte-identical, both history rows remain, and the new
+predecessor link/hash identifies the actual first document. Existing decisions
+and handoff remain exact prefixes; prior research-state bytes remain a prefix
+after excluding the inserted history row. Stage stays literature, DEC-Q1 stays
+tentative, and the original unmerged proposal plus the rejected synthetic stale
+capture remain unmerged. Saving creates no Graph authority or stage acceptance.
+
+A fourth process resumes the same session, observes actual revision 5 and reads
+both summaries, canonical continuity, the second receipt and current sources.
+It independently hashes all ten inspected files, confirms all four receipt
+artifact digests, both history rows and the second summary's predecessor hash.
+It retains the new coverage and coefficient limitations without treating
+historical pre-save statements as current absence. Final answer SHA-256:
+`f9a7006dea6ec422d9d2090ddaf8bdf249d1c1f888940b4844ab5cd869ad4292`.
+The verifier confirms actual `gpt-6.1-sol / low` turn contexts, four successful
+read-only MCP calls per process, and unchanged starting project/state snapshots
+of 15, 18, 22 and 25 files respectively. The four successful process durations
+are approximately 222, 124, 292 and 93 seconds; these are observations, not a
+performance comparison. An initial read-only shell heredoc attempt could not
+create its temporary file; subsequent direct reads succeeded without weakening
+the sandbox. The original failed attempt is retained in the Host events.
+
+Final coordinator assertions and the requested lightweight verification pass
+confirm both saves and restarts, source-drift refusal, retained original files,
+actual receipt/source hashes and unresolved scholarly limits. No runtime/content
+repair is demonstrated or introduced; the previous affected native/content test
+results and pack identity are reused. Seven roadmap checks, generated-index
+consistency, unchanged-state/accepted-row checks and the frozen-source guard
+pass. Integration changes CLI-405 progress only: all 249 task states/dependencies
+and 46 accepted rows remain unchanged. The earlier wider CLI Clippy toolchain
+debt remains separate.
+
+Next bounded increment: diagnose the remaining public fulltext transport failure
+and its user-facing error path through the existing reader. Preserve DNS,
+redirect and network guards; do not infer a need for more permanent agents.
+Installed-Plugin, authenticated-provider, original table-file/data reanalysis and
+domain-expert qualification remain separate gaps. No private-library access,
+user-profile installation, publication or program acceptance is claimed.

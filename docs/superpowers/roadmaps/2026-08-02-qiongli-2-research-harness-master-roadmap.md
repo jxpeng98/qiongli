@@ -58,13 +58,14 @@ The 2.1.1 development baseline has the discipline/lifecycle guidance, explicit
 C/E/F decision contracts, five-provider discovery, public fulltext reader and
 on-demand source-bound review increments recorded in the
 [current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md).
-The selected **October 2 versioned stage-summary persistence and history**
-increment extends the existing capture consolidation owner after the actual
-Host handoff continuation. Its exact candidate, source/predecessor checks,
-transaction limits and restart observations belong in that plan and CLI-405's
-ledger record. The next bounded follow-up is an isolated configured-Host public
-research save/resume using successive stage summaries and changed sources;
-installed-Plugin and authenticated-provider/transport qualification remain open.
+The selected **October 2 actual Host versioned-summary continuation** increment
+exercises successive saved summaries, process restart and changed public sources
+through the existing write owners. Its exact candidates, source-bound findings,
+corrections and observation limits belong in that plan and CLI-405's ledger
+record. The next bounded follow-up is public fulltext transport diagnosis and
+accurate failure reporting through the existing reader, preserving DNS/redirect
+and network guards. Installed-Plugin and authenticated-provider qualification
+remain separately scoped.
 
 Use existing canonical content, source/review bindings, native provider/runtime,
 project preview/approval/CAS and evaluation owners. One coordinator integrates
