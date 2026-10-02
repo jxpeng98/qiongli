@@ -1,9 +1,10 @@
 use std::ffi::OsString;
+use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_project::{
     ApprovedCaptureConsolidation, CaptureConsolidationCommitV1, CaptureConsolidationPreviewV1,
-    CaptureId, ProjectError, ProjectId, ProjectStateService,
+    CaptureId, ProjectError, ProjectId, ProjectStateService, read_stage_handoff_file,
 };
 use serde::Serialize;
 
@@ -14,11 +15,27 @@ pub(crate) enum Command {
     Apply(Options, String),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub(crate) struct Options {
     project_id: ProjectId,
     capture_id: CaptureId,
     reviewed_at_unix: Option<u64>,
+    stage_handoff_file: Option<PathBuf>,
+}
+
+impl std::fmt::Debug for Options {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("Options")
+            .field("project_id", &self.project_id)
+            .field("capture_id", &self.capture_id)
+            .field("reviewed_at_unix", &self.reviewed_at_unix)
+            .field(
+                "stage_handoff_file",
+                &self.stage_handoff_file.as_ref().map(|_| "<handoff-draft>"),
+            )
+            .finish()
+    }
 }
 
 pub(crate) fn parse(args: &[OsString]) -> Result<Command, &'static str> {
@@ -44,17 +61,24 @@ pub(crate) fn execute(
         Command::Help => unreachable!("consolidation help returns before service execution"),
         Command::Preview(options) => {
             let reviewed_at_unix = options.reviewed_at_unix.map_or_else(now_unix, Ok)?;
+            let handoff = options
+                .stage_handoff_file
+                .as_deref()
+                .map(read_stage_handoff_file)
+                .transpose()?;
             service
-                .preview_capture_consolidation(
+                .preview_capture_consolidation_with_handoff(
                     &options.project_id,
                     &options.capture_id,
                     reviewed_at_unix,
+                    handoff.as_deref(),
                 )
                 .map(|plan| {
                     Output::Preview(PreviewOutput {
                         schema_version: 1,
                         command: "project-capture-consolidate-preview",
                         preview: plan.preview().clone(),
+                        stage_handoff_content: plan.stage_handoff_content().map(str::to_owned),
                     })
                 })
         }
@@ -62,10 +86,16 @@ pub(crate) fn execute(
             let reviewed_at_unix = options
                 .reviewed_at_unix
                 .expect("consolidation apply parser requires a review timestamp");
-            let plan = service.preview_capture_consolidation(
+            let handoff = options
+                .stage_handoff_file
+                .as_deref()
+                .map(read_stage_handoff_file)
+                .transpose()?;
+            let plan = service.preview_capture_consolidation_with_handoff(
                 &options.project_id,
                 &options.capture_id,
                 reviewed_at_unix,
+                handoff.as_deref(),
             )?;
             let commit = service.apply_capture_consolidation(
                 &plan,
@@ -93,6 +123,8 @@ pub(crate) struct PreviewOutput {
     schema_version: u32,
     command: &'static str,
     preview: CaptureConsolidationPreviewV1,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stage_handoff_content: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -107,6 +139,7 @@ fn parse_options(apply: bool, args: &[OsString]) -> Result<Command, &'static str
     let mut project_id = None;
     let mut capture_id = None;
     let mut reviewed_at_unix = None;
+    let mut stage_handoff_file = None;
     let mut digest = None;
     let mut filesystem_write = false;
     let mut academic_review = false;
@@ -148,13 +181,20 @@ fn parse_options(apply: bool, args: &[OsString]) -> Result<Command, &'static str
                 capture_id =
                     Some(CaptureId::parse(value.to_string()).map_err(|_| "capture ID is invalid")?);
             }
+            "--stage-handoff-file" if stage_handoff_file.is_none() => {
+                stage_handoff_file = Some(PathBuf::from(value));
+            }
             "--reviewed-at-unix" if reviewed_at_unix.is_none() => {
                 reviewed_at_unix = Some(parse_unix_timestamp(value)?);
             }
             "--expected-plan-digest" if apply && digest.is_none() => {
                 digest = Some(parse_sha256(value)?);
             }
-            "--project-id" | "--capture-id" | "--reviewed-at-unix" | "--expected-plan-digest" => {
+            "--project-id"
+            | "--capture-id"
+            | "--reviewed-at-unix"
+            | "--expected-plan-digest"
+            | "--stage-handoff-file" => {
                 return Err("capture consolidation option is unexpected or duplicate");
             }
             _ => return Err("unknown capture consolidation option"),
@@ -165,6 +205,7 @@ fn parse_options(apply: bool, args: &[OsString]) -> Result<Command, &'static str
         project_id: project_id.ok_or("project ID is required")?,
         capture_id: capture_id.ok_or("capture ID is required")?,
         reviewed_at_unix,
+        stage_handoff_file,
     };
     if !apply {
         return Ok(Command::Preview(options));
@@ -249,6 +290,32 @@ mod tests {
             ])),
             Ok(Command::Apply(_, _))
         ));
+    }
+
+    #[test]
+    fn parser_accepts_one_optional_handoff_file_without_granting_approval() {
+        let mut values = args(&[
+            "preview",
+            "--project-id",
+            "prj_0123456789abcdef0123456789abcdef",
+            "--capture-id",
+            &format!("cap_{}", "a".repeat(64)),
+            "--stage-handoff-file",
+            "/tmp/handoff.md",
+        ]);
+        assert!(matches!(
+            parse(&values),
+            Ok(Command::Preview(Options {
+                stage_handoff_file: Some(_),
+                ..
+            }))
+        ));
+        assert!(!format!("{:?}", parse(&values).unwrap()).contains("/tmp/handoff.md"));
+        values.extend(args(&["--stage-handoff-file", "/tmp/other.md"]));
+        assert!(parse(&values).is_err());
+        values.truncate(values.len() - 2);
+        values[0] = OsString::from("apply");
+        assert!(parse(&values).is_err());
     }
 
     #[test]

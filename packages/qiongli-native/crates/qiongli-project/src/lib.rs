@@ -225,3 +225,5 @@ pub use service::{
     ApprovedProjectMutation, ProjectMutationCommitV1, ProjectRegistrationOptions,
     ProjectStateService, RegisteredProjectRoot, VerifiedProjectMutation,
 };
+
+pub use storage::read_stage_handoff_file;

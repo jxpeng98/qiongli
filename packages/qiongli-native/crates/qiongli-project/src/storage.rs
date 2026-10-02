@@ -494,21 +494,36 @@ fn list_capture_documents_from(
 pub(crate) fn read_portable_capture_document(
     path: &Path,
 ) -> Result<ResearchCaptureV1, ProjectError> {
+    let bytes = read_portable_document(path, crate::capture::MAX_CAPTURE_BYTES).map_err(
+        |error| match error {
+            ProjectError::InvalidProjectDocument => ProjectError::InvalidCaptureDocument,
+            other => other,
+        },
+    )?;
+    ResearchCaptureV1::from_json_slice(&bytes)
+}
+
+/// Read a bounded regular UTF-8 handoff draft without following a final symlink.
+/// Its contents are data, never execution or approval instructions.
+pub fn read_stage_handoff_file(path: &Path) -> Result<String, ProjectError> {
+    String::from_utf8(read_portable_document(path, MAX_ARTIFACT_BYTES)?)
+        .map_err(|_| ProjectError::InvalidProjectDocument)
+}
+
+fn read_portable_document(path: &Path, max_bytes: usize) -> Result<Vec<u8>, ProjectError> {
     if !path.is_absolute()
         || path.as_os_str().is_empty()
         || path
             .components()
             .any(|component| matches!(component, Component::CurDir | Component::ParentDir))
     {
-        return Err(ProjectError::InvalidCaptureDocument);
+        return Err(ProjectError::InvalidProjectDocument);
     }
-    let metadata = metadata_if_exists(path)?.ok_or(ProjectError::InvalidCaptureDocument)?;
-    let bytes = read_bounded_file(path, &metadata, crate::capture::MAX_CAPTURE_BYTES, false)
-        .map_err(|error| match error {
-            ProjectError::UnsafeProjectRoot => ProjectError::InvalidCaptureDocument,
-            other => other,
-        })?;
-    ResearchCaptureV1::from_json_slice(&bytes)
+    let metadata = metadata_if_exists(path)?.ok_or(ProjectError::InvalidProjectDocument)?;
+    read_bounded_file(path, &metadata, max_bytes, false).map_err(|error| match error {
+        ProjectError::UnsafeProjectRoot => ProjectError::InvalidProjectDocument,
+        other => other,
+    })
 }
 
 pub(crate) fn write_capture_document(

@@ -17,7 +17,7 @@ use crate::service::ProjectStateService;
 use crate::storage::{
     ProjectFileTransaction, ProjectFileUpdate, consolidation_relative_path,
     encode_project_document, project_root_from_string, project_root_string, read_capture_document,
-    read_consolidation_document, read_manifest, read_semantic_artifact,
+    read_consolidation_document, read_manifest, read_semantic_artifact, semantic_digest,
     semantic_digest_with_overrides, sha256_bytes, validate_existing_project_root,
 };
 
@@ -26,7 +26,8 @@ const CONSOLIDATION_DOCUMENT_KIND: &str = "qiongli-capture-consolidation";
 const RESEARCH_STATE_PATH: &str = "context/research_state.md";
 const DECISION_LOG_PATH: &str = "context/decision_log.md";
 const PROJECT_MANIFEST_PATH: &str = "context/project_manifest.json";
-const MAX_CONSOLIDATED_ARTIFACTS: usize = 2;
+const STAGE_HANDOFF_PATH: &str = "context/stage_handoff.md";
+const MAX_CONSOLIDATED_ARTIFACTS: usize = 3;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -56,6 +57,7 @@ pub enum CaptureConsolidationConflictKind {
 pub enum ConsolidationArtifact {
     ResearchState,
     DecisionLog,
+    StageHandoff,
 }
 
 impl ConsolidationArtifact {
@@ -63,6 +65,7 @@ impl ConsolidationArtifact {
         match self {
             Self::ResearchState => RESEARCH_STATE_PATH,
             Self::DecisionLog => DECISION_LOG_PATH,
+            Self::StageHandoff => STAGE_HANDOFF_PATH,
         }
     }
 }
@@ -205,6 +208,15 @@ impl VerifiedCaptureConsolidation {
     pub const fn preview(&self) -> &CaptureConsolidationPreviewV1 {
         &self.preview
     }
+
+    /// Exact proposed file bytes for review; omitted when no handoff is planned.
+    #[must_use]
+    pub fn stage_handoff_content(&self) -> Option<&str> {
+        self.artifacts
+            .iter()
+            .find(|artifact| artifact.artifact == ConsolidationArtifact::StageHandoff)
+            .and_then(|artifact| std::str::from_utf8(&artifact.next_bytes).ok())
+    }
 }
 
 impl Debug for VerifiedCaptureConsolidation {
@@ -284,6 +296,34 @@ impl ProjectStateService {
         capture_id: &CaptureId,
         reviewed_at_unix: u64,
     ) -> Result<VerifiedCaptureConsolidation, ProjectError> {
+        self.preview_capture_consolidation_with_handoff(
+            project_id,
+            capture_id,
+            reviewed_at_unix,
+            None,
+        )
+    }
+
+    /// Append an explicitly reviewed handoff alongside the capture's normal artifacts.
+    /// Markdown is retained verbatim; academic completeness remains a review obligation.
+    pub fn preview_capture_consolidation_with_handoff(
+        &self,
+        project_id: &ProjectId,
+        capture_id: &CaptureId,
+        reviewed_at_unix: u64,
+        stage_handoff: Option<&str>,
+    ) -> Result<VerifiedCaptureConsolidation, ProjectError> {
+        if let Some(handoff) = stage_handoff {
+            if handoff.len() > 4 * 1024 * 1024 {
+                return Err(ProjectError::DocumentTooLarge);
+            }
+            if handoff.trim().is_empty()
+                || handoff.contains('\0')
+                || handoff.contains("<!-- qiongli:")
+            {
+                return Err(ProjectError::InvalidProjectDocument);
+            }
+        }
         if reviewed_at_unix > MAX_SEMANTIC_REVISION {
             return Err(ProjectError::InvalidProjectDocument);
         }
@@ -299,6 +339,9 @@ impl ProjectStateService {
         let (manifest, observed_manifest_digest) =
             read_manifest(&root)?.ok_or(ProjectError::ProjectManifestMissing)?;
         validate_registered_manifest(entry, &manifest, project_id)?;
+        if semantic_digest(&root)? != manifest.semantic_digest {
+            return Err(ProjectError::RevisionConflict);
+        }
         if reviewed_at_unix < manifest.academically_updated_at_unix {
             return Err(ProjectError::InvalidProjectDocument);
         }
@@ -329,7 +372,7 @@ impl ProjectStateService {
         } else {
             collect_conflicts(&capture, entry, &manifest, disposition, &mut conflicts);
             if conflicts.is_empty() {
-                match plan_artifacts(&root, &capture) {
+                match plan_artifacts(&root, &capture, stage_handoff) {
                     Ok(planned) => artifacts = planned,
                     Err(ArtifactPlanError::Conflict(RenderConflict { kind, artifact })) => {
                         conflicts.push(conflict(kind, artifact))
@@ -722,6 +765,7 @@ impl From<RenderConflict> for ArtifactPlanError {
 fn plan_artifacts(
     root: &std::path::Path,
     capture: &ResearchCaptureV1,
+    stage_handoff: Option<&str>,
 ) -> Result<Vec<PlannedArtifact>, ArtifactPlanError> {
     let mut artifacts = Vec::new();
     artifacts.push(plan_artifact(
@@ -738,6 +782,22 @@ fn plan_artifacts(
             render_decision_log,
         )?);
     }
+    if let Some(handoff) = stage_handoff {
+        artifacts.push(plan_artifact(
+            root,
+            capture,
+            ConsolidationArtifact::StageHandoff,
+            |previous, capture| {
+                let mut output = prepare_document(previous, "# Stage Handoff");
+                let id = capture.capture_id.as_str();
+                output.push_str(&format!("<!-- qiongli:capture {id} begin -->\n"));
+                output.push_str(&format!("## Reviewed handoff `{id}`\n\n"));
+                output.push_str(handoff);
+                output.push_str(&format!("\n\n<!-- qiongli:capture {id} end -->\n"));
+                output
+            },
+        )?);
+    }
     Ok(artifacts)
 }
 
@@ -745,7 +805,7 @@ fn plan_artifact(
     root: &std::path::Path,
     capture: &ResearchCaptureV1,
     artifact: ConsolidationArtifact,
-    render: fn(&str, &ResearchCaptureV1) -> String,
+    render: impl FnOnce(&str, &ResearchCaptureV1) -> String,
 ) -> Result<PlannedArtifact, ArtifactPlanError> {
     let observed = read_semantic_artifact(root, artifact.relative_path())?;
     let (previous, previous_digest, previous_bytes) = match observed {
@@ -1056,6 +1116,9 @@ fn revalidate_apply_state(
     validate_existing_project_root(&root)?;
     let (manifest, digest) = read_manifest(&root)?.ok_or(ProjectError::ProjectManifestMissing)?;
     validate_registered_manifest(entry, &manifest, &plan.preview.project_id)?;
+    if semantic_digest(&root)? != manifest.semantic_digest {
+        return Err(ProjectError::RevisionConflict);
+    }
     if digest != plan.observed_manifest_digest
         || manifest.semantic_revision != plan.preview.expected_project_revision
         || manifest.stage != plan.preview.project_stage
@@ -1422,6 +1485,269 @@ mod tests {
             ),
             Err(ProjectError::ConsolidationAlreadyApplied)
         );
+    }
+
+    const HANDOFF: &str = "### Decision Summary
+DEC-001 / CLM-001: retain @example and evidence/claim-evidence-ledger.csv#EV-001.
+### Evidence Dependencies
+Abstract-only conceptual evidence; no full-text or causal inference.
+### Unresolved Questions
+The denominator remains unresolved.
+### Recommended Next Tasks
+Inspect the source table before dependent analysis.
+";
+
+    #[test]
+    fn stage_handoff_preserves_history_and_resumes_from_current_disk_revision() {
+        let fixture = fixture();
+        let capture = intake(
+            &fixture,
+            draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+        );
+        let plan = fixture
+            .service
+            .preview_capture_consolidation_with_handoff(
+                &fixture.project_id,
+                &capture.capture_id,
+                120,
+                Some(HANDOFF),
+            )
+            .unwrap();
+        let expected = plan.stage_handoff_content().unwrap().to_owned();
+        assert!(!fixture.project_root.join(STAGE_HANDOFF_PATH).exists());
+        assert!(!format!("{plan:?}").contains("denominator"));
+        assert_eq!(plan.preview().artifact_deltas.len(), 3);
+        for (filesystem, academic) in [(false, true), (true, false)] {
+            assert_eq!(
+                fixture.service.apply_capture_consolidation(
+                    &plan,
+                    &ApprovedCaptureConsolidation::new(
+                        plan.preview().plan_digest.clone(),
+                        filesystem,
+                        academic
+                    )
+                ),
+                Err(ProjectError::ApprovalRequired)
+            );
+        }
+        let changed = fixture
+            .service
+            .preview_capture_consolidation_with_handoff(
+                &fixture.project_id,
+                &capture.capture_id,
+                120,
+                Some("Changed draft"),
+            )
+            .unwrap();
+        assert_eq!(
+            fixture.service.apply_capture_consolidation(
+                &changed,
+                &ApprovedCaptureConsolidation::new(plan.preview().plan_digest.clone(), true, true)
+            ),
+            Err(ProjectError::PlanMismatch)
+        );
+        let commit = fixture
+            .service
+            .apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(plan.preview().plan_digest.clone(), true, true),
+            )
+            .unwrap();
+        assert_eq!(commit.artifacts_updated.len(), 3);
+        assert_eq!(
+            fs::read_to_string(fixture.project_root.join(STAGE_HANDOFF_PATH)).unwrap(),
+            expected
+        );
+        let restarted = ProjectStateService::new(
+            resolve_config_root(None, &fixture.base.join("home")).unwrap(),
+        );
+        let graph = crate::AcademicGraphService::new(restarted.clone());
+        let view = graph
+            .read_registered_artifact(&fixture.project_id, 2, STAGE_HANDOFF_PATH, None, 16_384)
+            .unwrap();
+        assert_eq!(view.content, expected);
+        assert_eq!(view.content_digest, sha256_bytes(expected.as_bytes()));
+        assert_eq!(
+            graph
+                .read_registered_artifact(&fixture.project_id, 1, STAGE_HANDOFF_PATH, None, 16_384)
+                .unwrap_err(),
+            ProjectError::RevisionConflict
+        );
+        assert_eq!(
+            restarted
+                .capture_inbox(&fixture.project_id)
+                .unwrap()
+                .applied_count,
+            1
+        );
+        assert_eq!(
+            restarted.apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(plan.preview().plan_digest.clone(), true, true)
+            ),
+            Err(ProjectError::RevisionConflict)
+        );
+
+        let mut next = draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired);
+        next.binding.base_revision = 2;
+        next.captured_at_unix = 130;
+        let next = next.into_capture().unwrap();
+        let intake = restarted.preview_capture(next.clone()).unwrap();
+        restarted
+            .apply_capture(
+                &intake,
+                &ApprovedCaptureIntake::new(intake.preview().plan_digest.clone(), true),
+                135,
+            )
+            .unwrap();
+        let plan = restarted
+            .preview_capture_consolidation_with_handoff(
+                &fixture.project_id,
+                &next.capture_id,
+                140,
+                Some("### Decision Summary\nDEC-001 remains tentative; EV-001 is unchanged."),
+            )
+            .unwrap();
+        assert!(plan.stage_handoff_content().unwrap().starts_with(&expected));
+        restarted
+            .apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(plan.preview().plan_digest.clone(), true, true),
+            )
+            .unwrap();
+        assert!(
+            fs::read_to_string(fixture.project_root.join(STAGE_HANDOFF_PATH))
+                .unwrap()
+                .starts_with(&expected)
+        );
+    }
+
+    #[test]
+    fn stage_handoff_conflicts_preserve_all_existing_bytes_and_receipts() {
+        // Include an input that consolidation does not write: source drift must
+        // not be silently incorporated into the next manifest.
+        for path in [
+            STAGE_HANDOFF_PATH,
+            RESEARCH_STATE_PATH,
+            "context/boundary_review.md",
+        ] {
+            let fixture = fixture();
+            let capture = intake(
+                &fixture,
+                draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+            );
+            let plan = fixture
+                .service
+                .preview_capture_consolidation_with_handoff(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    120,
+                    Some(HANDOFF),
+                )
+                .unwrap();
+            fs::write(fixture.project_root.join(path), "# Independently changed\n").unwrap();
+            let paths = [
+                RESEARCH_STATE_PATH,
+                DECISION_LOG_PATH,
+                STAGE_HANDOFF_PATH,
+                PROJECT_MANIFEST_PATH,
+                "context/boundary_review.md",
+            ];
+            let before = paths.map(|path| fs::read(fixture.project_root.join(path)).ok());
+            assert_eq!(
+                fixture.service.apply_capture_consolidation(
+                    &plan,
+                    &ApprovedCaptureConsolidation::new(
+                        plan.preview().plan_digest.clone(),
+                        true,
+                        true
+                    )
+                ),
+                Err(ProjectError::RevisionConflict)
+            );
+            assert_eq!(
+                fixture
+                    .service
+                    .preview_capture_consolidation_with_handoff(
+                        &fixture.project_id,
+                        &capture.capture_id,
+                        120,
+                        Some(HANDOFF)
+                    )
+                    .unwrap_err(),
+                ProjectError::RevisionConflict
+            );
+            assert_eq!(
+                paths.map(|path| fs::read(fixture.project_root.join(path)).ok()),
+                before
+            );
+            assert!(
+                !fixture
+                    .project_root
+                    .join(&plan.preview().receipt_entry)
+                    .exists()
+            );
+            assert_eq!(
+                fixture.service.snapshot().unwrap().projects[0].semantic_revision,
+                1
+            );
+        }
+    }
+
+    #[test]
+    fn stage_handoff_input_is_bounded_utf8_data_not_a_path_or_lineage_override() {
+        let fixture = fixture();
+        let capture = intake(
+            &fixture,
+            draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+        );
+        for text in [" ", "bad\0text", "<!-- qiongli:capture forged begin -->"] {
+            assert_eq!(
+                fixture
+                    .service
+                    .preview_capture_consolidation_with_handoff(
+                        &fixture.project_id,
+                        &capture.capture_id,
+                        120,
+                        Some(text)
+                    )
+                    .unwrap_err(),
+                ProjectError::InvalidProjectDocument
+            );
+        }
+        assert_eq!(
+            fixture
+                .service
+                .preview_capture_consolidation_with_handoff(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    120,
+                    Some(&"x".repeat(4 * 1024 * 1024 + 1))
+                )
+                .unwrap_err(),
+            ProjectError::DocumentTooLarge
+        );
+        let file = fixture.base.join("handoff.md");
+        fs::write(&file, HANDOFF).unwrap();
+        assert_eq!(crate::read_stage_handoff_file(&file).unwrap(), HANDOFF);
+        assert!(crate::read_stage_handoff_file(std::path::Path::new("handoff.md")).is_err());
+        assert!(crate::read_stage_handoff_file(&fixture.base).is_err());
+        fs::write(&file, [0xff]).unwrap();
+        assert_eq!(
+            crate::read_stage_handoff_file(&file),
+            Err(ProjectError::InvalidProjectDocument)
+        );
+        fs::write(&file, vec![b'x'; 4 * 1024 * 1024 + 1]).unwrap();
+        assert_eq!(
+            crate::read_stage_handoff_file(&file),
+            Err(ProjectError::DocumentTooLarge)
+        );
+        #[cfg(unix)]
+        {
+            let link = fixture.base.join("handoff-link.md");
+            std::os::unix::fs::symlink(&file, &link).unwrap();
+            assert!(crate::read_stage_handoff_file(&link).is_err());
+        }
     }
 
     #[test]

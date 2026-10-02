@@ -3076,6 +3076,15 @@ fn copied_binary_accepts_repository_capture_without_runtime() {
 
 #[test]
 fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
+    consolidation_journey(false);
+}
+
+#[test]
+fn copied_binary_persists_and_resumes_stage_handoff_without_runtime() {
+    consolidation_journey(true);
+}
+
+fn consolidation_journey(with_handoff: bool) {
     fn snapshot(root: &Path) -> std::collections::BTreeMap<PathBuf, Vec<u8>> {
         let mut files = std::collections::BTreeMap::new();
         if root.exists() {
@@ -3300,6 +3309,17 @@ fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
         public_output(&intake_apply)
     );
 
+    let handoff_file = fixture.root.join("private-handoff-draft.md");
+    let handoff = "### Decision Summary\nDEC-001 / CLM-001 retains @example.\n### Evidence Dependencies\nevidence/claim-evidence-ledger.csv#EV-001; abstract only.\n### Unresolved Questions\nDenominator unresolved; no causal conclusion.\n";
+    let handoff_args: Vec<OsString> = if with_handoff {
+        fs::write(&handoff_file, handoff).unwrap();
+        vec![
+            "--stage-handoff-file".into(),
+            handoff_file.as_os_str().to_owned(),
+        ]
+    } else {
+        Vec::new()
+    };
     let consolidation_preview = run_configured_os(
         &copied,
         &fixture,
@@ -3312,7 +3332,10 @@ fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
             project_id.clone().into(),
             "--capture-id".into(),
             capture_id.clone().into(),
-        ],
+        ]
+        .into_iter()
+        .chain(handoff_args.clone())
+        .collect::<Vec<_>>(),
         true,
     );
     assert!(
@@ -3332,6 +3355,22 @@ fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
         consolidation_preview_json["preview"]["approvalsRequired"],
         serde_json::json!(["academic-consolidation", "filesystem-write"])
     );
+    assert!(!output_contains_path(&consolidation_preview, &handoff_file));
+    if with_handoff {
+        assert!(
+            consolidation_preview_json["stageHandoffContent"]
+                .as_str()
+                .unwrap()
+                .contains(handoff)
+        );
+        assert!(!project_root.join("context/stage_handoff.md").exists());
+    } else {
+        assert!(
+            consolidation_preview_json
+                .get("stageHandoffContent")
+                .is_none()
+        );
+    }
     let reviewed_at_unix = consolidation_preview_json["preview"]["reviewedAtUnix"]
         .as_u64()
         .unwrap();
@@ -3342,7 +3381,7 @@ fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
 
     // Each invocation has exited: persisted previews/captures grant no next-process approval.
     let before_consolidation = (snapshot(&project_root), snapshot(&fixture.config_root));
-    let apply_args: Vec<OsString> = vec![
+    let mut apply_args: Vec<OsString> = vec![
         "project".into(),
         "capture".into(),
         "consolidate".into(),
@@ -3356,6 +3395,7 @@ fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
         "--expected-plan-digest".into(),
         consolidation_digest.clone().into(),
     ];
+    apply_args.extend(handoff_args);
     let mut approved_args = apply_args.clone();
     approved_args.extend([
         "--approve-academic-review".into(),
@@ -3464,6 +3504,26 @@ fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
         (snapshot(&project_root), snapshot(&fixture.config_root))
     );
 
+    if with_handoff {
+        fs::write(&handoff_file, "Changed after preview").unwrap();
+        let rejected = run_configured_os(&copied, &fixture, &approved_args, true);
+        assert_eq!(rejected.stderr, b"error: project-plan-mismatch\n");
+        assert_eq!(
+            before_consolidation,
+            (snapshot(&project_root), snapshot(&fixture.config_root))
+        );
+        fs::write(&handoff_file, handoff).unwrap();
+        let changed_input = project_root.join("context/boundary_review.md");
+        fs::write(&changed_input, "Independent source change").unwrap();
+        let before_drift_apply = (snapshot(&project_root), snapshot(&fixture.config_root));
+        let rejected = run_configured_os(&copied, &fixture, &approved_args, true);
+        assert_eq!(rejected.stderr, b"error: project-revision-conflict\n");
+        assert_eq!(
+            before_drift_apply,
+            (snapshot(&project_root), snapshot(&fixture.config_root))
+        );
+        fs::remove_file(changed_input).unwrap();
+    }
     let consolidation_apply = run_configured_os(&copied, &fixture, &approved_args, true);
     assert!(
         consolidation_apply.status.success(),
@@ -3479,7 +3539,11 @@ fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
     assert_eq!(consolidation_apply_json["commit"]["semanticRevision"], 2);
     assert_eq!(
         consolidation_apply_json["commit"]["artifactsUpdated"],
-        serde_json::json!(["research-state"])
+        if with_handoff {
+            serde_json::json!(["research-state", "stage-handoff"])
+        } else {
+            serde_json::json!(["research-state"])
+        }
     );
     let receipt_entry = consolidation_apply_json["commit"]["receiptEntry"]
         .as_str()
@@ -3489,6 +3553,58 @@ fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
         fs::read_to_string(project_root.join("context/research_state.md")).unwrap();
     assert!(research_state.contains(&capture_id));
     assert!(research_state.contains(&capture.summary));
+
+    if with_handoff {
+        assert_eq!(
+            fs::read_to_string(project_root.join("context/stage_handoff.md")).unwrap(),
+            consolidation_preview_json["stageHandoffContent"]
+                .as_str()
+                .unwrap()
+        );
+        let read = |args: &[&str]| {
+            run_configured_os(
+                &copied,
+                &fixture,
+                &args.iter().map(OsString::from).collect::<Vec<_>>(),
+                true,
+            )
+        };
+        let graph = read(&["project", "graph", "snapshot", "--project-id", &project_id]);
+        assert!(graph.status.success(), "{}", public_output(&graph));
+        let graph = parse_json(&graph);
+        let projection_id = graph["snapshot"]["projectionId"].as_str().unwrap();
+        let node_id = graph["snapshot"]["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|node| node["artifactPath"] == "context/stage_handoff.md")
+            .and_then(|node| node["nodeId"].as_str())
+            .unwrap();
+        for revision in ["2", "1"] {
+            let resumed = read(&[
+                "project",
+                "graph",
+                "source",
+                "--project-id",
+                &project_id,
+                "--expected-project-revision",
+                revision,
+                "--expected-projection-id",
+                projection_id,
+                "--node-id",
+                node_id,
+            ]);
+            if revision == "2" {
+                assert!(resumed.status.success(), "{}", public_output(&resumed));
+                assert_eq!(
+                    parse_json(&resumed)["artifact"]["content"],
+                    consolidation_preview_json["stageHandoffContent"]
+                );
+            } else {
+                assert_eq!(resumed.stderr, b"error: project-revision-conflict\n");
+            }
+        }
+    }
 
     let inbox = run_configured_os(
         &copied,

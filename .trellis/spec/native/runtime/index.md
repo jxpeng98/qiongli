@@ -66,6 +66,24 @@ Apply still requires the exact normalized capture, preview digest and explicit
 filesystem approval; project revision checks and pending-history semantics stay
 unchanged. Draft normalization grants no academic consolidation authority.
 
+Native CLI `project capture consolidate preview/apply` optionally accepts
+`--stage-handoff-file <absolute-draft.md>` and uses the existing consolidation
+owner to append `context/stage_handoff.md`. Preview emits exact resulting UTF-8
+Markdown as `stageHandoffContent`; the plan digest binds those bytes and the
+prior file digest. Apply rereads the draft and retains dual approval, library
+revision, capture/manifest checks, transaction CAS and receipt recovery. Both
+preview and apply reject unrefreshed registered semantic drift, including inputs
+that are not write targets. Arbitrary attachments are outside that digest.
+Prior handoff bytes remain intact. Academic completeness stays with review;
+there is no automatic stage advance, summary creation or Graph rebuild.
+Without the option, the original API/output/receipt shape remains unchanged.
+V1 receipts accept the additional closed `stage-handoff` artifact in current
+readers; old two-artifact receipts still read. Older binaries reject receipts
+containing the new artifact, so these projects require the updated reader.
+The bound regular-file reader is shared with portable capture intake, rejects
+final symlinks/non-UTF-8/oversize handoffs, and never treats file text as authority.
+No MCP endpoint, new store, Host model setting or installed profile changes.
+
 Academic Graph v1 remains a rebuildable projection over registered canonical
 artifacts. `academic_graph_extract.rs` permits one claim ID/text/type across
 multiple evidence rows, diagnoses conflicting records, and requires source
