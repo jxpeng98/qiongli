@@ -2598,3 +2598,95 @@ redirect and network guards; do not infer a need for more permanent agents.
 Installed-Plugin, authenticated-provider, original table-file/data reanalysis and
 domain-expert qualification remain separate gaps. No private-library access,
 user-profile installation, publication or program acceptance is claimed.
+
+### October 2 — public fulltext transport diagnostics
+
+The bounded follow-up starts from clean local `2.x` at
+`c82b5d5bf540a995003f573962b1829b435408fe`. Implementation
+`194b4eaa0a0a1406f4f3b4a3d5c71621fdf180e3` corrects the shared reader's failure
+reporting; regenerated-pack candidate
+`a9e462c5013874a14d8d821eba242f544297af10` contains 446 resources, content root
+`5f6d8598647297d0e646b7bcd5a1d7d041b9a18bf73d1a76b6d017719841a9e4` and pack
+`0434fcd3cff6f90912953d3cda764c9a2c2ab57c92753c8f4377a96b3295ff9b`.
+The copied before/after CLI hashes are respectively
+`0fef9a01064dca078caad66bf4d15c7568dab5dd30bb490a1c3ca874a2b41f36` and
+`a3463a9dc69a3f1ff35f16af81b3818998ad62993f068e8588417bedeb7b7479`.
+
+Fresh authorized public observations differ from the earlier special-address
+mapping. `journals.plos.org` now resolves to `35.190.43.188`; the prior CLI's Lite
+and Full calls for PLOS DOI `10.1371/journal.pone.0078976` still return generic
+`fulltext-url-blocked`. A separate first-hop GET, without following its redirect,
+returns HTTP 302 to `storage.googleapis.com` with X-Goog signing parameters.
+Only the status, hostname and query-key names are retained; signing values are
+not logged. This identifies a signed-redirect policy limitation for this observed
+request, not a DNS failure, bad original locator, paywall or missing article body.
+The cause of the earlier system mapping and its change remains unproven.
+
+The existing public URL policy now names signed/credential-bearing query
+parameters, and the redirect owner identifies a blocked destination before
+contacting it. Both actual rebuilt CLI profiles return that precise message with
+the original reason code. The shared DNS result boundary distinguishes timeout,
+worker disconnection, resolver error and empty answers as `fulltext-network-error`;
+private/special-use and mixed public/nonpublic answers retain
+`fulltext-url-blocked`. Static messages do not expose addresses, locators or
+underlying errors. Native Lite, Full and standalone Lite reuse the same owner.
+Canonical fulltext guidance explains the failure stage and safe evidence limit.
+No URL allowlist, DNS/proxy change, signed-URL exception, redirect relaxation,
+new endpoint, dependency or provider credential access is introduced. Request
+send/body error classification remains unchanged and is not newly qualified.
+
+One additional public native Lite read of `https://arxiv.org/pdf/1706.03762`
+succeeds in approximately 2.18 seconds, parsing 27 PDF segments and returning
+segment 0. A fresh process continues at the returned offset 1 with limit 3 and
+`expected_sha256`, returning segments 1–3 in approximately 4.24 seconds with the
+same decoded source digest:
+`bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697`.
+Page-2 anchors expose Introduction/body passages, beyond the initial abstract.
+Both reads report `cached: false`; this is digest-checked retrieval across
+processes, not a cache demonstration. The title is visible in returned text,
+but structured identity remains `not_checked`. Only four segments are exposed;
+no complete reading, verified paper version, table/formula extraction, scholarly
+claim, research-quality gain or permission to redistribute follows. This current
+public-source success is not caused by the diagnostic-only patch and does not
+resolve PLOS signed redirects or authenticated providers.
+
+Raw local observations and temporary runners remain in
+`packages/qiongli-native/target/fulltext-transport-uz6sctkf/`:
+`before.json` SHA-256
+`1384c45224a8ef9e695c185274e1d438bb03e47ed1da94d3987faa03e467c894`,
+`first-hop.json` SHA-256
+`a346b115a810f1356b1ffa760c7a1945ee5c6d73e203f486705b54bf4b1ac75b`,
+`after.json` SHA-256
+`17a38f19eb85af8812eea471bfbf38eb1c4eec2865eeacf855c1843abf6ff5f8`,
+`after-arxiv.json` SHA-256
+`215123679369bc5f9f6672260546c872779aab1faf5b7c9fb6849c10316685bb`,
+and `after-arxiv-continuation.json` SHA-256
+`db9897f8a6c13ea5eba3745c19607e93c340b6f94d22027e17eac8a6205c1083`.
+These copied-CLI observations use isolated Qiongli configuration and no canonical
+research writes; they are not installed-Plugin or release acceptance.
+
+Validation: seven shared fulltext tests pass (one worker probe remains ignored),
+including DNS result classification, mixed-address refusal, redirect policy,
+redaction, parser isolation and existing source/cache boundaries. The requested
+actual `gpt-6.1-sol / low` sub-agent `/root/handoff_persistence_check` reviews the
+source diff without actionable findings and independently runs the native and
+standalone Lite fulltext compatibility tests (one pass each). Thirty-seven
+focused literature/content/MCP checks, runtime all-target Clippy with warnings
+denied, formatting and the rebuilt embedded-pack/registry test pass. The initial
+system-Python run lacked PyYAML; the existing `.venv` supplies it without an
+installation. The broader research-standard validator reports 6,100 passes,
+24 failures and 17 warnings in unmodified generated-doc/workflow/release and
+legacy-contract checks; it is not reported as green or repaired in this scope.
+The CLI build also retains the unrelated platform `fetch_update` deprecation.
+The verifier also checks all five observation JSON files without a mismatch;
+process launch and continuation binary identity additionally rely on the
+coordinator's retained runner/execution record, not the continuation JSON alone.
+Seven roadmap tests, generated-index consistency, ledger invariance and the
+frozen-source guard at the pack candidate pass. All 249 task states/dependencies
+and 46 accepted rows remain unchanged; only CLI-405 progress is extended.
+
+Next exercise the working native public-PDF route in an isolated Host journey,
+carrying source digests and actual body anchors into reviewed paper notes through
+existing write owners. Signed publisher redirects, authenticated-provider and
+installed-Plugin qualification remain separate. No user profile/model, private
+library, publication, task-state/dependency or accepted-evidence change is made.
