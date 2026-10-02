@@ -43,6 +43,8 @@ checking does not require a reviewer persona or additional model.
    to review an existing one.
 2. Check the source evidence and only the relevant stage questions below. They
    are lenses, not a checklist to exhaust or a quota of questions to invent.
+   For a claim-to-source audit, use `references/evidence-verification.md` to
+   distinguish unsupported inference, contradictory evidence and unverified scope.
 3. For an ordinary check, review once. Fix concrete defects and verify the
    affected claims or outputs. Stop when those checks pass; repeat a broader
    review only for changed inputs, new evidence or the formal contract below.

@@ -58,6 +58,17 @@ execution ID remains trace-only.
 
 - None.
 
+## Claim Coverage (for evidence verification)
+
+| Claim ID / exact candidate location | Source citekey, version/digest and passage/table location | Support judgment and reason | Required correction or missing check |
+|---|---|---|---|
+
+Use supported within stated limits / contradicted / insufficient evidence /
+not checked as review judgments, not ledger statuses. Inspect substantive claims
+in the requested passage even when they are absent from the supplied ledger.
+Record actual coverage and the unreviewed remainder; an empty table or no findings
+does not mean verification passed. Preserve existing claim and issue IDs.
+
 ## Blocking Issues
 
 - None.

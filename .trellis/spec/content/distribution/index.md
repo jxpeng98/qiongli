@@ -89,6 +89,12 @@ unresolved dependencies; do not add a parallel state machine or mandatory interv
 Behavioral checks should inspect completed candidate artifacts and continuation
 after changed evidence, not treat matching instructional text as research quality.
 
+`references/evidence-verification.md` owns source-to-claim review guidance, shared
+by self-critique and actual independent collaboration. Its claim coverage extends
+the existing review packet; judgments do not replace ledger statuses, task/role
+registries or write authority. Public-paper trials keep tasks separate from
+review criteria and preserve source versions, access limits and partial failures.
+
 Native Lite and Full share `qiongli_literature_read_fulltext` through the existing
 Lite tool registry. Its standalone input/output schemas under
 `content/mcp-contracts/` define bounded read-only public document access;

@@ -100,6 +100,7 @@ general entry; skill cards, references and templates are loaded only as needed.
 | Requested outcome | Load only the relevant route |
 |---|---|
 | Ask another agent to independently review, split research work, or exchange a cross-Host edit proposal | `skills/Z_cross_cutting/model-collaborator.md`; actual available Host tools execute the work |
+| Check whether a draft's claims are supported by its sources | `references/evidence-verification.md`; use `self-critique` for a single-agent check and `model-collaborator` for requested/required independent execution |
 | Topic, question, gap or theory | `workflows/paper.md`, `workflows/find-gap.md` or `workflows/build-framework.md` |
 | Whole paper lifecycle | `workflows/paper-lifecycle.md` |
 | Consolidate a completed stage, track progress, or review files for manual cleanup | `workflows/stage-close.md`; only the user selects and deletes files |

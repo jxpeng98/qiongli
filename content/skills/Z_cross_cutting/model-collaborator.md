@@ -98,6 +98,7 @@ does not request another agent; use H3 unless independent execution is requested
 |---|---|---|
 | Independent first opinions | Give separate reviewers the same sources and question, without each other's verdict | Separately executed outputs with matching source identities |
 | Improve a draft or implementation | Author proposes; reviewer examines the exact candidate; integrator resolves findings | Reviewed candidate bytes and recorded findings/resolutions |
+| Verify consequential claims against sources | Reviewer inspects original passages and the exact draft using `references/evidence-verification.md` | Claim-level coverage, source anchors, support judgments and unresolved checks |
 | Independent components | Delegate non-overlapping source groups or candidate files | Each requested result collected, dependencies and overlaps checked |
 | Work with another Host | Exchange a bounded handoff and review packet through authorized tools or user transfer | Actual returned result, participant and source/candidate bindings |
 
@@ -105,6 +106,12 @@ No arrangement implies a fixed number of agents or discussion rounds. Continue
 when evidence, disagreements or the explicit protocol require it; otherwise
 integrate the supported result. A timeout, unavailable peer or cancelled task
 leaves a visible gap, not a successful vote. Do not restart an endless debate.
+
+For evidence, methods or literature gaps, use the bounded assignments in
+`references/evidence-verification.md`; reuse existing reading/design/search
+skills rather than allocating a permanent agent per discipline. Reviewers return
+findings to one coordinator. Add parallel work only when independent inputs or
+an independent judgment can resolve the current uncertainty.
 
 ### Track actual dispatch and returned results
 
