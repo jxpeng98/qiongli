@@ -2393,3 +2393,74 @@ separate gaps; previous wider CLI Clippy toolchain debt remains unchanged.
 Integration updates only CLI-405 progress: all 249 task states/dependencies and
 46 accepted rows stay fixed. No user-profile update, private-library access,
 publication or program acceptance is claimed.
+
+## October 2 — versioned stage-summary persistence and history
+
+The maintainer selects the preceding next increment. Implementation
+`683169cf5b0af2839ebb5ca796d514c321ccad0d` extends the existing capture
+consolidation with optional `--stage-summary-file` on preview/apply. Its strict
+version-1 JSON draft names a new summary ID, document status, actual source
+hashes, optional immediate predecessor/hash and reviewed Markdown. The canonical
+stage-consolidation reference documents the format and its limits; the native
+runtime contract records the write and compatibility boundary.
+
+One transaction creates `context/stage_summaries/<ID>.md`, appends the exact
+history-table row in research state and adds a handoff link, alongside any
+existing decision update, receipt and manifest. Preview exposes all three exact
+continuity contents. Existing summary paths are refused even for identical bytes;
+old documents and history rows remain intact. Listed source and predecessor
+bytes are checked at preview and apply, separately from the registered semantic
+revision. Strict paths, bounded reads, duplicate-key rejection, dual approvals,
+plan binding and library/project CAS retain their existing owners. Sources are
+limited to 64 project-local files, 4 MiB per file/draft and 16 MiB per source set
+including the predecessor. External/omitted sources remain review obligations.
+
+The service journey saves two versions across a fresh service instance, expands
+an unregistered source without changing the project revision, rejects changed
+predecessor bytes, and preserves the first document and prior history after the
+second save. Negative cases cover changed sources/drafts, existing destination,
+wrong plan digest and either missing approval. A six-file transaction exercise
+checks explicit rollback. Create-only publication and rollback preserve a
+competing file even when its bytes match; unattempted targets are excluded from
+rollback. The collision check models the write interleaving directly; it is not
+a concurrent-process stress test or a crash-recovery qualification.
+
+All 194 project tests pass, with one existing capacity test ignored. Three
+copied-CLI journeys pass on macOS arm64 with empty PATH and isolated state:
+default consolidation, optional handoff and optional summary. Separate processes
+perform preview/apply and revision-bound handoff reads; saved summary/state/
+handoff bytes match preview and the receipt records the actual summary hash.
+Draft/source drift, incomplete approval, held lock, a killed waiting writer,
+altered review timestamp and replay retain the expected bytes. These synthetic
+storage fixtures do not establish research-stage completeness or an actual
+model's summary quality. Fixture-only source restoration is not recovery advice.
+
+The requested native sub-agent `/root/handoff_persistence_check` ran as
+`gpt-6.1-sol / low`, added and ran four strict-input/history tests, then reviewed
+the final runtime, CLI integration coverage and documentation without actionable
+findings. It did not launch another Host or perform independent domain review.
+The coordinator ran the full project tests, three CLI parser tests, the three
+copied-CLI journeys, two embedded-pack/registry checks and 14 focused
+handoff/continuity/resource-link checks. Project all-targets Clippy, touched-file
+rustfmt and diff checks pass. The prior wider CLI Clippy toolchain debt remains
+separate and was not rerun or claimed green.
+
+Regenerated-pack candidate `df0b42f2fe000edf331904d7de1a7ce329f7ea95` binds the
+implementation commit above and contains 446 resources. Content root:
+`1fca45bb4038a0f25cc8a9e9c620e19a92f886f153958665ccb8efeb29aafd01`;
+pack: `f6ca963a247708ed793ae7d0133af741b5f8ff1d5941e59a3029579e2403fc08`.
+The tested local CLI SHA-256 is
+`0fef9a01064dca078caad66bf4d15c7568dab5dd30bb490a1c3ca874a2b41f36`.
+No installed user profile or model setting changes. The option extends receipt
+artifacts; older readers cannot consume `stage-summary` receipts. Existing
+no-option output and plan semantics are retained. Summaries remain continuity
+documents, not new Graph authority, accepted evidence or an automatic stage
+advance; no new MCP endpoint or storage subsystem is added.
+
+Next: an isolated configured-Host public research journey that creates successive
+summaries, resumes from actual saved files and rechecks changed sources.
+Installed-Plugin, expert review, authenticated-provider and fulltext-transport
+qualification remain separate gaps. Integration updates CLI-405 progress only;
+seven roadmap checks, generated-index consistency and the frozen-source guard
+pass, with all 249 task states/dependencies and 46 accepted rows unchanged.
+No private-library access, publication or program acceptance is claimed.
