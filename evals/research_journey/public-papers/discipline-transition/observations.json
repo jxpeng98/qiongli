@@ -1,0 +1,117 @@
+{
+  "schema": "qiongli-public-paper-regressions/v1",
+  "scope": "Two selected manuscript spans from an open-book, main-agent exercise after reading source material and refining guidance. Replays frozen self-review annotations; not a blind test, whole-answer score, independent evaluation, live project continuity or measured improvement. Events were not separately captured.",
+  "reviewer": {
+    "kind": "model",
+    "id": "/root",
+    "relationship": "self-review"
+  },
+  "guidance_basis": {
+    "base_commit": "61de2204bda88e29dd8e19836e1268b9ee7223fe",
+    "changed_resource_sha256": {
+      "content/workflow/references/stage-C-design.md": "03603c0f6626fa7dde22109e18f8e95d9de1aa36c73b420fb9ba6ba76a7fe3d7",
+      "content/workflow/references/disciplines/computing-engineering.md": "08334a5c123167d11760a8b8fe13dd00e8f34118b119a6b67904a43ccce81759"
+    }
+  },
+  "files": {
+    "discipline-transition/tasks.md": "a1e5bfe363b85f25250d603e4aa81b1527ca25e41f558a23011046837506a9b1",
+    "discipline-transition/computing-source.md": "904356512006f0ffc76fd148d98986eab2924623089b0d048241709006872322",
+    "discipline-transition/answers.md": "e78915208a65133b503a4da5f0de4627cb4a1d5a186bd953bea29383473c31a4",
+    "quantitative-education/source.md": "8cdb89377b9991d0dda5192e10e4e4cd93d55f3181c2e6ac3ae9bcb462af3917",
+    "quantitative-education/continuation-source.md": "d226a53c7eb2741900d0f03f8584eb82639d601362843bf4af323e79a4b15244",
+    "quantitative-education/tables-source.md": "3eca31d16e9ddf2803697236fe9f904c3a86f4743756f8b0bb930c92d4b7ac34",
+    "quantitative-education/observations/q3-answer.md": "3d1230c8ba5481509bbe4a86f576c6c0ac2d66992a162cc9510b57e6b55aa5e6"
+  },
+  "cases": [
+    {
+      "id": "education_transition",
+      "answer_file": "discipline-transition/answers.md",
+      "answer_sha256": "e78915208a65133b503a4da5f0de4627cb4a1d5a186bd953bea29383473c31a4",
+      "start": 1441,
+      "end": 1683,
+      "expected": "pass",
+      "source": {
+        "source_id": "Ritchie2013Retrieval",
+        "source_location": "Ritchie2013Retrieval:covariate-sensitivity",
+        "artifact_path": "quantitative-education/continuation-source.md",
+        "evidence_limit": "Selected public-source packet only; computing notes are coordinator paraphrases with unknown raw bytes. No experiment or canonical project access."
+      },
+      "review": {
+        "answer_sha256": "82f1141b89f008c56f4ab4e2272f175b08208ee7e6a807eaa955abc83aab213c",
+        "events_sha256": null,
+        "segments": [
+          {
+            "start": 0,
+            "end": 242,
+            "quote": "the reported retrieval\nfinding depends on adjustment for facts recorded during learning; the unadjusted\nanalysis does not establish the same finding. This is neither proof of no effect\nnor a verified total effect for the proposed replication.",
+            "role": "manuscript",
+            "links": [
+              {
+                "claim_id": "Q-C2",
+                "source_location": "Ritchie2013Retrieval:covariate-sensitivity",
+                "status": "supported",
+                "claim_type": "limitation"
+              }
+            ],
+            "verdict": "pass",
+            "reason": "The selected paragraph preserves adjustment sensitivity without inferring no effect or the replication total effect; source timing and further design judgments remain in the unscored surrounding exercise."
+          }
+        ],
+        "checks": {
+          "education_transition": {
+            "status": "pass",
+            "segments": [
+              0
+            ],
+            "reason": "The selected paragraph preserves adjustment sensitivity without inferring no effect or the replication total effect; source timing and further design judgments remain in the unscored surrounding exercise."
+          }
+        }
+      }
+    },
+    {
+      "id": "computing_transition",
+      "answer_file": "discipline-transition/answers.md",
+      "answer_sha256": "e78915208a65133b503a4da5f0de4627cb4a1d5a186bd953bea29383473c31a4",
+      "start": 2862,
+      "end": 2958,
+      "expected": "pass",
+      "source": {
+        "source_id": "Vaswani2017Attention",
+        "source_location": "Vaswani2017Attention:training-cost",
+        "artifact_path": "discipline-transition/computing-source.md",
+        "evidence_limit": "Selected public-source packet only; computing notes are coordinator paraphrases with unknown raw bytes. No experiment or canonical project access."
+      },
+      "review": {
+        "answer_sha256": "b26909d7c22eb4e8d295000498c9061f7c47ceeef7474c3846ac34701cfae6bc",
+        "events_sha256": null,
+        "segments": [
+          {
+            "start": 0,
+            "end": 96,
+            "quote": "the training\ncomparison uses estimated FLOPs and does not establish faster production\ninference.",
+            "role": "manuscript",
+            "links": [
+              {
+                "claim_id": "M-C2",
+                "source_location": "Vaswani2017Attention:training-cost",
+                "status": "supported",
+                "claim_type": "limitation"
+              }
+            ],
+            "verdict": "pass",
+            "reason": "The selected sentence preserves the reported-versus-estimated quantity and refuses to infer production latency; other numerical/source-version judgments remain in the unscored surrounding exercise."
+          }
+        ],
+        "checks": {
+          "computing_transition": {
+            "status": "pass",
+            "segments": [
+              0
+            ],
+            "reason": "The selected sentence preserves the reported-versus-estimated quantity and refuses to infer production latency; other numerical/source-version judgments remain in the unscored surrounding exercise."
+          }
+        }
+      }
+    }
+  ]
+}

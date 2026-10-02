@@ -10,6 +10,16 @@ remain failures. Byte, span, anchor, attribution and failed-to-pass mutations ar
 rejected. This checks recorded judgments and bindings; it does not grade new
 answers, certify whole answers or establish installed-Host acceptance.
 
+The same command also checks `public-papers/discipline-transition/`: two bounded
+education/computing exercises with preserved tasks, source notes, predecessor
+bindings and actual main-agent answers. It replays two selected manuscript spans,
+annotated by the same agent after source inspection and guidance refinement.
+These are self-review observations, not blind forward tests or a measured gain.
+The computing packet is a short Host-read paraphrase with unknown raw byte hashes;
+its local digest must not be presented as the paper's digest. Four added negative
+mutations reject changed notes/answers, forged anchors and independent-review
+misattribution. The original five judgments remain three passes and two failures.
+
 These two Evaluation Truth V1 cases share one explicitly synthetic abstract and
 source registry. They check declared evidence links and requested claim coverage,
 not academic truth or real Host execution. No private research or model call is

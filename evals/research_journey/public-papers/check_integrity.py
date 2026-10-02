@@ -103,28 +103,18 @@ def self_test():
             raise AssertionError(f"Negative mutation passed: {mutation}")
 
 
-def check_observations(root):
+def check_frozen_spans(root, record, expected):
     """Replay frozen coordinator judgments; do not judge new research prose."""
     sys.path.insert(0, str(ROOT.parents[2]))
     from evals.research_journey.observe import project
 
-    record = json.loads((root / "regressions.json").read_text())
     assert record["schema"] == "qiongli-public-paper-regressions/v1"
     assert record["reviewer"]["kind"] == "model"
-    expected = {"units": "fail", "denominators": "pass", "abstract_body": "pass",
-                "source_revision": "pass", "review_attribution": "fail"}
     assert [c["id"] for c in record["cases"]] == list(expected)
     for name, sha in record["files"].items():
         path = root / name
         assert path.resolve().is_relative_to(root.resolve()) and not path.is_symlink()
         assert digest(path.read_bytes()) == sha, name
-    addendum = json.loads((root / "quantitative-education/tables-manifest.json").read_text())
-    assert addendum["base_manifest_sha256"] == digest((root / "manifest.json").read_bytes())
-    for item in addendum["files"]:
-        assert digest((root / item["file"]).read_bytes()) == item["sha256"]
-    receipt = json.loads((root / "quantitative-education/observations/claude-execution.json").read_text())
-    assert receipt["actor_kind"] == "model"
-    assert digest((root / receipt["review_file"]).read_bytes()) == receipt["review_sha256"]
     for case in record["cases"]:
         assert case["answer_file"] in record["files"]
         assert case["source"]["artifact_path"] in record["files"]
@@ -140,12 +130,31 @@ def check_observations(root):
         assert judgment["status"] == case["expected"] == expected[case["id"]]
 
 
+def check_observations(root):
+    record = json.loads((root / "regressions.json").read_text())
+    check_frozen_spans(root, record, {
+        "units": "fail", "denominators": "pass", "abstract_body": "pass",
+        "source_revision": "pass", "review_attribution": "fail"})
+    addendum = json.loads((root / "quantitative-education/tables-manifest.json").read_text())
+    assert addendum["base_manifest_sha256"] == digest((root / "manifest.json").read_bytes())
+    for item in addendum["files"]:
+        assert digest((root / item["file"]).read_bytes()) == item["sha256"]
+    receipt = json.loads((root / "quantitative-education/observations/claude-execution.json").read_text())
+    assert receipt["actor_kind"] == "model"
+    assert digest((root / receipt["review_file"]).read_bytes()) == receipt["review_sha256"]
+    transition = json.loads((root / "discipline-transition/observations.json").read_text())
+    assert transition["reviewer"]["relationship"] == "self-review"
+    check_frozen_spans(root, transition, {"education_transition": "pass", "computing_transition": "pass"})
+
+
 def observation_self_test():
-    for mutation in ("answer", "denominator", "revision", "anchor", "attribution", "promoted"):
+    for mutation in ("answer", "denominator", "revision", "anchor", "attribution", "promoted",
+                     "transition-source", "transition-answer", "transition-anchor", "transition-attribution"):
         with tempfile.TemporaryDirectory(prefix="qiongli-observation-integrity-") as tmp:
             root = Path(tmp) / "corpus"
             shutil.copytree(ROOT, root)
-            path = root / "regressions.json"
+            path = root / ("discipline-transition/observations.json"
+                           if mutation.startswith("transition-") else "regressions.json")
             record = json.loads(path.read_text())
             if mutation in ("answer", "denominator", "revision"):
                 name = {"answer": record["cases"][0]["answer_file"],
@@ -153,10 +162,17 @@ def observation_self_test():
                         "revision": "quantitative-education/continuation-source.md"}[mutation]
                 with (root / name).open("a") as file:
                     file.write("\nchanged bytes\n")
-            elif mutation == "anchor":
+            elif mutation in ("transition-source", "transition-answer"):
+                name = ("discipline-transition/computing-source.md" if mutation == "transition-source"
+                        else "discipline-transition/answers.md")
+                with (root / name).open("a") as file:
+                    file.write("\nchanged bytes\n")
+            elif mutation in ("anchor", "transition-anchor"):
                 record["cases"][0]["review"]["segments"][0]["links"][0]["source_location"] = "forged:anchor"
             elif mutation == "attribution":
                 record["reviewer"]["kind"] = "human"
+            elif mutation == "transition-attribution":
+                record["reviewer"]["relationship"] = "independent"
             else:
                 case = record["cases"][0]
                 case["review"]["segments"][0]["verdict"] = "pass"
@@ -173,7 +189,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--raw-dir", type=Path, help="Optional retrieved quant.xml, qual.xml, review.xml directory")
     parser.add_argument("--self-test", action="store_true", help="Also reject three isolated negative mutations")
-    parser.add_argument("--observations", action="store_true", help="Replay five frozen selected-span judgments, not new answers")
+    parser.add_argument("--observations", action="store_true", help="Replay frozen selected-span judgments, not new answers")
     args = parser.parse_args()
     check(ROOT, args.raw_dir)
     if args.self_test:
@@ -183,4 +199,5 @@ if __name__ == "__main__":
         if args.self_test:
             observation_self_test()
         print("Five frozen span judgments reproduced (3 supported, 2 failed); no whole-answer or Host acceptance.")
-    print("Corpus integrity passed; no research answer or Host has been evaluated.")
+        print("Two additional discipline spans reproduced; self-review only, not independent evaluation.")
+    print("Corpus integrity passed; no new answer was automatically graded or Host certified.")

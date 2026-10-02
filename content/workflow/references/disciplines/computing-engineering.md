@@ -32,6 +32,13 @@ generation and survival outcomes need different quantities. Explain whether erro
 bars represent runs, test items, datasets or another sampling unit. Correlated
 folds need a justified comparison, not an automatic paired t-test.
 
+Keep each benchmark number attached to its task/split, metric unit, model variant
+and evaluation procedure. Development-set ablations are not held-out test results;
+estimated training FLOPs are not measured inference latency, energy or monetary
+cost. Check conflicting table/body values in the named source version before
+choosing a number. Carry unresolved discrepancies into the draft instead of
+silently averaging them, choosing the favorable value or declaring a correction.
+
 ## Common content to organize
 
 In `code/code_specification.md` and `analysis_plan.md`, connect each claim to inputs,

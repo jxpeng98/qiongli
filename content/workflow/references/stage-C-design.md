@@ -52,6 +52,16 @@ the strands' relationship and integration point, with a plan for divergent resul
 Document instrument/version provenance, translations and intended-use validity;
 a published scale or high reliability coefficient alone does not establish fit.
 
+For effect estimation, classify each proposed adjustment variable by measurement
+time and plausible causal role. An author's "baseline" label does not establish
+pre-exposure measurement. If exposure may affect the variable, explain how
+adjustment changes the total-effect target. A conditional association is not
+automatically a direct causal effect; that claim needs additional assumptions.
+Neither automatic adjustment nor automatic deletion is justified.
+Do not choose controls because they restore significance. Carry the adjustment
+rationale and any unresolved timing/identification issue into Stage F, rather
+than promoting an adjusted association to the intended effect.
+
 Set exclusions, missingness handling, primary/secondary outcomes, evaluation
 splits and stopping rules when applicable before using their results. Distinguish
 prespecified, amended and exploratory decisions with their actual timing. Carry
@@ -92,7 +102,8 @@ Plans describe proposed actions. Execution, project writes and external registra
 remain subject to the existing tool availability, scope and preview/approval/CAS
 owners. Do not change an approved model, protocol or source data to make a check pass.
 
-Methodological basis: [sample-size justification](https://online.ucpress.edu/collabra/article/8/1/33267/120491/Sample-Size-Justification)
+Methodological basis: [adjustment and causal targets](https://pmc.ncbi.nlm.nih.gov/articles/PMC2744485/),
+[sample-size justification](https://online.ucpress.edu/collabra/article/8/1/33267/120491/Sample-Size-Justification)
 and [saturation in thematic analysis](https://uwe-repository.worktribe.com/output/4820803/to-saturate-or-not-to-saturate-questioning-data-saturation-as-a-useful-concept-for-thematic-analysis-and-sample-size-rationales).
 
 ---
