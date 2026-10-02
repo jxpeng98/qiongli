@@ -2286,3 +2286,110 @@ domain-expert, authenticated-provider and fulltext-transport qualification remai
 open. Integration updates only CLI-405 progress: all 249 task states/dependencies
 and 46 accepted rows remain unchanged. No private research access, installed
 Plugin/profile update, publication or program acceptance is claimed.
+
+## October 2 — actual Host handoff save, restart and changed-source continuation
+
+The maintainer selects the preceding next increment and requests lightweight
+`gpt-6.1-sol` reasoning for verification. Baseline
+`058a047b5301a12688b7dbb5a4f4cfc3259eca9f` supplies the copied CLI with SHA-256
+`9bde87915e5ce1e6be783e37163c308b1ef5fb261804cceacea7e7255717e3fc` and the
+previously recorded 446-resource pack. No native runtime or content changes are
+needed. The isolated local trial is retained under
+`packages/qiongli-native/target/handoff-host-fncseb5l`; its raw observations are
+development evidence, not durable accepted evidence. Project
+`prj_3a086024bffea4d334bc246eae9a8667` contains only the public quantitative
+education excerpt packet and coordinator-owned continuity files.
+
+The actual Codex session `01a0fcc5-3fe8-7213-8aac-edf613d3a228` runs with observed
+`gpt-6.1-sol / low`, read-only sandbox and approval `never`. Process-local Full MCP
+uses the copied candidate and isolated project state with a read/preview tool
+allowlist. User configuration, apps and Plugins are disabled for these processes;
+this is an actual Host/native-MCP journey, not an installed-Plugin qualification.
+The requested sub-agent `/root/handoff_persistence_check` checks execution
+identity, tool calls and raw outputs. Resumed answers share the author's
+conversation; source appraisal is coordinator review, not independent domain
+review or blind evaluation. Predeclared criteria SHA-256:
+`3bfa57feb42990f6a9d0300b3082acb8fc1239edfb2995bb390c134f6a9e8039`.
+
+The first Host answer preserves Q-C1–Q-C3, tentative DEC-Q1 and
+Ritchie2013Retrieval, with all ten handoff sections and excerpt-only limits.
+Answer SHA-256:
+`b9f70fc1a2eb9a9384c858ebae20ee351d87c7b51cb84a26ec4113bacb93f95b`.
+Its original allocation-conflict capture remains unmerged: native consolidation
+reports `contradiction-requires-resolution`, and an attempted approved fixture
+apply refuses with all project/state bytes unchanged. After checking the actual
+source, the coordinator prepares a separate refinement recording supported
+findings and the still-open allocation limitation; no concealed-randomization
+claim, original-capture resolution or locked-decision transition is adopted.
+The preserved original answer is distinguished from the reviewed continuity
+entry by a historical-context preface and corrected relative Markdown links.
+
+The existing intake/consolidation preview, dual approvals and CAS save the
+reviewed continuity at revision 2. All three artifact digests match preview and
+receipt, including handoff SHA-256
+`5ee474282ab84bee9818667a9b41f069782fdd429d6f969cfd3b961558ef9308`.
+A fresh Codex process resumes the same session, reads live project metadata,
+canonical state/decisions/handoff, receipt and source, and independently computes
+matching file hashes. It correctly distinguishes historical absence statements
+from current saved files; no stage summary exists. Resume answer SHA-256:
+`6f3d2d58db3157f5682572116f379fe3570b01457d93dedeebff904b92e4f226`.
+
+The coordinator then preserves exact R1 bytes as `sources/r1-original.md` and
+expands `sources/current.md` with previously withheld paragraphs from the same
+public article XML. This is expanded reading scope, not a publisher correction.
+Packet SHA-256 changes from
+`8cdb89377b9991d0dda5192e10e4e4cd93d55f3181c2e6ac3ae9bcb462af3917` to
+`8d3e35193922b5da1a33d98845971397f0020abe8b52e44d8c3a68a721e6852e`;
+all 11 other project/state files remain byte-identical and revision stays 2.
+This deliberately exercises the separate source-byte check for unregistered
+attachments rather than attributing arbitrary-source coverage to native CAS.
+
+Another fresh process resumes that session at revision 2 and detects both packet
+hashes. It preserves Q-C1, reopens Q-C2/Q-C3/DEC-Q1, and names affected entries in
+all three continuity files. Adjusted retrieval p=.01 remains alongside unadjusted
+p=.14; adjusted interaction p=.001 is qualified by unadjusted p=.41. The response
+does not infer equivalence from nonsignificance or validate a learning-phase
+covariate as pretreatment ability. Supplementary GLMM agreement stays an author
+report, with Text S1/Table S5 explicitly unread. No hidden expected values or
+answer rubric were provided to this turn; it did receive a clarification
+distinguishing open method limits from formal locked-decision conflicts.
+The unchanged actual preview draft is `refinement`, based on revision 2. Answer
+SHA-256: `bbcf4a17325bc67f7436b47e5fc23434cf7434d37a0b4ce463b608ed372d6fef`.
+All 13 project/state files remain byte-identical during this Host process.
+
+After checking sources, IDs, ten sections and resolving Markdown paths, the
+coordinator retains the exact Host handoff and teaching-prose candidate with a
+review/pre-save attribution preface. Existing native owners save this second
+entry at revision 3. Preview, receipt and disk digests agree; all prior bytes in
+research state, decisions and handoff remain exact prefixes. Final handoff:
+14,484 bytes, SHA-256
+`d10d50afdad57e173ce5f21f26ef66a93fab2e62ffb9ccb8e5d7f82b9da52a35`.
+A fresh native MCP read observes revision 3; no fourth model/Host restart is
+claimed. The stage remains literature, DEC-Q1 remains tentative, and the original
+unmerged conflict is retained. No stage summary, Graph rebuild or accepted
+research stage is produced by saving continuity.
+
+All three successful Host processes are observed as `gpt-6.1-sol / low`; each
+first sandbox-network attempt failed before tool use and is retained separately.
+Normal approved network escalation allowed the subsequent processes to finish;
+no evidence or failed attempt was substituted. This journey adds no provider
+search/fulltext transport, table inspection, data reanalysis or expert review.
+
+One demonstrated tooling defect is repaired in the existing handoff auditor:
+valid H3 sections nested within a captured handoff previously failed its H2-only
+heading check. It now accepts H2–H6 with horizontal whitespace, preserving the
+seven legacy required headings and missing-section failure. This remains a
+structural heading check, not a ten-section scholarly-completeness validator or
+per-entry history audit. Four focused unit tests and both saved-handoff audits
+pass. The requested lightweight sub-agent reviews the two-file fix without
+actionable findings and reuses unchanged test evidence. Seven roadmap checks,
+generated-index consistency, the frozen-source guard and diff checks pass.
+Native/content bytes did not change; prior checks and pack identity are reused.
+
+Next bounded follow-up: versioned stage-summary persistence/history through
+existing write owners, with source-change and restart coverage. Installed-Plugin,
+domain-expert, authenticated-provider and fulltext-transport qualification remain
+separate gaps; previous wider CLI Clippy toolchain debt remains unchanged.
+Integration updates only CLI-405 progress: all 249 task states/dependencies and
+46 accepted rows stay fixed. No user-profile update, private-library access,
+publication or program acceptance is claimed.
