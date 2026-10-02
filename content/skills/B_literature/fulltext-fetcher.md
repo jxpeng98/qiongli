@@ -91,6 +91,13 @@ read. A `tool_error` means this tool has no readable result; retain its specific
 reason. Do not substitute an abstract and label it `full_text`. Continue useful
 bounded work at the actual evidence limit or resolve another authorized source.
 
+A parser timeout, worker failure or resource limit is a reading failure, not a
+paywall or proof that the paper lacks a body. The native reader isolates parsing
+with time and Rust-heap limits; it is not an OS memory/security sandbox. Keep the
+failure reason and try a different authorized representation or available Host
+reader when useful. Do not repeat an unchanged failing input or disable the
+boundary to force a result.
+
 ### Record access through the existing owners
 
 Use the existing preview/approval/CAS path for project writes. Do not overwrite

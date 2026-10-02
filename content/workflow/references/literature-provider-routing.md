@@ -70,16 +70,7 @@ the source. Search snippets and model recollection are not article body evidence
 The MCP plan can suggest `native_fulltext_queries`; only the active Host can
 execute them. Respect denied access across both surfaces.
 
-When `qiongli_literature_read_fulltext` is visible, the native Lite and Full tool
-reads a selected public HTTPS PDF, TEI XML or JATS XML with bounded segment
-pagination and source digests. Prefer available structured body text, then PDF;
-HTML pages and scanned documents may require a separate available Host reader.
-Known OpenAlex content endpoints use the existing configured OpenAlex access;
-do not place credentials in tool URLs or artifacts. A quota/authentication error
-is an access result, not permission to change provider configuration.
-
-Follow `skills/B_literature/fulltext-fetcher.md` for identity checks, digest-bound
-continuation, actual passage reading and the existing retrieval manifest. If the
-tool is absent, disclose that capability gap and use only available authorized
-readers or supplied files. The retained Python Full runtime and planning stub do
-not gain this native read capability merely because a Skill names it.
+For source reading, load `skills/B_literature/fulltext-fetcher.md`. It owns the
+native reader's actual schema, digest-bound continuation, source checks, access
+limits and retrieval manifest. A Skill naming this capability does not add it to
+an older installed Host or the retained Python planning adapter.

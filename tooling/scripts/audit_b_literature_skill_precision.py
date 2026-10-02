@@ -167,9 +167,11 @@ def _specific_skill_checks(skill_id: str, text: str) -> dict[str, bool]:
     if skill_id == "fulltext-fetcher":
         return {
             "provider ownership": _has_all(lower, ["fulltext-retrieval", "retrieval_manifest.csv"]),
-            "resolver boundary": _has_all(lower, ["built-in", "stub", "external resolver", "zotero"]),
+            "resolver boundary": _has_all(lower, ["stub", "external resolver", "zotero"])
+            and ("built-in" in lower or "qiongli_literature_read_fulltext" in lower),
             "controlled retrieval statuses": _has_all(lower, ["retrieved_oa", "retrieved_preprint", "not_retrieved"]),
-            "legal access boundary": "illegal" in lower or "paywall-bypassing" in lower,
+            "legal access boundary": any(term in lower for term in
+                                         ("illegal", "paywall-bypassing", "do not bypass paywalls")),
         }
     if skill_id == "citation-snowballer":
         return {
