@@ -1241,11 +1241,12 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     .unwrap();
 
     let mut draft = json!(capture);
-    for field in ["schema_version", "document_kind", "capture_id"] {
-        draft.as_object_mut().unwrap().remove(field);
-    }
+    draft.as_object_mut().unwrap().remove("capture_id");
     let mut partial_identity = draft.clone();
-    partial_identity["schema_version"] = json!(1);
+    partial_identity
+        .as_object_mut()
+        .unwrap()
+        .remove("document_kind");
     let mut forged_identity = json!(capture);
     forged_identity["capture_id"] = json!(format!("cap_{}", "0".repeat(64)));
     let mut portable_draft = draft.clone();

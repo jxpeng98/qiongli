@@ -178,3 +178,16 @@ class MCPContractFixtureTests(unittest.TestCase):
         name = "qiongli_literature_read_fulltext"
         drift[name] = {**tools[name], "inputSchema": {"type": "object"}}
         self.assertTrue(validate_capability_contract(REPO_ROOT, lite_tool_definitions=drift))
+
+    def test_capture_preview_only_omits_the_computed_id(self) -> None:
+        tools = json.loads((CONTRACT_ROOT / "full-project-tools.json").read_text())["tools"]
+        schemas = {tool["name"]: tool["inputSchema"]["$defs"]["capture"]
+                   for tool in tools if tool["name"] in (
+                       "qiongli_project_capture_preview", "qiongli_project_capture_apply")}
+        preview = schemas["qiongli_project_capture_preview"]
+        apply = schemas["qiongli_project_capture_apply"]
+        self.assertEqual(set(apply["required"]) - set(preview["required"]), {"capture_id"})
+        self.assertTrue(any("document_kind" in error for error in
+                            validate_instance({"schema_version": 1}, preview)))
+        self.assertTrue(any("schema_version" in error for error in
+                            validate_instance({"schema_version": 2}, preview)))

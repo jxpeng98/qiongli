@@ -156,7 +156,7 @@
     },
     {
       "name": "qiongli_project_capture_preview",
-      "description": "Validate and preview a connected research capture without writing. For a new draft omit top-level schema_version, document_kind and capture_id; the existing owner computes them and returns capture plus planDigest. Apply must use that returned capture unchanged. Supplied identities are validated, never repaired.",
+      "description": "Validate and preview a connected research capture without writing. For a new draft omit only capture_id; the existing owner computes it and returns capture plus planDigest. Apply must use that returned capture unchanged. Supplied identities are validated, never repaired.",
       "inputSchema": {
         "type": "object",
         "required": ["capture"],
@@ -275,8 +275,10 @@
           },
           "capture": {
             "type": "object",
-            "description": "New drafts omit all three top-level identity fields. Existing captures supply all three. Binding identity fields remain required.",
+            "description": "New drafts omit capture_id. Envelope schema_version and document_kind, and all binding fields, remain required.",
             "required": [
+              "schema_version",
+              "document_kind",
               "binding",
               "source",
               "delivery",

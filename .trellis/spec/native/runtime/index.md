@@ -48,9 +48,10 @@ The native extension has standalone schemas; frozen Python v2 inventory is uncha
 Its advertised input is a plain object so Host parameter projection retains URL;
 cross-field continuation digest requirements remain enforced by the runtime.
 
-Full MCP capture preview also accepts a connected `ResearchCaptureDraftV1` with
-all three top-level identity fields omitted. The existing project owner validates
-and computes the identity, and preview returns the normalized `capture` alongside
+Full MCP capture preview also accepts a connected capture with `capture_id`
+omitted; its envelope version/kind and binding remain required. The existing
+`ResearchCaptureDraftV1` owner validates and computes the identity, and preview
+returns the normalized `capture` alongside
 the existing plan fields. A supplied or partial identity is never repaired.
 Apply still requires the exact normalized capture, preview digest and explicit
 filesystem approval; project revision checks and pending-history semantics stay

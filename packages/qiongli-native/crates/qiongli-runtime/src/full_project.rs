@@ -7,7 +7,8 @@ use qiongli_project::{
     AcademicGraphDirection, AcademicGraphIndexService, AcademicGraphLayer, AcademicGraphNodeType,
     AcademicGraphPortfolioService, AcademicGraphQueryV1, AcademicGraphRelation,
     AcademicGraphService, ApprovedCaptureIntake, CaptureDelivery, ProjectError, ProjectId,
-    ProjectStateService, ResearchCaptureDraftV1, ResearchCaptureV1,
+    ProjectStateService, RESEARCH_CAPTURE_DOCUMENT_KIND, RESEARCH_CAPTURE_SCHEMA_VERSION,
+    ResearchCaptureDraftV1, ResearchCaptureV1,
 };
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
@@ -436,14 +437,19 @@ fn parse_connected_capture(
     value: &Value,
     allow_draft: bool,
 ) -> Result<ResearchCaptureV1, &'static str> {
-    let capture = if allow_draft
-        && !["schema_version", "document_kind", "capture_id"]
-            .iter()
-            .any(|field| value.get(field).is_some())
-    {
+    let capture = if allow_draft && value.get("capture_id").is_none() {
         // Normalize only a new draft. Never repair a supplied identity or let
         // apply invent one after the user has reviewed a different object.
-        serde_json::from_value::<ResearchCaptureDraftV1>(value.clone())
+        let mut draft = value.clone();
+        let fields = draft
+            .as_object_mut()
+            .ok_or("research-capture-document-invalid")?;
+        if fields.remove("schema_version") != Some(json!(RESEARCH_CAPTURE_SCHEMA_VERSION))
+            || fields.remove("document_kind") != Some(json!(RESEARCH_CAPTURE_DOCUMENT_KIND))
+        {
+            return Err("research-capture-document-invalid");
+        }
+        serde_json::from_value::<ResearchCaptureDraftV1>(draft)
             .map_err(|_| "research-capture-document-invalid")?
             .into_capture()
             .map_err(|_| "research-capture-document-invalid")?
