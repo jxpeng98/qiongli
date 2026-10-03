@@ -930,7 +930,8 @@ impl ProjectFileTransaction {
         self.backups.truncate(index + 1);
         if self.backups[index].previous_bytes.is_none()
             && (crate::stage_summary::valid_summary_path(&self.backups[index].relative_path)
-                || crate::paper_note::valid_note_path(&self.backups[index].relative_path))
+                || crate::paper_note::valid_note_path(&self.backups[index].relative_path)
+                || crate::source_packet::valid_packet_path(&self.backups[index].relative_path))
             && error == ProjectError::PersistenceFailed(io::ErrorKind::AlreadyExists)
         {
             // We never published this create-only target. Preserve even
@@ -1199,7 +1200,7 @@ fn consolidation_transaction_directory(root: &Path) -> PathBuf {
 }
 
 fn validate_project_file_updates(updates: &[ProjectFileUpdate]) -> Result<(), ProjectError> {
-    const MAX_TRANSACTION_FILES: usize = 7;
+    const MAX_TRANSACTION_FILES: usize = 8;
 
     if updates.is_empty() || updates.len() > MAX_TRANSACTION_FILES {
         return Err(ProjectError::InvalidProjectDocument);
@@ -1208,8 +1209,13 @@ fn validate_project_file_updates(updates: &[ProjectFileUpdate]) -> Result<(), Pr
     let mut total = 0usize;
     for update in updates {
         if !valid_transaction_target(&update.relative_path)
-            || (crate::stage_summary::valid_summary_path(&update.relative_path)
+            || ((crate::stage_summary::valid_summary_path(&update.relative_path)
+                || crate::source_packet::valid_packet_path(&update.relative_path))
                 && update.expected_digest.is_some())
+            || (crate::source_packet::valid_packet_path(&update.relative_path)
+                && !update
+                    .relative_path
+                    .ends_with(&format!("/{}.json", sha256(&update.next_bytes))))
             || relative_paths.contains(&update.relative_path.as_str())
             || update.next_bytes.len() > MAX_ARTIFACT_BYTES
             || update.expected_digest.as_deref().is_some_and(|value| {
@@ -1235,6 +1241,7 @@ fn valid_transaction_target(relative_path: &str) -> bool {
         || relative_path == "context/project_manifest.json"
         || crate::stage_summary::valid_summary_path(relative_path)
         || crate::paper_note::valid_note_path(relative_path)
+        || crate::source_packet::valid_packet_path(relative_path)
     {
         return true;
     }
@@ -1277,7 +1284,9 @@ fn write_transaction_target(root: &Path, update: &ProjectFileUpdate) -> Result<(
         .file_name()
         .and_then(|value| value.to_str())
         .ok_or(ProjectError::InvalidProjectDocument)?;
-    if crate::stage_summary::valid_summary_path(&update.relative_path) {
+    if crate::stage_summary::valid_summary_path(&update.relative_path)
+        || crate::source_packet::valid_packet_path(&update.relative_path)
+    {
         if update.expected_digest.is_some() {
             return Err(ProjectError::InvalidProjectDocument);
         }
@@ -1337,7 +1346,22 @@ pub(crate) fn ensure_project_directory_beneath(
     path: &Path,
 ) -> Result<(), ProjectError> {
     validate_project_ancestors(root, path)?;
-    ensure_project_directory(path)
+    let relative = path
+        .strip_prefix(root)
+        .map_err(|_| ProjectError::UnsafeProjectRoot)?;
+    if relative
+        .components()
+        .any(|part| !matches!(part, Component::Normal(_)))
+    {
+        return Err(ProjectError::UnsafeProjectRoot);
+    }
+    let mut current = root.to_path_buf();
+    ensure_project_directory(&current)?;
+    for part in relative.components() {
+        current.push(part);
+        ensure_project_directory(&current)?;
+    }
+    Ok(())
 }
 
 pub(crate) fn ensure_private_directory_beneath(
@@ -1766,9 +1790,14 @@ mod summary_transaction_tests {
     use super::*;
 
     #[test]
-    fn create_collision_rollback_preserves_competing_summary_or_note() {
+    fn create_collision_rollback_preserves_competing_summary_note_or_packet() {
+        let packet = format!("sources/Smith2024/{}.json", sha256(b"same summary"));
         for attempted_summary in [false, true] {
-            for path in ["context/stage_summaries/STG-B-001.md", "notes/Smith2024.md"] {
+            for path in [
+                "context/stage_summaries/STG-B-001.md",
+                "notes/Smith2024.md",
+                &packet,
+            ] {
                 check_collision_rollback(attempted_summary, path);
             }
         }
@@ -1807,6 +1836,7 @@ mod summary_transaction_tests {
             next_digest: sha256(&update.next_bytes),
         });
         let target = root.join(&update.relative_path);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
         fs::write(&target, &update.next_bytes).unwrap();
         let (index, error) = if attempted_summary {
             let error = write_transaction_target(&root, &update).unwrap_err();

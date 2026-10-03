@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_project::{
-    ApprovedCaptureConsolidation, CaptureConsolidationCommitV1, CaptureConsolidationPreviewV1,
-    CaptureId, PaperNoteDraftV1, ProjectError, ProjectId, ProjectStateService, StageSummaryDraftV1,
-    read_stage_handoff_file,
+    ApprovedCaptureConsolidation, CaptureConsolidationCommitV1, CaptureConsolidationDrafts,
+    CaptureConsolidationPreviewV1, CaptureId, PaperNoteDraftV1, ProjectError, ProjectId,
+    ProjectStateService, SourcePacketDraftV1, StageSummaryDraftV1, read_stage_handoff_file,
 };
 use serde::Serialize;
 
@@ -24,6 +24,7 @@ pub(crate) struct Options {
     stage_handoff_file: Option<PathBuf>,
     stage_summary_file: Option<PathBuf>,
     paper_note_file: Option<PathBuf>,
+    source_packet_file: Option<PathBuf>,
 }
 
 impl std::fmt::Debug for Options {
@@ -44,6 +45,13 @@ impl std::fmt::Debug for Options {
             .field(
                 "paper_note_file",
                 &self.paper_note_file.as_ref().map(|_| "<paper-note-draft>"),
+            )
+            .field(
+                "source_packet_file",
+                &self
+                    .source_packet_file
+                    .as_ref()
+                    .map(|_| "<source-packet-draft>"),
             )
             .finish()
     }
@@ -87,14 +95,22 @@ pub(crate) fn execute(
                 .as_deref()
                 .map(PaperNoteDraftV1::read_file)
                 .transpose()?;
+            let packet = options
+                .source_packet_file
+                .as_deref()
+                .map(SourcePacketDraftV1::read_file)
+                .transpose()?;
             service
-                .preview_capture_consolidation_with_paper_note(
+                .preview_capture_consolidation_with_drafts(
                     &options.project_id,
                     &options.capture_id,
                     reviewed_at_unix,
-                    handoff.as_deref(),
-                    summary.as_ref(),
-                    note.as_ref(),
+                    CaptureConsolidationDrafts {
+                        stage_handoff: handoff.as_deref(),
+                        stage_summary: summary.as_ref(),
+                        paper_note: note.as_ref(),
+                        source_packet: packet.as_ref(),
+                    },
                 )
                 .map(|plan| {
                     Output::Preview(PreviewOutput {
@@ -104,6 +120,7 @@ pub(crate) fn execute(
                         stage_handoff_content: plan.stage_handoff_content().map(str::to_owned),
                         stage_summary_content: plan.stage_summary_content().map(str::to_owned),
                         paper_note_content: plan.paper_note_content().map(str::to_owned),
+                        source_packet_content: plan.source_packet_content().map(str::to_owned),
                         research_state_content: plan
                             .summary_research_state_content()
                             .map(str::to_owned),
@@ -129,13 +146,21 @@ pub(crate) fn execute(
                 .as_deref()
                 .map(PaperNoteDraftV1::read_file)
                 .transpose()?;
-            let plan = service.preview_capture_consolidation_with_paper_note(
+            let packet = options
+                .source_packet_file
+                .as_deref()
+                .map(SourcePacketDraftV1::read_file)
+                .transpose()?;
+            let plan = service.preview_capture_consolidation_with_drafts(
                 &options.project_id,
                 &options.capture_id,
                 reviewed_at_unix,
-                handoff.as_deref(),
-                summary.as_ref(),
-                note.as_ref(),
+                CaptureConsolidationDrafts {
+                    stage_handoff: handoff.as_deref(),
+                    stage_summary: summary.as_ref(),
+                    paper_note: note.as_ref(),
+                    source_packet: packet.as_ref(),
+                },
             )?;
             let commit = service.apply_capture_consolidation(
                 &plan,
@@ -171,6 +196,8 @@ pub(crate) struct PreviewOutput {
     research_state_content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     paper_note_content: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_packet_content: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -188,6 +215,7 @@ fn parse_options(apply: bool, args: &[OsString]) -> Result<Command, &'static str
     let mut stage_handoff_file = None;
     let mut stage_summary_file = None;
     let mut paper_note_file = None;
+    let mut source_packet_file = None;
     let mut digest = None;
     let mut filesystem_write = false;
     let mut academic_review = false;
@@ -238,6 +266,9 @@ fn parse_options(apply: bool, args: &[OsString]) -> Result<Command, &'static str
             "--paper-note-file" if paper_note_file.is_none() => {
                 paper_note_file = Some(PathBuf::from(value));
             }
+            "--source-packet-file" if source_packet_file.is_none() => {
+                source_packet_file = Some(PathBuf::from(value));
+            }
             "--reviewed-at-unix" if reviewed_at_unix.is_none() => {
                 reviewed_at_unix = Some(parse_unix_timestamp(value)?);
             }
@@ -250,7 +281,8 @@ fn parse_options(apply: bool, args: &[OsString]) -> Result<Command, &'static str
             | "--expected-plan-digest"
             | "--stage-handoff-file"
             | "--stage-summary-file"
-            | "--paper-note-file" => {
+            | "--paper-note-file"
+            | "--source-packet-file" => {
                 return Err("capture consolidation option is unexpected or duplicate");
             }
             _ => return Err("unknown capture consolidation option"),
@@ -264,6 +296,7 @@ fn parse_options(apply: bool, args: &[OsString]) -> Result<Command, &'static str
         stage_handoff_file,
         stage_summary_file,
         paper_note_file,
+        source_packet_file,
     };
     if !apply {
         return Ok(Command::Preview(options));
@@ -356,6 +389,7 @@ mod tests {
             "--stage-handoff-file",
             "--stage-summary-file",
             "--paper-note-file",
+            "--source-packet-file",
         ] {
             let mut values = args(&[
                 "preview",

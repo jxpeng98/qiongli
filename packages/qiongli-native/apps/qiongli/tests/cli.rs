@@ -3076,27 +3076,37 @@ fn copied_binary_accepts_repository_capture_without_runtime() {
 
 #[test]
 fn copied_binary_consolidates_a_reviewed_capture_without_runtime() {
-    consolidation_journey(false, false, None);
+    consolidation_journey(false, false, None, false);
 }
 
 #[test]
 fn copied_binary_persists_and_resumes_stage_handoff_without_runtime() {
-    consolidation_journey(true, false, None);
+    consolidation_journey(true, false, None, false);
 }
 
 #[test]
 fn copied_binary_persists_and_resumes_stage_summary_without_runtime() {
-    consolidation_journey(false, true, None);
+    consolidation_journey(false, true, None, false);
 }
 
 #[test]
 fn copied_binary_creates_and_appends_reviewed_paper_notes_without_runtime() {
     for existing in [false, true] {
-        consolidation_journey(false, false, Some(existing));
+        consolidation_journey(false, false, Some(existing), false);
     }
 }
 
-fn consolidation_journey(with_handoff: bool, with_summary: bool, paper_note: Option<bool>) {
+#[test]
+fn copied_binary_persists_reviewed_source_packet_bytes_without_runtime() {
+    consolidation_journey(false, false, None, true);
+}
+
+fn consolidation_journey(
+    with_handoff: bool,
+    with_summary: bool,
+    paper_note: Option<bool>,
+    with_packet: bool,
+) {
     use sha2::{Digest, Sha256};
 
     fn snapshot(root: &Path) -> std::collections::BTreeMap<PathBuf, Vec<u8>> {
@@ -3377,6 +3387,27 @@ fn consolidation_journey(with_handoff: bool, with_summary: bool, paper_note: Opt
         fs::write(&note_file, serde_json::to_vec(&note).unwrap()).unwrap();
         continuity_args.extend(["--paper-note-file".into(), note_file.as_os_str().to_owned()]);
     }
+    let packet_file = fixture.root.join("private-source-packet-draft.json");
+    let packet_content =
+        " {\n  \"excerpt\": \"原始正文\", \"identity_status\": \"not_checked\"\n} \n";
+    let packet_hash = format!("{:x}", Sha256::digest(packet_content));
+    let packet_path = project_root.join(format!("sources/Smith2024/{packet_hash}.json"));
+    let old_packet_content = "[\"prior packet\"]\n";
+    let old_packet_path = project_root.join(format!(
+        "sources/Smith2024/{:x}.json",
+        Sha256::digest(old_packet_content)
+    ));
+    let packet =
+        serde_json::json!({"schemaVersion": 1, "citekey": "Smith2024", "content": packet_content});
+    if with_packet {
+        fs::create_dir_all(old_packet_path.parent().unwrap()).unwrap();
+        fs::write(&old_packet_path, old_packet_content).unwrap();
+        fs::write(&packet_file, serde_json::to_vec(&packet).unwrap()).unwrap();
+        continuity_args.extend([
+            "--source-packet-file".into(),
+            packet_file.as_os_str().to_owned(),
+        ]);
+    }
     let consolidation_preview = run_configured_os(
         &copied,
         &fixture,
@@ -3479,6 +3510,24 @@ fn consolidation_journey(with_handoff: bool, with_summary: bool, paper_note: Opt
         );
     } else {
         assert!(consolidation_preview_json.get("paperNoteContent").is_none());
+    }
+    if with_packet {
+        assert_eq!(
+            consolidation_preview_json["sourcePacketContent"],
+            packet_content
+        );
+        assert!(!output_contains_path(&consolidation_preview, &packet_file));
+        assert!(!packet_path.exists());
+        assert_eq!(
+            fs::read(&old_packet_path).unwrap(),
+            old_packet_content.as_bytes()
+        );
+    } else {
+        assert!(
+            consolidation_preview_json
+                .get("sourcePacketContent")
+                .is_none()
+        );
     }
     let reviewed_at_unix = consolidation_preview_json["preview"]["reviewedAtUnix"]
         .as_u64()
@@ -3689,6 +3738,19 @@ fn consolidation_journey(with_handoff: bool, with_summary: bool, paper_note: Opt
             }
         }
     }
+    if with_packet {
+        let mut changed = packet.clone();
+        changed["content"] = "[\"unreviewed replacement\"]".into();
+        fs::write(&packet_file, serde_json::to_vec(&changed).unwrap()).unwrap();
+        let rejected = run_configured_os(&copied, &fixture, &approved_args, true);
+        assert_eq!(rejected.status.code(), Some(1));
+        assert_eq!(rejected.stderr, b"error: project-plan-mismatch\n");
+        assert_eq!(
+            before_consolidation,
+            (snapshot(&project_root), snapshot(&fixture.config_root))
+        );
+        fs::write(&packet_file, serde_json::to_vec(&packet).unwrap()).unwrap();
+    }
     let consolidation_apply = run_configured_os(&copied, &fixture, &approved_args, true);
     assert!(
         consolidation_apply.status.success(),
@@ -3706,6 +3768,8 @@ fn consolidation_journey(with_handoff: bool, with_summary: bool, paper_note: Opt
         consolidation_apply_json["commit"]["artifactsUpdated"],
         if with_summary {
             serde_json::json!(["research-state", "stage-summary", "stage-handoff"])
+        } else if with_packet {
+            serde_json::json!(["research-state", "source-packet"])
         } else if paper_note.is_some() {
             serde_json::json!(["research-state", "paper-note"])
         } else if with_handoff {
@@ -3787,6 +3851,44 @@ fn consolidation_journey(with_handoff: bool, with_summary: bool, paper_note: Opt
         );
         assert!(reopened.status.success(), "{}", public_output(&reopened));
         assert_eq!(fs::read_to_string(&note_path).unwrap(), saved);
+    }
+    if with_packet {
+        assert_eq!(fs::read(&packet_path).unwrap(), packet_content.as_bytes());
+        assert_eq!(
+            fs::read(&old_packet_path).unwrap(),
+            old_packet_content.as_bytes()
+        );
+        let receipt: Value =
+            serde_json::from_slice(&fs::read(project_root.join(receipt_entry)).unwrap()).unwrap();
+        assert!(
+            receipt["artifacts"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|artifact| {
+                    artifact["artifact"] == "source-packet"
+                        && artifact["relativePath"]
+                            == format!("sources/Smith2024/{packet_hash}.json")
+                        && artifact["digest"] == packet_hash
+                })
+        );
+        let reopened = run_configured_os(
+            &copied,
+            &fixture,
+            &[
+                "project".into(),
+                "show".into(),
+                "--project-id".into(),
+                project_id.clone().into(),
+            ],
+            true,
+        );
+        assert!(reopened.status.success(), "{}", public_output(&reopened));
+        assert_eq!(fs::read(&packet_path).unwrap(), packet_content.as_bytes());
+        assert_eq!(
+            fs::read(&old_packet_path).unwrap(),
+            old_packet_content.as_bytes()
+        );
     }
     if with_handoff || with_summary {
         assert_eq!(
