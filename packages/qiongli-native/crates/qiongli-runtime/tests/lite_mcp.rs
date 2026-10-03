@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
 use qiongli_runtime::protocol::{Framing, read_message};
-use qiongli_runtime::providers::ProviderAccess;
+use qiongli_runtime::providers::{ProviderAccess, ProviderAvailability, ProviderField, ProviderId};
 use qiongli_runtime::{LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
 use serde_json::{Value, json};
 
@@ -39,6 +39,35 @@ fn call(server: &LiteMcpServer, id: u64, name: &str, arguments: Value) -> Value 
             json!({"name": name, "arguments": arguments}),
         ))
         .unwrap()
+}
+
+#[test]
+fn fulltext_validation_is_available_without_provider_configuration_and_redacts_errors() {
+    let server = LiteMcpServer::config_unavailable(
+        "qiongli-test",
+        "test",
+        LiteToolRegistry::from_json(CONTRACT).unwrap(),
+    );
+    let missing = call(&server, 1, "qiongli_literature_read_fulltext", json!({}));
+    assert_eq!(missing["error"]["code"], -32602);
+    let blocked = call(
+        &server,
+        2,
+        "qiongli_literature_read_fulltext",
+        json!({"url":format!("https://127.0.0.1/{SECRET_CANARY}")}),
+    );
+    assert_eq!(
+        blocked["result"]["structuredContent"]["reason_code"],
+        "fulltext-url-blocked"
+    );
+    assert!(!blocked.to_string().contains(SECRET_CANARY));
+    let continuation = call(
+        &server,
+        3,
+        "qiongli_literature_read_fulltext",
+        json!({"url":"https://example.org/paper.pdf", "offset":1}),
+    );
+    assert_eq!(continuation["error"]["code"], -32602);
 }
 
 #[test]
@@ -131,11 +160,15 @@ fn deferred_provider_credential_load_is_bounded_and_cached() {
     let loader_loads = Arc::clone(&loads);
     let loader_finished = Arc::clone(&finished);
     let loader_release = Arc::clone(&release_receiver);
+    let mut preview = ProviderAccess::builder();
+    preview
+        .set_availability(ProviderId::OpenAlex, ProviderAvailability::Ready)
+        .set_field_configured(ProviderId::OpenAlex, ProviderField::ApiKey);
     let server = LiteMcpServer::production_deferred_with_timeout(
         "qiongli-test",
         "2.0.0-test",
         LiteToolRegistry::from_json(CONTRACT).unwrap(),
-        ProviderAccess::default(),
+        preview.build(),
         Arc::new(move || {
             loader_loads.fetch_add(1, Ordering::SeqCst);
             loader_release.lock().unwrap().recv().unwrap();
@@ -152,6 +185,17 @@ fn deferred_provider_credential_load_is_bounded_and_cached() {
         json!({"query": "governance"}),
     );
     let finished_before_release = finished.load(Ordering::SeqCst);
+    let no_credentials_needed = call(
+        &server,
+        9,
+        "qiongli_literature_search",
+        json!({"query": "governance", "providers": ["arxiv"]}),
+    );
+    assert_ne!(no_credentials_needed["result"]["isError"], true);
+    assert_eq!(
+        no_credentials_needed["result"]["structuredContent"]["diagnostics"]["status"],
+        "not_run"
+    );
     release_sender.send(()).unwrap();
     assert!(!finished_before_release);
     assert_eq!(timed_out["result"]["isError"], true);
@@ -180,6 +224,88 @@ fn deferred_provider_credential_load_is_bounded_and_cached() {
     assert!(finished.load(Ordering::SeqCst));
     assert_eq!(cached["result"]["structuredContent"]["status"], "warning");
     assert_eq!(loads.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn mixed_search_keeps_public_results_and_names_only_selected_unavailable_channels() {
+    use qiongli_runtime::providers::{ProviderEndpoints, ProviderRuntime};
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let endpoint = format!("http://{}/", listener.local_addr().unwrap());
+    let worker = thread::spawn(move || {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut stream = loop {
+            if let Ok((stream, _)) = listener.accept() {
+                break stream;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "public provider was not contacted"
+            );
+            thread::sleep(Duration::from_millis(10));
+        };
+        stream
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
+        let mut request = [0; 4096];
+        let read = stream.read(&mut request).unwrap();
+        assert!(String::from_utf8_lossy(&request[..read]).starts_with("GET /api/query?"));
+        let body = "<feed><entry><id>https://arxiv.org/abs/1706.03762v1</id><title>Attention Is All You Need</title><author><name>Ashish Vaswani</name></author><published>2017-06-12T17:57:34Z</published></entry></feed>";
+        write!(
+            stream,
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        )
+        .unwrap();
+    });
+    let mut access = ProviderAccess::builder();
+    access
+        .set_availability(ProviderId::Arxiv, ProviderAvailability::Ready)
+        .set_availability(
+            ProviderId::OpenAlex,
+            ProviderAvailability::SecretStoreUnavailable,
+        )
+        .set_availability(
+            ProviderId::SemanticScholar,
+            ProviderAvailability::SecretStoreUnavailable,
+        );
+    let endpoints =
+        ProviderEndpoints::from_urls(&endpoint, &endpoint, &endpoint, &endpoint, &endpoint)
+            .unwrap();
+    let server = LiteMcpServer::with_provider_runtime(
+        "test",
+        "test",
+        LiteToolRegistry::from_json(CONTRACT).unwrap(),
+        ProviderRuntime::with_endpoints(endpoints, access.build()).unwrap(),
+    );
+    let response = call(
+        &server,
+        1,
+        "qiongli_literature_search",
+        json!({"query":"Attention Is All You Need", "search_mode":"title", "providers":["openalex","arxiv"], "limit":3}),
+    );
+    worker.join().unwrap();
+    let output = &response["result"]["structuredContent"];
+    assert_eq!(output["status"], "warning");
+    assert_eq!(output["results"][0]["title"], "Attention Is All You Need");
+    assert_eq!(output["diagnostics"]["status"], "partial");
+    assert_eq!(
+        output["diagnostics"]["status_reason"],
+        "provider_credentials_unavailable"
+    );
+    assert!(output["diagnostics"]["providers"].get("openalex").is_none());
+    let warnings = output["diagnostics"]["warnings"].as_array().unwrap();
+    assert_eq!(warnings.len(), 1);
+    assert!(
+        warnings[0]
+            .as_str()
+            .unwrap()
+            .starts_with("openalex: not searched")
+    );
 }
 
 #[test]
@@ -337,7 +463,7 @@ fn config_failure_keeps_handshake_available_and_dependent_calls_redacted() {
             .as_array()
             .unwrap()
             .len(),
-        14
+        LITE_PUBLIC_TOOL_NAMES.len()
     );
     for (id, name, arguments) in [
         (3, "qiongli_config_status", json!({})),

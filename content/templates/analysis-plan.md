@@ -2,6 +2,7 @@
 
 <!--
 Usage: Pre-specify quantitative and/or qualitative analysis choices.
+Use the decisions in references/stage-C-design.md; select applicable sections.
 Save to: RESEARCH/[topic]/analysis_plan.md
 -->
 
@@ -67,11 +68,15 @@ For each primary outcome or qualitative target:
 - Memoing and reflexivity plan:
 - Within-case and cross-case comparison logic:
 - Negative / disconfirming case handling:
-- Saturation or theoretical sufficiency rule:
+- Material adequacy rationale appropriate to the analytic tradition (saturation only where applicable):
 - Inter-coder reliability (if used):
 - Trustworthiness: triangulation, member checking, audit trail, reflexivity
 
 ## 7) Data Quality / Evidence Quality Checks
+
+For each applicable check, name its input/source, the evidence required to proceed,
+and what a failure changes in the method or claim. Distinguish planned checks from
+executed results; link unresolved prerequisites to the existing decision log/handoff.
 - Valid range checks:
 - Duplicate detection:
 - Attention checks (surveys):

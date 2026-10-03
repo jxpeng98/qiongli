@@ -25,7 +25,8 @@ class NativeReleaseAssetsTests(unittest.TestCase):
         version, commit = '2.1.0', 'a' * 40
         receipts = [{'version': version, 'source_commit': commit, 'target': target,
                      'checks': {'cli_mcp_tests': 'passed', 'npm_wheel_local_install': 'passed',
-                                'archive_smoke': {'content_pack_sha256': 'b' * 64}}}
+                                'archive_smoke': {'content_pack_sha256': 'b' * 64,
+                                                  'mcp_tools': {'lite': 14, 'full': 32}}}}
                     for target in TARGETS]
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -35,6 +36,29 @@ class NativeReleaseAssetsTests(unittest.TestCase):
             }))
             with self.assertRaisesRegex(ValueError, 'target-native DeepSeek'):
                 verify(root, version, commit)
+            for extension in (0, 1):
+                for receipt in receipts:
+                    counts = {'lite': 14 + extension, 'full': 32 + extension}
+                    receipt['checks']['archive_smoke']['mcp_tools'] = counts
+                    receipt['checks']['registry_install'] = {'npm': {'mcp_tools': counts,
+                        'deepseek_plugin': {'skills': 22, 'mcp_tools': counts['full'],
+                                            'content_pack_sha256': 'b' * 64}}}
+                def save():
+                    (root / 'release-manifest.json').write_text(json.dumps({
+                        'schema_version': 2, 'version': version, 'source_commit': commit, 'targets': list(TARGETS),
+                        'target_evidence': receipts,
+                    }))
+                save()
+                # Stop at asset verification: this isolates the receipt gate,
+                # without claiming these minimal fixtures are release packages.
+                with patch('tooling.scripts.native_release_assets.checked_assets',
+                           side_effect=RuntimeError('asset verification reached')):
+                    with self.assertRaisesRegex(RuntimeError, 'asset verification reached'):
+                        verify(root, version, commit)
+                    receipts[0]['checks']['registry_install']['npm']['deepseek_plugin']['mcp_tools'] = 33 - extension
+                    save()
+                    with self.assertRaisesRegex(ValueError, 'target-native DeepSeek'):
+                        verify(root, version, commit)
 
     def test_assembly_requires_one_source_and_refuses_modified_assets(self):
         version, commit = '2.0.0-alpha.7', 'a' * 40
@@ -57,7 +81,8 @@ class NativeReleaseAssetsTests(unittest.TestCase):
                 whl = wheel(folder, '2.0.0a7', tag, data, 'fixture')
                 receipt = {'version': version, 'source_commit': commit, 'target': target,
                            'checks': {'cli_mcp_tests': 'passed', 'cli_clippy': 'passed',
-                                      'npm_wheel_local_install': 'passed', 'archive_smoke': {'version': version}},
+                                      'npm_wheel_local_install': 'passed', 'archive_smoke': {
+                                          'version': version, 'mcp_tools': {'lite': 14, 'full': 32}}},
                            'artifacts': [{'file': p.name, 'sha256': hashlib.sha256(p.read_bytes()).hexdigest(),
                                           'bytes': p.stat().st_size} for p in (archive, whl)]}
                 (folder / 'release-manifest.json').write_text(json.dumps(receipt))

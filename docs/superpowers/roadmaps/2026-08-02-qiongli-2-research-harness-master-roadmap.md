@@ -52,50 +52,42 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — September 30, 2026
+## Current execution horizon — October 3, 2026
 
-Use `v2.0.0` at `4f2107f7fda9d8f6dd8874b7dcffb36f5d7751ba` as the
-released product reference. The [current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md)
-now selects the maintainer-authorized stable 2.1.0 release, including the DSH
-bundle in the existing npm package and post-2.0.0 changes. Actual isolated DSH
-0.2.0-rc.2 installations from an npm registry fixture and local npm archive expose
-all 22 entries and 32 Full MCP tools on macOS ARM64. The release command delegates
-three-platform qualification and channel publication to existing automation;
-local tracking stops after accepted submission as requested. Submission does
-not establish completed publication or program acceptance. The current plan also records
-post-release local multi-Host installation and install-time Skill language selection;
-the maintainer has now authorized stable 2.1.1 publication for these changes.
-The current plan owns its preparation and existing tag-bound automation;
-accepted dispatch still does not establish completed publication. The same plan
-records the maintainer's 2.0.1 v1 transition and planned 2.1 cutoff, completed
-delegated implementation, coordinator review, historical macOS qualification
-and both CI policy increments: hosted three-platform verification is restored
-under ADR 0231. The selected literature discovery, bibliography delivery and Zotero linkage
-increment is implemented at `15a8b901` with local checks and scoped independent
-review. The current plan records public-query/BibTeX observations and remaining
-installed-Host, maintainer-query and approved real-library qualification.
-Host delegation and the first configured Codex external transport are now
-implemented for 2.1 development through the existing candidate/checkpoint owner.
-The Host executes the prepared command and supervises its process; Qiongli binds
-and validates the returned result. Actual synthetic runs cover successful
-collection, cancellation, startup and in-turn timeouts, changed-source rejection,
-an explicit fresh run and a registered synthetic Full MCP submission.
-The September 24 increment adds an opt-in DeepSeek Cordis Plugin and configured
-Claude Code, DeepSeek and Antigravity proposal transports through the same owners.
-Temporary DSH Plugin activation and actual synthetic Claude/Antigravity collection
-have observations in the current plan. Published DSH 0.1.5-rc.3 lacks the required
-machine-readable headless protocol; external DeepSeek execution remains unqualified.
-The current plan owns checks and remaining installed-Host/two-Host qualification;
-this does not broaden the 2.0.1 patch or promote collaboration acceptance.
-The [prior bounded record](../plans/2026-09-06-cli-first-closeout-and-extraction.md)
-retains research observations, tooling fixes, the deferred identity migration
-and the earlier macOS-only patch qualification. Remaining baseline failures and
-target-native release qualification retain separate scopes.
-The program ledger owns task
-states; a successful channel publication does not accept its broader Host,
-migration or managed-product task. Dated maturity assessments and execution
-windows below retain their historical candidate scope; this horizon and the
-latest plan section select current work.
+The 2.1.1 development baseline has the discipline/lifecycle guidance, explicit
+C/E/F decision contracts, five-provider discovery, public fulltext reader and
+on-demand source-bound review increments recorded in the
+[current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md).
+The **October 3 public Host source-packet journey** exercises the existing
+reviewed raw-JSON persistence and later note append at successive revisions.
+Native fulltext refresh is blocked before a request by DNS safety; the coordinator
+separately obtains public body text through the available Host reader, retaining
+both provenance records and the missing new PDF digest. Actual lightweight Codex
+author/recovery processes verify saved bytes, source bindings and both receipts;
+the original packet, note prefix and claim IDs remain intact. Exact identities,
+failed attempts, independent review scope and limits belong in the current plan
+and CLI-405's ledger record. The next bounded increment is reviewed persistence
+of `retrieval_manifest.csv` through existing capture/preview/approval/CAS owners,
+reusing Stage B's per-attempt schema and preserving prior rows. Distinguish failed
+native attempts from Host retrieval, bind available saved packets, and keep
+unknown dates, versions, licenses and PDF hashes explicit. Do not infer missing
+metadata from a successful save. Complete reading, Graph/expert acceptance,
+signed publisher redirects and installed/authenticated qualification remain
+separately scoped.
+
+Use existing canonical content, source/review bindings, native provider/runtime,
+project preview/approval/CAS and evaluation owners. One coordinator integrates
+bounded independent work; no permanent Agent registry or fixed agent count is
+selected. Preserve the configured models. A source-bound answer, successful
+transport or local test is not installed-Plugin or program acceptance.
+
+Earlier release, migration, DSH installation and external-Host observations remain
+historical evidence in the plan under their exact candidate scope; they are not
+new release work or current execution instructions. This increment authorizes
+local development and isolated public research observations. It does not authorize
+private-library access, updates to the user's installed Plugin profile, push,
+publication or remote rule changes. The program ledger remains authoritative for
+task states and accepted evidence; the dated maturity windows below are context.
 
 [ADR 0218](../../architecture/decisions/0218-cli-first-local-host-collaboration.md)
 and [ADR 0227](../../architecture/decisions/0227-native-main-cutover-and-stable-release-routing.md)

@@ -68,6 +68,24 @@ class StageHandoffContractTests(unittest.TestCase):
 
         self.assertIn("Missing section: Decision Summary", "\n".join(result.errors))
 
+    def test_nested_handoff_sections_pass(self) -> None:
+        content = """# Stage Handoff
+## Reviewed handoff
+### Completed Artifacts
+### Decision Summary
+### Unresolved Questions
+### Evidence Dependencies
+### Assumptions Passed Forward
+### Risks For Next Stage
+### Recommended Next Tasks
+"""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            handoff = Path(tmp_dir) / "stage_handoff.md"
+            for level in range(3, 7):
+                with self.subTest(level=level):
+                    handoff.write_text(content.replace("### ", "#" * level + " "), encoding="utf-8")
+                    self.assertEqual([], audit_stage_handoff(handoff).errors)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,6 +2,7 @@ mod contract;
 mod error;
 pub mod evidence;
 mod full_project;
+pub mod fulltext;
 pub mod mcp;
 pub mod orchestration;
 pub mod protocol;

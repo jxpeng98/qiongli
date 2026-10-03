@@ -69,13 +69,14 @@ pub fn normalize_identifier(value: &str) -> String {
     normalized
 }
 
-const AGENT_INSTRUCTIONS: [&str; 6] = [
+const AGENT_INSTRUCTIONS: [&str; 7] = [
     "MCP servers must not call Codex or Claude native search directly.",
     "The active agent executes native_search_queries only when the platform exposes native search.",
     "Do not treat native-search results as provider-reproducible records.",
     "Write provider, native, and user-corpus records with distinct provenance labels.",
     "Use native_fulltext_queries only to discover candidate URLs; do not mark full text as retrieved from search snippets.",
     "Write native_fulltext_candidates with candidate_only status until retrieval_manifest.csv verifies readable text.",
+    "For a selected public PDF/TEI/JATS candidate, call qiongli_literature_read_fulltext if exposed; otherwise use an available Host reader. Inspect returned passages and identity/version, preserve source_sha256 and anchors, and require expected_sha256 for continuation. No manifest write is implied.",
 ];
 
 #[derive(Debug, Clone)]

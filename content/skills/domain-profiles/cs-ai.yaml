@@ -31,11 +31,11 @@ method_templates:
     tier: standard
     library: scikit-learn / xgboost
     checklist:
-      - "Stratified k-fold CV (≥5 folds) for evaluation"
-      - "Report: accuracy, precision, recall, F1, AUC-ROC"
+      - "Choose split/CV by the independent unit and intended generalization, respecting groups and time; justify fold count"
+      - "Choose classification or regression metrics for the target and decision; report uncertainty and relevant subgroup errors"
       - "Baseline comparison (majority class, random, simple model)"
       - "Feature importance or SHAP explanations"
-      - "Statistical significance test across folds (paired t-test / Wilcoxon)"
+      - "Justify model comparison with dependence-aware uncertainty; correlated folds are not independent replicates"
 
   - name: "Deep Learning (Classification / Generation)"
     tier: advanced
@@ -57,14 +57,14 @@ method_templates:
       - "Training: LR schedule, batch size, epochs, early stopping"
       - "Evaluation: separate test set, report per-class metrics"
       - "LoRA / adapter config if parameter-efficient"
-      - "Data contamination check (test data not in pre-train corpus)"
+      - "Investigate contamination using accessible provenance; undisclosed pretraining data leave an explicit uncertainty"
 
   - name: "Reinforcement Learning"
     tier: advanced
     library: stable-baselines3 / RLlib
     checklist:
       - "Environment specification (state/action/reward)"
-      - "Training: multiple seeds (≥5), report mean ± std"
+      - "Report all evaluated seeds/runs, variability and compute constraints; justify repetitions rather than choosing the best run"
       - "Learning curves (cumulative reward vs steps)"
       - "Hyperparameter sensitivity analysis"
       - "Comparison to established baselines"
@@ -76,11 +76,11 @@ method_templates:
       - "Graph statistics: nodes, edges, density, diameter"
       - "Inductive vs transductive setting clarified"
       - "Message passing layers + aggregation specified"
-      - "Baselines: GCN, GAT, GraphSAGE minimum"
+      - "Choose relevant graph and simple non-graph baselines with comparable data and tuning budgets"
       - "Over-smoothing analysis for deep GNNs"
 
 stats_diagnostics:
-  - "Statistical comparison of models: paired t-test or Wilcoxon signed-rank on fold results"
+  - "Choose a comparison valid for the evaluation unit and dependence; do not apply an uncorrected paired test to correlated fold scores"
   - "Confidence intervals on metrics (bootstrap or cross-validation based)"
   - "Effect size of improvement over baseline"
   - "Multiple comparison correction if comparing many models (Nemenyi / Friedman)"
@@ -130,7 +130,7 @@ default_databases:
 methodology_priors:
   identification: "Empirical evaluation on benchmarks; ablation studies expected"
   robustness: "Multiple random seeds; statistical significance testing; error bars"
-  standard_hierarchy: [Benchmark_Evaluation, Ablation, Human_Evaluation, Theoretical_Analysis, Case_Study]
+  standard_hierarchy: []  # Evidence depends on the contribution, not a universal ranking.
   estimation_norms: "Report mean ± std over N runs; paired tests for comparisons"
 
 venue_norms:

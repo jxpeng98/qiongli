@@ -382,6 +382,9 @@ EXPECTED_REVIEW_PATTERNS = {
     "security": (
         "/.github/",
         "/packages/qiongli-native/crates/qiongli-windows-security/",
+        "/packages/qiongli-native/crates/qiongli-bounded-alloc/",
+        "/packages/qiongli-native/crates/qiongli-runtime/src/fulltext/",
+        "/packages/qiongli-native/crates/qiongli-runtime/src/fulltext.rs",
         "/packages/qiongli-native/crates/qiongli-config/src/secret.rs",
         "/packages/qiongli-native/crates/qiongli-config/src/redaction.rs",
         "/packages/qiongli-native/crates/qiongli-execution/src/policy.rs",

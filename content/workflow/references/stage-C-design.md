@@ -20,6 +20,53 @@ This stage converts framing into an executable plan: design choices, measurement
 
 ## Design judgment contract
 
+Use the three questions in `references/academic-output-rubric.md` at the choices
+below. Inspect the available material first; these are decision points, not a
+required questionnaire or a fixed sequence.
+
+| What must be decided? | Evidence needed | What can proceed? |
+|---|---|---|
+| Which claim can this design address? | RQ, intended claim, target population/corpus and actual comparison or interpretive basis | Choose and justify a feasible design. If its central premise is missing, offer a narrower supported option and identify what would enable the requested claim; do not silently change the RQ |
+| What are the independent units and usable observations? | Sampling/assignment process, groups, repeated records, exclusions and available material | Specify analysis at the right level. Unknown group allocation or dependence blocks affected inference, while a descriptive inventory or conditional design can proceed |
+| Do the measures/sources represent the target? | Construct definition, instrument/source version, collection timing, provenance and usable fields | Map the target to verified measures. Missing measurement blocks that claim; propose a source or measurement revision without assuming it exists |
+| Which analysis could answer the question? | Estimand/analytic target, identification or interpretive assumptions, adequacy rationale and relevant threats | Choose a procedure and decisive checks. State what a failed check changes: method, claim scope or feasibility. Do not declare a planned check passed |
+| Can the proposed work start? | Access and ethics decisions for this use, resources and approved protocol commitments | Advance authorized work with satisfied prerequisites. A required permission blocks the affected access/collection, while planning and other supported tasks continue |
+
+For a formal design, place these answers in the relevant sections of
+`study_design.md` and `analysis_plan.md`, with evidence pointers and unresolved
+conditions. Carry the same RQ/decision IDs, variable/source versions, claim limits
+and required checks into Stage I/E/F. A complete plan may describe analyses whose
+execution is still conditional; report plan completeness and execution readiness
+separately. Revisit a choice when its named evidence or assumption changes.
+
+When disciplinary choices matter, select the relevant section through
+`references/discipline-guidance.md`. Retain the same C outputs and gates.
+Before selecting a statistical model, distinguish sampling, assignment,
+measurement and analysis units; repeated observations do not create independent
+participants, organizations, sites or biological replicates.
+
+For quantitative plans, name the outcome, population, comparator/exposure,
+time horizon and estimand. For interpretive/theoretical work, state the analytic
+target, source/corpus boundary and reasoning procedure. Mixed methods also need
+the strands' relationship and integration point, with a plan for divergent results.
+Document instrument/version provenance, translations and intended-use validity;
+a published scale or high reliability coefficient alone does not establish fit.
+
+For effect estimation, classify each proposed adjustment variable by measurement
+time and plausible causal role. An author's "baseline" label does not establish
+pre-exposure measurement. If exposure may affect the variable, explain how
+adjustment changes the total-effect target. A conditional association is not
+automatically a direct causal effect; that claim needs additional assumptions.
+Neither automatic adjustment nor automatic deletion is justified.
+Do not choose controls because they restore significance. Carry the adjustment
+rationale and any unresolved timing/identification issue into Stage F, rather
+than promoting an adjusted association to the intended effect.
+
+Set exclusions, missingness handling, primary/secondary outcomes, evaluation
+splits and stopping rules when applicable before using their results. Distinguish
+prespecified, amended and exploratory decisions with their actual timing. Carry
+these choices into Stage I and the F methods/results narrative.
+
 Start with the requested decision or deliverable and reuse known project context.
 A role supplies a perspective, not extra tasks or authority. A narrow design
 question can be answered in chat; formal C tasks retain their canonical outputs,
@@ -55,7 +102,8 @@ Plans describe proposed actions. Execution, project writes and external registra
 remain subject to the existing tool availability, scope and preview/approval/CAS
 owners. Do not change an approved model, protocol or source data to make a check pass.
 
-Methodological basis: [sample-size justification](https://online.ucpress.edu/collabra/article/8/1/33267/120491/Sample-Size-Justification)
+Methodological basis: [adjustment and causal targets](https://pmc.ncbi.nlm.nih.gov/articles/PMC2744485/),
+[sample-size justification](https://online.ucpress.edu/collabra/article/8/1/33267/120491/Sample-Size-Justification)
 and [saturation in thematic analysis](https://uwe-repository.worktribe.com/output/4820803/to-saturate-or-not-to-saturate-questioning-data-saturation-as-a-useful-concept-for-thematic-analysis-and-sample-size-rationales).
 
 ---

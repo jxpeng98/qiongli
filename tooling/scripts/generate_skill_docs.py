@@ -59,6 +59,12 @@ Describe the field, method and protocol in your request. The Host can read relev
 bundled profiles; the 1.x `--domain` switch is not a native 2.x CLI option.
 Profiles guide the work, but do not establish evidence or current journal policy.
 
+The bundled `references/discipline-guidance.md` selects focused guides for
+economics/finance/accounting, business/society/policy, education/psychology, health/biomedicine,
+computing/engineering, environment/spatial research and humanities/language/law.
+They organize common questions, methods, evidence and delivery checks across A–M,
+and load only when relevant. These guides do not add runtime subject IDs or Host entries.
+
 Available profiles:
 
 {profiles}
@@ -76,6 +82,11 @@ For changes to the framework, see [Extend Qiongli](/advanced/extend-qiongli).
 在请求中说明学科、方法和协议，Host 可以读取相关的随包档案。
 1.x 的 `--domain` 开关不是原生 2.x CLI 选项。
 档案提供研究指导，不能代替证据或现行期刊政策。
+
+随包的 `references/discipline-guidance.md` 按需选择七组指南：经金会、管理与社会政策、
+教育心理、医药健康、计算机工程、环境地理、人文语言法学。各组整理常见研究问题、
+方法、证据和交付检查，并与 A–M 阶段衔接；只有相关内容会被加载。
+这些指南扩充参考内容，不增加运行时学科 ID 或 Host 技能入口。
 
 当前包含的档案：
 

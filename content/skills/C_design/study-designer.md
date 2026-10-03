@@ -39,6 +39,8 @@ Turn the research question and available evidence into a defensible design.
 Use the shared **Design judgment contract** in `references/stage-C-design.md`.
 Choose the work needed for the requested C task; a design question alone does not
 require instruments, a full project scaffold or preregistration.
+Use `references/discipline-guidance.md` for the relevant field's measurement,
+sampling and evidence decisions when those change the design.
 
 ## When to Use
 

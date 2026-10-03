@@ -75,6 +75,21 @@ def require_transition(observed):
         raise ValueError('missing or wrong 2.0.1 v1 Next transition evidence')
 
 
+def validate_tool_inventory(profile, names):
+    expected = {'lite': 14, 'full': 32}[profile] + ('qiongli_literature_read_fulltext' in names)
+    if (any(type(name) is not str for name in names)
+            or len(names) != expected or len(set(names)) != expected):
+        raise ValueError('unsupported MCP tool inventory')
+    return expected
+
+
+def validate_tool_counts(counts):
+    if (counts not in ({'lite': 14, 'full': 32}, {'lite': 15, 'full': 33})
+            or any(type(value) is not int for value in counts.values())):
+        raise ValueError('missing or incoherent MCP profile counts')
+    return counts
+
+
 def check_cli(executable, *, version, root, env):
     command = executable if isinstance(executable, list) else [executable]
     assert run(command + ['--version'], root=root, env=env).stdout.strip() == f'qiongli {version}'
@@ -88,9 +103,9 @@ def check_cli(executable, *, version, root, env):
     invalid = run(command + ['not-a-command'], root=root, env=env, check=False)
     assert invalid.returncode != 0 and not invalid.stdout and 'error:' in invalid.stderr
     tools = {}
-    for profile, expected_count in [('lite', 14), ('full', 32)]:
+    for profile in ('lite', 'full'):
         local = json.loads(run(command + ['mcp', 'check', '--profile', profile, '--json'], root=root, env=env).stdout)
-        assert local['scope'] == 'local-in-process-protocol' and local['tool_count'] == expected_count
+        assert local['scope'] == 'local-in-process-protocol'
         assert local['read_only_call'] == 'passed' and local['host_session'] == 'not-checked'
         requests = [
             {'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {}},
@@ -105,9 +120,11 @@ def check_cli(executable, *, version, root, env):
         assert len(messages) == 3
         assert messages[1]['result']['serverInfo']['version'] == version
         names = [t['name'] for t in messages[2]['result']['tools']]
-        assert len(names) == expected_count and len(set(names)) == expected_count
+        expected_count = validate_tool_inventory(profile, names)
+        assert type(local['tool_count']) is int and local['tool_count'] == expected_count
         assert 'error' not in messages[3] and not messages[3]['result'].get('isError', False)
         tools[profile] = len(names)
+    validate_tool_counts(tools)
     result = {'version': version, 'invalid_command_rejected': True, 'mcp_tools': tools,
               'content_pack_sha256': content['pack_sha256']}
     if version == '2.0.1':

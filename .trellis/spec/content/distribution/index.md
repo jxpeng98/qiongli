@@ -65,6 +65,44 @@ deletion. Validate shared-reference reachability and projection bytes; use
 isolated behavioral trials for response quality, since text assertions alone
 cannot establish model behavior or cross-model performance.
 
+`content/workflow/references/discipline-guidance.md` routes to conditional field
+guides under `references/disciplines/`. The root Skill and relevant design/analysis
+cards select only needed sections; the guides refine existing A–M tasks rather
+than adding workflow entries, Task IDs, runtime subjects or permission owners.
+Existing domain profiles retain their IDs and method contracts. A focused package
+may lack a neighboring profile; guidance must disclose that limit instead of
+claiming a read or switching the locked project subject. Profile heuristics and
+library/venue lists do not become universal thresholds or installation requests.
+
+Stage G owns reporting-standard selection and current edition/extension checks;
+`reporting-checker` consumes the applicable official or supplied checklist instead
+of maintaining copied, stale item tables. Preserve Q3 and evidence-linked item
+statuses, including unavailable verification. Reporting completeness does not
+establish methodological validity, ethics approval or submission.
+
+The shared academic output rubric owns three questions at consequential choices:
+the decision, its evidence basis, and conditions for continuing. C/E/F references
+specialize those questions; synthesis and interpretation cards consume the same
+owners. Models choose execution paths within scope. Record consequences in existing
+stage artifacts, decision logs and handoffs, preserving IDs, source revisions and
+unresolved dependencies; do not add a parallel state machine or mandatory interview.
+Behavioral checks should inspect completed candidate artifacts and continuation
+after changed evidence, not treat matching instructional text as research quality.
+
+`references/evidence-verification.md` owns source-to-claim review guidance, shared
+by self-critique and actual independent collaboration. Its claim coverage extends
+the existing review packet; judgments do not replace ledger statuses, task/role
+registries or write authority. Public-paper trials keep tasks separate from
+review criteria and preserve source versions, access limits and partial failures.
+
+Native Lite and Full share `qiongli_literature_read_fulltext` through the existing
+Lite tool registry. Its standalone input/output schemas under
+`content/mcp-contracts/` define bounded read-only public document access;
+`fulltext-fetcher` consumes the segments without writing canonical artifacts.
+The validator checks this explicit native addition separately from the frozen
+CTR-201 v2/Python Full inventory. Do not imply the retained runtime implements it
+or relax legacy tool equality to admit arbitrary native additions.
+
 ## Pre-Development Checklist
 
 - Identify the canonical source and every generated consumer.
@@ -178,7 +216,7 @@ existing defaults; standalone Skills exports do not install Hook configuration.
 Public Marketplace Plugins (ADR 0223) use `native_marketplace_plugins.py` and
 the CLI's `export_marketplace_content` example. Shared research resources retain
 the exact `marketplace-lite` pack bytes. Each Codex/Claude archive bundles its
-qualified target's CLI and directly starts Lite MCP (14 tools) without Node,
+qualified target's CLI and directly starts Lite MCP (15 tools) without Node,
 npm, Python, a shell bridge or executable downloads. Full MCP remains available
 through explicit CLI/local Plugin configuration; packaging does not expand tools.
 

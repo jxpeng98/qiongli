@@ -1,5 +1,25 @@
 # Bounded research evidence journey
 
+The additive public-paper regression packet preserves actual Q1/Q2/Q3 answers
+and the external model review. Run
+`.venv/bin/python evals/research_journey/public-papers/check_integrity.py --observations --self-test`
+to replay five frozen, coordinator-reviewed spans through `observe.project`:
+units, denominators, abstract/body disagreement, expanded source access and
+review attribution. The original unit conversion and human-attribution failures
+remain failures. Byte, span, anchor, attribution and failed-to-pass mutations are
+rejected. This checks recorded judgments and bindings; it does not grade new
+answers, certify whole answers or establish installed-Host acceptance.
+
+The same command also checks `public-papers/discipline-transition/`: two bounded
+education/computing exercises with preserved tasks, source notes, predecessor
+bindings and actual main-agent answers. It replays two selected manuscript spans,
+annotated by the same agent after source inspection and guidance refinement.
+These are self-review observations, not blind forward tests or a measured gain.
+The computing packet is a short Host-read paraphrase with unknown raw byte hashes;
+its local digest must not be presented as the paper's digest. Four added negative
+mutations reject changed notes/answers, forged anchors and independent-review
+misattribution. The original five judgments remain three passes and two failures.
+
 These two Evaluation Truth V1 cases share one explicitly synthetic abstract and
 source registry. They check declared evidence links and requested claim coverage,
 not academic truth or real Host execution. No private research or model call is
@@ -196,3 +216,48 @@ corrected scientific values. A stale numeric claim with valid IDs can still
 structurally pass and must remain a semantic failure. Whole-journey success
 requires both checkpoints to pass structure and named review; it is not a
 full-study or installed-Host acceptance gate.
+
+## Public-paper trial packets
+
+`public-papers/` adds three bounded, real-paper tasks: a primary-school quantitative
+experiment, a university qualitative interview study, and an audit of a published
+health-professions systematic review. These are **supplied-evidence appraisal and
+writing tasks**, not fresh literature searches, complete systematic reviews or
+reanalyses of underlying data. `manifest.json` binds the public XML identity,
+license, raw SHA-256, exact normalized paragraph selectors/hashes, task files and
+source packets. Full downloaded XML stays outside the repository; attributed
+CC BY text excerpts are redistributed with flattening/omission disclosed. Figures,
+tables, transcripts and supplements are not included. The quantitative article's
+XML names CC BY but does not specify its version; no version is invented.
+
+Freeze `manifest.json`, `criteria.md` and all task/source bytes before observations.
+Supply only a case's `task.md` and `source.md`, plus selected frozen guidance, to the
+runner; withhold criteria and the manifest (which exposes continuation anchors).
+The quantitative continuation supplies `continuation-task.md`, both source files
+and the **actual prior answer with its SHA-256**. It adds real previously withheld
+paragraphs from the same article, not a fabricated correction. Keep Q1/Q2 in
+order, preserve history and never replace a failed predecessor with fixture prose.
+Other cases have one checkpoint. Record the chosen denominator before capture;
+three paper journeys/four checkpoints is the full set. Do not widen a one-case
+observation into suite, installed-Plugin, independent-review or cross-Host success.
+
+The separate reviewer criteria require exact answer spans, source-bound reasons,
+method/denominator limits, stable IDs and honest missing-evidence states. Review
+cannot be replaced by keyword presence or a corpus digest. Reuse existing V1
+assertions when projecting actual answer-bound observations; this packet adds no
+scoring framework and is not a new `observe.py capture` lane.
+
+Run the stdlib-only integrity check (the optional raw directory must contain
+`quant.xml`, `qual.xml`, `review.xml` downloaded from manifest URLs):
+
+```sh
+python3 evals/research_journey/public-papers/check_integrity.py --self-test
+python3 evals/research_journey/public-papers/check_integrity.py --raw-dir /path/to/raw-xml
+```
+
+The check verifies task/source/rubric hashes and excerpt identity/anchor binding;
+when raw XML is supplied it also verifies the raw bytes, article DOI, license and
+exact selected paragraph text. Its negative cases reject a changed count, swapped
+paper and forged anchor even if the excerpt file hash is recomputed for the last
+case. These are local integrity checks, not model quality or scientific truth
+checks. Hashes bind a frozen snapshot; they do not authenticate its preparer.

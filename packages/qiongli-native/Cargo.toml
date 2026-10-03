@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
     "apps/qiongli",
+    "crates/qiongli-bounded-alloc",
     "crates/qiongli-config",
     "crates/qiongli-content",
     "crates/qiongli-execution",

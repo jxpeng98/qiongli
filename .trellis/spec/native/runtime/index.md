@@ -17,6 +17,157 @@ packets do not transfer Host-bound checkpoints or authenticated evidence authori
 The Qiongli 2 executable, CLI, Desktop service, Full MCP, project state, and
 embedded resources live under `packages/qiongli-native/`.
 
+Native Lite and Full expose `qiongli_literature_read_fulltext` from the shared
+`qiongli-runtime::fulltext` owner. Search records preserve optional abstracts,
+reported fulltext candidates and external IDs; none establishes retrieved text.
+The reader accepts one public HTTPS PDF/TEI/JATS source, rejects credentials,
+private destinations and unsafe redirects, pins DNS results per hop and limits
+downloads/decoded gzip to 12 MiB. OpenAlex keys go only to its exact supported
+content endpoint. Public sources do not require provider configuration.
+Error messages distinguish input URL policy, blocked redirect targets and DNS
+failures without exposing locator/query values or resolved addresses. Signed or
+credential-bearing query parameters remain unsupported, including publisher
+redirects. Empty DNS answers, resolver failures and worker timeout/disconnection
+use `fulltext-network-error`; any nonpublic answer, including mixed answers,
+retains `fulltext-url-blocked` before contacting that destination. These local
+transport/policy outcomes do not establish a paywall or absent article body.
+
+Provider status describes configured metadata, not successful credential access
+or a live query. If the bounded shared credential load cannot finish, combined
+searches retain usable selected channels without caching incomplete access.
+Unresolved credentials are never sent. The result preserves partial/failed status
+and names unsearched providers in warnings with `provider_credentials_unavailable`
+as the diagnostic reason; omitted provider counts do not mean zero hits. A solely
+blocked selection retains the existing tool error. No secret-store permissions,
+configuration writes, network guards or loader concurrency limits are changed.
+
+Segments carry the decoded source SHA-256 and page/section anchors; continuation
+requires the same digest. The eight-document session cache is not a project store.
+Emitted text is capped at 2 MiB, 10,000 segments and 300 PDF pages. PDF/XML parsing
+runs in a fresh same-executable child before config/Host discovery, with a cleared
+environment, byte-only stdin, 30-second deadline and 16 MiB protocol output cap.
+The shared supervisor kills and waits for timed-out, failed or overflowing work
+before joining its pipe threads. A child watchdog also exits after 30 seconds if
+the parent is terminated and cannot run cleanup. CLI, Desktop's canonical runtime and standalone
+Lite use this entrypoint; embedding executables must dispatch it too. No extra
+packaged executable or inline fallback exists. The isolated stdlib-only
+`qiongli-bounded-alloc` unsafe boundary tracks Rust allocations and activates a
+512 MiB heap ceiling only in the child; the parent stays unlimited. This is not
+an OS RSS/stack/native-mapping limit or a security sandbox. Parser abort/OOM is
+contained in the child and reported without replacing cached source identity.
+HTML/OCR, private attachments and authenticated publisher browsing stay
+with available authorized Host tools. Structured DOI conflicts, multi-paper XML,
+abstract-only responses and heading-only bodies cannot report readable fulltext.
+Reading passages does not authorize manifest, Graph or canonical writes; Skills
+retain the existing identity/version, evidence and preview/approval/CAS owners.
+The native extension has standalone schemas; frozen Python v2 inventory is unchanged.
+Its advertised input is a plain object so Host parameter projection retains URL;
+cross-field continuation digest requirements remain enforced by the runtime.
+
+Full MCP capture preview also accepts a connected capture with `capture_id`
+omitted; its envelope version/kind and binding remain required. The existing
+`ResearchCaptureDraftV1` owner validates and computes the identity, and preview
+returns the normalized `capture` alongside
+the existing plan fields. A supplied or partial identity is never repaired.
+Apply still requires the exact normalized capture, preview digest and explicit
+filesystem approval; project revision checks and pending-history semantics stay
+unchanged. Draft normalization grants no academic consolidation authority.
+
+Native CLI `project capture consolidate preview/apply` optionally accepts
+`--stage-handoff-file <absolute-draft.md>` and uses the existing consolidation
+owner to append `context/stage_handoff.md`. Preview emits exact resulting UTF-8
+Markdown as `stageHandoffContent`; the plan digest binds those bytes and the
+prior file digest. Apply rereads the draft and retains dual approval, library
+revision, capture/manifest checks, transaction CAS and receipt recovery. Both
+preview and apply reject unrefreshed registered semantic drift, including inputs
+that are not write targets. Arbitrary attachments are outside that digest.
+Prior handoff bytes remain intact. Academic completeness stays with review;
+there is no automatic stage advance, summary creation or Graph rebuild.
+Without the option, the original API/output/receipt shape remains unchanged.
+V1 receipts accept the additional closed `stage-handoff` artifact in current
+readers; old two-artifact receipts still read. Older binaries reject receipts
+containing the new artifact, so these projects require the updated reader.
+The bound regular-file reader is shared with portable capture intake, rejects
+final symlinks/non-UTF-8/oversize handoffs, and never treats file text as authority.
+No MCP endpoint, new store, Host model setting or installed profile changes.
+
+The same CLI owner accepts optional `--stage-summary-file <absolute-draft.json>`:
+strict `StageSummaryDraftV1` names a new uppercase `STG-` ID, document status,
+predecessor path/digest, 1–64 project-local source fingerprints and reviewed
+Markdown. Sources and predecessor are bounded regular files, rechecked at preview
+and apply, and included in the plan digest. Reads are snapshots, not locks against
+external editors; omitted/external sources are not implicitly covered. Preview
+returns exact summary, research-state/history and handoff bytes. The transaction
+creates `context/stage_summaries/<ID>.md`, preserves prior history and adds its
+handoff link alongside ordinary capture artifacts. Existing summary paths refuse;
+publication uses a non-replacing filesystem operation, and rollback preserves a
+competing file when that create fails. A six-file transaction retains the current
+approval, revision, recovery and receipt owners. Summary documents remain outside
+the registered semantic/Graph artifact set. Readers accept the additional closed
+`stage-summary` receipt artifact; older binaries do not. Without the option,
+existing APIs, plan digest serialization and output/receipt fields stay unchanged.
+History uses the existing six columns and review time in Unix UTC seconds;
+ambiguous tables or a predecessor different from the last row refuse. Supplied
+Markdown is retained with generated save-basis metadata; scholarly coverage,
+humanization, claim continuity and status remain review obligations. No summary
+read/save MCP endpoint or automatic stage/Graph transition is added.
+
+The same consolidation owner accepts `--paper-note-file <absolute-draft.json>`.
+`PaperNoteDraftV1` strictly binds schema version 1, citekey, optional
+`previousSha256`, 1–64 local source path/SHA-256 pairs and reviewed Markdown.
+It creates `notes/<citekey>.md` only when the prior hash is absent and the target
+is absent; append requires the exact old note hash and preserves every prior
+byte. Citekeys are 1–128 ASCII alphanumeric/underscore/hyphen characters, begin
+alphanumerically and exclude Windows device names; unsupported keys are refused,
+never normalized. Source checks reuse the summary reader's bounded-file and
+16 MiB aggregate limits. Drafts reject duplicate/unknown JSON fields, unsafe paths,
+NULs, empty/oversize text and generated lineage-marker injection. Source files
+remain snapshots, not locks against external editors or remote-body verification.
+
+Preview returns exact `paperNoteContent`. Apply rechecks source/prior-note hashes
+and the existing dual approval, plan, library/project revision and semantic-drift
+boundaries. It uses the shared transaction (up to seven files with summary and
+handoff), receipt and recovery owner. New note publication never replaces a
+competing file, and collision rollback preserves that file. Existing-note updates
+retain the shared transaction CAS boundary; arbitrary external writes after that
+check are not serialized by Qiongli's lock. Receipts add the closed `paper-note`
+artifact; old receipts and no-option output/plan serialization remain unchanged,
+while older binaries reject new-artifact receipts. Notes remain outside the
+registered semantic/Graph set. Academic review retains citekeys, claim IDs,
+anchors and coverage/identity limits; no content parser, new MCP writer, source
+packet store, automatic bibliography or Graph update is introduced by the note option.
+
+Optional `--source-packet-file <absolute-draft.json>` uses that same consolidation
+owner to save raw retrieval results. Strict `SourcePacketDraftV1` has
+`schemaVersion: 1`, the same portable citekey rules, and `content`, a string
+containing a nonempty JSON object or array. Both the regular UTF-8 draft file and
+decoded content are bounded to 4 MiB; duplicate JSON keys (including nested
+content), unknown envelope fields, invalid JSON and unsafe citekeys refuse.
+Content syntax is validated without a provider-specific schema or provenance
+claim. Review preserves actual URLs, body digests, anchors, coverage and identity
+limits; the source text has no instruction or approval authority.
+
+Preview exposes exact `sourcePacketContent` and the resulting path/hash delta.
+Apply preserves its bytes, including whitespace, at
+`sources/<citekey>/<sha256(content)>.json`. Paths are closed and content-addressed;
+existing files refuse even when identical. Changed retrieval bytes create a new
+packet instead of overwriting prior material. Transaction and receipt validation
+bind the packet filename to its digest. New packet publication uses the existing
+non-replacing write and collision rollback; the shared directory owner creates
+missing ancestors under the project with each component's existing safety checks.
+The transaction allows up to eight files when composing all optional artifacts,
+within the existing 4 MiB/file and 16 MiB aggregate write limits. Dual approvals,
+plan/library/project revision checks and recovery remain unchanged.
+
+`CaptureConsolidationDrafts` groups optional documents; prior API wrappers and
+no-option plan/output serialization stay compatible. Receipts add the closed
+`source-packet` artifact, which older binaries reject. Save a new packet before
+binding it in a later current-revision note/summary capture: those source checks
+require files already present, not an in-transaction proposed source. Packets
+remain outside the registered semantic/Graph set; manual edits still require
+fresh source fingerprints. No automatic retrieval, identity verification,
+complete-reading status, new MCP endpoint or separate write store is introduced.
+
 Academic Graph v1 remains a rebuildable projection over registered canonical
 artifacts. `academic_graph_extract.rs` permits one claim ID/text/type across
 multiple evidence rows, diagnoses conflicting records, and requires source

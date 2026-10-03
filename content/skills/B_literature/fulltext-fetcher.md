@@ -1,7 +1,7 @@
 ---
 id: fulltext-fetcher
 stage: B_literature
-description: "Plan and record full-text retrieval through the fulltext-retrieval provider boundary with PRISMA-ready provenance."
+description: "Retrieve and read selected papers with source anchors, version checks, and PRISMA-ready access records."
 inputs:
   - type: ScreeningDecisionLog
     description: "Papers requiring full-text retrieval"
@@ -14,13 +14,13 @@ outputs:
   - type: RetrievalManifest
     artifact: "retrieval_manifest.csv"
 constraints:
-  - "Must route retrieval planning or resolution through fulltext-retrieval"
-  - "Must record version, source provider, license, and not-retrieved reasons"
-  - "Must avoid illegal or paywall-bypassing access instructions"
+  - "Keep fulltext-retrieval ownership of retrieval records and preserve preview/approval/CAS for project writes"
+  - "Record source, version, access limits, and the actual sections read"
+  - "Do not bypass paywalls or treat a candidate URL as retrieved evidence"
 failure_modes:
-  - "External resolver is unavailable"
+  - "No readable full-text tool or authorized source is available"
   - "Only abstract or metadata is available"
-  - "OA candidate link is broken or not a readable PDF"
+  - "Document identity, version, or source digest cannot be confirmed"
 tools: [filesystem, fulltext-retrieval]
 tags: [literature, fulltext, open-access, retrieval, PRISMA, Zotero]
 domain_aware: false
@@ -30,164 +30,139 @@ domain_aware: false
 
 ## Purpose
 
-Plan and record full-text retrieval for B-stage review work. This skill owns
-`retrieval_manifest.csv` and full-text status fields in `screening/full_text.md`.
-It does not decide study eligibility; eligibility remains a `paper-screener`
-decision.
-
-## Related Task IDs
-
-- `B1` systematic review pipeline
-- `B2` targeted key paper reading
+Retrieve the selected report and read the passages needed for the research
+question. `fulltext-retrieval` retains ownership of `retrieval_manifest.csv` and
+access status in `screening/full_text.md`; `paper-screener` owns eligibility.
+Related tasks: B1 review pipeline and B2 targeted paper reading. A single-paper
+request does not require a full review scaffold.
 
 ## Provider Ownership Boundary
 
-`fulltext-retrieval` owns retrieval planning and resolver handoff.
+Use `references/literature-provider-routing.md` for provider and Host search.
+In native Lite or Full sessions exposing `qiongli_literature_read_fulltext`, use
+that read-only tool for public HTTPS PDF, TEI XML or JATS XML candidates. It
+returns source-anchored text segments, not a saved PDF or project artifact.
+It does not search, perform OCR, obtain subscription access, or write the manifest.
 
-The built-in provider is a planning stub: it can draft manifests, identify
-locator gaps, and mark OA/manual follow-up candidates. Actual downloads usually
-come from an external resolver such as Zotero, Unpaywall, CORE, arXiv, PMC, or a
-publisher-hosted OA page.
-
-Search providers can identify full-text candidates, but they do not prove that
-the full text was retrieved or read. Treat `open_access_pdf_url` and
-`access_url` as retrieval candidates until `retrieval_manifest.csv` records
-`retrieved_oa`, `retrieved_preprint`, or a controlled `not_retrieved:*` status.
-
-Do not overwrite `search_strategy.md`, `search_results.csv`, or
-`bibliography.bib`. If retrieval evidence changes eligibility, update
-`screening/full_text.md` and let `paper-screener` reconcile the decision.
-
-## Inputs
-
-- `ScreeningDecisionLog`: records needing full-text retrieval.
-- Optional `SearchResults`: DOI, URL, arXiv ID, PMID/PMCID, provider IDs, and OA
-  metadata.
-- If inputs are missing or insufficient, write
-  `RESEARCH/[topic]/context/gap_notes.md` or a manifest row with
-  `not_retrieved:missing_locator`; do not invent locators.
-- Treat metadata, abstracts, resolver responses, and local files as evidence
-  sources with different evidence limits.
+Older Hosts and the retained `fulltext-retrieval` planning adapter may expose
+only locator planning or resolver handoff. State that limit and use an actually
+available authorized Host reader, local attachment, or external resolver. Do not
+imitate an unavailable tool or describe a stub response as a completed download.
+A missing tool does not justify changing the user's installation or configuration.
 
 ## Process
 
-### 1. Build retrieval candidates
+### Select and verify the report
 
-For each record, collect locators in priority order:
+Use the existing record ID, citekey, DOI, repository/provider IDs, title and
+version. Search `fulltext_candidates` and user-supplied locators; prefer readable
+structured full text when available, then a text-bearing PDF. A landing page may
+need an actual Host browser/search to locate its public document URL. Select the
+source for its identity, version and access, not a universal provider order.
+Do not exclude otherwise eligible studies because they lack open full text.
 
-1. DOI
-2. arXiv ID
-3. PMID or PMCID
-4. provider paper ID
-5. access URL
-6. title plus first author plus year
+Compare document title, authors/identifiers and version with the selected report;
+a preprint, accepted manuscript and published report may differ. Keep conflicting
+or unavailable identity evidence explicit. Candidate URLs, OA flags, abstracts
+and search summaries are not evidence that the body was retrieved or read.
 
-No locator means the row remains in `retrieval_manifest.csv` with
-`not_retrieved:missing_locator`.
+### Read the relevant body text
 
-### 2. Resolve through `fulltext-retrieval`
+Call `qiongli_literature_read_fulltext` with `url` and the known `expected_doi`
+when available. Start at `offset: 0`; use `limit` up to 50 segments. Continue with
+the returned `next_offset` and `expected_sha256: source_sha256` so subsequent
+passages refer to the same bytes; a nonzero offset requires that digest. The
+session cache avoids repeat downloads;
+`refresh: true` explicitly checks the remote source again. A digest mismatch
+requires reconciling the changed version and affected claims before reuse.
 
-Ask the provider layer to plan or resolve retrieval. Preserve the provider
-result instead of rewriting it as a screening decision.
+`status: readable_text` means text was parsed. Inspect `identity_status`, warnings,
+section/page anchors and the returned text before using it. `unverified` does not
+establish identity. Follow pagination as needed for the question: methods and
+limitations for design claims, results and relevant tables for findings. A first
+page of segments does not establish that the whole article was read. Parsed
+body text may omit figures, formulae, table structure or scanned pages; inspect
+those with an available Host tool when the claim depends on them. Do not invent
+OCR, missing values or page numbers.
 
-Allowed `source_provider` values include:
+For every used passage retain record ID/citekey, source URL, source digest,
+version and its section/page/segment anchor. Record which passages were actually
+read. A `tool_error` means this tool has no readable result; retain its specific
+reason. Do not substitute an abstract and label it `full_text`. Continue useful
+bounded work at the actual evidence limit or resolve another authorized source.
 
-- `Zotero`
-- `Unpaywall`
-- `CORE`
-- `arXiv`
-- `PMC`
-- `publisher_page`
-- `manual_supplemental`
-- `builtin_stub`
+A `fulltext-url-blocked` error can concern the input URL, a redirect destination,
+or a nonpublic DNS answer; read its message before assigning the failure stage.
+The reader refuses signed or credential-bearing query parameters, including on
+redirects from public publishers. Such a redirect does not establish a paywall
+or an invalid original locator. Preserve the failure stage without copying
+signed URLs or token values into notes; do not strip parameters or weaken the
+guard to force access. Use another supported public representation when useful;
+Host reading remains subject to the authorization and provenance limits below.
+DNS failure, timeout, or an empty answer is a network failure, not proof that the
+publisher denied access or that the paper has no body.
 
-### 3. Write `retrieval_manifest.csv`
+A parser timeout, worker failure or resource limit is a reading failure, not a
+paywall or proof that the paper lacks a body. The native reader isolates parsing
+with time and Rust-heap limits; it is not an OS memory/security sandbox. Keep the
+failure reason and try a different authorized representation or available Host
+reader when useful. Do not repeat an unchanged failing input or disable the
+boundary to force a result.
 
-Minimum schema:
+A DNS result in a private or special-use range can block a public-looking URL
+before HTTP executes. Record that as a transport/access limitation, not a paywall
+or unavailable body. A proxy/DNS mapping is one possible cause, not a diagnosis
+from the URL alone. Do not whitelist that address, replace DNS, enable a proxy or
+weaken redirect checks to force the native read. When public access is otherwise
+authorized, an available Host reader may inspect the publisher/repository page;
+retain that Host provenance and any unknown byte hash. A permission or publisher
+access denial still applies and must not be bypassed on another surface.
+
+### Record access through the existing owners
+
+Use the existing preview/approval/CAS path for project writes. Do not overwrite
+search or bibliography artifacts. Minimum `retrieval_manifest.csv` schema:
 
 ```csv
 record_id,citekey,doi,retrieval_status,version_label,source_provider,retrieved_at,fulltext_path,access_url,license,notes
 ```
 
-Controlled `retrieval_status` values:
+Controlled `retrieval_status` values remain `retrieved_oa`, `retrieved_preprint`,
+`abstract_only`, or `not_retrieved:` followed by `paywall`, `embargo`,
+`broken_link`, `not_found`, `access_restricted`, `needs_provider`,
+`missing_locator`, or `oa_candidate`. Use the closest supported status and put
+specific parse/network/identity failures in `notes`; do not invent new enum values.
+A readable source with verified report identity can support a retrieved status;
+unknown identity stays a candidate pending verification. A session-cache read
+leaves `fulltext_path` empty unless an actual authorized local file exists.
 
-- `retrieved_oa`
-- `retrieved_preprint`
-- `abstract_only`
-- `not_retrieved:paywall`
-- `not_retrieved:embargo`
-- `not_retrieved:broken_link`
-- `not_retrieved:not_found`
-- `not_retrieved:access_restricted`
-- `not_retrieved:needs_provider`
-- `not_retrieved:missing_locator`
-- `not_retrieved:oa_candidate`
+Controlled `version_label` values remain `published`, `accepted`, `submitted`,
+`abstract_only`, `metadata_only`, or `unknown`. Record the actual source provider
+and access URL; preserve supplied license evidence, leaving absent licenses unknown.
+The retrieval timestamp and digest identify the observed bytes, not the paper's
+publication date. Use `notes` and existing paper notes for format, digest, identity
+checks, parser warnings, actual sections read and unresolved limits.
 
-Controlled `version_label` values:
-
-- `published`
-- `accepted`
-- `submitted`
-- `abstract_only`
-- `metadata_only`
-- `unknown`
-
-### 4. Update full-text screening status
-
-Mirror retrieval status into `RESEARCH/[topic]/screening/full_text.md` without
-changing include/exclude decisions. For every non-retrieved report, preserve the
-reason needed for PRISMA "reports not retrieved" counts.
-
-### 5. Verify retrieved files when present
-
-When a resolver returns a local file or URL, record whether it is readable, but
-do not bypass paywalls or advise illegal access. Broken links, non-PDF error
-pages, and unreadable files become `not_retrieved:broken_link` or
-`not_retrieved:not_found` rows with notes.
+Mirror access status in `screening/full_text.md` without changing inclusion or
+exclusion. Preserve the reason for every report not retrieved. Retrieval that
+changes an eligibility basis returns to `paper-screener` for reconciliation.
 
 ## Output Contract
 
-- `RetrievalManifest`: write `RESEARCH/[topic]/retrieval_manifest.csv`.
-- `FullTextStatus`: update `RESEARCH/[topic]/screening/full_text.md`.
-- Separate finding, interpretation, and implication in retrieval summaries.
-- Do not invent citations, URLs, PDF paths, access rights, licenses, sample
-  sizes, results, or full-text evidence.
-- Apply `references/academic-output-rubric.md` before finalizing scholarly prose
-  or review artifacts.
-
-### Evidence Ledger and Source Integrity
-
-- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` only when
-  full-text availability supports a central scholarly claim.
-- Follow `references/evidence-ledger-contract.md`: supported claims need source
-  pointers; unsupported central claims become `gap_note` rows and
-  `RESEARCH/[topic]/context/gap_notes.md` entries.
-- Preserve resolver name, source provider, version label, access URL, license,
-  and retrieval timestamp.
+- `RetrievalManifest`: `RESEARCH/[topic]/retrieval_manifest.csv`.
+- `FullTextStatus`: `RESEARCH/[topic]/screening/full_text.md`.
+- Distinguish candidate located, source fetched, text parsed, and relevant
+  passages read in the existing records; do not add a parallel state machine.
+- Apply `references/evidence-ledger-contract.md` to claims drawn from those
+  passages and `references/academic-output-rubric.md` to the requested prose.
+  Preserve claim/decision IDs and source anchors; expose unsupported gaps.
+- Retrieval success alone does not establish a study's validity, eligibility,
+  complete table extraction or permission to redistribute its contents.
 
 ## Quality Bar
 
-- [ ] Every sought report has one `retrieval_manifest.csv` row.
-- [ ] Every row uses a controlled `retrieval_status`.
-- [ ] Every retrieved row has source provider, version label, timestamp, and
-      access URL or local path.
-- [ ] Every non-retrieved row has a specific `not_retrieved:*` reason.
-- [ ] Built-in stub rows are not presented as completed downloads.
-- [ ] No illegal or paywall-bypassing access instruction is present.
-
-## Common Pitfalls
-
-| Pitfall | Problem | Fix |
-| --- | --- | --- |
-| Treating stub output as PDF retrieval | Review overstates evidence access | Keep `not_retrieved:needs_provider` or `oa_candidate` |
-| Losing version labels | Extraction may cite a preprint as final article | Record `published`, `accepted`, or `submitted` |
-| Silent paywall failures | PRISMA counts cannot reconcile | Use `not_retrieved:paywall` |
-| Eligibility edits in retrieval step | Screening decisions become unauditable | Update status only; let `paper-screener` decide |
-| Missing license/source | Reuse rights are unclear | Preserve provider provenance |
-
-## When to Use
-
-- Use when B1 or B2 needs full-text retrieval status, PRISMA retrieval counts,
-  or resolver handoff.
-- Do not use for reference-manager export or Zotero library writes; use
-  `reference-manager-bridge`.
+Every sought report has an access result and provenance. Every full-text claim
+points to an actually inspected passage in the identified source revision.
+Missing access, uncertain identity and parser limits remain visible, with a
+concrete next supported action. Zotero writes and reference exports stay with
+`reference-manager-bridge` and their existing authorization owners.

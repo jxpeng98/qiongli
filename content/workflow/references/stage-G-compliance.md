@@ -19,12 +19,26 @@ This stage is “submission hardening”: reporting completeness, PRISMA checks,
 
 ## G1 — Reporting Completeness (non-PRISMA)
 
+Select by study design, article type, venue and applicable edition/extension.
+Use the [EQUATOR library](https://www.equator-network.org/library/) for health
+research and [APA JARS](https://www.apa.org/pubs/journals/resources/apa-style-jars.html)
+where relevant to behavioral/education research; computing and humanities use
+their method and verified venue requirements. A reporting checklist is not a
+study-quality score or evidence of ethics approval.
+
+For each required item record its source/version, manuscript location, evidence
+and status: addressed, missing, not applicable with reason, or unverified.
+Distinguish absent reporting from a demonstrated methodological flaw. Do not
+manufacture an exemption, sample size, registration or result to fill a row.
+
 **Definition of done**
 - A guideline is selected and declared (by design type):
-  - RCT → CONSORT
+  - RCT report → CONSORT; trial protocol → SPIRIT (2025 statements available;
+    verify the applicable edition and extension)
   - Observational → STROBE
-  - Diagnostic prediction → TRIPOD
+  - Diagnostic accuracy → STARD; clinical prediction model → TRIPOD+AI as applicable
   - Qualitative → COREQ / SRQR
+  - Animal research → ARRIVE; case report → CARE; economic evaluation → CHEERS
 - Checklist items are mapped to manuscript locations
 - Missing items are converted into concrete edit tasks
 
@@ -36,7 +50,11 @@ Write into: `reporting_checklist.md`.
 
 **Definition of done**
 - PRISMA 2020 checklist is completed with manuscript locations
+- Select an applicable extension for the review type, such as PRISMA-ScR for
+  scoping reviews; do not require meta-analysis merely to complete the checklist
 - Counts reconcile across `search_log.md`, `screening/`, `extraction_table.md`, and `synthesis.md`
+- Reconcile records, sought/retrieved reports and included studies separately;
+  inaccessible reports and duplicate reports are not interchangeable exclusions
 - Deviations from protocol are documented (if any)
 
 Write into: `prisma_checklist.md`.

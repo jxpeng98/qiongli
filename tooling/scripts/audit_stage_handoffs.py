@@ -32,7 +32,7 @@ def audit_stage_handoff(path: Path) -> HandoffAuditResult:
     content = path.read_text(encoding="utf-8")
     headings = {
         match.group(1).strip().lower()
-        for match in re.finditer(r"^##\s+(.+?)\s*$", content, flags=re.MULTILINE)
+        for match in re.finditer(r"^#{2,6}[ \t]+(.+?)[ \t]*$", content, flags=re.MULTILINE)
     }
     for section in REQUIRED_SECTIONS:
         if section.lower() not in headings:

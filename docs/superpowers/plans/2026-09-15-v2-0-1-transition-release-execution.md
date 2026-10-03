@@ -1265,6 +1265,1945 @@ old ignored trace records missing required inputs; it is not a native CLI releas
 gate and no records are changed. This failed diagnostic is not a passing schema
 claim. Frozen public schema validation is the applicable compatibility check.
 
+
+### October 1 — discipline guidance and lifecycle reinforcement (local development)
+
+The maintainer requests more precise discipline/common-method content and another
+pass over the full research lifecycle on the 2.1.1 baseline. Canonical source
+`cf42c26fff29de3b640ef36f8868e99a75038ba8` adds one conditional index and seven
+field guides: economics/finance/accounting, business/society/policy,
+education/psychology, health/biomedical, computing/engineering,
+environment/spatial, and humanities/language/law. Reuse existing profiles and
+stage artifacts; the guides add no Host entries, subject IDs, model choices,
+permission owners or research-write paths. Focused packages disclose missing
+profiles rather than pretending to load them. This is local development, not a
+release or installation request.
+
+All A–M references now carry more concrete source, unit, measurement, method,
+interpretation and handoff decisions. Selected existing design, statistics,
+reporting and profile cards replace universal numerical heuristics and method
+rankings with design-specific reasoning. Stage G owns applicable standard/version
+selection; the general reporting card stops copying stale checklist tables.
+PRISMA distinguishes records, reports, studies and synthesis subsets, reports
+actual registration status, and fixes the working template's expanded-item total
+from 40 to 42. Reporting completeness does not establish study quality. Existing
+formal gates, method contracts, approval/CAS and user-configured models remain.
+English/Chinese public Skills guides are regenerated through their existing owner.
+
+Validation and review:
+
+- Across affected batches, 59 distinct Python checks pass in
+  `test_skill_resource_links`, `test_skill_structure_lint`,
+  `test_skill_contract_alignment`, `test_domain_method_packs`,
+  `test_skill_doc_generation`, `test_subject_catalog` and
+  `test_native_marketplace_plugins`. The first batch found an obsolete proposal
+  heading assertion; its assertions now track the existing unchanged
+  proposal-writer route and retain the opening-report/artifact checks. Final
+  source link/structure/contract/document checks pass after the PRISMA and routing
+  edits; the last generated-copy edit passes all six document checks.
+- Capability-contract validation and the skill-creator root validator pass.
+  All domain YAML profiles parse. A direct count reconciles the PRISMA template's
+  27 numbered items, 42 expanded rows and section totals. Isolated materialization
+  for core, economics, business, finance and accounting retains all seven guides
+  byte-for-byte with no missing internal links.
+- The 48 `qiongli-content` tests pass, retaining path/symlink, authorization,
+  drift and data-preservation negatives. The final product `embedded_pack` test
+  passes after regenerating the native lock through `update_qiongli_core_lock`.
+  The 443-resource pack has content root
+  `5420d53526eb2246abea97fe11f63b45d4ba066d2af0f470df9db92e7b087ab0`
+  and pack SHA-256
+  `9cad4dac8aa825524bc509f48cf631ee8a689264893b886c1cfe38091ff2961a`.
+- The built macOS ARM64 debug CLI and existing `export_marketplace_content`
+  example export the verified final content into
+  `/private/tmp/qiongli-skill-depth-cf42c26f-content`.
+  `native_marketplace_plugins.read_content` reconstructs its native pack digest;
+  `project` produces Codex/Claude/DeepSeek content with 22/2/22 Skill entries.
+  All three projections preserve the index and seven guides exactly and pass
+  the resource-link audit. Binary SHA-256:
+  `8510dac1e5519e50eff3af0991685f92f582f4cbdcce87b49580224b89f0859d`.
+  This is local packaging evidence, not installation or release qualification.
+- All seven program-roadmap checks and the generated-index freshness check pass.
+  A before/after ledger comparison preserves every state, dependency and accepted
+  row. Coordinator diff review and `git diff --check` pass; integration uses the
+  required frozen-source boundary guard and local fast-forward merge.
+
+The actual configured Host sub-agent `/root/skill_forward_trial`, with no model
+override, performed read-only synthetic forward trials from the candidate sources
+while editing. It returned answers and the paths read to the coordinator; it did
+not write canonical research files or use private studies. The coordinator found
+all nine cases consistent with the intended boundaries:
+
+| Synthetic input | Observed decision |
+|---|---|
+| Accounting DID with announcement/effective-date ambiguity and a financing control | Preserve timing ambiguity; assess post-treatment control risk and identification |
+| Eight organizational excerpts for reflexive thematic analysis | Do not invent participant count, coding agreement or saturation |
+| Two schools, 400 pupils, one intervention school | Retain two assignment units; no causal/significance claim from pupil count |
+| Repeated patient records split across training/test, AUC 0.91 | Identify leakage and missing external validation; qualify prediction reporting |
+| Five correlated CV folds and a closed LLM | Reject independent-fold inference and unsupported training-contamination assurances |
+| Neighboring pixels used to claim next-year/new-region accuracy | Require validation for the spatial/temporal generalization target |
+| Two incomplete 1910 legal transcriptions | Preserve provenance, historical scope and transcription uncertainty |
+| Mixed-methods thesis with r = 0.32 and contradictory interviews | Integrate divergence; do not invent causality, mediation or supervisor approval |
+| PRISMA: 100 records → 80 screened → 30 sought → 25 assessed → 18 reports → 14 studies → 10 pooled | Reconcile each unit; no forced equal counts or invented registration requirement |
+
+The ninth case followed the PRISMA correction. The final root review-route label
+and generated documentation were clarified after the earlier trials; those small
+edits received coordinator review and the affected checks, not a fresh behavioral
+trial. These observations are bounded sub-agent trials assessed by the coordinator,
+not expert, cross-model, installed-Host or program acceptance. No private research
+access, push, version bump, publication or installed-plugin update occurred.
+The next increment is qualification against maintainer-selected real study cases
+and relevant domain review, then installed-Host observations when authorized.
+All 249 task states/dependencies and 46 historical accepted rows remain unchanged;
+CLI-405 records only this source progress and its remaining qualification limits.
+
+### October 1 — evidence-bound C/E/F decisions (local development)
+
+The maintainer selects the next increment around three questions: what must be
+decided now, what evidence settles it, and what can proceed under which conditions.
+Canonical source `8289e3f0effdc4fbe3a2cb20a29c0b4892ff52f3` places that contract in
+the shared academic output rubric and specializes it for study design, synthesis
+and results/writing. Models retain choice of method, tools, sequence and form.
+Existing stage artifacts, decision/claim IDs and handoffs carry the source basis,
+limits and resumption conditions; changed sources reopen only dependent work.
+No new decision service, state machine, interview or formal gate is introduced.
+
+Synthesis and interpretation cards now guide supported execution and partial
+completion instead of imposing a fixed interview, default random-effects model,
+universal qualitative procedure, interpretation ladder or citation quota. Missing
+variance, appraisal or practical benchmarks remain specific unmet requirements.
+The effect interpretation card also uses the existing F3 `EffectInterpretation`
+type and `manuscript/effect_interpretation.md` path; a regression check covers both
+F3 cards against registry types and task outputs. Legacy files remain readable
+prior material, never silently renamed. The handoff template gains three headings
+already required by its owner. Preview/approval/CAS, model settings and the native
+runtime are unchanged. The source change removes 218 net lines.
+
+Focused checks and delivery:
+
+- 52 distinct Python tests pass across resource links, structure lint, skill
+  contract alignment, stage handoff, cross-platform routing/grill and native
+  Marketplace projection modules; overlapping reruns are not additional tests.
+  Existing projection permission, path and drift negatives remain covered.
+  Direct canonical structure validation passes 649 checks with no errors and
+  eight advisory warnings. Capability-contract and skill-creator root validation
+  pass. The final diff was reviewed against its existing owners.
+- Regenerated the native lock with `update_qiongli_core_lock`; the actual product
+  `embedded_pack` test passes. The 443-resource pack has content root
+  `b59fbb053182b20dcffc75c0d7f8fecd208d8966b603cdcf44ec55673e5b8eab`
+  and pack SHA-256
+  `317e9f315c6ca1e0fd4df8ad49ce955652003401c7d21827c650ccbf90edb2d1`.
+- The macOS ARM64 debug CLI and `export_marketplace_content` export that pack to
+  `/private/tmp/qiongli-decision-content-8289e3f0`. The existing projection owner
+  verifies its digest and produces Codex/Claude/DeepSeek content with 22/2/22 Skill
+  entries. Each preserves all 15 changed content resources exactly and has no
+  missing resource links. Binary SHA-256:
+  `61724d214d0b4f9059677ff99032aac2e13377120b109cc9fd3c41971b2ba103`.
+- Initial system-Python test imports failed because PyYAML was unavailable;
+  rerunning with the existing `.venv/bin/python` passed. Initial native commands
+  could not resolve the registry and offline cache lacked locked dependencies;
+  an authorized locked fetch/build recovered, followed by successful offline
+  export/build. An existing platform atomic deprecation warning remains outside
+  this content change. No dependency or lockfile version was changed.
+
+Two actual configured Host subagents, `/root/decision_quant_trial` and
+`/root/decision_qual_trial`, independently executed bounded fictional tasks with
+no model override. They read frozen candidate guidance and their own authorized
+inputs, then wrote only isolated candidate files. Each reports 19 guidance paths
+actually read. The coordinator inspects the substantive outputs and calculations;
+this is independent task execution with coordinator assessment, not an independent
+expert review, cross-model benchmark or installed-Host acceptance.
+
+The fixed denominator is two complete C/E/F candidate cases, with a further
+changed-source checkpoint for the quantitative case. Inputs, criteria and guidance
+remain under `/private/tmp/qiongli-decision-trial-53k4h9oi`. Criteria and the R2
+correction were fixed before execution; the correction was withheld until R1
+completed. Input/criteria manifest SHA-256:
+`10b303ca8141705977e0e8308b74b5ae95ef26dfa0127a31b9e72e997021dd76`;
+282-file guidance manifest SHA-256:
+`b380a50f138411ee8e5b8604376cab1c610a44f2c4ae87967ed977225fa96329`.
+The coordinator retained all 19 quantitative R1 files before releasing R2;
+history manifest SHA-256:
+`fe69d02ab54cfa4d00d019609b5e92db5e9154a0b61c4c32d56eda823a6893b2`.
+These temporary artifacts support local observations, not durable accepted evidence.
+
+| Checkpoint | Coordinator-observed result |
+|---|---|
+| Quantitative R1 | Actual design, analysis, synthesis, ledger, Chinese results and handoff; R01/R01b counted as one study. Executed common-effect O1 MD 2.615385 (95% CI 0.984596–4.246173), with assumptions and small-study sensitivity limits. O2 stays a 3.0-point estimate without invented error or denominator; attrition and practical importance stay unresolved. |
+| Qualitative Q1 | Actual design, analysis, source-linked matrix/codebook, ledger, interpretive Chinese paragraph and handoff. Four quotations are preserved; Q01's two excerpts share P01, Q02 identities remain unknown, and Q03 is abstract-only. Supported help/expression tension is interpreted without inventing efficacy, prevalence, saturation, coding agreement or formal confidence. |
+| Quantitative R2 continuation | The released correction changes only S02/O1 from +2.0 to -1.0. Re-executed inverse-variance MD is 0.538462 (95% CI -1.092327–2.169250); DL sensitivity is 1.375 (-3.518781–6.268781). DEC-003 retains the estimator but narrows interpretation to these two fixed studies; current synthesis, CLM-004, Chinese prose and handoff all reflect the opposing estimates without claiming no effect/equivalence. DEC-001/002, unaffected claim rows and O2/attrition gaps remain; the old decision log and all 19 R1 files are intact. |
+
+All three checkpoints meet the fixed bounded criteria on coordinator inspection.
+Separate numeric assertions reconcile both quantitative outputs, unchanged claim
+rows and current source anchors; quotation coverage and input/guidance/history
+hashes also pass. The candidates contain 19 R1 files, 20 R2 files and 13 qualitative
+files. The extra R2 file records the read-only history check, not a new workflow
+contract. No trial-triggered source repair or discarded case is hidden. The
+quantitative agent recovered one nonexistent guidance-path read; during R2 a
+login-shell startup attempted a mise cache write, which the sandbox denied, and
+subsequent commands disabled login startup. These do not establish research or
+external-write acceptance. Exact execution model IDs were not exposed; none is
+invented or configured by this increment.
+
+All seven program-roadmap tests and index freshness pass. A before/after ledger
+comparison retains all 249 task states/dependencies, all 46 accepted rows, and
+every other row unchanged; only CLI-405 progress text changes. `git diff --check`
+passes. Integration follows the required frozen-source guard and local fast-forward
+merge without rerunning unchanged checks solely for the commit/merge.
+
+The next increment remains maintainer-selected real-study and domain review, then
+installed-Host qualification when authorized. These two small fictional tasks do
+not establish broad discipline coverage, formal stage acceptance or production
+research quality. No private research access, push, release/version bump,
+publication or installed-plugin update occurred.
+
+
+## October 2 — selected public fulltext and Host search increment
+
+The maintainer authorized the proposed discovery → document retrieval → anchored
+reading path, including additional search channels and the active Agent's native
+search. Implementation `fb3d6d76` preserves the five existing providers rather
+than introducing another configurable search service: OpenAlex/Semantic metadata,
+Crossref links, PubMed-reported PMC identifiers and arXiv PDF links retain optional
+abstracts, external identifiers, candidate format/version/license and deduplication
+provenance. Numeric reported IDs, including Semantic CorpusId and OpenAlex MAG,
+are normalized to strings; they are not invented identifiers or access proof.
+
+`qiongli_literature_read_fulltext` is the shared native Lite/Full and standalone
+Rust Lite reader. It fetches public HTTPS PDF/TEI/JATS, reports source digest,
+retrieval time, page/section/segment anchors, pagination, identity status and
+parser warnings. Nonzero offsets require the prior digest; explicit refresh,
+changed bytes, wrong DOI, abstract-only XML and multi-paper XML have distinct
+outcomes. Public reads need no configured provider. The exact OpenAlex content
+endpoint may use the existing key; this increment did not access that key.
+
+Network boundaries reject credentials, private destinations and unsafe redirects,
+pin public DNS results per hop, disable proxies and bound download/decoded gzip.
+The session cache holds at most eight documents, with emitted-text, segment and
+PDF-page limits. The pinned pure-Rust `pdf-extract` dependency avoids a separately
+installed reader; existing quick-xml and flate2 handle XML and gzip. PDF internal
+stream/font decompression remains library-owned: this is not a hard process
+memory/time sandbox. HTML/OCR, private attachments and authenticated publisher
+browsing remain available-Host responsibilities. No canonical research write,
+Graph ingestion, new research store, model selection or registration was added.
+
+The fulltext Skill and B2 route now request actual document reading and preserve
+identity/version, evidence limits and existing manifest/approval/CAS owners.
+Existing hybrid/native-only plans keep native search execution in the Host;
+provider search, Host-discovered URLs, parsed text and inspected passages remain
+separate. Fulltext availability does not decide review eligibility. The explicit
+native extension brings Lite/Full to 15/33 tools while preserving the frozen
+CTR-201/Python v2 inventories. CLI help reflects the current native inventory.
+
+Focused verification and repaired failures:
+
+- Runtime checks cover 62 unit, six bibliography and ten Lite MCP cases. Changed
+  parser/provider cases were rerun after repair; unchanged cases were reused.
+  Runtime all-target Clippy passes. Tests include SSRF URL/IP rejection, credential
+  redaction, continuation/digest/refresh, wrong DOI, metadata-only/HTML/multi-paper
+  responses, bounded extraction, PDF page anchors and TEI/JATS section text.
+- Standalone Rust Lite passes 30 focused checks and offline locked all-target
+  checking. One cache/reader owner is reused; wrappers do not duplicate parsing.
+- Canonical contract, resource links, literature routing and native Marketplace
+  projection tests pass (49 tests). The capability validator passes while retaining
+  missing/unknown-tool and schema-drift negatives. Two previous paper-read literal
+  assertions now follow its explicit shared routing reference instead of requiring
+  duplicated instructions; no ownership requirement was removed.
+- Product embedded-pack, seven copied-binary MCP and one guided-install/local
+  MCP check pass. An initial hardcoded 14-tool assertion was corrected to the
+  registry length. The existing platform atomic deprecation warning remains.
+- The initial sandboxed Cargo fetch lacked network access; authorized fetch
+  recovered. Some existing loopback fixtures required authorized escalation.
+  An initial pytest invocation failed because the existing environment uses
+  unittest; tests then ran with `.venv/bin/python`. An outdated MAG omission
+  assertion failed after numeric-ID preservation and was corrected and rerun.
+
+The actual macOS ARM64 native export contains 445 resources, content source
+`fb3d6d7641461d35aac168713018ab0987440172`, content root
+`98602d3d7ebcefa494ba1ed746a1292eab24c0b79d0428faa426110db4af3917`, and pack
+`dea7da3fa371dd30eeb330b40ba76f69a3fe1e3ec88834c8146f2a5232dbbe0f`.
+Existing Codex/Claude/DeepSeek projectors produce 22/2/22 Skill entries and preserve
+all seven changed exported content resources byte-for-byte. Development binary
+SHA-256 is `f67c4a4a28566248818e75632eb107a0a0f16504e3000369633a37d3b3757e65`.
+Export directory: `/private/tmp/qiongli-fulltext-content-fb3d6d76`.
+
+The existing distribution checks now recognize only coherent legacy 14/32 or
+named-fulltext 15/33 inventories, require agreement between local and stdio
+profiles, and bind DSH/Marketplace counts to the same archive smoke receipt.
+Unknown additions, duplicate names, mixed profiles/targets and mismatched hashes
+remain failures; old immutable packages retain their original inventory.
+All 33 focused distribution/release-script tests pass, including legacy alpha and
+2.0.1 packet checks, the named reader extension and mixed-count/hash negatives.
+Actual temporary Codex/Claude macOS ARM64 native archives pass extracted,
+empty-PATH `check_plugins` with 15 Lite tools and the same embedded pack; their
+binary checks also exercise 33 Full tools. Archives are development artifacts
+under `/private/tmp/qiongli-fulltext-plugins-fb3d6d76`, not published v2.1.1 assets.
+
+Public-source probes used no provider credentials or private library:
+
+| Source | Actual observation |
+|---|---|
+| `https://arxiv.org/pdf/1706.03762` | PDF parsed to 27 segments; the first two returned excerpts have page-1 anchors. The second request used the digest and session cache. DOI identity was not checked; no complete-reading claim. Source SHA-256 `bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697`. |
+| PMC EFetch `db=pmc&id=3433999&retmode=xml` | JATS parsed to 25 segments, with title and Introduction anchors; structured DOI `10.1002/ece3.315`. Cached continuation passed. Source SHA-256 `fe7a0b0098f8d9d6e70022bd47af74a2dd3168d17b8db259e06348df7472f75d`. Repeated after document-scope repair. |
+| Actual Full MCP binary, isolated temporary configuration | 33 tools discovered; the same public PMC read returned `readable_text`, `identity_status: matched`, 25 segments and the same digest. Exit 0, empty stderr. This is a CLI protocol observation, not an installed-Host session. |
+
+Temporary smoke responses live under `/private/tmp/qiongli-fulltext-*`; no paper
+was added to a canonical research project. These probes demonstrate public-source
+transport/parse/continuation, not scientific interpretation or database coverage.
+
+Actual Host subagents `/root/literature_metadata` and `/root/fulltext_contracts`
+implemented bounded disjoint provider/contract work. The latter independently
+reviewed the coordinator's reader and identified multi-paper and wrapper-header
+identity leakage, unbounded emitted PDF output, XML heading/segment amplification,
+HTML misclassification and concatenated table cells. All reported issues received
+source fixes and regression cases; the final read-only recheck reports no remaining
+blocker from that review scope. The coordinator ran checks and retains integration
+responsibility; parser-internal decompression remains the disclosed limitation.
+
+One independent synthetic forward observation, `/root/fulltext_forward_trial`,
+read the two actual guides and addressed three records: a DOI mismatch, an
+unverified preprint with only introductory excerpts, and an abstract-only 403.
+It proposed actual Host search including education-specific discovery, retained
+all citekeys/evidence gaps, required digest-bound continuation and did not infer
+unseen methods or exclude a study for missing fulltext. No simulated research
+calls or writes were reported. A final source re-read found the routing
+clarification did not change its response. Final guidance SHA-256 values:
+`fulltext-fetcher.md` = `05391737262a054b71f892f487bd5ad032a737a317b3d7758435adf719953b89`;
+`literature-provider-routing.md` = `16a93c3a80ee6f1f9e74c585b4cacf9a4bdcf0dce15424b0912cec6d6338aede`.
+This single supplied-material case is coordinator-assessed behavior, not a model
+benchmark, source evidence, domain-expert review or installed-Plugin acceptance.
+No model override was selected and unavailable model identities are not inferred.
+
+The next increment is maintainer-selected real-study/installed-Host qualification,
+with parser isolation and additional document formats assessed from actual needs.
+Authenticated OpenAlex content, paid/subscription/private sources, OCR and
+Windows/Linux target-native behavior were not qualified. No release/version bump,
+installed-plugin update, push or publication is included. The existing plan and
+CLI-405 progress own this work; all 249 task states/dependencies and all 46 accepted
+rows remain unchanged. Seven program-roadmap tests and index freshness pass.
+
+
+## October 2 — selected public-paper and evidence-review increment
+
+The maintainer selected real-paper tasks, an on-demand evidence reviewer and a
+same-task comparison on the configured Codex and Claude Code Hosts. Content
+`d44c45d2` adds one shared source-bound verification guide, routes existing
+self-critique/collaboration to it and extends the existing review packet with
+claim coverage. It checks substantive claims, source access, units, methods,
+uncertainty and changed-evidence dependencies. There is no permanent agent per
+discipline, new runtime service, Host adapter, model override or research-write
+owner. Revision `2a368167` incorporates defects observed in the actual reviews.
+
+Corpus `b4ce372f` adds three attributed public-paper packets under
+`evals/research_journey/public-papers/`, with source/task hashes, XML paragraph
+selectors, licenses and a stdlib integrity check. These are supplied-excerpt
+appraisal and writing tasks, not new searches, full reviews or data reanalyses:
+
+| Paper | Bounded task |
+|---|---|
+| Ritchie et al. (2013), DOI `10.1371/journal.pone.0078976` | Quantitative school experiment; Q1 appraisal and Q2 continuation with actual previously withheld sensitivity paragraphs from the same article. |
+| Severe et al. (2024), DOI `10.1371/journal.pone.0297771` | Qualitative interview appraisal, source-author interpretation and a bounded Chinese writing task. |
+| Trumble et al. (2023 online / 2024 issue), DOI `10.1007/s10459-023-10274-3` | Audit of a published health-professions systematic review, not execution of another systematic review. |
+
+Manifest SHA-256 is
+`fb9f1279115f22d41fca225642a16ad2cfcf66c882115b4fd8c8f814c28b5b0a`;
+withheld criteria SHA-256 is
+`c05a5ad7f2fd4bb1c8e8d0baa14f10b0946a7895dfd9d193be5db4cf5796c611`.
+The initial guidance snapshot binds content `d44c45d2`, with manifest SHA-256
+`8d05a63c4ef86825ebdab807b9b8d4a9b015f9e3948affbd3f48ae7488e24b17`.
+Raw publisher/PMC XML was retrieved to `/private/tmp/qiongli-public-papers` and
+matched against the attributed excerpts, DOI, license and paragraph selectors.
+The XML, figures, tables, supplements and underlying data were not supplied to
+task runners. The quantitative XML names CC BY without a version; none is added.
+
+Actual native tasks `/root/public_quantitative_trial`,
+`/root/public_qualitative_trial` and `/root/public_review_trial` produced all four
+preselected checkpoints. Q2 received the actual Q1 bytes; originals remain
+unchanged. Runners did not receive the rubric, sibling answers or parent verdict.
+No configured model was replaced; exact native model/token/cost data was unavailable.
+
+| Checkpoint | Observed result and coordinator assessment |
+|---|---|
+| Q1, 260.709 s | Distinguishes 109 pupils from 108 learning sheets, within-class retrieval from between-class mind-map allocation, adjusted analysis from causal mechanism, and a pilot proposal from implementation. Initial assessment passed; final reconciliation reopens the post-hoc computation/units check below. |
+| Q2, 207.528 s | Actual added evidence narrows Q-C2/Q-C3/DEC-Q1: without the covariate, retrieval p=.14 and interaction p=.41. Retains prior history and IDs, does not infer no effect, and attributes the GLMM report without claiming the supplement was read. Passes the fixed bounded checks. |
+| L1, 238.706 s | Retains 19 interviews, 68 invitations, recruitment/context limits, labeled quotation translation and the difference between author-reported saturation and independent verification. Passes the fixed bounded checks. |
+| S1, 271.250 s | Separates seven databases from the EBSCO platform; 1,818 records, 56 studies, 63 experiments and 43 positive experiments. Flags abstract/body terminology differences and missing screening/appraisal details; invents no pooled or clinical effect. Passes the fixed bounded checks. |
+
+Artifacts are under `/private/tmp/qiongli-evidence-trials-tzjdi7x9`. Initial
+whole-answer span assessment `coordinator-review.json` has SHA-256
+`a41d1c436e9ea1025f3a8c0648a5a19e4caad7a5a6e5a806fb777a27312fdadf`.
+Final addendum `final-reconciliation.json` has SHA-256
+`2bc019a9239a2f90ecbd8718c19534f7fc4810264bb5615e77ad36c57d70fa12`.
+It preserves the initial assessment but records the final denominator as four
+completed checkpoints, three passing coordinator review and Q1 with one reopened
+`method/denominator` check marked unreviewed. These are model judgments, not
+automated entailment, human expert review or program acceptance. Native task
+recovery included one unavailable `TextEncoder` helper and one nonexistent
+guidance-path read; both recovered without changing sources or fabricating work.
+
+The configured Codex CLI 0.159.3 and Claude Code 2.1.287 independently reviewed
+the same Q1 source/candidate through existing `qiongli agent ... prepare/collect`.
+Both received identical 33,338-byte stdin, SHA-256
+`534962d026c2aa9d98a12ee0cafecc1dec482118b41e50f240575cec2e23c8b7`,
+without the rubric, Q2 or the other's report. Transport run/project IDs were
+explicit synthetic fixtures with unknown component readiness; these were not
+registered Full MCP runs or installed-Plugin qualification. Actual process exit
+and collection both succeeded, with zero retries and process groups reaped.
+
+| Host / actual execution ID | Observed time and usage |
+|---|---|
+| Codex / `01a0fbec-0df8-7823-823d-1d1a80055f0a` | 231.637 s; input 29,555, cached input 13,184, output 9,278, reasoning output 5,696 tokens as separately reported fields. Exact model and cost unavailable. |
+| Claude Code / `ff9bc908-9735-4bca-b8ae-7e162a391ff2` | 207.124 s; input 12,334, output 22,103, cached input 0. Configured model reported as `deepseek-v4-pro[1m]`; Host name does not imply an Anthropic model. Host-reported USD 0.614245 has unknown cost basis, not verified billing. |
+
+Both reports initially found no mandatory candidate correction. Their successful
+transport is separate from quality: Codex inferred self-review because the prompt
+could not supply its future execution ID; Claude described model comparison as
+human comparison and stated a possible covariate pathway too categorically.
+The guide now leaves unavailable identity to coordinator reconciliation and
+preserves uncertainty in the review itself. Original reports remain unchanged.
+Codex also emitted configured MCP startup diagnostics; no tool-call items appear
+in its completed JSONL. Transport flags do not prove complete config isolation.
+Allowlisted comparison observations are in
+`/private/tmp/qiongli-two-host-zrn6vurm/comparison-observation.json`, SHA-256
+`30c714b8d7f33b6e5b04d8f5c62bee60a2cce2607d935fdc5db8a08a9e397df2`.
+
+A fresh `/root/review_reconciliation_trial` received the updated guide, actual
+sources/candidate/reviews and allowlisted execution receipts, without parent
+findings. Its unchanged 5,053-byte answer, SHA-256
+`df2cbb3df9488d353d745707dc356a9a504d53731d210b6426e43ccf08ef9c93`,
+corrects execution/human-review labels, retains the possible-path qualifier and
+distinguishes old review guidance from the new guide. It also questions Q-C2's
+percentage-point/adjusted-mean wording. The source reports descriptive percentages,
+z-score analyses and post-hoc mean differences labeled 14.93% and −6.16%; Codex
+accepts percentage points, while the fresh reviewer requests narrower wording.
+This is not a demonstrated numeric error, but the supplied excerpts do not resolve
+the exact post-hoc computation. The coordinator preserves that disagreement and
+reopens the check; proposed wording retains the author's labels and the missing
+calculation scope. Captured answers are not repaired or silently rescored as passes.
+This follow-up tests the changed reconciliation guidance only; the earlier author
+tasks and external reviews were not rerun under it.
+
+Focused verification passes: 60 distinct Python tests covering content contracts,
+links, handoffs, structure, Marketplace projection and existing journey evaluators;
+the capability validator; root Skill validation; and corpus integrity against raw
+XML with changed-count, swapped-paper and forged-anchor negative cases. Resource
+links were rechecked after the small guide correction. Final embedded-pack test
+and fresh native export/projections pass. An initial lock-generation invocation
+used a short commit hash and correctly failed before writing; it was rerun with
+the full source commit. The existing atomic API deprecation warning is unchanged.
+
+Final native pack: content source `2a36816760437a9b09ce307837ce03728ebc8c78`,
+446 resources, content root
+`21ca4da75c492d9b420b14a3868f05f76b5673be896e23c65e30080c51da3688`,
+pack `cdd51be04eaf129ac08305f70f4585be2cd5623e269a9016c32baf72e5566355`.
+The development binary SHA-256 is
+`d0f8c13ee511e9cc1f78a930740a6c5b8169bfb43d3cf70b942e960824bca200`.
+Codex/Claude/DeepSeek projections preserve all 444 non-manifest content resources
+byte-for-byte, expose 22/2/22 Skill entries and have no missing resource links.
+Final exports and `projection-check-final.json` remain beside the trial artifacts.
+The original external trials used the earlier pinned binary/guidance; these final
+package checks do not relabel those runs as final-package qualification.
+
+All seven program-roadmap tests and index freshness pass. The ledger comparison
+preserves all 249 task states/dependencies and all 46 accepted rows; every row
+except CLI-405 progress is unchanged. Final diff review and whitespace checks
+pass; integration uses the frozen-source guard and local fast-forward merge,
+without rerunning unchanged checks solely for commit/merge.
+
+This increment records progress under CLI-405 without changing any task state,
+dependency or accepted row. The next increment is maintainer-selected review of
+actual tables/supplements and installed-Host/project end-to-end qualification.
+One candidate pair does not estimate accuracy gain, Host superiority or an optimal
+agent count; retain on-demand bounded collaboration. No release/version bump,
+installed-user Plugin update, private research access, push or publication occurred.
+
+
+## October 2 — selected workflow reliability execution plan
+
+The maintainer now authorizes planning and executing the six improvements found
+in the preceding review. This is one connected research-workflow outcome, with
+the following order and completion evidence; a successful subtask does not close
+the other rows. Reuse canonical content, native readers, project approval/CAS,
+existing search and evaluation owners, and the user's configured models.
+
+| Order | Work and owner | Required completion evidence |
+|---|---|---|
+| 1 | Resolve the quantitative example against actual tables/supplement; preserve source and claim history under the existing public-paper corpus. | Retrieved source identity, inspected table headings/notes and supplement passages; explicit resolution or evidence-bounded wording for Q-C2; a new answer-bound continuation without altering prior outputs. |
+| 2 | Bound native fulltext parsing through the shared runtime and its CLI/Lite consumers. | Normal PDF/XML reading plus malformed, oversized, timed-out and resource-limited parsing cases; the supervising MCP remains responsive and child work is reaped; compatibility and public-network restrictions remain intact. |
+| 3 | Exercise the installed development candidate in an isolated actual Host/project. | Search → source read → extracted evidence → draft → review → approved project write → process restart/resume, with current revisions and stale-review rejection. Use public data and isolated profiles; distinguish actual model/Host behavior from direct protocol tests. |
+| 4 | Measure and improve existing provider/Host search routing on fixed public queries. | Predeclared known-item and topic queries, observed source contributions, duplicates, body readability, identity mismatches and elapsed time; source-bound comparison and narrowly justified routing changes. Unavailable providers remain in the report. |
+| 5 | Preserve actual failure modes as reproducible regression material using existing journey evaluators. | Durable minimal public-source/answer observations and checks for unit/denominator errors, abstract/body conflicts, changed versions and review attribution; frozen answers and negative cases cannot be replaced with passing fixtures. |
+| 6 | Consolidate Skills and current roadmap state. | Shared guidance remains discoverable without duplicated constraints, field-specific judgments survive, outdated next-step wording is removed from the current horizon, affected checks and regenerated content projections pass. |
+
+Independent review is bounded to consequential source or implementation questions;
+one coordinator owns integration. Compare accepted corrections and observed cost
+before expanding collaboration. No permanent discipline-Agent registry, new
+research store, publication or installed-user-profile update is selected.
+Track implementation, observations, unresolved gates and integration below, then
+update CLI-405 progress once at integration without promoting accepted evidence.
+
+### Implementation and source-bound observations
+
+The scoped source increments are `2ae0c8d6` (shared Skill guidance), `9f1bd51e`
+(parser isolation, credential routing and embedded pack), and `96d20848`
+(public-table continuation and frozen regressions). No fixed Agent team or new
+research store is introduced. Existing source/review and project write owners
+remain authoritative.
+
+**Actual tables and supplement.** The frozen public-paper corpus now includes
+`quantitative-education/tables-source.md`, `tables-task.md` and
+`tables-manifest.json`. The source packet SHA-256 is
+`3eca31d16e9ddf2803697236fe9f904c3a86f4743756f8b0bb930c92d4b7ac34`;
+the manifest SHA-256 is
+`f865b00eac01a6903974317f19a9f535e2819da276730b2fdb1323adfaca8530`.
+The packet preserves Table 1, Tables S2/S4/S5 and the Text S1 analysis excerpt
+from the actual publisher material, with raw-source identities in the manifest.
+The coordinator inspected the table and rendered supplement, then checked a
+fresh source-bound `/root/table_continuation_trial` answer. That task saw the
+transcribed packet, not the publisher originals or earlier reviewer conclusions.
+Its original answer is preserved as `observations/q3-answer.md`; execution/session
+and model fields unavailable from the dispatch are not invented.
+
+Table 1's descriptive differences must not be substituted for the author's
+adjusted post-hoc values. The precise scale conversion behind the reported
+14.93% and −6.16% remains unresolved; retain the labels and computation limit.
+Table 1 totals 108 while S5 reports 109 observations. S4's P5 total is printed
+as 38 although its cells sum to 58; S2's condition totals and other denominators
+also disagree. Do not repair the source or explain all discrepancies as one
+missing participant. Text S1 supports the named covariate and participant random
+intercept, not an invented classroom adjustment or corrected software call.
+The continuation retains Q-C1/C2/C3, DEC-Q1 and stage history with bounded wording.
+Original retrieval/review material is retained locally at
+`/private/tmp/qiongli-table-source-dgojnamy` and the forward task at
+`/private/tmp/qiongli-table-continuation-leyjy8q0`. Signed publisher redirect URLs
+are excluded from the durable manifest. This is model/coordinator evidence, not
+domain-expert or human research acceptance.
+
+**Bounded parsing.** The existing native CLI, Full/Lite MCP and standalone Lite
+reader share a same-executable parser child. It receives document bytes only,
+with a cleared environment, 12 MiB input and 16 MiB response ceilings, a 30-second
+supervisor deadline and independent child watchdog, and a 512 MiB Rust requested
+heap ceiling. The small stdlib allocator boundary preserves unrestricted parent
+allocation and System realloc/zeroed behavior. The parent reaps the child on
+failure and validates the returned source digest and segment count. These are
+not OS RSS, stack or native-mapping limits, an OCR service or a security sandbox.
+Existing public URL/DNS/redirect restrictions and write approvals are unchanged.
+Ownership, review policy, affected-check routing and the runtime contract include
+the allocator explicitly.
+
+Actual normal and compressed-PDF probes succeeded on CLI and standalone Lite;
+a 612,083-byte PDF whose stream expands to 600 MiB hit allocation failure, and a
+subsequent ordinary PDF was readable. Raw observations and exact earlier binary
+hashes are in `/private/tmp/qiongli-worker-boundary-d2f14x1d`. After the allocator's
+final zeroed/realloc changes, the initial installed CLI candidate was retested with the same
+inputs: success, allocation abort, success (0.025/0.804/0.020 seconds). Its record
+is `current-worker-smoke.json` in the installed-journey directory below. These
+direct worker measurements do not by themselves establish MCP responsiveness;
+the persistent supervisor/protocol tests cover failure handling and recovery.
+
+**Fixed public search observation.** The predeclared three queries are the Ritchie
+paper's title, “Attention Is All You Need”, and “retrieval practice classroom
+delayed retention”, with limit 3 per provider. Artifacts are retained at
+`/private/tmp/qiongli-search-observation-hyrf6ucc`. With isolated empty credentials,
+12 of 15 calls were not run and three arXiv calls had network errors/timeouts.
+With normal configured read-only provider access, all nine selected active-provider
+calls were blocked by the shared credential loader, including explicit arXiv.
+There were no successful provider queries from which to estimate recall or rank
+providers. The first observation used a mutable development path rebuilt during
+the trial; its two observed hashes are retained, not asserted identical.
+
+Actual Host web search took 2.250/3.236/2.103 seconds. Its predefined nine top-result
+URLs include six paper mentions representing three works, three duplicate paper
+mentions and three non-paper pages. Body reads matched public paper identities;
+Host output supplies no byte digest and the arXiv version was unknown. A separate
+fourth topic result used for body reading is excluded from top-three contribution
+counts. Search success and readable body are separate observations.
+
+The measured credential fault is fixed at the existing `for_search` owner:
+explicit public-only or inactive selections use provider preview state without
+loading unrelated secrets. Queries that require configured credentials retain
+the existing bounded loader; this is not per-provider credential isolation.
+The post-fix arXiv-only repeat used the immutable initial installed binary, with matching
+before/after hashes. All three queries reached network diagnostics (1.199/15.003/
+1.398 seconds), with zero credential-unavailable failures. Hit counts remain
+unknown because network calls failed. No provider quality advantage is claimed.
+
+**Durable failures and shared guidance.** The existing public-paper evaluator now
+replays five selected, exact answer spans: units, denominators, abstract/body
+conflict, source revision and review attribution. Frozen observations remain
+three passes and two failures; original answers and failed human-review labels
+are not rewritten into passing fixtures. Six additional negative mutations
+protect answer/source bytes, denominators, anchors, reviewer identity and result
+promotion. Parent model judgments are labeled as such, with unavailable event
+capture explicit. This is a selected-span regression corpus, not an overall
+research-quality score.
+
+Self-critique links the existing A–M owners instead of repeating their constraints;
+field-specific references remain available. Fulltext guidance now explains parser
+failure limits and bounded fallback without repeated identical requests or weaker
+network guards. The current roadmap horizon links this single six-part increment;
+accepted ADRs and historical evidence remain unchanged.
+
+### Focused verification and candidate identity
+
+The 35 affected Python ownership, boundary and registry checks pass. The 39
+Skill/resource/handoff/structure/roadmap/evaluator checks pass after correcting a
+stale Stage B audit expectation; the original failure and focused two-test rerun
+are retained as a tooling correction, not a research answer repair. Capability
+and root Skill validators pass. The public corpus integrity check, five frozen
+observations and its negative mutations pass their expected results.
+
+Native checks include the allocator's two tests, runtime supervisor/reader tests,
+eight CLI stdio tests, 19 standalone Lite MCP/planning tests and embedded-content
+verification. Six runtime loopback cases initially hit the execution sandbox;
+the nine-case Zotero companion fixture set passed with loopback permission, without
+accessing a real Zotero library. One CLI socket fixture likewise passed when
+permitted. Runtime/allocator all-target Clippy passes; after the final allocator
+change its two tests and Clippy were repeated. The pre-existing atomic API
+deprecation warning remains. Existing checks are reused when inputs are unchanged.
+
+The initial immutable CLI candidate has source
+`9f1bd51e5cbb389ef13eb7751cc5b90cc042539e`, content source
+`2ae0c8d64a1bfc5c9ff9545b869d5edd300a532b`, and binary SHA-256
+`a799e2496d0e3d9c9bf8904ac35bf76cfa21c365279320943abc8aefe912db30`.
+Its 446-resource native pack has content root
+`632b6a4cd7ea19e2ef34041f8ef0f01417010303222d6f15c5ab9c3838841e6a`
+and pack SHA-256
+`77d56766c582666ef08730c9981fd66f5a0830b213a6b0f79260411af464a7f4`.
+Fresh native export and Codex/Claude/DeepSeek projections preserve all 444
+non-manifest resources byte-for-byte, with 22/2/22 Skill entries. Native Plugin
+internal resource links have zero missing targets. The projection observations
+are scoped package checks, separate from actual Host qualification.
+
+
+### Installed Host journey and compatibility corrections
+
+The actual isolated development profile/project is retained at
+`packages/qiongli-native/target/installed-journey-qku0zg37` (ignored local artifacts,
+not durable accepted evidence). It uses Codex CLI 0.159.3 and the actual enabled
+`qiongli@qiongli-cli-local` 2.1.1 Plugin, with 22 Skills and Full MCP's 33-tool
+inventory. Native source preview/apply and official Codex registration verified
+source receipts, enabled state and cached bytes. Only the isolated profile was
+updated. The original binary and raw author output remain unchanged.
+
+Author session `01a0fc2e-f432-7b33-8110-393bc29f6fe6` actually discovered and called
+seven installed public/read/preview tools, performed native search and Host web
+search, read publisher HTML body, extracted J-C1–J-C6, drafted a bounded teaching
+paragraph and performed explicitly labeled self-review. Its recorded turn context
+confirms the configured `gpt-6-astra` / `xhigh`, without model override. The process
+exited 0 after 738.766 seconds; this is an elapsed observation, not a benchmark.
+`author-answer.md` SHA-256 is
+`ba298b03ae22590955249117778a294d9ee0669b99ba6a293721f71aac9b1129`.
+The coordinator's prompt accidentally supplied the wrong title for the correct
+DOI. The author corrected the DOI-linked identity and retained the mismatch;
+this was not an intentionally seeded test. Four providers were unconfigured,
+arXiv timed out, and native XML access was blocked by a nonpublic DNS result.
+Host HTML reading supplied body passages but no byte hash or native segment IDs.
+These limitations are preserved, not relabeled successful native discovery/read.
+
+Two actual Host compatibility failures justified small existing-owner fixes:
+
+- `2ae52aa4` replaces the fulltext input's root `oneOf` with the existing plain
+  object fields. The original Host exposed only `offset`, losing required URL.
+  Runtime continuation digest, URL/access and unknown-field checks remain intact.
+- `d50a1ef0`, corrected by `f3f1379a`, lets capture preview compute a new capture ID
+  through `ResearchCaptureDraftV1::into_capture`. Only `capture_id` may be omitted;
+  version/kind/binding remain required. Preview returns the normalized capture
+  alongside its existing plan. Supplied IDs are never repaired; apply still
+  requires that complete object, digest, explicit approval and current revisions.
+  An independent static review of the initial patch found partial-envelope
+  schema/runtime disagreement. The final smaller correction was reviewed by the
+  coordinator and exercised by positive and negative protocol tests; the earlier
+  review is not represented as an independent review of the final correction.
+
+The fixed immutable candidate's source is
+`d1b3af4ff985bc37bc306755ccba7cb43800da0e`, content source
+`f3f1379a9d99119e51d3a7e9a324019c33730a0c`, binary SHA-256
+`e0a8aace09729fac8f3a152b9390ccfe3f66b973a0f40347c218051bdec0ba79`.
+Its 446-resource content root is
+`27823ab6da29beece98c5a974776d09319fb4cc8be4fd218a71ed6d05ec36fcc`,
+pack SHA-256
+`a3cf0c13da6e93efd2c659809badd2d51832f7fc9fcee18c006ac8f10a7a25b8`.
+Native guided update applied source receipt
+`ac37f3cdd05e3f358c0a449c729ce9514b3b71be6ac1fb076a994d2ddcccd532`,
+then reviewed official `plugin remove` / `plugin add` actions refreshed the old
+verified cache. Cached binary hash and corrected contracts match the candidate.
+Fresh native export and Codex/Claude/DeepSeek projections again preserve all 444
+non-manifest resources, expose 22/2/22 entries and have zero missing resource links.
+
+A new read-only process resumed the same author session on the fixed installation
+(exit 0; 135.706 seconds). Actual fulltext invocation now included URL, DOI, offset
+and limit; the existing network guard still blocked the source. The installed
+preview succeeded after omitting only the invalid ID. Structured comparison
+confirms no research/binding field changed. Its capture is
+`cap_fdd144424da14f8b543c4635a72e1b5bcd91a8caaa6c35601eef36bf09ff1dce`,
+plan `6ef057824904624b4385da585481a0d6951471c35abc72698fa521d73e5222f1`.
+This is continuation by the same author, not another reviewer.
+
+**Review and approved writes.** The coordinator inspected the unchanged complete
+answer and separately retrieved publisher XML (SHA-256
+`18acae39e5cfbb8832a6ab616f49de795af8130ef9b1be52e03028febb202cb2`).
+XML anchors s2a2/p1, s2b/p1–4, s3a1/p1, s3a4/p1, s3b/p2–7, s4/p5 and s4a/p1
+support the transcribed values and bounded assessment. E1's 109 is recruitment,
+not a universal analysis denominator; E2's p=.002 refers to the joint follow-up
+model. Table/supplement inconsistencies, method questions and the author's HTML
+hash remain unresolved. This later source inspection is not attributed to the
+author. `coordinator-review.md` records model review, not human/expert acceptance.
+
+The coordinator used the exact installed preview to approve native CLI intake of
+the original capture as pending history. Its consolidation preview correctly
+reported scope-boundary and contradiction conflicts. The original was neither
+rewritten nor consolidated. A separate reviewed continuity capture,
+`cap_291f0110d55973ce9d0d1ad611d62088759f8dc38a30e00f9bedc79f5470b6bd`,
+preserves Ritchie2013, J-C1–J-C6, the exact paragraph wording, tentative J-DEC1,
+source scopes and unresolved gaps. One coordinator owns these native writes;
+they are not reported as model-initiated Host apply calls. An initial coordinator
+preview rejected a trailing space introduced while splitting the paragraph into
+bounded fields; the corrected fields join to the unchanged original paragraph.
+The rejected observation is retained; the validation rule was not weakened.
+
+The inspected native consolidation plan created only `context/research_state.md`
+and `context/decision_log.md`, advancing project/library revision 1 to 2. The
+actual file hashes match the preview's proposed hashes. Generated decision row
+`dec_291f0110d55973ce_1` retains J-DEC1 in its tentative statement. `stage_handoff`,
+paper-note and standalone manuscript files remain candidates; this existing owner
+does not write them. No project stage, scope, locked decision or acceptance changed.
+
+A diagnostic replay of the same reviewed continuity was separately previewed as
+ready at revision 1 under capture
+`cap_f187c91318b6bb2618f5301bea186e6bd309654cb101f9c22936fc2c0c6608f6`.
+After the approved revision-2 write, applying that exact old consolidation plan
+returned `capture-consolidation-conflict`. All project-file and library-file
+hashes were identical before/after rejection. This is an actual stale revision
+negative, not a fabricated digest failure or an extra research review.
+
+The execution profile used read-only shell and exact Plugin-scoped tool allowlists.
+Early sandbox/model-routing and default-approval attempts failed without research
+writes. Automatic approval review rejected a broad `--approve-for-me` attempt;
+that mode was not used. The subsequent approved narrower configuration retained
+all non-allowlisted tool approval boundaries, no model override and no private
+library access. No credential contents were inspected by the coordinator or included in the
+trial records. The Plugin-scoped
+configuration follows the official [Plugin documentation](https://developers.openai.com/plugins/build/plugins).
+
+Final compatibility checks: nine MCP schema tests, capability validation,
+runtime all-target Clippy and native formatting pass. CLI stdio has eight passing
+cases, including normalized/full capture equivalence, missing envelope, forged
+identity, direct-draft apply and portable-delivery rejection. Its loopback fixture
+initially hit sandbox denial and passed when granted local fixture permission;
+no real library was accessed. Embedded pack and runtime registry checks both pass.
+The pre-existing atomic deprecation warning is unchanged. Corpus integrity again
+reproduces the frozen three supported/two failed spans and its negative checks.
+
+
+**Restart/resume.** A third process resumed the same installed session (exit 0,
+120.295 seconds). Actual project/artifact/coverage tools and read-only local reads
+confirmed revision 2, both persisted artifacts and their receipt-bound hashes,
+the J-DEC1/generated-row mapping, and missing stage-handoff/note/manuscript files.
+It preserved the author HTML/coordinator XML distinction and all denominator,
+method and repeated-assessment limits. Coverage reports one current/two stale
+captures and zero pending-review count; the original proposal remains semantically
+unconsolidated in history, not accepted merely because a counter is zero. Its
+report checked current project hashes against the stale-rejection observation.
+All three recorded turn contexts retain `gpt-6-astra` / `xhigh` and read-only shell.
+`resume-answer.md`, `resume-events.jsonl`, `all-turn-model-observations.json` and
+`stale-consolidation-rejection.json` preserve the observations locally.
+
+### Integration audit and remaining scope
+
+| Selected outcome | Completion and limits |
+|---|---|
+| Actual tables/supplement | Retrieved identities and inspected source packet retained; Q-C2 uses evidence-bounded wording where computation/denominators remain unresolved; original answers unchanged. |
+| Bounded parser | Shared CLI/Lite supervisor and allocator implemented; normal/malformed/oversized/timeout/resource/crash/recovery checks and actual compressed-PDF probe recorded; no OS RSS or security-sandbox claim. |
+| Installed Host/project journey | Actual installed author search/body/extraction/draft/self-review; coordinator source review and approved native writes; restarted installed Host verifies revision/continuity; genuine stale-plan rejection changes no files. Failed native network paths and missing standalone handoff artifacts stay explicit. |
+| Search observation/routing | Fixed queries and unavailable providers recorded; measured unrelated-secret fault corrected at existing routing owner; Host contributions and duplicate/body checks retained without provider-quality ranking. |
+| Durable regressions | Frozen actual failure spans, source identities and negative mutations replay unchanged; observed failures remain failures. |
+| Skills/roadmap consolidation | Duplicate checks replaced by existing owners; discipline guidance retained; current horizon aligned; final pack/projections and affected checks pass. |
+
+These six bounded development outcomes are implemented. They do not establish
+program/release, domain-expert or general installed-Host acceptance. The next
+increment is configured-provider/transport qualification on real quotas and
+representative discipline tasks, then an explicitly selected formal handoff
+persistence flow if needed. Reuse current owners and measure concrete failures
+before adding agents or another store. Source denominators/computation, human
+academic review, private-library access and target-native distribution qualification
+remain separate gates; no research uncertainty is closed by a software check.
+
+At integration, only CLI-405's progress text changes. All 249 task states and
+dependencies and all 46 accepted rows remain unchanged. Final diff review keeps
+the single trailing-space exception in the frozen, unedited Text S1 quotation
+(`tables-source.md:87`); trimming it would invalidate the observed source packet.
+All other changed lines pass whitespace checks. The frozen-source guard, generated
+program index freshness and seven program-roadmap tests are run before the local
+fast-forward merge. No additional checks are scheduled solely because of a commit
+or merge; no push, publication, version bump or user-profile installation occurs.
+
+
+## October 2 — public channel qualification follow-up
+
+The maintainer selects the next public-channel increment after the six-part
+reliability work. Smallest useful outcome: execute bounded public queries with
+existing configured providers, distinguish credential/DNS/HTTP failures, and
+retain usable provider results when another configured channel cannot load its
+credentials. Preserve network guards, configured models and existing project
+write owners; no private corpus or user-profile installation changes.
+
+Predeclared hypotheses: shared credential loading blocks selected channels before
+network; special-use DNS answers explain the native fulltext guard; provider
+transport failures differ from credentials and zero results. Start with the same
+known-item title and at most three records per active provider, without retries;
+retain original observations. Validate the earliest owner with deterministic
+negative cases and repeat only the changed combined search. Record current quota
+access as unavailable when no authenticated request executes. Formal handoff and
+representative discipline assessment follow this bounded channel increment.
+
+### Observations, correction and integration
+
+Base `4ca98350079cb7b515465c5034cef7e4fa236d0b`; implementation
+`ef7885ded17dc4f53f9a89eee0fe1876168202c9`; regenerated-pack candidate
+`a432ea356c8f979e9a16ac639ba614707ae47ce7`. The before process uses the unchanged
+prior candidate `d1b3af4ff985bc37bc306755ccba7cb43800da0e`, binary SHA-256
+`e0a8aace09729fac8f3a152b9390ccfe3f66b973a0f40347c218051bdec0ba79`.
+The new macOS arm64 development binary has SHA-256
+`f318a4ef2052186164d6d3f3fddb19803abcae974742036090b7d976e0915749`, content source
+`ef7885ded17dc4f53f9a89eee0fe1876168202c9`, content root
+`f4e87b2e1c57ce5f9d40a988451efd16082dd3e3954907d19053884a0a46635a` and pack
+`2014a0a12df531522820d5e0a815d5275caf6d37d8617f86e0f97005e8ec568a`.
+
+Actual JSON-lines MCP probes use the native Lite CLI and existing configuration
+owner, without Host/model overrides or credential inspection. Redacted status
+reports OpenAlex, Semantic Scholar and arXiv configured; Crossref lacks email
+and PubMed lacks a key. Only the known-item title **Attention Is All You Need**
+was executed, with limits of three and no retries. The other two queries retained
+in the observation plan were not executed; there is no three-query comparison or
+provider-quality ranking. A title-filtered result is distinct from the raw count.
+
+| Actual call | Outcome |
+|---|---|
+| Before: OpenAlex alone | Credential-load tool error after 3.007 s; hits unknown; no provider HTTP response. |
+| Before: Semantic Scholar alone | Immediate same error while the shared loader remains busy; not proof that its own key was attempted. |
+| Before: arXiv alone | Complete, raw count 3, one retained known-title record in 1.308 s. |
+| Before: all three selected | Credential-load tool error after 3.003 s; arXiv never executes. |
+| After: identical combined request | Partial in 4.108 s; arXiv raw count 3 and one retained `1706.03762v7` record; two explicit credential-unavailable warnings. |
+
+The shared deferred credential loader was the earliest failing owner: a timeout
+returned before usable selected channels could execute. It now derives an
+uncached fallback from the metadata preview, disables entries with unresolved
+values, and executes usable selected channels. A completed credential load still
+supersedes the fallback. Sole blocked selections retain the bounded error;
+unselected channels receive no warnings and unavailable channels receive no
+fabricated zero-result counts. This does not repair secret-store access itself.
+
+An authorized DNS-only probe returned `198.18.0.0/15` addresses for the four
+selected public domains. This is non-globally-reachable benchmarking space in
+the [IANA registry](https://www.iana.org/assignments/iana-ipv4-special-registry).
+System HTTP/HTTPS proxy flags were enabled; proxy environment variables were
+absent. The specific mapping/secret-store cause is unproven. The earlier sandbox
+DNS attempt could not resolve and is not counted as a provider failure. The
+unchanged native fulltext guard correctly refuses these addresses before HTTP;
+the prior fulltext failure is reused, not presented as a fresh body retrieval.
+No DNS/proxy/permission change or network-guard bypass was attempted. No
+authenticated provider request completed, so API authentication and quota
+qualification remain unavailable, not failed or accepted. arXiv transport
+succeeded; that does not qualify other endpoints or fulltext access.
+
+Canonical Skills now distinguish metadata configuration from credential/query
+success, explain mixed-search partial results and correct native setup guidance:
+native configuration writes/wizard remain unavailable. Standalone Lite's wizard
+is unchanged. Public Host reading remains a separately attributed option under
+the existing access rules; no Host body read was executed in this follow-up.
+
+Validation: one fallback/cache unit case, all 11 runtime Lite-MCP cases, all 95
+standalone Lite cases, 21 focused Python contract/content checks, capability
+validation, runtime all-target Clippy, native formatting and both CLI embedded
+pack/registry cases pass. The pre-existing platform atomic deprecation warning
+is unchanged. Native export verifies 446 resources; all 444 non-manifest bytes
+match Codex/Claude/DeepSeek projections, with 22/2/22 entries and no broken
+resource links. These are package projections, not new installed-Host trials.
+
+Local observations are under the private temporary directory
+`qiongli-channel-qualification-dukx8djh`: `plan.json`, redacted status and
+`known-attention-*.json`, `mixed-before.json`, `dns-network-permitted.json`,
+`candidate.json`, `after/mixed-after.json` and `projection-checks.json`.
+The original binary hash and before responses remain unchanged. Temporary files
+are local observations, not durable accepted evidence. Main-agent review is
+self-review. At integration, only CLI-405 progress changes; all 249 task states
+and dependencies and all 46 accepted rows remain unchanged. The generated index,
+seven roadmap tests, whitespace check and frozen-source guard pass before local
+fast-forward integration. No push, publication, version bump or normal user
+Plugin/profile update occurs. Next select representative discipline assessment
+and, if needed, the formal handoff persistence flow using existing write owners;
+unresolved credential/transport qualification stays explicit.
+
+## October 2 — representative discipline transition assessment
+
+Continue from `61de2204bda88e29dd8e19836e1268b9ee7223fe`. The smallest outcome is
+two source-bound C-to-F exercises: the existing education experiment with its
+actual Q3 predecessor, and a computing benchmark with newly inspected public
+source passages. Assess whether design decisions and final prose preserve the
+same evidence limits, source/claim IDs and unresolved prerequisites. The main
+agent executes and reviews both; this is transparent self-review, not a blind
+forward test or evidence of model accuracy improvement. Existing frozen failures
+remain unchanged. No private data, experiment execution, installation or canonical
+research-project writes are selected. Formal handoff persistence follows separately.
+
+Before drafting, retain each task, source/predecessor hashes and review criteria:
+education must preserve measurement timing, adjusted versus unadjusted evidence,
+unit/denominator uncertainty and DEC-Q1; computing must preserve source version,
+benchmark/evaluation split, measured versus estimated quantities and actual
+execution status. A changed source or unsupported claim must reopen only the
+affected decision. Update existing guidance only where the source-backed exercise
+identifies a useful missing decision rule; do not add another agent registry,
+workflow schema or store.
+
+### Bounded results and candidate
+
+Implementation `14e33e19384665dc0d96b5366a466e9d041ed7e9` adds the missing
+adjustment-timing decision at the shared Stage C owner and benchmark quantity/split
+boundaries in the computing guide. The two exercises and frozen self-review
+annotations live in `evals/research_journey/public-papers/discipline-transition/`.
+Education retains Q-C1/Q-C2/Q-C3, DEC-Q1 and the actual Q3 predecessor while carrying
+the adjustment and unresolved table limits into proposed prose. Computing keeps
+M-C1/M-C2 and DEC-M1 conditional on the evidence appropriate to each claim.
+Neither exercise executes a study, benchmark or canonical project handoff.
+
+The computing source notes come from actual Host reads of the
+[versioned paper HTML](https://arxiv.org/html/1706.03762v7) and
+[PDF text](https://arxiv.org/pdf/1706.03762v7). The read exposed a table/body
+discrepancy; its cause stays unresolved. PDF screenshot requests returned references
+without viewable pixels in this tool surface, so no visual-table inspection is
+claimed. Raw download hashes are unavailable; the note digest identifies only the
+coordinator's short paraphrase. The adjustment reference's PMC body presented a
+browser check; its [PubMed abstract](https://pubmed.ncbi.nlm.nih.gov/19525685/) was
+read, without claiming full-article review or working around that check.
+
+The tasks were declared before drafting; the same agent then refined guidance,
+wrote candidates and annotated two selected manuscript spans. Their source-bound
+self-review supports these bounded decisions, not a claim that a model's failure
+rate improved. The original 20 corpus files are byte-identical to the baseline.
+Existing five-span replay remains three supported/two failed; the two additional
+spans are separately labeled self-review. Four new negative mutations reject
+changed source notes, changed answers, forged anchors and independent-review
+misattribution. The same existing projection owner evaluates all spans; no new
+semantic grader or schema is introduced.
+
+Tasks SHA-256 `a1e5bfe363b85f25250d603e4aa81b1527ca25e41f558a23011046837506a9b1`;
+notes `904356512006f0ffc76fd148d98986eab2924623089b0d048241709006872322`;
+answers `e78915208a65133b503a4da5f0de4627cb4a1d5a186bd953bea29383473c31a4`;
+observations `47bc9346ea418d260d702ac83742b253f56f05b13e542aef2f81a835e20499b3`.
+
+Regenerated-pack candidate `f9a1fc071bf9142f770e8f3a199990f22bb8ff73` builds on
+macOS arm64. Binary SHA-256
+`df12856a78d7e59083128bb80c785efbf68fa0466142d29ddbd0e810592365d5`;
+content source `14e33e19384665dc0d96b5366a466e9d041ed7e9`, root
+`53786224f3d80ad7392a9a99d993d31ed2096b0bcce2715a5592b98d88d52008`, pack
+`4c355799192f0036eb58c95820af20ca42ccc3fe69b4765be8c99d51a1079be6`.
+Its binary/export/projection observations are retained in the private temporary
+directory `qiongli-discipline-transition-ex6h89u7`; these are not installation or
+release receipts. All 446 resources export; 444 non-manifest resources match each
+of Codex/Claude/DeepSeek, with 22/2/22 Skill entries and no broken resource links.
+
+Verification: 32 focused research-journey, continuity and Skill tests, corpus
+integrity/replay with all negative mutations, capability validation and root Skill
+validation pass. Both CLI embedded-pack/registry checks pass; the existing platform
+atomic deprecation warning is unchanged. Runtime logic did not change, so prior
+search/transport tests are reused without another live query.
+
+The next bounded increment is a formal stage-handoff persistence/resume flow
+through the existing preview/approval/CAS owner. This exercise does not resolve
+that gap. Broader disciplines, blind forward evaluation, domain-expert review and
+authenticated-provider/transport qualification remain open. Integration records
+only CLI-405 progress; task states, dependencies and accepted evidence stay fixed.
+
+## October 2 — formal stage-handoff persistence and resume
+
+The maintainer continues the selected next increment and requests lightweight
+`gpt-6.1-sol` reasoning for checks. Baseline `d03dfbed` already reads registered
+handoffs but capture consolidation can write only research state and decisions.
+Implementation `fafd68014b7c2bf4007c7ebbdc9b9e9a295d2db6` adds the optional CLI
+`--stage-handoff-file` to that existing owner. It appends explicitly supplied
+Markdown, previews the complete resulting handoff, preserves all earlier bytes,
+and binds the new content to the existing digest, dual approval, transaction,
+receipt and revision checks. No automatic handoff is inferred from a capture's
+summary. The native boundary validates bounded UTF-8 data; scholarly completeness
+and the required handoff sections remain review obligations.
+
+Both preview and apply now recheck the registered semantic digest, including
+inputs that are not write targets. Unrefreshed drift is rejected rather than
+silently adopted into the next manifest. Non-registered sources and versioned
+stage summaries remain outside this digest and require separate source-byte
+checks. Default API/output behavior and old receipts remain readable; an older
+binary cannot read receipts containing the new closed `stage-handoff` variant.
+No MCP save endpoint, storage subsystem, stage advance, automatic Graph rebuild,
+summary creation or model/profile change is introduced.
+
+Two isolated copied-CLI journeys pass on macOS arm64: the existing default
+capture flow and the optional handoff flow. Separate processes perform preview,
+approved apply, explicit Graph snapshot and source read; revision 2 returns the
+exact previewed handoff, while revision 1 fails. Changed draft bytes, changed
+registered inputs, incomplete approval, held library lock, a killed waiting
+writer, altered review timestamp and replay leave the expected project/config
+bytes intact. The existing fixture restores its deliberately changed test input
+before the positive save; this is not production recovery guidance. Service tests
+also append a second capture without erasing the first entry. These are storage
+fixtures with synthetic claims/limits, not completed research-stage examples or
+installed-Host observations.
+
+The requested native sub-agent `/root/handoff_persistence_check` ran as
+`gpt-6.1-sol / low`. Its read-only review identified a draft-path Debug disclosure
+and wording that could imply native revision coverage for arbitrary summaries;
+both were corrected. It directly ran 20 existing compatibility tests: capture
+12, artifact drift 2, semantic timeline 5, revision-bound reader 1. Test-binary
+SHA-256 `6e37b7450a1063516466070d8bb2f1b6b9e7de1f5722299848b966ecd8d9469b`.
+The coordinator ran 11 consolidation tests, 3 CLI parser tests, the 2 copied-CLI
+journeys, 13 handoff/continuity/resource-link checks and 7 roadmap checks. All
+pass. An initial negative fixture named a non-registered evidence path and was
+corrected to the actual registered boundary-review artifact; no protection of
+arbitrary files is claimed.
+
+`qiongli-project --all-targets` Clippy, touched-file rustfmt and diff checks pass.
+The wider CLI Clippy check is not green under Rust 1.99.0: the new
+`chunks_exact_to_as_chunks` lint stops at three unchanged platform locations
+(`community_alpha_integrity.rs`, `grant.rs`, `release_authority.rs`); a
+`--no-deps` check also exposes four unchanged CLI locations (`command.rs` three,
+`external_agent_cli.rs` one). This increment neither changes those files nor
+weakens their lints. The existing atomic deprecation warning remains.
+
+Regenerated-pack candidate `4b82685bf977f97f34d843d76b5f4fd21b5588cf` contains 446
+resources, with content source `fafd68014b7c2bf4007c7ebbdc9b9e9a295d2db6`, root
+`8b7c2014d01fbf496cfaa1f59ce4a786fc9d9d5f514bc232ce07dedde06d7b1c` and pack
+`8d2ef5f713f369bf8d6ac04c3cb538dd8ee5deb2c07a7694c58eeabbd624b9e8`.
+Both embedded-pack/registry checks pass. The rebuilt local CLI SHA-256 is
+`9bde87915e5ce1e6be783e37163c308b1ef5fb261804cceacea7e7255717e3fc`;
+the earlier two runtime journeys used SHA-256
+`6c4d661b94b0bf31fa637b6ee8c31064227af883046ed53d04e53b190e339887` with identical
+runtime source and content bytes, before the pack source-commit metadata was
+rebound. Their results are reused without claiming an additional installed run.
+
+Next: exercise this save/resume from a configured Host in an isolated project
+using public evidence, including continuation after a source changes. Native
+versioned stage-summary/history writes remain separately scoped. Installed-Host,
+domain-expert, authenticated-provider and fulltext-transport qualification remain
+open. Integration updates only CLI-405 progress: all 249 task states/dependencies
+and 46 accepted rows remain unchanged. No private research access, installed
+Plugin/profile update, publication or program acceptance is claimed.
+
+## October 2 — actual Host handoff save, restart and changed-source continuation
+
+The maintainer selects the preceding next increment and requests lightweight
+`gpt-6.1-sol` reasoning for verification. Baseline
+`058a047b5301a12688b7dbb5a4f4cfc3259eca9f` supplies the copied CLI with SHA-256
+`9bde87915e5ce1e6be783e37163c308b1ef5fb261804cceacea7e7255717e3fc` and the
+previously recorded 446-resource pack. No native runtime or content changes are
+needed. The isolated local trial is retained under
+`packages/qiongli-native/target/handoff-host-fncseb5l`; its raw observations are
+development evidence, not durable accepted evidence. Project
+`prj_3a086024bffea4d334bc246eae9a8667` contains only the public quantitative
+education excerpt packet and coordinator-owned continuity files.
+
+The actual Codex session `01a0fcc5-3fe8-7213-8aac-edf613d3a228` runs with observed
+`gpt-6.1-sol / low`, read-only sandbox and approval `never`. Process-local Full MCP
+uses the copied candidate and isolated project state with a read/preview tool
+allowlist. User configuration, apps and Plugins are disabled for these processes;
+this is an actual Host/native-MCP journey, not an installed-Plugin qualification.
+The requested sub-agent `/root/handoff_persistence_check` checks execution
+identity, tool calls and raw outputs. Resumed answers share the author's
+conversation; source appraisal is coordinator review, not independent domain
+review or blind evaluation. Predeclared criteria SHA-256:
+`3bfa57feb42990f6a9d0300b3082acb8fc1239edfb2995bb390c134f6a9e8039`.
+
+The first Host answer preserves Q-C1–Q-C3, tentative DEC-Q1 and
+Ritchie2013Retrieval, with all ten handoff sections and excerpt-only limits.
+Answer SHA-256:
+`b9f70fc1a2eb9a9384c858ebae20ee351d87c7b51cb84a26ec4113bacb93f95b`.
+Its original allocation-conflict capture remains unmerged: native consolidation
+reports `contradiction-requires-resolution`, and an attempted approved fixture
+apply refuses with all project/state bytes unchanged. After checking the actual
+source, the coordinator prepares a separate refinement recording supported
+findings and the still-open allocation limitation; no concealed-randomization
+claim, original-capture resolution or locked-decision transition is adopted.
+The preserved original answer is distinguished from the reviewed continuity
+entry by a historical-context preface and corrected relative Markdown links.
+
+The existing intake/consolidation preview, dual approvals and CAS save the
+reviewed continuity at revision 2. All three artifact digests match preview and
+receipt, including handoff SHA-256
+`5ee474282ab84bee9818667a9b41f069782fdd429d6f969cfd3b961558ef9308`.
+A fresh Codex process resumes the same session, reads live project metadata,
+canonical state/decisions/handoff, receipt and source, and independently computes
+matching file hashes. It correctly distinguishes historical absence statements
+from current saved files; no stage summary exists. Resume answer SHA-256:
+`6f3d2d58db3157f5682572116f379fe3570b01457d93dedeebff904b92e4f226`.
+
+The coordinator then preserves exact R1 bytes as `sources/r1-original.md` and
+expands `sources/current.md` with previously withheld paragraphs from the same
+public article XML. This is expanded reading scope, not a publisher correction.
+Packet SHA-256 changes from
+`8cdb89377b9991d0dda5192e10e4e4cd93d55f3181c2e6ac3ae9bcb462af3917` to
+`8d3e35193922b5da1a33d98845971397f0020abe8b52e44d8c3a68a721e6852e`;
+all 11 other project/state files remain byte-identical and revision stays 2.
+This deliberately exercises the separate source-byte check for unregistered
+attachments rather than attributing arbitrary-source coverage to native CAS.
+
+Another fresh process resumes that session at revision 2 and detects both packet
+hashes. It preserves Q-C1, reopens Q-C2/Q-C3/DEC-Q1, and names affected entries in
+all three continuity files. Adjusted retrieval p=.01 remains alongside unadjusted
+p=.14; adjusted interaction p=.001 is qualified by unadjusted p=.41. The response
+does not infer equivalence from nonsignificance or validate a learning-phase
+covariate as pretreatment ability. Supplementary GLMM agreement stays an author
+report, with Text S1/Table S5 explicitly unread. No hidden expected values or
+answer rubric were provided to this turn; it did receive a clarification
+distinguishing open method limits from formal locked-decision conflicts.
+The unchanged actual preview draft is `refinement`, based on revision 2. Answer
+SHA-256: `bbcf4a17325bc67f7436b47e5fc23434cf7434d37a0b4ce463b608ed372d6fef`.
+All 13 project/state files remain byte-identical during this Host process.
+
+After checking sources, IDs, ten sections and resolving Markdown paths, the
+coordinator retains the exact Host handoff and teaching-prose candidate with a
+review/pre-save attribution preface. Existing native owners save this second
+entry at revision 3. Preview, receipt and disk digests agree; all prior bytes in
+research state, decisions and handoff remain exact prefixes. Final handoff:
+14,484 bytes, SHA-256
+`d10d50afdad57e173ce5f21f26ef66a93fab2e62ffb9ccb8e5d7f82b9da52a35`.
+A fresh native MCP read observes revision 3; no fourth model/Host restart is
+claimed. The stage remains literature, DEC-Q1 remains tentative, and the original
+unmerged conflict is retained. No stage summary, Graph rebuild or accepted
+research stage is produced by saving continuity.
+
+All three successful Host processes are observed as `gpt-6.1-sol / low`; each
+first sandbox-network attempt failed before tool use and is retained separately.
+Normal approved network escalation allowed the subsequent processes to finish;
+no evidence or failed attempt was substituted. This journey adds no provider
+search/fulltext transport, table inspection, data reanalysis or expert review.
+
+One demonstrated tooling defect is repaired in the existing handoff auditor:
+valid H3 sections nested within a captured handoff previously failed its H2-only
+heading check. It now accepts H2–H6 with horizontal whitespace, preserving the
+seven legacy required headings and missing-section failure. This remains a
+structural heading check, not a ten-section scholarly-completeness validator or
+per-entry history audit. Four focused unit tests and both saved-handoff audits
+pass. The requested lightweight sub-agent reviews the two-file fix without
+actionable findings and reuses unchanged test evidence. Seven roadmap checks,
+generated-index consistency, the frozen-source guard and diff checks pass.
+Native/content bytes did not change; prior checks and pack identity are reused.
+
+Next bounded follow-up: versioned stage-summary persistence/history through
+existing write owners, with source-change and restart coverage. Installed-Plugin,
+domain-expert, authenticated-provider and fulltext-transport qualification remain
+separate gaps; previous wider CLI Clippy toolchain debt remains unchanged.
+Integration updates only CLI-405 progress: all 249 task states/dependencies and
+46 accepted rows stay fixed. No user-profile update, private-library access,
+publication or program acceptance is claimed.
+
+## October 2 — versioned stage-summary persistence and history
+
+The maintainer selects the preceding next increment. Implementation
+`683169cf5b0af2839ebb5ca796d514c321ccad0d` extends the existing capture
+consolidation with optional `--stage-summary-file` on preview/apply. Its strict
+version-1 JSON draft names a new summary ID, document status, actual source
+hashes, optional immediate predecessor/hash and reviewed Markdown. The canonical
+stage-consolidation reference documents the format and its limits; the native
+runtime contract records the write and compatibility boundary.
+
+One transaction creates `context/stage_summaries/<ID>.md`, appends the exact
+history-table row in research state and adds a handoff link, alongside any
+existing decision update, receipt and manifest. Preview exposes all three exact
+continuity contents. Existing summary paths are refused even for identical bytes;
+old documents and history rows remain intact. Listed source and predecessor
+bytes are checked at preview and apply, separately from the registered semantic
+revision. Strict paths, bounded reads, duplicate-key rejection, dual approvals,
+plan binding and library/project CAS retain their existing owners. Sources are
+limited to 64 project-local files, 4 MiB per file/draft and 16 MiB per source set
+including the predecessor. External/omitted sources remain review obligations.
+
+The service journey saves two versions across a fresh service instance, expands
+an unregistered source without changing the project revision, rejects changed
+predecessor bytes, and preserves the first document and prior history after the
+second save. Negative cases cover changed sources/drafts, existing destination,
+wrong plan digest and either missing approval. A six-file transaction exercise
+checks explicit rollback. Create-only publication and rollback preserve a
+competing file even when its bytes match; unattempted targets are excluded from
+rollback. The collision check models the write interleaving directly; it is not
+a concurrent-process stress test or a crash-recovery qualification.
+
+All 194 project tests pass, with one existing capacity test ignored. Three
+copied-CLI journeys pass on macOS arm64 with empty PATH and isolated state:
+default consolidation, optional handoff and optional summary. Separate processes
+perform preview/apply and revision-bound handoff reads; saved summary/state/
+handoff bytes match preview and the receipt records the actual summary hash.
+Draft/source drift, incomplete approval, held lock, a killed waiting writer,
+altered review timestamp and replay retain the expected bytes. These synthetic
+storage fixtures do not establish research-stage completeness or an actual
+model's summary quality. Fixture-only source restoration is not recovery advice.
+
+The requested native sub-agent `/root/handoff_persistence_check` ran as
+`gpt-6.1-sol / low`, added and ran four strict-input/history tests, then reviewed
+the final runtime, CLI integration coverage and documentation without actionable
+findings. It did not launch another Host or perform independent domain review.
+The coordinator ran the full project tests, three CLI parser tests, the three
+copied-CLI journeys, two embedded-pack/registry checks and 14 focused
+handoff/continuity/resource-link checks. Project all-targets Clippy, touched-file
+rustfmt and diff checks pass. The prior wider CLI Clippy toolchain debt remains
+separate and was not rerun or claimed green.
+
+Regenerated-pack candidate `df0b42f2fe000edf331904d7de1a7ce329f7ea95` binds the
+implementation commit above and contains 446 resources. Content root:
+`1fca45bb4038a0f25cc8a9e9c620e19a92f886f153958665ccb8efeb29aafd01`;
+pack: `f6ca963a247708ed793ae7d0133af741b5f8ff1d5941e59a3029579e2403fc08`.
+The tested local CLI SHA-256 is
+`0fef9a01064dca078caad66bf4d15c7568dab5dd30bb490a1c3ca874a2b41f36`.
+No installed user profile or model setting changes. The option extends receipt
+artifacts; older readers cannot consume `stage-summary` receipts. Existing
+no-option output and plan semantics are retained. Summaries remain continuity
+documents, not new Graph authority, accepted evidence or an automatic stage
+advance; no new MCP endpoint or storage subsystem is added.
+
+Next: an isolated configured-Host public research journey that creates successive
+summaries, resumes from actual saved files and rechecks changed sources.
+Installed-Plugin, expert review, authenticated-provider and fulltext-transport
+qualification remain separate gaps. Integration updates CLI-405 progress only;
+seven roadmap checks, generated-index consistency and the frozen-source guard
+pass, with all 249 task states/dependencies and 46 accepted rows unchanged.
+No private-library access, publication or program acceptance is claimed.
+
+## October 2 — actual Host versioned-summary save and source continuation
+
+The maintainer selects the preceding next increment. Baseline
+`cd18e16d0f2827b319bdf9ac15f1636869ea348c` supplies the unchanged copied CLI,
+SHA-256 `0fef9a01064dca078caad66bf4d15c7568dab5dd30bb490a1c3ca874a2b41f36`,
+and the previously recorded 446-resource pack. The existing isolated public
+project `prj_3a086024bffea4d334bc246eae9a8667` resumes from actual revision-3
+state, decisions and handoff, with no summary present. New raw observations are
+retained under `packages/qiongli-native/target/handoff-host-fncseb5l/summary-continuation`;
+they are local development evidence, not durable accepted evidence. The earlier
+trial, source packets and outputs remain separately identified. Predeclared
+criteria SHA-256:
+`407e4bfccbdc33de9e3460b47317df64d8a4c48542955a33b5146796974cdcf8`.
+
+Actual Codex session `01a0fd9f-5453-71c2-8b36-2d4bee06d0d5` uses
+`gpt-6.1-sol / low`, read-only sandbox and approval `never`. Process-local Full
+MCP exposes only config/project/artifact/coverage reads with the copied candidate
+and isolated state. Apps, Plugins and user configuration are disabled; this is
+not an installed-Plugin observation. The first sandbox-network attempt fails
+before tool use and leaves project/state unchanged. Its original logs remain;
+normal network escalation permits the subsequent actual processes. No user
+profile, model configuration or credential-store changes are made.
+
+The first author reads and hashes all three continuity files and the R2 excerpt
+packet. Its partial `STG-B-001` preserves Q-C1–Q-C3, tentative DEC-Q1,
+Ritchie2013Retrieval, adjusted/unadjusted results, source anchors and open
+allocation, denominator, covariate, clustering and mechanism limits. It
+explicitly attributes original-unmerged status to the continuity records rather
+than claiming direct inspection. Answer SHA-256:
+`b673fe6c058ba959ea9eae17b2f62f6e9ebf8d0063dc1570caf426a4ff19d812`.
+The coordinator checks those claims, input hashes and relative links, then adds
+only a preface identifying the retained author text as revision-3 pre-save
+observations. Native preview, dual approval and CAS persist revision 4; exact
+preview, receipt and disk bytes agree. Summary SHA-256:
+`15f37b016b1b9136d56c196c98ac233a3edd504ae885668f0ef6db45c2fe1383`.
+
+A fresh process resumes the same author session and reads actual revision 4,
+canonical history/handoff, summary, receipt and sources. It verifies all three
+receipt artifact hashes. State/handoff input hashes differ because of the
+expected save, while decision/source bytes match the pre-save basis; it correctly
+distinguishes that from research-source drift. Answer SHA-256:
+`7e32d42f80dbdaa5c6ecf3a89418392400977452b9396fe208841fa05f53c5ce`.
+Both author and resumed processes leave their starting project/state bytes
+unchanged. Saved continuity grants no subsequent approval or stage acceptance.
+
+The coordinator prepares a clearly labeled synthetic second-summary negative
+fixture through actual capture intake and consolidation preview. The R2 source
+is then preserved as `sources/r2-before-tables.md`, and the current packet gains
+links to the already retrieved same-paper tables/supplement packet and manifest.
+Current-source SHA-256 changes from
+`8d3e35193922b5da1a33d98845971397f0020abe8b52e44d8c3a68a721e6852e` to
+`84b915d5c736009802548084a94818ded2b9d6373442601a7e8c91b991f1371b`.
+The table packet and manifest remain exact copies of the prior public corpus,
+SHA-256 `3eca31d16e9ddf2803697236fe9f904c3a86f4743756f8b0bb930c92d4b7ac34`
+and `f865b00eac01a6903974317f19a9f535e2819da276730b2fdb1323adfaca8530`.
+Only the current packet changes among existing files; 18 other files remain
+identical and native revision stays 4. This expands local reading scope, not the
+paper, and adds no new network retrieval or original image/DOC inspection.
+Approved application of the stale preview returns `project-revision-conflict`
+without changing any of the 22 project/state files. The rejected synthetic
+capture remains unmerged; no second summary is written and no source is restored
+to stale bytes to force acceptance.
+
+Another fresh process resumes that author session at revision 4 and detects the
+changed packet despite current native artifacts. It reads nine actual project
+files, including the first summary/receipt, preserved R2, table packet and
+manifest; all declared input and predecessor hashes match. The selected tables
+supply reported recall cells and model details, narrowing the earlier absence
+statements without erasing them. It retains S4's printed Primary 5 total 38
+alongside the calculated cell sum 58, differing S2 distributions, and Table 1's
+N=108 versus S5's 109 observations. Participant-ID random effects are not
+misrepresented as class adjustment; supplementary-model reporting is not data
+reanalysis, and the same learning-phase covariate keeps sensitivity unresolved.
+Original answer SHA-256:
+`e2902c500082ca9521732147b31d13de23c03d814313743eccafb46c52772399`.
+
+The requested actual sub-agent `/root/handoff_persistence_check`, running as
+`gpt-6.1-sol / low`, independently checks execution identity, tools, file hashes,
+receipts and selected source-bound conclusions. This verifier has seen the
+criteria and candidate; it is a dependent validation pass, not blind evaluation
+or domain-expert review. It flags one missing explicit limit: reported S5
+coefficients must not be read directly as marginal percentages/percentage-point
+effects without verified link, coding, scaling and estimand. The coordinator adds
+that qualification without inventing a link function, clarifies one S2/S4
+sentence so an equal cell count is not grouped ambiguously with a differing
+count, and adds a revision-4 pre-save attribution preface. The exact original
+Host answer remains unchanged. No model-quality improvement is estimated.
+
+After coordinator source review, a separate native capture/preview and dual
+approval/CAS save `STG-B-002` at revision 5, including a new tentative DEC-Q1
+coverage qualification. All four artifact digests match receipt, preview and
+disk. The second summary is 21,395 bytes, SHA-256
+`17c2f06933ceafd1044125587e7ea9d3780560021952f04ab31d9f01fe5e5b13`;
+its receipt SHA-256 is
+`109c900d5ddc0bfcfd67fc7428834110f6573a85f69f6287df078a61aa2cc04c`.
+The first summary is byte-identical, both history rows remain, and the new
+predecessor link/hash identifies the actual first document. Existing decisions
+and handoff remain exact prefixes; prior research-state bytes remain a prefix
+after excluding the inserted history row. Stage stays literature, DEC-Q1 stays
+tentative, and the original unmerged proposal plus the rejected synthetic stale
+capture remain unmerged. Saving creates no Graph authority or stage acceptance.
+
+A fourth process resumes the same session, observes actual revision 5 and reads
+both summaries, canonical continuity, the second receipt and current sources.
+It independently hashes all ten inspected files, confirms all four receipt
+artifact digests, both history rows and the second summary's predecessor hash.
+It retains the new coverage and coefficient limitations without treating
+historical pre-save statements as current absence. Final answer SHA-256:
+`f9a7006dea6ec422d9d2090ddaf8bdf249d1c1f888940b4844ab5cd869ad4292`.
+The verifier confirms actual `gpt-6.1-sol / low` turn contexts, four successful
+read-only MCP calls per process, and unchanged starting project/state snapshots
+of 15, 18, 22 and 25 files respectively. The four successful process durations
+are approximately 222, 124, 292 and 93 seconds; these are observations, not a
+performance comparison. An initial read-only shell heredoc attempt could not
+create its temporary file; subsequent direct reads succeeded without weakening
+the sandbox. The original failed attempt is retained in the Host events.
+
+Final coordinator assertions and the requested lightweight verification pass
+confirm both saves and restarts, source-drift refusal, retained original files,
+actual receipt/source hashes and unresolved scholarly limits. No runtime/content
+repair is demonstrated or introduced; the previous affected native/content test
+results and pack identity are reused. Seven roadmap checks, generated-index
+consistency, unchanged-state/accepted-row checks and the frozen-source guard
+pass. Integration changes CLI-405 progress only: all 249 task states/dependencies
+and 46 accepted rows remain unchanged. The earlier wider CLI Clippy toolchain
+debt remains separate.
+
+Next bounded increment: diagnose the remaining public fulltext transport failure
+and its user-facing error path through the existing reader. Preserve DNS,
+redirect and network guards; do not infer a need for more permanent agents.
+Installed-Plugin, authenticated-provider, original table-file/data reanalysis and
+domain-expert qualification remain separate gaps. No private-library access,
+user-profile installation, publication or program acceptance is claimed.
+
+### October 2 — public fulltext transport diagnostics
+
+The bounded follow-up starts from clean local `2.x` at
+`c82b5d5bf540a995003f573962b1829b435408fe`. Implementation
+`194b4eaa0a0a1406f4f3b4a3d5c71621fdf180e3` corrects the shared reader's failure
+reporting; regenerated-pack candidate
+`a9e462c5013874a14d8d821eba242f544297af10` contains 446 resources, content root
+`5f6d8598647297d0e646b7bcd5a1d7d041b9a18bf73d1a76b6d017719841a9e4` and pack
+`0434fcd3cff6f90912953d3cda764c9a2c2ab57c92753c8f4377a96b3295ff9b`.
+The copied before/after CLI hashes are respectively
+`0fef9a01064dca078caad66bf4d15c7568dab5dd30bb490a1c3ca874a2b41f36` and
+`a3463a9dc69a3f1ff35f16af81b3818998ad62993f068e8588417bedeb7b7479`.
+
+Fresh authorized public observations differ from the earlier special-address
+mapping. `journals.plos.org` now resolves to `35.190.43.188`; the prior CLI's Lite
+and Full calls for PLOS DOI `10.1371/journal.pone.0078976` still return generic
+`fulltext-url-blocked`. A separate first-hop GET, without following its redirect,
+returns HTTP 302 to `storage.googleapis.com` with X-Goog signing parameters.
+Only the status, hostname and query-key names are retained; signing values are
+not logged. This identifies a signed-redirect policy limitation for this observed
+request, not a DNS failure, bad original locator, paywall or missing article body.
+The cause of the earlier system mapping and its change remains unproven.
+
+The existing public URL policy now names signed/credential-bearing query
+parameters, and the redirect owner identifies a blocked destination before
+contacting it. Both actual rebuilt CLI profiles return that precise message with
+the original reason code. The shared DNS result boundary distinguishes timeout,
+worker disconnection, resolver error and empty answers as `fulltext-network-error`;
+private/special-use and mixed public/nonpublic answers retain
+`fulltext-url-blocked`. Static messages do not expose addresses, locators or
+underlying errors. Native Lite, Full and standalone Lite reuse the same owner.
+Canonical fulltext guidance explains the failure stage and safe evidence limit.
+No URL allowlist, DNS/proxy change, signed-URL exception, redirect relaxation,
+new endpoint, dependency or provider credential access is introduced. Request
+send/body error classification remains unchanged and is not newly qualified.
+
+One additional public native Lite read of `https://arxiv.org/pdf/1706.03762`
+succeeds in approximately 2.18 seconds, parsing 27 PDF segments and returning
+segment 0. A fresh process continues at the returned offset 1 with limit 3 and
+`expected_sha256`, returning segments 1–3 in approximately 4.24 seconds with the
+same decoded source digest:
+`bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697`.
+Page-2 anchors expose Introduction/body passages, beyond the initial abstract.
+Both reads report `cached: false`; this is digest-checked retrieval across
+processes, not a cache demonstration. The title is visible in returned text,
+but structured identity remains `not_checked`. Only four segments are exposed;
+no complete reading, verified paper version, table/formula extraction, scholarly
+claim, research-quality gain or permission to redistribute follows. This current
+public-source success is not caused by the diagnostic-only patch and does not
+resolve PLOS signed redirects or authenticated providers.
+
+Raw local observations and temporary runners remain in
+`packages/qiongli-native/target/fulltext-transport-uz6sctkf/`:
+`before.json` SHA-256
+`1384c45224a8ef9e695c185274e1d438bb03e47ed1da94d3987faa03e467c894`,
+`first-hop.json` SHA-256
+`a346b115a810f1356b1ffa760c7a1945ee5c6d73e203f486705b54bf4b1ac75b`,
+`after.json` SHA-256
+`17a38f19eb85af8812eea471bfbf38eb1c4eec2865eeacf855c1843abf6ff5f8`,
+`after-arxiv.json` SHA-256
+`215123679369bc5f9f6672260546c872779aab1faf5b7c9fb6849c10316685bb`,
+and `after-arxiv-continuation.json` SHA-256
+`db9897f8a6c13ea5eba3745c19607e93c340b6f94d22027e17eac8a6205c1083`.
+These copied-CLI observations use isolated Qiongli configuration and no canonical
+research writes; they are not installed-Plugin or release acceptance.
+
+Validation: seven shared fulltext tests pass (one worker probe remains ignored),
+including DNS result classification, mixed-address refusal, redirect policy,
+redaction, parser isolation and existing source/cache boundaries. The requested
+actual `gpt-6.1-sol / low` sub-agent `/root/handoff_persistence_check` reviews the
+source diff without actionable findings and independently runs the native and
+standalone Lite fulltext compatibility tests (one pass each). Thirty-seven
+focused literature/content/MCP checks, runtime all-target Clippy with warnings
+denied, formatting and the rebuilt embedded-pack/registry test pass. The initial
+system-Python run lacked PyYAML; the existing `.venv` supplies it without an
+installation. The broader research-standard validator reports 6,100 passes,
+24 failures and 17 warnings in unmodified generated-doc/workflow/release and
+legacy-contract checks; it is not reported as green or repaired in this scope.
+The CLI build also retains the unrelated platform `fetch_update` deprecation.
+The verifier also checks all five observation JSON files without a mismatch;
+process launch and continuation binary identity additionally rely on the
+coordinator's retained runner/execution record, not the continuation JSON alone.
+Seven roadmap tests, generated-index consistency, ledger invariance and the
+frozen-source guard at the pack candidate pass. All 249 task states/dependencies
+and 46 accepted rows remain unchanged; only CLI-405 progress is extended.
+
+Next exercise the working native public-PDF route in an isolated Host journey,
+carrying source digests and actual body anchors into reviewed paper notes through
+existing write owners. Signed publisher redirects, authenticated-provider and
+installed-Plugin qualification remain separate. No user profile/model, private
+library, publication, task-state/dependency or accepted-evidence change is made.
+
+### October 3 — native body-to-note Host journey
+
+This follow-up uses unchanged source baseline
+`b5c91e1e26ef860c6b0938e33c22102e8ecd5782`, the prior 446-resource pack and copied
+CLI SHA-256 `a3463a9dc69a3f1ff35f16af81b3818998ad62993f068e8588417bedeb7b7479`.
+No runtime, Skill, pack or configured user model is changed. Observations remain
+under `packages/qiongli-native/target/native-body-note-q1mpz2lt/`; native Unix
+receipt timestamps are retained exactly as returned. Two actual ephemeral Codex
+processes use explicit `gpt-6.1-sol / low`, read-only sandbox, ignored user config,
+disabled apps/Plugins and allowlisted read-only MCP tools with isolated Qiongli
+state. Auth environment is unchanged. This is process-local Host/MCP validation,
+not installed-Plugin qualification; model identity evidence is the retained
+launch configuration/events, not a persistent turn-context file.
+
+The author reads the current paper-reading/fulltext/extraction guidance and makes
+four actual MCP calls: provider metadata status, targeted search planning, then
+native fulltext reads at offset 0/limit 2 and returned offset 2/limit 2 with the
+returned digest. No provider search executes. The selected public arXiv URL
+`https://arxiv.org/pdf/1706.03762` returns PDF digest
+`bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697` and exposes
+segments 0–3 of 27, pages 1–2. The first read is uncached, the second cached;
+continuation does not recheck the remote version. The visible title, NIPS 2017
+label and v7/2 Aug 2023 marking remain source observations; structured identity
+is `not_checked`, DOI/original-version verification is absent.
+
+The original author JSON, SHA-256
+`f026de660e5034aee42d6eb1a448a7f5bc554a88a251e893e47e0237c6c56308`, preserves
+Vaswani2017Attention and V2017-C1/C2 with exact PDF digest and page/segment
+anchors. C1 is the authors' Introduction rationale about recurrent sequential
+computation and attention-based parallelization; C2 correctly identifies the
+Background comparison with convolutional models and its resolution tradeoff.
+It does not turn abstract benchmark numbers into evaluated findings. The actual
+requested lightweight verifier `/root/handoff_persistence_check` checks the
+candidate against complete MCP results and returns no additional issue beyond
+the coordinator's planned persistence-status and operation-count clarifications.
+This is source-bound dependent verification, not blind or expert assessment.
+
+The coordinator retains the original answer, removes obsolete pre-save wording
+from the reviewed note, and explicitly limits C2's constant-operation comparison
+to relationships between positions, not total model computation. Five reviewed
+files are staged outside any registered project: the note, actual raw source
+results, a retrieval manifest, research state and handoff. The manifest retains
+`not_retrieved:oa_candidate`/unknown version pending independent identity checks,
+while its notes explicitly record readable body excerpts and the actual reader;
+no full PDF, bibliography, evidence ledger or Graph is claimed. The local source
+JSON digest `3b2c9a9c45779984e5c608c36912d66a4d372978ec502b72f4d75cc4ceae93d8`
+is distinct from the recorded remote PDF digest.
+
+Inspection establishes that capture consolidation has no arbitrary paper-note
+write target. The existing native migration owner legitimately supports reviewed
+unregistered research files copied into a new project, so this test uses that
+route without a new writer or hand-editing portable packages/receipts. Migration
+preview binds complete file inventory and source/destination identity but does
+not show note Markdown; the coordinator reviews exact staged text separately.
+An apply lacking filesystem approval exits 2 without mutation. After the first
+preview, the coordinator appends a cache/remote-version caveat to the note while
+preserving the earlier draft; approved apply with the old digest exits 1 with
+`project-plan-mismatch`, leaving the same five files and no destination. A fresh
+preview/approved apply copies all five files, 15,562 bytes, into new project
+`prj_65fcd82fb53ef633cde60cd4f46a552b`, revision 1/literature, library revision 1.
+All staged source bytes remain unchanged, and all destination copies match.
+This filesystem approval is not academic acceptance.
+
+The saved note is `project/notes/Vaswani2017Attention.md`, SHA-256
+`693a2f5c278f81a9ff1c81ad3543cfbcdc447d5f2e797fead38d7201e45aa036`.
+Migration receipt SHA-256 is
+`22612d7ad29a1632ab164fcb46d1333318933a22afc5d5609036bab0543a6be5`;
+its aggregate inventory digest is
+`644cd7fe4894263fed4e5c6c3fb60759d0abaa35ee3a94a39efe68c763d6229b`.
+Coordinator and verifier independently reconstruct that inventory and confirm
+manifest, plan, registration and file bindings. The receipt contains aggregate
+inventory provenance, not individual per-file hash rows.
+
+A fresh ephemeral process reads the actual registered revision with two MCP
+project tools, then reads and hashes the note, source packet, continuity and
+receipts. It verifies all five destination bytes and the inventory/manifest
+hashes, preserves C1/C2 and all source limits, and distinguishes the JSON file
+hash from the PDF digest, whose bytes are not locally available for rehashing.
+It reports the missing canonical/Graph artifacts even though the project service
+reports ready/current. Final answer SHA-256:
+`16503ddd5c0d7f4aae06ad1098de0ed21b4e48cdac2801fd0e4d787bca41832d`.
+Actual process durations are 96.684 and 73.282 seconds, not a performance
+comparison. Both exit 0; the author's initial empty research scope and the fresh
+reader's 16 project/staging/state files remain unchanged. The lightweight
+verifier independently rechecks actual calls, hash-command results, final answer
+and current snapshot without actionable findings. Only four source segments were
+exposed; there is no complete reading, domain acceptance or research-quality gain.
+
+This completes first-note import and restart using existing owners. It does not
+establish note creation/update inside an already registered project. The next
+bounded increment is to add that reviewed paper-note save path through the
+existing project transaction and preview/approval/revision boundaries, preserving
+source bindings and prior notes. No private-library access, user installation,
+publication, stage advancement or program acceptance is implied. Unchanged
+native/content checks from the prior increment are reused; the wider validator's
+24 unrelated failures and toolchain warning remain outside this observation.
+Seven roadmap checks, generated-index consistency and ledger invariance pass;
+all 249 task states/dependencies and 46 accepted rows remain unchanged. Only
+CLI-405 progress/date changes, with the frozen-source guard retained at integration.
+
+
+### October 3 — reviewed paper notes in registered projects
+
+Implementation `dd95e732bc77e2413a2ce1afce75852c86d4ef01` adds optional
+`--paper-note-file <absolute-draft.json>` to the existing native capture
+consolidation preview/apply owner. The strict draft binds citekey, prior-note
+SHA-256, 1–64 bounded local source fingerprints and the reviewed Markdown
+addition. Preview exposes exact resulting `paperNoteContent`; apply retains dual
+approval, plan/library/project revisions, source rechecks, transaction recovery
+and receipts. A missing prior hash means create-only, while append requires the
+exact existing hash and preserves prior bytes. New note publication never
+replaces a competing file, including identical bytes during collision rollback.
+The seven-file transaction can combine note, summary/history, handoff, ordinary
+capture artifacts, manifest and receipt. Sources reuse the existing bounded
+reader; no new dependency, arbitrary writer, MCP endpoint or store is added.
+
+The existing paper-reading guide documents the conditional CLI route, current
+capture requirement, supported citekeys, exact review and source limits. It
+separates a local excerpt-packet hash from the recorded remote-body digest and
+preserves claim IDs, citekeys, anchors, coverage and identity/version uncertainty.
+Notes remain outside registered semantic artifacts and Graph; this operation
+alone does not complete the B2 artifact set. Source snapshots and the existing
+transaction CAS boundary do not serialize arbitrary external editors. Old
+receipts/no-option output and API wrappers remain readable; older binaries reject
+new `paper-note` artifact receipts. Unsupported citekeys are refused rather than
+renamed, and existing sources must already be available through authorized owners.
+
+The requested actual `gpt-6.1-sol / low` sub-agent
+`/root/handoff_persistence_check` adds bounded copied-CLI tests and independently
+reviews final runtime/CLI/documentation changes without actionable findings. The
+coordinator runs 197 project tests (one existing capacity test ignored), three
+CLI parser tests, four copied-CLI tests and the embedded-pack/Lite-registry test.
+The note test covers both first creation and append to existing text; each command
+runs in a separate process with isolated state and empty PATH. Preview/disk/receipt
+bytes match, prior text remains intact, draft/source/note drift refuses without
+writes, and missing approvals, stale digests, held locks, restart and replay retain
+existing behavior. Shared negative cases cover malformed/oversize input, unsafe
+paths and symlinks, library/semantic drift, competing creates and seven-file
+rollback for both new and existing notes. The expanded rollback case passes its
+focused rerun. Thirty-one literature/continuity/resource-link checks pass.
+Project all-target Clippy with warnings denied, formatting and diff checks pass;
+the existing platform deprecation warning and broader CLI Clippy debt are outside
+this increment. The wider research validator is not rerun or claimed green.
+
+Pack candidate `c438449d1dc03925caef982a5e5075d75b9fa7e9` binds the implementation
+commit above and contains 446 resources. Content root:
+`d6154da5cf39b14dd1b61d471ff822a0ce7d5640ae95f282743cc03f75ff2072`;
+pack: `366fcd05294777f5294ae25a9dd12ac765dbf938f95594ce1a2d35d61bf005c4`.
+These are local synthetic persistence observations, not research-quality,
+installed-Plugin, target-platform or program acceptance. No user profile/model,
+private-library, publication or remote configuration changes occur. The next
+bounded increment is an isolated public-evidence Host continuation: review and
+append to the already registered paper note, then verify source/receipt bindings
+and actual saved bytes in a fresh process. New source-packet persistence, signed
+publisher redirects and authenticated-provider qualification remain separate.
+At integration, seven roadmap checks, generated-index consistency and the
+frozen-source guard pass; all 249 task states/dependencies and 46 accepted rows
+remain unchanged, with only CLI-405 progress/date updated.
+
+
+### October 3 — registered-note Host continuation and restart
+
+Unchanged baseline `7858d58a16e67b09feaf7d39f7ee56be5b578c0c` and the preceding
+446-resource pack supply the copied CLI, SHA-256
+`9638d3449ea3008776acd3aabc388be71e1dbfe3a3859b6f1beef84c1a9406ca`.
+Local observation files remain under
+`packages/qiongli-native/target/native-body-note-q1mpz2lt/registered-note-continuation-jzv5b9v5/`.
+Two actual ephemeral Codex processes use `gpt-6.1-sol / low`, ignored user config,
+disabled apps/Plugins, read-only sandbox and process-local Full MCP pointing to
+the existing isolated project/state. Execution identity comes from retained argv
+and JSONL events; installed profiles, auth environment and configured models are
+unchanged. Native Unix timestamps are preserved as returned. This is an isolated
+development observation, not installed-Plugin qualification.
+
+The author thread `01a0ff09-2439-7da2-869b-2dfeaca20a96` reads current project and
+artifact changes through two actual MCP calls, then reads existing note/source
+bytes and the current canonical paper-reading guidance. Its original answer,
+SHA-256 `d0c79a80ac520bc439940f2f7ef313bbf289d5dbfd10d96e5c7e3b929c20a76f`,
+proposes an append to Vaswani2017Attention at revision 1. The coordinator retains
+that answer, removes prospective pre-save labels and reviews exact note/handoff
+drafts. The addition preserves V2017-C1/C2 and distinguishes ConvS2S linear and
+ByteNet logarithmic positional-distance comparisons; no particular rate is
+assigned to Extended Neural GPU. The constant-operation statement is explicitly
+limited to relating positions, not total computation, time or memory. The
+resolution tradeoff remains an attributed author claim; the scope clarification
+is labeled interpretation/reasonable inference, not new source evidence.
+
+Only the existing four of 27 parsed segments on pages 1–2 are used. Local packet
+SHA-256 remains
+`3b2c9a9c45779984e5c608c36912d66a4d372978ec502b72f4d75cc4ceae93d8`.
+The prior reader-recorded PDF digest is not independently rehashed because full
+PDF bytes are absent. No new retrieval or remote-version check occurs. Structured
+identity stays `not_checked`; visible v7/2 Aug 2023 and NIPS 2017 labels do not
+establish original-version correspondence or evaluated later methods/results.
+
+The coordinator's first capture declares a literature change but omits capture
+evidence. Intake retains it as `unsupported-gap`; consolidation preview correctly
+refuses with `unsupported-evidence`, no artifact deltas and no academic writes.
+Paper-note source fingerprints do not substitute for capture evidence. The
+original capture
+`cap_57b08f2390e2d3552277e95fb84e6ebc918d5935457e80d02f3bb3606141b1e5`
+remains intact. A new capture
+`cap_d3e2ba1f01711dda1e996eaa6d884126a12d24ddcedbea952bed97e9c1719060`
+includes the actual local source anchor at page 2/segment 3 and its limits, and
+previews as refinement. Exact reviewed draft SHA-256 is
+`e2778e5c2f0b1ef9d71a6d1bcabbd4bb6a2151c8f58f903c53f88146650ed0eb`;
+plan digest is
+`4e01010e9b0f4d285323ad4f51be9f63ba7821f24df4a605d8935f3e9dc1a563`,
+with native review timestamp `1790985695`.
+
+An apply without either approval exits 2; a separate changed-draft file with both
+approvals and the old plan digest exits 1 with `project-plan-mismatch`. All 19
+project/state/staging files remain unchanged in both refusals. The approved
+original plan saves note, research state and handoff through the existing native
+transaction. Project `prj_65fcd82fb53ef633cde60cd4f46a552b` and library revisions
+advance from 1 to 2, with stage still literature. The complete 3,802-byte prior
+note remains a prefix of the 6,511-byte saved note, SHA-256
+`b119bffef28023fe23d3a5d8d4d61816c3a16749c3518902e764bdb5bb8d5a48`.
+Preview, disk and receipt artifact hashes agree; prior state/handoff prefixes,
+source packet, original staging files and migration records remain intact.
+Receipt SHA-256 is
+`854ecf012dd3a75c4692eb37fbc1b9082f7d561d35e1c0fbed3693113c9d251a`;
+its source-capture binding equals the actual canonical capture file SHA-256
+`a1a0ef1395da2560c37be8cf457daa4b9ff1e608a4a54002ad5527d02d49fb12`.
+This canonical hash differs from the pretty-printed intake draft's hash.
+
+The first post-apply harness assertion omitted the transaction owner's newly
+created empty `.consolidation.lock`. Native apply had already exited 0 and saved
+revision 2. After inspecting the existing lock owner, the coordinator corrects
+only the expected-file set and rereads the saved result without another apply.
+All seven changed files match the expected three academic files, manifest,
+receipt, library and empty lock. This is a harness correction, not a runtime fix
+or a failed native save; both the original assertion and correction are retained.
+
+Fresh reader thread `01a0ff13-8269-7e60-8810-ba8499465827` makes two successful
+project/artifact-change MCP calls at revision 2, then independently hashes saved
+files, source, capture and receipt. It verifies the full prior-note prefix and
+exact preview content, preserves scholarly limits and distinguishes historical
+migration inventory from the current appended note. Receipt and saved preview
+plan digests agree; the reader does not independently recompute the plan digest.
+Final answer SHA-256:
+`404ffda3b9238fde5921f5abaf9c4dcf441c54164792911d304fcaf06f936d14`.
+Both processes exit 0 after 110.995 and 121.480 seconds respectively, with all
+16 author-scope and 21 fresh-reader-scope files unchanged. These durations are
+observations, not a performance comparison.
+
+The resume harness incorrectly requested a nonexistent capture-list MCP tool.
+The reader reports its absence honestly; its native CLI fallback then fails
+`project-not-registered` because the isolated config environment was assigned
+only to the MCP server, not to the Host shell. Original task/argv/events remain
+unchanged. A separate coordinator CLI read explicitly sets the same isolated
+`QIONGLI_CONFIG_HOME`, succeeds, and leaves all 21 files unchanged: the old
+unsupported gap is now stale after revision advancement, while the new refinement
+is applied. This is not a successful Host capture-list MCP call. Future harnesses
+must discover actual tool names and explicitly scope CLI fallback state; no new
+endpoint or user configuration change is needed. The old note's no-separate-
+interpretation statement describes its original contents; its retained bytes
+coexist with the subsequent explicitly labeled interpretation addition.
+
+The requested actual `gpt-6.1-sol / low` verifier
+`/root/handoff_persistence_check` reviews source-bound candidate wording and
+persistence, then independently checks final Host events/hash-command results,
+the separate scoped CLI read and current 21-file snapshot without actionable
+findings. This is dependent read-only verification, not blind or expert review;
+launch records establish requested execution settings, not model attestation.
+
+No runtime or canonical Skill changes are needed by this observation, so prior
+native/content checks are reused. There is no new stage summary, complete B2 set,
+Graph/evidence-ledger promotion, domain-expert assessment or program acceptance.
+The next bounded increment is reviewed persistence of newly retrieved public-body
+source packets inside registered projects through existing transaction and
+approval owners. Signed redirects and installed/authenticated qualification
+remain separate; no private access, publication or user-profile changes occur.
+Seven roadmap checks, generated-index consistency, ledger invariance and diff
+checks pass. All 249 task states/dependencies and 46 accepted rows remain
+unchanged; only CLI-405 progress is updated. The frozen-source guard remains
+required before local integration. The wider validator's previously recorded
+24 unrelated failures and existing Clippy debt are not rerun or claimed resolved.
+
+
+### October 3 — reviewed source-packet persistence
+
+Implementation `102f3adececea5ba0bfb6399168def370d29395e` adds optional
+`--source-packet-file <absolute-draft.json>` to the existing capture consolidation
+preview/apply owner. Strict `SourcePacketDraftV1` binds schema version 1, a
+portable citekey and raw retrieval JSON text in `content`. Validation rejects
+duplicate keys, unknown envelope fields, invalid/empty/scalar JSON, unsafe
+citekeys, non-regular draft files and oversized input. The draft and decoded
+content are each bounded to 4 MiB. This validates storage syntax and identity of
+bytes, not provider provenance or scholarly completeness; raw content is data,
+never instruction or approval authority.
+
+Preview returns exact `sourcePacketContent` and its path/hash delta. Apply saves
+those UTF-8 bytes, including original whitespace, at
+`sources/<citekey>/<sha256(content)>.json`. Existing targets refuse, including
+identical content; changed retrievals create new paths while earlier packets
+remain intact. Both transaction and receipt validation bind the filename to the
+content digest. The closed `source-packet` artifact uses the existing non-replacing
+publication, collision rollback, recovery and dual-approval/CAS owners. No network
+operation, arbitrary destination, dependency or MCP writer is introduced.
+
+`CaptureConsolidationDrafts` groups the four concrete optional documents while
+preserving existing service wrappers and absent-option plan/output serialization.
+An eight-file transaction can compose all optional artifacts within existing
+per-file/aggregate byte limits. Older receipts remain readable; older binaries
+reject the new closed artifact variant. Packets remain outside semantic/Graph
+artifacts. A new packet must be saved before a later current-revision note/summary
+capture can reference it, because those source checks require actual on-disk
+files. Local packet hashes do not independently verify remote PDF bytes, source
+identity, version or reading coverage. External edits are not serialized by the
+Qiongli transaction lock and still require fresh source fingerprints.
+
+The initial project test exposed a real first-save defect: the existing directory
+helper created only the final parent, so absent `sources/<citekey>/` ancestors
+caused `PersistenceFailed(NotFound)`. After tracing all callers, the shared
+`ensure_project_directory_beneath` now creates missing components beneath the
+project and retains each component's existing path/permission/link checks. The
+complete project rerun passes 200 tests, with one existing capacity test ignored.
+Cases include successive immutable packet versions, restart and later note
+binding, source syntax/path/size refusals, changed drafts, missing approvals,
+semantic drift, symlinks, existing identical targets, receipt digest mismatch,
+competing-create preservation and eight-file rollback for new/existing notes.
+
+Three CLI parser tests and 12 focused literature/continuity/resource-link checks
+pass. Project all-target Clippy with warnings denied, formatting and diff checks
+pass. The requested actual `gpt-6.1-sol / low` verifier
+`/root/source_packet_verification` independently reviews final code/contracts and
+runs five copied-CLI journeys plus the embedded-pack/Lite-registry contract; all
+pass without actionable findings. The earlier interrupted verifier authored the
+new CLI case but did not execute it. These isolated synthetic processes check
+exact Unicode/whitespace bytes, approval/stale-plan/lock refusals, old-packet
+retention, receipts and fresh-process reads; they are not public-paper or
+installed-Host qualification. No actual source authenticity or expert acceptance
+is inferred from tests or review.
+
+Successful native checks use explicit Rust 1.99.0. An initial default-toolchain
+command triggered rustup's automatic 1.97.0 installation and was interrupted
+without test evidence; no toolchain configuration was edited. The existing
+platform `fetch_update` deprecation remains visible. The broader CLI Clippy debt
+and wider research validator's previously recorded 24 unrelated failures are not
+rerun or claimed resolved.
+
+Canonical guidance/contracts commit
+`9b91d7abe2034f637f39f0cedbe3d5fc9172f729` supplies the regenerated 446-resource
+pack in the implementation candidate. Content root:
+`e5d73c9c1348051b7c2a04b30e11dee537988734cb7ac6c69c44ae13fc74f81d`;
+pack: `1d5afc44f2e0a9ecd60b72713d99862861aa2f3861d2d8570dcc50c5828a5ca9`.
+The reading guide explains actual evidence-bearing capture intake, exact preview
+and byte verification, separate local/remote hashes, retained source limits and
+the packet-first, later-note sequence. No installed Qiongli profile/model, private
+research library or publication changes occur. The next bounded increment is an
+isolated public-paper Host run: retrieve new body excerpts, review/save the raw
+packet, bind a later note, and verify both from a fresh process. Signed redirects,
+authenticated-provider qualification and program acceptance remain separate.
+Seven roadmap checks, generated-index consistency, ledger invariance and diff
+checks pass. All 249 task states/dependencies and 46 accepted rows remain
+unchanged, with only CLI-405 progress updated. The frozen-source guard remains
+required before local integration; local checks do not establish acceptance.
+
+
+### October 3 — public Host source-packet save and note continuation
+
+Unchanged baseline `a8c286d221f0cd0dc84d0893dfab8ca9c080e476` supplies the
+copied CLI, SHA-256
+`0efd4dc7e2790be12cc77b65373d6611539506cb49700502f0e559fbc7824c19`,
+and the preceding 446-resource pack/content identities. Local observation files
+remain under
+`packages/qiongli-native/target/native-body-note-q1mpz2lt/source-packet-host-ujbr5__d/`.
+The existing isolated project `prj_65fcd82fb53ef633cde60cd4f46a552b` starts
+at project/library revision 2. Actual ephemeral Codex processes request
+`gpt-6.1-sol / low`, ignore user config, disable apps/Plugins and retain a
+read-only child sandbox. Process-local Full MCP and Host shell both explicitly
+use the isolated `QIONGLI_CONFIG_HOME`; actual tool inventory is inspected first.
+No capture-list MCP endpoint is assumed. Installed profiles, configured models
+and auth environment remain unchanged. Native Unix timestamps are retained.
+
+The first outer-sandbox launch fails during Codex app-server initialization with
+`Operation not permitted`, before a thread or tool call; it exits 1 after
+3.340 seconds and leaves all 21 scoped files unchanged. The preserved
+`initial-host-start/` records remain a failure, not a successful Host observation.
+The same runner is relaunched with outer process permission while retaining the
+child's read-only sandbox and tool allowlist. No network safety rule is changed.
+
+Reader thread `01a1010c-40a5-7961-b293-17a8f73c7019` successfully reads current
+project/artifact state and calls literature status/search planning. These calls
+do not execute a provider query. Its single native fulltext call refreshes the
+public arXiv URL with the historical PDF digest, offset 0 and limit 4, but returns
+`fulltext-url-blocked`: DNS resolved to a private or special-use address and no
+destination request was sent. The child stops as instructed, with no continuation
+or new native segments, PDF digest or identity result. Exit 0 after 94.651 seconds
+means the bounded reporting task completed, not that retrieval succeeded; all
+21 scoped files remain unchanged. No transport fix or cause beyond the reported
+DNS condition is inferred.
+
+The coordinator separately uses its authorized Host `web.run open` on
+`https://arxiv.org/pdf/1706.03762`. This returns actual body text, retained verbatim
+as a raw tool-response string inside the JSON packet together with the failed
+native result and explicit execution/provenance limits. Host provenance is
+`native:codex_web_search`; operation is URL open, not a provider search or native
+MCP continuation. The response reports 15 pages/802 lines and exposes L0–L371,
+web pages P0–P8. Selected substantive reading is Section 3.1, web P2 / printed
+page 3, L104–L117. Exposure is not a complete-reading claim. No PDF byte digest
+is supplied; equality with historical native PDF bytes is unverified. Visible
+title/version labels do not independently establish report identity. Historical
+native segments 0–3/27, earlier anchors and `identity_status=not_checked` remain
+distinct and unchanged. No figure/formula or experimental evaluation occurs.
+
+Coordinator-reviewed raw packet content is 32,042 bytes, SHA-256
+`0d7bf46ec38c80abe7f859b01ad9ab658ddf27656ac23c3566d27793c2aede5d`.
+Existing native intake and consolidation save it at the corresponding
+`sources/Vaswani2017Attention/<sha256>.json` path, using evidence-bearing capture
+`cap_600e6e9d5a09253b4375dd2aef0d457b54a7249c4f3696398e2a81f44be6515f`.
+The exact preview content, actual bytes and receipt agree. Plan digest is
+`66ffb16fcd87ecacacdd379d02413ebc46770d6a68cb09c65540dff521896f04`;
+receipt SHA-256 is
+`ae78f9ed254403baa529e7c7acc7c24846e96673e007bebb8c9cbaac82dc4295`.
+Project/library revisions advance 2 → 3, retaining the earlier source and note.
+The local packet digest verifies stored JSON, not remote PDF authenticity.
+
+Author thread `01a10118-c2c8-7f21-b948-e4f49b2844ca` makes two successful
+project/artifact MCP reads and inspects actual packet, note, receipt and current
+guidance. It exits 0 after 128.781 seconds with all 24 scoped files unchanged.
+Its preserved answer, SHA-256
+`26c509c8895bbe94de1b214a1762be5d9899a1126ec15bb205a97ee3f029730f`,
+proposes V2017-C3 as an author architecture specification directly supported by
+Section 3.1 at P2 L114–L117. Empirical effectiveness remains unsupported. The
+coordinator removes prospective pending labels and updates persistence wording,
+retaining the original answer and all claim content. V2017-C1/C2, citekey and
+old source anchors remain intact. No linked stage summary is found or invented.
+
+The requested actual `gpt-6.1-sol / low` agent
+`/root/public_packet_verification` independently checks packet persistence at
+revision 3 and then the concrete note/capture/handoff candidate against raw
+source and actual Host events, without actionable findings. This is dependent,
+source-bound read-only review, not blind or expert assessment. It reviews refusal
+records rather than rerunning them; local records do not independently attest
+the coordinator's external web execution. Launch records establish requested
+settings, not model attestation. Post-save checks remain separately required.
+
+New capture
+`cap_09775df96578bdd5787f96edab71f3682b095271b7a540891a8ae95b319db341`
+binds the already-saved packet at revision 3. Reviewed note draft SHA-256 is
+`6c3820593364eabec642416a84320e02d06749ae04d80111aedbd4ca9cb3ced5`;
+plan digest is
+`0b6c73299a4603411c1c7aa696172c57244dfde38a8081e2086db4164e67e235`.
+Both save phases refuse missing approvals (exit 2) and changed-draft stale plans
+(exit 1, `project-plan-mismatch`) without changing scoped files. Original reviewed
+drafts then apply through the native dual-approval/CAS owner. The second save
+advances project/library revisions 3 → 4, retaining stage literature. The complete
+6,511-byte prior note is a prefix of the 8,651-byte result, SHA-256
+`c8238535fccce3c765625c04f3d6b6b1042c6b87222d84f26e4fc394946a67ec`.
+Note receipt SHA-256 is
+`ec521e46f5fd128cee1fcd173a76c5b4f4718df7498b7d68f9b7d131ad0f05fc`;
+its canonical source-capture digest is
+`ffb9c60f3b9b48bda9b33b06451fbb2f52a3560096a2e1fa752f08d00a1b5445`.
+Preview/disk/receipt hashes agree for state, note and handoff; prior bytes, source
+packets, migration records and the earlier unmerged capture remain intact.
+
+Fresh reader thread `01a1012f-a8b0-7752-a744-af7375cec4ad` makes two successful
+project/artifact MCP reads at revision 4 and independently hashes actual files,
+captures and receipts. It confirms the 2 → 3 → 4 receipt chain, new packet source
+binding, complete prior-note prefix, all three note links and unchanged original
+packet. Saved note, handoff and source-packet preview content match disk bytes.
+Its task incorrectly assumes a standalone historical research-state body in the
+packet preview: that response supplies digest/length metadata instead. The Host
+reports the limitation and verifies the actual 4,250-byte current-state prefix
+against the earlier receipt and preview delta. It does not compare the old
+digest to the entire appended current state or claim absent preview text was
+read. No runtime repair or new apply is needed. Plan digests are compared with
+saved previews, not independently recomputed.
+
+The fresh process exits 0 after 162.748 seconds with all 26 scoped files
+unchanged. Answer SHA-256 is
+`fa14c06a270c975ed16906dedba93b96266627c1a4d53620527d46c5ae4d8ae0`.
+These are fresh ephemeral processes, not reconnection to a persistent session;
+durations are observations, not performance evidence. Fresh source-bound reading
+retains the native DNS refusal, separate Host provenance, missing PDF hash and
+identity/version uncertainty. The selected architecture specification establishes
+no empirical effect, complete B2, Graph or expert acceptance.
+
+The same independent verifier subsequently checks the final actual files,
+refusal inventories, receipt/capture chain and fresh Host command outputs with
+no actionable findings. It confirms the historical-prefix distinction and all
+26 current file hashes. Its review does not turn reported Host execution settings
+into independent runtime model attestation or establish remote source identity.
+
+No runtime or canonical Skill repair is needed by this observation; prior
+native/content checks are reused. The successful explicit Rust 1.99.0 build
+retains the existing platform deprecation warning. The wider validator's earlier
+24 unrelated failures and existing CLI Clippy debt are not rerun or claimed
+resolved. Raw responses, source excerpts and local observation files remain in
+the ignored trial directory; this checked-in record retains identities and
+limits without promoting local evidence to program acceptance.
+
+Next bounded increment: reviewed `retrieval_manifest.csv` persistence/history
+through the existing capture, exact preview, dual approval, revision/CAS and
+receipt owners. Reuse Stage B's one-row-per-attempt schema, retain earlier rows,
+bind actual saved source packets and preserve failed native attempts separately
+from successful Host retrieval. Unknown retrieval timestamps, version, license,
+identity and PDF digest must stay explicit; a local packet path is not a complete
+PDF. This addresses the formal B2 retrieval-record gap without a new retrieval
+engine, Graph store or permanent Agent. Installed/authenticated qualification,
+signed redirects, private-library access and publication remain separately
+scoped; no user-profile/model or program-acceptance change occurs.
+
+At integration, seven roadmap checks, generated-index consistency, ledger
+invariance and diff checks pass. All 249 task states/dependencies and 46 accepted
+rows remain unchanged; only CLI-405 progress is updated. Index generation first
+fails under system Python 3.9 because its `Path.write_text` lacks the `newline`
+argument; the existing Python 3.12.15 environment generates and checks it
+successfully without a tooling change. The frozen-source guard remains required
+before the authorized local fast-forward integration; no remote action occurs.
+
 ### October 3 — Linux ARM64 pip/npm installation repair
 
 The maintainer reports that Ubuntu 24.04.4 LTS / aarch64 installs without an

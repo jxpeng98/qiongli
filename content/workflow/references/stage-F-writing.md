@@ -25,6 +25,27 @@ It specifies the result and boundaries; the active model chooses how to reach it
 Formal task outputs and Q1/Q2 gates above remain required for the selected task.
 A direct paragraph answer does not require the full artifact set or a gate report.
 
+### Result-to-claim decisions
+
+Apply the three questions in `references/academic-output-rubric.md` to the claims
+that determine the requested text. Inspect the current output/source and inherited
+limits before reusing a draft or interpretation.
+
+| What must be decided? | Evidence needed | What can proceed? |
+|---|---|---|
+| Is this a result we can report? | Executed output or inspected source excerpt, version, sample/denominator, units and uncertainty or qualitative context | Draft verified findings. An unexecuted analysis remains planned; inconsistent numbers block that numerical claim until reconciled, while unaffected text can proceed |
+| Which wording does the evidence support? | C's claim type and assumptions, E/I's findings, source anchors and failed checks | State the strongest supported claim. Remove or narrow an unsupported causal/mechanistic assertion; adding "may" alone does not supply evidence |
+| Can we interpret magnitude or practical importance? | Metric, scaling, time horizon, population and a justified benchmark or conversion inputs | Explain the available estimate and uncertainty. Missing context limits the practical translation; do not manufacture a benchmark or substitute an example number |
+| How do contrary findings affect the argument? | Comparable results, negative cases, prespecified/exploratory status and source-specific limitations | Integrate supported convergence/divergence. An unexplained contradiction stays visible; choose narrower prose rather than inventing a mechanism |
+| Is the requested text complete? | Its source-to-claim checks, applicable formal outputs and unresolved dependencies | Return the checked unit, or label the specific incomplete part. Separate an evidence-bounded draft from a gate pass or submission-readiness claim |
+
+Carry the claim ID, source locator, supported wording and limiting assumption in
+the existing interpretation artifact and claim-evidence records when those are in
+scope. On a changed upstream result, identify dependent manuscript passages,
+tables, abstracts and recommendations; revise them together within authorized
+scope or name the remaining affected work in the handoff. Do not silently reuse
+the old estimate or promote a previous review into evidence for the new claim.
+
 ### Direction and freedom
 
 - Reuse relevant source material and settled decisions, including
@@ -53,6 +74,19 @@ A direct paragraph answer does not require the full artifact set or a gate repor
 - Interpret qualitative themes when supported, keeping quotations and episodes
   as evidence anchors. Do not invent mechanisms, negative cases or theoretical
   contributions to satisfy a writing template.
+- Preserve the design's claim type from Stage A/C and the selected discipline
+  guide. A predictor is not necessarily a cause, an indirect path is not a
+  demonstrated mechanism, and a source interpretation is not a measured effect.
+- Check numerical statements against the actual result: population, denominator,
+  units, direction, time window and uncertainty. Distinguish statistical from
+  substantive importance. A nonsignificant result does not establish equivalence;
+  equivalence/noninferiority claims need their own design, margin and analysis.
+- Separate planned from performed methods and confirmatory from exploratory
+  analyses. Account for deviations, missing observations and null/contradictory
+  findings before compressing results into an abstract or recommendation.
+- For theory/humanities, make premises, source interpretation, objections and
+  scope inspectable without forcing empirical section names. For mixed methods,
+  explain what integration adds and where the strands disagree.
 
 ### Review and completion
 

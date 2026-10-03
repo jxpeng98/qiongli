@@ -134,8 +134,15 @@ See [reply-only scope and limits](docs/advanced/agent-skill-collaboration.md#rep
 | Part | Purpose |
 |---|---|
 | Skills / Plugin | Route the requested reading, review, study design, writing, polish or stage summary through shared guidance |
-| Lite MCP | 14 tools for bounded literature, configuration, search planning and Zotero operations |
-| Full MCP | 32 tools, adding projects, Graph and Host handoffs; writes retain preview, approval and revision checks |
+| Lite MCP | 15 tools for bounded literature, configuration, search planning and Zotero operations |
+| Full MCP | 33 tools, adding projects, Graph and Host handoffs; writes retain preview, approval and revision checks |
+
+Literature search preserves abstracts and reported full-text candidates across
+OpenAlex, Semantic Scholar, Crossref, PubMed and arXiv. The native
+`qiongli_literature_read_fulltext` tool reads public HTTPS PDF/TEI/JATS sources
+with page/section anchors and digest-bound continuation. Host-native search can
+find further repositories and publisher pages; the active Agent executes it.
+Search snippets, parsed text and actually inspected passages remain distinct.
 | Research Graph | Rebuild links between claims, sources and locations from canonical research records; unsupported relations remain unconfirmed |
 | Stage summaries | Keep substantive findings, sources, predecessors and changes; optional retention review lists individual files for the user to select and delete personally |
 

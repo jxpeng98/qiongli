@@ -1,0 +1,313 @@
+{
+  "schema": "qiongli-public-paper-trials/v1",
+  "prepared_at_utc": "2026-10-02T09:08:49Z",
+  "purpose": "Corpus preparation; no model or installed-Host result is established.",
+  "raw_files_in_repository": false,
+  "source_normalization": "ElementTree itertext; join all Unicode whitespace runs with one ASCII space. Paragraphs are selected whole, unedited except text/whitespace flattening; XML formatting and superscript styling are lost. No images, tables, private transcripts or supplements are redistributed.",
+  "cases": [
+    {
+      "id": "quantitative-education",
+      "citekey": "Ritchie2013Retrieval",
+      "doi": "10.1371/journal.pone.0078976",
+      "authors": "Stuart J. Ritchie; Sergio Della Sala; Robert D. McIntosh",
+      "year": "2013",
+      "url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0078976&type=manuscript",
+      "license": "Creative Commons Attribution; version not stated in the retrieved XML",
+      "license_url": "https://creativecommons.org/licenses/by/",
+      "title": "Retrieval Practice, with or without Mind Mapping, Boosts Fact Learning in Primary School Children",
+      "retrieved_on": "2026-10-02",
+      "source_status": "public full article XML retrieved; selected body excerpts supplied to each trial",
+      "raw_source_sha256": "18acae39e5cfbb8832a6ab616f49de795af8130ef9b1be52e03028febb202cb2",
+      "raw_source_bytes": 75599,
+      "license_statement": "This is an open-access article distributed under the terms of the Creative Commons Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the original author and source are credited.",
+      "checkpoints": [
+        {
+          "packet": "R1",
+          "file": "quantitative-education/source.md",
+          "sha256": "8cdb89377b9991d0dda5192e10e4e4cd93d55f3181c2e6ac3ae9bcb462af3917",
+          "segments": [
+            {
+              "locator": "Ritchie2013Retrieval:participants",
+              "xml_selector": ".//*[@id='s2a2']/p[1]",
+              "normalized_text_sha256": "b4f64a12f0b26617202fc8f94c9d4c3caa441cd1296d23fdcd145377cc8ebdc4"
+            },
+            {
+              "locator": "Ritchie2013Retrieval:allocation",
+              "xml_selector": ".//*[@id='s2a4']/p[1]",
+              "normalized_text_sha256": "8b8df4d6cc8832864729513a6c366b6d4b82452d5fd9a6788af3215eab6c783f"
+            },
+            {
+              "locator": "Ritchie2013Retrieval:allocation-procedure",
+              "xml_selector": ".//*[@id='s2a4']/p[2]",
+              "normalized_text_sha256": "26b42f77284015f8fb61bb0ee840c459992bd2bd748d2b618cc5cd6cdbc7fdae"
+            },
+            {
+              "locator": "Ritchie2013Retrieval:mind-map-allocation",
+              "xml_selector": ".//*[@id='s2a4']/p[4]",
+              "normalized_text_sha256": "2d5cdc182e2249cba58b37958b9f64b15ef712236e44a8ef0e765065ae91970c"
+            },
+            {
+              "locator": "Ritchie2013Retrieval:exposure",
+              "xml_selector": ".//*[@id='s2a4']/p[5]",
+              "normalized_text_sha256": "eada202e74a2bd6854d255ef4d137c210524c908b8c57f1151ef2e53bf89d77f"
+            },
+            {
+              "locator": "Ritchie2013Retrieval:testing",
+              "xml_selector": ".//*[@id='s2a5']/p[1]",
+              "normalized_text_sha256": "731ff7e5552e81406004bc32e4d3910a112b2df073f59f8c327402a0efb27998"
+            },
+            {
+              "locator": "Ritchie2013Retrieval:denominator",
+              "xml_selector": ".//*[@id='s2b']/p[1]",
+              "normalized_text_sha256": "aa3544e72517afd1ec984a11bcb8d97225bb7153e19bf20b70cf457f70387ed8"
+            },
+            {
+              "locator": "Ritchie2013Retrieval:analysis",
+              "xml_selector": ".//*[@id='s2b']/p[2]",
+              "normalized_text_sha256": "5cd9a1ae96cdb8c8d8e8c851e7fcc2cad8bd3a4523dcbc9af7bde26abb0af8cf"
+            },
+            {
+              "locator": "Ritchie2013Retrieval:adjusted-findings",
+              "xml_selector": ".//*[@id='s2b']/p[3]",
+              "normalized_text_sha256": "3f294ac4369c66505e56a7832e97c829c968dd006147f7fce6c002d837078287"
+            },
+            {
+              "locator": "Ritchie2013Retrieval:mechanism-limit",
+              "xml_selector": ".//*[@id='s4']/p[6]",
+              "normalized_text_sha256": "405befca4245797ac8e1af7f84e96f1cd935194ad702e787aa9685ce41d83ce8"
+            }
+          ]
+        },
+        {
+          "packet": "R2-addendum",
+          "file": "quantitative-education/continuation-source.md",
+          "sha256": "d226a53c7eb2741900d0f03f8584eb82639d601362843bf4af323e79a4b15244",
+          "segments": [
+            {
+              "locator": "Ritchie2013Retrieval:covariate-sensitivity",
+              "xml_selector": ".//*[@id='s2b']/p[4]",
+              "normalized_text_sha256": "e91ea983f7129c263c115ada3db8827b3924c742036038bad05e4e8e31540d15"
+            },
+            {
+              "locator": "Ritchie2013Retrieval:supplement-report",
+              "xml_selector": ".//*[@id='s2b']/p[5]",
+              "normalized_text_sha256": "9311a9afe76cd512533c316a898cebb1c293f3f1e8edba53e7268ce4d5d6f917"
+            }
+          ]
+        }
+      ],
+      "tasks": [
+        {
+          "file": "quantitative-education/continuation-task.md",
+          "sha256": "4eceaffb0a0b8bc3315bdabc0158ea1f80bb766893ddd63cc40f7e7103e90181"
+        },
+        {
+          "file": "quantitative-education/task.md",
+          "sha256": "a0a3f19fcd9adcebe568a1b77ba4adafd55c7e7351bbe230c51053c079b921fd"
+        }
+      ]
+    },
+    {
+      "id": "qualitative-education",
+      "citekey": "Severe2024Participation",
+      "doi": "10.1371/journal.pone.0297771",
+      "authors": "Emilee Severe; Jack Stalnaker; Anika Hubbard; Courtni H. Hafen; Elizabeth G. Bailey",
+      "year": "2024",
+      "url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0297771&type=manuscript",
+      "license": "Creative Commons Attribution 4.0 International",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "title": "To participate or not to participate? A qualitative investigation of students’ complex motivations for verbal classroom participation",
+      "retrieved_on": "2026-10-02",
+      "source_status": "public full article XML retrieved; selected body excerpts supplied to each trial",
+      "raw_source_sha256": "3e0283dcc8d3b3a3d8b904da324ac60c8a45c5fc5c36a9b285abc07e5fe42275",
+      "raw_source_bytes": 145988,
+      "license_statement": "This is an open access article distributed under the terms of the Creative Commons Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the original author and source are credited.",
+      "checkpoints": [
+        {
+          "packet": "R1",
+          "file": "qualitative-education/source.md",
+          "sha256": "ed370de84aa55095ead28ff77f7f9a4984aded756dd222bf9218e221b39d45e8",
+          "segments": [
+            {
+              "locator": "Severe2024Participation:positionality",
+              "xml_selector": ".//*[@id='sec007']/p[1]",
+              "normalized_text_sha256": "c875517c4919b07f9a801bd388cecbf41cf421e6038281b5dd779675e3bd078c"
+            },
+            {
+              "locator": "Severe2024Participation:participants",
+              "xml_selector": ".//*[@id='sec008']/p[1]",
+              "normalized_text_sha256": "6a16c59a93be8f0517a75761f0939c5888a704d439dd203ef91bf98cc698c9ac"
+            },
+            {
+              "locator": "Severe2024Participation:recruitment",
+              "xml_selector": ".//*[@id='sec008']/p[2]",
+              "normalized_text_sha256": "d052b810f4f56f264e387ed7d3ac7e419e82085c5d1076d0f53548098810059b"
+            },
+            {
+              "locator": "Severe2024Participation:saturation-report",
+              "xml_selector": ".//*[@id='sec008']/p[3]",
+              "normalized_text_sha256": "9bb7562898642d5261363df7506eb51e5e37af31ef9f508254e422ea52c387e9"
+            },
+            {
+              "locator": "Severe2024Participation:interview-scope",
+              "xml_selector": ".//*[@id='sec009']/p[2]",
+              "normalized_text_sha256": "c7cb0598e55b7c72f7634f6ce9444be65c1618d77877226b39b15d5725e26b35"
+            },
+            {
+              "locator": "Severe2024Participation:interview-mode",
+              "xml_selector": ".//*[@id='sec009']/p[4]",
+              "normalized_text_sha256": "108accbab13bfd0352c4138e4ff551af9a2ae3188b42ccb2acf8a130a61d8ec0"
+            },
+            {
+              "locator": "Severe2024Participation:analysis",
+              "xml_selector": ".//*[@id='sec010']/p[1]",
+              "normalized_text_sha256": "9bf2e52da0e825681f866fedf2b7958210b155e0e4b83c5375e957d9c614f0af"
+            },
+            {
+              "locator": "Severe2024Participation:themes",
+              "xml_selector": ".//*[@id='sec011']/p[1]",
+              "normalized_text_sha256": "ede26ef25821f6c26829018da29baff8d7231198918c71200ab1c15718f05292"
+            },
+            {
+              "locator": "Severe2024Participation:participant-quote",
+              "xml_selector": ".//*[@id='sec013']/disp-quote[1]/p[1]",
+              "normalized_text_sha256": "c8b5fa09ca7002abd91f306f9424c1de93ce7473c4b4dee72113d23a65f6b6c9"
+            },
+            {
+              "locator": "Severe2024Participation:quote-context",
+              "xml_selector": ".//*[@id='sec013']/p[3]",
+              "normalized_text_sha256": "e99fe84c5bc30363ede807bb53fff76f6a63906f634f00cc06870702a9990f1d"
+            },
+            {
+              "locator": "Severe2024Participation:theory-timing",
+              "xml_selector": ".//*[@id='sec023']/p[1]",
+              "normalized_text_sha256": "f13a3af59429876a16cddd1eeaa376040d0976a1b586e60f635cd2d12805e4d3"
+            },
+            {
+              "locator": "Severe2024Participation:transferability",
+              "xml_selector": ".//*[@id='sec024']/p[1]",
+              "normalized_text_sha256": "820edfa46e31fc7d9ff173e0a336123b6fe96b21ffeafec8781d11ad65928aa7"
+            },
+            {
+              "locator": "Severe2024Participation:disclosure-limit",
+              "xml_selector": ".//*[@id='sec024']/p[2]",
+              "normalized_text_sha256": "c9bba1bf6d95dff6b3dca021eb921b92976dc23f533932b46dc5779351fda421"
+            },
+            {
+              "locator": "Severe2024Participation:member-feedback",
+              "xml_selector": ".//*[@id='sec024']/p[3]",
+              "normalized_text_sha256": "3a78fa1443bca3e765daf89f454d5e1af20c2eb1207d4c59cca88dda6d4917c2"
+            }
+          ]
+        }
+      ],
+      "tasks": [
+        {
+          "file": "qualitative-education/task.md",
+          "sha256": "529cad4e5396e7de216c70fe1de0d7a47c35e95f9f9f81221d5ce92da3acf627"
+        }
+      ]
+    },
+    {
+      "id": "systematic-review-audit",
+      "citekey": "Trumble2023Review",
+      "doi": "10.1007/s10459-023-10274-3",
+      "authors": "Emma Trumble; Jason Lodge; Allison Mandrusiak; Roma Forbes",
+      "year": "2023 online; 2024 issue",
+      "url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id=11078833&retmode=xml",
+      "license": "Creative Commons Attribution 4.0 International",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "title": "Systematic review of distributed practice and retrieval practice in health professions education",
+      "retrieved_on": "2026-10-02",
+      "source_status": "public full article XML retrieved; selected body excerpts supplied to each trial",
+      "raw_source_sha256": "65e5d3429778135efaf777d8482d34337b35ae181e653ebc14efdc066a96a61e",
+      "raw_source_bytes": 215023,
+      "license_statement": "https://creativecommons.org/licenses/by/4.0/Open Access This article is licensed under a Creative Commons Attribution 4.0 International License, which permits use, sharing, adaptation, distribution and reproduction in any medium or format, as long as you give appropriate credit to the original author(s) and the source, provide a link to the Creative Commons licence, and indicate if changes were made. The images or other third party material in this article are included in the article’s Creative Commons licence, unless indicated otherwise in a credit line to the material. If material is not included in the article’s Creative Commons licence and your intended use is not permitted by statutory regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright holder. To view a copy of this licence, visit http://creativecommons.org/licenses/by/4.0/.",
+      "checkpoints": [
+        {
+          "packet": "R1",
+          "file": "systematic-review-audit/source.md",
+          "sha256": "02d8e40e2a8ebb565c94b8e6032f7097f45e59f7d6c7aad9be6c33b5f3b445fc",
+          "segments": [
+            {
+              "locator": "Trumble2023Review:abstract",
+              "xml_selector": ".//*[@id='Par1']",
+              "normalized_text_sha256": "c63d891b07aba381423df55f064975489e128af60e8217ea5fe89b31c5e504f2"
+            },
+            {
+              "locator": "Trumble2023Review:eligibility",
+              "xml_selector": ".//*[@id='Par15']",
+              "normalized_text_sha256": "e2549c52bd7fef95b48e54d502fa50942d4cc0279ff6b6844e32da873571b30a"
+            },
+            {
+              "locator": "Trumble2023Review:search",
+              "xml_selector": ".//*[@id='Par17']",
+              "normalized_text_sha256": "718457d484a41243f3c298a0f56ce6a43c74be0d18141a55809efce52f01d99a"
+            },
+            {
+              "locator": "Trumble2023Review:screening",
+              "xml_selector": ".//*[@id='Par18']",
+              "normalized_text_sha256": "85bc8dc99d15e86cd94b1cb146f3d122c36e0563c32c9a43733b4179a32b0f19"
+            },
+            {
+              "locator": "Trumble2023Review:appraisal",
+              "xml_selector": ".//*[@id='Par21']",
+              "normalized_text_sha256": "76e88dfaeb4e28205a0fa44b43e167ce50d08e58526dba660f4c8e88b612d3c4"
+            },
+            {
+              "locator": "Trumble2023Review:summary-method",
+              "xml_selector": ".//*[@id='Par22']",
+              "normalized_text_sha256": "cf8ed0bb972ea4878514936dd6a87462ec950c72dd4df7901ae7a4b2aeaf9273"
+            },
+            {
+              "locator": "Trumble2023Review:experiment-denominator",
+              "xml_selector": ".//*[@id='Par28']",
+              "normalized_text_sha256": "f45b53bd8e5eb9379ac928ebd1b8ebd7fe0ea98b0a3cb106601da607a1f50747"
+            },
+            {
+              "locator": "Trumble2023Review:time-on-task",
+              "xml_selector": ".//*[@id='Par32']",
+              "normalized_text_sha256": "b9f5b7c0fc4bd895e6e9d8bd0fda2fb001d5b1f4a7b68bc7b851e86ed25c4c91"
+            },
+            {
+              "locator": "Trumble2023Review:appraisal-unit",
+              "xml_selector": ".//*[@id='Par33']",
+              "normalized_text_sha256": "8f17339345abc9ba024cb900da41640240a4b8bc9cc9bdd2ea7cdfecaf28e272"
+            },
+            {
+              "locator": "Trumble2023Review:outcome-boundary",
+              "xml_selector": ".//*[@id='Par34']",
+              "normalized_text_sha256": "1425d0178c1e66e9571ebb48a55082daea3c1109641ea5184d49cfb46e688fa7"
+            },
+            {
+              "locator": "Trumble2023Review:assessment-validity",
+              "xml_selector": ".//*[@id='Par35']",
+              "normalized_text_sha256": "83b483ae63077a60ea56b43c61c71962dfce631f122590032c54f9e5a617963c"
+            },
+            {
+              "locator": "Trumble2023Review:limitations",
+              "xml_selector": ".//*[@id='Par53']",
+              "normalized_text_sha256": "836316eeb1571197a968ef320c4c0cce03baad399fdbe1f2fe0f27e5d94593c6"
+            },
+            {
+              "locator": "Trumble2023Review:conclusion",
+              "xml_selector": ".//*[@id='Par54']",
+              "normalized_text_sha256": "3674d015ccde34b72c1116f886816f741efb9e1a442250bc3614e1a30cab4b0b"
+            }
+          ]
+        }
+      ],
+      "tasks": [
+        {
+          "file": "systematic-review-audit/task.md",
+          "sha256": "2d5a831d3680ab8f55dc59dd71b13b82da5d842ed3655d99e20226a91e89a577"
+        }
+      ]
+    }
+  ],
+  "review_criteria": {
+    "file": "criteria.md",
+    "sha256": "c05a5ad7f2fd4bb1c8e8d0baa14f10b0946a7895dfd9d193be5db4cf5796c611",
+    "supply_to_task_runner": false
+  }
+}

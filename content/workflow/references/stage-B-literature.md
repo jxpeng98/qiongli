@@ -20,6 +20,24 @@ This stage builds the *evidence base* for positioning: search → screening → 
 
 ## Literature Provider Contract
 
+Choose the review question and corpus before choosing a pipeline: targeted
+reading, narrative/integrative review, scoping review, systematic review and
+living update are different outcomes. Use `references/discipline-guidance.md`
+for relevant terminology, databases and source types. A scoping review does not
+automatically need pooled effects; a targeted bibliography is not a systematic review.
+
+For formal reviews, keep records, reports and studies distinct. Link preprints,
+protocols, follow-up reports, corrections and overlapping cohorts to their study
+without discarding their provenance. Check consequential corrections/retractions
+when verifying a source. Record untranslated/unretrieved material as an access
+limit, not automatically as an exclusion on scientific grounds.
+
+Pilot eligibility and extraction on available material when it can expose an
+ambiguous rule; preserve the protocol's reviewer/independence requirements.
+Resolve disagreements explicitly and retain reasons. A single agent cannot
+claim two independent screeners. An update preserves the previous search cutoff,
+query changes and new versus previously screened records.
+
 Treat the literature stack as four coordinated layers, not one blob:
 
 1. `scholarly-search`
@@ -43,7 +61,7 @@ Execution rule:
 Builtin baseline expectation:
 - `citation-graph` should first try to derive seed identifiers from `search_results.csv`, `bibliography.bib`, and `notes/` before requiring an explicit `target_paper_id`
 - `metadata-registry` should treat `bibliography.bib` as the canonical export, but it may derive normalized reference state from `references.json`, `references.ris`, `search_results.csv`, and `notes/`
-- `fulltext-retrieval` should at least draft `retrieval_manifest.csv` and `screening/full_text.md` from local literature artifacts, even when actual PDF retrieval is delegated to an external resolver
+- `fulltext-retrieval` retains `retrieval_manifest.csv` and `screening/full_text.md`; use visible native `qiongli_literature_read_fulltext` for selected public PDF/TEI/JATS sources as directed in `skills/B_literature/fulltext-fetcher.md`. Older planning adapters remain planning-only; an available authorized Host reader or external resolver must perform actual retrieval.
 
 ---
 
@@ -153,9 +171,11 @@ Discovery coverage and full-text access coverage are separate:
 
 - `discovery coverage`: how broad and reproducible the metadata search was across providers, query variants, years, venues, document types, citation snowballing, and known-item recall.
 - `full-text access coverage`: how many sought reports have a controlled `retrieval_manifest.csv` status such as `retrieved_oa`, `retrieved_preprint`, `abstract_only`, or `not_retrieved:<reason>`.
-- `native_fulltext_queries`: platform-native LLM search queries that the active agent may execute to discover PDF, PMC, arXiv, repository, author-manuscript, or publisher full-text candidates. These outputs stay `candidate_only` until retrieval status is recorded.
+- `native_fulltext_queries`: platform-native LLM search queries that the active agent may execute to discover PDF, PMC, arXiv, repository, author-manuscript, or publisher full-text candidates. These outputs stay `candidate_only` until actual retrieval and report-identity verification support a recorded retrieval status.
 - `Zotero attachment verification`: local Zotero attachment metadata that can distinguish citation-only Zotero matches from records with a local or linked PDF attachment.
 - `evidence_limit`: what the workflow is allowed to claim from a record: `full_text`, `abstract_only`, `metadata_only`, or `unavailable`.
+
+Keep candidate discovery, source fetching, text parsing and actual passage reading distinct. Preserve source digests, report versions, section/page anchors and parser warnings in the existing retrieval manifest and paper notes. Pagination does not establish whole-article reading; claims about methods, results or tables require the relevant passages. Missing or unreadable full text remains an access limit and does not alone change study eligibility.
 
 No search provider, native LLM search tool, or local Zotero library proves absolute completeness. There is no absolute completeness proof for Stage B. Review-grade claims require a reproducible search log, deduplication, known-item recall checks, citation snowballing where appropriate, Zotero attachment verification where available, and retrieval status for every included or sought report.
 
@@ -168,7 +188,7 @@ Provider JSON output can be materialized with `scripts/materialize_literature_se
 Purpose: expand beyond the initial keywords to reduce confirmation bias.
 
 **Definition of done**
-- A concept list grouped into 2–5 “concept buckets”
+- A concept list grouped by the question's distinct concepts
 - Synonyms, controlled vocabulary candidates (if relevant), and “near misses”
 - A revised seed query that can be dropped into `search_strategy.md`
 
@@ -192,7 +212,7 @@ Purpose: expand beyond the initial keywords to reduce confirmation bias.
 
 ## B2 — Targeted Key Paper Reading
 
-Use when you have 3–10 seed papers to bootstrap the project.
+Use for the supplied or selected seed papers, including a single paper.
 
 **Definition of done**
 - `notes/` contains structured notes for each seed paper
@@ -235,10 +255,11 @@ Suggested `snowball_log.md` table:
 
 ## B4 — Related Work Writing
 
-Related work should be *taxonomy/argument*-based, not chronological.
+Organize related work around the argument; chronology is useful when development
+over time is part of that argument.
 
 **Definition of done**
-- A taxonomy with 3–6 clusters
+- A source-grounded structure with the distinctions needed for the argument
 - Positioning paragraph: “we differ because…”
 - Claims are supported by citations that actually match the statement
 

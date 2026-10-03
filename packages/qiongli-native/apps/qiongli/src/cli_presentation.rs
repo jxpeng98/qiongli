@@ -407,7 +407,7 @@ pub(crate) fn plugin_install_summary(
         ),
     };
     let mut text = format!(
-        "\nQiongli Plugin installed — {host}\n\n  Version   {}\n  Plugin    {}\n  Source    {}\n  Cache     {}\n\n  Verified  registration, enabled state and cached files\n  Includes  Skills + Full MCP (32 tools)\n  Pending   session tools{}\n\nNext steps\n",
+        "\nQiongli Plugin installed — {host}\n\n  Version   {}\n  Plugin    {}\n  Source    {}\n  Cache     {}\n\n  Verified  registration, enabled state and cached files\n  Includes  Skills + Full MCP (33 tools)\n  Pending   session tools{}\n\nNext steps\n",
         env!("CARGO_PKG_VERSION"),
         safe(plugin),
         safe(&source.destination.to_string_lossy()),

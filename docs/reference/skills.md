@@ -231,6 +231,12 @@ Describe the field, method and protocol in your request. The Host can read relev
 bundled profiles; the 1.x `--domain` switch is not a native 2.x CLI option.
 Profiles guide the work, but do not establish evidence or current journal policy.
 
+The bundled `references/discipline-guidance.md` selects focused guides for
+economics/finance/accounting, business/society/policy, education/psychology, health/biomedicine,
+computing/engineering, environment/spatial research and humanities/language/law.
+They organize common questions, methods, evidence and delivery checks across A–M,
+and load only when relevant. These guides do not add runtime subject IDs or Host entries.
+
 Available profiles:
 
 - `accounting`

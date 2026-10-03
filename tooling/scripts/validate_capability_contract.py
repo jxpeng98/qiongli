@@ -139,6 +139,13 @@ EXPECTED_FROZEN_MCPB_PUBLIC_NAMES = tuple(
     for name in EXPECTED_LITE_PUBLIC_NAMES
     if name not in {"qiongli_zotero_search", "qiongli_zotero_upsert_references"}
 )
+# Native Lite/Full share this additive read tool. The retained Python Full and
+# CTR-201 v2 inventory do not expose it; validate it before comparing that oracle.
+NATIVE_FULLTEXT_TOOL = "qiongli_literature_read_fulltext"
+NATIVE_FULLTEXT_DESCRIPTION = (
+    "Read bounded, source-anchored text from a public HTTPS PDF, TEI XML, or JATS "
+    "XML document without writing project files."
+)
 EXPECTED_INPUT_ERROR_SMOKE_PAIRS = {
     ("marketplace-lite", "qiongli_configure_provider"),
     ("marketplace-lite", "qiongli_open_config_wizard"),
@@ -930,6 +937,22 @@ def validate_capability_contract(
             lite_tools = _tool_map(lite_contract, label="Marketplace Lite contract")
         else:
             lite_tools = dict(lite_tool_definitions)
+        native_tool = lite_tools.pop(NATIVE_FULLTEXT_TOOL, None)
+        if not isinstance(native_tool, Mapping):
+            failures.append(f"native Lite contract is missing {NATIVE_FULLTEXT_TOOL}")
+        else:
+            native_root = root / LITE_TOOLS_RELATIVE.parent
+            native_input = _load_json(native_root / f"{NATIVE_FULLTEXT_TOOL}.input.schema.json")
+            native_output = _load_json(native_root / f"{NATIVE_FULLTEXT_TOOL}.output.schema.json")
+            if native_tool.get("description") != NATIVE_FULLTEXT_DESCRIPTION:
+                failures.append(f"{NATIVE_FULLTEXT_TOOL}: native description drifts")
+            if native_tool.get("inputSchema") != runtime_schema_projection(native_input):
+                failures.append(f"{NATIVE_FULLTEXT_TOOL}: native input schema drifts")
+            if native_input.get("additionalProperties") is not False:
+                failures.append(f"{NATIVE_FULLTEXT_TOOL}: native input must reject unknown fields")
+            failures.extend(_closed_output_envelope_failures(
+                NATIVE_FULLTEXT_TOOL, "native", native_output
+            ))
         if full_tool_definitions is None:
             full_tools = _load_full_tool_definitions(root)
             for name, definition in lite_tools.items():

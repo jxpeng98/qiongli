@@ -12,11 +12,11 @@ import tarfile
 import zipfile
 
 try:
-    from .native_registry_install_check import require_transition
+    from .native_registry_install_check import require_transition, validate_tool_counts
     from .native_registry_packages import NPM_INSTALL_REVIEW, NPM_LAUNCHER, TARGETS, LEGACY_TARGETS, LINUX_WHEEL_TAGS, host_target, npm_package, parse_release_version, regular_bytes, validate_binary, requires_deepseek_npm
     from .native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive, read_plugin_content, verify_deepseek_npm
 except ImportError:
-    from native_registry_install_check import require_transition
+    from native_registry_install_check import require_transition, validate_tool_counts
     from native_registry_packages import NPM_INSTALL_REVIEW, NPM_LAUNCHER, TARGETS, LEGACY_TARGETS, LINUX_WHEEL_TAGS, host_target, npm_package, parse_release_version, regular_bytes, validate_binary, requires_deepseek_npm
     from native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive, read_plugin_content, verify_deepseek_npm
 
@@ -143,16 +143,24 @@ def verify(root, version, commit):
             or len(manifest['target_evidence']) != len(targets)):
         raise ValueError('all required OS/architecture targets are required before registry publication')
     seen = set()
+    archive_counts = None
     for receipt in manifest['target_evidence']:
         check_identity(receipt, version, commit)
         seen.add(receipt['target'])
         if receipt['checks']['cli_mcp_tests'] != 'passed' or receipt['checks']['npm_wheel_local_install'] != 'passed':
             raise ValueError('target-native qualification is incomplete')
+        counts = validate_tool_counts(receipt['checks']['archive_smoke'].get('mcp_tools'))
+        if archive_counts is not None and counts != archive_counts:
+            raise ValueError('incoherent MCP inventories across target archives')
+        archive_counts = counts
         if requires_deepseek_npm(version):
             dsh = receipt['checks'].get('registry_install', {}).get('npm', {}).get('deepseek_plugin', {})
-            if (dsh.get('skills') != 22 or dsh.get('mcp_tools') != 32 or
+            if (dsh.get('skills') != 22 or dsh.get('mcp_tools') != counts['full'] or
                     dsh.get('content_pack_sha256') != receipt['checks']['archive_smoke'].get('content_pack_sha256')):
                 raise ValueError('missing target-native DeepSeek npm installation evidence')
+        for installed in receipt['checks'].get('registry_install', {}).values():
+            if validate_tool_counts(installed.get('mcp_tools')) != counts:
+                raise ValueError('installed MCP inventory differs from target archive')
     if seen != set(targets):
         raise ValueError('duplicate or missing target evidence')
     files = checked_assets(root, manifest)
@@ -268,7 +276,8 @@ def verify(root, version, commit):
                 receipt = next(r for r in manifest['target_evidence'] if r['target'] == target)
                 observed = receipt['checks'].get('marketplace_plugins', {}).get(host, {})
                 if (observed.get('status') != 'passed' or observed.get('runtime_path') != 'empty'
-                        or observed.get('mcp_tools') != 14 or observed.get('sha256') != provenance['sha256']
+                        or observed.get('mcp_tools') != receipt['checks']['archive_smoke']['mcp_tools']['lite']
+                        or observed.get('sha256') != provenance['sha256']
                         or observed.get('binary_sha256') != provenance['binary_sha256']):
                     raise ValueError('missing target-native marketplace smoke evidence')
             verified.append(provenance)

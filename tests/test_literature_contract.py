@@ -33,6 +33,16 @@ DESKTOP_MCPB_PROVIDER_BULLET = (
 
 
 class LiteratureContractTests(unittest.TestCase):
+    def routed_workflow_content(self, path: Path) -> str:
+        content = path.read_text(encoding="utf-8")
+        # Paper reading delegates provider details to this canonical owner.
+        if path.name == "paper-read.md":
+            self.assertIn("references/literature-provider-routing.md", content)
+            content += (
+                LAYOUT.workflow / "references" / "literature-provider-routing.md"
+            ).read_text(encoding="utf-8")
+        return content
+
     def test_research_workflow_contract_includes_shared_literature_bundle(self) -> None:
         content = (LAYOUT.standards / "research-workflow-contract.yaml").read_text(
             encoding="utf-8"
@@ -152,7 +162,7 @@ class LiteratureContractTests(unittest.TestCase):
 
         for path in workflow_paths:
             with self.subTest(workflow=str(path.relative_to(REPO_ROOT))):
-                content = path.read_text(encoding="utf-8")
+                content = self.routed_workflow_content(path)
                 for token in required_tokens:
                     self.assertIn(token, content)
                 for token in forbidden_tokens:
@@ -186,7 +196,7 @@ class LiteratureContractTests(unittest.TestCase):
 
         for path in workflow_paths:
             with self.subTest(workflow=str(path.relative_to(REPO_ROOT))):
-                content = path.read_text(encoding="utf-8")
+                content = self.routed_workflow_content(path)
                 for token in required_tokens:
                     self.assertIn(token, content)
 

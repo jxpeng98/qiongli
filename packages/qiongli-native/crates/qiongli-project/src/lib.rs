@@ -24,6 +24,7 @@ mod incremental_portfolio;
 mod json;
 mod migration;
 mod model;
+mod paper_note;
 #[cfg(test)]
 mod platform_capacity;
 mod portable;
@@ -35,6 +36,8 @@ mod repository_inbox;
 mod runtime_state;
 mod semantic_timeline;
 mod service;
+mod source_packet;
+mod stage_summary;
 mod storage;
 
 pub use academic_graph::{
@@ -152,9 +155,9 @@ pub use capture_resolution_service::{
 pub use consolidation::{
     ACADEMIC_CONSOLIDATION_SCHEMA_VERSION, ApprovedCaptureConsolidation,
     CaptureConsolidationCommitV1, CaptureConsolidationConflictKind, CaptureConsolidationConflictV1,
-    CaptureConsolidationOutcome, CaptureConsolidationPreviewV1, CaptureConsolidationReceiptV1,
-    ConsolidatedArtifactV1, ConsolidationArtifact, ConsolidationArtifactDeltaV1,
-    ConsolidationArtifactEffect, VerifiedCaptureConsolidation,
+    CaptureConsolidationDrafts, CaptureConsolidationOutcome, CaptureConsolidationPreviewV1,
+    CaptureConsolidationReceiptV1, ConsolidatedArtifactV1, ConsolidationArtifact,
+    ConsolidationArtifactDeltaV1, ConsolidationArtifactEffect, VerifiedCaptureConsolidation,
 };
 pub use error::ProjectError;
 pub use incremental_portfolio::{
@@ -225,3 +228,8 @@ pub use service::{
     ApprovedProjectMutation, ProjectMutationCommitV1, ProjectRegistrationOptions,
     ProjectStateService, RegisteredProjectRoot, VerifiedProjectMutation,
 };
+
+pub use paper_note::PaperNoteDraftV1;
+pub use source_packet::SourcePacketDraftV1;
+pub use stage_summary::{StageSummaryDraftV1, StageSummarySourceV1, StageSummaryStatus};
+pub use storage::read_stage_handoff_file;

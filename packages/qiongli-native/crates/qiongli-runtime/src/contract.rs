@@ -8,7 +8,7 @@ use crate::{RuntimeError, RuntimeErrorCode};
 
 pub const LITE_TOOL_CONTRACT_RESOURCE_PATH: &str = "mcp-contracts/lite-tools.json";
 pub const FULL_PROJECT_TOOL_CONTRACT_RESOURCE_PATH: &str = "mcp-contracts/full-project-tools.json";
-pub const LITE_PUBLIC_TOOL_NAMES: [&str; 14] = [
+pub const LITE_PUBLIC_TOOL_NAMES: [&str; 15] = [
     "qiongli_config_status",
     "qiongli_save_provider_config",
     "qiongli_configure_provider",
@@ -23,6 +23,7 @@ pub const LITE_PUBLIC_TOOL_NAMES: [&str; 14] = [
     "qiongli_zotero_export_import_files",
     "qiongli_orchestrator_route",
     "qiongli_task_plan",
+    "qiongli_literature_read_fulltext",
 ];
 pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 9] = [
     "qiongli_project_list",
@@ -52,6 +53,7 @@ pub enum LiteToolId {
     LiteratureStatus,
     SearchPlan,
     LiteratureSearch,
+    LiteratureReadFulltext,
     LiteratureExportEvidence,
     ZoteroStatus,
     ZoteroSearch,
@@ -124,6 +126,7 @@ pub enum LiteLiteratureHandler {
     Status,
     SearchPlan,
     Search,
+    ReadFulltext,
     ExportEvidence,
 }
 
@@ -161,6 +164,7 @@ impl LiteToolId {
             "qiongli_literature_status" => Some(Self::LiteratureStatus),
             "qiongli_search_plan" => Some(Self::SearchPlan),
             "qiongli_literature_search" => Some(Self::LiteratureSearch),
+            "qiongli_literature_read_fulltext" => Some(Self::LiteratureReadFulltext),
             "qiongli_literature_export_evidence" => Some(Self::LiteratureExportEvidence),
             "qiongli_zotero_status" => Some(Self::ZoteroStatus),
             "qiongli_zotero_search" => Some(Self::ZoteroSearch),
@@ -181,6 +185,7 @@ impl LiteToolId {
             Self::LiteratureStatus => "qiongli_literature_status",
             Self::SearchPlan => "qiongli_search_plan",
             Self::LiteratureSearch => "qiongli_literature_search",
+            Self::LiteratureReadFulltext => "qiongli_literature_read_fulltext",
             Self::LiteratureExportEvidence => "qiongli_literature_export_evidence",
             Self::ZoteroStatus => "qiongli_zotero_status",
             Self::ZoteroSearch => "qiongli_zotero_search",
@@ -202,6 +207,9 @@ impl LiteToolId {
             Self::LiteratureStatus => LiteDispatchTarget::Literature(LiteLiteratureHandler::Status),
             Self::SearchPlan => LiteDispatchTarget::Literature(LiteLiteratureHandler::SearchPlan),
             Self::LiteratureSearch => LiteDispatchTarget::Literature(LiteLiteratureHandler::Search),
+            Self::LiteratureReadFulltext => {
+                LiteDispatchTarget::Literature(LiteLiteratureHandler::ReadFulltext)
+            }
             Self::LiteratureExportEvidence => {
                 LiteDispatchTarget::Literature(LiteLiteratureHandler::ExportEvidence)
             }
@@ -422,6 +430,10 @@ mod tests {
             (
                 LiteToolId::LiteratureSearch,
                 LiteDispatchTarget::Literature(LiteLiteratureHandler::Search),
+            ),
+            (
+                LiteToolId::LiteratureReadFulltext,
+                LiteDispatchTarget::Literature(LiteLiteratureHandler::ReadFulltext),
             ),
             (
                 LiteToolId::LiteratureExportEvidence,

@@ -156,7 +156,7 @@
     },
     {
       "name": "qiongli_project_capture_preview",
-      "description": "Validate and preview one connected normalized research capture against its bound article project without writing project state.",
+      "description": "Validate and preview a connected research capture without writing. For a new draft omit only capture_id; the existing owner computes it and returns capture plus planDigest. Apply must use that returned capture unchanged. Supplied identities are validated, never repaired.",
       "inputSchema": {
         "type": "object",
         "required": ["capture"],
@@ -275,10 +275,10 @@
           },
           "capture": {
             "type": "object",
+            "description": "New drafts omit capture_id. Envelope schema_version and document_kind, and all binding fields, remain required.",
             "required": [
               "schema_version",
               "document_kind",
-              "capture_id",
               "binding",
               "source",
               "delivery",

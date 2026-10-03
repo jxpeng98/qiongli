@@ -16,11 +16,11 @@ import tarfile
 
 try:
     from .native_registry_packages import TARGETS, regular_bytes, validate_binary
-    from .native_registry_install_check import check_cli, run
+    from .native_registry_install_check import check_cli, run, validate_tool_inventory
     from .release_version import parse_release_version
 except ImportError:
     from native_registry_packages import TARGETS, regular_bytes, validate_binary
-    from native_registry_install_check import check_cli, run
+    from native_registry_install_check import check_cli, run, validate_tool_inventory
     from release_version import parse_release_version
 
 EXPORT = '.qiongli-marketplace-export.json'
@@ -580,10 +580,12 @@ def check_plugins(root: Path, version: str, commit: str, target: str) -> dict:
             messages = {m['id']: m for m in map(json.loads, output.stdout.splitlines())}
             if (output.stderr or set(messages) != {1, 2, 3}
                     or messages[1]['result']['serverInfo']['version'] != version
-                    or len(messages[2]['result']['tools']) != 14
                     or 'error' in messages[3] or messages[3]['result'].get('isError', False)):
                 raise ValueError('bundled Plugin MCP smoke failed')
-            checks[host] = dict(provenance, status='passed', runtime_path='empty', mcp_tools=14)
+            count = validate_tool_inventory('lite', [t['name'] for t in messages[2]['result']['tools']])
+            if count != observed['mcp_tools']['lite']:
+                raise ValueError('bundled Plugin MCP inventory differs from verified executable')
+            checks[host] = dict(provenance, status='passed', runtime_path='empty', mcp_tools=count)
             if version == '2.0.1':
                 checks[host]['plugin_source_transition'] = observed['plugin_source_transition']
     return checks

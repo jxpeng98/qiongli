@@ -3,7 +3,6 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::ProjectError;
 use crate::capture::{
     CaptureArea, CaptureDisposition, CaptureId, CapturePolicy, CaptureSource, DecisionRelation,
     EvidenceLocatorKind, ResearchCaptureV1, classify_capture,
@@ -13,20 +12,34 @@ use crate::model::{
     ArticleProjectManifestV1, MAX_SEMANTIC_REVISION, ProjectId, ProjectLifecycle, ProjectStage,
     RegisteredProjectV1, valid_lower_hex,
 };
+use crate::paper_note::valid_note_path;
 use crate::service::ProjectStateService;
+use crate::source_packet::valid_packet_path;
+use crate::stage_summary::valid_summary_path;
 use crate::storage::{
     ProjectFileTransaction, ProjectFileUpdate, consolidation_relative_path,
     encode_project_document, project_root_from_string, project_root_string, read_capture_document,
-    read_consolidation_document, read_manifest, read_semantic_artifact,
-    semantic_digest_with_overrides, sha256_bytes, validate_existing_project_root,
+    read_consolidation_document, read_manifest, read_project_source, read_semantic_artifact,
+    semantic_digest, semantic_digest_with_overrides, sha256_bytes, validate_existing_project_root,
 };
+use crate::{PaperNoteDraftV1, ProjectError, SourcePacketDraftV1, StageSummaryDraftV1};
 
 pub const ACADEMIC_CONSOLIDATION_SCHEMA_VERSION: u32 = 1;
 const CONSOLIDATION_DOCUMENT_KIND: &str = "qiongli-capture-consolidation";
 const RESEARCH_STATE_PATH: &str = "context/research_state.md";
 const DECISION_LOG_PATH: &str = "context/decision_log.md";
 const PROJECT_MANIFEST_PATH: &str = "context/project_manifest.json";
-const MAX_CONSOLIDATED_ARTIFACTS: usize = 2;
+const STAGE_HANDOFF_PATH: &str = "context/stage_handoff.md";
+const MAX_CONSOLIDATED_ARTIFACTS: usize = 6;
+
+/// Optional reviewed documents composed by the existing consolidation owner.
+#[derive(Clone, Copy, Default)]
+pub struct CaptureConsolidationDrafts<'a> {
+    pub stage_handoff: Option<&'a str>,
+    pub stage_summary: Option<&'a StageSummaryDraftV1>,
+    pub paper_note: Option<&'a PaperNoteDraftV1>,
+    pub source_packet: Option<&'a SourcePacketDraftV1>,
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -56,13 +69,28 @@ pub enum CaptureConsolidationConflictKind {
 pub enum ConsolidationArtifact {
     ResearchState,
     DecisionLog,
+    StageHandoff,
+    StageSummary,
+    PaperNote,
+    SourcePacket,
 }
 
 impl ConsolidationArtifact {
-    const fn relative_path(self) -> &'static str {
+    const fn relative_path(self) -> Option<&'static str> {
         match self {
-            Self::ResearchState => RESEARCH_STATE_PATH,
-            Self::DecisionLog => DECISION_LOG_PATH,
+            Self::ResearchState => Some(RESEARCH_STATE_PATH),
+            Self::DecisionLog => Some(DECISION_LOG_PATH),
+            Self::StageHandoff => Some(STAGE_HANDOFF_PATH),
+            Self::StageSummary | Self::PaperNote | Self::SourcePacket => None,
+        }
+    }
+
+    fn accepts_path(self, path: &str) -> bool {
+        match self {
+            Self::StageSummary => valid_summary_path(path),
+            Self::PaperNote => valid_note_path(path),
+            Self::SourcePacket => valid_packet_path(path),
+            _ => self.relative_path() == Some(path),
         }
     }
 }
@@ -164,8 +192,12 @@ impl CaptureConsolidationReceiptV1 {
         }
         let mut paths = Vec::new();
         for artifact in &self.artifacts {
-            if artifact.relative_path != artifact.artifact.relative_path()
+            if !artifact.artifact.accepts_path(&artifact.relative_path)
                 || !valid_lower_hex(&artifact.digest, 64)
+                || (artifact.artifact == ConsolidationArtifact::SourcePacket
+                    && !artifact
+                        .relative_path
+                        .ends_with(&format!("/{}.json", artifact.digest)))
                 || paths.contains(&artifact.relative_path.as_str())
             {
                 return Err(ProjectError::InvalidProjectDocument);
@@ -182,6 +214,7 @@ impl CaptureConsolidationReceiptV1 {
 #[derive(Clone)]
 struct PlannedArtifact {
     artifact: ConsolidationArtifact,
+    relative_path: String,
     previous_digest: Option<String>,
     previous_bytes: usize,
     next_bytes: Vec<u8>,
@@ -198,12 +231,50 @@ pub struct VerifiedCaptureConsolidation {
     observed_receipt_digest: Option<String>,
     artifacts: Vec<PlannedArtifact>,
     next_manifest: Option<ArticleProjectManifestV1>,
+    stage_summary: Option<StageSummaryDraftV1>,
+    paper_note: Option<PaperNoteDraftV1>,
+    source_packet: Option<SourcePacketDraftV1>,
 }
 
 impl VerifiedCaptureConsolidation {
     #[must_use]
     pub const fn preview(&self) -> &CaptureConsolidationPreviewV1 {
         &self.preview
+    }
+
+    /// Exact proposed file bytes for review; omitted when no handoff is planned.
+    #[must_use]
+    pub fn stage_handoff_content(&self) -> Option<&str> {
+        self.artifact_content(ConsolidationArtifact::StageHandoff)
+    }
+
+    #[must_use]
+    pub fn stage_summary_content(&self) -> Option<&str> {
+        self.artifact_content(ConsolidationArtifact::StageSummary)
+    }
+
+    #[must_use]
+    pub fn paper_note_content(&self) -> Option<&str> {
+        self.artifact_content(ConsolidationArtifact::PaperNote)
+    }
+
+    #[must_use]
+    pub fn source_packet_content(&self) -> Option<&str> {
+        self.artifact_content(ConsolidationArtifact::SourcePacket)
+    }
+
+    /// Include the exact history-table edit whenever a summary is planned.
+    #[must_use]
+    pub fn summary_research_state_content(&self) -> Option<&str> {
+        self.stage_summary.as_ref()?;
+        self.artifact_content(ConsolidationArtifact::ResearchState)
+    }
+
+    fn artifact_content(&self, target: ConsolidationArtifact) -> Option<&str> {
+        self.artifacts
+            .iter()
+            .find(|artifact| artifact.artifact == target)
+            .and_then(|artifact| std::str::from_utf8(&artifact.next_bytes).ok())
     }
 }
 
@@ -275,6 +346,12 @@ struct ConsolidationPlanSemantics<'a> {
     capture_document_digest: &'a str,
     conflicts: &'a [CaptureConsolidationConflictV1],
     artifact_deltas: &'a [ConsolidationArtifactDeltaV1],
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stage_summary: Option<&'a StageSummaryDraftV1>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    paper_note: Option<&'a PaperNoteDraftV1>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_packet: Option<&'a SourcePacketDraftV1>,
 }
 
 impl ProjectStateService {
@@ -284,6 +361,107 @@ impl ProjectStateService {
         capture_id: &CaptureId,
         reviewed_at_unix: u64,
     ) -> Result<VerifiedCaptureConsolidation, ProjectError> {
+        self.preview_capture_consolidation_with_handoff(
+            project_id,
+            capture_id,
+            reviewed_at_unix,
+            None,
+        )
+    }
+
+    /// Append an explicitly reviewed handoff alongside the capture's normal artifacts.
+    /// Markdown is retained verbatim; academic completeness remains a review obligation.
+    pub fn preview_capture_consolidation_with_handoff(
+        &self,
+        project_id: &ProjectId,
+        capture_id: &CaptureId,
+        reviewed_at_unix: u64,
+        stage_handoff: Option<&str>,
+    ) -> Result<VerifiedCaptureConsolidation, ProjectError> {
+        self.preview_capture_consolidation_with_summary(
+            project_id,
+            capture_id,
+            reviewed_at_unix,
+            stage_handoff,
+            None,
+        )
+    }
+
+    /// Save one immutable summary and its continuity links with the existing owner.
+    pub fn preview_capture_consolidation_with_summary(
+        &self,
+        project_id: &ProjectId,
+        capture_id: &CaptureId,
+        reviewed_at_unix: u64,
+        stage_handoff: Option<&str>,
+        stage_summary: Option<&StageSummaryDraftV1>,
+    ) -> Result<VerifiedCaptureConsolidation, ProjectError> {
+        self.preview_capture_consolidation_with_paper_note(
+            project_id,
+            capture_id,
+            reviewed_at_unix,
+            stage_handoff,
+            stage_summary,
+            None,
+        )
+    }
+
+    /// Create or append one source-bound note through the same reviewed transaction.
+    pub fn preview_capture_consolidation_with_paper_note(
+        &self,
+        project_id: &ProjectId,
+        capture_id: &CaptureId,
+        reviewed_at_unix: u64,
+        stage_handoff: Option<&str>,
+        stage_summary: Option<&StageSummaryDraftV1>,
+        paper_note: Option<&PaperNoteDraftV1>,
+    ) -> Result<VerifiedCaptureConsolidation, ProjectError> {
+        self.preview_capture_consolidation_with_drafts(
+            project_id,
+            capture_id,
+            reviewed_at_unix,
+            CaptureConsolidationDrafts {
+                stage_handoff,
+                stage_summary,
+                paper_note,
+                source_packet: None,
+            },
+        )
+    }
+
+    pub fn preview_capture_consolidation_with_drafts(
+        &self,
+        project_id: &ProjectId,
+        capture_id: &CaptureId,
+        reviewed_at_unix: u64,
+        drafts: CaptureConsolidationDrafts<'_>,
+    ) -> Result<VerifiedCaptureConsolidation, ProjectError> {
+        let CaptureConsolidationDrafts {
+            stage_handoff,
+            stage_summary,
+            paper_note,
+            source_packet,
+        } = drafts;
+        if let Some(packet) = source_packet {
+            packet.validate()?;
+        }
+        if let Some(note) = paper_note {
+            note.validate()?;
+        }
+        if let Some(summary) = stage_summary {
+            summary.validate()?;
+        }
+        if let Some(handoff) = stage_handoff {
+            if handoff.len() > 4 * 1024 * 1024 {
+                return Err(ProjectError::DocumentTooLarge);
+            }
+            if handoff.trim().is_empty()
+                || handoff.contains('\0')
+                || handoff.contains("<!-- qiongli:")
+            {
+                return Err(ProjectError::InvalidProjectDocument);
+            }
+        }
         if reviewed_at_unix > MAX_SEMANTIC_REVISION {
             return Err(ProjectError::InvalidProjectDocument);
         }
@@ -299,6 +477,9 @@ impl ProjectStateService {
         let (manifest, observed_manifest_digest) =
             read_manifest(&root)?.ok_or(ProjectError::ProjectManifestMissing)?;
         validate_registered_manifest(entry, &manifest, project_id)?;
+        if semantic_digest(&root)? != manifest.semantic_digest {
+            return Err(ProjectError::RevisionConflict);
+        }
         if reviewed_at_unix < manifest.academically_updated_at_unix {
             return Err(ProjectError::InvalidProjectDocument);
         }
@@ -319,6 +500,12 @@ impl ProjectStateService {
             return Err(ProjectError::CaptureIdentityConflict);
         }
 
+        if let Some(summary) = stage_summary {
+            summary.revalidate_sources(&root)?;
+        }
+        if let Some(note) = paper_note {
+            note.revalidate_sources(&root)?;
+        }
         let disposition = classify_capture(&capture, false);
         let root_reference_digest = sha256_bytes(project_root_string(&root)?.as_bytes());
         let mut conflicts = Vec::new();
@@ -329,7 +516,7 @@ impl ProjectStateService {
         } else {
             collect_conflicts(&capture, entry, &manifest, disposition, &mut conflicts);
             if conflicts.is_empty() {
-                match plan_artifacts(&root, &capture) {
+                match plan_artifacts(&root, &capture, drafts, reviewed_at_unix) {
                     Ok(planned) => artifacts = planned,
                     Err(ArtifactPlanError::Conflict(RenderConflict { kind, artifact })) => {
                         conflicts.push(conflict(kind, artifact))
@@ -340,8 +527,9 @@ impl ProjectStateService {
             if conflicts.is_empty() {
                 let updates = artifacts
                     .iter()
+                    .filter(|artifact| artifact.artifact.relative_path().is_some())
                     .map(|artifact| ProjectFileUpdate {
-                        relative_path: artifact.artifact.relative_path().to_string(),
+                        relative_path: artifact.relative_path.clone(),
                         expected_digest: artifact.previous_digest.clone(),
                         next_bytes: artifact.next_bytes.clone(),
                     })
@@ -384,6 +572,9 @@ impl ProjectStateService {
             capture_document_digest: &capture_document_digest,
             conflicts: &conflicts,
             artifact_deltas: &artifact_deltas,
+            stage_summary,
+            paper_note,
+            source_packet,
         };
         let preview = CaptureConsolidationPreviewV1 {
             schema_version: ACADEMIC_CONSOLIDATION_SCHEMA_VERSION,
@@ -419,6 +610,9 @@ impl ProjectStateService {
             observed_receipt_digest,
             artifacts,
             next_manifest,
+            stage_summary: stage_summary.cloned(),
+            paper_note: paper_note.cloned(),
+            source_packet: source_packet.cloned(),
         })
     }
 
@@ -469,7 +663,7 @@ impl ProjectStateService {
             .artifacts
             .iter()
             .map(|artifact| ProjectFileUpdate {
-                relative_path: artifact.artifact.relative_path().to_string(),
+                relative_path: artifact.relative_path.clone(),
                 expected_digest: artifact.previous_digest.clone(),
                 next_bytes: artifact.next_bytes.clone(),
             })
@@ -722,7 +916,15 @@ impl From<RenderConflict> for ArtifactPlanError {
 fn plan_artifacts(
     root: &std::path::Path,
     capture: &ResearchCaptureV1,
+    drafts: CaptureConsolidationDrafts<'_>,
+    reviewed_at_unix: u64,
 ) -> Result<Vec<PlannedArtifact>, ArtifactPlanError> {
+    let CaptureConsolidationDrafts {
+        stage_handoff,
+        stage_summary,
+        paper_note,
+        source_packet,
+    } = drafts;
     let mut artifacts = Vec::new();
     artifacts.push(plan_artifact(
         root,
@@ -738,6 +940,95 @@ fn plan_artifacts(
             render_decision_log,
         )?);
     }
+    if let Some(summary) = stage_summary {
+        let state = std::str::from_utf8(&artifacts[0].next_bytes)
+            .map_err(|_| ProjectError::InvalidProjectDocument)?;
+        artifacts[0].next_bytes = summary
+            .append_history(state, stage_name(capture.binding.stage), reviewed_at_unix)?
+            .into_bytes();
+        let relative_path = summary.relative_path();
+        if read_project_source(root, &relative_path)?.is_some() {
+            return Err(ProjectError::ConsolidationConflict.into());
+        }
+        artifacts.push(PlannedArtifact {
+            artifact: ConsolidationArtifact::StageSummary,
+            relative_path,
+            previous_digest: None,
+            previous_bytes: 0,
+            next_bytes: summary
+                .render(
+                    stage_name(capture.binding.stage),
+                    capture.binding.base_revision,
+                    reviewed_at_unix,
+                )
+                .into_bytes(),
+        });
+    }
+    if let Some(note) = paper_note {
+        let relative_path = note.relative_path();
+        let previous = read_project_source(root, &relative_path)?;
+        if previous.as_ref().map(|(_, digest)| digest) != note.previous_sha256.as_ref() {
+            return Err(ProjectError::RevisionConflict.into());
+        }
+        let bytes = previous
+            .as_ref()
+            .map_or(&[][..], |(bytes, _)| bytes.as_slice());
+        let text = std::str::from_utf8(bytes).map_err(|_| ProjectError::InvalidProjectDocument)?;
+        if text.contains('\0')
+            || text.contains(&format!(
+                "<!-- qiongli:capture {} begin -->",
+                capture.capture_id.as_str()
+            ))
+        {
+            return Err(ProjectError::ConsolidationConflict.into());
+        }
+        artifacts.push(PlannedArtifact {
+            artifact: ConsolidationArtifact::PaperNote,
+            relative_path,
+            previous_digest: note.previous_sha256.clone(),
+            previous_bytes: bytes.len(),
+            next_bytes: note
+                .render(text, &capture.capture_id, reviewed_at_unix)
+                .into_bytes(),
+        });
+    }
+    if let Some(packet) = source_packet {
+        let relative_path = packet.relative_path();
+        if read_project_source(root, &relative_path)?.is_some() {
+            return Err(ProjectError::ConsolidationConflict.into());
+        }
+        artifacts.push(PlannedArtifact {
+            artifact: ConsolidationArtifact::SourcePacket,
+            relative_path,
+            previous_digest: None,
+            previous_bytes: 0,
+            next_bytes: packet.content.as_bytes().to_vec(),
+        });
+    }
+    let handoff = stage_summary
+        .map(|summary| format!("{}{}", stage_handoff.unwrap_or(""), summary.handoff_link()));
+    if let Some(handoff) = handoff.as_deref().or(stage_handoff) {
+        artifacts.push(plan_artifact(
+            root,
+            capture,
+            ConsolidationArtifact::StageHandoff,
+            |previous, capture| {
+                let mut output = prepare_document(previous, "# Stage Handoff");
+                let id = capture.capture_id.as_str();
+                output.push_str(&format!("<!-- qiongli:capture {id} begin -->\n"));
+                output.push_str(&format!("## Reviewed handoff `{id}`\n\n"));
+                output.push_str(handoff);
+                output.push_str(&format!("\n\n<!-- qiongli:capture {id} end -->\n"));
+                output
+            },
+        )?);
+    }
+    if artifacts
+        .iter()
+        .any(|artifact| artifact.next_bytes.len() > 4 * 1024 * 1024)
+    {
+        return Err(ProjectError::DocumentTooLarge.into());
+    }
     Ok(artifacts)
 }
 
@@ -745,9 +1036,12 @@ fn plan_artifact(
     root: &std::path::Path,
     capture: &ResearchCaptureV1,
     artifact: ConsolidationArtifact,
-    render: fn(&str, &ResearchCaptureV1) -> String,
+    render: impl FnOnce(&str, &ResearchCaptureV1) -> String,
 ) -> Result<PlannedArtifact, ArtifactPlanError> {
-    let observed = read_semantic_artifact(root, artifact.relative_path())?;
+    let relative_path = artifact
+        .relative_path()
+        .ok_or(ProjectError::InvalidProjectDocument)?;
+    let observed = read_semantic_artifact(root, relative_path)?;
     let (previous, previous_digest, previous_bytes) = match observed {
         Some((bytes, digest)) => {
             let previous_bytes = bytes.len();
@@ -778,6 +1072,7 @@ fn plan_artifact(
     }
     Ok(PlannedArtifact {
         artifact,
+        relative_path: relative_path.to_string(),
         previous_digest,
         previous_bytes,
         next_bytes,
@@ -787,7 +1082,7 @@ fn plan_artifact(
 fn artifact_delta(artifact: &PlannedArtifact) -> ConsolidationArtifactDeltaV1 {
     ConsolidationArtifactDeltaV1 {
         artifact: artifact.artifact,
-        relative_path: artifact.artifact.relative_path().to_string(),
+        relative_path: artifact.relative_path.clone(),
         effect: if artifact.previous_digest.is_some() {
             ConsolidationArtifactEffect::Update
         } else {
@@ -1036,6 +1331,9 @@ fn validate_plan(plan: &VerifiedCaptureConsolidation) -> Result<(), ProjectError
         capture_document_digest: &plan.capture_document_digest,
         conflicts: &plan.preview.conflicts,
         artifact_deltas: &plan.preview.artifact_deltas,
+        stage_summary: plan.stage_summary.as_ref(),
+        paper_note: plan.paper_note.as_ref(),
+        source_packet: plan.source_packet.as_ref(),
     };
     if canonical_digest(&semantics)? != plan.preview.plan_digest {
         return Err(ProjectError::PlanMismatch);
@@ -1056,6 +1354,9 @@ fn revalidate_apply_state(
     validate_existing_project_root(&root)?;
     let (manifest, digest) = read_manifest(&root)?.ok_or(ProjectError::ProjectManifestMissing)?;
     validate_registered_manifest(entry, &manifest, &plan.preview.project_id)?;
+    if semantic_digest(&root)? != manifest.semantic_digest {
+        return Err(ProjectError::RevisionConflict);
+    }
     if digest != plan.observed_manifest_digest
         || manifest.semantic_revision != plan.preview.expected_project_revision
         || manifest.stage != plan.preview.project_stage
@@ -1070,8 +1371,17 @@ fn revalidate_apply_state(
     if read_consolidation_receipt(&root, &plan.preview.capture_id)?.is_some() {
         return Err(ProjectError::ConsolidationAlreadyApplied);
     }
+    if let Some(summary) = &plan.stage_summary {
+        summary.revalidate_sources(&root)?;
+    }
+    if let Some(note) = &plan.paper_note {
+        note.revalidate_sources(&root)?;
+    }
     for artifact in &plan.artifacts {
-        let observed = read_semantic_artifact(&root, artifact.artifact.relative_path())?;
+        if !artifact.artifact.accepts_path(&artifact.relative_path) {
+            return Err(ProjectError::PlanMismatch);
+        }
+        let observed = read_project_source(&root, &artifact.relative_path)?;
         if observed.as_ref().map(|(_, digest)| digest) != artifact.previous_digest.as_ref() {
             return Err(ProjectError::RevisionConflict);
         }
@@ -1102,7 +1412,7 @@ fn build_receipt(
             .iter()
             .map(|artifact| ConsolidatedArtifactV1 {
                 artifact: artifact.artifact,
-                relative_path: artifact.artifact.relative_path().to_string(),
+                relative_path: artifact.relative_path.clone(),
                 digest: sha256_bytes(&artifact.next_bytes),
             })
             .collect(),
@@ -1424,6 +1734,269 @@ mod tests {
         );
     }
 
+    const HANDOFF: &str = "### Decision Summary
+DEC-001 / CLM-001: retain @example and evidence/claim-evidence-ledger.csv#EV-001.
+### Evidence Dependencies
+Abstract-only conceptual evidence; no full-text or causal inference.
+### Unresolved Questions
+The denominator remains unresolved.
+### Recommended Next Tasks
+Inspect the source table before dependent analysis.
+";
+
+    #[test]
+    fn stage_handoff_preserves_history_and_resumes_from_current_disk_revision() {
+        let fixture = fixture();
+        let capture = intake(
+            &fixture,
+            draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+        );
+        let plan = fixture
+            .service
+            .preview_capture_consolidation_with_handoff(
+                &fixture.project_id,
+                &capture.capture_id,
+                120,
+                Some(HANDOFF),
+            )
+            .unwrap();
+        let expected = plan.stage_handoff_content().unwrap().to_owned();
+        assert!(!fixture.project_root.join(STAGE_HANDOFF_PATH).exists());
+        assert!(!format!("{plan:?}").contains("denominator"));
+        assert_eq!(plan.preview().artifact_deltas.len(), 3);
+        for (filesystem, academic) in [(false, true), (true, false)] {
+            assert_eq!(
+                fixture.service.apply_capture_consolidation(
+                    &plan,
+                    &ApprovedCaptureConsolidation::new(
+                        plan.preview().plan_digest.clone(),
+                        filesystem,
+                        academic
+                    )
+                ),
+                Err(ProjectError::ApprovalRequired)
+            );
+        }
+        let changed = fixture
+            .service
+            .preview_capture_consolidation_with_handoff(
+                &fixture.project_id,
+                &capture.capture_id,
+                120,
+                Some("Changed draft"),
+            )
+            .unwrap();
+        assert_eq!(
+            fixture.service.apply_capture_consolidation(
+                &changed,
+                &ApprovedCaptureConsolidation::new(plan.preview().plan_digest.clone(), true, true)
+            ),
+            Err(ProjectError::PlanMismatch)
+        );
+        let commit = fixture
+            .service
+            .apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(plan.preview().plan_digest.clone(), true, true),
+            )
+            .unwrap();
+        assert_eq!(commit.artifacts_updated.len(), 3);
+        assert_eq!(
+            fs::read_to_string(fixture.project_root.join(STAGE_HANDOFF_PATH)).unwrap(),
+            expected
+        );
+        let restarted = ProjectStateService::new(
+            resolve_config_root(None, &fixture.base.join("home")).unwrap(),
+        );
+        let graph = crate::AcademicGraphService::new(restarted.clone());
+        let view = graph
+            .read_registered_artifact(&fixture.project_id, 2, STAGE_HANDOFF_PATH, None, 16_384)
+            .unwrap();
+        assert_eq!(view.content, expected);
+        assert_eq!(view.content_digest, sha256_bytes(expected.as_bytes()));
+        assert_eq!(
+            graph
+                .read_registered_artifact(&fixture.project_id, 1, STAGE_HANDOFF_PATH, None, 16_384)
+                .unwrap_err(),
+            ProjectError::RevisionConflict
+        );
+        assert_eq!(
+            restarted
+                .capture_inbox(&fixture.project_id)
+                .unwrap()
+                .applied_count,
+            1
+        );
+        assert_eq!(
+            restarted.apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(plan.preview().plan_digest.clone(), true, true)
+            ),
+            Err(ProjectError::RevisionConflict)
+        );
+
+        let mut next = draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired);
+        next.binding.base_revision = 2;
+        next.captured_at_unix = 130;
+        let next = next.into_capture().unwrap();
+        let intake = restarted.preview_capture(next.clone()).unwrap();
+        restarted
+            .apply_capture(
+                &intake,
+                &ApprovedCaptureIntake::new(intake.preview().plan_digest.clone(), true),
+                135,
+            )
+            .unwrap();
+        let plan = restarted
+            .preview_capture_consolidation_with_handoff(
+                &fixture.project_id,
+                &next.capture_id,
+                140,
+                Some("### Decision Summary\nDEC-001 remains tentative; EV-001 is unchanged."),
+            )
+            .unwrap();
+        assert!(plan.stage_handoff_content().unwrap().starts_with(&expected));
+        restarted
+            .apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(plan.preview().plan_digest.clone(), true, true),
+            )
+            .unwrap();
+        assert!(
+            fs::read_to_string(fixture.project_root.join(STAGE_HANDOFF_PATH))
+                .unwrap()
+                .starts_with(&expected)
+        );
+    }
+
+    #[test]
+    fn stage_handoff_conflicts_preserve_all_existing_bytes_and_receipts() {
+        // Include an input that consolidation does not write: source drift must
+        // not be silently incorporated into the next manifest.
+        for path in [
+            STAGE_HANDOFF_PATH,
+            RESEARCH_STATE_PATH,
+            "context/boundary_review.md",
+        ] {
+            let fixture = fixture();
+            let capture = intake(
+                &fixture,
+                draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+            );
+            let plan = fixture
+                .service
+                .preview_capture_consolidation_with_handoff(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    120,
+                    Some(HANDOFF),
+                )
+                .unwrap();
+            fs::write(fixture.project_root.join(path), "# Independently changed\n").unwrap();
+            let paths = [
+                RESEARCH_STATE_PATH,
+                DECISION_LOG_PATH,
+                STAGE_HANDOFF_PATH,
+                PROJECT_MANIFEST_PATH,
+                "context/boundary_review.md",
+            ];
+            let before = paths.map(|path| fs::read(fixture.project_root.join(path)).ok());
+            assert_eq!(
+                fixture.service.apply_capture_consolidation(
+                    &plan,
+                    &ApprovedCaptureConsolidation::new(
+                        plan.preview().plan_digest.clone(),
+                        true,
+                        true
+                    )
+                ),
+                Err(ProjectError::RevisionConflict)
+            );
+            assert_eq!(
+                fixture
+                    .service
+                    .preview_capture_consolidation_with_handoff(
+                        &fixture.project_id,
+                        &capture.capture_id,
+                        120,
+                        Some(HANDOFF)
+                    )
+                    .unwrap_err(),
+                ProjectError::RevisionConflict
+            );
+            assert_eq!(
+                paths.map(|path| fs::read(fixture.project_root.join(path)).ok()),
+                before
+            );
+            assert!(
+                !fixture
+                    .project_root
+                    .join(&plan.preview().receipt_entry)
+                    .exists()
+            );
+            assert_eq!(
+                fixture.service.snapshot().unwrap().projects[0].semantic_revision,
+                1
+            );
+        }
+    }
+
+    #[test]
+    fn stage_handoff_input_is_bounded_utf8_data_not_a_path_or_lineage_override() {
+        let fixture = fixture();
+        let capture = intake(
+            &fixture,
+            draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+        );
+        for text in [" ", "bad\0text", "<!-- qiongli:capture forged begin -->"] {
+            assert_eq!(
+                fixture
+                    .service
+                    .preview_capture_consolidation_with_handoff(
+                        &fixture.project_id,
+                        &capture.capture_id,
+                        120,
+                        Some(text)
+                    )
+                    .unwrap_err(),
+                ProjectError::InvalidProjectDocument
+            );
+        }
+        assert_eq!(
+            fixture
+                .service
+                .preview_capture_consolidation_with_handoff(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    120,
+                    Some(&"x".repeat(4 * 1024 * 1024 + 1))
+                )
+                .unwrap_err(),
+            ProjectError::DocumentTooLarge
+        );
+        let file = fixture.base.join("handoff.md");
+        fs::write(&file, HANDOFF).unwrap();
+        assert_eq!(crate::read_stage_handoff_file(&file).unwrap(), HANDOFF);
+        assert!(crate::read_stage_handoff_file(std::path::Path::new("handoff.md")).is_err());
+        assert!(crate::read_stage_handoff_file(&fixture.base).is_err());
+        fs::write(&file, [0xff]).unwrap();
+        assert_eq!(
+            crate::read_stage_handoff_file(&file),
+            Err(ProjectError::InvalidProjectDocument)
+        );
+        fs::write(&file, vec![b'x'; 4 * 1024 * 1024 + 1]).unwrap();
+        assert_eq!(
+            crate::read_stage_handoff_file(&file),
+            Err(ProjectError::DocumentTooLarge)
+        );
+        #[cfg(unix)]
+        {
+            let link = fixture.base.join("handoff-link.md");
+            std::os::unix::fs::symlink(&file, &link).unwrap();
+            assert!(crate::read_stage_handoff_file(&link).is_err());
+        }
+    }
+
     #[test]
     fn unsafe_semantic_transitions_are_conflicts_without_artifact_writes() {
         let fixture = fixture();
@@ -1705,5 +2278,1029 @@ mod tests {
                 .join(".qiongli/consolidation-transaction")
                 .exists()
         );
+    }
+
+    fn packet_draft() -> SourcePacketDraftV1 {
+        SourcePacketDraftV1 {
+            schema_version: 1,
+            citekey: "Smith2024".into(),
+            content: " {\"source_url\":\"https://example.org/paper.pdf\",\"identity_status\":\"not_checked\",\"segments\":[{\"anchor\":\"page=2;segment=3\",\"text\":\"原文\"}]}\r\n".into(),
+        }
+    }
+
+    #[test]
+    fn source_packets_preserve_versions_and_bind_later_notes_after_restart() {
+        let fixture = fixture();
+        let mut packet = packet_draft();
+        let mut saved = Vec::new();
+        for revision in 1..=2 {
+            let mut candidate = draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired);
+            candidate.binding.base_revision = revision;
+            candidate.captured_at_unix = 100 + revision * 10;
+            let capture = intake(&fixture, candidate);
+            let plan = fixture
+                .service
+                .preview_capture_consolidation_with_drafts(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    110 + revision * 10,
+                    CaptureConsolidationDrafts {
+                        source_packet: Some(&packet),
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
+            assert_eq!(plan.source_packet_content(), Some(packet.content.as_str()));
+            assert!(!fixture.project_root.join(packet.relative_path()).exists());
+            assert!(!format!("{plan:?}").contains(&packet.content));
+            fixture
+                .service
+                .apply_capture_consolidation(
+                    &plan,
+                    &ApprovedCaptureConsolidation::new(
+                        plan.preview.plan_digest.clone(),
+                        true,
+                        true,
+                    ),
+                )
+                .unwrap();
+            saved.push((packet.relative_path(), packet.content.clone()));
+            for (path, content) in &saved {
+                assert_eq!(
+                    fs::read(fixture.project_root.join(path)).unwrap(),
+                    content.as_bytes()
+                );
+            }
+            let (receipt, _) =
+                read_consolidation_receipt(&fixture.project_root, &capture.capture_id)
+                    .unwrap()
+                    .unwrap();
+            let artifact = receipt
+                .artifacts
+                .iter()
+                .find(|a| a.artifact == ConsolidationArtifact::SourcePacket)
+                .unwrap();
+            assert_eq!(artifact.relative_path, packet.relative_path());
+            assert_eq!(artifact.digest, sha256_bytes(packet.content.as_bytes()));
+            let mut forged = receipt;
+            forged
+                .artifacts
+                .iter_mut()
+                .find(|a| a.artifact == ConsolidationArtifact::SourcePacket)
+                .unwrap()
+                .digest = "0".repeat(64);
+            forged.acknowledgement = acknowledgement(&forged).unwrap();
+            assert_eq!(forged.validate(), Err(ProjectError::InvalidProjectDocument));
+            packet.content.push('\n');
+        }
+        assert_ne!(saved[0].0, saved[1].0);
+        let restarted = ProjectStateService::new(
+            resolve_config_root(None, &fixture.base.join("home")).unwrap(),
+        );
+        assert_eq!(
+            restarted.snapshot().unwrap().projects[0].semantic_revision,
+            3
+        );
+        let mut candidate = draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired);
+        candidate.binding.base_revision = 3;
+        candidate.captured_at_unix = 140;
+        let capture = intake(&fixture, candidate);
+        packet.content.clone_from(&saved[1].1);
+        assert_eq!(
+            restarted
+                .preview_capture_consolidation_with_drafts(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    150,
+                    CaptureConsolidationDrafts {
+                        source_packet: Some(&packet),
+                        ..Default::default()
+                    },
+                )
+                .unwrap_err(),
+            ProjectError::ConsolidationConflict
+        );
+        let note = PaperNoteDraftV1 {
+            schema_version: 1,
+            citekey: packet.citekey.clone(),
+            previous_sha256: None,
+            sources: vec![crate::StageSummarySourceV1 {
+                relative_path: packet.relative_path(),
+                sha256: sha256_bytes(packet.content.as_bytes()),
+            }],
+            markdown: "CLM-001 remains partial; source anchor page=2;segment=3.".into(),
+        };
+        let plan = restarted
+            .preview_capture_consolidation_with_paper_note(
+                &fixture.project_id,
+                &capture.capture_id,
+                150,
+                None,
+                None,
+                Some(&note),
+            )
+            .unwrap();
+        restarted
+            .apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(plan.preview.plan_digest.clone(), true, true),
+            )
+            .unwrap();
+        assert!(
+            fs::read_to_string(fixture.project_root.join(note.relative_path()))
+                .unwrap()
+                .contains(&packet.relative_path())
+        );
+    }
+
+    #[test]
+    fn source_packet_refusals_preserve_project_bytes() {
+        for mutation in [
+            "destination",
+            "draft",
+            "academic",
+            "filesystem",
+            "semantic",
+            "symlink",
+        ] {
+            let fixture = fixture();
+            let mut packet = packet_draft();
+            let capture = intake(
+                &fixture,
+                draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+            );
+            let preview = |packet: &SourcePacketDraftV1| {
+                fixture.service.preview_capture_consolidation_with_drafts(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    120,
+                    CaptureConsolidationDrafts {
+                        source_packet: Some(packet),
+                        ..Default::default()
+                    },
+                )
+            };
+            let mut plan = preview(&packet).unwrap();
+            let digest = plan.preview.plan_digest.clone();
+            match mutation {
+                "destination" => {
+                    let path = fixture.project_root.join(packet.relative_path());
+                    fs::create_dir_all(path.parent().unwrap()).unwrap();
+                    fs::write(path, &packet.content).unwrap();
+                    assert!(preview(&packet).is_err());
+                }
+                "draft" => {
+                    packet.content.push('\n');
+                    plan = preview(&packet).unwrap();
+                }
+                "semantic" => {
+                    fs::write(fixture.project_root.join(RESEARCH_STATE_PATH), "Human edit").unwrap()
+                }
+                "symlink" => {
+                    #[cfg(unix)]
+                    {
+                        std::os::unix::fs::symlink(
+                            &fixture.base,
+                            fixture.project_root.join("sources"),
+                        )
+                        .unwrap();
+                        assert!(preview(&packet).is_err());
+                    }
+                    #[cfg(not(unix))]
+                    {
+                        continue;
+                    }
+                }
+                _ => {}
+            }
+            let mut paths: Vec<_> = plan
+                .artifacts
+                .iter()
+                .map(|a| a.relative_path.clone())
+                .collect();
+            paths.extend([
+                PROJECT_MANIFEST_PATH.into(),
+                plan.preview.receipt_entry.clone(),
+            ]);
+            let before: Vec<_> = paths
+                .iter()
+                .map(|p| fs::read(fixture.project_root.join(p)).ok())
+                .collect();
+            let library = fixture.service.snapshot().unwrap();
+            assert!(
+                fixture
+                    .service
+                    .apply_capture_consolidation(
+                        &plan,
+                        &ApprovedCaptureConsolidation::new(
+                            digest,
+                            mutation != "filesystem",
+                            mutation != "academic"
+                        ),
+                    )
+                    .is_err(),
+                "{mutation}"
+            );
+            assert_eq!(
+                paths
+                    .iter()
+                    .map(|p| fs::read(fixture.project_root.join(p)).ok())
+                    .collect::<Vec<_>>(),
+                before,
+                "{mutation}"
+            );
+            assert_eq!(fixture.service.snapshot().unwrap(), library);
+        }
+    }
+
+    #[test]
+    fn source_packet_drafts_are_strict_bounded_and_path_safe() {
+        let fixture = fixture();
+        let valid = packet_draft();
+        let path = fixture.base.join("packet-draft.json");
+        fs::write(&path, serde_json::to_vec(&valid).unwrap()).unwrap();
+        assert!(SourcePacketDraftV1::read_file(&path).is_ok());
+        for body in [
+            "{}",
+            "[]",
+            "null",
+            "\"text\"",
+            "{\"x\":1,\"x\":2}",
+            "[{\"x\":1,\"x\":2}]",
+            "{} {}",
+            "{\u{0}}",
+        ] {
+            let mut bad = valid.clone();
+            bad.content = body.into();
+            assert!(bad.validate().is_err(), "{body}");
+        }
+        for key in [
+            "",
+            "../escape",
+            "a/b",
+            "a\\b",
+            "CON",
+            "COM1",
+            "A:B",
+            "a.b",
+            "a\n",
+        ] {
+            let mut bad = valid.clone();
+            bad.citekey = key.into();
+            assert!(bad.validate().is_err(), "{key}");
+            assert!(!valid_packet_path(&bad.relative_path()));
+        }
+        let mut bad = valid.clone();
+        bad.content = " ".repeat(4 * 1024 * 1024 + 1);
+        assert_eq!(bad.validate(), Err(ProjectError::DocumentTooLarge));
+        for body in [
+            "{\"schemaVersion\":1,\"schemaVersion\":1}",
+            "{\"schemaVersion\":1,\"citekey\":\"Smith2024\",\"content\":\"[1]\",\"unknown\":true}",
+        ] {
+            fs::write(&path, body).unwrap();
+            assert!(SourcePacketDraftV1::read_file(&path).is_err());
+        }
+        fs::write(&path, " ".repeat(4 * 1024 * 1024 + 1)).unwrap();
+        assert_eq!(
+            SourcePacketDraftV1::read_file(&path).err(),
+            Some(ProjectError::DocumentTooLarge)
+        );
+        assert!(SourcePacketDraftV1::read_file(std::path::Path::new("relative.json")).is_err());
+        #[cfg(unix)]
+        {
+            let link = fixture.base.join("linked-packet.json");
+            std::os::unix::fs::symlink(&path, &link).unwrap();
+            assert!(SourcePacketDraftV1::read_file(&link).is_err());
+        }
+    }
+
+    fn note_draft(fixture: &Fixture) -> PaperNoteDraftV1 {
+        PaperNoteDraftV1 {
+            schema_version: 1,
+            citekey: "Smith2024".into(),
+            previous_sha256: None,
+            sources: summary_draft(fixture).sources,
+            markdown:
+                "# @Smith2024\n\nCLM-001: source R1; abstract only, denominator unresolved.\n"
+                    .into(),
+        }
+    }
+
+    #[test]
+    fn paper_note_create_append_and_restart_preserve_exact_prior_bytes() {
+        let fixture = fixture();
+        let mut note = note_draft(&fixture);
+        let mut previous = String::new();
+        for revision in 1..=2 {
+            let mut candidate = draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired);
+            candidate.binding.base_revision = revision;
+            candidate.captured_at_unix = 100 + revision * 10;
+            let capture = intake(&fixture, candidate);
+            let plan = fixture
+                .service
+                .preview_capture_consolidation_with_paper_note(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    110 + revision * 10,
+                    None,
+                    None,
+                    Some(&note),
+                )
+                .unwrap();
+            let content = plan.paper_note_content().unwrap().to_string();
+            assert!(content.starts_with(&previous));
+            assert!(content.contains(&note.markdown));
+            assert!(content.contains(&note.sources[0].sha256));
+            let debug = format!("{plan:?}");
+            assert!(!debug.contains(&note.markdown));
+            assert!(!debug.contains(&fixture.project_root.to_string_lossy().to_string()));
+            fixture
+                .service
+                .apply_capture_consolidation(
+                    &plan,
+                    &ApprovedCaptureConsolidation::new(
+                        plan.preview.plan_digest.clone(),
+                        true,
+                        true,
+                    ),
+                )
+                .unwrap();
+            assert_eq!(
+                fs::read_to_string(fixture.project_root.join(note.relative_path())).unwrap(),
+                content
+            );
+            let restarted = ProjectStateService::new(
+                resolve_config_root(None, &fixture.base.join("home")).unwrap(),
+            );
+            assert_eq!(
+                restarted.snapshot().unwrap().projects[0].semantic_revision,
+                revision + 1
+            );
+            let (receipt, _) =
+                read_consolidation_receipt(&fixture.project_root, &capture.capture_id)
+                    .unwrap()
+                    .unwrap();
+            let artifact = receipt
+                .artifacts
+                .iter()
+                .find(|a| a.artifact == ConsolidationArtifact::PaperNote)
+                .unwrap();
+            assert_eq!(artifact.digest, sha256_bytes(content.as_bytes()));
+            assert_eq!(artifact.relative_path, note.relative_path());
+            let mut forged = receipt;
+            forged
+                .artifacts
+                .iter_mut()
+                .find(|a| a.artifact == ConsolidationArtifact::PaperNote)
+                .unwrap()
+                .relative_path = "context/research_state.md".into();
+            forged.acknowledgement = acknowledgement(&forged).unwrap();
+            assert_eq!(forged.validate(), Err(ProjectError::InvalidProjectDocument));
+            note.previous_sha256 = Some(sha256_bytes(content.as_bytes()));
+            note.markdown =
+                "## Correction\nCLM-001 retains its source anchor; still no causal conclusion."
+                    .into();
+            previous = content;
+        }
+    }
+
+    #[test]
+    fn paper_note_rejects_changed_inputs_or_missing_approval_without_writes() {
+        for mutation in [
+            "source",
+            "missing-source",
+            "note",
+            "draft",
+            "academic",
+            "filesystem",
+            "digest",
+            "library",
+            "semantic",
+        ] {
+            let fixture = fixture();
+            let mut note = note_draft(&fixture);
+            fs::create_dir(fixture.project_root.join("notes")).unwrap();
+            fs::write(
+                fixture.project_root.join(note.relative_path()),
+                "Human note without final newline",
+            )
+            .unwrap();
+            note.previous_sha256 = Some(sha256_bytes(b"Human note without final newline"));
+            let capture = intake(
+                &fixture,
+                draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+            );
+            let mut plan = fixture
+                .service
+                .preview_capture_consolidation_with_paper_note(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    120,
+                    None,
+                    None,
+                    Some(&note),
+                )
+                .unwrap();
+            let digest = plan.preview.plan_digest.clone();
+            match mutation {
+                "source" => fs::write(
+                    fixture.project_root.join("sources/current.md"),
+                    "Changed source",
+                )
+                .unwrap(),
+                "missing-source" => {
+                    fs::remove_file(fixture.project_root.join("sources/current.md")).unwrap()
+                }
+                "note" => fs::write(
+                    fixture.project_root.join(note.relative_path()),
+                    "New human text",
+                )
+                .unwrap(),
+                "semantic" => fs::write(
+                    fixture.project_root.join(RESEARCH_STATE_PATH),
+                    "Changed registered state",
+                )
+                .unwrap(),
+                "draft" => {
+                    note.markdown.push_str("Changed reviewed addition.");
+                    plan = fixture
+                        .service
+                        .preview_capture_consolidation_with_paper_note(
+                            &fixture.project_id,
+                            &capture.capture_id,
+                            120,
+                            None,
+                            None,
+                            Some(&note),
+                        )
+                        .unwrap();
+                }
+                "library" => {
+                    let archive = fixture
+                        .service
+                        .preview_archive(&fixture.project_id)
+                        .unwrap();
+                    fixture
+                        .service
+                        .apply(
+                            &archive,
+                            &ApprovedProjectMutation::new(
+                                archive.preview().plan_digest.clone(),
+                                true,
+                            ),
+                            121,
+                        )
+                        .unwrap();
+                    assert_ne!(
+                        fixture.service.snapshot().unwrap().revision,
+                        plan.preview.expected_library_revision
+                    );
+                }
+                _ => {}
+            }
+            let paths = [
+                RESEARCH_STATE_PATH,
+                DECISION_LOG_PATH,
+                PROJECT_MANIFEST_PATH,
+                "notes/Smith2024.md",
+                "sources/current.md",
+            ];
+            let before = paths.map(|path| fs::read(fixture.project_root.join(path)).ok());
+            let library = fixture.service.snapshot().unwrap();
+            let result = fixture.service.apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(
+                    if mutation == "digest" {
+                        "0".repeat(64)
+                    } else {
+                        digest
+                    },
+                    mutation != "filesystem",
+                    mutation != "academic",
+                ),
+            );
+            assert!(result.is_err(), "{mutation}");
+            assert_eq!(
+                paths.map(|path| fs::read(fixture.project_root.join(path)).ok()),
+                before,
+                "{mutation}"
+            );
+            assert_eq!(fixture.service.snapshot().unwrap(), library);
+            assert!(
+                !fixture
+                    .project_root
+                    .join(&plan.preview.receipt_entry)
+                    .exists()
+            );
+        }
+    }
+
+    #[test]
+    fn paper_note_draft_and_paths_are_strict_and_bounded() {
+        let fixture = fixture();
+        let valid = note_draft(&fixture);
+        let json = serde_json::to_string(&valid).unwrap();
+        let file = fixture.base.join("note.json");
+        fs::write(&file, &json).unwrap();
+        assert!(PaperNoteDraftV1::read_file(&file).is_ok());
+        for invalid in [
+            json.replacen("{", "{\"schemaVersion\":1,", 1),
+            json.replacen("{", "{\"unknown\":true,", 1),
+            json.replace("\"sha256\":", "\"sha256\":\"bad\",\"sha256\":"),
+        ] {
+            fs::write(&file, invalid).unwrap();
+            assert!(PaperNoteDraftV1::read_file(&file).is_err());
+        }
+        for key in [
+            "", "../Smith", "a/b", "a\\b", "a:b", ".hidden", "A.md", "a b", "CON", "lpt9", "COM1",
+            "a`b",
+        ] {
+            let mut note = valid.clone();
+            note.citekey = key.into();
+            assert!(note.validate().is_err(), "{key}");
+        }
+        for field in [
+            "previousSha256",
+            "schemaVersion",
+            "markdown",
+            "sources",
+            "citekey",
+        ] {
+            let mut value = serde_json::to_value(&valid).unwrap();
+            value[field] = serde_json::json!(false);
+            fs::write(&file, serde_json::to_vec(&value).unwrap()).unwrap();
+            assert!(PaperNoteDraftV1::read_file(&file).is_err(), "{field}");
+        }
+        for mutation in [
+            "schema",
+            "hash",
+            "source-hash",
+            "path",
+            "self-source",
+            "duplicate",
+            "empty",
+            "many",
+            "blank",
+            "nul",
+            "marker",
+            "large",
+            "long-key",
+        ] {
+            let mut note = valid.clone();
+            match mutation {
+                "schema" => note.schema_version = 2,
+                "hash" => note.previous_sha256 = Some("A".repeat(64)),
+                "source-hash" => note.sources[0].sha256 = "g".repeat(64),
+                "path" => note.sources[0].relative_path = "../source".into(),
+                "self-source" => note.sources[0].relative_path = note.relative_path(),
+                "duplicate" => note.sources.push(note.sources[0].clone()),
+                "empty" => note.sources.clear(),
+                "many" => {
+                    note.sources = (0..65)
+                        .map(|i| crate::StageSummarySourceV1 {
+                            relative_path: format!("sources/{i}.md"),
+                            sha256: "a".repeat(64),
+                        })
+                        .collect()
+                }
+                "blank" => note.markdown = " ".into(),
+                "nul" => note.markdown = "bad\0body".into(),
+                "marker" => note.markdown = "<!-- qiongli:capture forged -->".into(),
+                "large" => note.markdown = "x".repeat(4 * 1024 * 1024 + 1),
+                "long-key" => note.citekey = "a".repeat(129),
+                _ => unreachable!(),
+            }
+            assert!(note.validate().is_err(), "{mutation}");
+        }
+        fs::write(&file, [0xff]).unwrap();
+        assert!(PaperNoteDraftV1::read_file(&file).is_err());
+        fs::write(&file, vec![b'x'; 4 * 1024 * 1024 + 1]).unwrap();
+        assert_eq!(
+            PaperNoteDraftV1::read_file(&file).err(),
+            Some(ProjectError::DocumentTooLarge)
+        );
+        assert!(PaperNoteDraftV1::read_file(std::path::Path::new("relative.json")).is_err());
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::symlink;
+            let link = fixture.base.join("linked.json");
+            symlink(&file, &link).unwrap();
+            assert!(PaperNoteDraftV1::read_file(&link).is_err());
+            let source = fixture.project_root.join("sources/current.md");
+            fs::remove_file(&source).unwrap();
+            symlink(&file, &source).unwrap();
+            assert!(valid.revalidate_sources(&fixture.project_root).is_err());
+            fs::remove_file(&source).unwrap();
+            fs::write(&source, "Observed source R1\n").unwrap();
+            symlink(&fixture.base, fixture.project_root.join("notes")).unwrap();
+            let capture = intake(
+                &fixture,
+                draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+            );
+            assert!(
+                fixture
+                    .service
+                    .preview_capture_consolidation_with_paper_note(
+                        &fixture.project_id,
+                        &capture.capture_id,
+                        120,
+                        None,
+                        None,
+                        Some(&valid)
+                    )
+                    .is_err()
+            );
+        }
+    }
+
+    fn summary_draft(fixture: &Fixture) -> StageSummaryDraftV1 {
+        fs::create_dir_all(fixture.project_root.join("sources")).unwrap();
+        fs::write(
+            fixture.project_root.join("sources/current.md"),
+            "Observed source R1\n",
+        )
+        .unwrap();
+        StageSummaryDraftV1 {
+            schema_version: 1,
+            summary_id: "STG-B-001".to_string(),
+            status: crate::StageSummaryStatus::Partial,
+            previous_summary: None,
+            sources: vec![crate::StageSummarySourceV1 {
+                relative_path: "sources/current.md".to_string(),
+                sha256: sha256_bytes(b"Observed source R1\n"),
+            }],
+            markdown: "# Stage Summary\n\nQ-C1 and DEC-001 remain tentative. The sample denominator is unresolved.\n".to_string(),
+        }
+    }
+
+    #[test]
+    fn stage_summary_versions_preserve_history_and_resume_with_source_changes() {
+        let fixture = fixture();
+        let mut summary = summary_draft(&fixture);
+        let capture = intake(
+            &fixture,
+            draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+        );
+        let plan = fixture
+            .service
+            .preview_capture_consolidation_with_summary(
+                &fixture.project_id,
+                &capture.capture_id,
+                120,
+                Some(HANDOFF),
+                Some(&summary),
+            )
+            .unwrap();
+        let first_summary = plan.stage_summary_content().unwrap().to_string();
+        let first_handoff = plan.stage_handoff_content().unwrap().to_string();
+        assert_eq!(plan.preview.artifact_deltas.len(), 4);
+        assert!(
+            plan.summary_research_state_content()
+                .unwrap()
+                .contains("| Summary ID | Stage | Date | Document | Previous summary | Status |")
+        );
+        assert!(first_handoff.contains("[STG-B-001](stage_summaries/STG-B-001.md)"));
+        fixture
+            .service
+            .apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(plan.preview.plan_digest.clone(), true, true),
+            )
+            .unwrap();
+        let first_state =
+            fs::read_to_string(fixture.project_root.join(RESEARCH_STATE_PATH)).unwrap();
+        let restarted = ProjectStateService::new(
+            resolve_config_root(None, &fixture.base.join("home")).unwrap(),
+        );
+        assert_eq!(
+            restarted.snapshot().unwrap().projects[0].semantic_revision,
+            2
+        );
+        assert_eq!(
+            fs::read_to_string(fixture.project_root.join(summary.relative_path())).unwrap(),
+            first_summary
+        );
+        let (receipt, _) = read_consolidation_receipt(&fixture.project_root, &capture.capture_id)
+            .unwrap()
+            .unwrap();
+        assert_eq!(receipt.artifacts.len(), 4);
+        for artifact in &receipt.artifacts {
+            assert_eq!(
+                sha256_bytes(
+                    &fs::read(fixture.project_root.join(&artifact.relative_path)).unwrap()
+                ),
+                artifact.digest
+            );
+        }
+        let mut forged = receipt;
+        forged
+            .artifacts
+            .iter_mut()
+            .find(|artifact| artifact.artifact == ConsolidationArtifact::StageSummary)
+            .unwrap()
+            .relative_path = "context/stage_summaries/../outside.md".to_string();
+        forged.acknowledgement = acknowledgement(&forged).unwrap();
+        assert_eq!(forged.validate(), Err(ProjectError::InvalidProjectDocument));
+
+        let predecessor = crate::StageSummarySourceV1 {
+            relative_path: summary.relative_path(),
+            sha256: sha256_bytes(first_summary.as_bytes()),
+        };
+        summary.summary_id = "STG-B-002".to_string();
+        summary.previous_summary = Some(predecessor.clone());
+        summary.status = crate::StageSummaryStatus::Correction;
+        summary.markdown = "# Source-expanded summary\n\nQ-C1/DEC-001 require model-sensitive qualification; the denominator remains unresolved.\n".to_string();
+        fs::write(
+            fixture.project_root.join("sources/current.md"),
+            "Observed source R2\n",
+        )
+        .unwrap();
+        summary.sources[0].sha256 = sha256_bytes(b"Observed source R2\n");
+        assert_eq!(
+            restarted.snapshot().unwrap().projects[0].semantic_revision,
+            2
+        );
+        let mut next = draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired);
+        next.binding.base_revision = 2;
+        next.captured_at_unix = 130;
+        let next = next.into_capture().unwrap();
+        let intake = restarted.preview_capture(next.clone()).unwrap();
+        restarted
+            .apply_capture(
+                &intake,
+                &ApprovedCaptureIntake::new(intake.preview().plan_digest.clone(), true),
+                135,
+            )
+            .unwrap();
+        let plan = restarted
+            .preview_capture_consolidation_with_summary(
+                &fixture.project_id,
+                &next.capture_id,
+                140,
+                None,
+                Some(&summary),
+            )
+            .unwrap();
+        assert!(
+            plan.stage_handoff_content()
+                .unwrap()
+                .starts_with(&first_handoff)
+        );
+        let second_row = plan
+            .summary_research_state_content()
+            .unwrap()
+            .lines()
+            .find(|line| line.starts_with("| STG-B-002 |"))
+            .unwrap();
+        assert!(second_row.contains("[STG-B-001](stage_summaries/STG-B-001.md)"));
+        assert_eq!(
+            plan.summary_research_state_content()
+                .unwrap()
+                .replacen(&format!("{second_row}\n"), "", 1)
+                .get(..first_state.len()),
+            Some(first_state.as_str())
+        );
+        let predecessor_path = fixture.project_root.join(&predecessor.relative_path);
+        fs::write(&predecessor_path, "Externally changed prior summary").unwrap();
+        assert_eq!(
+            restarted.apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(plan.preview.plan_digest.clone(), true, true)
+            ),
+            Err(ProjectError::RevisionConflict)
+        );
+        assert!(
+            restarted
+                .preview_capture_consolidation_with_summary(
+                    &fixture.project_id,
+                    &next.capture_id,
+                    140,
+                    None,
+                    Some(&summary)
+                )
+                .is_err()
+        );
+        assert_eq!(
+            fs::read_to_string(fixture.project_root.join(RESEARCH_STATE_PATH)).unwrap(),
+            first_state
+        );
+        assert!(!fixture.project_root.join(summary.relative_path()).exists());
+        // Restore only this deliberately modified isolated test input.
+        fs::write(&predecessor_path, &first_summary).unwrap();
+        let expected_summary = plan.stage_summary_content().unwrap().to_string();
+        restarted
+            .apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(plan.preview.plan_digest.clone(), true, true),
+            )
+            .unwrap();
+        assert_eq!(fs::read_to_string(predecessor_path).unwrap(), first_summary);
+        assert_eq!(
+            fs::read_to_string(fixture.project_root.join(summary.relative_path())).unwrap(),
+            expected_summary
+        );
+        assert_eq!(
+            restarted.snapshot().unwrap().projects[0].semantic_revision,
+            3
+        );
+        assert_eq!(
+            restarted.snapshot().unwrap().projects[0].stage,
+            ProjectStage::Literature
+        );
+    }
+
+    #[test]
+    fn stage_summary_rejects_drift_reuse_and_missing_approval_without_writes() {
+        for mutation in [
+            "source",
+            "destination",
+            "draft",
+            "filesystem",
+            "academic",
+            "digest",
+        ] {
+            let fixture = fixture();
+            let mut summary = summary_draft(&fixture);
+            let capture = intake(
+                &fixture,
+                draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+            );
+            let mut plan = fixture
+                .service
+                .preview_capture_consolidation_with_summary(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    120,
+                    None,
+                    Some(&summary),
+                )
+                .unwrap();
+            let original_digest = plan.preview.plan_digest.clone();
+            match mutation {
+                "source" => fs::write(
+                    fixture.project_root.join("sources/current.md"),
+                    "Changed source",
+                )
+                .unwrap(),
+                "destination" => {
+                    fs::create_dir_all(fixture.project_root.join("context/stage_summaries"))
+                        .unwrap();
+                    fs::write(
+                        fixture.project_root.join(summary.relative_path()),
+                        plan.stage_summary_content().unwrap(),
+                    )
+                    .unwrap();
+                }
+                "draft" => {
+                    summary.markdown.push_str("Changed candidate");
+                    plan = fixture
+                        .service
+                        .preview_capture_consolidation_with_summary(
+                            &fixture.project_id,
+                            &capture.capture_id,
+                            120,
+                            None,
+                            Some(&summary),
+                        )
+                        .unwrap();
+                }
+                _ => {}
+            }
+            let paths = [
+                RESEARCH_STATE_PATH,
+                DECISION_LOG_PATH,
+                STAGE_HANDOFF_PATH,
+                PROJECT_MANIFEST_PATH,
+                "sources/current.md",
+                "context/stage_summaries/STG-B-001.md",
+            ];
+            let before = paths.map(|path| fs::read(fixture.project_root.join(path)).ok());
+            let approval = ApprovedCaptureConsolidation::new(
+                if mutation == "digest" {
+                    "0".repeat(64)
+                } else {
+                    original_digest
+                },
+                mutation != "filesystem",
+                mutation != "academic",
+            );
+            assert!(
+                fixture
+                    .service
+                    .apply_capture_consolidation(&plan, &approval)
+                    .is_err(),
+                "{mutation}"
+            );
+            assert_eq!(
+                paths.map(|path| fs::read(fixture.project_root.join(path)).ok()),
+                before,
+                "{mutation}"
+            );
+            assert_eq!(
+                fixture.service.snapshot().unwrap().projects[0].semantic_revision,
+                1
+            );
+            assert!(
+                !fixture
+                    .project_root
+                    .join(&plan.preview.receipt_entry)
+                    .exists()
+            );
+            if matches!(mutation, "source" | "destination") {
+                assert!(
+                    fixture
+                        .service
+                        .preview_capture_consolidation_with_summary(
+                            &fixture.project_id,
+                            &capture.capture_id,
+                            120,
+                            None,
+                            Some(&summary)
+                        )
+                        .is_err()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn summary_note_and_packet_eight_file_transaction_rolls_back_documents_and_history() {
+        for existing_note in [false, true] {
+            let fixture = fixture();
+            let summary = summary_draft(&fixture);
+            let mut note = note_draft(&fixture);
+            let packet = packet_draft();
+            if existing_note {
+                fs::create_dir(fixture.project_root.join("notes")).unwrap();
+                let prior = b"Human note\r\nCLM-001 and its old source anchor.";
+                fs::write(fixture.project_root.join(note.relative_path()), prior).unwrap();
+                note.previous_sha256 = Some(sha256_bytes(prior));
+            }
+            let capture = intake(
+                &fixture,
+                draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+            );
+            let plan = fixture
+                .service
+                .preview_capture_consolidation_with_drafts(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    120,
+                    CaptureConsolidationDrafts {
+                        stage_handoff: None,
+                        stage_summary: Some(&summary),
+                        paper_note: Some(&note),
+                        source_packet: Some(&packet),
+                    },
+                )
+                .unwrap();
+            let mut receipt = build_receipt(&plan).unwrap();
+            receipt.acknowledgement = acknowledgement(&receipt).unwrap();
+            let mut updates: Vec<_> = plan
+                .artifacts
+                .iter()
+                .map(|artifact| ProjectFileUpdate {
+                    relative_path: artifact.relative_path.clone(),
+                    expected_digest: artifact.previous_digest.clone(),
+                    next_bytes: artifact.next_bytes.clone(),
+                })
+                .collect();
+            updates.push(ProjectFileUpdate {
+                relative_path: plan.preview.receipt_entry.clone(),
+                expected_digest: None,
+                next_bytes: encode_project_document(&receipt).unwrap(),
+            });
+            updates.push(ProjectFileUpdate {
+                relative_path: PROJECT_MANIFEST_PATH.to_string(),
+                expected_digest: Some(plan.observed_manifest_digest.clone()),
+                next_bytes: encode_project_document(plan.next_manifest.as_ref().unwrap()).unwrap(),
+            });
+            assert_eq!(updates.len(), 8);
+            let before: Vec<_> = updates
+                .iter()
+                .map(|update| fs::read(fixture.project_root.join(&update.relative_path)).ok())
+                .collect();
+            let transaction =
+                ProjectFileTransaction::apply(&fixture.project_root, &updates).unwrap();
+            assert!(fixture.project_root.join(summary.relative_path()).exists());
+            transaction.rollback().unwrap();
+            assert_eq!(
+                updates
+                    .iter()
+                    .map(|update| fs::read(fixture.project_root.join(&update.relative_path)).ok())
+                    .collect::<Vec<_>>(),
+                before
+            );
+            assert!(
+                !fixture
+                    .project_root
+                    .join(".qiongli/consolidation-transaction")
+                    .exists()
+            );
+            assert_eq!(
+                fixture.service.snapshot().unwrap().projects[0].semantic_revision,
+                1
+            );
+        }
     }
 }

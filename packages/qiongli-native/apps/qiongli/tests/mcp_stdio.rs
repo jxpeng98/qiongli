@@ -142,6 +142,59 @@ fn rpc(id: u64, method: &str, params: Value) -> Value {
     json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params})
 }
 
+#[test]
+fn copied_parser_worker_reads_source_and_rejects_bad_or_oversized_input() {
+    let fixture = Fixture::new();
+    let xml = b"<article><front><article-meta><article-id pub-id-type=\"doi\">10.1234/worker</article-id></article-meta></front><body><sec><title>Methods</title><p>Actual source.</p></sec></body></article>";
+    for (input, error) in [
+        (xml.to_vec(), None),
+        (
+            b"%PDF-1.4\nmalformed".to_vec(),
+            Some("fulltext-parse-error"),
+        ),
+        (
+            b"<article><body><p>unclosed".to_vec(),
+            Some("fulltext-parse-error"),
+        ),
+        (vec![b'x'; 12 * 1024 * 1024 + 1], Some("fulltext-too-large")),
+        (xml.to_vec(), None),
+    ] {
+        let mut command = Command::new(&fixture.executable);
+        command
+            .arg("--qiongli-fulltext-worker-v1")
+            .env_clear()
+            .env("QIONGLI_CONFIG_HOME", &fixture.config_root)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        let mut child = spawn_with_executable_busy_retry(&mut command).unwrap();
+        child.stdin.take().unwrap().write_all(&input).unwrap();
+        let output = child.wait_with_output().unwrap();
+        assert!(output.status.success());
+        let response: Value = serde_json::from_slice(&output.stdout).unwrap();
+        if let Some(code) = error {
+            assert_eq!(response["Err"]["code"], code);
+        } else {
+            assert_eq!(
+                response["Ok"]["source_sha256"],
+                format!("{:x}", Sha256::digest(&input))
+            );
+            assert_eq!(response["Ok"]["document_doi"], "10.1234/worker");
+            assert!(
+                response["Ok"]["segments"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|segment| segment["text"] == "Actual source.")
+            );
+        }
+    }
+    assert!(
+        !fixture.config_root.exists(),
+        "worker must bypass configuration"
+    );
+}
+
 fn tool_call(id: u64, name: &str, arguments: Value) -> Value {
     rpc(
         id,
@@ -1187,12 +1240,49 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     .into_capture()
     .unwrap();
 
+    let mut draft = json!(capture);
+    draft.as_object_mut().unwrap().remove("capture_id");
+    let mut partial_identity = draft.clone();
+    partial_identity
+        .as_object_mut()
+        .unwrap()
+        .remove("document_kind");
+    let mut forged_identity = json!(capture);
+    forged_identity["capture_id"] = json!(format!("cap_{}", "0".repeat(64)));
+    let mut portable_draft = draft.clone();
+    portable_draft["delivery"] = json!("portable");
     let mut command = fixture.command_with_profile("full");
     let mut child = spawn_with_executable_busy_retry(&mut command)
         .expect("copied canonical binary must start in full profile");
     let requests = [
         rpc(1, "initialize", json!({})),
         rpc(2, "tools/list", json!({})),
+        tool_call(
+            30,
+            "qiongli_project_capture_preview",
+            json!({"capture": draft}),
+        ),
+        tool_call(
+            31,
+            "qiongli_project_capture_preview",
+            json!({"capture": partial_identity}),
+        ),
+        tool_call(
+            32,
+            "qiongli_project_capture_preview",
+            json!({"capture": forged_identity}),
+        ),
+        tool_call(
+            33,
+            "qiongli_project_capture_apply",
+            json!({"capture": draft,
+            "plan_digest": "0".repeat(64), "approve_filesystem_write": true}),
+        ),
+        tool_call(
+            34,
+            "qiongli_project_capture_preview",
+            json!({"capture": portable_draft}),
+        ),
         tool_call(3, "qiongli_project_list", json!({})),
         tool_call(
             4,
@@ -1419,6 +1509,17 @@ fn full_profile_reuses_redacted_project_state_and_accepts_connected_capture() {
     );
     assert_eq!(by_id(5)["error"]["code"], -32602);
     assert_eq!(by_id(6)["error"]["code"], -32602);
+    assert_eq!(
+        by_id(30)["result"]["structuredContent"]["capture"],
+        json!(capture)
+    );
+    assert_eq!(
+        by_id(30)["result"]["structuredContent"]["planDigest"],
+        by_id(7)["result"]["structuredContent"]["planDigest"]
+    );
+    for id in [31, 32, 33, 34] {
+        assert_eq!(by_id(id)["error"]["code"], -32602);
+    }
     assert_eq!(
         by_id(7)["result"]["structuredContent"]["captureId"],
         capture_id
