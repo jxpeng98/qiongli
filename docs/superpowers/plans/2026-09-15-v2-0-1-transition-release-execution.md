@@ -3274,3 +3274,126 @@ a new version, qualify the exact-source four-target packet and public pip/npm
 installs. Fresh macOS/Windows runtime and combined real-binary qualification
 remain hosted gates. The 249 task states/dependencies and 46 accepted rows stay
 unchanged; local integration does not promote program acceptance.
+
+### October 3 — 2.2.0 feature freeze and release-blocker triage
+
+The maintainer requests preparation beginning with the version/scope freeze and
+authorizes source push, explicitly excluding publication. The existing research
+branch `origin/sync/qiongli-2x-research-20261003` at `24ec2f04` is combined with
+Linux ARM64 repair `52a8705b` in integration commit `24d05560`. The overlapping
+release-packet owner keeps both four-target/schema-2 checks and the new coherent
+15/33 MCP inventory checks, with the historical 14/32 reader preserved. The
+integration fixture is corrected to declare schema 2 for its four-target packet.
+
+The bounded result is **2.2.0, feature-frozen and Not ready**. Its canonical
+[release notes](../../../tooling/release/v2.2.0.md) freeze scope, channels,
+platform limitations, data retention and rollback. Source versions, Plugin
+metadata, native/Lite lockfiles and the embedded content lock are synchronized
+through their existing owners. The embedded pack contains 446 entries, with
+content root `77ffb1664eb0fa301d50e4c645f39844ee6abffef172c85cc874ef63bcd60295`
+and pack SHA-256
+`d14a4c03d2b3d392c6b3f5e8815e0b83badd4edb1c184bf37d55efa34b674683`.
+The final generated lock binds source commit `0aea8e68`, which contains the
+actual 2.2.0 canonical content and release notes; package qualification must use
+the final integrated head including this lock. Earlier development package
+staging precedes this final source binding and is not a release candidate packet.
+
+Scope includes the existing public full-text reader, reviewed paper notes,
+stage summaries and source packets, focused research guidance and Linux ARM64
+distribution. `retrieval_manifest.csv` persistence is deferred to the next
+version, superseding the previous entry's next-increment priority. No new
+research engine, Graph store, permanent Agent, private-library access or broad
+all-Host/all-discipline qualification is added. Older receipts remain readable;
+older CLIs reject new-artifact receipts. The release notes therefore require
+retaining research data and a separate pre-upgrade backup instead of treating
+an old CLI reinstall as a data downgrade.
+
+| Stage | State at this integration | Remaining evidence |
+|---|---|---|
+| 1. Freeze version and scope | Complete in source: 2.2.0, stable identities, release notes and compatibility limits | Source-scope commit `0aea8e68`; the final integrated head including its generated lock is the qualification source; no tag exists yet |
+| 2. Clear release blockers | In progress; pinned Clippy passes and two tooling defects are repaired | Resolve/classify the remaining broad-validator assertions and rerun native checks from a secure checkout |
+| 3. Qualify actual artifacts | Pending for the frozen 2.2.0 candidate | CLI/Plugin/npm/PyPI/Cargo clean install, old-version upgrade, data preservation and receipt compatibility |
+| 4. Qualify supported platforms | Pending for one frozen commit | macOS ARM64, Windows x64, Linux x64 and Linux ARM64 native build/install receipts |
+| 5. Publish and verify public results | Not authorized | Separate publication decision, immutable tag/bytes, then public download and registry-install observations |
+
+Release-tooling fixes in `3bdf0c3e`:
+
+- Cargo install qualification had hard-coded eight dependency archives, while
+  the new bounded-allocation crate makes ten workspace crates. It now compares
+  the complete archive inventory and versions with the packaged application's
+  lockfile. Missing, extra, duplicate and mixed-version packets fail before
+  invoking Cargo; older nine-crate and growing closures remain supported.
+- The broad research validator compared native Skill guides against the frozen
+  1.x generator. It now selects the canonical native generator for native
+  checkouts and retains the legacy path elsewhere. Chinese generated-file
+  wording is regenerated through that owner. Drift and legacy-selection tests
+  remain explicit; no permission or quality assertion is removed.
+
+Local development validation (not frozen package acceptance):
+
+- 99 distribution/Marketplace/packet/CLI-release/publisher/automation/release-note
+  checks pass; 34 version/Cargo-closure/validator checks pass; 27 canonical
+  content/resource-link/MCP-contract/stage-handoff checks pass. These 160 checks
+  include historical readers, mixed inventories, unsupported targets and
+  content-drift negatives. The version gate passes for `v2.2.0` without creating
+  a tag. Final Rust **1.97.0** formatting and headless workspace Clippy pass;
+  the inherited environment's default Rust 1.99 is not used as release evidence.
+  After binding the lock to `0aea8e68`, all 23 focused embedded-pack, deterministic
+  writer, loader and canonical-source collection checks pass. Seven roadmap
+  checks, generated-index consistency and the 249-task/46-accepted-record
+  invariance check also pass.
+- Actual `cargo package --workspace --no-default-features --no-verify --offline`
+  staging emits ten unpublished 2.2.0 `.crate` files in
+  `/tmp/qiongli-220-cargo-packet`; the normalized application lockfile includes
+  `qiongli-bounded-alloc` and matches that inventory. Archive installation and
+  publication dry-run are not established by this packaging observation.
+- The full headless workspace test attempt reaches the CLI library: 198 cases
+  pass, 25 fail, one capacity case is intentionally ignored and one cancellation
+  case waits indefinitely. The latter's barrier waits for a download that setup
+  never reaches; the agent terminates that test process after all other cases
+  finish. This is an incomplete, failed run, not a passing workspace result.
+  Focused reruns establish `insecure-materialization-parent` and
+  `managed-root-unsafe` in content-install and update cases. This checkout and
+  its `/home/hermes/repos` ancestors have mode 775. Directory permissions and
+  product security guards are preserved. Other observed failure families,
+  including process detection and Host installation, still need classification;
+  the environment explanation is not generalized to every failure.
+- The independent eight-crate continuation completes with 586 passed, 50 failed
+  and two ignored cases. Project (200 passed, one ignored), runtime (65 passed,
+  one ignored, plus six Lite MCP checks) and execution (119 passed) suites pass.
+  Failures remain in content/materialization and platform installation targets;
+  captured errors include `InsecureTargetParent` at `/home/hermes/repos` and
+  `UnsafeTarget`. These results preserve the new source-packet, summary, note,
+  full-text and permission negatives while keeping installation qualification
+  open. Logs are retained in `/tmp/qiongli-220-native-tests.log` and
+  `/tmp/qiongli-220-crates-tests.log`; both runs are explicitly unsuccessful.
+- The broad validator initially reports **6098 passed / 25 failed / 17 warnings**,
+  reproducing the earlier 24 failures plus an absent generated root directory.
+  After the canonical-generator fix and 2.2.0 release-note sections, it reports
+  **6105 passed / 18 failed / 17 warnings**. This is not a green validation gate.
+  Remaining failures are enumerated below; no new acceptance claims are made.
+
+| Remaining validator group | Count | Ownership and next check |
+|---|---:|---|
+| Main Skill lacks a literal coverage-matrix reference | 1 | Canonical `content/workflow/SKILL.md`; review the intended on-demand reference before editing content |
+| Five workflow files omit the old literal global-Skill token | 5 | Verify shared-entry composition, then adapt the check to that owner with negative coverage |
+| Native collaboration guide lacks 1.x command/env tokens | 7 | Retained validator still demands `task-run`, `--summarizer`, `--profile-file` and `RESEARCH_MCP_`; validate native guide contracts without adding obsolete commands |
+| User READMEs omit internal 1.x contract/map paths | 4 | Separate user-facing native guidance from retained development-contract assertions |
+| Generated root `qiongli-workflow` directory absent | 1 | Source-only checkout; the 27-case focused run includes temporary package resource-link validation; adapt the broad check through the canonical materialization owner |
+
+The merge diff has one inherited trailing space in the byte-bound public-paper
+fixture `evals/research_journey/public-papers/quantitative-education/tables-source.md`.
+Its original bytes are preserved; corpus integrity passes. All other merged
+paths and all new edits pass whitespace checks. The final review preserves
+frozen Python source, research data, Host profiles and user-selected models.
+Commit authorship uses the already-disclosed temporary `Codex <codex@openai.com>`
+identity without changing Git configuration.
+
+Next bounded increment: finish stage 2 using the above failure inventory, then
+run the existing clean-source CLI owner and non-publishing hosted distribution
+and Cargo workflows for the same frozen commit. Do not resume retrieval-list
+development during this freeze. Previous 2.1.1 ARM64 packages and macOS research
+observations remain historical; they cannot qualify the new candidate. Source
+push does not authorize a tag, release, registry upload, Marketplace promotion
+or announcement. All 249 task states/dependencies and 46 accepted rows remain
+unchanged.
