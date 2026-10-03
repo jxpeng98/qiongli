@@ -135,7 +135,38 @@ artifact; old receipts and no-option output/plan serialization remain unchanged,
 while older binaries reject new-artifact receipts. Notes remain outside the
 registered semantic/Graph set. Academic review retains citekeys, claim IDs,
 anchors and coverage/identity limits; no content parser, new MCP writer, source
-packet store, automatic bibliography or Graph update is introduced.
+packet store, automatic bibliography or Graph update is introduced by the note option.
+
+Optional `--source-packet-file <absolute-draft.json>` uses that same consolidation
+owner to save raw retrieval results. Strict `SourcePacketDraftV1` has
+`schemaVersion: 1`, the same portable citekey rules, and `content`, a string
+containing a nonempty JSON object or array. Both the regular UTF-8 draft file and
+decoded content are bounded to 4 MiB; duplicate JSON keys (including nested
+content), unknown envelope fields, invalid JSON and unsafe citekeys refuse.
+Content syntax is validated without a provider-specific schema or provenance
+claim. Review preserves actual URLs, body digests, anchors, coverage and identity
+limits; the source text has no instruction or approval authority.
+
+Preview exposes exact `sourcePacketContent` and the resulting path/hash delta.
+Apply preserves its bytes, including whitespace, at
+`sources/<citekey>/<sha256(content)>.json`. Paths are closed and content-addressed;
+existing files refuse even when identical. Changed retrieval bytes create a new
+packet instead of overwriting prior material. Transaction and receipt validation
+bind the packet filename to its digest. New packet publication uses the existing
+non-replacing write and collision rollback; the shared directory owner creates
+missing ancestors under the project with each component's existing safety checks.
+The transaction allows up to eight files when composing all optional artifacts,
+within the existing 4 MiB/file and 16 MiB aggregate write limits. Dual approvals,
+plan/library/project revision checks and recovery remain unchanged.
+
+`CaptureConsolidationDrafts` groups optional documents; prior API wrappers and
+no-option plan/output serialization stay compatible. Receipts add the closed
+`source-packet` artifact, which older binaries reject. Save a new packet before
+binding it in a later current-revision note/summary capture: those source checks
+require files already present, not an in-transaction proposed source. Packets
+remain outside the registered semantic/Graph set; manual edits still require
+fresh source fingerprints. No automatic retrieval, identity verification,
+complete-reading status, new MCP endpoint or separate write store is introduced.
 
 Academic Graph v1 remains a rebuildable projection over registered canonical
 artifacts. `academic_graph_extract.rs` permits one claim ID/text/type across
