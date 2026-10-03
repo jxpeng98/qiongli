@@ -58,18 +58,22 @@ The 2.1.1 development baseline has the discipline/lifecycle guidance, explicit
 C/E/F decision contracts, five-provider discovery, public fulltext reader and
 on-demand source-bound review increments recorded in the
 [current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md).
-The **October 3 reviewed source-packet persistence** increment saves exact raw
-retrieval JSON inside registered projects through the existing consolidation
-preview, dual approval, revision, transaction and receipt owners. Original packets
-remain intact; later note/summary captures bind their saved paths and hashes.
-Its source/pack identities, focused checks and limits belong in the current plan
-and CLI-405's ledger record. The next bounded increment is an isolated Codex Host
-journey using newly retrieved public-body passages: review/save the packet, bind
-a note at the new revision, then verify saved bytes and source/receipt bindings
-after restart. Preserve stable claim IDs, citekeys, anchors and reading limits.
-JSON storage does not establish verified identity, complete reading or Graph
-acceptance. Signed publisher redirects, installed-Plugin and authenticated-provider
-qualification remain separately scoped.
+The **October 3 public Host source-packet journey** exercises the existing
+reviewed raw-JSON persistence and later note append at successive revisions.
+Native fulltext refresh is blocked before a request by DNS safety; the coordinator
+separately obtains public body text through the available Host reader, retaining
+both provenance records and the missing new PDF digest. Actual lightweight Codex
+author/recovery processes verify saved bytes, source bindings and both receipts;
+the original packet, note prefix and claim IDs remain intact. Exact identities,
+failed attempts, independent review scope and limits belong in the current plan
+and CLI-405's ledger record. The next bounded increment is reviewed persistence
+of `retrieval_manifest.csv` through existing capture/preview/approval/CAS owners,
+reusing Stage B's per-attempt schema and preserving prior rows. Distinguish failed
+native attempts from Host retrieval, bind available saved packets, and keep
+unknown dates, versions, licenses and PDF hashes explicit. Do not infer missing
+metadata from a successful save. Complete reading, Graph/expert acceptance,
+signed publisher redirects and installed/authenticated qualification remain
+separately scoped.
 
 Use existing canonical content, source/review bindings, native provider/runtime,
 project preview/approval/CAS and evaluation owners. One coordinator integrates

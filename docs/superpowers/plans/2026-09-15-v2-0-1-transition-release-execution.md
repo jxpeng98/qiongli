@@ -3049,3 +3049,157 @@ Seven roadmap checks, generated-index consistency, ledger invariance and diff
 checks pass. All 249 task states/dependencies and 46 accepted rows remain
 unchanged, with only CLI-405 progress updated. The frozen-source guard remains
 required before local integration; local checks do not establish acceptance.
+
+
+### October 3 — public Host source-packet save and note continuation
+
+Unchanged baseline `a8c286d221f0cd0dc84d0893dfab8ca9c080e476` supplies the
+copied CLI, SHA-256
+`0efd4dc7e2790be12cc77b65373d6611539506cb49700502f0e559fbc7824c19`,
+and the preceding 446-resource pack/content identities. Local observation files
+remain under
+`packages/qiongli-native/target/native-body-note-q1mpz2lt/source-packet-host-ujbr5__d/`.
+The existing isolated project `prj_65fcd82fb53ef633cde60cd4f46a552b` starts
+at project/library revision 2. Actual ephemeral Codex processes request
+`gpt-6.1-sol / low`, ignore user config, disable apps/Plugins and retain a
+read-only child sandbox. Process-local Full MCP and Host shell both explicitly
+use the isolated `QIONGLI_CONFIG_HOME`; actual tool inventory is inspected first.
+No capture-list MCP endpoint is assumed. Installed profiles, configured models
+and auth environment remain unchanged. Native Unix timestamps are retained.
+
+The first outer-sandbox launch fails during Codex app-server initialization with
+`Operation not permitted`, before a thread or tool call; it exits 1 after
+3.340 seconds and leaves all 21 scoped files unchanged. The preserved
+`initial-host-start/` records remain a failure, not a successful Host observation.
+The same runner is relaunched with outer process permission while retaining the
+child's read-only sandbox and tool allowlist. No network safety rule is changed.
+
+Reader thread `01a1010c-40a5-7961-b293-17a8f73c7019` successfully reads current
+project/artifact state and calls literature status/search planning. These calls
+do not execute a provider query. Its single native fulltext call refreshes the
+public arXiv URL with the historical PDF digest, offset 0 and limit 4, but returns
+`fulltext-url-blocked`: DNS resolved to a private or special-use address and no
+destination request was sent. The child stops as instructed, with no continuation
+or new native segments, PDF digest or identity result. Exit 0 after 94.651 seconds
+means the bounded reporting task completed, not that retrieval succeeded; all
+21 scoped files remain unchanged. No transport fix or cause beyond the reported
+DNS condition is inferred.
+
+The coordinator separately uses its authorized Host `web.run open` on
+`https://arxiv.org/pdf/1706.03762`. This returns actual body text, retained verbatim
+as a raw tool-response string inside the JSON packet together with the failed
+native result and explicit execution/provenance limits. Host provenance is
+`native:codex_web_search`; operation is URL open, not a provider search or native
+MCP continuation. The response reports 15 pages/802 lines and exposes L0–L371,
+web pages P0–P8. Selected substantive reading is Section 3.1, web P2 / printed
+page 3, L104–L117. Exposure is not a complete-reading claim. No PDF byte digest
+is supplied; equality with historical native PDF bytes is unverified. Visible
+title/version labels do not independently establish report identity. Historical
+native segments 0–3/27, earlier anchors and `identity_status=not_checked` remain
+distinct and unchanged. No figure/formula or experimental evaluation occurs.
+
+Coordinator-reviewed raw packet content is 32,042 bytes, SHA-256
+`0d7bf46ec38c80abe7f859b01ad9ab658ddf27656ac23c3566d27793c2aede5d`.
+Existing native intake and consolidation save it at the corresponding
+`sources/Vaswani2017Attention/<sha256>.json` path, using evidence-bearing capture
+`cap_600e6e9d5a09253b4375dd2aef0d457b54a7249c4f3696398e2a81f44be6515f`.
+The exact preview content, actual bytes and receipt agree. Plan digest is
+`66ffb16fcd87ecacacdd379d02413ebc46770d6a68cb09c65540dff521896f04`;
+receipt SHA-256 is
+`ae78f9ed254403baa529e7c7acc7c24846e96673e007bebb8c9cbaac82dc4295`.
+Project/library revisions advance 2 → 3, retaining the earlier source and note.
+The local packet digest verifies stored JSON, not remote PDF authenticity.
+
+Author thread `01a10118-c2c8-7f21-b948-e4f49b2844ca` makes two successful
+project/artifact MCP reads and inspects actual packet, note, receipt and current
+guidance. It exits 0 after 128.781 seconds with all 24 scoped files unchanged.
+Its preserved answer, SHA-256
+`26c509c8895bbe94de1b214a1762be5d9899a1126ec15bb205a97ee3f029730f`,
+proposes V2017-C3 as an author architecture specification directly supported by
+Section 3.1 at P2 L114–L117. Empirical effectiveness remains unsupported. The
+coordinator removes prospective pending labels and updates persistence wording,
+retaining the original answer and all claim content. V2017-C1/C2, citekey and
+old source anchors remain intact. No linked stage summary is found or invented.
+
+The requested actual `gpt-6.1-sol / low` agent
+`/root/public_packet_verification` independently checks packet persistence at
+revision 3 and then the concrete note/capture/handoff candidate against raw
+source and actual Host events, without actionable findings. This is dependent,
+source-bound read-only review, not blind or expert assessment. It reviews refusal
+records rather than rerunning them; local records do not independently attest
+the coordinator's external web execution. Launch records establish requested
+settings, not model attestation. Post-save checks remain separately required.
+
+New capture
+`cap_09775df96578bdd5787f96edab71f3682b095271b7a540891a8ae95b319db341`
+binds the already-saved packet at revision 3. Reviewed note draft SHA-256 is
+`6c3820593364eabec642416a84320e02d06749ae04d80111aedbd4ca9cb3ced5`;
+plan digest is
+`0b6c73299a4603411c1c7aa696172c57244dfde38a8081e2086db4164e67e235`.
+Both save phases refuse missing approvals (exit 2) and changed-draft stale plans
+(exit 1, `project-plan-mismatch`) without changing scoped files. Original reviewed
+drafts then apply through the native dual-approval/CAS owner. The second save
+advances project/library revisions 3 → 4, retaining stage literature. The complete
+6,511-byte prior note is a prefix of the 8,651-byte result, SHA-256
+`c8238535fccce3c765625c04f3d6b6b1042c6b87222d84f26e4fc394946a67ec`.
+Note receipt SHA-256 is
+`ec521e46f5fd128cee1fcd173a76c5b4f4718df7498b7d68f9b7d131ad0f05fc`;
+its canonical source-capture digest is
+`ffb9c60f3b9b48bda9b33b06451fbb2f52a3560096a2e1fa752f08d00a1b5445`.
+Preview/disk/receipt hashes agree for state, note and handoff; prior bytes, source
+packets, migration records and the earlier unmerged capture remain intact.
+
+Fresh reader thread `01a1012f-a8b0-7752-a744-af7375cec4ad` makes two successful
+project/artifact MCP reads at revision 4 and independently hashes actual files,
+captures and receipts. It confirms the 2 → 3 → 4 receipt chain, new packet source
+binding, complete prior-note prefix, all three note links and unchanged original
+packet. Saved note, handoff and source-packet preview content match disk bytes.
+Its task incorrectly assumes a standalone historical research-state body in the
+packet preview: that response supplies digest/length metadata instead. The Host
+reports the limitation and verifies the actual 4,250-byte current-state prefix
+against the earlier receipt and preview delta. It does not compare the old
+digest to the entire appended current state or claim absent preview text was
+read. No runtime repair or new apply is needed. Plan digests are compared with
+saved previews, not independently recomputed.
+
+The fresh process exits 0 after 162.748 seconds with all 26 scoped files
+unchanged. Answer SHA-256 is
+`fa14c06a270c975ed16906dedba93b96266627c1a4d53620527d46c5ae4d8ae0`.
+These are fresh ephemeral processes, not reconnection to a persistent session;
+durations are observations, not performance evidence. Fresh source-bound reading
+retains the native DNS refusal, separate Host provenance, missing PDF hash and
+identity/version uncertainty. The selected architecture specification establishes
+no empirical effect, complete B2, Graph or expert acceptance.
+
+The same independent verifier subsequently checks the final actual files,
+refusal inventories, receipt/capture chain and fresh Host command outputs with
+no actionable findings. It confirms the historical-prefix distinction and all
+26 current file hashes. Its review does not turn reported Host execution settings
+into independent runtime model attestation or establish remote source identity.
+
+No runtime or canonical Skill repair is needed by this observation; prior
+native/content checks are reused. The successful explicit Rust 1.99.0 build
+retains the existing platform deprecation warning. The wider validator's earlier
+24 unrelated failures and existing CLI Clippy debt are not rerun or claimed
+resolved. Raw responses, source excerpts and local observation files remain in
+the ignored trial directory; this checked-in record retains identities and
+limits without promoting local evidence to program acceptance.
+
+Next bounded increment: reviewed `retrieval_manifest.csv` persistence/history
+through the existing capture, exact preview, dual approval, revision/CAS and
+receipt owners. Reuse Stage B's one-row-per-attempt schema, retain earlier rows,
+bind actual saved source packets and preserve failed native attempts separately
+from successful Host retrieval. Unknown retrieval timestamps, version, license,
+identity and PDF digest must stay explicit; a local packet path is not a complete
+PDF. This addresses the formal B2 retrieval-record gap without a new retrieval
+engine, Graph store or permanent Agent. Installed/authenticated qualification,
+signed redirects, private-library access and publication remain separately
+scoped; no user-profile/model or program-acceptance change occurs.
+
+At integration, seven roadmap checks, generated-index consistency, ledger
+invariance and diff checks pass. All 249 task states/dependencies and 46 accepted
+rows remain unchanged; only CLI-405 progress is updated. Index generation first
+fails under system Python 3.9 because its `Path.write_text` lacks the `newline`
+argument; the existing Python 3.12.15 environment generates and checks it
+successfully without a tooling change. The frozen-source guard remains required
+before the authorized local fast-forward integration; no remote action occurs.
