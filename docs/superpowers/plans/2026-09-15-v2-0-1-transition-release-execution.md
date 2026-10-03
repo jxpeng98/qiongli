@@ -3469,3 +3469,54 @@ No PR, tag, release, upload or announcement is authorized. All 249 task
 states/dependencies and 46 accepted records remain unchanged. Next increment
 is same-source package/platform qualification, followed by the separately
 authorized stable-main publication decision and public download/install checks.
+
+### October 3 — first hosted packet passes; full-suite platform repairs
+
+Candidate `7a78998ba9c176626b6dbdb9e2daebc9f7ab6db5` was pushed to
+`release/next-research-candidate` and qualified without publication:
+
+- [Native CLI distribution 37122518753](https://github.com/jxpeng98/qiongli/actions/runs/37122518753)
+  passes all four target builds, assembly and combined-package installs.
+  Actual pip/npm upgrades and fixture-byte retention pass on macOS ARM64,
+  Windows x64, Linux x64 and Linux ARM64. The ARM64 predecessor is the actual
+  PyPI 1.17.0 wheel; the other pip predecessors and every npm predecessor are
+  2.1.1. Downloaded packet bytes pass the canonical verifier with `--require-ci`.
+- [Cargo qualification 37122520347](https://github.com/jxpeng98/qiongli/actions/runs/37122520347)
+  passes dry-run packaging and actual archive installs on all four targets.
+  Downloaded installation receipts report 2.2.0 for both CLI names. Publication
+  and public-install jobs are skipped, as explicitly requested.
+- [Native CI 37122517256](https://github.com/jxpeng98/qiongli/actions/runs/37122517256)
+  passes boundary and Lite checks but finds three Linux process-inspection
+  failures and two Windows private-directory fixture failures. The already
+  unsuccessful run is cancelled before macOS finishes; its CLI library passes
+  237 tests with one ignored case, and its Plugin integration tests continue
+  making progress. Cancellation is not a macOS failure or a passed full suite.
+
+The following bounded fixes supersede that source for final qualification:
+
+- Windows Plugin-review/cache fixtures create their temporary directories with
+  the existing owner-only ACL helper, including the cache receipt's parent.
+  Production ACL, approval, drift and receipt checks remain in force.
+- Linux inspection re-reads a missing executable's status through the same
+  process-directory descriptor. Only a disappeared process or an unambiguously
+  single-thread zombie can be ignored. Malformed/duplicate status fields, a
+  zombie main thread with live siblings, inaccessible executables, deleted live
+  executables and restricted visibility remain refusals. A real exited-main-
+  thread probe observes `Z` with `Threads: 2` and confirms that negative case.
+- Native CI Linux tests run in a private PID/mount namespace to exclude
+  unrelated same-user services whose executable links cannot be inspected.
+  Privilege is used only to establish the namespace; Cargo and tests run as the
+  original runner uid/gid. Host mounts/processes and production policy are not
+  changed. macOS and Windows retain their native runners.
+
+The repaired isolated CLI library passes **225 tests, zero failures, one
+ignored**; the three process-guard tests cover live, deleted, complete-zombie
+and ambiguous cases. Rust 1.97.0 headless Clippy, nine boundary checks, seven
+ledger checks and shell syntax pass. Nested proc mounting is restricted in the
+local rootless container; the namespace wrapper still needs its hosted run.
+The canonical
+content/pack bytes remain unchanged. Downloaded first-candidate assets and
+install/upgrade/Cargo receipts are retained under `/tmp/qiongli-220-7a78998b-*`;
+they qualify that source only. The final repair commit must complete the same
+three non-publishing workflows before readiness is claimed. No task states,
+dependencies, accepted records, protected branches or publication authority change.

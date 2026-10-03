@@ -850,6 +850,9 @@ mod tests {
                 path.canonicalize().unwrap()
             })
             .join(std::process::id().to_string());
+        #[cfg(windows)]
+        qiongli_windows_security::create_owner_only_directory(&root).unwrap();
+        #[cfg(not(windows))]
         std::fs::create_dir(&root).unwrap();
         let environment = CommandEnvironment::with_paths(None, Some(root.clone()), None);
         let content = crate::embedded_content().unwrap();

@@ -539,24 +539,9 @@ fn refuse_running_linux_paths(proc_root: &Path, paths: &[&Path]) -> Result<(), &
             Err(_) => return Err(FAILED),
         };
         // Anchor both reads to one proc directory, so PID reuse cannot retarget them.
-        let status = match rustix::fs::openat(
-            &directory,
-            "status",
-            OFlags::RDONLY | OFlags::CLOEXEC | OFlags::NOFOLLOW,
-            Mode::empty(),
-        ) {
-            Ok(status) => status,
-            Err(rustix::io::Errno::NOENT) => continue,
-            Err(_) => return Err(FAILED),
+        let Some(bytes) = linux_process_status(&directory)? else {
+            continue;
         };
-        let mut bytes = Vec::new();
-        File::from(status)
-            .take(65_537)
-            .read_to_end(&mut bytes)
-            .map_err(|_| FAILED)?;
-        if bytes.len() > 65_536 {
-            return Err(FAILED);
-        }
         let mut uid_lines = bytes
             .split(|byte| *byte == b'\n')
             .filter_map(|line| line.strip_prefix(b"Uid:"));
@@ -581,8 +566,20 @@ fn refuse_running_linux_paths(proc_root: &Path, paths: &[&Path]) -> Result<(), &
         {
             continue;
         }
-        let executable =
-            rustix::fs::readlinkat(&directory, "exe", Vec::new()).map_err(|_| FAILED)?;
+        let executable = match rustix::fs::readlinkat(&directory, "exe", Vec::new()) {
+            Ok(executable) => executable,
+            Err(rustix::io::Errno::NOENT) => {
+                // Re-read through the same descriptor: the process may have exited
+                // since the first status read. A zombie leader with other threads
+                // remains ambiguous and must still block replacement.
+                match linux_process_status(&directory)? {
+                    None => continue,
+                    Some(status) if linux_process_is_complete_zombie(&status) => continue,
+                    Some(_) => return Err(FAILED),
+                }
+            }
+            Err(_) => return Err(FAILED),
+        };
         let raw = executable.as_bytes();
         // A missing or unreadable exe is ambiguous (including an exited main thread).
         // Keep both forms: a literal filename can itself end with " (deleted)".
@@ -597,6 +594,50 @@ fn refuse_running_linux_paths(proc_root: &Path, paths: &[&Path]) -> Result<(), &
         }
     }
     Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn linux_process_status(directory: &rustix::fd::OwnedFd) -> Result<Option<Vec<u8>>, &'static str> {
+    use rustix::fs::{Mode, OFlags};
+    const FAILED: &str = "native-update-process-inspection-failed";
+    let status = match rustix::fs::openat(
+        directory,
+        "status",
+        OFlags::RDONLY | OFlags::CLOEXEC | OFlags::NOFOLLOW,
+        Mode::empty(),
+    ) {
+        Ok(status) => status,
+        Err(rustix::io::Errno::NOENT | rustix::io::Errno::SRCH) => return Ok(None),
+        Err(_) => return Err(FAILED),
+    };
+    let mut bytes = Vec::new();
+    if let Err(error) = File::from(status).take(65_537).read_to_end(&mut bytes) {
+        if error.raw_os_error() == Some(rustix::io::Errno::SRCH.raw_os_error()) {
+            return Ok(None);
+        }
+        return Err(FAILED);
+    }
+    if bytes.len() > 65_536 {
+        return Err(FAILED);
+    }
+    Ok(Some(bytes))
+}
+
+#[cfg(target_os = "linux")]
+fn linux_process_is_complete_zombie(status: &[u8]) -> bool {
+    let Ok(status) = std::str::from_utf8(status) else {
+        return false;
+    };
+    let mut states = status
+        .lines()
+        .filter_map(|line| line.strip_prefix("State:"));
+    let mut threads = status
+        .lines()
+        .filter_map(|line| line.strip_prefix("Threads:"));
+    states.next().map(str::trim) == Some("Z (zombie)")
+        && states.next().is_none()
+        && threads.next().map(str::trim) == Some("1")
+        && threads.next().is_none()
 }
 
 #[cfg(target_os = "macos")]
@@ -2008,6 +2049,22 @@ mod tests {
             refuse_running_linux_paths(&root, &paths),
             Err("native-update-process-inspection-failed")
         );
+        for (state, threads, allowed) in [
+            ("Z (zombie)", "1", true),
+            ("Z (zombie)", "2", false),
+            ("S (sleeping)", "1", false),
+            ("Z (zombie)", "0", false),
+            ("Z (zombie)\nState:\tS (sleeping)", "1", false),
+            ("Z (zombie)", "1\nThreads:\t2", false),
+        ] {
+            fs::write(
+                root.join("123/status"),
+                format!("{status}State:\t{state}\nThreads:\t{threads}\n"),
+            )
+            .unwrap();
+            assert_eq!(refuse_running_linux_paths(&root, &paths).is_ok(), allowed);
+        }
+        fs::write(root.join("123/status"), &status).unwrap();
         for (target, blocked) in [
             ("/managed/qiongli", true),
             ("/managed/qiongli (deleted)", true),
@@ -2041,6 +2098,33 @@ mod tests {
             Err("native-update-process-inspection-failed")
         );
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    #[allow(
+        clippy::disallowed_methods,
+        reason = "this test holds an exited OS child until after process inspection"
+    )]
+    fn linux_process_guard_allows_an_unreaped_exited_child() {
+        let mut child = Command::new("/bin/true").spawn().unwrap();
+        let status_path = PathBuf::from(format!("/proc/{}/status", child.id()));
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let exited = loop {
+            let status = fs::read(&status_path).unwrap();
+            if linux_process_is_complete_zombie(&status) {
+                break true;
+            }
+            if Instant::now() >= deadline {
+                break false;
+            }
+            thread::sleep(Duration::from_millis(10));
+        };
+        let result = refuse_running_installation_paths(&[Path::new("/unused/qiongli")]);
+        let _ = child.kill();
+        child.wait().unwrap();
+        assert!(exited);
+        assert_eq!(result, Ok(()));
     }
 
     #[cfg(target_os = "linux")]

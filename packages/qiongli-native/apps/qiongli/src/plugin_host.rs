@@ -760,10 +760,21 @@ mod tests {
         ] {
             let codex = target == ManagedIntegrationTargetV1::Codex;
             let root = base.join(if codex { "codex" } else { "claude" });
+            #[cfg(windows)]
+            qiongli_windows_security::create_owner_only_directory(&root).unwrap();
             let cache = root
                 .join("plugins/cache/qiongli-cli-local")
                 .join(plugin_name())
                 .join(env!("CARGO_PKG_VERSION"));
+            #[cfg(windows)]
+            {
+                let mut parent = root.clone();
+                for name in ["plugins", "cache", "qiongli-cli-local", plugin_name()] {
+                    parent.push(name);
+                    qiongli_windows_security::create_owner_only_directory(&parent).unwrap();
+                }
+            }
+            #[cfg(not(windows))]
             std::fs::create_dir_all(cache.parent().unwrap()).unwrap();
             let exported = root.join(plugin_name());
             if codex {

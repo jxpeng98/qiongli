@@ -322,6 +322,10 @@ Linux native reconciliation inspects current-user executables through the visibl
 `/proc` PID namespace, anchoring status/executable reads to one process directory.
 Deleted executable paths still count as running. Ambiguous executable access,
 malformed identity, ptrace-only visibility and exceeded scan bounds fail closed.
+An absent executable is ignored only after a descriptor-bound status re-read
+proves the process has disappeared or is a zombie with exactly one remaining
+thread. A zombie main thread with live sibling threads remains ambiguous and
+blocks replacement; an unreadable executable is not evidence of process exit.
 The scan is a snapshot: it neither prevents later launches nor inspects processes
 outside the visible namespace. It does not stop processes or confer write approval.
 

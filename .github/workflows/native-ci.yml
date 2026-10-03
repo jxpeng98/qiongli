@@ -155,7 +155,7 @@ jobs:
             echo "CLI normal/build/test graph contains a GUI dependency" >&2
             exit 1
           fi
-          cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --exclude qiongli-ui --all-targets --no-default-features --locked
+          bash tooling/scripts/native_ci_test.sh --manifest-path packages/qiongli-native/Cargo.toml --workspace --exclude qiongli-ui --all-targets --no-default-features --locked
 
       - name: Run CLI Rust clippy
         if: env.RUN_NATIVE_MATRIX == 'true' && matrix.platform == 'Linux'
@@ -173,7 +173,7 @@ jobs:
 
       - name: Test desktop consumers
         if: env.RUN_NATIVE_MATRIX == 'true' && env.RUN_DESKTOP_CHECK == 'true'
-        run: cargo test --manifest-path packages/qiongli-native/Cargo.toml -p qiongli -p qiongli-ui --all-targets --all-features --locked
+        run: bash tooling/scripts/native_ci_test.sh --manifest-path packages/qiongli-native/Cargo.toml -p qiongli -p qiongli-ui --all-targets --all-features --locked
 
       - name: Measure opt-in platform capacity baseline
         if: github.event_name == 'workflow_dispatch' && env.RUN_NATIVE_MATRIX == 'true'
@@ -181,7 +181,7 @@ jobs:
           QIONGLI_CAPACITY_OUTPUT_DIR: ${{ runner.temp }}/qiongli-capacity
           QIONGLI_CAPACITY_SOURCE_COMMIT: ${{ github.sha }}
           QIONGLI_CAPACITY_RUN_ID: ${{ github.run_id }}
-        run: cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --lib --release --locked platform_capacity_baseline -- --ignored --test-threads=1
+        run: bash tooling/scripts/native_ci_test.sh --manifest-path packages/qiongli-native/Cargo.toml --workspace --lib --release --locked platform_capacity_baseline -- --ignored --test-threads=1
 
       - name: Upload platform capacity receipt
         if: github.event_name == 'workflow_dispatch' && env.RUN_NATIVE_MATRIX == 'true'
