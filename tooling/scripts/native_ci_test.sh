@@ -14,8 +14,10 @@ if [[ $(uname -s) == Linux ]]; then
       mount -t proc -o nosuid,nodev,noexec proc /proc
       # sudo replaces PATH even with --preserve-env. Restore the toolchain path
       # only after dropping privileges, so Cargo can resolve rustc and rustdoc.
+      # Process-table tests need a stable view of their own children. Tests that
+      # exercise concurrency still create and synchronize their own threads.
       exec setpriv --reuid "$1" --regid "$2" --clear-groups \
-        env "PATH=$4" "$3" test "${@:5}"
+        env "PATH=$4" RUST_TEST_THREADS=1 "$3" test "${@:5}"
     ' native-ci "$(id -u)" "$(id -g)" "$cargo_bin" "$PATH" "$@"
 fi
 exec "$cargo_bin" test "$@"

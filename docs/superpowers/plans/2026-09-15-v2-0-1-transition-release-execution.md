@@ -3520,3 +3520,25 @@ install/upgrade/Cargo receipts are retained under `/tmp/qiongli-220-7a78998b-*`;
 they qualify that source only. The final repair commit must complete the same
 three non-publishing workflows before readiness is claimed. No task states,
 dependencies, accepted records, protected branches or publication authority change.
+
+The next hosted pass at `ed8b65c4` also passes four-target distribution/upgrade
+[37123788432](https://github.com/jxpeng98/qiongli/actions/runs/37123788432) and
+Cargo qualification [37123789994](https://github.com/jxpeng98/qiongli/actions/runs/37123789994).
+Native run `37123787119` initially cannot resolve `rustc` after sudo resets
+`PATH`; `c7ec6d4d` restores that path only after dropping privileges. Subsequent
+native run `37123943374` passes the Windows CLI library (182 tests, one ignored),
+Claude bundle tests and 45 CLI integration tests, then exposes a stale activation
+fixture pairing version 2.2.0 with Alpha. Its Linux library passes 223 tests but
+still exposes temp-path and concurrent process-snapshot fixture interference.
+These full runs remain unsuccessful; packet success does not override them.
+
+The final bounded test repair canonicalizes the live-process fixture's temporary
+root, serializes Linux test cases within the isolated PID namespace, and lets the
+activation fixture derive its channel through the same artifact validator as the
+other Plugin tests. Explicit concurrency within individual tests remains active.
+Three real process-guard cases pass with a deliberately symlinked `TMPDIR`, both
+activation/recovery process cases pass, and all three signed client-activation
+tests (including wrong-target rejection) pass. Affected Rust 1.97 Clippy and
+formatting pass. No additional production behavior or content bytes change.
+The new source still requires completed same-source hosted checks; publication
+remains disabled and all historical successful/failed runs remain preserved.

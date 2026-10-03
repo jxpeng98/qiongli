@@ -2137,6 +2137,8 @@ mod tests {
         let root =
             std::env::temp_dir().join(format!("qiongli-linux-live-proc-{}", std::process::id()));
         fs::create_dir(&root).unwrap();
+        // /proc/exe resolves symlinked temp roots used by hosted runners.
+        let root = root.canonicalize().unwrap();
         let executable = root.join("sleep-copy");
         fs::copy("/bin/sleep", &executable).unwrap();
         let mut child = Command::new(&executable)
