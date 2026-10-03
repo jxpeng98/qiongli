@@ -58,17 +58,17 @@ The 2.1.1 development baseline has the discipline/lifecycle guidance, explicit
 C/E/F decision contracts, five-provider discovery, public fulltext reader and
 on-demand source-bound review increments recorded in the
 [current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md).
-The selected **October 3 reviewed paper-note persistence** increment adds
-creation and append inside registered projects through the existing capture
-consolidation transaction, exact preview, dual approval and revision owners.
-Its source/pack identities, focused checks and compatibility limits belong in the
-current plan and CLI-405's ledger record. The next bounded follow-up is an
-isolated public-evidence Host continuation that reviews and appends to the
-already registered paper note, then verifies saved bytes and source/receipt
-bindings in a fresh process. Preserve prior notes, stable claim IDs, citekeys,
-anchors and reading limits. New source-packet persistence, signed publisher
-redirects, installed-Plugin and authenticated-provider qualification remain
-separately scoped.
+The **October 3 registered-note Host continuation** exercises the existing
+reviewed append path with public evidence, coordinator preview/dual approval/CAS
+and a fresh process that verifies saved bytes and source/receipt bindings.
+Its exact identities, successful checks and corrected observation-harness gaps
+belong in the current plan and CLI-405's ledger record. The next bounded
+increment is reviewed persistence of newly retrieved public-body source packets
+inside registered projects, reusing the existing transaction and approval owners.
+Preserve original source bytes, stable claim IDs, citekeys, anchors and reading
+limits; source intake must not imply verified identity, complete reading or Graph
+acceptance. Signed publisher redirects, installed-Plugin and authenticated-provider
+qualification remain separately scoped.
 
 Use existing canonical content, source/review bindings, native provider/runtime,
 project preview/approval/CAS and evaluation owners. One coordinator integrates

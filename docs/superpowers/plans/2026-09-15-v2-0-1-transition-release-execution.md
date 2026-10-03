@@ -2849,3 +2849,123 @@ publisher redirects and authenticated-provider qualification remain separate.
 At integration, seven roadmap checks, generated-index consistency and the
 frozen-source guard pass; all 249 task states/dependencies and 46 accepted rows
 remain unchanged, with only CLI-405 progress/date updated.
+
+
+### October 3 — registered-note Host continuation and restart
+
+Unchanged baseline `7858d58a16e67b09feaf7d39f7ee56be5b578c0c` and the preceding
+446-resource pack supply the copied CLI, SHA-256
+`9638d3449ea3008776acd3aabc388be71e1dbfe3a3859b6f1beef84c1a9406ca`.
+Local observation files remain under
+`packages/qiongli-native/target/native-body-note-q1mpz2lt/registered-note-continuation-jzv5b9v5/`.
+Two actual ephemeral Codex processes use `gpt-6.1-sol / low`, ignored user config,
+disabled apps/Plugins, read-only sandbox and process-local Full MCP pointing to
+the existing isolated project/state. Execution identity comes from retained argv
+and JSONL events; installed profiles, auth environment and configured models are
+unchanged. Native Unix timestamps are preserved as returned. This is an isolated
+development observation, not installed-Plugin qualification.
+
+The author thread `01a0ff09-2439-7da2-869b-2dfeaca20a96` reads current project and
+artifact changes through two actual MCP calls, then reads existing note/source
+bytes and the current canonical paper-reading guidance. Its original answer,
+SHA-256 `d0c79a80ac520bc439940f2f7ef313bbf289d5dbfd10d96e5c7e3b929c20a76f`,
+proposes an append to Vaswani2017Attention at revision 1. The coordinator retains
+that answer, removes prospective pre-save labels and reviews exact note/handoff
+drafts. The addition preserves V2017-C1/C2 and distinguishes ConvS2S linear and
+ByteNet logarithmic positional-distance comparisons; no particular rate is
+assigned to Extended Neural GPU. The constant-operation statement is explicitly
+limited to relating positions, not total computation, time or memory. The
+resolution tradeoff remains an attributed author claim; the scope clarification
+is labeled interpretation/reasonable inference, not new source evidence.
+
+Only the existing four of 27 parsed segments on pages 1–2 are used. Local packet
+SHA-256 remains
+`3b2c9a9c45779984e5c608c36912d66a4d372978ec502b72f4d75cc4ceae93d8`.
+The prior reader-recorded PDF digest is not independently rehashed because full
+PDF bytes are absent. No new retrieval or remote-version check occurs. Structured
+identity stays `not_checked`; visible v7/2 Aug 2023 and NIPS 2017 labels do not
+establish original-version correspondence or evaluated later methods/results.
+
+The coordinator's first capture declares a literature change but omits capture
+evidence. Intake retains it as `unsupported-gap`; consolidation preview correctly
+refuses with `unsupported-evidence`, no artifact deltas and no academic writes.
+Paper-note source fingerprints do not substitute for capture evidence. The
+original capture
+`cap_57b08f2390e2d3552277e95fb84e6ebc918d5935457e80d02f3bb3606141b1e5`
+remains intact. A new capture
+`cap_d3e2ba1f01711dda1e996eaa6d884126a12d24ddcedbea952bed97e9c1719060`
+includes the actual local source anchor at page 2/segment 3 and its limits, and
+previews as refinement. Exact reviewed draft SHA-256 is
+`e2778e5c2f0b1ef9d71a6d1bcabbd4bb6a2151c8f58f903c53f88146650ed0eb`;
+plan digest is
+`4e01010e9b0f4d285323ad4f51be9f63ba7821f24df4a605d8935f3e9dc1a563`,
+with native review timestamp `1790985695`.
+
+An apply without either approval exits 2; a separate changed-draft file with both
+approvals and the old plan digest exits 1 with `project-plan-mismatch`. All 19
+project/state/staging files remain unchanged in both refusals. The approved
+original plan saves note, research state and handoff through the existing native
+transaction. Project `prj_65fcd82fb53ef633cde60cd4f46a552b` and library revisions
+advance from 1 to 2, with stage still literature. The complete 3,802-byte prior
+note remains a prefix of the 6,511-byte saved note, SHA-256
+`b119bffef28023fe23d3a5d8d4d61816c3a16749c3518902e764bdb5bb8d5a48`.
+Preview, disk and receipt artifact hashes agree; prior state/handoff prefixes,
+source packet, original staging files and migration records remain intact.
+Receipt SHA-256 is
+`854ecf012dd3a75c4692eb37fbc1b9082f7d561d35e1c0fbed3693113c9d251a`;
+its source-capture binding equals the actual canonical capture file SHA-256
+`a1a0ef1395da2560c37be8cf457daa4b9ff1e608a4a54002ad5527d02d49fb12`.
+This canonical hash differs from the pretty-printed intake draft's hash.
+
+The first post-apply harness assertion omitted the transaction owner's newly
+created empty `.consolidation.lock`. Native apply had already exited 0 and saved
+revision 2. After inspecting the existing lock owner, the coordinator corrects
+only the expected-file set and rereads the saved result without another apply.
+All seven changed files match the expected three academic files, manifest,
+receipt, library and empty lock. This is a harness correction, not a runtime fix
+or a failed native save; both the original assertion and correction are retained.
+
+Fresh reader thread `01a0ff13-8269-7e60-8810-ba8499465827` makes two successful
+project/artifact-change MCP calls at revision 2, then independently hashes saved
+files, source, capture and receipt. It verifies the full prior-note prefix and
+exact preview content, preserves scholarly limits and distinguishes historical
+migration inventory from the current appended note. Receipt and saved preview
+plan digests agree; the reader does not independently recompute the plan digest.
+Final answer SHA-256:
+`404ffda3b9238fde5921f5abaf9c4dcf441c54164792911d304fcaf06f936d14`.
+Both processes exit 0 after 110.995 and 121.480 seconds respectively, with all
+16 author-scope and 21 fresh-reader-scope files unchanged. These durations are
+observations, not a performance comparison.
+
+The resume harness incorrectly requested a nonexistent capture-list MCP tool.
+The reader reports its absence honestly; its native CLI fallback then fails
+`project-not-registered` because the isolated config environment was assigned
+only to the MCP server, not to the Host shell. Original task/argv/events remain
+unchanged. A separate coordinator CLI read explicitly sets the same isolated
+`QIONGLI_CONFIG_HOME`, succeeds, and leaves all 21 files unchanged: the old
+unsupported gap is now stale after revision advancement, while the new refinement
+is applied. This is not a successful Host capture-list MCP call. Future harnesses
+must discover actual tool names and explicitly scope CLI fallback state; no new
+endpoint or user configuration change is needed. The old note's no-separate-
+interpretation statement describes its original contents; its retained bytes
+coexist with the subsequent explicitly labeled interpretation addition.
+
+The requested actual `gpt-6.1-sol / low` verifier
+`/root/handoff_persistence_check` reviews source-bound candidate wording and
+persistence, then independently checks final Host events/hash-command results,
+the separate scoped CLI read and current 21-file snapshot without actionable
+findings. This is dependent read-only verification, not blind or expert review;
+launch records establish requested execution settings, not model attestation.
+
+No runtime or canonical Skill changes are needed by this observation, so prior
+native/content checks are reused. There is no new stage summary, complete B2 set,
+Graph/evidence-ledger promotion, domain-expert assessment or program acceptance.
+The next bounded increment is reviewed persistence of newly retrieved public-body
+source packets inside registered projects through existing transaction and
+approval owners. Signed redirects and installed/authenticated qualification
+remain separate; no private access, publication or user-profile changes occur.
+Seven roadmap checks, generated-index consistency, ledger invariance and diff
+checks pass. All 249 task states/dependencies and 46 accepted rows remain
+unchanged; only CLI-405 progress is updated. The frozen-source guard remains
+required before local integration. The wider validator's previously recorded
+24 unrelated failures and existing Clippy debt are not rerun or claimed resolved.
