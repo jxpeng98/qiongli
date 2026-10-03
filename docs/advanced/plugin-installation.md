@@ -68,7 +68,7 @@ For Codex or Claude, inspect a read-only file plan:
 qiongli install plugin --target codex --destination /absolute/qiongli --dry-run --json
 ```
 
-To apply a reviewed plan, use the lower-level owner. The destination must end in `qiongli` or `qiongli-next`, and its parent must exist and be secure; use a separate directory outside Host caches and `.qiongli` state:
+To apply a reviewed plan, use the lower-level owner. The destination must end in `qiongli` or `qiongli-next`, and its parent must exist and be secure; use a separate directory outside Host caches and `.qiongli` state. On Unix, every parent directory must also disallow group and other writes. An `insecure-materialization-parent` error can therefore come from `/tmp` or a shared workspace ancestor even when the immediate parent is private. Choose a private export location with secure ancestors, then preview again:
 
 ```sh
 qiongli app plan plugin-source-install --target codex \

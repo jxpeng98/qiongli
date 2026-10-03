@@ -68,7 +68,7 @@ Codex/Claude 可先查看只读文件计划：
 qiongli install plugin --target codex --destination /absolute/qiongli --dry-run --json
 ```
 
-审阅后通过底层命令应用。目标末级目录须为 `qiongli` 或 `qiongli-next`，父目录须已存在且安全，选用 Host 缓存与 `.qiongli` 状态目录以外的位置：
+审阅后通过底层命令应用。目标末级目录须为 `qiongli` 或 `qiongli-next`，父目录须已存在且安全，选用 Host 缓存与 `.qiongli` 状态目录以外的位置。在 Unix 上，所有上层目录都不能允许同组用户或其他用户写入。因此，即使直接父目录是私有目录，`/tmp` 或共享工作区的上层目录仍可能触发 `insecure-materialization-parent`。请选择上层目录也满足要求的私有导出位置，再重新预览：
 
 ```sh
 qiongli app plan plugin-source-install --target codex \
