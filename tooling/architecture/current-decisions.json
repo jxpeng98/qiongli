@@ -219,6 +219,13 @@
       "title": "Hosted three-platform verification",
       "path": "docs/architecture/decisions/0231-hosted-three-platform-verification.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0232",
+      "title": "Linux ARM64 registry distribution",
+      "path": "docs/architecture/decisions/0232-linux-arm64-registry-distribution.md",
+      "status": "Accepted"
     }
   ]
 }

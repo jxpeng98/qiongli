@@ -4,9 +4,11 @@ import base64
 import csv
 import hashlib
 import io
+import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import tarfile
 import tomllib
@@ -20,6 +22,125 @@ from tooling.scripts import native_registry_packages as packages
 
 
 class NativeRegistryPackagesTests(unittest.TestCase):
+    def test_pip_resolves_native_wheels_instead_of_falling_back_to_legacy(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            index = root / 'index'
+            index.mkdir()
+            # Model the existing universal 1.x package alongside platform-only 2.x.
+            packages.wheel(index, '1.17.0', 'any', b'legacy fixture', 'fixture')
+            tags = ['macosx_11_0_arm64', 'manylinux_2_35_x86_64', 'win_amd64']
+            for tag in tags:
+                packages.wheel(index, '2.1.2', tag, b'native fixture', 'fixture')
+            count = 0
+            def resolve(tag, requirement='qiongli>=2,<3', python='3.12'):
+                nonlocal count
+                count += 1
+                destination = root / str(count)
+                result = subprocess.run([
+                    sys.executable, '-m', 'pip', '--isolated', '--disable-pip-version-check',
+                    'download', '--no-index', '--no-deps', '--only-binary=:all:',
+                    '--find-links', str(index), '--dest', str(destination),
+                    '--platform', tag, '--python-version', python, requirement,
+                ], capture_output=True, text=True, timeout=30)
+                return result, list(destination.glob('*.whl'))
+            result, files = resolve('manylinux_2_35_aarch64', 'qiongli')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual([p.name for p in files], ['qiongli-1.17.0-py3-none-any.whl'])
+            tags.append('manylinux_2_35_aarch64')
+            packages.wheel(index, '2.1.2', tags[-1], b'native ARM64 fixture', 'fixture')
+            for tag in tags:
+                for python in ('3.9', '3.12'):
+                    result, files = resolve(tag, python=python)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual([p.name for p in files], [f'qiongli-2.1.2-py3-none-{tag}.whl'])
+            for tag in ('manylinux_2_34_aarch64', 'musllinux_1_2_aarch64', 'win_arm64'):
+                result, files = resolve(tag)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(files, [])
+
+    def test_host_target_and_distribution_jobs_cover_every_supported_pair(self):
+        for target, system, machine in [
+            ('aarch64-apple-darwin', 'Darwin', 'arm64'),
+            ('x86_64-unknown-linux-gnu', 'Linux', 'x86_64'),
+            ('aarch64-unknown-linux-gnu', 'Linux', 'aarch64'),
+            ('aarch64-unknown-linux-gnu', 'Linux', 'arm64'),
+            ('x86_64-pc-windows-msvc', 'Windows', 'AMD64'),
+            (None, 'Linux', 'armv7l'),
+            (None, 'Windows', 'ARM64'),
+        ]:
+            with self.subTest(system=system, machine=machine), \
+                    patch.object(packages.platform, 'system', return_value=system), \
+                    patch.object(packages.platform, 'machine', return_value=machine):
+                self.assertEqual(packages.host_target(), target)
+        workflow = yaml.safe_load((packages.ROOT / '.github/workflows/native-cli-distribution.yml').read_text())
+        build = workflow['jobs']['build']['strategy']['matrix']['include']
+        self.assertEqual({row['target'] for row in build}, set(packages.TARGETS))
+        self.assertIn({'os': 'ubuntu-22.04-arm', 'target': 'aarch64-unknown-linux-gnu'}, build)
+        self.assertEqual(set(workflow['jobs']['install']['strategy']['matrix']['os']),
+                         {row['os'] for row in build})
+
+    def test_npm_launcher_selects_each_architecture_and_rejects_unsupported_pairs(self):
+        # Exercise the emitted launcher in Node while replacing only process/child IO.
+        source = packages.NPM_LAUNCHER.replace("import { spawn } from 'node:child_process';", '''
+const spawn = (command, args, options) => {
+  console.log(JSON.stringify({command, args, options}));
+  return {kill() {}, on() {}};
+};''')
+        with tempfile.TemporaryDirectory(prefix='qiongli path # ') as temporary:
+            root = Path(temporary)
+            launcher = root / 'bin/qiongli.mjs'
+            launcher.parent.mkdir()
+            launcher.write_text(source)
+            for target, (system, arch, binary) in packages.TARGETS.items():
+                script = "Object.defineProperty(process,'platform',{value:process.argv[1]});" \
+                         "Object.defineProperty(process,'arch',{value:process.argv[2]});" \
+                         "process.argv=['node','qiongli','--version','argument with spaces'];" \
+                         "await import(process.env.TEST_LAUNCHER);"
+                env = dict(os.environ, TEST_LAUNCHER=launcher.as_uri())
+                result = subprocess.run(['node', '--input-type=module', '-e', script, system, arch],
+                                        env=env, capture_output=True, text=True, check=True)
+                observed = json.loads(result.stdout)
+                self.assertEqual(Path(observed['command']), root / 'native' / target / binary)
+                self.assertEqual(observed['args'], ['--version', 'argument with spaces'])
+                self.assertEqual(observed['options'], {'stdio': 'inherit'})
+            for system, arch in [('linux', 'arm'), ('win32', 'arm64'), ('darwin', 'x64')]:
+                result = subprocess.run(['node', '--input-type=module', '-e', script, system, arch],
+                                        env=env, capture_output=True, text=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('Unsupported Qiongli platform', result.stderr)
+                self.assertEqual(result.stdout, '')
+
+    def test_linux_wheels_audit_the_matching_architecture_and_refuse_binary_changes(self):
+        version = '2.0.0-beta.3'
+        for target, machine in [('x86_64-unknown-linux-gnu', b'\x3e\x00'),
+                                ('aarch64-unknown-linux-gnu', b'\xb7\x00')]:
+            for tamper in (False, True):
+                with self.subTest(target=target, tamper=tamper), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    binary = root / 'candidate'
+                    data = b'\x7fELF\x02\x01' + bytes(12) + machine + bytes(80)
+                    binary.write_bytes(data)
+                    wrong = 'aarch64-unknown-linux-gnu' if target.startswith('x86_64') else 'x86_64-unknown-linux-gnu'
+                    with self.assertRaisesRegex(ValueError, 'architecture'):
+                        packages.validate_binary(data, wrong)
+                    def audit(argv, **kwargs):
+                        self.assertEqual(argv[:5], ['auditwheel', 'repair', '--only-plat', '--plat',
+                                                  packages.LINUX_WHEEL_TAGS[target]])
+                        destination = Path(argv[6])
+                        destination.mkdir()
+                        packages.wheel(destination, '2.0.0b3', argv[4], data + (b'changed' if tamper else b''), 'test')
+                    with patch.object(packages.subprocess, 'check_output', side_effect=[
+                            f'qiongli {version}', json.dumps({'content_version': version})]), \
+                            patch.object(packages.subprocess, 'run', side_effect=audit), \
+                            patch.object(packages, 'npm_package', return_value=root / 'fixture.tgz'):
+                        if tamper:
+                            with self.assertRaisesRegex(ValueError, 'shared library bundling'):
+                                packages.binary_packages(root, binary, version, target)
+                        else:
+                            _, wheel = packages.binary_packages(root, binary, version, target)
+                            self.assertTrue(wheel.name.endswith(packages.LINUX_WHEEL_TAGS[target] + '.whl'))
+
     def test_binary_content_version_mismatch_refuses_before_packaging(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -112,6 +233,7 @@ class NativeRegistryPackagesTests(unittest.TestCase):
             'aarch64-apple-darwin': bytes.fromhex('cffaedfe0c000001') + bytes(100),
             'x86_64-unknown-linux-gnu': b'\x7fELF\x02\x01' + bytes(12) + b'\x3e\x00' + bytes(80),
             'x86_64-pc-windows-msvc': b'MZ' + bytes(58) + (64).to_bytes(4, 'little') + b'PE\x00\x00\x64\x86',
+            'aarch64-unknown-linux-gnu': b'\x7fELF\x02\x01' + bytes(12) + b'\xb7\x00' + bytes(80),
         }
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

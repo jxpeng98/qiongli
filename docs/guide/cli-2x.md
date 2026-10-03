@@ -378,6 +378,30 @@ Both expose `qiongli` and `ql`. Check both with `--version` before comparing
 behavior. The published platform set is macOS ARM64, Windows x64 and Linux x64/glibc 2.35+.
 npm needs Node 18+; PyPI needs Python 3.9+.
 
+On Linux, check the CPU architecture with `uname -m`. Published releases through
+2.1.1 have an `x86_64` wheel but no `aarch64` wheel. pip filters releases by
+platform compatibility, so an unconstrained `pip install qiongli` on ARM64 can
+select 1.x even though PyPI contains 2.x. Linux ARM64 packaging is now implemented
+in source and awaits a new qualified release; the existing downloads above retain
+their original platform coverage. The next package includes Linux x64 and ARM64
+with glibc 2.35+, macOS ARM64 and Windows x64. Alpine/musl, 32-bit Linux, Intel
+macOS and native Windows ARM64 are outside this package matrix.
+
+To require the native 2.x line and avoid falling back to 1.x, use an active virtual
+environment and an explicit version constraint:
+
+```sh
+python -m pip install --upgrade pip
+python -m pip install --upgrade "qiongli>=2,<3"
+```
+
+On Windows, create the environment with `py -m venv .venv` and use
+`.venv\Scripts\python.exe -m pip install --upgrade "qiongli>=2,<3"`.
+If no compatible 2.x wheel is available, this fails clearly instead of installing
+1.x. `python -m pip index versions qiongli --index-url https://pypi.org/simple`
+checks the versions compatible with the current interpreter on the official
+index; a configured mirror may also lag behind PyPI.
+
 Cargo builds the CLI from source and requires Rust 1.97+ and the target's native
 linker. It provides both `qiongli` and `ql`.
 

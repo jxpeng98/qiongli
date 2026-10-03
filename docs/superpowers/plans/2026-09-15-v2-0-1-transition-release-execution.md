@@ -1264,3 +1264,74 @@ An optional retained Python experience-record check against the checkout finds
 old ignored trace records missing required inputs; it is not a native CLI release
 gate and no records are changed. This failed diagnostic is not a passing schema
 claim. Frozen public schema validation is the applicable compatibility check.
+
+### October 3 — Linux ARM64 pip/npm installation repair
+
+The maintainer reports that Ubuntu 24.04.4 LTS / aarch64 installs without an
+error but only exposes 1.x in pip. The live official PyPI metadata contains
+2.1.1 wheels for macOS ARM64, Linux x64 and Windows x64, with no Linux ARM64
+wheel. `python3 -m pip index versions qiongli --index-url https://pypi.org/simple`
+on the actual ARM64 host selects 1.17.0. The same lookup with explicit supported
+x64/Windows/macOS tags selects 2.1.1. The published npm launcher also omits
+Linux ARM64. This is platform filtering, not an absent 2.x release.
+
+Local `fix/cross-platform-registry-install` starts at integrated main `0ea7b53e`.
+The checkout had no local `2.x`; it was initialized at that integrated source
+without moving remote refs. ADR 0232 extends the existing distribution owners:
+
+- Canonical `aarch64-unknown-linux-gnu` target, shared host detection, generated
+  npm dispatch, DSH selection and the two native Marketplace Plugin archives.
+- Audited `manylinux_2_35_aarch64` wheel; exact architecture tags and executable
+  bytes are checked against CLI/npm. New schema-2 packets require all four
+  targets and reject missing ARM64 evidence or an outdated npm launcher.
+- Native Ubuntu 22.04 ARM64 build and combined-install jobs join the existing
+  macOS ARM64, Linux x64 and Windows x64 jobs. Windows command-shim checks remain.
+  Historical unversioned packets through 2.1.1 keep their three-target reader;
+  later releases cannot downgrade to that schema.
+- Bilingual installation guidance explains the silent 1.x fallback and uses
+  `qiongli>=2,<3` when the user requires native 2.x. Existing download links
+  remain historical; unsupported CPU/libc pairs are explicit.
+
+Focused validation and coordinator self-review:
+
+- The initial 61-case registry/packet/Marketplace/CLI-release/publisher/ADR run
+  passes. After the last changes, all 11 registry tests and all 26 affected
+  packet/Marketplace/matrix tests pass. The actual pip resolver reproduces the
+  1.x fallback with an older package fixture, then selects the correct 2.x wheel
+  on all four targets with Python 3.9 and 3.12; old glibc, musl and Windows ARM64
+  reject the explicit 2.x requirement. Node dispatch tests cover all four pairs,
+  arguments with spaces and unsupported pairs. Integrity and historical-reader
+  negative cases remain checked.
+- 24 install/distribution documentation tests and the focused CI branch-routing
+  check pass. The checks found stale 2.0.0 examples in both publishing guides;
+  those now match the current source and require a new version for this fix.
+  The architecture registry validates seven frozen and 32 current decisions.
+- Actual pinned Rust 1.97.0 CLI/content-export builds succeed on Linux ARM64.
+  The initial host-default 1.99 build on Ubuntu 24.04 requires glibc 2.39, so it
+  is not the release-baseline artifact. A disposable Ubuntu 22.04 ARM64 container
+  builds with Rust 1.97.0 and the source mounted read-only; auditwheel accepts
+  the resulting wheel as `manylinux_2_35_aarch64` without changing executable
+  bytes. A clean Ubuntu 22.04 container starts Full MCP with 32 tools.
+- `/tmp/qiongli-arm64-install-validation` retains development-only packages and
+  receipts. Actual isolated pip/npm installs on Ubuntu 24.04 ARM64 pass both
+  aliases, version/help/content, invalid-command refusal and Lite/Full MCP
+  initialization/list/read-only calls (14/32 tools). The installed npm DSH
+  provider exposes 22 Skills and 32 Full MCP tools. Both extracted native Plugin
+  archives pass empty-PATH CLI/MCP checks. Embedded pack digest remains
+  `30065976c8dd5077ea94bf0d345586243f3c70261ab953667d9568ff13df304d`.
+  The ARM64 development wheel SHA-256 is
+  `aa9233d889c763b34c4875ce89d584cc3513247d9e606bb8b2cf9a72156e8946`;
+  the target-only npm archive SHA-256 is
+  `855971e4188e2b523292050ae2fd4ad08595277eb80fdf62eb3574263111e124`.
+- All seven program-ledger/index checks pass after regeneration; task states,
+  dependencies and accepted rows are unchanged. The final diff was self-reviewed
+  for target routing, wheel identity, legacy reading and publication boundaries.
+
+These are local development observations using the unchanged 2.1.1 source
+version, not a replacement for the published 2.1.1 or a release qualification.
+No version bump, push, tag, remote workflow, publication, installed-user profile
+or model change is included. Next release under separate authority must choose
+a new version, qualify the exact-source four-target packet and public pip/npm
+installs. Fresh macOS/Windows runtime and combined real-binary qualification
+remain hosted gates. The 249 task states/dependencies and 46 accepted rows stay
+unchanged; local integration does not promote program acceptance.

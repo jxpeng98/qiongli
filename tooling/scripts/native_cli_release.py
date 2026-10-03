@@ -20,11 +20,11 @@ import tomllib
 try:
     from .native_registry_install_check import check_cli
     from .native_marketplace_plugins import archive_name, check_plugins, read_content
-    from .native_registry_packages import NATIVE, ROOT, TARGETS, binary_packages, cli_description, regular_bytes, parse_release_version
+    from .native_registry_packages import NATIVE, ROOT, TARGETS, binary_packages, cli_description, regular_bytes, parse_release_version, host_target
 except ImportError:
     from native_registry_install_check import check_cli
     from native_marketplace_plugins import archive_name, check_plugins, read_content
-    from native_registry_packages import NATIVE, ROOT, TARGETS, binary_packages, cli_description, regular_bytes, parse_release_version
+    from native_registry_packages import NATIVE, ROOT, TARGETS, binary_packages, cli_description, regular_bytes, parse_release_version, host_target
 
 
 def check_windows_imports(binary: Path) -> list[str]:
@@ -60,7 +60,7 @@ Source commit: {commit}
 You do not need Python, Node.js, Rust, a package manager or the Qiongli App.
 The executable includes the research Skills, templates and Lite/Full MCP resources.
 This archive contains `{executable}`, this README and LICENSE. It uses the
-supported operating system's libraries; Linux x64 requires glibc 2.35+.
+supported operating system's libraries; Linux x64/ARM64 requires glibc 2.35+.
 Models, Host applications and online literature services are configured separately.
 
 Verify the archive against SHA256SUMS from the same GitHub Release, then extract
@@ -132,11 +132,9 @@ def main() -> None:
     identity = parse_release_version(args.version)
     if identity.version != version or identity.release_line != 'native-2x':
         parser.error('version must match the current native SemVer version')
-    host_target = {('Darwin', 'arm64'): 'aarch64-apple-darwin',
-                   ('Linux', 'x86_64'): 'x86_64-unknown-linux-gnu',
-                   ('Windows', 'AMD64'): 'x86_64-pc-windows-msvc'}.get((platform.system(), platform.machine()))
-    target = args.target or host_target
-    if not target or target != host_target:
+    current_target = host_target()
+    target = args.target or current_target
+    if not target or target != current_target:
         parser.error('installation qualification must run on the declared target OS/architecture')
     out = args.out_dir.expanduser()
     if out.exists() or out.is_symlink() or ROOT in out.resolve().parents or out.resolve() == ROOT:

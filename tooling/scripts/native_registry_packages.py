@@ -9,6 +9,7 @@ import hashlib
 import io
 import json
 import os
+import platform
 from pathlib import Path
 import re
 import shutil
@@ -29,7 +30,24 @@ TARGETS = {
     'aarch64-apple-darwin': ('darwin', 'arm64', 'qiongli'),
     'x86_64-unknown-linux-gnu': ('linux', 'x64', 'qiongli'),
     'x86_64-pc-windows-msvc': ('win32', 'x64', 'qiongli.exe'),
+    'aarch64-unknown-linux-gnu': ('linux', 'arm64', 'qiongli'),
 }
+LEGACY_TARGETS = {target: value for target, value in TARGETS.items()
+                  if target != 'aarch64-unknown-linux-gnu'}
+LINUX_WHEEL_TAGS = {
+    'x86_64-unknown-linux-gnu': 'manylinux_2_35_x86_64',
+    'aarch64-unknown-linux-gnu': 'manylinux_2_35_aarch64',
+}
+
+
+def host_target() -> str | None:
+    return {('darwin', 'arm64'): 'aarch64-apple-darwin',
+            ('linux', 'x86_64'): 'x86_64-unknown-linux-gnu',
+            ('linux', 'aarch64'): 'aarch64-unknown-linux-gnu',
+            ('linux', 'arm64'): 'aarch64-unknown-linux-gnu',
+            ('windows', 'amd64'): 'x86_64-pc-windows-msvc',
+            ('windows', 'x86_64'): 'x86_64-pc-windows-msvc'}.get(
+                (platform.system().lower(), platform.machine().lower()))
 
 
 def npm_command(*args):
@@ -112,7 +130,7 @@ if (process.stdin.isTTY && process.stdout.isTTY) {
 NPM_LAUNCHER = '''#!/usr/bin/env node
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-const targets = { 'darwin-arm64': 'aarch64-apple-darwin/qiongli', 'linux-x64': 'x86_64-unknown-linux-gnu/qiongli', 'win32-x64': 'x86_64-pc-windows-msvc/qiongli.exe' };
+const targets = __QIONGLI_TARGETS__;
 const target = targets[`${process.platform}-${process.arch}`];
 if (!target) {
   console.error(`Unsupported Qiongli platform: ${process.platform}/${process.arch}`);
@@ -125,7 +143,10 @@ child.on('close', (code, signal) => {
   if (signal) { process.removeAllListeners(signal); process.kill(process.pid, signal); }
   else process.exitCode = code ?? 1;
 });
-'''
+'''.replace('__QIONGLI_TARGETS__', json.dumps({
+    f'{system}-{arch}': f'{target}/{executable}'
+    for target, (system, arch, executable) in TARGETS.items()
+}, sort_keys=True))
 PYTHON_LAUNCHER = '''import os
 from pathlib import Path
 import sys
@@ -173,8 +194,9 @@ def wheel(out: Path, version: str, platform_tag: str, binary: bytes, readme: str
 def validate_binary(binary: bytes, target: str) -> None:
     if target == 'aarch64-apple-darwin':
         valid = binary[:8] == bytes.fromhex('cffaedfe0c000001')
-    elif target == 'x86_64-unknown-linux-gnu':
-        valid = binary[:6] == b'\x7fELF\x02\x01' and binary[18:20] == b'\x3e\x00'
+    elif target in LINUX_WHEEL_TAGS:
+        machine = b'\xb7\x00' if target.startswith('aarch64') else b'\x3e\x00'
+        valid = binary[:6] == b'\x7fELF\x02\x01' and binary[18:20] == machine
     elif target == 'x86_64-pc-windows-msvc':
         offset = int.from_bytes(binary[60:64], 'little')
         valid = binary[:2] == b'MZ' and offset >= 64 and binary[offset:offset+6] == b'PE\x00\x00\x64\x86'
@@ -251,7 +273,7 @@ the new version. Start a fresh session and check the Skill catalog and MCP tools
 
 Qiongli includes research Skills, templates and Lite/Full MCP. Your Host supplies
 the model and its credentials; no Qiongli desktop App is required. The supported
-binary targets are macOS Apple Silicon, Windows x64 and Linux x64 (glibc 2.35+).
+binary targets are macOS Apple Silicon, Windows x64 and Linux x64/ARM64 (glibc 2.35+).
 
 ## Install and update
 
@@ -310,7 +332,7 @@ def npm_package(out: Path, binaries: dict[str, Path], version: str,
         dest.chmod(0o755)
     (npm / 'README.md').write_text(package_readme(version, 'npm'))
     shutil.copyfile(ROOT / 'LICENSE', npm / 'LICENSE')
-    # ponytail: bundle three binaries in one package; split only if download size becomes a problem.
+    # Bundle target binaries in one package; no postinstall executable downloads.
     manifest = {
         'name': 'qiongli', 'version': identity.npm_version, 'description': cli_description(),
         'type': 'module', 'license': 'MIT',
@@ -367,12 +389,12 @@ def binary_packages(out: Path, binary_path: Path, version: str,
         major, minor = versions[0]
         platform_tag = f'macosx_{major}_{minor}_arm64'
     else:
-        platform_tag = 'win_amd64' if target.endswith('msvc') else 'linux_x86_64'
+        platform_tag = 'win_amd64' if target.endswith('msvc') else 'linux_' + target.split('-')[0]
     identity = parse_release_version(version)
     whl = wheel(out, identity.package_version, platform_tag, binary, package_readme(version, 'pypi'))
-    if platform_tag == 'linux_x86_64':
+    if target in LINUX_WHEEL_TAGS:
         repaired = out / 'manylinux'
-        subprocess.run(['auditwheel', 'repair', '--only-plat', '--plat', 'manylinux_2_35_x86_64',
+        subprocess.run(['auditwheel', 'repair', '--only-plat', '--plat', LINUX_WHEEL_TAGS[target],
                         '--wheel-dir', str(repaired), str(whl)], check=True)
         files = list(repaired.glob('*.whl'))
         if len(files) != 1:

@@ -3,14 +3,24 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 
 from tooling.scripts.native_cli_release import archive_cli
-from tooling.scripts.native_registry_packages import TARGETS, wheel
-from tooling.scripts.native_release_assets import assemble, verify
+from tooling.scripts.native_registry_packages import TARGETS, LEGACY_TARGETS, wheel
+from tooling.scripts.native_release_assets import assemble, verify, packet_targets
 
 
 class NativeReleaseAssetsTests(unittest.TestCase):
+    def test_legacy_roster_is_limited_to_immutable_historical_versions(self):
+        self.assertEqual(packet_targets({}, '2.1.1'), LEGACY_TARGETS)
+        self.assertEqual(packet_targets({'schema_version': 2}, '2.1.2'), TARGETS)
+        for version, manifest in [('2.1.2', {}), ('2.2.0-beta.1', {}),
+                                  ('2.1.1', {'schema_version': True}),
+                                  ('2.1.1', {'schema_version': 3})]:
+            with self.subTest(version=version, manifest=manifest), self.assertRaisesRegex(ValueError, 'schema_version 2'):
+                packet_targets(manifest, version)
+
     def test_21_requires_target_native_deepseek_install_evidence(self):
         version, commit = '2.1.0', 'a' * 40
         receipts = [{'version': version, 'source_commit': commit, 'target': target,
@@ -20,7 +30,7 @@ class NativeReleaseAssetsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / 'release-manifest.json').write_text(json.dumps({
-                'version': version, 'source_commit': commit, 'targets': list(TARGETS),
+                'schema_version': 2, 'version': version, 'source_commit': commit, 'targets': list(TARGETS),
                 'target_evidence': receipts,
             }))
             with self.assertRaisesRegex(ValueError, 'target-native DeepSeek'):
@@ -32,6 +42,7 @@ class NativeReleaseAssetsTests(unittest.TestCase):
             'aarch64-apple-darwin': (bytes.fromhex('cffaedfe0c000001') + bytes(100), 'macosx_11_0_arm64'),
             'x86_64-unknown-linux-gnu': (b'\x7fELF\x02\x01' + bytes(12) + b'\x3e\x00' + bytes(80), 'manylinux_2_35_x86_64'),
             'x86_64-pc-windows-msvc': (b'MZ' + bytes(58) + (64).to_bytes(4, 'little') + b'PE\x00\x00\x64\x86', 'win_amd64'),
+            'aarch64-unknown-linux-gnu': (b'\x7fELF\x02\x01' + bytes(12) + b'\xb7\x00' + bytes(80), 'manylinux_2_35_aarch64'),
         }
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -57,8 +68,45 @@ class NativeReleaseAssetsTests(unittest.TestCase):
             with patch('tooling.scripts.native_release_assets.NPM_INSTALL_REVIEW', 'unexpected script'):
                 with self.assertRaisesRegex(ValueError, 'installation review bytes'):
                     verify(root / 'assets', version, commit)
+            with patch('tooling.scripts.native_release_assets.NPM_LAUNCHER', 'incomplete target dispatch'):
+                with self.assertRaisesRegex(ValueError, 'supported target dispatch'):
+                    verify(root / 'assets', version, commit)
             self.assertEqual(set(wheels), set(TARGETS))
-            self.assertEqual(len(manifest['artifacts']), 7)
+            self.assertEqual(len(manifest['artifacts']), 9)
+            manifest_path = root / 'assets/release-manifest.json'
+            incomplete = json.loads(json.dumps(manifest))
+            incomplete['targets'].remove('aarch64-unknown-linux-gnu')
+            incomplete['target_evidence'] = [r for r in incomplete['target_evidence']
+                                             if r['target'] != 'aarch64-unknown-linux-gnu']
+            manifest_path.write_text(json.dumps(incomplete))
+            with self.assertRaisesRegex(ValueError, 'all required OS/architecture'):
+                verify(root / 'assets', version, commit)
+            manifest_path.write_text(json.dumps(manifest))
+            # A valid wheel tag must also carry the corresponding executable.
+            arm_wheel = wheels['aarch64-unknown-linux-gnu']
+            original_wheel = arm_wheel.read_bytes()
+            with zipfile.ZipFile(arm_wheel) as archive:
+                entries = [(info, archive.read(info.filename)) for info in archive.infolist()]
+            with zipfile.ZipFile(arm_wheel, 'w') as archive:
+                for info, data in entries:
+                    archive.writestr(info, fixtures['x86_64-unknown-linux-gnu'][0]
+                                     if info.filename == 'qiongli_native/bin/qiongli' else data)
+            changed = json.loads(json.dumps(manifest))
+            artifact = next(a for a in changed['artifacts'] if a['file'] == arm_wheel.name)
+            artifact.update(sha256=hashlib.sha256(arm_wheel.read_bytes()).hexdigest(), bytes=arm_wheel.stat().st_size)
+            manifest_path.write_text(json.dumps(changed))
+            with self.assertRaisesRegex(ValueError, 'wheel executable differs'):
+                verify(root / 'assets', version, commit)
+            arm_wheel.write_bytes(original_wheel)
+            manifest_path.write_text(json.dumps(manifest))
+            # Existing three-target packets remain readable without adding assets.
+            historical = root / 'historical/assets'
+            with patch('tooling.scripts.native_release_assets.TARGETS', LEGACY_TARGETS):
+                assemble(root / 'targets', historical, version, commit)
+            old_manifest = json.loads((historical / 'release-manifest.json').read_text())
+            del old_manifest['schema_version']
+            (historical / 'release-manifest.json').write_text(json.dumps(old_manifest))
+            self.assertEqual(set(verify(historical, version, commit)[2]), set(LEGACY_TARGETS))
             # The Plugin verifier owns archive internals; this owner must bind
             # both Plugin archives to every native executable's observed pack.
             pack_hash = 'b' * 64
@@ -79,14 +127,14 @@ class NativeReleaseAssetsTests(unittest.TestCase):
                        return_value={'pack_sha256': pack_hash}) as verify_plugin:
                 assemble(root / 'targets', plugin_assets, version, commit)
                 packet, _, _ = verify(plugin_assets, version, commit)
-                self.assertEqual(len(packet['artifacts']), 9)
+                self.assertEqual(len(packet['artifacts']), 11)
                 verify_plugin.return_value = {'pack_sha256': 'c' * 64}
                 with self.assertRaisesRegex(ValueError, 'differs from CLI'):
                     verify(plugin_assets, version, commit)
                 verify_plugin.return_value = {'pack_sha256': pack_hash}
                 packet['target_evidence'][0]['checks']['archive_smoke']['content_pack_sha256'] = 'c' * 64
                 (plugin_assets / 'release-manifest.json').write_text(json.dumps(packet))
-                with self.assertRaisesRegex(ValueError, 'all three CLI content packs'):
+                with self.assertRaisesRegex(ValueError, 'all CLI content packs'):
                     verify(plugin_assets, version, commit)
                 packet['artifacts'] = [a for a in packet['artifacts'] if '-claude-plugin-' not in a['file']]
                 (plugin_assets / 'release-manifest.json').write_text(json.dumps(packet))

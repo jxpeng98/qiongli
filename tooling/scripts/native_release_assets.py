@@ -3,7 +3,6 @@
 import argparse
 import hashlib
 import json
-import platform
 import os
 import subprocess
 import re
@@ -14,11 +13,11 @@ import zipfile
 
 try:
     from .native_registry_install_check import require_transition
-    from .native_registry_packages import NPM_INSTALL_REVIEW, TARGETS, npm_package, parse_release_version, regular_bytes, validate_binary, requires_deepseek_npm
+    from .native_registry_packages import NPM_INSTALL_REVIEW, NPM_LAUNCHER, TARGETS, LEGACY_TARGETS, LINUX_WHEEL_TAGS, host_target, npm_package, parse_release_version, regular_bytes, validate_binary, requires_deepseek_npm
     from .native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive, read_plugin_content, verify_deepseek_npm
 except ImportError:
     from native_registry_install_check import require_transition
-    from native_registry_packages import NPM_INSTALL_REVIEW, TARGETS, npm_package, parse_release_version, regular_bytes, validate_binary, requires_deepseek_npm
+    from native_registry_packages import NPM_INSTALL_REVIEW, NPM_LAUNCHER, TARGETS, LEGACY_TARGETS, LINUX_WHEEL_TAGS, host_target, npm_package, parse_release_version, regular_bytes, validate_binary, requires_deepseek_npm
     from native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive, read_plugin_content, verify_deepseek_npm
 
 
@@ -115,10 +114,10 @@ def assemble(root, out, version, commit):
     native_plugins = [find_archive(output_files, host, version, target) for target in TARGETS for host in PLATFORMS]
     if any(native_plugins):
         if not all(native_plugins):
-            raise ValueError('all six target-specific marketplace archives are required')
+            raise ValueError('all target-specific marketplace archives are required')
         index = marketplace_index(version, commit, [verify_archive(p, version, commit) for p in native_plugins])
         (out / 'marketplace-plugins.json').write_text(json.dumps(index, indent=2) + '\n')
-    manifest = {'version': version, 'source_commit': commit, 'targets': list(TARGETS),
+    manifest = {'schema_version': 2, 'version': version, 'source_commit': commit, 'targets': list(TARGETS),
                 'status': 'three-platform-packaged', 'target_evidence': receipts,
                 'artifacts': [{'file': p.name, 'sha256': hashlib.sha256(p.read_bytes()).hexdigest(),
                                'bytes': p.stat().st_size} for p in sorted(out.iterdir())]}
@@ -139,8 +138,10 @@ def marketplace_index(version, commit, plugins):
 def verify(root, version, commit):
     manifest = json.loads(regular_bytes(root / 'release-manifest.json'))
     check_identity(manifest, version, commit)
-    if set(manifest['targets']) != set(TARGETS) or len(manifest['target_evidence']) != len(TARGETS):
-        raise ValueError('all three platforms are required before registry publication')
+    targets = packet_targets(manifest, version)
+    if (set(manifest['targets']) != set(targets) or len(manifest['targets']) != len(targets)
+            or len(manifest['target_evidence']) != len(targets)):
+        raise ValueError('all required OS/architecture targets are required before registry publication')
     seen = set()
     for receipt in manifest['target_evidence']:
         check_identity(receipt, version, commit)
@@ -152,7 +153,7 @@ def verify(root, version, commit):
             if (dsh.get('skills') != 22 or dsh.get('mcp_tools') != 32 or
                     dsh.get('content_pack_sha256') != receipt['checks']['archive_smoke'].get('content_pack_sha256')):
                 raise ValueError('missing target-native DeepSeek npm installation evidence')
-    if seen != set(TARGETS):
+    if seen != set(targets):
         raise ValueError('duplicate or missing target evidence')
     files = checked_assets(root, manifest)
     identity = parse_release_version(version)
@@ -164,13 +165,15 @@ def verify(root, version, commit):
             raise ValueError('npm version/channel mismatch')
         if metadata['name'] != 'qiongli':
             raise ValueError('unexpected npm package')
+        if manifest.get('schema_version') == 2 and packet.extractfile('package/bin/qiongli.mjs').read() != NPM_LAUNCHER.encode():
+            raise ValueError('npm launcher does not match the supported target dispatch')
         scripts = metadata.get('scripts')
         if scripts:
             if scripts != {'postinstall': 'node bin/install.mjs'}:
                 raise ValueError('unexpected npm install scripts')
             if packet.extractfile('package/bin/install.mjs').read() != NPM_INSTALL_REVIEW.encode():
                 raise ValueError('unexpected npm installation review bytes')
-        for target, (_, _, binary) in TARGETS.items():
+        for target, (_, _, binary) in targets.items():
             data = packet.extractfile(f'package/native/{target}/{binary}').read()
             validate_binary(data, target)
             binaries[target] = data
@@ -195,21 +198,27 @@ def verify(root, version, commit):
             if any(observed['pack_sha256'] != r['checks']['archive_smoke'].get('content_pack_sha256')
                    for r in manifest['target_evidence']):
                 raise ValueError('DeepSeek npm content differs from CLI content')
-    expected = {'aarch64-apple-darwin': 'macosx_', 'x86_64-unknown-linux-gnu': 'manylinux_2_35_',
-                'x86_64-pc-windows-msvc': 'win_amd64'}
+    expected = {'aarch64-apple-darwin': r'macosx_\d+_\d+_arm64',
+                'x86_64-pc-windows-msvc': 'win_amd64', **LINUX_WHEEL_TAGS}
     wheels = {}
-    for target, marker in expected.items():
-        matches = [p for name, p in files.items() if name.endswith('.whl') and marker in name]
-        if len(matches) != 1 or not matches[0].name.startswith(f'qiongli-{identity.package_version}-'):
+    for target in targets:
+        pattern = re.escape(f'qiongli-{identity.package_version}-py3-none-') + expected[target] + r'\.whl'
+        matches = [p for name, p in files.items() if re.fullmatch(pattern, name)]
+        if len(matches) != 1:
             raise ValueError('wheel version/target mismatch')
         with zipfile.ZipFile(matches[0]) as packet:
             metadata = packet.read(f'qiongli-{identity.package_version}.dist-info/METADATA').decode()
             if f'\nVersion: {identity.package_version}\n' not in metadata:
                 raise ValueError('wheel metadata version mismatch')
+            if packet.read(f'qiongli_native/bin/{targets[target][2]}') != binaries[target]:
+                raise ValueError('wheel executable differs from CLI/npm executable')
+            tag = matches[0].name.removeprefix(f'qiongli-{identity.package_version}-').removesuffix('.whl')
+            if f'\nTag: {tag}\n' not in packet.read(f'qiongli-{identity.package_version}.dist-info/WHEEL').decode():
+                raise ValueError('wheel compatibility tag mismatch')
         wheels[target] = matches[0]
     legacy_names = {archive_name(host, version) for host in PLATFORMS}
     native_names = [p.name if p else archive_name(host, version, target)
-                    for target in TARGETS for host in PLATFORMS
+                    for target in targets for host in PLATFORMS
                     for p in [find_archive(files, host, version, target)]]
     legacy, native = legacy_names.intersection(files), set(native_names).intersection(files)
     if legacy and native:
@@ -229,12 +238,12 @@ def verify(root, version, commit):
             for host in PLATFORMS:
                 require_transition(checks.get('marketplace_plugins', {}).get(host, {}).get('plugin_source_transition'))
         next_names = {f'qiongli-next-{host}-plugin-v{version}-{target}.tar.gz'
-                      for target in TARGETS for host in PLATFORMS}
+                      for target in targets for host in PLATFORMS}
         if native != next_names:
-            raise ValueError('2.0.1 requires all six Next marketplace archives')
+            raise ValueError('2.0.1 requires all target-specific Next marketplace archives')
     required_native = any('marketplace_plugins' in r['checks'] for r in manifest['target_evidence'])
     if (native or required_native) and native != set(native_names):
-        raise ValueError('all six target-specific marketplace archives are required')
+        raise ValueError('all target-specific marketplace archives are required')
     if native:
         for receipt in manifest['target_evidence']:
             smoke = receipt['checks']['archive_smoke']
@@ -246,7 +255,7 @@ def verify(root, version, commit):
         pack_hashes = {receipt['checks']['archive_smoke'].get('content_pack_sha256')
                        for receipt in manifest['target_evidence']}
         if len(pack_hashes) != 1 or None in pack_hashes:
-            raise ValueError('all three CLI content packs must match the marketplace Plugins')
+            raise ValueError('all CLI content packs must match the marketplace Plugins')
         verified = []
         for name in (native_names if native else sorted(legacy)):
             provenance = verify_archive(files[name], version, commit)
@@ -266,6 +275,7 @@ def verify(root, version, commit):
         if version == '2.0.1':
             next_ids = {'aarch64-apple-darwin': 'qiongli-next-macos-arm64',
                         'x86_64-unknown-linux-gnu': 'qiongli-next-linux-x64',
+                        'aarch64-unknown-linux-gnu': 'qiongli-next-linux-arm64',
                         'x86_64-pc-windows-msvc': 'qiongli-next-windows-x64'}
             if 'marketplace-plugins.json' not in files:
                 raise ValueError('marketplace platform index mismatch')
@@ -276,9 +286,18 @@ def verify(root, version, commit):
         if native and ('marketplace-plugins.json' not in files or
                        json.loads(regular_bytes(files['marketplace-plugins.json'])) != marketplace_index(version, commit, verified)):
             raise ValueError('marketplace platform index mismatch')
-    if len(files) != 7 + len(legacy) + len(native) + bool(native):
+    if len(files) != 1 + 2 * len(targets) + len(legacy) + len(native) + bool(native):
         raise ValueError('unexpected CLI/registry/marketplace artifact set')
     return manifest, npm, wheels
+
+
+def packet_targets(manifest, version):
+    """New packets require ARM64; immutable releases through 2.1.1 keep their roster."""
+    if type(manifest.get('schema_version')) is int and manifest['schema_version'] == 2:
+        return TARGETS
+    if 'schema_version' not in manifest and tuple(map(int, version.split('-')[0].split('.'))) <= (2, 1, 1):
+        return LEGACY_TARGETS
+    raise ValueError('release packet requires schema_version 2 with Linux ARM64')
 
 
 def main():
@@ -308,8 +327,9 @@ def main():
         if not any(r['head_sha'] == args.commit and r['conclusion'] == 'success' for r in runs['workflow_runs']):
             raise ValueError('no successful three-platform combined-install CI run at this source')
     if args.mode == 'install-input':
-        target = {('Darwin', 'arm64'): 'aarch64-apple-darwin', ('Linux', 'x86_64'): 'x86_64-unknown-linux-gnu',
-                  ('Windows', 'AMD64'): 'x86_64-pc-windows-msvc'}[(platform.system(), platform.machine())]
+        target = host_target()
+        if target not in wheels:
+            raise ValueError('release has no wheel for the current OS/architecture')
         selected = {npm.name, wheels[target].name}
         if any(a['file'] == 'marketplace-plugins.json' for a in manifest['artifacts']):
             checks = check_plugins(args.root, identity.version, args.commit, target)

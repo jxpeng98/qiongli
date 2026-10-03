@@ -20,6 +20,7 @@ BINARIES = {
     TARGET: bytes.fromhex('cffaedfe0c000001') + bytes(100),
     'x86_64-unknown-linux-gnu': b'\x7fELF\x02\x01' + bytes(12) + b'\x3e\x00' + bytes(80),
     'x86_64-pc-windows-msvc': b'MZ' + bytes(58) + (64).to_bytes(4, 'little') + b'PE\x00\x00\x64\x86',
+    'aarch64-unknown-linux-gnu': b'\x7fELF\x02\x01' + bytes(12) + b'\xb7\x00' + bytes(80),
 }
 
 
@@ -598,7 +599,7 @@ await assert.rejects(provider.get({name:'../../private'}));
         from tooling.scripts.native_cli_release import archive_cli
         from tooling.scripts.native_registry_packages import wheel
         from tooling.scripts.native_release_assets import assemble, verify
-        tags = ['macosx_11_0_arm64', 'manylinux_2_35_x86_64', 'win_amd64']
+        tags = ['macosx_11_0_arm64', 'manylinux_2_35_x86_64', 'win_amd64', 'manylinux_2_35_aarch64']
         for (target, data), tag in zip(BINARIES.items(), tags):
             self.binary.write_bytes(data)
             folder = self.root / 'targets' / target
@@ -636,9 +637,9 @@ await assert.rejects(provider.get({name:'../../private'}));
         assets = self.root / 'combined/assets'
         assemble(self.root / 'targets', assets, VERSION, COMMIT)
         packet, _, _ = verify(assets, VERSION, COMMIT)
-        self.assertEqual(len(packet['artifacts']), 14)
+        self.assertEqual(len(packet['artifacts']), 18)
         index = json.loads((assets / 'marketplace-plugins.json').read_text())
-        self.assertEqual(len(index['plugins']), 6)
+        self.assertEqual(len(index['plugins']), 8)
         self.assertEqual({p['name'] for p in index['plugins']}, {plugins.plugin_name(t, VERSION, legacy_identity=VERSION == '2.0.1') for t in BINARIES})
         manifest = assets / 'release-manifest.json'
         if VERSION == '2.0.1':
@@ -666,7 +667,7 @@ await assert.rejects(provider.get({name:'../../private'}));
             manifest.write_text(json.dumps(renamed))
             with patch('tooling.scripts.native_release_assets.archive_name',
                        side_effect=lambda *args: plugins.archive_name(*args).replace('qiongli-next-', 'qiongli-', 1)):
-                with self.assertRaisesRegex(ValueError, 'six Next'):
+                with self.assertRaisesRegex(ValueError, 'Next marketplace'):
                     verify(assets, VERSION, COMMIT)
             manifest.write_text(json.dumps(packet))
             index_path = assets / 'marketplace-plugins.json'
@@ -698,8 +699,8 @@ await assert.rejects(provider.get({name:'../../private'}));
             (lambda p: p['target_evidence'][0]['checks']['archive_smoke'].update(runtime_path='inherited'), 'empty-PATH CLI'),
             (lambda p: next(r for r in p['target_evidence'] if r['target'].endswith('msvc'))['checks']['archive_smoke'].pop('windows_system_dlls'), 'system-DLL'),
             (lambda p: p['target_evidence'][0]['checks']['marketplace_plugins']['codex'].update(runtime_path='inherited'), 'smoke evidence'),
-            (lambda p: p['artifacts'].remove(next(a for a in p['artifacts'] if '-codex-plugin-' in a['file'])), 'all six'),
-            (lambda p: p.update(artifacts=[a for a in p['artifacts'] if '-plugin-' not in a['file']]), 'all six'),
+            (lambda p: p['artifacts'].remove(next(a for a in p['artifacts'] if '-codex-plugin-' in a['file'])), 'all target-specific'),
+            (lambda p: p.update(artifacts=[a for a in p['artifacts'] if '-plugin-' not in a['file']]), 'all target-specific'),
         ]:
             modified = json.loads(json.dumps(packet))
             change(modified)

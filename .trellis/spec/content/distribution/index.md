@@ -86,7 +86,7 @@ Its separate generated-tree symlink guard still inspects excluded subtrees.
 
 `native_cli_release.py` owns standalone GitHub CLI archives and their generated,
 target-specific README. Each archive carries the executable with embedded content,
-README and LICENSE; the assembly owner retains all three platform archives and
+README and LICENSE; the assembly owner retains all required target archives and
 their hashes in the release packet. Direct-download instructions must identify
 the platform asset, checksum verification, extraction, executable name and PATH
 option without requiring a package manager or confusing GitHub source archives
@@ -98,7 +98,7 @@ the explicit target and checks the final PE imports with the build machine's
 LLVM tools, rejecting non-system DLLs. Extracted CLI/Lite/Full MCP smoke checks
 run with empty PATH on every target. New native release packets require that
 evidence and the Windows import list. LLVM is a build check, not a user runtime
-dependency; supported OS libraries remain required (Linux x64: glibc 2.35+).
+dependency; supported OS libraries remain required (Linux x64/ARM64: glibc 2.35+).
 Public Windows alpha.8 still imports `VCRUNTIME140.dll`; download instructions
 must disclose that exception until a newly qualified version replaces the link.
 
@@ -106,13 +106,20 @@ must disclose that exception until a newly qualified version replaces the link.
 prerelease npm publication uses `next`. `native_registry_packages.py` owns fixed
 OS/CPU dispatch, executable bytes and platform wheels. The three-platform
 `native-cli-distribution.yml` builds and installs on each target, assembles one
-npm package and three wheels, and tests the combined package on each target.
+npm package and four wheels, and tests the combined package on each target.
+ADR 0232 adds Linux ARM64 alongside Linux x64, macOS ARM64 and Windows x64.
+Both Linux wheels require auditwheel validation against glibc 2.35; their exact
+architecture tags and executable bytes must match the standalone/npm artifacts.
+New release packet schema 2 requires all four target receipts and eight native
+Plugin archives. Historical packets without a schema through 2.1.1 keep their
+three-target roster; later releases cannot use that compatibility path. The
+same target registry drives npm dispatch, host detection and DSH projection.
 From 2.1, this same npm package also exports `dsh/index.mjs` and the bundle patch
 at `dsh/cordis.patch.yml`. The shared DSH projector supplies all 22 Codex-equivalent
 entries and Full MCP, selecting an already packaged native executable by OS/CPU.
 No new package identity, downloader or publisher is added. The source receipt
 reconstructs the canonical pack and projection; combined verification binds it
-to all three CLI packs and executables. Target-native npm install checks load
+to all required CLI packs and executables. Target-native npm install checks load
 the actual provider and run its selected executable through CLI/Full MCP checks.
 Pre-2.1 immutable packets retain their historical verification behavior.
 `native_release_assets.py` refuses mixed source/version, missing targets and
@@ -179,7 +186,7 @@ ADRs 0228/0229 reserve explicit `qiongli-<platform>` stable identities for the
 2.1 migration; the 2.0.1 transition retains `qiongli-next-<platform>`, as do
 Alpha/Beta releases. There is no automatic OS selection in a generic Host
 manifest. `marketplace-plugins.json`
-maps all six archives to Host, target, digest, plugin path and immutable
+maps all target-specific archives to Host, target, digest, plugin path and immutable
 `<host>/<target>/v<version>` distribution ref. External marketplace catalogs must
 consume that mapping and present the platform choices before public rollout.
 Do not point an unqualified generic entry at one platform's binary.
@@ -239,7 +246,7 @@ and incomplete/index-mismatched packets fail qualification.
 
 Schema-1 alpha.8 npm-bridge archives remain verifiable with their historical
 names and contents. New builds emit only schema 2. Public changes require a new
-version and six qualified immutable distributions; existing alpha.8 refs and
+version and all qualified immutable distributions; existing alpha.8 refs and
 assets remain unchanged. No signed grant, managed activation, Host registration,
 private research access or model configuration change is implied by an archive.
 

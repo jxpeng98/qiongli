@@ -374,6 +374,27 @@ python -m pip install --upgrade "qiongli==2.0.0"
 npm 需要 Node 18+，PyPI 需要 Python 3.9+；两者都提供 `qiongli` 和 `ql`。
 安装后分别用 `--version` 核对版本。通过原包管理器升级包管理器安装的版本。
 
+Linux 可用 `uname -m` 查看 CPU 架构。截至已发布的 2.1.1，Linux 只提供
+`x86_64` wheel，没有 `aarch64` wheel。pip 会先过滤不兼容的平台，因此 ARM64
+上直接执行 `pip install qiongli` 可能只选择到 1.x，尽管 PyPI 已有 2.x。
+Linux ARM64 打包支持已在源码中补齐，仍需随新版本完成验证和发布；上方历史下载
+链接保持原来的平台范围。新包覆盖 macOS ARM64、Windows x64，以及 glibc 2.35+
+的 Linux x64/ARM64。Alpine/musl、32 位 Linux、Intel Mac 和原生 Windows ARM64
+不在此预编译包矩阵中。
+
+为避免无意装回 1.x，请在已激活的虚拟环境中显式要求 2.x：
+
+```sh
+python -m pip install --upgrade pip
+python -m pip install --upgrade "qiongli>=2,<3"
+```
+
+Windows 可先用 `py -m venv .venv` 创建环境，再执行
+`.venv\Scripts\python.exe -m pip install --upgrade "qiongli>=2,<3"`。
+尚无兼容的 2.x wheel 时，此命令会明确失败，不会安装 1.x。
+`python -m pip index versions qiongli --index-url https://pypi.org/simple`
+可查看官方 PyPI 对当前解释器可用的版本；自定义镜像也可能存在同步延迟。
+
 Cargo 从源码构建同一个 CLI，需要 Rust 1.97+ 和本机链接器。
 
 ```sh
