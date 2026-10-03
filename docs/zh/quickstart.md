@@ -1,41 +1,26 @@
-# 2.x 快速开始
+# 快速开始
 
-先下载一个适合当前系统的[原生二进制包](guide/cli-2x.md#standalone-binary-download)，
-解压后在终端运行 `./qiongli --version`；Windows 使用 `.\qiongli.exe --version`。
-程序自带研究资源，不需要另装 Python、Node.js 或 Rust。希望使用包管理器时，
-[安装指南](guide/cli-2x.md)分别说明了各渠道的前提和命令。
+## 1. 安装并接入 Host
 
-## 检查当前安装
-
-加入 PATH 后，可以直接运行：
+按[安装指南](guide/install.md)下载程序或用包管理器安装。在终端运行：
 
 ```sh
-qiongli doctor
-qiongli setup
-qiongli content
-qiongli project
+qiongli install
+qiongli mcp check
 ```
 
-`setup` 供你检查其他可见的 CLI 副本，不会删除或移动它们。
-`project` 显示已经登记的研究项目；用 `qiongli help project create` 查看创建方法。
-更新包前保留项目文件与备份，不要把包卸载当作研究资料清理。
+未加入 PATH 时，用 `./qiongli`；PowerShell 用 `.\qiongli.exe`。选择 Plugin 和 Host，分别确认文件变更与注册。
 
-## 在 Host 中使用
+## 2. 开始一项研究任务
 
-在终端运行 `qiongli install`。推荐的 Plugin 已包含 Skills、原生程序与
-Full MCP，无需重复安装独立 Skills 或另找 MCP 包。选择 Host 后审阅目标目录，
-再分别确认文件和注册操作；以后用 `install plugin` 自动发现并更新已登记的源目录。详见[完整示例](guide/cli-2x.md#install-and-upgrade-bundled-content)。
+新开 Host 会话，请它列出穷理工具并调用 `qiongli_config_status`，再提出请求：
 
-`qiongli mcp check` 检查当前 CLI 的本地协议，不代表 Host 已经加载 Plugin。
+> 阅读这篇论文，说明主要发现，标出证据位置，并指出尚不确定的地方。
 
-更新后新开 Host 会话，确认实际工具可用。然后直接提出请求，例如“阅读这篇论文，
-说明主要结果和证据局限”；新构建的 Codex Plugin 也可以用 `$qiongli-paper-read`。
-它会先读取共享指导，再按需读取工作流，不需要重复选择已经明确的研究阶段。
+Codex 中可用 `$qiongli-paper-read`，也可直接描述任务。你可以从当前材料开始；见[研究任务](guide/task-recipes.md)。
 
-## 保存和继续研究
+## 3. 保存并继续
 
-需要保存结果时先审阅具体修改。Graph 从规范记录重建；普通笔记需要先由 Host
-整理为带有来源的记录。阶段完成后，可要求生成保留主要内容、来源与变化的总结。
-所有原文件默认保留；如需清理，由你选择具体文件并亲自删除。
+保存前审阅具体修改。阶段完成后，可以要求“总结这一阶段，保留来源、决定和待解决问题”。原文件会保留；删除由你自己选择并执行。
 
-[Graph 范围与检查](guide/cli-2x.md#research-graph) · [1.x 历史命令](reference/cli.md)
+需要查看论点与来源的关系，见 [Research Graph 示例](examples/research-graph.md)和 [CLI 命令](guide/cli-2x.md)。只想讨论时，用 `$no-qiongli` 或说“仅回复”。

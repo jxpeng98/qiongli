@@ -2,52 +2,35 @@
 layout: home
 hero:
   name: 穷理 Qiongli
-  text: "做研究，也保留结论背后的证据。"
-  tagline: "Rust 原生 CLI、Skills 与 MCP，共用研究记录和来源。继续使用你熟悉的 Host 和模型。"
+  text: "做研究，保留可复查的来源。"
+  tagline: "在熟悉的 AI Host 中阅读、设计和写作，保留模型设置与研究记录。"
   actions:
     - theme: brand
-      text: 下载 2.x CLI
-      link: /zh/guide/cli-2x#standalone-binary-download
-    - theme: alt
       text: 快速开始
       link: /zh/quickstart
     - theme: alt
-      text: 选择研究工作流
-      link: /zh/guide/task-recipes
+      text: 安装 2.2.0
+      link: /zh/guide/install
 features:
-  - title: 解压就能运行
-    details: "独立二进制包含研究资源，无需另装 Python、Node.js 或 Rust 运行时。"
-  - title: 按当前任务开始
-    details: "阅读、综述、设计、写作和润色共用 Skills，按需读取指导，不强制启动整个研究流程。"
-  - title: 找得到来源
-    details: "Graph 连接规范记录中的论点、来源和位置；阶段总结保留主要内容与变化。"
-  - title: 修改前可审阅
-    details: "项目写入需要预览、明确授权和版本校验。总结不会自动删除源文件。"
+  - title: 解压即用
+    details: "原生 CLI 自带研究指导与 MCP，无需另装语言运行时。"
+  - title: 从当前任务开始
+    details: "阅读一篇论文、检查一个设计或修改一段文字，按需加载指导。"
+  - title: 保存前先审阅
+    details: "修改须预览、授权与版本核对，原始研究资料保留。"
 ---
 
-## 从这里开始
+## 按需要查找
 
-本站面向从 `main` 构建的原生 CLI 首个正式版 **2.0.0**。
-可以从安装向导、离线 Graph、仅回复 Skill 或可选 Hook 开始。
-从 1.x 升级时，先看[版本差异与迁移指南](guide/whats-new-2.md)。
+本站面向 **2.2.0**。安装后运行 `qiongli install` 接入 Host。
 
-| 你想做什么 | 入口 |
+| 你想做什么 | 从这里开始 |
 |---|---|
-| 下载、解压后直接使用 | [独立二进制下载](guide/cli-2x.md#standalone-binary-download) |
-| 通过 npm、PyPI 或 Cargo 安装 | [安装和命令指南](guide/cli-2x.md) |
-| 安装、更新随包 Plugin 与 Skills | [Plugin 安装整合](guide/cli-2x.md#install-and-upgrade-bundled-content) |
-| 查看 CLI 副本和集成状态 | `qiongli setup`、`qiongli install`、`qiongli doctor` |
-| 理解 Graph 如何使用证据 | [Graph 使用与检查](guide/cli-2x.md#research-graph) |
-| 查看旧 Python/npm 命令 | [1.x 历史参考](reference/cli.md) |
+| 安装、升级或排查问题 | [入门](guide/index.md) |
+| 阅读、检索、设计或写作 | [研究任务](guide/task-recipes.md)、[示例](examples/index.md) |
+| 配置 Plugin、MCP、文献服务或 Zotero | [接入与配置](advanced/index.md) |
+| 查询命令和 Skills | [参考](reference/index.md)、[CLI 命令](guide/cli-2x.md) |
+| 修改源码或发布包 | [开发与维护](development/index.md) |
+| 查找 1.x、桌面端与设计记录 | [历史资料](legacy/index.md) |
 
-## 运行边界
-
-2.x 的 CLI、Lite/Full MCP 和导出的原生 Plugin 都不需要额外的语言运行时。
-npm 安装入口需要 Node，PyPI 入口需要 Python，Cargo 安装需要 Rust 构建工具；
-想省去这些安装前提，可以直接下载二进制包。Host 应用和在线服务的账号按需配置。
-
-包升级由原渠道完成；`upgrade plugin` 刷新当前 CLI 随附的内容，`upgrade cli`
-显示升级方法。Plugin 注册成功后，还需新开 Host 会话检查实际工具。
-原生 Marketplace 平台包使用 Lite MCP，本地 CLI 导出的 Plugin 使用 Full MCP。
-
-[研究工作流](guide/task-recipes.md) · [架构](architecture.md) · [已观察的 Host 能力](guide/agent-host-capability-matrix.md)
+从旧版升级见[升级与回退](guide/upgrade.md)。查看论点与来源的关系，见 [Research Graph 示例](examples/research-graph.md)。

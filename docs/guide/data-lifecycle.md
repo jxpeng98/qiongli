@@ -36,36 +36,6 @@ normal project workflow, and allow rebuildable derived indexes to be rebuilt.
 Qiongli does not currently provide a one-command whole-product backup, restore,
 or purge operation.
 
-### Private App conversation history
-
-The native development App saves explicit prompts, supplied context and source
-labels, bounded public Agent activity, permission outcomes and lifecycle events
-in version 1 logs under `<project>/.qiongli/all-chat/run_*.json`. User-supplied
-text can itself contain private information; protect these logs as research data.
-The App does not collect credentials, hidden reasoning or raw tool payloads into
-the log. Agent Host history remains owned by that Host. Browser fixtures are
-in-memory previews and do not provide restart recovery.
-
-The newest session is displayed after restart. Unfinished work becomes
-interrupted; saved prompts, permission choices and project writes are never
-automatically replayed. Load/resume is currently unavailable. Starting a new
-session preserves earlier files; browsing archives is not yet exposed in the App.
-Retention is explicit: no automatic expiry or eviction, at most **32 sessions per
-project**, **64 turns**, **2,048 public updates**, **2,304 log records** and **8 MiB
-per log**. At capacity, writing stops without deleting old history. Corrupt,
-truncated or unsupported logs block recovery/new sessions and preserve original
-bytes. Stop the App and verify a full backup before inspecting those files.
-
-The existing private directory/file modes, atomic replacement and digest CAS
-protect writes. `.qiongli/.all-chat-session.lock` holds the OS writer lease;
-`.qiongli/.all-chat.lock` serializes file operations. Leftover lock files are not
-live sessions; do not delete locks to bypass a running owner. Copy and restore
-history with all writers stopped. For deliberate deletion, remove only the
-chosen `run_*.json` files from the backed-up project while the App is stopped;
-restart then loads the newest remaining valid log. Uninstall does not purge them.
-History content is excluded from portable project export and product diagnostics;
-private snapshot/debug formatting also omits conversation content.
-
 ## Portable Project Export
 
 Use portable export to move a privacy-filtered project snapshot between
@@ -110,8 +80,8 @@ state while migration or rollback is still needed.
 
 `v1.19.0-beta.1` is the accepted final feature-bearing 1.x release. The planned
 1.x support window ends **90 days after Qiongli 2 Stable is published**. Alpha,
-Beta, this policy, and ordinary source merges do not start that clock, so there
-is no calendar end date yet.
+Beta, this policy, and ordinary source merges do not start that clock. Use the
+first stable release publication date for that window, not a later patch date.
 
 During that window, 1.x remains limited to approved critical security or
 release-breakage fixes; it does not resume normal feature development. The
@@ -119,6 +89,39 @@ separate REL-906 migration and rollback runbook will cover operational transfer
 between 1.x and 2.x. End of support does not automatically delete user data.
 See the [release branch policy](/maintainer/release-branch-policy) for the
 maintenance authority.
+
+<details>
+<summary>Retained Desktop: conversation history and comparison preview</summary>
+
+### Private App conversation history
+
+The native development App saves explicit prompts, supplied context and source
+labels, bounded public Agent activity, permission outcomes and lifecycle events
+in version 1 logs under `<project>/.qiongli/all-chat/run_*.json`. User-supplied
+text can itself contain private information; protect these logs as research data.
+The App does not collect credentials, hidden reasoning or raw tool payloads into
+the log. Agent Host history remains owned by that Host. Browser fixtures are
+in-memory previews and do not provide restart recovery.
+
+The newest session is displayed after restart. Unfinished work becomes
+interrupted; saved prompts, permission choices and project writes are never
+automatically replayed. Load/resume is currently unavailable. Starting a new
+session preserves earlier files; browsing archives is not yet exposed in the App.
+Retention is explicit: no automatic expiry or eviction, at most **32 sessions per
+project**, **64 turns**, **2,048 public updates**, **2,304 log records** and **8 MiB
+per log**. At capacity, writing stops without deleting old history. Corrupt,
+truncated or unsupported logs block recovery/new sessions and preserve original
+bytes. Stop the App and verify a full backup before inspecting those files.
+
+The existing private directory/file modes, atomic replacement and digest CAS
+protect writes. `.qiongli/.all-chat-session.lock` holds the OS writer lease;
+`.qiongli/.all-chat.lock` serializes file operations. Leftover lock files are not
+live sessions; do not delete locks to bypass a running owner. Copy and restore
+history with all writers stopped. For deliberate deletion, remove only the
+chosen `run_*.json` files from the backed-up project while the App is stopped;
+restart then loads the newest remaining valid log. Uninstall does not purge them.
+History content is excluded from portable project export and product diagnostics;
+private snapshot/debug formatting also omits conversation content.
 
 ### Selected research comparison preview
 
@@ -131,3 +134,5 @@ can be read, but unsaved candidate authority and source authorization are not
 restored; start a new comparison before submitting another candidate.
 Capture intake and subsequent academic consolidation use existing project storage.
 Deleting a chat log does not delete those saved project records.
+
+</details>

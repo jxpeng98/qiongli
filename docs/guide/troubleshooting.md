@@ -20,9 +20,7 @@ Python Full runtime is not a remedy for a 2.x problem. See
 
 Keep the exported directory and rerun `qiongli install plugin` for the same Host.
 The installer checks its receipt before updating it. If another Qiongli Plugin is
-enabled, follow the listed migration or manual-disable guidance. Qiongli 2.0.0
-offers confirmed migration for known Codex entries. If you still use beta.6,
-update the CLI first or disable the old Plugin manually. A changed file or unexpected registration needs review, not a
+enabled, follow the listed migration or manual-disable guidance. Known Codex entries support confirmed migration; review other conflicts manually. A changed file or unexpected registration needs review, not a
 blanket cache deletion. See [first use](cli-2x.md#first-use).
 
 ## Skills or MCP tools are missing

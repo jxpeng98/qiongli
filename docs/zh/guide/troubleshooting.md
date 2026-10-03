@@ -17,7 +17,7 @@ PATH 与 npm 安装脚本提示见[包管理器安装说明](cli-2x.md#package-m
 
 保留导出目录，对同一个 Host 重新运行 `qiongli install plugin`，安装器会先核对收据。
 如果启用了另一份 Qiongli Plugin，按提示选择迁移或手动停用。
-2.0.0 支持确认迁移已知 Codex 插件；仍在使用 beta.6 时，请先升级 CLI，或手动停用旧插件。
+已知 Codex 插件可确认迁移；其他冲突按提示手动停用。
 文件被修改或注册指向异常时，应先核对，不要直接清空缓存。
 具体流程见[首次使用](cli-2x.md#first-use)。
 

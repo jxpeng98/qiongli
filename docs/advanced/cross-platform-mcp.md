@@ -1,8 +1,8 @@
 # Connect MCP to a Host
 
 Qiongli 2 compiles Lite and Full MCP into the native executable. Neither profile
-needs Python or Node. The CLI-exported Plugin configures Full (32 tools); the
-native Marketplace platform Plugin configures Lite (14 tools). Both include
+needs Python or Node. The CLI-exported Plugin configures Full (33 tools); the
+native Marketplace platform Plugin configures Lite (15 tools). Both include
 literature configuration, search and local Zotero tools. Full also provides the
 managed research-project workflow.
 

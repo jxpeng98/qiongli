@@ -1,4 +1,6 @@
 from pathlib import Path
+import json
+import subprocess
 import unittest
 
 
@@ -12,7 +14,6 @@ class DataLifecyclePolicyTests(unittest.TestCase):
         release_policy = (ROOT / "docs/maintainer/release-branch-policy.md").read_text()
         english_index = (ROOT / "docs/guide/index.md").read_text()
         chinese_index = (ROOT / "docs/zh/guide/index.md").read_text()
-        vitepress = (ROOT / "docs/.vitepress/config.mjs").read_text()
         workflow = (ROOT / ".github/workflows/evaluation-truth.yml").read_text()
 
         for heading in (
@@ -27,7 +28,7 @@ class DataLifecyclePolicyTests(unittest.TestCase):
         for heading in (
             "## 所有权边界",
             "## 备份与恢复",
-            "## Portable 项目导出",
+            "## 可迁移的项目导出",
             "## 卸载与删除",
             "## 1.x 支持终止",
         ):
@@ -42,7 +43,7 @@ class DataLifecyclePolicyTests(unittest.TestCase):
             "These operations do not delete project directories",
             "v1.19.0-beta.1",
             "90 days after Qiongli 2 Stable is published",
-            "there is no calendar end date yet",
+            "first stable release publication date",
         ):
             self.assertIn(contract, english.replace("\n", " "))
 
@@ -52,8 +53,17 @@ class DataLifecyclePolicyTests(unittest.TestCase):
         )
         self.assertIn("[Data Ownership and Lifecycle](/guide/data-lifecycle)", english_index)
         self.assertIn("[数据所有权与生命周期](/zh/guide/data-lifecycle)", chinese_index)
-        self.assertIn("/guide/data-lifecycle", vitepress)
-        self.assertIn("/zh/guide/data-lifecycle", vitepress)
+        navigation = subprocess.run(
+            ["node", "--input-type=module", "-e",
+             "import config from './docs/.vitepress/config.mjs'; "
+             "console.log(JSON.stringify(Object.values(config.locales).flatMap(locale => "
+             "Object.values(locale.themeConfig.sidebar).flatMap(groups => "
+             "groups.flatMap(group => group.items.map(item => item.link))))));"],
+            cwd=ROOT, text=True, capture_output=True, check=True,
+        )
+        links = json.loads(navigation.stdout)
+        self.assertIn("/guide/data-lifecycle", links)
+        self.assertIn("/zh/guide/data-lifecycle", links)
         self.assertIn("tests.test_data_lifecycle_policy", workflow)
 
     def test_private_chat_retention_and_recovery_policy_is_bilingual(self) -> None:

@@ -1,199 +1,111 @@
-const enNav = [
-  { text: 'Download 2.x', link: '/guide/cli-2x' },
-  { text: 'Guide', link: '/guide/' },
-  { text: 'Workflows', link: '/guide/task-recipes' },
-  { text: 'Examples', link: '/examples/' },
-  { text: 'CLI', link: '/guide/cli-2x' },
-  { text: 'Architecture', link: '/architecture' },
-  { text: 'Advanced', link: '/advanced/' },
-  { text: 'Maintainer', link: '/maintainer/' }
+// The two languages share categories and routes; labels are written for each reader.
+const categories = [
+  {
+    en: 'Getting started', zh: '入门', route: '/guide/',
+    items: [
+      ['Overview', '入门概览', '/guide/'],
+      ['Quickstart', '快速开始', '/quickstart'],
+      ['Installation', '安装', '/guide/install'],
+      ['Upgrade and rollback', '升级与回退', '/guide/upgrade'],
+      ['What changed in 2.x', '2.x 变化', '/guide/whats-new-2'],
+      ['Troubleshooting', '故障排除', '/guide/troubleshooting']
+    ]
+  },
+  {
+    en: 'Research', zh: '研究', route: '/guide/task-recipes',
+    items: [
+      ['Choose a task', '选择研究任务', '/guide/task-recipes'],
+      ['Using Skills', '使用 Skills', '/guide/using-agent-skills'],
+      ['Literature search', '文献检索', '/advanced/rigorous-literature-search'],
+      ['Work with other agents', '与其他代理协作', '/guide/multi-agent'],
+      ['Examples', '示例', '/examples/'],
+      ['Routes by paper type', '论文类型路线', '/examples/paper-type-playbooks'],
+      ['Research Graph', 'Research Graph 示例', '/examples/research-graph'],
+      ['Data and backups', '数据与备份', '/guide/data-lifecycle']
+    ]
+  },
+  {
+    en: 'Connections', zh: '接入', route: '/advanced/',
+    items: [
+      ['Overview', '接入与配置', '/advanced/'],
+      ['Plugin setup', 'Plugin 配置', '/advanced/plugin-installation'],
+      ['Plugin contents', 'Plugin 中的内容', '/advanced/plugin-first-architecture'],
+      ['MCP connections', 'MCP 接入', '/advanced/cross-platform-mcp'],
+      ['Literature providers', '文献服务', '/advanced/mcp-providers-setup'],
+      ['Zotero', 'Zotero', '/advanced/mcp-zotero-integration'],
+      ['Collaboration and hooks', '协作与 Hook', '/advanced/agent-skill-collaboration'],
+      ['External Agent coordination', '外部 Agent 协作', '/advanced/external-host-coordination'],
+      ['Finance and economics data', '金融与经济学数据', '/advanced/finance-econ-data-mcp']
+    ]
+  },
+  {
+    en: 'Reference', zh: '参考', route: '/reference/',
+    items: [
+      ['Overview', '参考概览', '/reference/'],
+      ['CLI commands', 'CLI 命令', '/guide/cli-2x'],
+      ['Skills guide', 'Skills 指南', '/reference/skills'],
+      ['Host capabilities', 'Host 能力', '/guide/agent-host-capability-matrix'],
+      ['Architecture', '系统架构', '/architecture'],
+      ['Editing conventions', '编辑约定', '/conventions']
+    ]
+  },
+  {
+    en: 'Development', zh: '开发', route: '/development/',
+    items: [
+      ['Development and maintenance', '开发与维护', '/development/'],
+      ['Repository structure', '仓库结构', '/development/repository-structure'],
+      ['Extend Qiongli', '扩展穷理', '/advanced/extend-qiongli'],
+      ['Subject guidance', '学科指导', '/advanced/subject-packaging-model'],
+      ['Maintainer guide', '维护指南', '/maintainer/'],
+      ['Maintainer workflow', '维护流程', '/maintainer/claude-overview'],
+      ['Naming rules', '命名规则', '/maintainer/naming-policy'],
+      ['Adapt external ideas', '借鉴外部方法', '/maintainer/external-borrowing'],
+      ['Release branch policy', '发布分支规则', '/maintainer/release-branch-policy'],
+      ['Publish native packages', '发布原生包', '/advanced/publish-pypi']
+    ]
+  },
+  {
+    en: 'Historical material', zh: '历史资料', route: '/legacy/',
+    items: [
+      ['Historical material and records', '历史资料与项目记录', '/legacy/'],
+      ['1.x installation', '1.x 安装', '/legacy/install'],
+      ['1.x upgrades', '1.x 升级', '/legacy/upgrade'],
+      ['1.x CLI reference', '1.x 命令参考', '/reference/cli'],
+      ['Retained Desktop packages', '保留的桌面安装包', '/advanced/native-desktop-alpha'],
+      ['Local Desktop development', '本地桌面开发', '/development/local-desktop-build']
+    ]
+  }
 ]
 
-const zhNav = [
-  { text: '下载 2.x', link: '/zh/guide/cli-2x' },
-  { text: '入门', link: '/zh/guide/' },
-  { text: '工作流', link: '/zh/guide/task-recipes' },
-  { text: '示例', link: '/zh/examples/' },
-  { text: 'CLI', link: '/zh/guide/cli-2x' },
-  { text: '架构', link: '/zh/architecture' },
-  { text: '高级', link: '/zh/advanced/' },
-  { text: '维护者', link: '/zh/maintainer/' }
-]
-
-const enSidebar = {
-  '/guide/': [
-    {
-      text: 'Guide',
-      items: [
-        { text: 'Overview', link: '/guide/' },
-        { text: 'Quickstart', link: '/quickstart' },
-        { text: 'Install', link: '/guide/cli-2x#standalone-binary-download' },
-        { text: '2.x CLI Downloads', link: '/guide/cli-2x' },
-        { text: 'What changes in 2.0', link: '/guide/whats-new-2' },
-        { text: 'Using Agent Skills', link: '/guide/using-agent-skills' },
-        { text: 'Research Workflows', link: '/guide/task-recipes' },
-        { text: 'Work with other agents', link: '/guide/multi-agent' },
-        { text: 'Upgrade', link: '/guide/cli-2x#install-and-upgrade-bundled-content' },
-        { text: 'Data Ownership and Lifecycle', link: '/guide/data-lifecycle' },
-        { text: 'Troubleshooting', link: '/guide/troubleshooting' }
-      ]
-    }
-  ],
-  '/reference/': [
-    {
-      text: 'Reference',
-      items: [
-        { text: 'Overview', link: '/reference/' },
-        { text: '2.x CLI', link: '/guide/cli-2x' },
-        { text: '1.x CLI (legacy)', link: '/reference/cli' },
-        { text: 'Skills Guide', link: '/reference/skills' },
-        { text: 'Conventions', link: '/conventions' }
-      ]
-    }
-  ],
-  '/examples/': [
-    {
-      text: 'Examples',
-      items: [
-        { text: 'Overview', link: '/examples/' },
-        { text: 'Paper Type Playbooks', link: '/examples/paper-type-playbooks' },
-        { text: 'Research Graph example', link: '/examples/research-graph' }
-      ]
-    }
-  ],
-  '/advanced/': [
-    {
-      text: 'Advanced',
-      items: [
-        { text: 'Overview', link: '/advanced/' },
-        { text: 'Extend Qiongli', link: '/advanced/extend-qiongli' },
-        { text: 'Subject Packaging Model', link: '/advanced/subject-packaging-model' },
-        { text: 'Agents and optional hooks', link: '/advanced/agent-skill-collaboration' },
-        { text: 'How the Plugin connects', link: '/advanced/plugin-first-architecture' },
-        { text: 'MCP Providers Setup', link: '/advanced/mcp-providers-setup' },
-        { text: 'Rigorous Literature Search', link: '/advanced/rigorous-literature-search' },
-        { text: 'Zotero Integration', link: '/advanced/mcp-zotero-integration' },
-        { text: 'Publish native packages', link: '/advanced/publish-pypi' }
-      ]
-    }
-  ],
-  '/maintainer/': [
-    {
-      text: 'Maintainer',
-      items: [
-        { text: 'Overview', link: '/maintainer/' },
-        { text: 'Maintainer workflow', link: '/maintainer/claude-overview' },
-        { text: 'Architecture', link: '/architecture' },
-        { text: 'Conventions', link: '/conventions' },
-        { text: 'Local Desktop Development', link: '/development/local-desktop-build' },
-        { text: 'Repository Structure', link: '/development/repository-structure' },
-        { text: 'Naming Policy', link: '/maintainer/naming-policy' },
-        { text: 'External Borrowing', link: '/maintainer/external-borrowing' },
-        { text: 'Release Branch Policy', link: '/maintainer/release-branch-policy' },
-        { text: 'Publish native packages', link: '/advanced/publish-pypi' }
-      ]
-    }
-  ],
-  '/development/': [
-    {
-      text: 'Development',
-      items: [
-        { text: 'Local Desktop Development', link: '/development/local-desktop-build' },
-        { text: 'Repository Structure', link: '/development/repository-structure' }
-      ]
-    }
-  ]
+function navigation(language) {
+  const prefix = language === 'zh' ? '/zh' : ''
+  return categories.map(category => ({ text: category[language], link: prefix + category.route }))
 }
 
-const zhSidebar = {
-  '/zh/guide/': [
-    {
-      text: '入门',
-      items: [
-        { text: '总览', link: '/zh/guide/' },
-        { text: '快速开始', link: '/zh/quickstart' },
-        { text: '安装', link: '/zh/guide/cli-2x#standalone-binary-download' },
-        { text: '2.x CLI 下载', link: '/zh/guide/cli-2x' },
-        { text: '2.0 版本变化', link: '/zh/guide/whats-new-2' },
-        { text: '使用 Agent Skills', link: '/zh/guide/using-agent-skills' },
-        { text: '研究工作流', link: '/zh/guide/task-recipes' },
-        { text: '多 Agent 运行', link: '/zh/guide/multi-agent' },
-        { text: '升级', link: '/zh/guide/cli-2x#install-and-upgrade-bundled-content' },
-        { text: '数据所有权与生命周期', link: '/zh/guide/data-lifecycle' },
-        { text: '故障排除', link: '/zh/guide/troubleshooting' }
-      ]
-    }
-  ],
-  '/zh/reference/': [
-    {
-      text: '参考',
-      items: [
-        { text: '总览', link: '/zh/reference/' },
-        { text: '2.x CLI', link: '/zh/guide/cli-2x' },
-        { text: '1.x CLI（历史）', link: '/zh/reference/cli' },
-        { text: 'Skills 指南', link: '/zh/reference/skills' },
-        { text: '规范约定', link: '/zh/conventions' }
-      ]
-    }
-  ],
-  '/zh/examples/': [
-    {
-      text: '示例',
-      items: [
-        { text: '总览', link: '/zh/examples/' },
-        { text: '论文类型示例', link: '/zh/examples/paper-type-playbooks' },
-        { text: 'Research Graph 完整示例', link: '/zh/examples/research-graph' }
-      ]
-    }
-  ],
-  '/zh/advanced/': [
-    {
-      text: '高级',
-      items: [
-        { text: '总览', link: '/zh/advanced/' },
-        { text: '扩展 Qiongli', link: '/zh/advanced/extend-qiongli' },
-        { text: '学科指导与内容包', link: '/zh/advanced/subject-packaging-model' },
-        { text: '代理协作与 Hook', link: '/zh/advanced/agent-skill-collaboration' },
-        { text: 'Plugin 如何接入', link: '/zh/advanced/plugin-first-architecture' },
-        { text: '文献服务配置', link: '/zh/advanced/mcp-providers-setup' },
-        { text: '严谨文献检索', link: '/zh/advanced/rigorous-literature-search' },
-        { text: 'Zotero 集成', link: '/zh/advanced/mcp-zotero-integration' },
-        { text: '发布原生渠道包', link: '/zh/advanced/publish-pypi' }
-      ]
-    }
-  ],
-  '/zh/maintainer/': [
-    {
-      text: '维护者',
-      items: [
-        { text: '总览', link: '/zh/maintainer/' },
-        { text: '维护工作流程', link: '/zh/maintainer/claude-overview' },
-        { text: '系统架构', link: '/zh/architecture' },
-        { text: '规范约定', link: '/zh/conventions' },
-        { text: '本地桌面开发', link: '/zh/development/local-desktop-build' },
-        { text: '仓库结构', link: '/zh/development/repository-structure' },
-        { text: '命名策略', link: '/zh/maintainer/naming-policy' },
-        { text: '发布分支策略', link: '/zh/maintainer/release-branch-policy' },
-        { text: '发布原生渠道包', link: '/zh/advanced/publish-pypi' }
-      ]
-    }
-  ],
-  '/zh/development/': [
-    {
-      text: '开发指南',
-      items: [
-        { text: '本地桌面开发', link: '/zh/development/local-desktop-build' },
-        { text: '仓库结构', link: '/zh/development/repository-structure' }
-      ]
-    }
-  ]
+function sidebar(language) {
+  const prefix = language === 'zh' ? '/zh' : ''
+  return {
+    [prefix + '/']: categories.map(category => ({
+      text: category[language],
+      collapsed: true,
+      items: category.items.map(([en, zh, route]) => ({
+        text: language === 'zh' ? zh : en,
+        link: prefix + route
+      }))
+    }))
+  }
 }
+
+const enNav = navigation('en')
+const zhNav = navigation('zh')
+const enSidebar = sidebar('en')
+const zhSidebar = sidebar('zh')
 
 const localSearch = {
   provider: 'local',
   options: {
     _render(src, env, md) {
-      if (/^(?:zh\/)?(?:superpowers|architecture\/decisions|archive|audits)\//.test(env.relativePath)) return ''
+      if (/^(?:zh\/)?(?:superpowers|architecture\/decisions|legacy|archive|audits)\//.test(env.relativePath)) return ''
       if (/^(?:zh\/)?(?:development\/(?:ctr-|repository-restructuring)|maintainer\/(?:skill-quality-|skill-set-))/.test(env.relativePath)) return ''
       const html = md.render(src, env)
       return env.frontmatter?.search === false ? '' : html
@@ -209,7 +121,7 @@ const commonHead = [
 /** @type {import('vitepress').UserConfig} */
 export default {
   title: 'Qiongli',
-  description: 'Use AI agents for academic research without losing the evidence trail.',
+  description: 'Read, design and write with AI agents, with sources you can check.',
   cleanUrls: true,
   lastUpdated: true,
   head: commonHead,

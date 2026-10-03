@@ -1,8 +1,8 @@
 # 将 MCP 接入 Host
 
 Qiongli 2 的 Lite 和 Full MCP 都编译在原生程序内，不依赖 Python 或 Node。
-CLI 导出的 Plugin 配置 Full（32 个工具），原生 Marketplace 平台 Plugin 配置 Lite
-（14 个工具）。两者都有文献配置、检索和本地 Zotero 工具；Full 还提供受管理的研究项目工作流。
+CLI 导出的 Plugin 配置 Full（33 个工具），原生 Marketplace 平台 Plugin 配置 Lite
+（15 个工具）。两者都有文献配置、检索和本地 Zotero 工具；Full 还提供受管理的研究项目工作流。
 
 ## Codex 与 Claude Code
 

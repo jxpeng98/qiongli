@@ -1,18 +1,6 @@
 # Examples
 
-Use this section when you want concrete, repeatable examples rather than abstract rules.
+- [Routes by paper type](paper-type-playbooks.md): choose tasks from the paper and material you have.
+- [Research Graph](research-graph.md): build an offline evidence view from research notes, with a reproducible run.
 
-## Example Pages
-
-- [Paper Type Playbooks](/examples/paper-type-playbooks)
-- [Research Graph: notes to an offline evidence view](/examples/research-graph)
-
-## What This Section Is For
-
-- end-to-end example routes for a specific paper type
-- recommended Task ID sequences
-- typical outputs you should expect to produce
-- common decisions about when to stay narrow and when to go deeper
-
-If you want scenario-first guidance, go to [Task Recipes](/guide/task-recipes).
-If you want the full map of internal skills, go to [Skills Guide](/reference/skills).
+See [research tasks](../guide/task-recipes.md) for example requests or the [Skills guide](../reference/skills.md) for the full map.

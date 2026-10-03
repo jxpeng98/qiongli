@@ -11,8 +11,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 DOC_PATHS = (
-    Path("docs/guide/install.md"),
-    Path("docs/zh/guide/install.md"),
+    Path("docs/legacy/install.md"),
+    Path("docs/zh/legacy/install.md"),
     Path("docs/reference/cli.md"),
     Path("docs/zh/reference/cli.md"),
 )
@@ -26,7 +26,7 @@ import config from './docs/.vitepress/config.mjs';
 const render = config.locales.root.themeConfig.search.options._render;
 let calls = 0;
 const md = {render: () => { calls++; return '<p>current guide</p>'; }};
-for (const path of ['superpowers/plans/old.md', 'zh/architecture/decisions/old.md', 'audits/old.md', 'development/ctr-201-cli-runtime-freeze.md', 'maintainer/skill-quality-gap-report.md']) {
+for (const path of ['superpowers/plans/old.md', 'zh/architecture/decisions/old.md', 'audits/old.md', 'legacy/install.md', 'zh/legacy/upgrade.md', 'development/ctr-201-cli-runtime-freeze.md', 'maintainer/skill-quality-gap-report.md']) {
   assert.equal(render('old', {relativePath:path}, md), '');
 }
 assert.equal(calls, 0);
@@ -79,7 +79,7 @@ for (const item of [...zh.nav, ...Object.values(zh.sidebar).flatMap(groups => gr
     def test_cli_setup_docs_keep_scriptable_npm_install_examples(self) -> None:
         guide_core_install = 'qiongli install --subject core --target all --project-dir "$PWD"'
 
-        for path in (Path("docs/guide/install.md"), Path("docs/zh/guide/install.md")):
+        for path in (Path("docs/legacy/install.md"), Path("docs/zh/legacy/install.md")):
             content = (REPO_ROOT / path).read_text(encoding="utf-8")
             with self.subTest(path=str(path)):
                 self.assertIn("qiongli setup", content)
@@ -87,8 +87,8 @@ for (const item of [...zh.nav, ...Object.values(zh.sidebar).flatMap(groups => gr
 
     def test_cli_setup_docs_disclose_npm_full_runtime_boundary(self) -> None:
         for path in (
-            Path("docs/guide/install.md"),
-            Path("docs/zh/guide/install.md"),
+            Path("docs/legacy/install.md"),
+            Path("docs/zh/legacy/install.md"),
             Path("docs/reference/cli.md"),
             Path("docs/zh/reference/cli.md"),
             Path("packages/npm-qiongli/README.md"),
@@ -139,7 +139,7 @@ for (const item of [...zh.nav, ...Object.values(zh.sidebar).flatMap(groups => gr
                 self.assertNotRegex(setup_snippet, re.compile(r"\bDesktop\b|MCPB|provider companion"))
 
     def test_codex_plugin_install_documents_plugin_bundled_mcp(self) -> None:
-        install = (REPO_ROOT / "docs" / "guide" / "install.md").read_text(encoding="utf-8")
+        install = (REPO_ROOT / "docs" / "legacy" / "install.md").read_text(encoding="utf-8")
         cli = (REPO_ROOT / "docs" / "reference" / "cli.md").read_text(encoding="utf-8")
         troubleshooting = (REPO_ROOT / "docs" / "guide" / "troubleshooting.md").read_text(
             encoding="utf-8"
@@ -153,7 +153,7 @@ for (const item of [...zh.nav, ...Object.values(zh.sidebar).flatMap(groups => gr
         self.assertIn("qiongli_literature_status", troubleshooting)
 
     def test_zh_codex_plugin_install_documents_plugin_bundled_mcp(self) -> None:
-        install = (REPO_ROOT / "docs" / "zh" / "guide" / "install.md").read_text(encoding="utf-8")
+        install = (REPO_ROOT / "docs" / "zh" / "legacy" / "install.md").read_text(encoding="utf-8")
         cli = (REPO_ROOT / "docs" / "zh" / "reference" / "cli.md").read_text(encoding="utf-8")
         troubleshooting = (
             REPO_ROOT / "docs" / "zh" / "guide" / "troubleshooting.md"
@@ -167,7 +167,7 @@ for (const item of [...zh.nav, ...Object.values(zh.sidebar).flatMap(groups => gr
         self.assertIn("qiongli_literature_status", troubleshooting)
 
     def test_install_docs_do_not_mark_literature_search_full_runtime_only(self) -> None:
-        content = (REPO_ROOT / "docs" / "guide" / "install.md").read_text(encoding="utf-8")
+        content = (REPO_ROOT / "docs" / "legacy" / "install.md").read_text(encoding="utf-8")
 
         self.assertIn("bundled runtime covers literature-provider tools", content)
         self.assertNotIn(
@@ -177,7 +177,7 @@ for (const item of [...zh.nav, ...Object.values(zh.sidebar).flatMap(groups => gr
         self.assertIn("Python-backed orchestration tools", content)
 
     def test_zh_install_docs_do_not_mark_literature_search_full_runtime_only(self) -> None:
-        content = (REPO_ROOT / "docs" / "zh" / "guide" / "install.md").read_text(encoding="utf-8")
+        content = (REPO_ROOT / "docs" / "zh" / "legacy" / "install.md").read_text(encoding="utf-8")
 
         self.assertIn("内置 literature-provider tools", content)
         self.assertNotIn(

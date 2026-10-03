@@ -1,14 +1,14 @@
-# 2.x 使用指南
+# 入门
 
-从[快速开始](../quickstart.md)进入，或直接查看[安装与命令](cli-2x.md)。
-独立二进制包含研究资源，无需安装 Python、Node.js 或 Rust 运行时。
+按当前需要选择一页：
 
-- [安装、升级与随包 Plugin](cli-2x.md#install-and-upgrade-bundled-content)
-- [安装状态与版本](cli-2x.md#installation-state)
-- [Research Graph 的证据与检查](cli-2x.md#research-graph)
-- [研究任务场景](task-recipes.md)与[数据所有权](data-lifecycle.md)
-- [已观察的 Host 能力](agent-host-capability-matrix.md)
-- [系统架构](../architecture.md)
+| 需要 | 页面 |
+|---|---|
+| 第一次使用 | [快速开始](/zh/quickstart) |
+| 下载或安装 | [安装](install.md) |
+| 更新 CLI、Plugin 或从 1.x 迁移 | [升级与回退](upgrade.md) |
+| 了解新版 | [2.x 变化](whats-new-2.md) |
+| 处理报错 | [故障排除](troubleshooting.md) |
+| 备份或移除数据 | [数据所有权与生命周期](/zh/guide/data-lifecycle) |
 
-[1.x 安装](install.md)、[旧升级流程](upgrade.md)和[旧 CLI 参考](../reference/cli.md)
-保留供历史版本使用。旧页面中的 Python、bootstrap 和旧命令要求不适用于原生 2.x。
+已经安装好？选择[研究任务](task-recipes.md)。参数查询见 [CLI 命令](cli-2x.md)，旧命令见[历史资料](../legacy/index.md)。

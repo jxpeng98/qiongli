@@ -8,8 +8,8 @@ through file export and official Host registration.
 
 | Surface | Guidance | Program and tools |
 |---|---|---|
-| CLI-exported Plugin | Shared Skills, workflows and references | Bundled native executable; Full MCP, 32 tools |
-| Native Marketplace platform Plugin | Shared Skills, workflows and references | Bundled native executable; Lite MCP, 14 tools |
+| CLI-exported Plugin | Shared Skills, workflows and references | Bundled native executable; Full MCP, 33 tools |
+| Native Marketplace platform Plugin | Shared Skills, workflows and references | Bundled native executable; Lite MCP, 15 tools |
 | Standalone Skills | Exported guidance and references | No MCP connection or automatic Host registration |
 
 Both MCP profiles run without Python or Node. A package manager may have its own
@@ -26,8 +26,8 @@ MCP terminal. A Skills-only export must be installed through your Host separatel
 After upgrading the CLI through its original channel, run
 `qiongli install plugin` again. It reuses the registered source directory.
 The file preview and Host registration each require confirmation. Known Codex
-Plugin migration is available in 2.0.0. If you still use beta.6, update the CLI
-first or disable a conflicting Plugin manually. See the
+Plugin conflicts can follow the confirmed migration flow; other conflicts need
+manual review. See the
 [installation guide](../guide/cli-2x.md#first-use) for the exact boundary.
 
 Run `qiongli doctor` and `qiongli install list`, then start a new Host session and

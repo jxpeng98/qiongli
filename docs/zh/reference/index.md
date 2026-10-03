@@ -1,19 +1,9 @@
 # 参考
 
-这一部分适合已经知道自己要做什么，只是需要精确参数、入口或规范说明的场景。
+- [CLI 命令](../guide/cli-2x.md)：常用命令、输出格式与项目操作。
+- [Skills 指南](skills.md)：工作流、内部技能与产物。
+- [Host 能力](../guide/agent-host-capability-matrix.md)：已观察的能力和适用范围。
+- [系统架构](../architecture.md)：CLI、Plugin 与 MCP 的职责。
+- [源文件与编辑约定](../conventions.md)：源码位置和编辑规则。
 
-## 参考页面
-
-- [2.x CLI 安装与命令](/zh/guide/cli-2x)
-- [1.x CLI 历史参考](/zh/reference/cli)
-- [Skills 指南](/zh/reference/skills)
-- [规范约定](/zh/conventions)
-
-## 适用内容
-
-- 稳定 CLI 参数与入口
-- 面向使用者的 `skills/` 分层与能力地图
-- 仓库级术语与依赖方向
-- 维护者修改时的落点与编辑顺序
-
-如果你需要的是任务导向的说明，而不是命令/规则查询，请回到 [入门](/zh/guide/)。
+旧版命令见 [1.x 参考](cli.md)。操作步骤见[入门](../guide/index.md)。

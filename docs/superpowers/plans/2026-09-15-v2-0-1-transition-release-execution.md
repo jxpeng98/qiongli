@@ -3286,7 +3286,7 @@ release-packet owner keeps both four-target/schema-2 checks and the new coherent
 integration fixture is corrected to declare schema 2 for its four-target packet.
 
 The bounded result is **2.2.0, feature-frozen and Not ready**. Its canonical
-[release notes](../../../tooling/release/v2.2.0.md) freeze scope, channels,
+[release notes](https://github.com/jxpeng98/qiongli/blob/v2.2.0/tooling/release/v2.2.0.md) freeze scope, channels,
 platform limitations, data retention and rollback. Source versions, Plugin
 metadata, native/Lite lockfiles and the embedded content lock are synchronized
 through their existing owners. The embedded pack contains 446 entries, with
@@ -3597,3 +3597,49 @@ not replace the final same-source hosted native/desktop checks. All candidate
 source changes still require a completed new Native CI run and rebuilt four-target
 CLI/Cargo qualification before declaring the installation release ready. Push is
 authorized; tagging, publishing and public registry confirmation remain separate.
+
+
+## 2.2.0 documentation simplification — October 3
+
+Base `e604d1e8`; branch `docs/2.2-readme-and-guides`. The maintainer requests
+concise README installation/use/upgrade instructions and a classified, plain-language
+documentation site after the 2.2.0 release. This is local documentation integration.
+
+Both READMEs now lead with installation, first use and upgrade; current downloads
+and examples use 2.2.0 and include Linux ARM64. Dedicated installation, upgrade,
+CLI and Plugin pages separate routine steps from optional Host/language/Hook and
+scripted-export details. Existing commonly linked CLI anchors remain. The 1.x
+installation/upgrade guides move to `legacy/`; their existing checks follow the
+preserved references. Native Lite/Full counts are 15/33; historical observations
+retain their original scope. The receipt-compatible rollback limit stays explicit.
+
+English and Chinese share six navigation categories: getting started, research,
+connections, reference, development and historical material. Category indexes
+cover retained Desktop, source inventories, ADRs, plans, designs, reviews and
+acceptance records. Historical records stay out of local search. The retained
+Desktop conversation detail is folded within the existing data policy, preserving
+all ownership, backup, retention, recovery and user-only deletion limits. Humanizer
+English/Chinese guidance from the project's pinned upstream reference governs the
+prose pass. No research content pack, runtime, model setting or accepted ADR changes.
+
+Focused validation: 45 existing documentation/data-policy/distribution/native-guide
+checks pass across the affected runs, retaining missing-contract and privacy/permission
+negative coverage. All 90 bilingual navigation targets resolve. VitePress builds
+with dead-link checking enabled; pre-existing `env`/`gitignore` highlighting and
+large-chunk warnings remain. The first build found the plan's existing link outside
+the docs root; it now points to the immutable 2.2.0 source. Initial documentation
+failures were stale 1.x test paths, obsolete release examples and a README-only
+maintainer-detail assertion; their owners/paths are corrected without removing
+coverage. The final VitePress build passes (71.58 seconds); all 18 retained CLI anchors
+resolve in rendered English/Chinese pages. Local boundary checks are required
+before integration.
+
+No push, deployment, installed-user change or acceptance promotion is included.
+Public metadata checks currently expose GitHub v2.1.1 (September 30), npm
+latest 2.1.1 and PyPI 2.1.1; GitHub v2.2.0 returns 404 and neither registry
+contains 2.2.0. The requested 2.2.0 documentation baseline is therefore
+post-release preparation, not public-download verification. The optional clarification received no new baseline instruction; local
+integration retains the requested 2.2.0 copy as post-release preparation. Visual browser
+review and hosted-site publication are outside this local check.
+The next independent research increment remains reviewed retrieval-manifest
+persistence through the existing capture/preview/approval/CAS owners.

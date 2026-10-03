@@ -34,9 +34,9 @@ wrappers/catalogs even when their receipt hashes are rewritten.
 
 ## Build and load the DeepSeek bundle
 
-This is an opt-in development artifact, not a published package or an addition to
-the default release matrix. Use the existing native content exporter and archive
-verifier. Build from a clean source commit; use that same commit for the binary
+For normal installation, use the released npm bundle described in
+[Plugin setup](plugin-installation.md#deepseek). For a custom development bundle,
+use the existing native content exporter and archive verifier. Build from a clean source commit; use that same commit for the binary
 and content export. From the repository root, with the current native binary built:
 
 ```sh
@@ -45,12 +45,12 @@ QIONGLI_NATIVE_SOURCE_COMMIT="$(git rev-parse HEAD)" cargo run --locked \
   --example export_marketplace_content -- /absolute/new-content-directory
 python3 tooling/scripts/native_marketplace_plugins.py \
   --content-dir /absolute/new-content-directory --out-dir /absolute/new-bundle-directory \
-  --version 2.0.0 --commit "$(git rev-parse HEAD)" \
+  --version 2.2.0 --commit "$(git rev-parse HEAD)" \
   --binary packages/qiongli-native/target/debug/qiongli \
   --target aarch64-apple-darwin --platform deepseek
 ```
 
-Use the actual executable version and target; Linux x64 and Windows x64 layouts
+Use the actual executable version and target; Linux x64/ARM64 and Windows x64 layouts
 are also supported by the generator. Each output directory must be new. Existing
 source/byte/target/receipt checks remain enforced. Default packaging continues to
 build only Codex and Claude; no release or upload is performed.
@@ -76,8 +76,8 @@ Plugin is not project-write approval. Removal uses the same Host manager:
 `dsh plugin --profile web remove dsh-qiongli-macos-arm64`.
 
 For released 2.1+ versions, the standard `qiongli` npm package also contains this
-bundle. Desktop users enter `qiongli@2.1.0` in Add plugin with Official npm
-registry; local users run `dsh plugin --profile desktop add qiongli@2.1.0`
+bundle. Desktop users enter `qiongli@2.2.0` in Add plugin with Official npm
+registry; local users run `dsh plugin --profile desktop add qiongli@2.2.0`
 (substitute the intended profile). The official manager also accepts the local
 npm `.tgz` path. This retains all 22 Codex-equivalent entries and Full MCP while
 reusing the package's platform-selected executable. No global CLI installation

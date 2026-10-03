@@ -7,8 +7,8 @@
 
 | 入口 | 研究指导 | 程序与工具 |
 |---|---|---|
-| CLI 导出的 Plugin | 共享 Skills、工作流和参考资料 | 随包原生程序；Full MCP，32 个工具 |
-| 原生 Marketplace 平台 Plugin | 共享 Skills、工作流和参考资料 | 随包原生程序；Lite MCP，14 个工具 |
+| CLI 导出的 Plugin | 共享 Skills、工作流和参考资料 | 随包原生程序；Full MCP，33 个工具 |
+| 原生 Marketplace 平台 Plugin | 共享 Skills、工作流和参考资料 | 随包原生程序；Lite MCP，15 个工具 |
 | 独立 Skills | 导出的指导和参考资料 | 不连接 MCP，也不自动注册 Host |
 
 两种 MCP 都不依赖 Python 或 Node。包管理器本身仍有要求：npm 需要 Node，
@@ -23,8 +23,7 @@ Host 从已注册的 Plugin 缓存中读取 Skills，并按需启动 MCP。
 ## 更新与确认
 
 通过原渠道升级 CLI 后，再运行 `qiongli install plugin`，向导会复用已登记的源目录。
-文件变更和 Host 注册需要分别确认。2.0.0 支持已知 Codex 插件的确认迁移；
-仍在使用 beta.6 时，请先升级 CLI，或手动停用冲突的旧插件。
+文件变更和 Host 注册需要分别确认。已知 Codex 插件可以确认迁移，其他冲突按提示手动处理。
 具体步骤见[安装指南](../guide/cli-2x.md#first-use)。
 
 运行 `qiongli doctor` 和 `qiongli install list` 检查注册，然后新开 Host 会话，

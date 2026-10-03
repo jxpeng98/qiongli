@@ -1,50 +1,26 @@
-# 2.x quickstart
+# Quickstart
 
-Download the [native archive](guide/cli-2x.md#standalone-binary-download) for your
-system, extract it, and run `./qiongli --version` in a terminal. On Windows, use
-`.\qiongli.exe --version`. The executable includes its research resources; no separate
-Python, Node.js or Rust runtime is needed. The [installation guide](guide/cli-2x.md)
-also gives the requirements and commands for each package-manager channel.
+## 1. Install and connect your Host
 
-## Check the installation
-
-After adding the executable to PATH, run:
+Download the program or choose a package manager from the [installation guide](guide/install.md). Run in a terminal:
 
 ```sh
-qiongli doctor
-qiongli setup
-qiongli content
-qiongli project
+qiongli install
+qiongli mcp check
 ```
 
-`setup` reviews other visible CLI copies without deleting or moving them.
-`project` lists registered research projects; use `qiongli help project create`
-for creation options. Preserve project files and backups before updating packages.
-Removing an application package is not research-data cleanup.
+Use `./qiongli` if it is not on PATH, or `.\qiongli.exe` in PowerShell. Choose Plugin and your Host, then confirm the file changes and registration separately.
 
-## Use a Host
+## 2. Start a research task
 
-In a terminal, run `qiongli install`. The recommended Plugin includes Skills,
-the native program and Full MCP; no separate Skills or MCP package is needed.
-Choose the Host and review the destination, file plan and separate registration
-confirmation. Later `install plugin` runs discover the registered source. See the
-[complete example](guide/cli-2x.md#install-and-upgrade-bundled-content).
+Open a new Host session. Ask it to list Qiongli tools and call `qiongli_config_status`, then try:
 
-Run `qiongli mcp check` for a local protocol check. This does not verify that the
-Host has loaded the Plugin.
+> Read this paper. Explain the findings, point to the evidence and flag what remains uncertain.
 
-Start a new Host session after updating and confirm that its tools are available.
-Then ask for the work directly, such as “Read this paper and explain its findings
-and evidence limits.” New Codex Plugin builds also expose `$qiongli-paper-read`.
-The entry loads shared guidance and the relevant workflow; it does not restart
-the entire research lifecycle.
+In Codex, use `$qiongli-paper-read` or describe the task naturally. Start from the material you have; see [research tasks](guide/task-recipes.md).
 
-## Save and continue
+## 3. Save and continue
 
-Review proposed changes before saving. Graph rebuilds canonical records; ordinary
-notes need Host-assisted normalization into source-bound records first. At a stage
-boundary, request a summary that preserves findings, sources and changes.
-Original files remain intact. Any cleanup requires your selection of individual
-files and your own deletion action.
+Review changes before saving. When a stage is complete, ask for a summary with sources, decisions and open questions. Original files stay intact; you select and delete files yourself.
 
-[Graph scope and checks](guide/cli-2x.md#research-graph) · [1.x commands](reference/cli.md)
+To follow links between claims and sources, see the [Research Graph example](examples/research-graph.md) and [CLI commands](guide/cli-2x.md). For a conversation without tools, use `$no-qiongli` or say “reply only”.

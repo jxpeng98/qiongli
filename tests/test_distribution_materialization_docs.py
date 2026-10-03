@@ -129,7 +129,7 @@ class DistributionMaterializationDocsTests(unittest.TestCase):
 
     def test_subject_development_docs_point_to_staged_package_contract_tests(self) -> None:
         docs = {
-            "README.md": README_PATH.read_text(encoding="utf-8"),
+            "docs/development/index.md": (REPO_ROOT / "docs/development/index.md").read_text(encoding="utf-8"),
             "docs/reference/cli.md": CLI_DOC.read_text(encoding="utf-8"),
             "docs/zh/reference/cli.md": CLI_ZH_DOC.read_text(encoding="utf-8"),
         }
