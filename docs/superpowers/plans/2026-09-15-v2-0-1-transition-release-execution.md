@@ -3397,3 +3397,75 @@ observations remain historical; they cannot qualify the new candidate. Source
 push does not authorize a tag, release, registry upload, Marketplace promotion
 or announcement. All 249 task states/dependencies and 46 accepted rows remain
 unchanged.
+
+### October 3 — release blockers repaired; non-publishing qualification
+
+The maintainer requests clearing the blockers and preparing the release. The
+existing 2.2.0 feature freeze and push-without-publication scope continue. Branch
+`fix/2.2-release-blockers` starts at `93333940`; no retrieval-list work is added.
+
+`80c0c305` clears all 18 research-validator failures through the existing owners:
+native guides are checked for current installation, review and approval
+contracts; workflow entries are projected through the shared wrapper and must
+load both the main Skill and their exact route; resource links are checked in
+a temporary package built by the existing canonical materializer. Legacy
+checks remain for legacy layouts. A missing shared Skill, wrong route, missing
+task ID, broken resource or missing guide contract still fails. The root Skill
+adds the missing on-demand coverage reference. Chinese README and bilingual
+Plugin tables now match the 15/33 tool inventory. The full validator finishes
+with **6132 passed, zero failed, 11 warnings**; remaining warnings concern
+optional Skill section/quality guidance and the retained Claude shortcut list.
+
+The prior native failures are separated by observation:
+
+- Running the same compiled binaries against an isolated copy with secure
+  ancestors removes the directory-permission failures. All 21 independent
+  crate/test executables pass; the CLI library initially has 220 passes, four
+  failures and one ignored capacity test.
+- Three process-detection failures disappear when the container has an init
+  process to reap orphan children. The existing fail-closed `/proc` inspection
+  policy is retained, including the ambiguous/exited-main-thread checks.
+- The remaining concurrent-download failure is a real transient-read race:
+  `UpdateStateStore::load` can observe a cooperating writer's recovery file
+  before that writer completes. Fix `6fe18848` waits on the existing private
+  lock and reads again. It never creates a reader lock/root or cleans files;
+  orphan recovery artifacts, lock identity changes and links remain refusals.
+  The lock timeout remains bounded. Deterministic tests cover a held writer,
+  retained recovery with/without a lock, and linked-lock byte preservation.
+
+After that fix, the complete isolated CLI library finishes **224 passed, zero
+failed, one intentionally ignored**. All 46 config unit/integration checks and
+Rust 1.97.0 formatting/headless Clippy pass. The repaired validator/content
+group passes 50 checks, the registry/Cargo/publisher/automation group passes
+72, and the final affected packet/CLI/upgrade-rejection group passes 19.
+These overlap existing development suites and are not a new acceptance count.
+
+`97d8621a` extends the existing installation gate with actual published-package
+upgrades in disposable prefixes. pip starts at 2.1.1 on the three existing
+wheel targets and 1.17.0 on Linux ARM64, where the newer predecessor wheel does
+not exist. npm starts at 2.1.1. Candidate package hashes are checked before any
+installation; invalid packets cannot create output/download roots. Both
+installed candidates pass CLI/MCP checks and retain exact prior note, source
+packet and model/profile fixture bytes. The receipt records predecessor and
+candidate hashes and explicitly excludes live Host or project-format migration
+claims. A development harness smoke using the earlier ARM64 2.1.1 packet passes;
+it is not final 2.2.0 artifact evidence. Cargo qualify/public-install matrices now
+include Ubuntu 22.04 ARM64. Publisher triggers and credentials are unchanged.
+
+The regenerated 446-entry pack is bound to canonical-source commit `80c0c305`:
+content root `2b33122523a39914ae165db736c0e40b66de67e814b527749af49a0c9b9db892`,
+pack SHA-256 `1076790b52a6b4121c1d08f73f3ab571ebe8886a8c98b33ae433ead43b4c80d9`.
+The final integrated commit including this record is the source for hosted
+qualification. Local source blockers are cleared; actual final artifacts and
+cross-platform results must come from that source's Native CI, Native CLI
+distribution and Cargo qualification runs, all dispatched without publication.
+Their exact commit/run IDs and downloadable receipts are supplied by Actions;
+a dispatched run is not a passed gate. If any gate fails, repair and qualify a
+new source commit before a release decision.
+
+No current user directory permissions, profiles/models, installed Host
+configuration, research data, remote rules or protected branches are changed.
+No PR, tag, release, upload or announcement is authorized. All 249 task
+states/dependencies and 46 accepted records remain unchanged. Next increment
+is same-source package/platform qualification, followed by the separately
+authorized stable-main publication decision and public download/install checks.
