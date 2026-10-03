@@ -3643,3 +3643,95 @@ integration retains the requested 2.2.0 copy as post-release preparation. Visual
 review and hosted-site publication are outside this local check.
 The next independent research increment remains reviewed retrieval-manifest
 persistence through the existing capture/preview/approval/CAS owners.
+
+## October 3 — post-2.2.1 reviewed retrieval-manifest persistence
+
+The maintainer selects the next bounded research increment and requests one
+`gpt-6.1-sol / low` verification sub-agent instead of Astra/high-effort verification.
+Branch `feat/retrieval-manifest-persistence` starts from local `2.x` at `e6a6d9d6`.
+Implementation: `41c5e6268d0f6856b6ed9dd625dbf58a62887dc3`. The authorized local
+fast-forward integration follows the final diff review and frozen-source guard.
+A read-only GitHub API check confirms `v2.2.1` published at
+`2026-10-03T17:51:15Z`, with `draft=false` and `prerelease=false`. This supersedes
+the earlier current release-freeze queue, without promoting package/Host or
+academic acceptance. The new option is post-release development, absent from the
+published 2.2.1 binary; package versions and installed profiles remain unchanged.
+
+`--retrieval-manifest-file <absolute-draft.json>` extends existing capture
+consolidation preview/apply. The strict schema-1 draft binds the previous manifest
+hash and 1–64 reviewed attempts using Stage B's eleven columns, plus optional
+saved source-packet and local-fulltext hash bindings. Preview exposes exact
+`retrievalManifestContent`; apply preserves the entire previous CSV byte prefix,
+including CRLF/quoted multiline fields, and appends each attempt separately.
+Native failures and later Host retrievals retain their own rows. Unknown DOI,
+retrieval time, URL, file path and license stay empty; unknown version is explicit.
+Save time, file existence and a packet hash never establish remote identity,
+full-paper reading, license or PDF digest.
+
+The fixed project-root manifest target uses the existing dual approval,
+revision/CAS, receipt and recovery owners. Source files must already exist and
+are revalidated at preview/apply. A source packet must match the row's citekey
+and content-addressed path/hash; it cannot stand in for the fulltext file.
+The manifest keeps the eleven CSV columns, recording bindings in notes. The
+bounded CSV parser is extracted unchanged from the Graph owner; Graph remains a
+projection of its previously registered sources. Unsupported existing headers,
+malformed rows, unsafe paths, missing/drifted sources and oversized inputs refuse.
+The artifact adds a closed receipt variant and permits nine transaction files
+within the existing byte limits. Old receipts and no-option serialization remain
+readable; older binaries cannot consume the new artifact receipts.
+
+Canonical guidance/contracts commit `c20fb50594a05e88238face1aa264d2965447b86`
+binds the regenerated 446-resource pack. Content root:
+`6b35132c0a33c25ea4a5e4cc80d8688cf8d683d1212cf409f39b01fe2e0f4aab`;
+pack: `a9074869c50ab5e82fb595e474f07e734027f91eb89dd68f77134c676a5c6a47`.
+The fulltext-fetcher owns the capability-gated procedure; Stage B and paper reading
+reference it. Bilingual CLI docs explicitly label the development-only option.
+
+The single requested verifier independently reviews production changes and adds
+`cli_retrieval_manifest.rs`, using separate CLI processes and isolated synthetic
+projects. Rust 1.97.0 on Linux ARM64 passes the project library suite (206 tests,
+one existing manual-capacity test ignored), two new CLI journeys, three parser
+checks, the existing copied-binary source-packet journey and the embedded-pack
+check. After the equivalent source-validation let-chain edit, its focused negative
+case passes again. Scoped project/app Clippy with warnings denied passes. Thirty
+focused literature/continuity/resource checks, 19 roadmap/CLI-documentation checks
+and capability validation pass. The generated index is current; all 249 task
+states/dependencies and all 46 accepted ledger rows are unchanged.
+
+Initial project execution has 203 passes and three failures: the old fixed-path
+filter incorrectly classifies the manifest as a Graph semantic artifact. Filtering
+against the existing canonical semantic-artifact registry fixes the shared cause;
+the full project rerun above passes. Two pre-existing guidance assertions expect
+superseded wording; the focused test is aligned with the current evidence-limit,
+source-anchor and no-invention clauses without removing those requirements.
+The initial CLI build correctly rejects the changed content until its lock is
+regenerated. The verifier's first integration run has one fixture failure from
+placing global `--json` before apply flags; correcting that helper gives two
+passes. Clippy additionally requires an equivalent let-chain and boxed preview
+variant, preserving its untagged JSON shape. Failed attempts are retained as
+local diagnostic evidence, not converted into successful observations.
+
+For a bounded public-source observation, the verifier retrieves Crossref metadata
+for DOI `10.1038/nphys1170` at `2026-10-03T22:38:53.560847+00:00`: HTTP 200,
+4,918 raw JSON bytes. Local response/packet SHA-256:
+`921770fcba28cbfe695a01a42af0cd9df9a59ed07842e665e16e455983aa456f`.
+Packet-first save, a reviewed metadata-only retrieval row, and a later note bound
+to both packet and manifest complete through three approved captures, with a new
+CLI process at every step. All three receipts and saved bytes are checked.
+Manifest SHA-256:
+`23bf6bed258e92e428161543d78a8d1ad1dd59dc580ba219e798a34fca097140`.
+This observes metadata persistence and restart, not article-body reading. Local
+fulltext/license fields remain empty; no remote PDF hash or scholarly acceptance
+is claimed. Raw response, drafts, receipts and result remain in the isolated
+`/tmp/qiongli-public-manifest-observation` directory. The observed pre-boxing debug
+binary SHA-256 is
+`f3b56e666ef7583644d72c5f72f7e50c569fe2f117e311cd41ff7f0c43229400`;
+its persisted/JSON contract is unchanged by the later representation-only fix.
+This is a development-source observation, not an installed-package qualification.
+
+Next: qualify the current-package single-Codex reading/save/writing/restart paths
+on selected public papers, then let observed failures select further fixes and
+minimum evidence typing. Full B2, new-answer/domain review, Graph/Hook/browser,
+authenticated providers and additional Hosts retain their separate evidence
+scope. No private-library access, user-model/profile change, remote push,
+publication or task-state/accepted-evidence promotion occurs in this increment.

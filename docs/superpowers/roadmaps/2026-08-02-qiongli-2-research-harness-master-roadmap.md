@@ -54,26 +54,30 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 3, 2026
 
-The 2.1.1 development baseline has the discipline/lifecycle guidance, explicit
-C/E/F decision contracts, five-provider discovery, public fulltext reader and
-on-demand source-bound review increments recorded in the
-[current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md).
-The **October 3 public Host source-packet journey** exercises the existing
-reviewed raw-JSON persistence and later note append at successive revisions.
-Native fulltext refresh is blocked before a request by DNS safety; the coordinator
-separately obtains public body text through the available Host reader, retaining
-both provenance records and the missing new PDF digest. Actual lightweight Codex
-author/recovery processes verify saved bytes, source bindings and both receipts;
-the original packet, note prefix and claim IDs remain intact. Exact identities,
-failed attempts, independent review scope and limits belong in the current plan
-and CLI-405's ledger record. The next bounded increment is reviewed persistence
-of `retrieval_manifest.csv` through existing capture/preview/approval/CAS owners,
-reusing Stage B's per-attempt schema and preserving prior rows. Distinguish failed
-native attempts from Host retrieval, bind available saved packets, and keep
-unknown dates, versions, licenses and PDF hashes explicit. Do not infer missing
-metadata from a successful save. Complete reading, Graph/expert acceptance,
-signed publisher redirects and installed/authenticated qualification remain
-separately scoped.
+The released baseline is **2.2.1**. A read-only GitHub API observation confirms
+[v2.2.1](https://github.com/jxpeng98/qiongli/releases/tag/v2.2.1) was published on
+October 3 at 17:51:15 UTC as a non-draft stable release. Its documentation and
+Linux build-environment changes retain the 2.2 research capabilities. This
+publication observation supersedes the earlier release-freeze queue; it does not
+establish new registry-install, live Host or academic acceptance.
+
+The selected post-release increment implements reviewed persistence/history of
+`retrieval_manifest.csv` through the existing capture, exact preview, dual
+approval, revision/CAS and receipt owners. It reuses Stage B's eleven columns,
+preserves prior bytes and separate retrieval attempts, binds already saved source
+packets, and leaves unknown timestamps, versions, licenses and PDF hashes
+explicit. A single `gpt-6.1-sol / low` sub-agent owns independent verification as
+requested by the maintainer. The current execution plan records checks, initial
+failures, public-source observation scope and remaining gaps. New guidance is
+capability-gated; the published 2.2.1 CLI does not contain this development option.
+
+The next bounded outcome is a current-package Codex research journey: read one
+public paper, review/save its evidence and retrieval history, continue into a
+source-bound passage, then reopen and detect changed sources without losing
+history. First qualify these single-Host paths and fix demonstrated failures;
+use observed evidence gaps to select later minimum Kernel/Evidence work. Complete
+B2, blind/domain review, Graph/Hook/browser behavior, signed publisher redirects
+and installed/authenticated qualification retain their own evidence scope.
 
 Use existing canonical content, source/review bindings, native provider/runtime,
 project preview/approval/CAS and evaluation owners. One coordinator integrates
@@ -97,14 +101,14 @@ development and verification Host. Retain the user's configured models and
 accounts; additional Hosts adapt the shared contracts with scoped observations.
 Desktop/ACP remains maintenance/deferred scope.
 [ADR 0229](../../architecture/decisions/0229-plugin-v1-transition-and-2-1-cutoff.md)
-sets the transition boundary: 2.0.1 retains Next/v1; 2.1 is the planned v1 output
-cutoff and channel-specific identity release. It supersedes ADR 0228's immediate
+records the transition boundary: 2.0.1 retained Next/v1; the current 2.1+
+line uses channel-specific identities and v2 output. It supersedes ADR 0228's immediate
 switch, preserving verified old-receipt migration and recovery. The current plan
 owns execution and evidence; the decision does not establish release acceptance.
 [ADR 0231](../../architecture/decisions/0231-hosted-three-platform-verification.md)
 supersedes ADR 0230 and restores standard hosted macOS/Linux/Windows checks.
-The exact-source three-target release gate remains required; local checks are
-optional. The proposed removal of the remote macOS context is withdrawn.
+Release qualification follows the current four native targets (Linux x64/ARM64,
+macOS ARM64 and Windows x64); focused local checks do not establish that gate. The proposed removal of the remote macOS context is withdrawn.
 
 ### Baseline and corrections to the earlier recommendation
 
@@ -148,13 +152,14 @@ optional. The proposed removal of the remote macOS context is withdrawn.
 | **IMPLEMENTED ARCHITECTURE FIX** | Register existing ADRs 0226/0227 and check the current CLI-first overview; all 23 architecture checks pass. | Implementation `c91773e5`; existing registry/tests. Accepted ADRs, frozen ARC-201 records and negative inventory checks are preserved. |
 | **IMPLEMENTED PLUGIN MIGRATION** | Select qiongli for stable and qiongli-next for Alpha/Beta; migrate the previous local ID through confirmed Host operations while retaining legacy receipts/caches. | `CLI-403` / `CLI-410`, implementation `dc2500c3` and ADR 0228. Isolated real Codex migration passes; publication, current user installation and session acceptance remain separate. |
 | **IMPLEMENTED DELIVERY FIX** | Align the delivery command marker and publisher assertion with their existing native/push-only owners, retaining negative checks. | `e6a89ea0` / `f76b406d`; no workflow or authorization relaxation. |
-| **PATCH CANDIDATE** | Compatible main `370e250f` retains Next/v1 and restores hosted three-platform CI. | Prior `789b0bbe` Mac qualification is historical; the changed candidate needs fresh exact-source three-target, Cargo/public and publication evidence. Identity migration stays on `2.x` for 2.1. |
+| **HISTORICAL PATCH CANDIDATE** | Compatible main `370e250f` retains Next/v1 and restores hosted three-platform CI. | Prior `789b0bbe` Mac qualification is historical; the changed candidate needs fresh exact-source three-target, Cargo/public and publication evidence. Identity migration stays on `2.x` for 2.1. |
 | **IMPLEMENTED TRANSITION RELEASE** | Require actual v1/Next package observations, reject mixed IDs and missing evidence, and upload only verified packet artifacts. | Executor gpt-6-astra / low; compatible commits `dc4e83f3`–`0d0a6aba`, reviewed development port `60f2cf37`; ADR 0229/current plan. No blocking findings in this patch scope; no acceptance promotion. |
 | **RESTORED CI POLICY** | Restore hosted macOS/Linux/Windows builds and release gates; local checks are optional. | `9e1f575d` / compatible main `370e250f`, ADR 0231; 158 development and 140 main checks pass. Local-only maintenance patches and the macOS ruleset-removal proposal are withdrawn. No remote action or fresh release qualification. |
 | **IMPLEMENTED LITERATURE** | Relevant discovery → field-preserving BibTeX → receipt-bound Zotero linkage. | `15a8b901` / `423c1cbb`, current plan; maintainer-topic, installed-Host and real-library qualification remain open. |
 | **IMPLEMENTED HOST DELEGATION** | Bound native Host observations to the current candidate and exercise actual subagent collection. | `CLI-405` / preliminary `CLI-406`, implementation `2e4a5c1e`; existing candidate, evidence and checkpoint CAS owners. |
 | **IMPLEMENTED CODEX TRANSPORT** | Prepare configured `codex exec`, then collect a successful source-bound reply through the same delegation contract. | Current plan; Host-owned launch/cancel/cleanup, actual synthetic complete/cancel/timeout/fresh-run observations, changed-source rejection and registered Full MCP candidate acceptance. No persistent-session reconnection, atomic cross-Host claims or collaboration acceptance. |
-| **CURRENT RELEASE FREEZE** | Freeze the existing research features and Linux ARM64 distribution repair as 2.2.0; qualify the release before adding features. Retrieval-list persistence moves to the next version. | `CLI-410`, current transition execution plan and `tooling/release/v2.2.0.md`. Source synchronization is authorized; publication and announcement are separate decisions. Candidate remains Not ready until the same frozen source has the required package and platform evidence. |
+| **RELEASED BASELINE** | 2.2.1 is published on GitHub; retain its 2.2 research capabilities and four-target distribution boundary. Earlier release-freeze records are historical. | `CLI-410`, current execution plan and `tooling/release/v2.2.1.md`. Public Release metadata is observed; no new package, Host or academic acceptance is inferred. |
+| **IMPLEMENTED RETRIEVAL HISTORY** | Append reviewed per-attempt retrieval rows, bind saved source packets, preserve explicit unknowns and resume from saved bytes. | `CLI-405`, existing project/consolidation/storage and Stage B owners. One gpt-6.1-sol / low verifier; current plan owns exact checks and limits. Installed-package qualification follows separately. |
 | **REMAINING BASELINE** | Diagnose remaining full-suite failures in bounded groups; fix demonstrated content defects before expanding observations. | Existing validation/content owners; preserve permission gates and stable/prerelease negatives. No blanket assertion removal or speculative model matrix. |
 | **QUALIFICATION** | Refresh the named installed-package Codex approval/write/restart journey and separately qualify advertised Graph/Hook/browser behavior. | `CLI-403`–`CLI-405`, `SEC-401`–`SEC-403`, `CLI-410`; reuse existing install, approval/CAS and acceptance owners. The previously paused Host-registration lane needs its own resumed scope; independent offline implementation continues. |
 | **AFTER THE BASELINE** | Complete local atomic task claims, candidate review, conflict/cancellation/revocation and restart handling with two actual Hosts. | `CLI-406`–`CLI-408`, then `CLI-411`, under their existing dependencies. `CLI-409` qualifies additional Hosts individually. |
