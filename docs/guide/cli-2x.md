@@ -1,6 +1,6 @@
 # CLI commands
 
-For Qiongli **2.2.0**. Start with [installation](install.md) or the [quickstart](../quickstart.md).
+For Qiongli **2.2.1**. Start with [installation](install.md) or the [quickstart](../quickstart.md).
 
 ## Everyday commands
 
@@ -40,8 +40,8 @@ Choose one channel; see [requirements](install.md#package-managers):
 
 ```sh
 npm install --global qiongli@latest
-python -m pip install --upgrade "qiongli==2.2.0"
-cargo install qiongli --version 2.2.0 --locked
+python -m pip install --upgrade "qiongli==2.2.1"
+cargo install qiongli --version 2.2.1 --locked
 ```
 
 ### Review existing CLI installations {#review-existing-cli-installations}

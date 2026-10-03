@@ -1,6 +1,6 @@
 # CLI 命令
 
-面向穷理 **2.2.0**。初次使用见[安装](install.md)或[快速开始](../quickstart.md)。
+面向穷理 **2.2.1**。初次使用见[安装](install.md)或[快速开始](../quickstart.md)。
 
 ## 常用命令
 
@@ -40,8 +40,8 @@ qiongli doctor --text
 
 ```sh
 npm install --global qiongli@latest
-python -m pip install --upgrade "qiongli==2.2.0"
-cargo install qiongli --version 2.2.0 --locked
+python -m pip install --upgrade "qiongli==2.2.1"
+cargo install qiongli --version 2.2.1 --locked
 ```
 
 ### 检查和迁移已有 CLI {#review-existing-cli-installations}

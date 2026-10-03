@@ -39,10 +39,10 @@ qiongli install plugin --target codex --hooks off
 
 `qiongli install plugin --target deepseek` 选择 profile，预览官方 DSH 命令，确认信任后安装与 CLI 匹配的 npm 版本，并核对注册与内容收据。模型设置保留。
 
-不安装全局 CLI 也可以接入：在 DeepSeek Desktop 的 **Add plugin → Official npm registry** 中填 `qiongli@2.2.0`，或运行：
+不安装全局 CLI 也可以接入：在 DeepSeek Desktop 的 **Add plugin → Official npm registry** 中填 `qiongli@2.2.1`，或运行：
 
 ```sh
-dsh plugin --profile desktop add qiongli@2.2.0
+dsh plugin --profile desktop add qiongli@2.2.1
 ```
 
 把 `desktop` 换成自己的 profile。包内含 22 个 Skill 入口、Full MCP 和对应平台程序。每个 profile 保留一份穷理，重新加载后检查实际工具。

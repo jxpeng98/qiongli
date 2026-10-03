@@ -9,7 +9,7 @@ hero:
       text: 快速开始
       link: /zh/quickstart
     - theme: alt
-      text: 安装 2.2.0
+      text: 安装 2.2.1
       link: /zh/guide/install
 features:
   - title: 解压即用
@@ -22,7 +22,7 @@ features:
 
 ## 按需要查找
 
-本站面向 **2.2.0**。安装后运行 `qiongli install` 接入 Host。
+本站面向 **2.2.1**。安装后运行 `qiongli install` 接入 Host。
 
 | 你想做什么 | 从这里开始 |
 |---|---|

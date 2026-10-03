@@ -45,7 +45,7 @@ QIONGLI_NATIVE_SOURCE_COMMIT="$(git rev-parse HEAD)" cargo run --locked \
   --example export_marketplace_content -- /absolute/new-content-directory
 python3 tooling/scripts/native_marketplace_plugins.py \
   --content-dir /absolute/new-content-directory --out-dir /absolute/new-bundle-directory \
-  --version 2.2.0 --commit "$(git rev-parse HEAD)" \
+  --version 2.2.1 --commit "$(git rev-parse HEAD)" \
   --binary packages/qiongli-native/target/debug/qiongli \
   --target aarch64-apple-darwin --platform deepseek
 ```
@@ -76,8 +76,8 @@ Plugin is not project-write approval. Removal uses the same Host manager:
 `dsh plugin --profile web remove dsh-qiongli-macos-arm64`.
 
 For released 2.1+ versions, the standard `qiongli` npm package also contains this
-bundle. Desktop users enter `qiongli@2.2.0` in Add plugin with Official npm
-registry; local users run `dsh plugin --profile desktop add qiongli@2.2.0`
+bundle. Desktop users enter `qiongli@2.2.1` in Add plugin with Official npm
+registry; local users run `dsh plugin --profile desktop add qiongli@2.2.1`
 (substitute the intended profile). The official manager also accepts the local
 npm `.tgz` path. This retains all 22 Codex-equivalent entries and Full MCP while
 reusing the package's platform-selected executable. No global CLI installation

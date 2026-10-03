@@ -935,11 +935,11 @@ dependencies = [
 
 [[package]]
 name = "qiongli-bounded-alloc"
-version = "2.2.0"
+version = "2.2.1"
 
 [[package]]
 name = "qiongli-config"
-version = "2.2.0"
+version = "2.2.1"
 dependencies = [
  "qiongli-content",
  "qiongli-windows-security",
@@ -954,7 +954,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-content"
-version = "2.2.0"
+version = "2.2.1"
 dependencies = [
  "same-file",
  "semver",
@@ -980,7 +980,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-project"
-version = "2.2.0"
+version = "2.2.1"
 dependencies = [
  "dunce",
  "getrandom 0.3.4",
@@ -998,7 +998,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-runtime"
-version = "2.2.0"
+version = "2.2.1"
 dependencies = [
  "flate2",
  "pdf-extract",
@@ -1016,7 +1016,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-windows-security"
-version = "2.2.0"
+version = "2.2.1"
 
 [[package]]
 name = "quick-xml"

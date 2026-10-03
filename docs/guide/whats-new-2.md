@@ -11,6 +11,13 @@ Qiongli 2.x uses one Rust-native program for the CLI, research guidance and Lite
 | Daily use | More installation options and prescribed sequences | Guided installation; research guidance follows the current task |
 | Records | Workflow files and literature citation discovery | Adds structured records with revision checks, Research Graph and stage handoffs |
 
+## Updated in 2.2.1
+
+This patch reorganizes the English and Chinese guides and moves native release
+qualification to Ubuntu 24.04 runners. Research commands and saved project
+formats are unchanged. See the [2.2.1 release notes](https://github.com/jxpeng98/qiongli/releases/tag/v2.2.1)
+for the package scope and [installation](install.md) for current downloads.
+
 ## Added in 2.2.0
 
 - Read public HTTPS full text with provenance and page or section locations.
