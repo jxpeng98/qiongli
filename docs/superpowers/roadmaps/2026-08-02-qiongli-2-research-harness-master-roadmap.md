@@ -58,15 +58,16 @@ The 2.1.1 development baseline has the discipline/lifecycle guidance, explicit
 C/E/F decision contracts, five-provider discovery, public fulltext reader and
 on-demand source-bound review increments recorded in the
 [current execution plan](../plans/2026-09-15-v2-0-1-transition-release-execution.md).
-The **October 3 registered-note Host continuation** exercises the existing
-reviewed append path with public evidence, coordinator preview/dual approval/CAS
-and a fresh process that verifies saved bytes and source/receipt bindings.
-Its exact identities, successful checks and corrected observation-harness gaps
-belong in the current plan and CLI-405's ledger record. The next bounded
-increment is reviewed persistence of newly retrieved public-body source packets
-inside registered projects, reusing the existing transaction and approval owners.
-Preserve original source bytes, stable claim IDs, citekeys, anchors and reading
-limits; source intake must not imply verified identity, complete reading or Graph
+The **October 3 reviewed source-packet persistence** increment saves exact raw
+retrieval JSON inside registered projects through the existing consolidation
+preview, dual approval, revision, transaction and receipt owners. Original packets
+remain intact; later note/summary captures bind their saved paths and hashes.
+Its source/pack identities, focused checks and limits belong in the current plan
+and CLI-405's ledger record. The next bounded increment is an isolated Codex Host
+journey using newly retrieved public-body passages: review/save the packet, bind
+a note at the new revision, then verify saved bytes and source/receipt bindings
+after restart. Preserve stable claim IDs, citekeys, anchors and reading limits.
+JSON storage does not establish verified identity, complete reading or Graph
 acceptance. Signed publisher redirects, installed-Plugin and authenticated-provider
 qualification remain separately scoped.
 

@@ -2969,3 +2969,83 @@ checks pass. All 249 task states/dependencies and 46 accepted rows remain
 unchanged; only CLI-405 progress is updated. The frozen-source guard remains
 required before local integration. The wider validator's previously recorded
 24 unrelated failures and existing Clippy debt are not rerun or claimed resolved.
+
+
+### October 3 — reviewed source-packet persistence
+
+Implementation `102f3adececea5ba0bfb6399168def370d29395e` adds optional
+`--source-packet-file <absolute-draft.json>` to the existing capture consolidation
+preview/apply owner. Strict `SourcePacketDraftV1` binds schema version 1, a
+portable citekey and raw retrieval JSON text in `content`. Validation rejects
+duplicate keys, unknown envelope fields, invalid/empty/scalar JSON, unsafe
+citekeys, non-regular draft files and oversized input. The draft and decoded
+content are each bounded to 4 MiB. This validates storage syntax and identity of
+bytes, not provider provenance or scholarly completeness; raw content is data,
+never instruction or approval authority.
+
+Preview returns exact `sourcePacketContent` and its path/hash delta. Apply saves
+those UTF-8 bytes, including original whitespace, at
+`sources/<citekey>/<sha256(content)>.json`. Existing targets refuse, including
+identical content; changed retrievals create new paths while earlier packets
+remain intact. Both transaction and receipt validation bind the filename to the
+content digest. The closed `source-packet` artifact uses the existing non-replacing
+publication, collision rollback, recovery and dual-approval/CAS owners. No network
+operation, arbitrary destination, dependency or MCP writer is introduced.
+
+`CaptureConsolidationDrafts` groups the four concrete optional documents while
+preserving existing service wrappers and absent-option plan/output serialization.
+An eight-file transaction can compose all optional artifacts within existing
+per-file/aggregate byte limits. Older receipts remain readable; older binaries
+reject the new closed artifact variant. Packets remain outside semantic/Graph
+artifacts. A new packet must be saved before a later current-revision note/summary
+capture can reference it, because those source checks require actual on-disk
+files. Local packet hashes do not independently verify remote PDF bytes, source
+identity, version or reading coverage. External edits are not serialized by the
+Qiongli transaction lock and still require fresh source fingerprints.
+
+The initial project test exposed a real first-save defect: the existing directory
+helper created only the final parent, so absent `sources/<citekey>/` ancestors
+caused `PersistenceFailed(NotFound)`. After tracing all callers, the shared
+`ensure_project_directory_beneath` now creates missing components beneath the
+project and retains each component's existing path/permission/link checks. The
+complete project rerun passes 200 tests, with one existing capacity test ignored.
+Cases include successive immutable packet versions, restart and later note
+binding, source syntax/path/size refusals, changed drafts, missing approvals,
+semantic drift, symlinks, existing identical targets, receipt digest mismatch,
+competing-create preservation and eight-file rollback for new/existing notes.
+
+Three CLI parser tests and 12 focused literature/continuity/resource-link checks
+pass. Project all-target Clippy with warnings denied, formatting and diff checks
+pass. The requested actual `gpt-6.1-sol / low` verifier
+`/root/source_packet_verification` independently reviews final code/contracts and
+runs five copied-CLI journeys plus the embedded-pack/Lite-registry contract; all
+pass without actionable findings. The earlier interrupted verifier authored the
+new CLI case but did not execute it. These isolated synthetic processes check
+exact Unicode/whitespace bytes, approval/stale-plan/lock refusals, old-packet
+retention, receipts and fresh-process reads; they are not public-paper or
+installed-Host qualification. No actual source authenticity or expert acceptance
+is inferred from tests or review.
+
+Successful native checks use explicit Rust 1.99.0. An initial default-toolchain
+command triggered rustup's automatic 1.97.0 installation and was interrupted
+without test evidence; no toolchain configuration was edited. The existing
+platform `fetch_update` deprecation remains visible. The broader CLI Clippy debt
+and wider research validator's previously recorded 24 unrelated failures are not
+rerun or claimed resolved.
+
+Canonical guidance/contracts commit
+`9b91d7abe2034f637f39f0cedbe3d5fc9172f729` supplies the regenerated 446-resource
+pack in the implementation candidate. Content root:
+`e5d73c9c1348051b7c2a04b30e11dee537988734cb7ac6c69c44ae13fc74f81d`;
+pack: `1d5afc44f2e0a9ecd60b72713d99862861aa2f3861d2d8570dcc50c5828a5ca9`.
+The reading guide explains actual evidence-bearing capture intake, exact preview
+and byte verification, separate local/remote hashes, retained source limits and
+the packet-first, later-note sequence. No installed Qiongli profile/model, private
+research library or publication changes occur. The next bounded increment is an
+isolated public-paper Host run: retrieve new body excerpts, review/save the raw
+packet, bind a later note, and verify both from a fresh process. Signed redirects,
+authenticated-provider qualification and program acceptance remain separate.
+Seven roadmap checks, generated-index consistency, ledger invariance and diff
+checks pass. All 249 task states/dependencies and 46 accepted rows remain
+unchanged, with only CLI-405 progress updated. The frozen-source guard remains
+required before local integration; local checks do not establish acceptance.
