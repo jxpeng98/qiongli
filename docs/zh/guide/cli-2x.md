@@ -81,8 +81,8 @@ Marketplace 平台包相应使用 `qiongli-macos-arm64` 等正式版 ID，以及
 | 入口 | 内容与接入 |
 |---|---|
 | CLI 包 | 原生程序，包含研究资源与 MCP 实现；不会自动配置 Host |
-| CLI 安装的 Plugin | Skills + 原生程序 + Full MCP 配置，32 个工具 |
-| 原生 Marketplace 平台 Plugin | Skills + 原生程序 + Lite MCP 配置，14 个工具 |
+| CLI 安装的 Plugin | Skills + 原生程序 + Full MCP 配置，2.2 版本为 33 个工具 |
+| 原生 Marketplace 平台 Plugin | Skills + 原生程序 + Lite MCP 配置，2.2 版本为 15 个工具 |
 | 独立 Skills | 导出指导和参考资料，不提供运行中的 MCP，也不自动注册 Host |
 
 MCP 已编译进 `qiongli`，无需另装服务包。Host 根据 Plugin 的配置启动 stdio 子进程，

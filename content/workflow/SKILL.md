@@ -199,6 +199,8 @@ append safely or propose a diff, and verify the actual write result.
 - For formal tasks, retain required outputs and gates. Inspect relevant
   project-local guidance through `references/platform-routing.md`; subject and
   venue lenses refine the task, not the evidence or permission requirements.
+  Use `references/coverage-matrix.md` when checking which capabilities support
+  the requested task; coverage does not establish completed research evidence.
 - At consequential C/E/F choices, use the three questions in
   `references/academic-output-rubric.md`: what must be decided, what evidence
   settles it, and what can proceed under which conditions. Use the selected

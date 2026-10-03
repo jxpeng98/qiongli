@@ -5,6 +5,7 @@ import argparse
 import json
 import re
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 import yaml
@@ -22,6 +23,8 @@ from qiongli.workflow_contract_doc import generate_workflow_contract_reference
 from scripts.audit_skill_sections import audit_skills
 from scripts.audit_skill_resource_links import audit_package_resource_links
 from scripts.audit_solo_role_gates import audit_solo_role_gates
+from scripts.sync_npm_package_payload import build_materialize_source, fail_if_symlinks
+from tooling.scripts.native_marketplace_plugins import workflow_wrapper_skills
 
 EXPECTED_PAPER_TYPES = {"empirical", "qualitative", "systematic-review", "methods", "theory"}
 EXPECTED_STAGE_IDS = {stage for stage in "ABCDEFGHIJKLM"}
@@ -1088,7 +1091,7 @@ def validate_skill_structure(root: Path, report: ValidationReport) -> None:
 
 
 def validate_generated_skill_docs(root: Path, report: ValidationReport) -> None:
-    generator = (generate_native_skill_docs if (root / 'packages/qiongli-native/Cargo.toml').is_file()
+    generator = (generate_native_skill_docs if is_native_checkout(root)
                  else generate_skill_reference_docs)
     generated = generator(root)
     for relative_path, expected_content in generated.items():
@@ -1845,14 +1848,40 @@ def validate_pipelines(root: Path, report: ValidationReport) -> None:
                         ),
                     )
 
+    validate_workflow_entrypoints(root, report)
+
+
+def is_native_checkout(root: Path) -> bool:
+    return (root / 'packages/qiongli-native/Cargo.toml').is_file()
+
+
+def validate_workflow_entrypoints(root: Path, report: ValidationReport) -> None:
+    native = is_native_checkout(root)
+    wrappers = {}
+    if native:
+        workflow = RepoLayout(root).workflow
+        try:
+            content = {'workflow/' + p.relative_to(workflow).as_posix(): p.read_bytes()
+                       for p in (workflow / 'workflows').glob('*.md')}
+            content['workflow/references/codex-workflow-wrapper.md'] = (
+                workflow / 'references/codex-workflow-wrapper.md').read_bytes()
+            wrappers = workflow_wrapper_skills(content)
+            if not (workflow / 'SKILL.md').is_file():
+                raise ValueError('missing shared SKILL.md')
+        except (OSError, ValueError) as exc:
+            report.check(False, '', f'Native workflow entry projection failed: {exc}')
     for relative_path, expected_ids in WORKFLOW_TASK_EXPECTATIONS.items():
         content = read_text(root, relative_path, report)
         if not content:
             continue
+        slug = Path(relative_path).stem
+        entry = wrappers.get(f'skills/qiongli-{slug}/SKILL.md', b'').decode()
+        shared_reference = ('../qiongli-workflow/SKILL.md' in entry and
+                            f'../qiongli-workflow/workflows/{slug}.md' in entry)
         report.check(
-            "qiongli-workflow" in content,
+            shared_reference if native else "qiongli-workflow" in content,
             f"{relative_path} references global skill",
-            f"{relative_path} missing global skill reference",
+            f"{relative_path} missing global skill or matching workflow reference",
         )
         for task_id in sorted(expected_ids):
             report.check(
@@ -1866,6 +1895,14 @@ def validate_docs(root: Path, report: ValidationReport) -> None:
     for relative_path in ("README.md", "README_CN.md", "CLAUDE.md"):
         content = read_text(root, relative_path, report)
         if not content:
+            continue
+        if is_native_checkout(root) and relative_path != 'CLAUDE.md':
+            prefix = 'docs/zh/' if relative_path == 'README_CN.md' else 'docs/'
+            for token in ('qiongli install', 'qiongli mcp check', 'Lite', 'Full',
+                          prefix + 'guide/cli-2x.md', prefix + 'guide/whats-new-2.md',
+                          prefix + 'advanced/agent-skill-collaboration.md'):
+                report.check(token in content, f'{relative_path} includes {token}',
+                             f'{relative_path} missing native guide contract: {token}')
             continue
         report.check(
             "standards/research-workflow-contract.yaml" in content,
@@ -2089,6 +2126,21 @@ def validate_orchestrator(root: Path, report: ValidationReport) -> None:
 
 
 def validate_guides(root: Path, report: ValidationReport) -> None:
+    if is_native_checkout(root):
+        for path, tokens in {
+            'docs/advanced/agent-skill-collaboration.md': (
+                'model-collaborator', 'templates/agent-handoff.md',
+                'templates/agent-review-packet.md', 'revision', 'preview',
+                'qiongli install plugin --hooks off', 'not-verified'),
+            'docs/guide/cli-2x.md': (
+                'qiongli install plugin', 'qiongli mcp check',
+                'qiongli mcp serve --profile full', 'preview', 'approval', 'revision'),
+        }.items():
+            content = read_text(root, path, report)
+            for token in tokens:
+                report.check(token in content, f'{path} includes {token}',
+                             f'{path} missing native guide contract: {token}')
+        return
     content = read_text(root, "docs/advanced/agent-skill-collaboration.md", report)
     if not content:
         return
@@ -2539,15 +2591,24 @@ def validate_skill_quality_contract(root: Path, report: ValidationReport) -> Non
 
 
 def validate_skill_package_resource_links(root: Path, report: ValidationReport) -> None:
-    for relative_package in ("qiongli-workflow",):
+    with tempfile.TemporaryDirectory(prefix='qiongli-resource-audit-') as temporary:
+        relative_package = 'qiongli-workflow'
         package_dir = root / relative_package
+        if is_native_checkout(root):
+            try:
+                fail_if_symlinks(RepoLayout(root).content)
+                source = build_materialize_source(root, Path(temporary), dry_run=False)
+                package_dir = source / relative_package
+            except (OSError, RuntimeError, ValueError) as exc:
+                report.check(False, '', f'Canonical resource materialization failed: {exc}')
+                return
         report.check(
             package_dir.exists(),
             f"{relative_package} package exists",
             f"{relative_package} package missing",
         )
         if not package_dir.exists():
-            continue
+            return
         missing = audit_package_resource_links(package_dir)
         report.check(
             not missing,

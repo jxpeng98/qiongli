@@ -143,8 +143,8 @@ Choose Skills for guidance files only, or MCP configuration for an existing setu
 | Entry | Contents and connection |
 |---|---|
 | CLI package | Native program with embedded resources and MCP implementation; no automatic Host setup |
-| CLI-installed Plugin | Skills + native program + Full MCP configuration, 32 tools |
-| Native Marketplace platform Plugin | Skills + native program + Lite MCP configuration, 14 tools |
+| CLI-installed Plugin | Skills + native program + Full MCP configuration, 33 tools in 2.2 |
+| Native Marketplace platform Plugin | Skills + native program + Lite MCP configuration, 15 tools in 2.2 |
 | Standalone Skills | Guidance and references; no running MCP or automatic Host registration |
 
 MCP is compiled into `qiongli`; there is no separate server package to install.

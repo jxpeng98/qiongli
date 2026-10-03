@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tempfile
+import shutil
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -11,6 +12,10 @@ from tooling.scripts.validate_research_standard import (
     validate_controller_mode_contracts,
     validate_domain_method_pack_contracts,
     validate_generated_skill_docs,
+    validate_docs,
+    validate_guides,
+    validate_skill_package_resource_links,
+    validate_workflow_entrypoints,
     validate_literature_first_contracts,
     validate_profile_bundle_template,
     validate_quality_gate_contracts,
@@ -18,6 +23,94 @@ from tooling.scripts.validate_research_standard import (
 
 
 class ResearchStandardValidatorTests(unittest.TestCase):
+    def native_fixture(self, root: Path) -> None:
+        repo = Path(__file__).resolve().parents[1]
+        manifest = root / 'packages/qiongli-native/Cargo.toml'
+        manifest.parent.mkdir(parents=True)
+        manifest.touch()
+        shutil.copytree(repo / 'content', root / 'content')
+
+    def test_native_workflows_require_both_shared_skill_and_matching_route(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.native_fixture(root)
+            report = ValidationReport()
+            validate_workflow_entrypoints(root, report)
+            self.assertEqual(report.errors, [])
+            template = root / 'content/workflow/references/codex-workflow-wrapper.md'
+            original = template.read_text()
+            for link in ('../qiongli-workflow/SKILL.md',
+                         '../qiongli-workflow/workflows/{{workflow}}.md'):
+                template.write_text(original.replace(link, 'missing-reference'))
+                report = ValidationReport()
+                validate_workflow_entrypoints(root, report)
+                self.assertTrue(any('missing global skill' in error for error in report.errors))
+            template.write_text(original)
+            workflow = root / 'content/workflow/workflows/paper-read.md'
+            workflow.write_text(workflow.read_text().replace('B2', 'unknown-task'))
+            report = ValidationReport()
+            validate_workflow_entrypoints(root, report)
+            self.assertTrue(any('missing task ID B2' in error for error in report.errors))
+
+    def test_native_resource_audit_materializes_without_requiring_generated_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.native_fixture(root)
+            report = ValidationReport()
+            validate_skill_package_resource_links(root, report)
+            self.assertEqual(report.errors, [])
+            self.assertFalse((root / 'qiongli-workflow').exists())
+            (root / 'content/workflow/references/coverage-matrix.md').unlink()
+            report = ValidationReport()
+            validate_skill_package_resource_links(root, report)
+            self.assertTrue(any('coverage-matrix.md' in error for error in report.errors))
+
+    def test_native_readmes_and_guides_reject_missing_current_contracts(self) -> None:
+        repo = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.native_fixture(root)
+            paths = ('README.md', 'README_CN.md', 'CLAUDE.md',
+                     'docs/advanced/agent-skill-collaboration.md', 'docs/guide/cli-2x.md')
+            for relative in paths:
+                destination = root / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(repo / relative, destination)
+            report = ValidationReport()
+            validate_docs(root, report)
+            validate_guides(root, report)
+            self.assertEqual(report.errors, [])
+            for relative, token, validator in (
+                ('README_CN.md', 'docs/zh/guide/cli-2x.md', validate_docs),
+                ('docs/guide/cli-2x.md', 'qiongli mcp serve --profile full', validate_guides),
+                ('docs/advanced/agent-skill-collaboration.md', 'templates/agent-handoff.md', validate_guides),
+            ):
+                path = root / relative
+                path.write_text(path.read_text().replace(token, 'missing-contract'))
+                report = ValidationReport()
+                validator(root, report)
+                self.assertTrue(any(token in error for error in report.errors))
+
+    def test_legacy_workflow_and_resource_requirements_are_preserved(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            workflow = root / 'qiongli-workflow/workflows/paper-read.md'
+            workflow.parent.mkdir(parents=True)
+            workflow.write_text('B2')
+            with patch('tooling.scripts.validate_research_standard.WORKFLOW_TASK_EXPECTATIONS',
+                       {'.agent/workflows/paper-read.md': {'B2'}}):
+                report = ValidationReport()
+                validate_workflow_entrypoints(root, report)
+                self.assertTrue(any('missing global skill' in error for error in report.errors))
+                workflow.write_text('qiongli-workflow B2')
+                report = ValidationReport()
+                validate_workflow_entrypoints(root, report)
+                self.assertEqual(report.errors, [])
+            shutil.rmtree(root / 'qiongli-workflow')
+            report = ValidationReport()
+            validate_skill_package_resource_links(root, report)
+            self.assertTrue(any('package missing' in error for error in report.errors))
+
     def test_native_docs_use_the_canonical_generator_and_reject_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
