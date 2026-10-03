@@ -16,6 +16,7 @@ for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
         sys.path.insert(0, str(import_root))
 
 from qiongli.skill_docs import generate_skill_reference_docs
+from scripts.generate_skill_docs import generate_skill_reference_docs as generate_native_skill_docs
 from qiongli.source_layout import RepoLayout
 from qiongli.workflow_contract_doc import generate_workflow_contract_reference
 from scripts.audit_skill_sections import audit_skills
@@ -1087,7 +1088,9 @@ def validate_skill_structure(root: Path, report: ValidationReport) -> None:
 
 
 def validate_generated_skill_docs(root: Path, report: ValidationReport) -> None:
-    generated = generate_skill_reference_docs(root)
+    generator = (generate_native_skill_docs if (root / 'packages/qiongli-native/Cargo.toml').is_file()
+                 else generate_skill_reference_docs)
+    generated = generator(root)
     for relative_path, expected_content in generated.items():
         actual_content = read_text(root, relative_path, report)
         if not actual_content:

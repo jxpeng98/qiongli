@@ -135,8 +135,7 @@ def check_cli(executable, *, version, root, env):
 def install_cargo_archives(package_root, receipt, root, env, target_dir):
     source = root / 'cargo-archives'
     source.mkdir()
-    patches = []
-    application = None
+    crates = {}
     for artifact in receipt['artifacts']:
         if not artifact['file'].endswith('.crate'):
             continue
@@ -146,14 +145,26 @@ def install_cargo_archives(package_root, receipt, root, env, target_dir):
         crate = source / path.name.removesuffix('.crate')
         package = tomllib.loads((crate / 'Cargo.toml').read_text())['package']
         assert package['version'] == receipt['version']
-        if package['name'] == 'qiongli':
-            application = crate
-        else:
-            patches.append(f'{json.dumps(package["name"])} = {{ path = {json.dumps(str(crate))} }}')
-    assert application and len(patches) == 8
+        name = package['name']
+        if name in crates or crate.name != f'{name}-{receipt["version"]}':
+            raise ValueError('duplicate or misnamed Cargo archive')
+        crates[name] = crate
+    if 'qiongli' not in crates:
+        raise ValueError('missing qiongli Cargo archive')
+    application = crates['qiongli']
+    lock_path = application / 'Cargo.lock'
+    # Cargo's packaged lockfile owns the dependency closure, including optional
+    # platform crates. Do not freeze the check to a historical workspace size.
+    locked = [package for package in tomllib.loads(lock_path.read_text())['package']
+              if package['name'] == 'qiongli' or package['name'].startswith('qiongli-')]
+    if ({package['name'] for package in locked} != set(crates)
+            or len(locked) != len(crates)
+            or any(package['version'] != receipt['version'] for package in locked)):
+        raise ValueError('Cargo archives do not match the application lockfile closure')
+    patches = [f'{json.dumps(name)} = {{ path = {json.dumps(str(crate))} }}'
+               for name, crate in sorted(crates.items()) if name != 'qiongli']
     config = root / 'cargo-archive-patches.toml'
     config.write_text('[patch.crates-io]\n' + '\n'.join(patches) + '\n')
-    lock_path = application / 'Cargo.lock'
     sections = lock_path.read_text().split('[[package]]')
     for index, section in enumerate(sections):
         if re.search(r'^name = "qiongli-[^"]+"$', section, re.M):

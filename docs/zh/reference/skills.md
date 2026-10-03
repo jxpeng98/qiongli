@@ -1,6 +1,6 @@
 # Skills 指南
 
-> 本页由 `python3 scripts/generate_skill_docs.py` 根据 `content/skills/registry.yaml` 生成。
+> 本页由 `python3 scripts/generate_skill_docs.py` 根据 `content/skills/registry.yaml` 自动生成。
 > 需要修改时，请更新注册信息或生成器，再重新生成本页。
 
 在 Host 中描述研究任务，或选择列表中可见的 Qiongli Skill 即可开始。

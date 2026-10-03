@@ -3,12 +3,14 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from scripts.validate_research_standard import (
+from tooling.scripts.validate_research_standard import (
     ValidationReport,
     validate_boundary_review,
     validate_controller_mode_contracts,
     validate_domain_method_pack_contracts,
+    validate_generated_skill_docs,
     validate_literature_first_contracts,
     validate_profile_bundle_template,
     validate_quality_gate_contracts,
@@ -16,6 +18,39 @@ from scripts.validate_research_standard import (
 
 
 class ResearchStandardValidatorTests(unittest.TestCase):
+    def test_native_docs_use_the_canonical_generator_and_reject_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest = root / 'packages/qiongli-native/Cargo.toml'
+            manifest.parent.mkdir(parents=True)
+            manifest.touch()
+            relative = 'docs/reference/skills.md'
+            page = root / relative
+            page.parent.mkdir(parents=True)
+            page.write_text('Auto-generated native guide\n')
+            with patch('tooling.scripts.validate_research_standard.generate_native_skill_docs',
+                       return_value={relative: page.read_text()}) as native, \
+                    patch('tooling.scripts.validate_research_standard.generate_skill_reference_docs') as legacy:
+                report = ValidationReport()
+                validate_generated_skill_docs(root, report)
+                self.assertEqual(report.errors, [])
+                native.assert_called_once_with(root)
+                legacy.assert_not_called()
+                page.write_text('Auto-generated stale guide\n')
+                report = ValidationReport()
+                validate_generated_skill_docs(root, report)
+                self.assertTrue(any('out of sync' in error for error in report.errors))
+
+    def test_legacy_docs_keep_the_legacy_generator(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with patch('tooling.scripts.validate_research_standard.generate_native_skill_docs') as native, \
+                    patch('tooling.scripts.validate_research_standard.generate_skill_reference_docs',
+                          return_value={}) as legacy:
+                validate_generated_skill_docs(root, ValidationReport())
+                legacy.assert_called_once_with(root)
+                native.assert_not_called()
+
     def test_strict_controller_mode_contract_reports_missing_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
