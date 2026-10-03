@@ -568,6 +568,12 @@ Initial candidate-directory creation tolerates a concurrent `AlreadyExists` only
 by revalidating the resulting directory's type, ownership and private permissions.
 It never adopts a link or relaxes the security check.
 
+Update-state reads that encounter transaction artifacts wait on an existing
+writer lock before classifying them as recovery evidence. Reads do not create
+the lock or state root, and retained artifacts still require recovery after the
+lock is released. The existing timeout, private-file checks, inode binding and
+no-follow lock open apply; readers never clean up another writer's files.
+
 Legacy Desktop rollback now restores the old application without clearing the active
 transaction or deleting its evidence. A shared completion step first finishes Host
 reconciliation cleanup, removes the failed application, syncs the transaction directory,

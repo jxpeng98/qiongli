@@ -162,7 +162,17 @@ impl UpdateStateStore {
     pub fn load(&self) -> Result<LoadedUpdateState, ConfigError> {
         #[cfg(unix)]
         {
-            self.load_supported().map(|loaded| loaded.value)
+            let loaded = self.load_supported();
+            if matches!(loaded, Err(ConfigError::RecoveryRequired))
+                && metadata_if_exists(&self.root.state_root().join(LOCK_FILE))?.is_some()
+            {
+                // A cooperating writer can still own these transaction files.
+                // Wait for its existing lock, then distinguish a completed write
+                // from retained recovery evidence. Reads create no lock or root.
+                let _lock = self.acquire_lock_file(false)?;
+                return self.load_supported().map(|loaded| loaded.value);
+            }
+            loaded.map(|loaded| loaded.value)
         }
         #[cfg(not(unix))]
         {
@@ -345,6 +355,11 @@ impl UpdateStateStore {
 
     #[cfg(unix)]
     fn acquire_lock(&self) -> Result<File, ConfigError> {
+        self.acquire_lock_file(true)
+    }
+
+    #[cfg(unix)]
+    fn acquire_lock_file(&self, create: bool) -> Result<File, ConfigError> {
         use std::fs::TryLockError;
         use std::os::unix::fs::OpenOptionsExt;
 
@@ -353,11 +368,12 @@ impl UpdateStateStore {
             validate_private_file(&metadata)?;
         }
         let file = OpenOptions::new()
-            .create(true)
+            .create(create)
             .truncate(false)
             .read(true)
-            .write(true)
+            .write(create)
             .mode(0o600)
+            .custom_flags(rustix::fs::OFlags::NOFOLLOW.bits() as i32)
             .open(&path)
             .map_err(|error| ConfigError::PersistenceFailed {
                 stage: PersistenceStage::AcquireLock,
@@ -948,6 +964,103 @@ mod tests {
         );
         assert_eq!(store.load().unwrap().revision, 1);
         let _ = fs::remove_dir_all(compatibility);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn reader_waits_for_pending_writer_without_creating_or_recovering_files() {
+        use std::sync::mpsc;
+
+        let root = test_root("read-during-write");
+        let compatibility = root.compatibility_root().to_path_buf();
+        let store = UpdateStateStore::new(root, UpdateStreamPreference::Beta);
+        store
+            .replace(0, UpdateState::initial(UpdateStreamPreference::Stable))
+            .unwrap();
+        let original = fs::read(store.state_root().join(UPDATE_STATE_FILE)).unwrap();
+        let lock = store.acquire_lock().unwrap();
+        let recovery = write_private_transaction_file(
+            store.state_root(),
+            RECOVERY_PREFIX,
+            &original,
+            PersistenceStage::CreateRecovery,
+        )
+        .unwrap();
+        let reader = store.clone();
+        let (sender, receiver) = mpsc::channel();
+        let handle = std::thread::spawn(move || sender.send(reader.load()).unwrap());
+        assert!(matches!(
+            receiver.recv_timeout(Duration::from_millis(50)),
+            Err(mpsc::RecvTimeoutError::Timeout)
+        ));
+        fs::remove_file(recovery).unwrap();
+        drop(lock);
+        assert_eq!(
+            receiver
+                .recv_timeout(Duration::from_secs(2))
+                .unwrap()
+                .unwrap()
+                .revision,
+            1
+        );
+        handle.join().unwrap();
+        assert_eq!(
+            fs::read(store.state_root().join(UPDATE_STATE_FILE)).unwrap(),
+            original
+        );
+        fs::remove_dir_all(compatibility).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn reader_preserves_orphan_recovery_with_or_without_an_existing_lock() {
+        let root = test_root("orphan-read");
+        let compatibility = root.compatibility_root().to_path_buf();
+        let store = UpdateStateStore::new(root, UpdateStreamPreference::Beta);
+        store
+            .replace(0, UpdateState::initial(UpdateStreamPreference::Stable))
+            .unwrap();
+        let recovery = write_private_transaction_file(
+            store.state_root(),
+            RECOVERY_PREFIX,
+            ABSENT_RECOVERY_MARKER,
+            PersistenceStage::CreateRecovery,
+        )
+        .unwrap();
+        assert_eq!(store.load(), Err(ConfigError::RecoveryRequired));
+        fs::remove_file(store.state_root().join(LOCK_FILE)).unwrap();
+        assert_eq!(store.load(), Err(ConfigError::RecoveryRequired));
+        assert!(!store.state_root().join(LOCK_FILE).exists());
+        assert_eq!(fs::read(recovery).unwrap(), ABSENT_RECOVERY_MARKER);
+        fs::remove_dir_all(compatibility).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn reader_rejects_a_linked_lock_without_touching_its_target() {
+        use std::os::unix::fs::symlink;
+
+        let root = test_root("linked-read-lock");
+        let compatibility = root.compatibility_root().to_path_buf();
+        let store = UpdateStateStore::new(root, UpdateStreamPreference::Beta);
+        store
+            .replace(0, UpdateState::initial(UpdateStreamPreference::Stable))
+            .unwrap();
+        write_private_transaction_file(
+            store.state_root(),
+            RECOVERY_PREFIX,
+            ABSENT_RECOVERY_MARKER,
+            PersistenceStage::CreateRecovery,
+        )
+        .unwrap();
+        let target = store.state_root().join("keep-user-bytes");
+        fs::write(&target, b"untouched").unwrap();
+        let lock = store.state_root().join(LOCK_FILE);
+        fs::remove_file(&lock).unwrap();
+        symlink(&target, &lock).unwrap();
+        assert!(store.load().is_err());
+        assert_eq!(fs::read(target).unwrap(), b"untouched");
+        fs::remove_dir_all(compatibility).unwrap();
     }
 
     #[cfg(unix)]
