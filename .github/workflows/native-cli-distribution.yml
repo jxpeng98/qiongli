@@ -75,9 +75,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+        env:
+          # The 24.04 host cache contains Python linked against glibc 2.38.
+          # An empty cache makes setup-python select the 22.04 build for this container.
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/python-toolcache
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Check Linux build baseline
+        run: |
+          test "$(getconf GNU_LIBC_VERSION)" = 'glibc 2.35'
+          python --version
       - uses: dtolnay/rust-toolchain@1.97.0
         with:
           components: rustfmt, clippy
