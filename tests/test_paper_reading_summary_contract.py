@@ -33,8 +33,10 @@ class PaperReadingSummaryContractTests(unittest.TestCase):
         for token in (
             "literature/paper_reading_summary.md",
             "literature/paper_reading_matrix.md",
-            "evidence_limit: abstract_only",
-            "Do not invent citations, page numbers, sample sizes, methods, results, effect sizes, datasets, author claims, or implications.",
+            "`evidence_limit`: `full_text`, `abstract_only`, `metadata_only`",
+            "An abstract-only note must remain visibly limited",
+            "Never invent citations, anchors, sample sizes, measurement",
+            "procedures, results or implications",
             "direct_evidence",
             "reasonable_inference",
             "unsupported_gap",
@@ -49,9 +51,11 @@ class PaperReadingSummaryContractTests(unittest.TestCase):
             "retrieval_manifest.csv",
             "literature/paper_reading_summary.md",
             "literature/paper_reading_matrix.md",
-            "evidence_limit: abstract_only",
-            "Do not invent citations, page numbers, sample sizes, methods, results, effect sizes, datasets, author claims, or implications.",
-            "Source Anchors",
+            "`evidence_limit`: `full_text`, `abstract_only`, `metadata_only`",
+            "An abstract-only note must remain visibly limited",
+            "Never invent citations, anchors, sample sizes, measurement",
+            "procedures, results or implications",
+            "`source_anchor`",
             "unsupported_gap",
         ):
             self.assertIn(token, content)

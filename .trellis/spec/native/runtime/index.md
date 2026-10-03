@@ -155,8 +155,9 @@ packet instead of overwriting prior material. Transaction and receipt validation
 bind the packet filename to its digest. New packet publication uses the existing
 non-replacing write and collision rollback; the shared directory owner creates
 missing ancestors under the project with each component's existing safety checks.
-The transaction allows up to eight files when composing all optional artifacts,
-within the existing 4 MiB/file and 16 MiB aggregate write limits. Dual approvals,
+Composing packet, note, summary and handoff uses up to eight transaction files
+(nine with the retrieval manifest below), within the existing 4 MiB/file and
+16 MiB aggregate write limits. Dual approvals,
 plan/library/project revision checks and recovery remain unchanged.
 
 `CaptureConsolidationDrafts` groups optional documents; prior API wrappers and
@@ -167,6 +168,43 @@ require files already present, not an in-transaction proposed source. Packets
 remain outside the registered semantic/Graph set; manual edits still require
 fresh source fingerprints. No automatic retrieval, identity verification,
 complete-reading status, new MCP endpoint or separate write store is introduced.
+
+Optional `--retrieval-manifest-file <absolute-draft.json>` extends the same
+owner with `RetrievalManifestDraftV1`: schema version 1, optional `previousSha256`
+and 1–64 reviewed attempts. Attempts use Stage B's eleven columns in camelCase,
+plus optional `sourcePacket` (same-citekey saved packet path/hash) and
+`fulltextSha256`. Unknown optional metadata stays empty and unknown version is
+`unknown`; save time never supplies retrieval time. Controlled status/version
+values follow `fulltext-fetcher`; storage does not establish report identity,
+license, reading coverage or academic truth. Raw JSON drafts reject duplicate or
+unknown fields and retain the existing 4 MiB regular-file boundary.
+
+Preview returns exact `retrievalManifestContent`. Apply creates or appends only
+project-root `retrieval_manifest.csv`, preserving the previous byte prefix and
+requiring its exact hash for append. The eleven-column CSV reader reuses the
+bounded parser extracted from the existing Graph owner, with identical Graph
+behavior; unknown headers, malformed rows, more than 2,048 attempt rows and fields
+above 8 KiB refuse. Repeated record IDs/citekeys represent separate attempts.
+The writer quotes commas/quotes/newlines and retains failed attempts. Packet
+path/local hash and any local fulltext hash are recorded in the existing notes
+column, with packet hashes explicitly distinct from PDF digests.
+
+Nonempty fulltext paths require a safe existing project-local file and hash;
+source-packet JSON and the manifest itself cannot stand in for fulltext. All
+newly bound sources must already exist, and their bytes are rechecked at preview
+and apply through the 4 MiB/file, 16 MiB aggregate source owner. Earlier rows are
+history, not a claim that their old sources remain current. The manifest remains
+outside the registered semantic/Graph set, so later source-bound work must inspect
+its current hash. External editors are not serialized by the Qiongli lock.
+
+The closed `retrieval-manifest` receipt artifact uses the existing exact plan,
+dual approval, revision/CAS and recovery checks. New-file publication refuses
+replacement and preserves competing files during collision rollback. Composing
+all optional artifacts permits nine transaction files, still within 4 MiB/file
+and 16 MiB aggregate write limits. No-option plan/output bytes and old receipt
+readers remain compatible; older binaries refuse new-artifact receipts. No new
+MCP writer, schema migration, automatic retrieval or scientific acceptance is
+introduced. A later capture can bind a note to the saved manifest after restart.
 
 Academic Graph v1 remains a rebuildable projection over registered canonical
 artifacts. `academic_graph_extract.rs` permits one claim ID/text/type across

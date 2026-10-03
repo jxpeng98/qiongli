@@ -103,6 +103,13 @@ The validator checks this explicit native addition separately from the frozen
 CTR-201 v2/Python Full inventory. Do not imply the retained runtime implements it
 or relax legacy tool equality to admit arbitrary native additions.
 
+The native retrieval-manifest draft and persistence procedure is described once
+by `skills/B_literature/fulltext-fetcher.md`, consumed by Stage B and paper reading.
+It keeps the eleven-column per-attempt CSV contract, explicit unknown metadata,
+separate failed/Host provenance and source-packet/local-fulltext hash distinctions.
+Installed guidance must inspect CLI capability before naming the new option; old
+CLIs return a persistence gap rather than receiving arbitrary direct file writes.
+
 ## Pre-Development Checklist
 
 - Identify the canonical source and every generated consumer.

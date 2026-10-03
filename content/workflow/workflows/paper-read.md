@@ -132,6 +132,15 @@ actual reading coverage in the note. This operation saves a note, not a complete
 B2 artifact set or Graph reconciliation. If the flag is unavailable, return the
 reviewed candidate and the persistence gap without claiming it was saved.
 
+When CLI help advertises `--retrieval-manifest-file`, follow
+`skills/B_literature/fulltext-fetcher.md` to save each reviewed retrieval attempt
+through the same consolidation owner. Bind already saved source packets; retain
+failed native attempts separately from later Host access and leave unknown
+metadata explicit. Review `retrievalManifestContent` and verify saved bytes and
+receipt. A new session can read the retained rows, then bind a later note to the
+current manifest and packet hashes. Changed sources require new review; saved
+history does not restore approval or establish full B2 completion.
+
 For project records, follow `references/academic-graph-continuity.md`: reconcile
 paper/claim candidates into the literature map and evidence ledger, reuse
 citekeys and disambiguate note-local claim IDs. Do not invent clusters or support

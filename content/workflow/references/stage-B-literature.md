@@ -125,6 +125,14 @@ Notes:
 - `version_label`: published / accepted / submitted / abstract-only
 - `source_provider`: Zotero, Unpaywall, CORE, arXiv, PMC, publisher page, etc.
 
+Registered native projects can append reviewed attempts with
+`project capture consolidate preview/apply --retrieval-manifest-file` when the
+CLI advertises it. `skills/B_literature/fulltext-fetcher.md` owns the draft fields,
+source bindings and exact-preview/approval/CAS instructions. Preserve prior rows,
+failed native attempts and separate Host provenance; unknown dates, licenses and
+versions remain explicit. A saved packet hash is not a PDF hash, and a saved
+manifest does not establish complete reading or screening acceptance.
+
 ### Screening logs (recommended tables)
 
 **`screening/title_abstract.md`**

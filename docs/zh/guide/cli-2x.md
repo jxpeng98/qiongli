@@ -88,6 +88,15 @@ CLI 与每个 Plugin 各自携带程序。更新 CLI 后刷新 Plugin，再核�
 
 项目修改需要预览（preview）、授权（approval）和当前修订号（revision）。用 `qiongli project --help` 查看创建、收集、导入、导出等操作，迁移前先读[数据与备份](data-lifecycle.md)。
 
+2.2.1 之后的开发构建支持保存检索历史，先确认
+`qiongli project capture consolidate --help` 列出 `--retrieval-manifest-file`。
+预览绝对路径的 JSON 草稿，核对 `retrievalManifestContent`，再用同一草稿、返回的
+时间与摘要，以及学术审阅和文件写入两项批准提交。草稿包含 `schemaVersion: 1`、
+`previousSha256`（新建为 null，追加为旧文件哈希）和 `attempts`（Stage B 的十一列，
+字段名使用 camelCase）。旧行保持完整，失败尝试与后续 Host 获取分别记录，未知元数据
+明确保留。绑定的来源包必须已经保存，其哈希不代表完整 PDF。新会话可读取这些历史；
+来源变化需要重新审阅。已发布的 2.2.1 CLI 尚无此选项。
+
 其他 MCP 客户端可用程序绝对路径启动：
 
 ```sh

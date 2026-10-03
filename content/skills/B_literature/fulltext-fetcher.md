@@ -143,6 +143,55 @@ The retrieval timestamp and digest identify the observed bytes, not the paper's
 publication date. Use `notes` and existing paper notes for format, digest, identity
 checks, parser warnings, actual sections read and unresolved limits.
 
+### Save reviewed retrieval history
+
+For a registered project, first inspect CLI help. When it exposes
+`--retrieval-manifest-file`, use `project capture consolidate preview/apply`
+with a pending capture at the current project revision. This saves
+`retrieval_manifest.csv` at that registered project root (the selected
+`RESEARCH/[topic]` directory); it does not select another destination.
+
+Supply one absolute UTF-8 JSON draft with `schemaVersion: 1`, `previousSha256`
+(null for a new file, the observed lowercase SHA-256 for append), and `attempts`
+containing 1–64 rows. Each row uses the existing eleven columns in camelCase:
+`recordId`, `citekey`, `doi`, `retrievalStatus`, `versionLabel`, `sourceProvider`,
+`retrievedAt`, `fulltextPath`, `accessUrl`, `license`, and `notes`. All eleven are
+strings; leave unknown DOI, retrieval time, access URL, local fulltext path and
+license empty, and use `versionLabel: "unknown"`. Never substitute the save time
+for an unobserved retrieval time. Use the controlled status/version values above
+and preserve the actual provider/Host and access limits in each attempt.
+
+Optional `sourcePacket` contains `relativePath` and `sha256` for an already saved
+`sources/<citekey>/<sha256>.json` packet with the same citekey. Save that packet
+first through the packet owner described in `workflows/paper-read.md`; a proposed
+packet in the same transaction is not an existing source. The manifest owner
+rechecks the local packet bytes and records its path/hash in the row's `notes`,
+explicitly distinct from a PDF digest. It does not validate remote provenance or
+promote a candidate to retrieved status.
+
+A nonempty `fulltextPath` requires `fulltextSha256` and an actual project-local
+file; an empty path requires an absent/null hash. The packet JSON and retrieval
+manifest cannot serve as that fulltext file. Record actual file format, excerpt
+coverage and source identity limits in `notes`; a file hash alone does not prove
+whole-paper access. Source reads retain 4 MiB/file and 16 MiB aggregate bounds.
+
+Review the exact `retrievalManifestContent`, artifact path/hash delta and capture
+before applying the same draft, returned review timestamp/plan digest, and both
+academic-review and filesystem-write approvals. The resulting CSV retains the
+existing eleven columns and every prior byte; the owner quotes commas, quotes
+and line breaks. It supports the exact header above, up to 2,048 attempt rows,
+8 KiB per field and 4 MiB per file. An unsupported or malformed existing file
+refuses append; do not replace it to make the operation pass.
+
+Keep repeated record IDs/citekeys for separate retrieval attempts. A failed
+native attempt and later Host retrieval remain separate rows; never erase the
+failure or invent a new enum for a network error. Changed draft fields, source bytes or prior
+manifest bytes require a fresh preview. Verify the saved bytes and receipt before
+reporting success. Restart reads the saved history; it does not restore approval.
+This operation does not update screening decisions, bibliography, Graph or the
+rest of B2 automatically. If the flag is unavailable, return the reviewed draft
+and explain the persistence gap.
+
 Mirror access status in `screening/full_text.md` without changing inclusion or
 exclusion. Preserve the reason for every report not retrieved. Retrieval that
 changes an eligibility basis returns to `paper-screener` for reconciliation.

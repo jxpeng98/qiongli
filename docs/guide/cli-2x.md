@@ -88,6 +88,17 @@ The CLI and each Plugin carry separate executables. Refresh the Plugin after upd
 
 Project writes require a preview, approval and current revision. Inspect `qiongli project --help` for create, capture, import, export and other operations. Use [data ownership and backup](data-lifecycle.md) before moving a project.
 
+Development builds after 2.2.1 can save retrieval history when
+`qiongli project capture consolidate --help` lists `--retrieval-manifest-file`.
+Preview an absolute JSON draft, review `retrievalManifestContent`, then apply the
+same draft with the returned timestamp/digest and both approvals. The draft uses
+`schemaVersion: 1`, `previousSha256` (null for create, current hash for append),
+and `attempts` using Stage B's eleven fields in camelCase. Existing rows stay
+intact; failed attempts and later Host retrievals remain separate. Unknown
+metadata stays explicit. Saved packet bindings must already exist, and a packet
+hash does not establish a complete PDF. Reopen the project to read saved history;
+changed sources need fresh review. This option is not in the published 2.2.1 CLI.
+
 For a standalone MCP client, launch the absolute executable path with:
 
 ```sh
