@@ -1856,6 +1856,8 @@ mod summary_transaction_tests {
         assert_eq!(fs::read(&target).unwrap(), update.next_bytes);
         assert_eq!(fs::read(state).unwrap(), b"old state");
         assert!(!root.join(".qiongli/consolidation-transaction").exists());
+        // Windows retains the transaction lock handle until the owner is dropped.
+        drop(transaction);
         fs::remove_dir_all(root).unwrap();
     }
 }

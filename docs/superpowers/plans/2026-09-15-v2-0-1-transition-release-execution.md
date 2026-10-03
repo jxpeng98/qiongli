@@ -3570,3 +3570,30 @@ Manual Native CI has a 120-minute limit because the observed macOS headless
 integration section alone takes roughly 24 minutes before the remaining artifact,
 retained Desktop and capacity checks; the PR limit remains 30 minutes. No checks
 are skipped or made advisory. A new same-source full run is still required.
+
+
+At `1723c349`, four-target CLI distribution/upgrade `37126287836` and Cargo
+qualification `37126289228` pass again with publishing disabled. Native CI
+`37126286375` collects the full Linux and Windows headless suite: two retained
+community-alpha example tests still combine the workspace stable version with
+Alpha; Windows also fails test-directory cleanup while its transaction object
+still owns the file lock. macOS remains unfinished at this integration point.
+
+The alpha note test now uses an explicit alpha fixture. The retained metadata
+signer receives a single internal release identity so its full external-signing
+fixture can remain alpha while the executable still binds its identity to
+`CARGO_PKG_VERSION`; no new command-line version override or stable signing
+permission exists. The fixture verifies stable-version refusal and retains
+signature, grant, stable-stream and nonpublication assertions. The competing
+summary/note/source-packet rollback test drops its transaction lock only after
+its byte-retention and journal-removal assertions, then cleans up on Windows.
+Eleven focused Rust cases, seven version-contract checks, pinned Clippy and
+formatting pass. No content-pack or product runtime behavior changes.
+
+Locked frontend checks also pass locally: App API type checking and 38 tests;
+Svelte checking with zero errors/warnings, 254 passing tests (one skipped),
+production bundle validation; and 82 retained npm tests. These local results do
+not replace the final same-source hosted native/desktop checks. All candidate
+source changes still require a completed new Native CI run and rebuilt four-target
+CLI/Cargo qualification before declaring the installation release ready. Push is
+authorized; tagging, publishing and public registry confirmation remain separate.

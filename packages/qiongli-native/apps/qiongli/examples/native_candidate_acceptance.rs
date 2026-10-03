@@ -2866,11 +2866,10 @@ mod tests {
 
     #[test]
     fn release_notes_bind_the_exact_current_target_and_limitations() {
-        let artifact = current_target_native_artifact_identity(
-            env!("CARGO_PKG_VERSION"),
-            ReleaseChannel::Alpha,
-        )
-        .expect("current target must be supported");
+        // This retained acceptance owner only renders community-alpha notes.
+        let artifact =
+            current_target_native_artifact_identity("2.0.0-alpha.1", ReleaseChannel::Alpha)
+                .expect("current target must be supported");
         let artifact_id = native_artifact_id(&artifact).expect("artifact ID must be valid");
         let archive_name =
             native_portable_archive_file_name(&artifact).expect("archive name must be valid");

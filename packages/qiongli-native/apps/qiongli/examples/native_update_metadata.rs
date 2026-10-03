@@ -19,21 +19,36 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-const SIGNED_ARCHIVE_FILE: &str =
-    concat!("Qiongli-", env!("CARGO_PKG_VERSION"), "-macOS-arm64.zip");
 const DESKTOP_MANIFEST_FILE: &str = "qiongli-desktop-package.manifest.json";
-const SIGNING_RECEIPT_FILE: &str = concat!(
-    "qiongli-desktop-",
-    env!("CARGO_PKG_VERSION"),
-    "-macos-aarch64.signing.receipt.json"
-);
 const UPDATE_METADATA_FILE: &str = "macos-aarch64.json";
 const UPDATE_RECEIPT_FILE: &str = "qiongli-native-update-metadata.receipt.json";
-const RELEASE_ROOT: &str = concat!(
-    "https://github.com/jxpeng98/qiongli/releases/download/v",
-    env!("CARGO_PKG_VERSION")
-);
+
+struct ReleaseIdentity<'a> {
+    version: &'a str,
+    archive_file: String,
+    signing_receipt_file: String,
+    release_root: String,
+}
+
+impl<'a> ReleaseIdentity<'a> {
+    fn new(version: &'a str) -> Self {
+        Self {
+            version,
+            archive_file: format!("Qiongli-{version}-macOS-arm64.zip"),
+            signing_receipt_file: format!(
+                "qiongli-desktop-{version}-macos-aarch64.signing.receipt.json"
+            ),
+            release_root: format!(
+                "https://github.com/jxpeng98/qiongli/releases/download/v{version}"
+            ),
+        }
+    }
+
+    fn url(&self, file_name: &str) -> String {
+        format!("{}/{file_name}", self.release_root)
+    }
+}
+
 const ALLOWED_DOWNLOAD_HOSTS: &[&str] = &[
     "github.com",
     "objects.githubusercontent.com",
@@ -51,10 +66,11 @@ fn main() {
 }
 
 fn run() -> Result<(), &'static str> {
+    let release = ReleaseIdentity::new(env!("CARGO_PKG_VERSION"));
     match Command::parse(env::args_os().skip(1))? {
-        Command::PrepareGrants(arguments) => prepare_grants(&arguments),
-        Command::PrepareManifest(arguments) => prepare_manifest(&arguments),
-        Command::Finalize(arguments) => finalize(&arguments),
+        Command::PrepareGrants(arguments) => prepare_grants(&arguments, &release),
+        Command::PrepareManifest(arguments) => prepare_manifest(&arguments, &release),
+        Command::Finalize(arguments) => finalize(&arguments, &release),
     }
 }
 
@@ -280,7 +296,7 @@ struct FinalizationReceiptV1<'a> {
     status: &'static str,
     publication_allowed: bool,
     source_commit: &'a str,
-    version: &'static str,
+    version: &'a str,
     stream: NativeUpdateStream,
     generation: u64,
     authority_sha256: &'a str,
@@ -357,15 +373,19 @@ struct AuthorityEvidence {
     sha256: String,
 }
 
-fn prepare_grants(arguments: &PrepareGrantsArguments) -> Result<(), &'static str> {
+fn prepare_grants(
+    arguments: &PrepareGrantsArguments,
+    release: &ReleaseIdentity<'_>,
+) -> Result<(), &'static str> {
     validate_timestamps(
         arguments.published_at_unix,
         arguments.not_before_unix,
         arguments.expires_at_unix,
     )?;
-    let evidence = load_artifact_evidence(&arguments.signed_artifact_dir)?;
+    let evidence = load_artifact_evidence(&arguments.signed_artifact_dir, release)?;
     let authority = load_authority(
         &arguments.authority,
+        release,
         arguments.generation,
         &arguments.release_key_id,
         &arguments.launch_key_id,
@@ -426,13 +446,17 @@ fn build_grant_request(
     })
 }
 
-fn prepare_manifest(arguments: &PrepareManifestArguments) -> Result<(), &'static str> {
+fn prepare_manifest(
+    arguments: &PrepareManifestArguments,
+    release: &ReleaseIdentity<'_>,
+) -> Result<(), &'static str> {
     let grant_request_bytes = read_input_file(&arguments.grant_request, MAX_REQUEST_BYTES)?;
     let grant_request =
         parse_canonical_json::<GrantSigningRequestV1>(&grant_request_bytes, "grant-request")?;
-    let evidence = load_artifact_evidence(&arguments.signed_artifact_dir)?;
+    let evidence = load_artifact_evidence(&arguments.signed_artifact_dir, release)?;
     let authority = load_authority(
         &arguments.authority,
+        release,
         grant_request.generation,
         &grant_request.release_key_id,
         &grant_request.launch_key_id,
@@ -473,7 +497,7 @@ fn prepare_manifest(arguments: &PrepareManifestArguments) -> Result<(), &'static
             })
         })
         .collect::<Result<Vec<_>, &'static str>>()?;
-    let manifest = build_update_manifest(&grant_request, &evidence, client_plugins);
+    let manifest = build_update_manifest(&grant_request, &evidence, client_plugins, release);
     let preimage = native_update_manifest_signing_bytes(&manifest)
         .map_err(|_| "native-update-manifest-invalid")?;
     let request = ManifestSigningRequestV1 {
@@ -497,6 +521,7 @@ fn build_update_manifest(
     request: &GrantSigningRequestV1,
     evidence: &ArtifactEvidence,
     client_plugins: Vec<NativeClientPluginGrantV1>,
+    release: &ReleaseIdentity<'_>,
 ) -> NativeUpdateManifestV1 {
     NativeUpdateManifestV1 {
         schema_version: 1,
@@ -504,17 +529,17 @@ fn build_update_manifest(
         generation: request.generation,
         artifact: evidence.summary.artifact.clone(),
         source_commit: evidence.summary.source_commit.clone(),
-        minimum_updater_version: VERSION.to_string(),
+        minimum_updater_version: release.version.to_string(),
         archive_file_name: evidence.summary.archive_file_name.clone(),
-        archive_url: release_url(&evidence.summary.archive_file_name),
+        archive_url: release.url(&evidence.summary.archive_file_name),
         archive_size_bytes: evidence.summary.archive_size_bytes,
         archive_sha256: evidence.summary.archive_sha256.clone(),
         desktop_manifest_file_name: evidence.summary.desktop_manifest_file_name.clone(),
-        desktop_manifest_url: release_url(&evidence.summary.desktop_manifest_file_name),
+        desktop_manifest_url: release.url(&evidence.summary.desktop_manifest_file_name),
         desktop_manifest_size_bytes: evidence.summary.desktop_manifest_size_bytes,
         desktop_manifest_sha256: evidence.summary.desktop_manifest_sha256.clone(),
         signing_receipt_file_name: evidence.summary.signing_receipt_file_name.clone(),
-        signing_receipt_url: release_url(&evidence.summary.signing_receipt_file_name),
+        signing_receipt_url: release.url(&evidence.summary.signing_receipt_file_name),
         signing_receipt_size_bytes: evidence.summary.signing_receipt_size_bytes,
         signing_receipt_sha256: evidence.summary.signing_receipt_sha256.clone(),
         resource_pack_sha256: evidence.summary.resource_pack_sha256.clone(),
@@ -526,13 +551,17 @@ fn build_update_manifest(
     }
 }
 
-fn finalize(arguments: &FinalizeArguments) -> Result<(), &'static str> {
+fn finalize(
+    arguments: &FinalizeArguments,
+    release: &ReleaseIdentity<'_>,
+) -> Result<(), &'static str> {
     let request_bytes = read_input_file(&arguments.manifest_request, MAX_REQUEST_BYTES)?;
     let request =
         parse_canonical_json::<ManifestSigningRequestV1>(&request_bytes, "manifest-request")?;
-    let evidence = load_artifact_evidence(&arguments.signed_artifact_dir)?;
+    let evidence = load_artifact_evidence(&arguments.signed_artifact_dir, release)?;
     let authority = load_authority(
         &arguments.authority,
+        release,
         request.manifest.generation,
         &request.release_key_id,
         &request.launch_key_id,
@@ -549,7 +578,7 @@ fn finalize(arguments: &FinalizeArguments) -> Result<(), &'static str> {
     let context = NativeUpdateVerificationContext {
         now_unix: request.manifest.not_before_unix,
         last_accepted_generation: request.manifest.generation.saturating_sub(1),
-        current_version: VERSION,
+        current_version: release.version,
         selected_stream: NativeUpdateStream::Beta,
         expected_macos_team_id: &request.manifest.macos_team_id,
         allowed_download_hosts: ALLOWED_DOWNLOAD_HOSTS,
@@ -618,7 +647,7 @@ fn write_final_outputs(
         status: "signed-verified-nonpublishing",
         publication_allowed: false,
         source_commit: &request.manifest.source_commit,
-        version: VERSION,
+        version: &request.manifest.artifact.version,
         stream: NativeUpdateStream::Beta,
         generation: request.manifest.generation,
         authority_sha256: &request.authority_sha256,
@@ -752,6 +781,7 @@ fn validate_manifest_request(
 
 fn load_authority(
     path: &Path,
+    release: &ReleaseIdentity<'_>,
     generation: u64,
     release_key_id: &str,
     launch_key_id: &str,
@@ -760,7 +790,7 @@ fn load_authority(
     let authority =
         NativeReleaseAuthority::from_json(&bytes).map_err(|_| "native-update-authority-invalid")?;
     authority
-        .validate_product_version(VERSION)
+        .validate_product_version(release.version)
         .map_err(|_| "native-update-authority-version-invalid")?;
     if authority.channel() != ReleaseChannel::Alpha
         || generation < authority.minimum_release_generation()
@@ -793,7 +823,10 @@ fn load_authority(
     })
 }
 
-fn load_artifact_evidence(path: &Path) -> Result<ArtifactEvidence, &'static str> {
+fn load_artifact_evidence(
+    path: &Path,
+    release: &ReleaseIdentity<'_>,
+) -> Result<ArtifactEvidence, &'static str> {
     validate_input_directory(path)?;
     let desktop_manifest_bytes =
         read_input_file(&path.join(DESKTOP_MANIFEST_FILE), MAX_SIDECAR_BYTES)?;
@@ -802,14 +835,14 @@ fn load_artifact_evidence(path: &Path) -> Result<ArtifactEvidence, &'static str>
         "desktop-manifest",
     )?;
     let signing_receipt_bytes =
-        read_input_file(&path.join(SIGNING_RECEIPT_FILE), MAX_SIDECAR_BYTES)?;
+        read_input_file(&path.join(&release.signing_receipt_file), MAX_SIDECAR_BYTES)?;
     let receipt = serde_json::from_slice::<MacosUpdateSigningReceiptV1>(&signing_receipt_bytes)
         .map_err(|_| "native-update-signing-receipt-invalid")?;
     let (archive_size_bytes, archive_sha256) =
-        sha256_file(&path.join(SIGNED_ARCHIVE_FILE), MAX_ARCHIVE_BYTES)?;
+        sha256_file(&path.join(&release.archive_file), MAX_ARCHIVE_BYTES)?;
     let desktop_manifest_sha256 = sha256_hex(&desktop_manifest_bytes);
     if desktop_manifest.artifact.product != ProductId::Qiongli
-        || desktop_manifest.artifact.version != VERSION
+        || desktop_manifest.artifact.version != release.version
         || desktop_manifest.artifact.channel != ReleaseChannel::Alpha
         || desktop_manifest.artifact.profile != CapabilityProfile::Lite
         || desktop_manifest.artifact.os != OperatingSystem::Macos
@@ -826,7 +859,7 @@ fn load_artifact_evidence(path: &Path) -> Result<ArtifactEvidence, &'static str>
         || receipt.source.product_source_commit != desktop_manifest.product_source_commit
         || receipt.source.unsigned_manifest_sha256 != desktop_manifest_sha256
         || receipt.final_artifact.status != "produced"
-        || receipt.final_artifact.file != SIGNED_ARCHIVE_FILE
+        || receipt.final_artifact.file != release.archive_file
         || receipt.final_artifact.size_bytes != archive_size_bytes
         || receipt.final_artifact.sha256 != archive_sha256
         || !is_lower_hex(&receipt.final_artifact.launcher_sha256, 64)
@@ -845,13 +878,13 @@ fn load_artifact_evidence(path: &Path) -> Result<ArtifactEvidence, &'static str>
         summary: ArtifactSetV1 {
             artifact: desktop_manifest.artifact.clone(),
             source_commit: desktop_manifest.product_source_commit.clone(),
-            archive_file_name: SIGNED_ARCHIVE_FILE.to_string(),
+            archive_file_name: release.archive_file.clone(),
             archive_size_bytes,
             archive_sha256,
             desktop_manifest_file_name: DESKTOP_MANIFEST_FILE.to_string(),
             desktop_manifest_size_bytes: desktop_manifest_bytes.len() as u64,
             desktop_manifest_sha256,
-            signing_receipt_file_name: SIGNING_RECEIPT_FILE.to_string(),
+            signing_receipt_file_name: release.signing_receipt_file.clone(),
             signing_receipt_size_bytes: signing_receipt_bytes.len() as u64,
             signing_receipt_sha256: sha256_hex(&signing_receipt_bytes),
             resource_pack_sha256: desktop_manifest.resource_pack_sha256,
@@ -878,10 +911,6 @@ fn validate_timestamps(
     } else {
         Ok(())
     }
-}
-
-fn release_url(file_name: &str) -> String {
-    format!("{RELEASE_ROOT}/{file_name}")
 }
 
 fn parse_canonical_json<T: DeserializeOwned + Serialize>(
@@ -1104,6 +1133,7 @@ mod tests {
 
     #[test]
     fn external_signing_workflow_verifies_without_publication_authority() {
+        let release = ReleaseIdentity::new("2.0.0-alpha.1");
         let root = test_root();
         fs::create_dir(&root).unwrap();
         let artifact_dir = root.join("artifact");
@@ -1131,20 +1161,35 @@ mod tests {
             }))
             .unwrap(),
         );
-        write_artifact_fixture(&artifact_dir);
+        write_artifact_fixture(&artifact_dir, &release);
+
+        // The retained alpha signer must still refuse a stable release identity.
+        assert!(matches!(
+            load_authority(
+                &authority_path,
+                &ReleaseIdentity::new("2.2.0"),
+                GENERATION,
+                "release-native-test",
+                "launch-native-test",
+            ),
+            Err("native-update-authority-version-invalid")
+        ));
 
         let grant_request_path = root.join("grant-request.json");
-        prepare_grants(&PrepareGrantsArguments {
-            signed_artifact_dir: artifact_dir.clone(),
-            authority: authority_path.clone(),
-            generation: GENERATION,
-            published_at_unix: NOW - 120,
-            not_before_unix: NOW - 60,
-            expires_at_unix: NOW + 3_600,
-            release_key_id: "release-native-test".to_string(),
-            launch_key_id: "launch-native-test".to_string(),
-            output: grant_request_path.clone(),
-        })
+        prepare_grants(
+            &PrepareGrantsArguments {
+                signed_artifact_dir: artifact_dir.clone(),
+                authority: authority_path.clone(),
+                generation: GENERATION,
+                published_at_unix: NOW - 120,
+                not_before_unix: NOW - 60,
+                expires_at_unix: NOW + 3_600,
+                release_key_id: "release-native-test".to_string(),
+                launch_key_id: "launch-native-test".to_string(),
+                output: grant_request_path.clone(),
+            },
+            &release,
+        )
         .unwrap();
         let grant_request_bytes = fs::read(&grant_request_path).unwrap();
         let grant_request =
@@ -1166,14 +1211,17 @@ mod tests {
         );
 
         let manifest_request_path = root.join("manifest-request.json");
-        prepare_manifest(&PrepareManifestArguments {
-            signed_artifact_dir: artifact_dir.clone(),
-            authority: authority_path.clone(),
-            grant_request: grant_request_path,
-            codex_signature_file: codex_signature_path,
-            claude_signature_file: claude_signature_path,
-            output: manifest_request_path.clone(),
-        })
+        prepare_manifest(
+            &PrepareManifestArguments {
+                signed_artifact_dir: artifact_dir.clone(),
+                authority: authority_path.clone(),
+                grant_request: grant_request_path,
+                codex_signature_file: codex_signature_path,
+                claude_signature_file: claude_signature_path,
+                output: manifest_request_path.clone(),
+            },
+            &release,
+        )
         .unwrap();
         let manifest_request_bytes = fs::read(&manifest_request_path).unwrap();
         let manifest_request = parse_canonical_json::<ManifestSigningRequestV1>(
@@ -1190,13 +1238,16 @@ mod tests {
         );
 
         let output_dir = root.join("final");
-        finalize(&FinalizeArguments {
-            signed_artifact_dir: artifact_dir,
-            authority: authority_path,
-            manifest_request: manifest_request_path,
-            release_signature_file: release_signature_path,
-            output_dir: output_dir.clone(),
-        })
+        finalize(
+            &FinalizeArguments {
+                signed_artifact_dir: artifact_dir,
+                authority: authority_path,
+                manifest_request: manifest_request_path,
+                release_signature_file: release_signature_path,
+                output_dir: output_dir.clone(),
+            },
+            &release,
+        )
         .unwrap();
         let metadata = fs::read(output_dir.join(UPDATE_METADATA_FILE)).unwrap();
         SignedNativeUpdateManifestV1::from_json(&metadata).unwrap();
@@ -1224,12 +1275,12 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
-    fn write_artifact_fixture(root: &Path) {
+    fn write_artifact_fixture(root: &Path, release: &ReleaseIdentity<'_>) {
         let archive = b"signed-notarized-archive-fixture";
-        write_fixture(&root.join(SIGNED_ARCHIVE_FILE), archive);
+        write_fixture(&root.join(&release.archive_file), archive);
         let artifact = ArtifactIdentityV1 {
             product: ProductId::Qiongli,
-            version: VERSION.to_string(),
+            version: release.version.to_string(),
             channel: ReleaseChannel::Alpha,
             profile: CapabilityProfile::Lite,
             os: OperatingSystem::Macos,
@@ -1308,7 +1359,7 @@ mod tests {
                 "Qiongli",
                 "Qiongli 2",
                 "io.github.jxpeng98.qiongli",
-                VERSION,
+                release.version,
                 "MIT",
             ),
             package_root: "Qiongli.app".to_string(),
@@ -1330,7 +1381,7 @@ mod tests {
             },
             "final_artifact": {
                 "status": "produced",
-                "file": SIGNED_ARCHIVE_FILE,
+                "file": release.archive_file,
                 "size_bytes": archive.len(),
                 "sha256": sha256_hex(archive),
                 "launcher_sha256": "6".repeat(64),
@@ -1349,7 +1400,7 @@ mod tests {
             }
         });
         write_fixture(
-            &root.join(SIGNING_RECEIPT_FILE),
+            &root.join(&release.signing_receipt_file),
             &serde_json::to_vec(&receipt).unwrap(),
         );
     }
