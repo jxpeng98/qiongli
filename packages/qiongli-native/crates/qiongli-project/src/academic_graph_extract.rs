@@ -12,6 +12,7 @@ use crate::academic_graph::{
 use crate::academic_graph_coverage::{
     AcademicGraphExtractorV1, AcademicGraphPortableAuthorityV1, academic_graph_source_coverage,
 };
+use crate::csv::{MAX_FIELD_BYTES, MAX_TABLE_COLUMNS, MAX_TABLE_ROWS, parse_csv};
 use crate::model::ProjectId;
 
 const RESEARCH_STATE_PATH: &str = "context/research_state.md";
@@ -21,9 +22,6 @@ const IDEA_FUNNEL_PATH: &str = "context/idea_funnel.md";
 const LITERATURE_MAP_PATH: &str = "literature/literature_map.md";
 const EVIDENCE_LEDGER_PATH: &str = "evidence/claim-evidence-ledger.csv";
 const MANUSCRIPT_CLAIM_MAP_PATH: &str = "manuscript/claims_evidence_map.md";
-const MAX_TABLE_COLUMNS: usize = 16;
-const MAX_TABLE_ROWS: usize = 2_048;
-const MAX_FIELD_BYTES: usize = 8 * 1_024;
 const MAX_RELATED_ID_BYTES: usize = 512;
 const MAX_LIST_ITEMS: usize = 64;
 
@@ -2175,112 +2173,6 @@ fn markdown_separator(cells: &[String]) -> bool {
                     .bytes()
                     .all(|byte| matches!(byte, b'-' | b':' | b' '))
         })
-}
-
-struct CsvRecord {
-    line_number: usize,
-    fields: Vec<String>,
-}
-
-fn parse_csv(text: &str) -> Result<Vec<CsvRecord>, ()> {
-    let bytes = text.as_bytes();
-    let mut records = Vec::new();
-    let mut fields = Vec::new();
-    let mut field = Vec::new();
-    let mut index = 0usize;
-    let mut line_number = 1usize;
-    let mut record_line = 1usize;
-    let mut in_quotes = false;
-    let mut after_quote = false;
-    while index < bytes.len() {
-        let byte = bytes[index];
-        if in_quotes {
-            if byte == b'"' {
-                if bytes.get(index + 1) == Some(&b'"') {
-                    field.push(b'"');
-                    index += 1;
-                } else {
-                    in_quotes = false;
-                    after_quote = true;
-                }
-            } else {
-                if byte == b'\n' {
-                    line_number += 1;
-                }
-                field.push(byte);
-            }
-        } else if after_quote {
-            match byte {
-                b',' => {
-                    push_csv_field(&mut fields, &mut field)?;
-                    after_quote = false;
-                }
-                b'\n' => {
-                    push_csv_field(&mut fields, &mut field)?;
-                    push_csv_record(&mut records, &mut fields, record_line)?;
-                    line_number += 1;
-                    record_line = line_number;
-                    after_quote = false;
-                }
-                b'\r' if bytes.get(index + 1) == Some(&b'\n') => {}
-                _ => return Err(()),
-            }
-        } else {
-            match byte {
-                b'"' if field.is_empty() => in_quotes = true,
-                b'"' => return Err(()),
-                b',' => push_csv_field(&mut fields, &mut field)?,
-                b'\n' => {
-                    push_csv_field(&mut fields, &mut field)?;
-                    push_csv_record(&mut records, &mut fields, record_line)?;
-                    line_number += 1;
-                    record_line = line_number;
-                }
-                b'\r' if bytes.get(index + 1) == Some(&b'\n') => {}
-                _ => field.push(byte),
-            }
-        }
-        if field.len() > MAX_FIELD_BYTES {
-            return Err(());
-        }
-        index += 1;
-    }
-    if in_quotes {
-        return Err(());
-    }
-    if after_quote || !field.is_empty() || !fields.is_empty() {
-        push_csv_field(&mut fields, &mut field)?;
-        push_csv_record(&mut records, &mut fields, record_line)?;
-    }
-    Ok(records)
-}
-
-fn push_csv_field(fields: &mut Vec<String>, field: &mut Vec<u8>) -> Result<(), ()> {
-    if fields.len() >= MAX_TABLE_COLUMNS || field.len() > MAX_FIELD_BYTES {
-        return Err(());
-    }
-    let bytes = std::mem::take(field);
-    fields.push(String::from_utf8(bytes).map_err(|_| ())?);
-    Ok(())
-}
-
-fn push_csv_record(
-    records: &mut Vec<CsvRecord>,
-    fields: &mut Vec<String>,
-    line_number: usize,
-) -> Result<(), ()> {
-    if records.len() > MAX_TABLE_ROWS {
-        return Err(());
-    }
-    if fields.len() == 1 && fields[0].is_empty() {
-        fields.clear();
-        return Ok(());
-    }
-    records.push(CsvRecord {
-        line_number,
-        fields: std::mem::take(fields),
-    });
-    Ok(())
 }
 
 #[cfg(test)]

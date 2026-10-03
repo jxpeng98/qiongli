@@ -19,6 +19,7 @@ mod capture_resolution;
 mod capture_resolution_service;
 mod capture_resolution_storage;
 mod consolidation;
+mod csv;
 mod error;
 mod incremental_portfolio;
 mod json;
@@ -33,6 +34,7 @@ mod portfolio_catalog;
 mod portfolio_catalog_storage;
 mod portfolio_query;
 mod repository_inbox;
+mod retrieval_manifest;
 mod runtime_state;
 mod semantic_timeline;
 mod service;
@@ -230,6 +232,7 @@ pub use service::{
 };
 
 pub use paper_note::PaperNoteDraftV1;
+pub use retrieval_manifest::{RetrievalAttemptV1, RetrievalManifestDraftV1};
 pub use source_packet::SourcePacketDraftV1;
 pub use stage_summary::{StageSummaryDraftV1, StageSummarySourceV1, StageSummaryStatus};
 pub use storage::read_stage_handoff_file;

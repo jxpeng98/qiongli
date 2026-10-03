@@ -5,7 +5,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use qiongli_project::{
     ApprovedCaptureConsolidation, CaptureConsolidationCommitV1, CaptureConsolidationDrafts,
     CaptureConsolidationPreviewV1, CaptureId, PaperNoteDraftV1, ProjectError, ProjectId,
-    ProjectStateService, SourcePacketDraftV1, StageSummaryDraftV1, read_stage_handoff_file,
+    ProjectStateService, RetrievalManifestDraftV1, SourcePacketDraftV1, StageSummaryDraftV1,
+    read_stage_handoff_file,
 };
 use serde::Serialize;
 
@@ -25,6 +26,7 @@ pub(crate) struct Options {
     stage_summary_file: Option<PathBuf>,
     paper_note_file: Option<PathBuf>,
     source_packet_file: Option<PathBuf>,
+    retrieval_manifest_file: Option<PathBuf>,
 }
 
 impl std::fmt::Debug for Options {
@@ -52,6 +54,13 @@ impl std::fmt::Debug for Options {
                     .source_packet_file
                     .as_ref()
                     .map(|_| "<source-packet-draft>"),
+            )
+            .field(
+                "retrieval_manifest_file",
+                &self
+                    .retrieval_manifest_file
+                    .as_ref()
+                    .map(|_| "<retrieval-manifest-draft>"),
             )
             .finish()
     }
@@ -100,6 +109,11 @@ pub(crate) fn execute(
                 .as_deref()
                 .map(SourcePacketDraftV1::read_file)
                 .transpose()?;
+            let manifest = options
+                .retrieval_manifest_file
+                .as_deref()
+                .map(RetrievalManifestDraftV1::read_file)
+                .transpose()?;
             service
                 .preview_capture_consolidation_with_drafts(
                     &options.project_id,
@@ -110,10 +124,11 @@ pub(crate) fn execute(
                         stage_summary: summary.as_ref(),
                         paper_note: note.as_ref(),
                         source_packet: packet.as_ref(),
+                        retrieval_manifest: manifest.as_ref(),
                     },
                 )
                 .map(|plan| {
-                    Output::Preview(PreviewOutput {
+                    Output::Preview(Box::new(PreviewOutput {
                         schema_version: 1,
                         command: "project-capture-consolidate-preview",
                         preview: plan.preview().clone(),
@@ -121,10 +136,13 @@ pub(crate) fn execute(
                         stage_summary_content: plan.stage_summary_content().map(str::to_owned),
                         paper_note_content: plan.paper_note_content().map(str::to_owned),
                         source_packet_content: plan.source_packet_content().map(str::to_owned),
+                        retrieval_manifest_content: plan
+                            .retrieval_manifest_content()
+                            .map(str::to_owned),
                         research_state_content: plan
                             .summary_research_state_content()
                             .map(str::to_owned),
-                    })
+                    }))
                 })
         }
         Command::Apply(options, digest) => {
@@ -151,6 +169,11 @@ pub(crate) fn execute(
                 .as_deref()
                 .map(SourcePacketDraftV1::read_file)
                 .transpose()?;
+            let manifest = options
+                .retrieval_manifest_file
+                .as_deref()
+                .map(RetrievalManifestDraftV1::read_file)
+                .transpose()?;
             let plan = service.preview_capture_consolidation_with_drafts(
                 &options.project_id,
                 &options.capture_id,
@@ -160,6 +183,7 @@ pub(crate) fn execute(
                     stage_summary: summary.as_ref(),
                     paper_note: note.as_ref(),
                     source_packet: packet.as_ref(),
+                    retrieval_manifest: manifest.as_ref(),
                 },
             )?;
             let commit = service.apply_capture_consolidation(
@@ -178,7 +202,7 @@ pub(crate) fn execute(
 #[derive(Serialize)]
 #[serde(untagged)]
 pub(crate) enum Output {
-    Preview(PreviewOutput),
+    Preview(Box<PreviewOutput>),
     Commit(CommitOutput),
 }
 
@@ -198,6 +222,8 @@ pub(crate) struct PreviewOutput {
     paper_note_content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     source_packet_content: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    retrieval_manifest_content: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -216,6 +242,7 @@ fn parse_options(apply: bool, args: &[OsString]) -> Result<Command, &'static str
     let mut stage_summary_file = None;
     let mut paper_note_file = None;
     let mut source_packet_file = None;
+    let mut retrieval_manifest_file = None;
     let mut digest = None;
     let mut filesystem_write = false;
     let mut academic_review = false;
@@ -269,6 +296,9 @@ fn parse_options(apply: bool, args: &[OsString]) -> Result<Command, &'static str
             "--source-packet-file" if source_packet_file.is_none() => {
                 source_packet_file = Some(PathBuf::from(value));
             }
+            "--retrieval-manifest-file" if retrieval_manifest_file.is_none() => {
+                retrieval_manifest_file = Some(PathBuf::from(value));
+            }
             "--reviewed-at-unix" if reviewed_at_unix.is_none() => {
                 reviewed_at_unix = Some(parse_unix_timestamp(value)?);
             }
@@ -282,7 +312,8 @@ fn parse_options(apply: bool, args: &[OsString]) -> Result<Command, &'static str
             | "--stage-handoff-file"
             | "--stage-summary-file"
             | "--paper-note-file"
-            | "--source-packet-file" => {
+            | "--source-packet-file"
+            | "--retrieval-manifest-file" => {
                 return Err("capture consolidation option is unexpected or duplicate");
             }
             _ => return Err("unknown capture consolidation option"),
@@ -297,6 +328,7 @@ fn parse_options(apply: bool, args: &[OsString]) -> Result<Command, &'static str
         stage_summary_file,
         paper_note_file,
         source_packet_file,
+        retrieval_manifest_file,
     };
     if !apply {
         return Ok(Command::Preview(options));
@@ -390,6 +422,7 @@ mod tests {
             "--stage-summary-file",
             "--paper-note-file",
             "--source-packet-file",
+            "--retrieval-manifest-file",
         ] {
             let mut values = args(&[
                 "preview",

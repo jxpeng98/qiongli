@@ -13,6 +13,7 @@ use crate::model::{
     RegisteredProjectV1, valid_lower_hex,
 };
 use crate::paper_note::valid_note_path;
+use crate::retrieval_manifest::RETRIEVAL_MANIFEST_PATH;
 use crate::service::ProjectStateService;
 use crate::source_packet::valid_packet_path;
 use crate::stage_summary::valid_summary_path;
@@ -22,7 +23,10 @@ use crate::storage::{
     read_consolidation_document, read_manifest, read_project_source, read_semantic_artifact,
     semantic_digest, semantic_digest_with_overrides, sha256_bytes, validate_existing_project_root,
 };
-use crate::{PaperNoteDraftV1, ProjectError, SourcePacketDraftV1, StageSummaryDraftV1};
+use crate::{
+    PaperNoteDraftV1, ProjectError, RetrievalManifestDraftV1, SourcePacketDraftV1,
+    StageSummaryDraftV1,
+};
 
 pub const ACADEMIC_CONSOLIDATION_SCHEMA_VERSION: u32 = 1;
 const CONSOLIDATION_DOCUMENT_KIND: &str = "qiongli-capture-consolidation";
@@ -30,7 +34,7 @@ const RESEARCH_STATE_PATH: &str = "context/research_state.md";
 const DECISION_LOG_PATH: &str = "context/decision_log.md";
 const PROJECT_MANIFEST_PATH: &str = "context/project_manifest.json";
 const STAGE_HANDOFF_PATH: &str = "context/stage_handoff.md";
-const MAX_CONSOLIDATED_ARTIFACTS: usize = 6;
+const MAX_CONSOLIDATED_ARTIFACTS: usize = 7;
 
 /// Optional reviewed documents composed by the existing consolidation owner.
 #[derive(Clone, Copy, Default)]
@@ -39,6 +43,7 @@ pub struct CaptureConsolidationDrafts<'a> {
     pub stage_summary: Option<&'a StageSummaryDraftV1>,
     pub paper_note: Option<&'a PaperNoteDraftV1>,
     pub source_packet: Option<&'a SourcePacketDraftV1>,
+    pub retrieval_manifest: Option<&'a RetrievalManifestDraftV1>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -73,6 +78,7 @@ pub enum ConsolidationArtifact {
     StageSummary,
     PaperNote,
     SourcePacket,
+    RetrievalManifest,
 }
 
 impl ConsolidationArtifact {
@@ -81,6 +87,7 @@ impl ConsolidationArtifact {
             Self::ResearchState => Some(RESEARCH_STATE_PATH),
             Self::DecisionLog => Some(DECISION_LOG_PATH),
             Self::StageHandoff => Some(STAGE_HANDOFF_PATH),
+            Self::RetrievalManifest => Some(RETRIEVAL_MANIFEST_PATH),
             Self::StageSummary | Self::PaperNote | Self::SourcePacket => None,
         }
     }
@@ -234,6 +241,7 @@ pub struct VerifiedCaptureConsolidation {
     stage_summary: Option<StageSummaryDraftV1>,
     paper_note: Option<PaperNoteDraftV1>,
     source_packet: Option<SourcePacketDraftV1>,
+    retrieval_manifest: Option<RetrievalManifestDraftV1>,
 }
 
 impl VerifiedCaptureConsolidation {
@@ -261,6 +269,11 @@ impl VerifiedCaptureConsolidation {
     #[must_use]
     pub fn source_packet_content(&self) -> Option<&str> {
         self.artifact_content(ConsolidationArtifact::SourcePacket)
+    }
+
+    #[must_use]
+    pub fn retrieval_manifest_content(&self) -> Option<&str> {
+        self.artifact_content(ConsolidationArtifact::RetrievalManifest)
     }
 
     /// Include the exact history-table edit whenever a summary is planned.
@@ -352,6 +365,8 @@ struct ConsolidationPlanSemantics<'a> {
     paper_note: Option<&'a PaperNoteDraftV1>,
     #[serde(skip_serializing_if = "Option::is_none")]
     source_packet: Option<&'a SourcePacketDraftV1>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    retrieval_manifest: Option<&'a RetrievalManifestDraftV1>,
 }
 
 impl ProjectStateService {
@@ -425,6 +440,7 @@ impl ProjectStateService {
                 stage_summary,
                 paper_note,
                 source_packet: None,
+                retrieval_manifest: None,
             },
         )
     }
@@ -441,9 +457,13 @@ impl ProjectStateService {
             stage_summary,
             paper_note,
             source_packet,
+            retrieval_manifest,
         } = drafts;
         if let Some(packet) = source_packet {
             packet.validate()?;
+        }
+        if let Some(manifest) = retrieval_manifest {
+            manifest.validate()?;
         }
         if let Some(note) = paper_note {
             note.validate()?;
@@ -506,6 +526,9 @@ impl ProjectStateService {
         if let Some(note) = paper_note {
             note.revalidate_sources(&root)?;
         }
+        if let Some(manifest) = retrieval_manifest {
+            manifest.revalidate_sources(&root)?;
+        }
         let disposition = classify_capture(&capture, false);
         let root_reference_digest = sha256_bytes(project_root_string(&root)?.as_bytes());
         let mut conflicts = Vec::new();
@@ -527,7 +550,10 @@ impl ProjectStateService {
             if conflicts.is_empty() {
                 let updates = artifacts
                     .iter()
-                    .filter(|artifact| artifact.artifact.relative_path().is_some())
+                    .filter(|artifact| {
+                        crate::storage::SEMANTIC_ARTIFACTS
+                            .contains(&artifact.relative_path.as_str())
+                    })
                     .map(|artifact| ProjectFileUpdate {
                         relative_path: artifact.relative_path.clone(),
                         expected_digest: artifact.previous_digest.clone(),
@@ -575,6 +601,7 @@ impl ProjectStateService {
             stage_summary,
             paper_note,
             source_packet,
+            retrieval_manifest,
         };
         let preview = CaptureConsolidationPreviewV1 {
             schema_version: ACADEMIC_CONSOLIDATION_SCHEMA_VERSION,
@@ -613,6 +640,7 @@ impl ProjectStateService {
             stage_summary: stage_summary.cloned(),
             paper_note: paper_note.cloned(),
             source_packet: source_packet.cloned(),
+            retrieval_manifest: retrieval_manifest.cloned(),
         })
     }
 
@@ -924,6 +952,7 @@ fn plan_artifacts(
         stage_summary,
         paper_note,
         source_packet,
+        retrieval_manifest,
     } = drafts;
     let mut artifacts = Vec::new();
     artifacts.push(plan_artifact(
@@ -1003,6 +1032,24 @@ fn plan_artifacts(
             previous_digest: None,
             previous_bytes: 0,
             next_bytes: packet.content.as_bytes().to_vec(),
+        });
+    }
+    if let Some(manifest) = retrieval_manifest {
+        let previous = read_project_source(root, RETRIEVAL_MANIFEST_PATH)?;
+        if previous.as_ref().map(|(_, digest)| digest) != manifest.previous_sha256.as_ref() {
+            return Err(ProjectError::RevisionConflict.into());
+        }
+        let previous_text = previous
+            .as_ref()
+            .map(|(bytes, _)| std::str::from_utf8(bytes))
+            .transpose()
+            .map_err(|_| ProjectError::InvalidProjectDocument)?;
+        artifacts.push(PlannedArtifact {
+            artifact: ConsolidationArtifact::RetrievalManifest,
+            relative_path: RETRIEVAL_MANIFEST_PATH.to_string(),
+            previous_digest: manifest.previous_sha256.clone(),
+            previous_bytes: previous.as_ref().map_or(0, |(bytes, _)| bytes.len()),
+            next_bytes: manifest.render(previous_text)?.into_bytes(),
         });
     }
     let handoff = stage_summary
@@ -1334,6 +1381,7 @@ fn validate_plan(plan: &VerifiedCaptureConsolidation) -> Result<(), ProjectError
         stage_summary: plan.stage_summary.as_ref(),
         paper_note: plan.paper_note.as_ref(),
         source_packet: plan.source_packet.as_ref(),
+        retrieval_manifest: plan.retrieval_manifest.as_ref(),
     };
     if canonical_digest(&semantics)? != plan.preview.plan_digest {
         return Err(ProjectError::PlanMismatch);
@@ -1376,6 +1424,9 @@ fn revalidate_apply_state(
     }
     if let Some(note) = &plan.paper_note {
         note.revalidate_sources(&root)?;
+    }
+    if let Some(manifest) = &plan.retrieval_manifest {
+        manifest.revalidate_sources(&root)?;
     }
     for artifact in &plan.artifacts {
         if !artifact.artifact.accepts_path(&artifact.relative_path) {
@@ -2278,6 +2329,251 @@ Inspect the source table before dependent analysis.
                 .join(".qiongli/consolidation-transaction")
                 .exists()
         );
+    }
+
+    #[test]
+    fn retrieval_manifest_rechecks_sources_and_history_before_any_write() {
+        for mutation in [
+            "packet",
+            "fulltext",
+            "missing",
+            "destination",
+            "old-manifest",
+            "academic",
+            "filesystem",
+            "symlink",
+        ] {
+            let fixture = fixture();
+            let packet = packet_draft();
+            let packet_path = fixture.project_root.join(packet.relative_path());
+            fs::create_dir_all(packet_path.parent().unwrap()).unwrap();
+            fs::write(&packet_path, &packet.content).unwrap();
+            let text_path = fixture.project_root.join("sources/body.txt");
+            fs::write(&text_path, "Actual saved excerpt").unwrap();
+            let mut retrieval = crate::retrieval_manifest::test_draft();
+            retrieval.attempts[0].source_packet = Some(crate::StageSummarySourceV1 {
+                relative_path: packet.relative_path(),
+                sha256: sha256_bytes(packet.content.as_bytes()),
+            });
+            retrieval.attempts[0].fulltext_path = "sources/body.txt".into();
+            retrieval.attempts[0].fulltext_sha256 = Some(sha256_bytes(b"Actual saved excerpt"));
+            let target = fixture.project_root.join(RETRIEVAL_MANIFEST_PATH);
+            if mutation == "old-manifest" {
+                let previous = retrieval.render(None).unwrap();
+                fs::write(&target, &previous).unwrap();
+                retrieval.previous_sha256 = Some(sha256_bytes(previous.as_bytes()));
+            }
+            let capture = intake(
+                &fixture,
+                draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+            );
+            let plan = fixture
+                .service
+                .preview_capture_consolidation_with_drafts(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    120,
+                    CaptureConsolidationDrafts {
+                        retrieval_manifest: Some(&retrieval),
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
+            match mutation {
+                "packet" => fs::write(&packet_path, "changed packet").unwrap(),
+                "fulltext" => fs::write(&text_path, "changed excerpt").unwrap(),
+                "missing" => fs::remove_file(&packet_path).unwrap(),
+                "destination" | "old-manifest" => {
+                    fs::write(&target, "User file; do not replace").unwrap()
+                }
+                "symlink" => {
+                    #[cfg(unix)]
+                    {
+                        fs::remove_file(&packet_path).unwrap();
+                        std::os::unix::fs::symlink(&text_path, &packet_path).unwrap();
+                    }
+                    #[cfg(not(unix))]
+                    {
+                        continue;
+                    }
+                }
+                _ => {}
+            }
+            let mut paths = plan
+                .artifacts
+                .iter()
+                .map(|a| a.relative_path.clone())
+                .collect::<Vec<_>>();
+            paths.extend([
+                PROJECT_MANIFEST_PATH.into(),
+                plan.preview.receipt_entry.clone(),
+                packet.relative_path(),
+                "sources/body.txt".into(),
+            ]);
+            let before = paths
+                .iter()
+                .map(|p| fs::read(fixture.project_root.join(p)).ok())
+                .collect::<Vec<_>>();
+            assert!(
+                fixture
+                    .service
+                    .apply_capture_consolidation(
+                        &plan,
+                        &ApprovedCaptureConsolidation::new(
+                            plan.preview.plan_digest.clone(),
+                            mutation != "filesystem",
+                            mutation != "academic"
+                        )
+                    )
+                    .is_err(),
+                "{mutation}"
+            );
+            assert_eq!(
+                before,
+                paths
+                    .iter()
+                    .map(|p| fs::read(fixture.project_root.join(p)).ok())
+                    .collect::<Vec<_>>(),
+                "{mutation}"
+            );
+            assert!(
+                !fixture
+                    .project_root
+                    .join(".qiongli/consolidation-transaction")
+                    .exists()
+            );
+            assert_eq!(
+                fixture.service.snapshot().unwrap().projects[0].semantic_revision,
+                1
+            );
+        }
+    }
+
+    #[test]
+    fn retrieval_manifest_is_receipted_and_can_bind_a_later_note_after_restart() {
+        let fixture = fixture();
+        let retrieval = crate::retrieval_manifest::test_draft();
+        let capture = intake(
+            &fixture,
+            draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+        );
+        let plan = fixture
+            .service
+            .preview_capture_consolidation_with_drafts(
+                &fixture.project_id,
+                &capture.capture_id,
+                120,
+                CaptureConsolidationDrafts {
+                    retrieval_manifest: Some(&retrieval),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let content = plan.retrieval_manifest_content().unwrap().to_string();
+        fixture
+            .service
+            .apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(plan.preview.plan_digest.clone(), true, true),
+            )
+            .unwrap();
+        let (receipt, _) = read_consolidation_receipt(&fixture.project_root, &capture.capture_id)
+            .unwrap()
+            .unwrap();
+        let artifact = receipt
+            .artifacts
+            .iter()
+            .find(|a| a.artifact == ConsolidationArtifact::RetrievalManifest)
+            .unwrap();
+        assert_eq!(artifact.relative_path, RETRIEVAL_MANIFEST_PATH);
+        assert_eq!(artifact.digest, sha256_bytes(content.as_bytes()));
+        let mut forged = receipt;
+        forged
+            .artifacts
+            .iter_mut()
+            .find(|a| a.artifact == ConsolidationArtifact::RetrievalManifest)
+            .unwrap()
+            .relative_path = "other.csv".into();
+        forged.acknowledgement = acknowledgement(&forged).unwrap();
+        assert_eq!(forged.validate(), Err(ProjectError::InvalidProjectDocument));
+        let restarted = ProjectStateService::new(
+            resolve_config_root(None, &fixture.base.join("home")).unwrap(),
+        );
+        let mut next_capture = draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired);
+        next_capture.binding.base_revision = 2;
+        let capture = intake(&fixture, next_capture);
+        let note = PaperNoteDraftV1 {
+            schema_version: 1,
+            citekey: "Smith2024".into(),
+            previous_sha256: None,
+            sources: vec![crate::StageSummarySourceV1 {
+                relative_path: RETRIEVAL_MANIFEST_PATH.into(),
+                sha256: sha256_bytes(content.as_bytes()),
+            }],
+            markdown: "CLM-001 still needs evidence: native retrieval failed before HTTP.".into(),
+        };
+        let plan = restarted
+            .preview_capture_consolidation_with_paper_note(
+                &fixture.project_id,
+                &capture.capture_id,
+                130,
+                None,
+                None,
+                Some(&note),
+            )
+            .unwrap();
+        assert!(plan.retrieval_manifest_content().is_none());
+        restarted
+            .apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(plan.preview.plan_digest.clone(), true, true),
+            )
+            .unwrap();
+        assert_eq!(
+            fs::read_to_string(fixture.project_root.join(RETRIEVAL_MANIFEST_PATH)).unwrap(),
+            content
+        );
+        assert!(
+            fs::read_to_string(fixture.project_root.join(note.relative_path()))
+                .unwrap()
+                .contains(RETRIEVAL_MANIFEST_PATH)
+        );
+    }
+
+    #[test]
+    fn retrieval_manifest_draft_envelope_is_strict_and_bounded() {
+        let fixture = fixture();
+        let path = fixture.base.join("retrieval.json");
+        let draft = crate::retrieval_manifest::test_draft();
+        let json = serde_json::to_string(&draft).unwrap();
+        fs::write(&path, &json).unwrap();
+        assert!(RetrievalManifestDraftV1::read_file(&path).is_ok());
+        for value in [
+            json.replacen(
+                "\"schemaVersion\":1",
+                "\"schemaVersion\":1,\"schemaVersion\":1",
+                1,
+            ),
+            json.replacen(
+                "\"schemaVersion\":1",
+                "\"schemaVersion\":1,\"unknown\":true",
+                1,
+            ),
+            json.replacen("\"recordId\":", "\"extra\":true,\"recordId\":", 1),
+            " ".repeat(4 * 1024 * 1024 + 1),
+        ] {
+            fs::write(&path, value).unwrap();
+            assert!(RetrievalManifestDraftV1::read_file(&path).is_err());
+        }
+        assert!(
+            RetrievalManifestDraftV1::read_file(std::path::Path::new("relative.json")).is_err()
+        );
+        #[cfg(unix)]
+        {
+            let link = fixture.base.join("linked-draft.json");
+            std::os::unix::fs::symlink(&path, &link).unwrap();
+            assert!(RetrievalManifestDraftV1::read_file(&link).is_err());
+        }
     }
 
     fn packet_draft() -> SourcePacketDraftV1 {
@@ -3224,17 +3520,21 @@ Inspect the source table before dependent analysis.
     }
 
     #[test]
-    fn summary_note_and_packet_eight_file_transaction_rolls_back_documents_and_history() {
+    fn all_artifacts_nine_file_transaction_rolls_back_documents_and_history() {
         for existing_note in [false, true] {
             let fixture = fixture();
             let summary = summary_draft(&fixture);
             let mut note = note_draft(&fixture);
             let packet = packet_draft();
+            let mut retrieval = crate::retrieval_manifest::test_draft();
             if existing_note {
                 fs::create_dir(fixture.project_root.join("notes")).unwrap();
                 let prior = b"Human note\r\nCLM-001 and its old source anchor.";
                 fs::write(fixture.project_root.join(note.relative_path()), prior).unwrap();
                 note.previous_sha256 = Some(sha256_bytes(prior));
+                let csv = retrieval.render(None).unwrap();
+                fs::write(fixture.project_root.join(RETRIEVAL_MANIFEST_PATH), &csv).unwrap();
+                retrieval.previous_sha256 = Some(sha256_bytes(csv.as_bytes()));
             }
             let capture = intake(
                 &fixture,
@@ -3251,6 +3551,7 @@ Inspect the source table before dependent analysis.
                         stage_summary: Some(&summary),
                         paper_note: Some(&note),
                         source_packet: Some(&packet),
+                        retrieval_manifest: Some(&retrieval),
                     },
                 )
                 .unwrap();
@@ -3275,7 +3576,7 @@ Inspect the source table before dependent analysis.
                 expected_digest: Some(plan.observed_manifest_digest.clone()),
                 next_bytes: encode_project_document(plan.next_manifest.as_ref().unwrap()).unwrap(),
             });
-            assert_eq!(updates.len(), 8);
+            assert_eq!(updates.len(), 9);
             let before: Vec<_> = updates
                 .iter()
                 .map(|update| fs::read(fixture.project_root.join(&update.relative_path)).ok())

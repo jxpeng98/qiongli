@@ -931,7 +931,9 @@ impl ProjectFileTransaction {
         if self.backups[index].previous_bytes.is_none()
             && (crate::stage_summary::valid_summary_path(&self.backups[index].relative_path)
                 || crate::paper_note::valid_note_path(&self.backups[index].relative_path)
-                || crate::source_packet::valid_packet_path(&self.backups[index].relative_path))
+                || crate::source_packet::valid_packet_path(&self.backups[index].relative_path)
+                || self.backups[index].relative_path
+                    == crate::retrieval_manifest::RETRIEVAL_MANIFEST_PATH)
             && error == ProjectError::PersistenceFailed(io::ErrorKind::AlreadyExists)
         {
             // We never published this create-only target. Preserve even
@@ -1200,7 +1202,7 @@ fn consolidation_transaction_directory(root: &Path) -> PathBuf {
 }
 
 fn validate_project_file_updates(updates: &[ProjectFileUpdate]) -> Result<(), ProjectError> {
-    const MAX_TRANSACTION_FILES: usize = 8;
+    const MAX_TRANSACTION_FILES: usize = 9;
 
     if updates.is_empty() || updates.len() > MAX_TRANSACTION_FILES {
         return Err(ProjectError::InvalidProjectDocument);
@@ -1239,6 +1241,7 @@ fn validate_project_file_updates(updates: &[ProjectFileUpdate]) -> Result<(), Pr
 fn valid_transaction_target(relative_path: &str) -> bool {
     if SEMANTIC_ARTIFACTS.contains(&relative_path)
         || relative_path == "context/project_manifest.json"
+        || relative_path == crate::retrieval_manifest::RETRIEVAL_MANIFEST_PATH
         || crate::stage_summary::valid_summary_path(relative_path)
         || crate::paper_note::valid_note_path(relative_path)
         || crate::source_packet::valid_packet_path(relative_path)
@@ -1291,7 +1294,8 @@ fn write_transaction_target(root: &Path, update: &ProjectFileUpdate) -> Result<(
             return Err(ProjectError::InvalidProjectDocument);
         }
         atomic_write_with_replace(parent, file_name, &update.next_bytes, false, false)
-    } else if crate::paper_note::valid_note_path(&update.relative_path)
+    } else if (crate::paper_note::valid_note_path(&update.relative_path)
+        || update.relative_path == crate::retrieval_manifest::RETRIEVAL_MANIFEST_PATH)
         && update.expected_digest.is_none()
     {
         atomic_write_with_replace(parent, file_name, &update.next_bytes, false, false)
@@ -1790,13 +1794,14 @@ mod summary_transaction_tests {
     use super::*;
 
     #[test]
-    fn create_collision_rollback_preserves_competing_summary_note_or_packet() {
+    fn create_collision_rollback_preserves_competing_summary_note_packet_or_manifest() {
         let packet = format!("sources/Smith2024/{}.json", sha256(b"same summary"));
         for attempted_summary in [false, true] {
             for path in [
                 "context/stage_summaries/STG-B-001.md",
                 "notes/Smith2024.md",
                 &packet,
+                crate::retrieval_manifest::RETRIEVAL_MANIFEST_PATH,
             ] {
                 check_collision_rollback(attempted_summary, path);
             }
