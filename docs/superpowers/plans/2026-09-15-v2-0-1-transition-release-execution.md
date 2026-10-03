@@ -3735,3 +3735,130 @@ minimum evidence typing. Full B2, new-answer/domain review, Graph/Hook/browser,
 authenticated providers and additional Hosts retain their separate evidence
 scope. No private-library access, user-model/profile change, remote push,
 publication or task-state/accepted-evidence promotion occurs in this increment.
+
+## October 3 — installed Codex reading and persisted-file recovery boundary
+
+The maintainer requests the next step. Branch `test/codex-public-paper-continuity`
+starts from local `2.x` at `eef45e6d`. The same single verification sub-agent,
+`/root/retrieval_verifier`, runs all observations with requested
+`gpt-6.1-sol / low`; actual Codex calls also explicitly request those settings.
+No runtime or canonical content changes are made. The copied development binary
+retains version metadata 2.2.1 but includes post-release retrieval persistence;
+this is not a new observation of the published 2.2.1 package.
+
+Candidate binary SHA-256:
+`de60ae8e9108c91a7a3190f97c99778141d25ac4ad00d54fd3569d99cadcae11`.
+Pack SHA-256 remains
+`a9074869c50ab5e82fb595e474f07e734027f91eb89dd68f77134c676a5c6a47`,
+with canonical content source `c20fb50594a05e88238face1aa264d2965447b86`.
+Native export preview/apply/status and official Codex 0.160.0 marketplace/add/list
+complete in private directory `/home/hermes/qiongli-codex-continuity-yqk33pu3`.
+The isolated observation catalog installs `qiongli@continuity-observation`;
+the exported source retains its normal `qiongli@qiongli-cli-local` selector.
+Inventory reports installed/enabled, and the cached 468-entry receipt identifies
+the candidate binary/content. Source receipt SHA-256:
+`db60c6a42f000877e8ac57f84422158317b457bdc9d8440a2ba4be8c3e47b1c5`.
+Installation follows the [official local Plugin mechanism](https://developers.openai.com/plugins/build/plugins).
+
+Initial exports under `/tmp` and the repository's target directory refuse
+`insecure-materialization-parent`: the former is publicly writable, and the
+latter has group-writable ancestors. The materializer's existing policy remains
+unchanged. English/Chinese installation guides now explain this ancestor check.
+The private test directory has secure ancestors. An empty isolated Codex home is
+not logged in; a temporary authentication-file symlink reuses the existing Host
+login without copying or printing credentials. User Plugin/model configuration
+is not modified. Raw setup, launch, events, drafts and receipts remain local.
+
+Three initial installed-Plugin attempts expose the expected tools but all three
+requested calls in each attempt are refused by Host approval policy. Effective
+configuration confirms that `auto` is loaded; it is not an explicit approval.
+The third run is interrupted after its three refusal items, including fulltext,
+have already been emitted. These remain Host approval refusals, not native HTTP
+failures. No failed call establishes a PDF retrieval. The
+successful retry grants `approve` only to the selected public read-only tools in
+the test configuration; writes retain their existing approvals. Model requests
+stay read-only and bounded to 180 seconds each. A model-reported Skill file-read
+error lacks a matching command item and is not treated as observed execution.
+
+A separate public urllib request obtains 2,215,244 PDF bytes from
+`https://arxiv.org/pdf/1706.03762` at `2026-10-03T23:11:02.994225+00:00`.
+The actual installed-Plugin reader then successfully calls status/search planning
+and native fulltext at offsets 0 and 8, with eight segments each and a bound
+continuation digest. PDF SHA-256 agrees across those observations:
+`bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697`.
+Inspected coverage is segments 0–15 of 27, pages 1–8. No provider search, complete
+paper reading, verified license or independent report-identity result is claimed.
+The reviewed note distinguishes training parallelism from autoregressive
+generation and retains the paper's 41.8/Table 2 versus 41.0/prose discrepancy.
+
+Existing project creation, capture intake and reviewed consolidation owners save
+the packet, retrieval history, reading note and source-bound continuation through
+four separate dual-approved transactions, advancing project revision 1 → 5.
+Project ID is `prj_662afe4c2fb02ab05968e07a3d79aacd`. Three Host-refused attempts
+and one successful native-reading attempt remain separate manifest rows; the
+third refusal is evidenced before interruption. The PDF remains outside the
+registered project, so the manifest does not invent a project-local fulltext path.
+Packet path is `sources/Vaswani2017Attention/<packet-sha256>.json`.
+
+| Saved artifact | SHA-256 |
+|---|---|
+| Source packet | `fb9d896a958c45a99fe38912c400d22b7d7f0988447edabee52c33be9d2e3155` |
+| Retrieval manifest | `5eb5e4e6515f44ca342b019ec96c37e06bd2b22633b3bbec0e4a01ab42340440` |
+| Note with continuation | `6112f102fed2de3d2fc2ff670fc8b9209c11b395275d50c763884234abc2d86b` |
+
+An additional approved capture saves a separately named test packet at revision 6.
+Changing only that test copy after preview makes apply exit 1 with
+`project-revision-conflict`. Project/config byte snapshots before and after the
+refused apply are identical; the real paper packet, note and manifest remain
+unchanged. The deliberately drifted test copy and pending negative capture stay
+distinct from research evidence. This observes local source drift, not a changed
+remote paper or a network revalidation result.
+
+A fresh ephemeral Codex process exits 0 after 89.732 seconds. Its actual installed
+Plugin `qiongli_project_read` returns revision 6. Because native persisted-file
+reads are absent, the existing evaluation `resource_reader.py` supplies immutable
+snapshots of the saved documents and cached guidance through a separate read-only
+Host resource. Fourteen successful resource reads, including repeats, match the
+frozen map exactly; the verifier also compares every supplied project document
+with current disk bytes. The model reads entry/Skill/workflow/fulltext guidance,
+note, manifest, original packet and the final passage receipt through that
+snapshot mechanism. This is observed supplied-guidance reading, not successful
+native Host filesystem Skill discovery or live native document reading.
+
+The fresh answer preserves the refusal history, partial coverage, distinct PDF
+and packet digests and unresolved BLEU discrepancy. It explicitly reports native
+note/manifest reading and fresh durable-file validation as not passed. Its two
+additional `artifact_changes`/`capture_coverage` calls lack per-tool approval and
+are refused; no further model retry hides them. Answer SHA-256:
+`cdc2cc2eb7db9db5013975c4ba3e441993db3fc9d20af356571f0725de778439`;
+event-log SHA-256:
+`e3a1fda1010b9e66e527aa01bd6bc6e43cb0c26961736a7059ddd79a0a5fd3b2`.
+Independent source/byte checks are by the requested lightweight verifier, with
+the supplied context visible; no blind or expert review is claimed. Launch
+settings establish the requested model, not independent provider attestation.
+The temporary auth link is removed after execution, while still a symlink;
+no credential copy is retained. No user installation/model setting, private
+research access, publication or task-state/accepted-evidence promotion occurs.
+
+The next implementation is the missing native read path for saved notes, source
+packets and retrieval history. The current Full MCP project read returns context,
+not those document bodies. Reuse registered project resolution and bounded file
+readers with expected revision/digest checks and explicit truncation; reject
+unsafe paths, links, oversized files, wrong projects and stale source bytes.
+Preserve Graph's existing semantic-artifact boundary and all write authority.
+Qualify fresh-session recovery without supplied file snapshots. The three
+literature tools also lack read-only annotations in the current inventory;
+this is a separate descriptor gap, not a proven cause of the approval refusals.
+Complete B2, expert/blind review, Graph/Hook/browser and other Hosts remain open.
+
+At integration the same lightweight verifier reviews the six-file diff against
+`eef45e6d` without actionable findings. All 19 existing roadmap/CLI-documentation
+tests pass; generated-index consistency, the frozen-source boundary guard and
+diff whitespace check pass. The first run has 18 passes and one stale-index
+failure after the ledger update. Regenerating through
+`tooling/scripts/update_program_roadmap.py` resolves it; the affected checks then
+pass. All 249 task states/dependencies and 46 complete accepted records match the
+base. Existing native/content checks are reused because those inputs are
+unchanged. The authorized local feature-branch commits and fast-forward merge
+into `2.x` integrate this observation and the installation-guide clarification;
+they do not accept the missing native recovery path or authorize publication.

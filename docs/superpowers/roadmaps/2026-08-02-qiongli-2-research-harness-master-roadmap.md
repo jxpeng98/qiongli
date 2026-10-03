@@ -71,13 +71,26 @@ requested by the maintainer. The current execution plan records checks, initial
 failures, public-source observation scope and remaining gaps. New guidance is
 capability-gated; the published 2.2.1 CLI does not contain this development option.
 
-The next bounded outcome is a current-package Codex research journey: read one
-public paper, review/save its evidence and retrieval history, continue into a
-source-bound passage, then reopen and detect changed sources without losing
-history. First qualify these single-Host paths and fix demonstrated failures;
-use observed evidence gaps to select later minimum Kernel/Evidence work. Complete
-B2, blind/domain review, Graph/Hook/browser behavior, signed publisher redirects
-and installed/authenticated qualification retain their own evidence scope.
+The current development candidate has now been exported and installed through
+the official Codex Plugin manager in an isolated profile. An actual authenticated
+`gpt-6.1-sol / low` session reads bounded public-paper body segments through that
+installed Plugin after explicit permission for selected read-only tools. Source,
+retrieval history, note and continuation saves reuse the existing native owner.
+The current plan distinguishes actual calls, failed approval attempts and review
+scope; this is a development candidate, not a fresh published-2.2.1 qualification.
+
+The journey exposes the next bounded outcome: let a fresh Host read the saved
+paper notes, source packets and retrieval manifest through native CLI/Full MCP.
+The current project read exposes project context, while those saved documents
+have no native MCP body reader. A supplied file snapshot can test continuation
+but cannot qualify that missing path. Reuse registered project resolution and
+bounded regular-file readers, bind the expected revision and file digest, and
+reject unsafe paths, links, oversized data and stale sources. Keep notes and
+packets outside Graph's semantic artifact authority. Qualify a fresh Codex
+session without a supplied snapshot before claiming native recovery. Missing
+read-only tool annotations are a separate observed contract gap; their causal
+effect on Host approval still needs verification. Complete B2, blind/domain
+review, Graph/Hook/browser behavior and other Hosts remain separately scoped.
 
 Use existing canonical content, source/review bindings, native provider/runtime,
 project preview/approval/CAS and evaluation owners. One coordinator integrates
