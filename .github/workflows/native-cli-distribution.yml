@@ -116,6 +116,9 @@ jobs:
           version=$(python -c "import tomllib; print(tomllib.load(open('packages/qiongli-native/Cargo.toml','rb'))['workspace']['package']['version'])")
           python tooling/scripts/native_release_assets.py install-input --root "$RUNNER_TEMP/assets" --version "$version" --commit "$GITHUB_SHA"
           python scripts/native_registry_install_check.py --packages "$RUNNER_TEMP/assets" --out-dir "$RUNNER_TEMP/install-check" --version "$version"
+      - name: Upgrade published packages and preserve prior data
+        shell: bash
+        run: python tooling/scripts/native_registry_upgrade_check.py --packages "$RUNNER_TEMP/assets" --out-dir "$RUNNER_TEMP/upgrade-check"
       - name: Check Windows npm command shims
         if: runner.os == 'Windows'
         shell: pwsh
@@ -129,4 +132,5 @@ jobs:
           name: install-${{ matrix.os }}
           path: |
             ${{ runner.temp }}/install-check/install-check.json
+            ${{ runner.temp }}/upgrade-check/registry-upgrade-check.json
             ${{ runner.temp }}/assets/marketplace-install-check.json

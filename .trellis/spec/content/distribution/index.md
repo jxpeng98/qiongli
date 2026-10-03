@@ -115,6 +115,12 @@ or relax legacy tool equality to admit arbitrary native additions.
 - Run the closest materialization or payload audit only when its inputs changed.
 - Confirm generated outputs were not edited directly.
 
+The research validator selects native guide contracts for native source trees,
+projects workflow shortcuts through their shared wrapper, and audits a temporary
+portable package through the existing materializer. Source checkouts need no
+checked-in generated package. Legacy layout/guide checks remain available for
+the retained line; missing shared guidance, task IDs and resources still fail.
+
 The retained `audit_distribution_payloads.py` prunes name-excluded directories
 before hashing, while preserving its file/suffix rules and deterministic results.
 Included-directory scan errors fail the audit; partial inventories cannot pass.
@@ -146,6 +152,13 @@ OS/CPU dispatch, executable bytes and platform wheels. The three-platform
 `native-cli-distribution.yml` builds and installs on each target, assembles one
 npm package and four wheels, and tests the combined package on each target.
 ADR 0232 adds Linux ARM64 alongside Linux x64, macOS ARM64 and Windows x64.
+Cargo qualification and public-install jobs use the same four runner targets.
+Combined-package installation also upgrades disposable published pip/npm
+predecessors and hashes retained research/settings fixtures. Linux ARM64 uses
+the published 1.17.0 wheel because 2.1.1 has none for that platform; other wheels
+and npm use 2.1.1. This checks package replacement and byte retention separately
+from project-schema migration and real Host acceptance. The upgrade receipt is
+uploaded with the native installation evidence; no publisher runs in this check.
 Both Linux wheels require auditwheel validation against glibc 2.35; their exact
 architecture tags and executable bytes must match the standalone/npm artifacts.
 New release packet schema 2 requires all four target receipts and eight native

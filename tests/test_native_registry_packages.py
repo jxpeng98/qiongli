@@ -79,6 +79,10 @@ class NativeRegistryPackagesTests(unittest.TestCase):
         self.assertIn({'os': 'ubuntu-22.04-arm', 'target': 'aarch64-unknown-linux-gnu'}, build)
         self.assertEqual(set(workflow['jobs']['install']['strategy']['matrix']['os']),
                          {row['os'] for row in build})
+        cargo = yaml.safe_load((packages.ROOT / '.github/workflows/publish-cargo.yml').read_text())
+        for job in ('qualify', 'public-install'):
+            self.assertEqual(set(cargo['jobs'][job]['strategy']['matrix']['os']),
+                             {row['os'] for row in build})
 
     def test_npm_launcher_selects_each_architecture_and_rejects_unsupported_pairs(self):
         # Exercise the emitted launcher in Node while replacing only process/child IO.
