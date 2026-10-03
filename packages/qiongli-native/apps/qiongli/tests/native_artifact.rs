@@ -1,5 +1,7 @@
 #![allow(clippy::disallowed_methods)]
 
+mod support;
+
 use std::fs;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -9,8 +11,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_platform::{
     NATIVE_ARTIFACT_MANIFEST_FILE, NativeArtifactError, NativeArtifactStatus,
-    approve_native_artifact_target, compose_native_artifact,
-    current_target_native_artifact_identity, native_artifact_id, verify_native_artifact,
+    approve_native_artifact_target, compose_native_artifact, native_artifact_id,
+    verify_native_artifact,
 };
 use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
 use serde_json::{Value, json};
@@ -133,11 +135,7 @@ fn rpc(id: u64, method: &str, params: Value) -> Value {
 fn assembled_artifact_is_deterministic_tamper_evident_and_runtime_independent() {
     let fixture = Fixture::new("complete-artifact");
     let content = qiongli::embedded_content().expect("embedded content must verify");
-    let artifact = current_target_native_artifact_identity(
-        env!("CARGO_PKG_VERSION"),
-        qiongli_platform::ReleaseChannel::Alpha,
-    )
-    .expect("current target identity must resolve");
+    let artifact = support::current_native_artifact();
     let artifact_id = native_artifact_id(&artifact).expect("artifact ID must render");
     let first_path = fixture.artifact_target("first", &artifact_id);
     let second_path = fixture.artifact_target("second", &artifact_id);
@@ -383,11 +381,7 @@ fn assembled_artifact_is_deterministic_tamper_evident_and_runtime_independent() 
 fn composition_conflicts_and_unsafe_sources_fail_closed() {
     let fixture = Fixture::new("artifact-conflicts");
     let content = qiongli::embedded_content().expect("embedded content must verify");
-    let artifact = current_target_native_artifact_identity(
-        env!("CARGO_PKG_VERSION"),
-        qiongli_platform::ReleaseChannel::Alpha,
-    )
-    .unwrap();
+    let artifact = support::current_native_artifact();
     let artifact_id = native_artifact_id(&artifact).unwrap();
 
     let wrong_parent = fixture.root.join("wrong-parent");

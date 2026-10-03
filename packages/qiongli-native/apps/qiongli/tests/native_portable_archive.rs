@@ -1,5 +1,7 @@
 #![allow(clippy::disallowed_methods)]
 
+mod support;
+
 use std::fs;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -18,10 +20,10 @@ use qiongli_platform::{
     TransactionError, TrustedPublicKey, TrustedReleasePublicKey, approve_install_plan,
     approve_managed_root, approve_native_artifact_target, approve_native_portable_archive_target,
     build_native_release_envelope, compose_native_artifact, compose_native_portable_archive,
-    current_target_native_artifact_identity, extract_native_portable_archive,
-    launch_grant_signing_bytes, native_artifact_id, native_payload_install_id,
-    native_portable_archive_file_name, native_release_envelope_signing_bytes,
-    preview_native_payload_install, verify_native_artifact, verify_native_portable_archive,
+    extract_native_portable_archive, launch_grant_signing_bytes, native_artifact_id,
+    native_payload_install_id, native_portable_archive_file_name,
+    native_release_envelope_signing_bytes, preview_native_payload_install, verify_native_artifact,
+    verify_native_portable_archive,
 };
 use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
 use serde_json::{Value, json};
@@ -267,9 +269,7 @@ fn resign_release(
 fn portable_archive_is_deterministic_safe_and_runtime_independent() {
     let fixture = Fixture::new("portable-archive");
     let content = qiongli::embedded_content().expect("embedded content must verify");
-    let artifact =
-        current_target_native_artifact_identity(env!("CARGO_PKG_VERSION"), ReleaseChannel::Alpha)
-            .expect("current target identity must resolve");
+    let artifact = support::current_native_artifact();
     let artifact_id = native_artifact_id(&artifact).expect("artifact ID must render");
     let archive_file_name =
         native_portable_archive_file_name(&artifact).expect("archive filename must render");
@@ -395,7 +395,7 @@ fn portable_archive_is_deterministic_safe_and_runtime_independent() {
         minimum_release_generation: 19,
         minimum_launch_grant_generation: 13,
         expected_artifact: &artifact,
-        expected_channel: ReleaseChannel::Alpha,
+        expected_channel: artifact.channel,
         requested_mode: GrantMode::LiteMcp,
         requested_scope: IntegrationScope::CodexLocal,
     };
@@ -693,9 +693,15 @@ fn portable_archive_is_deterministic_safe_and_runtime_independent() {
     let mut wrong_scope_context = release_context;
     wrong_scope_context.requested_scope = IntegrationScope::ClaudeCodeLocal;
     let mut wrong_channel_context = release_context;
-    wrong_channel_context.expected_channel = ReleaseChannel::Stable;
+    wrong_channel_context.expected_channel = if artifact.channel == ReleaseChannel::Stable {
+        ReleaseChannel::Alpha
+    } else {
+        ReleaseChannel::Stable
+    };
     let mut wrong_artifact = artifact.clone();
-    wrong_artifact.version = "2.0.0-alpha.99".to_string();
+    let mut wrong_version = semver::Version::parse(&artifact.version).unwrap();
+    wrong_version.patch += 1;
+    wrong_artifact.version = wrong_version.to_string();
     let mut wrong_artifact_context = release_context;
     wrong_artifact_context.expected_artifact = &wrong_artifact;
     for (context, expected) in [

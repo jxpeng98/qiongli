@@ -3542,3 +3542,31 @@ tests (including wrong-target rejection) pass. Affected Rust 1.97 Clippy and
 formatting pass. No additional production behavior or content bytes change.
 The new source still requires completed same-source hosted checks; publication
 remains disabled and all historical successful/failed runs remain preserved.
+
+At `3434d0ab`, distribution/upgrade run `37124720678` and Cargo qualification
+`37124722404` again pass all four targets. Native CI `37124719241` now passes
+the Linux process-sensitive library, CLI and activation suites; all three OS
+jobs subsequently stop at the same native-artifact fixture, which still pairs
+the stable package version with Alpha. A bounded audit also finds that assumption
+in portable-archive, signed-candidate and Desktop-package integration fixtures.
+
+Those fixtures now share current-target identity selection through the existing
+validator. Release authority and retained update state use that exact channel;
+wrong-channel and wrong-version cases still choose genuinely different, valid
+identities. The Desktop-package assertion checks the embedded Companion metadata
+(currently 0.3.1), replacing a stale 0.3.0 literal. Five artifact/archive/candidate/
+Desktop integration cases pass against copied real CLI bytes in the secure
+container, including integrity, tamper, replay, channel and rollback negatives.
+The initial Companion assertion failure is preserved in the local log, and the
+repaired Desktop test passes separately. Pinned Clippy and formatting pass.
+
+The Linux CI runner serializes only the application library through Cargo's
+typed runner configuration; independent crates and integration executables
+retain normal parallelism. A real Cargo invocation verifies argument forwarding
+and the process-guard negative test. `--no-fail-fast` collects failures across
+test executables while retaining the final failing exit status. Twenty existing
+workflow-contract checks pass after updating their runner invocation assertions.
+Manual Native CI has a 120-minute limit because the observed macOS headless
+integration section alone takes roughly 24 minutes before the remaining artifact,
+retained Desktop and capacity checks; the PR limit remains 30 minutes. No checks
+are skipped or made advisory. A new same-source full run is still required.

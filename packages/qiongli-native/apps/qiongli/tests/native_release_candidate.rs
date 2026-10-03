@@ -1,5 +1,7 @@
 #![allow(clippy::disallowed_methods)]
 
+mod support;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -22,8 +24,7 @@ use qiongli_platform::{
     apply_native_release_candidate_local, approve_native_artifact_target,
     approve_native_portable_archive_target, build_native_release_candidate,
     build_native_release_envelope, compose_native_artifact, compose_native_portable_archive,
-    current_target_native_artifact_identity, launch_grant_signing_bytes,
-    materialize_native_candidate_plugin_source, native_artifact_id,
+    launch_grant_signing_bytes, materialize_native_candidate_plugin_source, native_artifact_id,
     native_portable_archive_file_name, native_release_candidate_signing_bytes,
     native_release_envelope_signing_bytes, prepare_native_candidate_plugin_source_target,
     remove_native_candidate_plugin_source, remove_native_release_candidate_local,
@@ -35,7 +36,7 @@ use serde_json::json;
 static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
 const NOW: u64 = 1_750_000_000;
 const SOURCE_COMMIT: &str = "89abcdef0123456789abcdef0123456789abcdef";
-const NOTES: &[u8] = b"# Qiongli 2.0.0-alpha.1\n\nLite local release candidate.\n";
+const NOTES: &[u8] = b"# Qiongli native candidate fixture\n\nLite local release candidate.\n";
 const CONTENT_ROOTS: [&str; 12] = [
     ".claude-plugin",
     ".codex-plugin",
@@ -214,8 +215,16 @@ fn authority_with_policy(
     NativeReleaseAuthority::from_json(&bytes).expect("test authority must be canonical")
 }
 
+fn current_channel_name() -> &'static str {
+    match support::current_native_artifact().channel {
+        ReleaseChannel::Alpha => "alpha",
+        ReleaseChannel::Beta => "beta",
+        ReleaseChannel::Stable => "stable",
+    }
+}
+
 fn authority(release_key: &SigningKey, launch_key: &SigningKey) -> NativeReleaseAuthority {
-    authority_with_policy(release_key, launch_key, "alpha", 29, 29, 31)
+    authority_with_policy(release_key, launch_key, current_channel_name(), 29, 29, 31)
 }
 
 fn resign_candidate(
@@ -283,9 +292,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     let built_pack = minimal_pack(&fixture.root);
     let content = load_resource_pack(built_pack.core_bytes(), built_pack.pack_sha256())
         .expect("minimal content must verify");
-    let artifact =
-        current_target_native_artifact_identity(env!("CARGO_PKG_VERSION"), ReleaseChannel::Alpha)
-            .expect("current target artifact must resolve");
+    let artifact = support::current_native_artifact();
     let artifact_id = native_artifact_id(&artifact).expect("artifact ID must render");
     let artifact_path = fixture.target("artifact", &artifact_id);
     let artifact_target = approve_native_artifact_target(&artifact_path, &artifact)
@@ -1056,7 +1063,11 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
             old.last_accepted_generation = codex.candidate().generation;
             old.last_known_good = Some(qiongli_config::UpdateLastKnownGood {
                 version: artifact.version.clone(),
-                channel: qiongli_config::UpdateReleaseChannel::Alpha,
+                channel: match artifact.channel {
+                    ReleaseChannel::Alpha => qiongli_config::UpdateReleaseChannel::Alpha,
+                    ReleaseChannel::Beta => qiongli_config::UpdateReleaseChannel::Beta,
+                    ReleaseChannel::Stable => qiongli_config::UpdateReleaseChannel::Stable,
+                },
                 generation: codex.candidate().generation,
                 archive_sha256: codex
                     .candidate()
@@ -1511,7 +1522,14 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
         NativeReleaseCandidateError::CandidateExpired
     );
 
-    let stale_authority = authority_with_policy(&release_key, &launch_key, "alpha", 30, 29, 31);
+    let stale_authority = authority_with_policy(
+        &release_key,
+        &launch_key,
+        current_channel_name(),
+        30,
+        29,
+        31,
+    );
     assert_eq!(
         signed_candidate
             .verify(
@@ -1524,11 +1542,17 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
             .unwrap_err(),
         NativeReleaseCandidateError::CandidateReplayed
     );
-    let beta_authority = authority_with_policy(&release_key, &launch_key, "beta", 29, 29, 30);
+    let other_channel = if artifact.channel == ReleaseChannel::Beta {
+        "stable"
+    } else {
+        "beta"
+    };
+    let wrong_channel_authority =
+        authority_with_policy(&release_key, &launch_key, other_channel, 29, 29, 30);
     assert_eq!(
         signed_candidate
             .verify(
-                &beta_authority,
+                &wrong_channel_authority,
                 &codex_context,
                 &content,
                 &archive_target,
@@ -1629,7 +1653,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
         ),
         (
             &signed_candidate,
-            &beta_authority,
+            &wrong_channel_authority,
             &codex_context,
             NativeReleaseCandidateError::CandidateChannelMismatch,
         ),

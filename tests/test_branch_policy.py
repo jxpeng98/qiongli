@@ -262,7 +262,7 @@ class BranchPolicyTests(unittest.TestCase):
         commands = (
             "cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check",
             "cargo clippy --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked -- -D warnings",
-            "cargo test --manifest-path packages/qiongli-native/Cargo.toml -p qiongli -p qiongli-ui --all-targets --all-features --locked",
+            "bash tooling/scripts/native_ci_test.sh --manifest-path packages/qiongli-native/Cargo.toml -p qiongli -p qiongli-ui --all-targets --all-features --locked",
         )
         for command in commands:
             self.assertIn(command, job)
@@ -290,12 +290,12 @@ class BranchPolicyTests(unittest.TestCase):
         )
         self.assertEqual(job.count(manual_capacity_condition), 2)
         self.assertIn(
-            "timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 60 || 30 }}",
+            "timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 120 || 30 }}",
             job,
         )
         self.assertIn("name: Measure opt-in platform capacity baseline", job)
         self.assertIn(
-            "cargo test --manifest-path packages/qiongli-native/Cargo.toml "
+            "bash tooling/scripts/native_ci_test.sh --manifest-path packages/qiongli-native/Cargo.toml "
             "--workspace --lib --release --locked platform_capacity_baseline "
             "-- --ignored --test-threads=1",
             job,
