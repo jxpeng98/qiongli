@@ -3988,3 +3988,108 @@ the native/frozen-source boundary guard and diff whitespace checks. All 249 task
 states/dependencies and all 46 complete accepted records match `01a5a8b5`.
 Local scoped commits and a fast-forward merge into `2.x` integrate this increment;
 they do not establish broader program acceptance or a new release.
+
+## October 4 — receipt-backed saved bindings for project-only recovery
+
+The maintainer continues the bounded next step from local `2.x` at `c6691904`.
+Branch `feat/saved-document-bindings` implements `project document list` and
+Full-only `qiongli_project_document_list` in
+`af2b3c6a447fe08e516c6f61c412d5f025c2d261`. Both use the existing registered-project,
+consolidation receipt/capture and safe-file owners. There is no additional index,
+research-directory scan, Graph artifact or write authority.
+
+The service validates every receipt and its bound capture, including raw digests,
+project, base revision and stage. Foreign/future, orphaned, corrupt, unsafe or
+duplicate-revision history refuses, as does history beyond the existing 1,024
+record bound. Each allowed path takes its saved digest from the latest receipt by
+destination revision. Files not backed by receipts do not appear. Missing,
+changed or unavailable bodies retain their saved metadata without usable read
+arguments; current UTF-8 files supply arguments for the existing body reader.
+No replacement digest is offered as saved authority. Existing reads and all
+preview/approval/CAS behavior remain unchanged.
+
+Lists are sorted by relative path, with 32 entries by default and at most 64 per
+page. Continuation requires the same project revision and digest of the complete
+raw receipt/capture set, including history outside the returned page. Each page
+rechecks its files, history, registration and manifest. This is local integrity
+and a bounded snapshot, not authenticated provenance or a lock against editors.
+Only saved-file metadata is returned; the body reader retains its own checks.
+Full has 35 tools; Lite remains 15 and historical inventory pairs remain valid.
+
+Canonical schema/workflow source is
+`002559d1171b0877cbbd2f6862ecd3be9fd2bfe2`. Existing generation produces 446 resources,
+pack SHA-256 `78ea65da7f5fcd561390de19cc17003e006f310afd8cd2799d2b5a79e2d25a4b`
+and content root
+`9b2272b00b282645b0fb786c1947fce477ee9d916ae860dc7ef355ebdb1b3607`.
+Canonical guidance and bilingual CLI docs gate the new listing capability;
+the version remains 2.2.1 and this increment is not in that published package.
+
+The same requested `gpt-6.1-sol / low` verifier reviews the change and passes
+33 focused native tests: listing 7, existing body reader 6, note/packet/manifest
+consolidation regressions 3, runtime contracts 7, execution dispatch 6, populated
+CLI/Full MCP parity and Lite refusal 3, and embedded pack 1. The seven list cases
+use real approved packet/manifest/note/update transactions, retain complete byte
+snapshots, and cover latest selection, absent receipts, bad bodies, history
+integrity, orphan/fork/limit refusal and bound pagination. Python contract/package
+checks pass 23; capability validation, formatting and scoped strict Clippy pass.
+The first formatting command uses the repository root instead of the native
+workspace; it is rerun in the correct directory. A moved fixture configuration in
+an added execution test causes E0382 and is fixed in test code. The affected
+checks then pass; no production failure or weakening of a negative case occurs.
+
+The stamped Rust 1.97 `--locked --profile test` build completes, using the existing
+debug-information stripping profile. Candidate and installed-cache binary SHA-256:
+`6d41caa0ad4a21ff8403d4fb526cf274de776a791d5fdab1b28369a97c6acea8`.
+Native preview/apply/status and official isolated Codex Plugin removal/add/list
+complete through a new `bindings-exports/qiongli` destination. All 468 cached
+entries verify, with Full 35/Lite 15. Cache receipt SHA-256:
+`86d05810f255e3aefd4fefce2f0d679dfd915953f7f03c7a402ec5c7b2660b68`.
+This is an installed development candidate, not a published-package qualification.
+
+Local native preflight on the prior sole public arXiv test project succeeds at
+revision 6. Five real consolidation receipts produce three `current` bindings
+(note saved at revision 5, manifest at 3, original packet at 2) and one `changed`
+test-packet binding saved at 6. Only the three current entries provide read
+arguments with their saved hashes; no replacement hash or pending unreceipted
+capture is promoted. The saved-history binding SHA-256 is
+`afd23dcbecdb563b48283f47b6cce21f0952f3658f749aa6901a18416778ef0c`.
+The preflight fixture initially assumes top-level `projects` instead of the
+existing `library.projects` registry shape; correcting that test assumption
+resolves its assertion without changing production or registry bytes.
+
+A single planned fresh Codex observation supplies only the project ID, with no
+revision, file path, file hash or body. It requests `gpt-6.1-sol / low`, read-only
+execution, a 180-second bound and explicit approval only for project read,
+document list and document read in the isolated profile. Automatic approval
+review rejects the authentication/launch command: general verifier authorization
+and public-source provenance are not considered explicit authorization to send
+these saved document bodies to Codex. The launch command never executes; there
+are zero model calls, no answer/event result and no temporary authentication link.
+There is no retry or alternate route around the rejection. Explicit user approval
+for this specific body-processing scope is required before that observation.
+
+Setup/preflight verification remains distinct from live Host behavior. Read-only
+byte preservation is established by the service fixtures; no completed live-Host
+before/after project/config observation is claimed. Preflight SHA-256:
+`0927a2309cb6bb0bd65faec120f283a8839ad9b021369818503852f51205edfc`;
+prepared prompt SHA-256:
+`9dd2e30b4e8ba3cafc6777b3b7d658e5857ba6c29319de799530a4b5ff7f587c`.
+Evidence remains under the prior private observation directory's `logs/`:
+`bindings-final-identities.json`, `bindings-preflight-verification.json`,
+`bindings-host-approval-refusal.json` and the `bindings-*` setup/inventory logs.
+
+The immediate remaining observation is the explicitly approved project-ID-only
+Codex recovery. The next independent research increment is to read the remaining
+public-paper passages, review the revised note, then exercise the existing
+preview/approval/save/restart flow. Current saved evidence still covers only
+16/27 paper segments, pages 1–8. No complete B2, expert/blind review, other Host,
+Graph/Hook/browser, platform, program-acceptance or publication claim is added.
+
+At local integration the same lightweight verifier reports no actionable finding
+against `c6691904`. All 19 roadmap/CLI-documentation and three packaging-gate checks
+pass, together with generated-index consistency, capability validation, the native
+boundary guard and diff whitespace checks. All 249 task states/dependencies and
+all 46 complete accepted records remain unchanged; only CLI-405 progress changes.
+The earlier focused native/lint results are reused. Scoped local commits and
+fast-forward integration into `2.x` complete the implementation without claiming
+the unrun Host observation or authorizing push/publication.
