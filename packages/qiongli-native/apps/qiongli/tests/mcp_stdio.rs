@@ -451,6 +451,56 @@ fn copied_binary_serves_initialize_list_and_bounded_calls_without_path_runtime()
 }
 
 #[test]
+fn copied_lite_and_full_binaries_preserve_literature_read_annotations() {
+    let fixture = Fixture::new();
+    for profile in ["marketplace-lite", "full"] {
+        let mut command = fixture.command_with_profile(profile);
+        command.args(["--transport", "stdio"]);
+        let mut child = spawn_with_executable_busy_retry(&mut command).unwrap();
+        let mut stdin = child.stdin.take().unwrap();
+        serde_json::to_writer(&mut stdin, &rpc(1, "tools/list", json!({}))).unwrap();
+        stdin.write_all(b"\n").unwrap();
+        drop(stdin);
+        let output = child.wait_with_output().unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let response: Value = serde_json::from_slice(&output.stdout).unwrap();
+        let tools = response["result"]["tools"].as_array().unwrap();
+        for (name, open_world) in [
+            ("qiongli_literature_status", false),
+            ("qiongli_search_plan", false),
+            ("qiongli_literature_read_fulltext", true),
+        ] {
+            let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
+            assert_eq!(
+                tool["annotations"],
+                json!({
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true,
+                    "openWorldHint": open_world,
+                }),
+                "{profile}: {name}"
+            );
+        }
+        for name in [
+            "qiongli_save_provider_config",
+            "qiongli_configure_provider",
+            "qiongli_zotero_upsert_references",
+        ] {
+            let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
+            assert_ne!(
+                tool["annotations"]["readOnlyHint"], true,
+                "{profile}: {name}"
+            );
+        }
+    }
+}
+
+#[test]
 fn copied_full_binary_routes_to_host_orchestration_without_lite_upgrade() {
     let fixture = Fixture::new();
     let (_, response) = full_tool_response(

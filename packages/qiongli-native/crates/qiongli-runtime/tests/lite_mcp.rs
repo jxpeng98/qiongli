@@ -121,6 +121,39 @@ fn initialize_list_ping_and_notifications_use_bounded_static_protocol_results() 
 }
 
 #[test]
+fn literature_descriptors_distinguish_local_reads_from_public_transport() {
+    let listed = server()
+        .handle(request(1, "tools/list", json!({})))
+        .unwrap();
+    let tools = listed["result"]["tools"].as_array().unwrap();
+    for (name, open_world) in [
+        ("qiongli_literature_status", false),
+        ("qiongli_search_plan", false),
+        ("qiongli_literature_read_fulltext", true),
+    ] {
+        let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
+        assert_eq!(
+            tool["annotations"],
+            json!({
+                "readOnlyHint": true,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": open_world,
+            }),
+            "{name}"
+        );
+    }
+    for name in [
+        "qiongli_save_provider_config",
+        "qiongli_configure_provider",
+        "qiongli_zotero_upsert_references",
+    ] {
+        let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
+        assert_ne!(tool["annotations"]["readOnlyHint"], true, "{name}");
+    }
+}
+
+#[test]
 fn deferred_provider_credentials_are_not_loaded_by_protocol_or_status_calls() {
     let loads = Arc::new(AtomicUsize::new(0));
     let loader_loads = Arc::clone(&loads);
