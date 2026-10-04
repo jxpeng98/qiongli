@@ -97,15 +97,19 @@ History-bound pagination adds no index, Graph authority or write. Focused checks
 official isolated Plugin installation and native preflight pass. The same public
 test project exposes three usable bindings and one explicitly changed test copy.
 
-The prepared project-ID-only Codex observation has not run: automatic approval
-review requires explicit authorization to send these saved bodies to the model,
-despite the public-source fixture evidence. No auth link or model call occurs.
-The current plan records that boundary and the concrete pending read-only scope;
-local implementation continues without treating installation as live acceptance.
-Next qualify this recovery with that authorization, then complete the remaining
-public-paper passages and reviewed note/save/restart journey through existing
-owners. Missing annotations on older literature tools remain separately scoped;
-complete B2, expert/blind review, Graph/Hook/browser and other Hosts remain open.
+After explicit maintainer authorization for the saved public-project bodies, one
+actual fresh `gpt-6.1-sol / low` Codex session completes project-ID-only recovery
+with the unchanged installed candidate. Seven successful native calls obtain the
+revision, paginate saved bindings and read the three current documents without
+supplied paths, digests or bodies; the changed test copy is skipped. Byte checks,
+project/config preservation and auth cleanup pass. The plan retains the earlier
+automatic refusal separately and binds the actual answer, events and limits.
+This is scoped live recovery, not complete paper reading or broad acceptance.
+
+Next complete the remaining public-paper passages and reviewed note/save/restart
+journey through existing owners. Missing annotations on older literature tools
+remain separately scoped; complete B2, expert/blind review, Graph/Hook/browser
+and other Hosts remain open.
 
 Use existing canonical content, source/review bindings, native provider/runtime,
 project preview/approval/CAS and evaluation owners. One coordinator integrates
@@ -189,7 +193,7 @@ macOS ARM64 and Windows x64); focused local checks do not establish that gate. T
 | **RELEASED BASELINE** | 2.2.1 is published on GitHub; retain its 2.2 research capabilities and four-target distribution boundary. Earlier release-freeze records are historical. | `CLI-410`, current execution plan and `tooling/release/v2.2.1.md`. Public Release metadata is observed; no new package, Host or academic acceptance is inferred. |
 | **IMPLEMENTED RETRIEVAL HISTORY** | Append reviewed per-attempt retrieval rows, bind saved source packets, preserve explicit unknowns and resume from saved bytes. | `CLI-405`, existing project/consolidation/storage and Stage B owners. One gpt-6.1-sol / low verifier; current plan owns exact checks and limits. Installed-package qualification follows separately. |
 | **IMPLEMENTED SAVED-DOCUMENT READ** | Read known saved note, source-packet and retrieval-history bindings through one bounded CLI/Full MCP service; refuse stale bytes and preserve Graph/write boundaries. | `CLI-405`, implementation `67a51deb`, canonical content `252663aa`. One actual isolated installed Codex session uses native reads without body snapshots; the current plan owns exact source, checks and limits. Follow-up binding recovery is recorded below. |
-| **IMPLEMENTED SAVED BINDINGS** | Recover latest saved paths/digests from validated receipts and captures, exposing read arguments only for current files and binding pagination to history. | `CLI-405`, implementation `af2b3c6a`, canonical content `002559d1`. Focused checks, isolated official install and native preflight pass; actual project-ID-only Codex observation awaits explicit body-processing authorization after automatic review refusal. |
+| **IMPLEMENTED SAVED BINDINGS** | Recover latest saved paths/digests from validated receipts and captures, exposing read arguments only for current files and binding pagination to history. | `CLI-405`, implementation `af2b3c6a`, canonical content `002559d1`. Focused checks, isolated official install/preflight and one explicitly authorized project-ID-only Codex recovery pass. The current plan preserves the earlier automatic refusal, exact candidate, actual calls and remaining limits. |
 | **REMAINING BASELINE** | Diagnose remaining full-suite failures in bounded groups; fix demonstrated content defects before expanding observations. | Existing validation/content owners; preserve permission gates and stable/prerelease negatives. No blanket assertion removal or speculative model matrix. |
 | **QUALIFICATION** | Refresh the named installed-package Codex approval/write/restart journey and separately qualify advertised Graph/Hook/browser behavior. | `CLI-403`–`CLI-405`, `SEC-401`–`SEC-403`, `CLI-410`; reuse existing install, approval/CAS and acceptance owners. The previously paused Host-registration lane needs its own resumed scope; independent offline implementation continues. |
 | **AFTER THE BASELINE** | Complete local atomic task claims, candidate review, conflict/cancellation/revocation and restart handling with two actual Hosts. | `CLI-406`–`CLI-408`, then `CLI-411`, under their existing dependencies. `CLI-409` qualifies additional Hosts individually. |

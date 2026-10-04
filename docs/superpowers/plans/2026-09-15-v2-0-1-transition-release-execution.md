@@ -4093,3 +4093,81 @@ all 46 complete accepted records remain unchanged; only CLI-405 progress changes
 The earlier focused native/lint results are reused. Scoped local commits and
 fast-forward integration into `2.x` complete the implementation without claiming
 the unrun Host observation or authorizing push/publication.
+
+## October 4 — authorized project-ID-only Codex recovery
+
+The maintainer explicitly authorizes the previously described scope: one
+`gpt-6.1-sol / low` Codex session may process the isolated public arXiv:1706.03762
+test project's context, notes, retrieval history and source packet, using the
+existing login, isolated configuration, read-only tools and a 180-second bound.
+Branch `test/project-id-only-codex-recovery` starts from `d5ea6d59`. The same
+lightweight verifier records that authorization; automatic review then permits
+the previously refused launch. The original refusal and deferred identity record
+are retained. This is new explicit authority, not an alternate execution route.
+
+No source, content, installation or model configuration changes are needed. The
+verifier confirms the existing cache/configuration and reuses native source
+`af2b3c6a447fe08e516c6f61c412d5f025c2d261`, canonical content
+`002559d1171b0877cbbd2f6862ecd3be9fd2bfe2`, pack `78ea65da7f5fcd561390de19cc17003e006f310afd8cd2799d2b5a79e2d25a4b`
+and candidate/cache binary
+`6d41caa0ad4a21ff8403d4fb526cf274de776a791d5fdab1b28369a97c6acea8`.
+Prior native, CLI and lint checks remain applicable and are not repeated.
+
+Exactly one fresh ephemeral Codex invocation exits 0 after 86.481425 seconds.
+Its only supplied data binding is project ID
+`prj_662afe4c2fb02ab05968e07a3d79aacd`: no revision, file path/hash, receipt or body
+is supplied. The prompt retains SHA-256
+`9dd2e30b4e8ba3cafc6777b3b7d658e5857ba6c29319de799530a4b5ff7f587c`.
+Only the three native project/document read/list tools have explicit approval in
+the isolated profile; no supplied-snapshot resource server is configured.
+
+All seven actual MCP calls succeed: project read obtains revision 6, two list
+pages use limit 2 and offsets 0/2 with the same history digest, and four body-read
+calls use the returned current bindings. The list shows three `current` files and
+one `changed` test copy; receipt hashes agree with disk and the changed copy is
+not read. Note (3,893 bytes), manifest (1,846 bytes) and packet (16,384 + 11,400 =
+27,784 bytes) reconstruct exactly to the saved disk files and whole-file hashes.
+There is no failed call, shell/resource fallback, new retrieval or write action.
+
+Complete before/after SHA-256 maps of the isolated `work/project` and `config`
+(`QIONGLI_CONFIG_HOME`) roots agree; Codex home/session logs are outside that
+comparison. Cleanup removes the temporary auth path while it is still a symlink;
+no auth file/copy remains. Agents do not read, copy or print credential contents.
+Actual answer SHA-256:
+`d166d27b2d6291d96ac2177e2f90edae4253a1fcdc732e0987e4afe56240f74b`;
+event-log SHA-256:
+`7c54c1b742370843f7098f2a682abda2d689535ff6d5d37af33cc61e00817598`.
+
+Evidence stays under `/home/hermes/qiongli-codex-continuity-yqk33pu3`: the prompt
+is `work/bindings-fresh-reader-prompt.txt`; `logs/` contains
+`bindings-explicit-authorization.json`, `bindings-read-before.json`,
+`bindings-read-verification.json`, `bindings-fresh-reader-launch.json`,
+`bindings-fresh-reader-completion.json`, `bindings-fresh-reader-answer.txt`,
+`bindings-fresh-reader.jsonl` and updated `bindings-final-identities.json`.
+`bindings-host-approval-refusal.json` and `bindings-deferred-identities.json`
+preserve the prior unrun state separately.
+
+The verifier finds no answer-fidelity issue against the available public-source
+anchors. The answer distinguishes complete saved-packet bytes from partial paper
+coverage (segments 0–15/27, pages 1–8), PDF versus packet digests, and training
+parallelism versus autoregressive generation. It retains the unresolved
+41.8/Table 2 versus 41.0/prose discrepancy, unverified identity/version/license
+fields and earlier retrieval refusals, without renewing write approval. A visible
+version header or conditional reproduction notice is not external verification.
+This is source-visible lightweight review, not blind or expert review; requested
+launch settings are not independent provider model attestation.
+
+The previously pending project-ID-only recovery observation is now complete for
+this installed development candidate and public test project. Next read the
+remaining paper segments, review the revised note, then exercise the existing
+preview/approval/save/restart flow. Full B2, other Hosts/platforms,
+Graph/Hook/browser, program acceptance and publication retain their separate
+scope; no task state, dependency or accepted-evidence promotion follows.
+
+At integration the same verifier reviews the four documentation files against
+`d5ea6d59` without actionable findings. All seven affected program-roadmap tests,
+generated-index consistency, the native boundary guard and diff whitespace checks
+pass. All 249 task states/dependencies and all 46 complete accepted records match
+the base; only CLI-405 progress changes. Unchanged native/CLI/lint checks and the
+single model observation are reused. A scoped local commit and fast-forward merge
+into `2.x` record the result without remote push or publication.
