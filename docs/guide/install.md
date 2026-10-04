@@ -1,6 +1,6 @@
 # Install Qiongli
 
-Choose one CLI installation method, then run `qiongli install` to connect your Host. The current version is **2.2.1**.
+Choose one CLI installation method, then run `qiongli install` to connect your Host. The current version is **2.3.0**.
 
 ## Direct download {#standalone-binary-download}
 
@@ -8,16 +8,16 @@ The standalone program includes research Skills, templates and Lite/Full MCP. No
 
 | Platform | Download |
 |---|---|
-| macOS Apple Silicon (ARM64, macOS 11+) | [tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.2.1/qiongli-2.2.1-aarch64-apple-darwin.tar.gz) |
-| Windows x64 | [zip](https://github.com/jxpeng98/qiongli/releases/download/v2.2.1/qiongli-2.2.1-x86_64-pc-windows-msvc.zip) |
-| Linux x64 (glibc 2.35+) | [tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.2.1/qiongli-2.2.1-x86_64-unknown-linux-gnu.tar.gz) |
-| Linux ARM64 (glibc 2.35+) | [tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.2.1/qiongli-2.2.1-aarch64-unknown-linux-gnu.tar.gz) |
+| macOS Apple Silicon (ARM64, macOS 11+) | [tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.3.0/qiongli-2.3.0-aarch64-apple-darwin.tar.gz) |
+| Windows x64 | [zip](https://github.com/jxpeng98/qiongli/releases/download/v2.3.0/qiongli-2.3.0-x86_64-pc-windows-msvc.zip) |
+| Linux x64 (glibc 2.35+) | [tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.3.0/qiongli-2.3.0-x86_64-unknown-linux-gnu.tar.gz) |
+| Linux ARM64 (glibc 2.35+) | [tar.gz](https://github.com/jxpeng98/qiongli/releases/download/v2.3.0/qiongli-2.3.0-aarch64-unknown-linux-gnu.tar.gz) |
 
 Choose the platform archive under the release's **Assets**. **Source code** archives need a build. Binary packages do not cover Intel macOS, Windows ARM64, 32-bit systems or musl Linux. Windows includes the C runtime.
 
 ### Verify and run
 
-Download [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.2.1/SHA256SUMS) from the same release and compare the SHA-256 for your exact filename. Use `shasum -a 256 <filename>` on macOS, `sha256sum <filename>` on Linux, or `Get-FileHash <filename> -Algorithm SHA256` in PowerShell.
+Download [SHA256SUMS](https://github.com/jxpeng98/qiongli/releases/download/v2.3.0/SHA256SUMS) from the same release and compare the SHA-256 for your exact filename. Use `shasum -a 256 <filename>` on macOS, `sha256sum <filename>` on Linux, or `Get-FileHash <filename> -Algorithm SHA256` in PowerShell.
 
 If the hashes match, extract into a new directory and run there:
 
@@ -35,8 +35,8 @@ Choose one. npm and PyPI include the native executable; Cargo builds from source
 | Channel | Requirement | Install command |
 |---|---|---|
 | npm | Node.js 18+ | `npm install --global qiongli@latest` |
-| PyPI | Python 3.9+; use a virtual environment | `python -m pip install --upgrade "qiongli==2.2.1"` |
-| Cargo | Rust 1.97+ and a native linker | `cargo install qiongli --version 2.2.1 --locked` |
+| PyPI | Python 3.9+; use a virtual environment | `python -m pip install --upgrade "qiongli==2.3.0"` |
+| Cargo | Rust 1.97+ and a native linker | `cargo install qiongli --version 2.3.0 --locked` |
 
 Pinning the pip version prevents an incompatible platform from silently selecting 1.x. npm prereleases use `qiongli@next`, which may differ from stable.
 

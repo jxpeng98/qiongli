@@ -4592,3 +4592,32 @@ boundary and whitespace checks pass. Both the original development baseline and
 qualified product source retain all 249 task states/dependencies and 46 complete
 accepted records; only CLI-405 progress changes. Local integration uses a scoped
 documentation commit and fast-forward merge; native/package results are reused.
+
+## October 4 — authorized 2.3.0 publication handoff
+
+The maintainer explicitly authorizes pushing the current work and starting the
+new release, then ending this conversation without following subsequent results.
+Finalize bilingual version/install guidance, the changelog and release notes for
+2.3.0; runtime, content pack and prior source-bound qualification remain unchanged.
+
+Remote inspection finds `main` at `e6a6d9d6` and `2.x` at `c25fb2c1`, both ancestors
+of the reviewed local `eecd331b` baseline, with no `v2.3.0` tag or release. Stable
+cutover will fast-forward `main` and push the new immutable tag without modifying
+remote rules or the protected `2.x` branch. Dispatch `release-automation.yml` at
+`v2.3.0` with `mode=post`, `tag=v2.3.0` and release creation enabled. The existing
+owner requires tag/main equality and fresh four-target distribution/combined
+installation checks, verifies assets and public downloads, then dispatches the
+existing npm/PyPI/Cargo publishers with their own gates intact.
+
+The requested stopping point is accepted dispatch, not observed publication.
+No later build, registry or Release outcome is claimed here; no monitoring or
+announcement is scheduled. Earlier `bc8c0fdd` local receipts retain that source
+identity. All 249 task states/dependencies and 46 accepted records remain
+unchanged, as do broader installed-Host and academic acceptance limits.
+
+Before integration, the requested gpt-6.1-sol / low verifier finds no actionable
+issue in the 23-file documentation diff. All 25 focused publication, version and
+roadmap tests pass, together with index consistency, tag alignment, frozen-source
+boundary and whitespace checks. It independently confirms unchanged task states,
+dependencies and accepted records. Native builds are not repeated for these docs;
+the publication owner must qualify its own exact tagged source.

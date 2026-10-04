@@ -9,7 +9,7 @@ hero:
       text: Quickstart
       link: /quickstart
     - theme: alt
-      text: Install 2.2.1
+      text: Install 2.3.0
       link: /guide/install
 features:
   - title: Extract and run
@@ -22,7 +22,7 @@ features:
 
 ## Find what you need
 
-These docs cover **2.2.1**. After installation, run `qiongli install` to connect your Host.
+These docs cover **2.3.0**. After installation, run `qiongli install` to connect your Host.
 
 | Goal | Start here |
 |---|---|

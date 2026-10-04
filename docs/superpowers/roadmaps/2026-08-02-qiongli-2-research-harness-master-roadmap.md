@@ -147,12 +147,15 @@ source installation, scoped old-package upgrades and exact packaged annotations
 also pass. The current plan binds artifact hashes and preserves the prior glibc
 2.39 ABI refusal, fixture and setup failures.
 
-Next obtain separate authority for a candidate-branch push and the existing
-four-target distribution workflow, including combined installs. Other targets
-and exact-head CI remain unqualified; source-bound local artifacts do not attest
-the later evidence-only commit. Publication and announcement remain separate
-decisions. Full B2, remaining visual/formula checks, expert/blind
-review, Graph/Hook/browser and other Hosts remain open.
+The maintainer now authorizes stable 2.3.0 push and unattended publication, with
+no follow-up monitoring after dispatch is accepted. Finalize version-facing docs,
+fast-forward `main` to the reviewed source, push its immutable `v2.3.0` tag and
+dispatch the existing release automation there. That owner must obtain fresh
+exact-tag four-target distribution/combined-install evidence before publishing;
+local `bc8c0fdd` artifacts do not attest this documentation-finalized source.
+Dispatch is not publication success or program acceptance. Announcement, full B2,
+remaining visual/formula checks, expert/blind review, Graph/Hook/browser and other
+Hosts remain outside this handoff.
 
 Use existing canonical content, source/review bindings, native provider/runtime,
 project preview/approval/CAS and evaluation owners. One coordinator integrates
@@ -163,9 +166,9 @@ transport or local test is not installed-Plugin or program acceptance.
 Earlier release, migration, DSH installation and external-Host observations remain
 historical evidence in the plan under their exact candidate scope; they are not
 new release work or current execution instructions. This increment authorizes
-local development and isolated public research observations. It does not authorize
-private-library access, updates to the user's installed Plugin profile, push,
-publication or remote rule changes. The program ledger remains authoritative for
+local development and isolated public research observations, with the separately
+authorized 2.3.0 publication handoff above. It does not authorize private-library
+access, updates to the user's installed Plugin profile or remote rule changes. The program ledger remains authoritative for
 task states and accepted evidence; the dated maturity windows below are context.
 
 [ADR 0218](../../architecture/decisions/0218-cli-first-local-host-collaboration.md)

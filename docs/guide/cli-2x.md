@@ -1,6 +1,6 @@
 # CLI commands
 
-For Qiongli **2.2.1**. Start with [installation](install.md) or the [quickstart](../quickstart.md).
+For Qiongli **2.3.0**. Start with [installation](install.md) or the [quickstart](../quickstart.md).
 
 ## Everyday commands
 
@@ -40,8 +40,8 @@ Choose one channel; see [requirements](install.md#package-managers):
 
 ```sh
 npm install --global qiongli@latest
-python -m pip install --upgrade "qiongli==2.2.1"
-cargo install qiongli --version 2.2.1 --locked
+python -m pip install --upgrade "qiongli==2.3.0"
+cargo install qiongli --version 2.3.0 --locked
 ```
 
 ### Review existing CLI installations {#review-existing-cli-installations}
@@ -88,8 +88,8 @@ The CLI and each Plugin carry separate executables. Refresh the Plugin after upd
 
 Project writes require a preview, approval and current revision. Inspect `qiongli project --help` for create, capture, import, export and other operations. Use [data ownership and backup](data-lifecycle.md) before moving a project.
 
-Development builds after 2.2.1 can save retrieval history when
-`qiongli project capture consolidate --help` lists `--retrieval-manifest-file`.
+Qiongli 2.3.0 can save retrieval history with `--retrieval-manifest-file`.
+On older installations, check `qiongli project capture consolidate --help` first.
 Preview an absolute JSON draft, review `retrievalManifestContent`, then apply the
 same draft with the returned timestamp/digest and both approvals. The draft uses
 `schemaVersion: 1`, `previousSha256` (null for create, current hash for append),
@@ -99,8 +99,8 @@ metadata stays explicit. Saved packet bindings must already exist, and a packet
 hash does not establish a complete PDF. Reopen the project to read saved history;
 changed sources need fresh review. This option is not in the published 2.2.1 CLI.
 
-Development builds advertising `project document list` can recover saved file
-bindings after `project show` supplies the registered project's current revision:
+Use `project document list` to recover saved file bindings after `project show`
+supplies the registered project's current revision:
 
 ```sh
 qiongli project document list --project-id <prj_id> \
@@ -116,7 +116,7 @@ This hash binds receipt history; each page checks its files separately. Files
 without consolidation receipts are not listed. No project state is refreshed or
 written, and old releases/Lite do not gain this capability.
 
-Development builds advertising `project document read` can read saved notes,
+Use `project document read` to read saved notes,
 source packets and `retrieval_manifest.csv` directly. Use the current project
 revision and whole-file hash from a current list entry or an authorized save
 preview, receipt or file read:
@@ -140,7 +140,7 @@ For a standalone MCP client, launch the absolute executable path with:
 qiongli mcp serve --profile full --transport stdio
 ```
 
-Published 2.2.1 has 15 Lite tools and 33 Full tools, including projects, Graph and handoffs. Development builds with saved-document reading have 34 Full tools; receipt-backed listing adds a 35th. Models and execution remain owned by the Host.
+Qiongli 2.3.0 has 15 Lite tools and 35 Full tools, including projects, saved-document discovery and reading, Graph and handoffs. Models and execution remain owned by the Host.
 
 The `app` namespace retains lower-level installation plans. `app apply` requires the plan digest and explicit filesystem approval. Managed-product installation/update commands require their own package authority; registry-installed CLIs update through their package manager. `qiongli update` reports managed-update state.
 

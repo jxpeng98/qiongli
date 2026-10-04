@@ -11,6 +11,15 @@ Qiongli 2.x uses one Rust-native program for the CLI, research guidance and Lite
 | Daily use | More installation options and prescribed sequences | Guided installation; research guidance follows the current task |
 | Records | Workflow files and literature citation discovery | Adds structured records with revision checks, Research Graph and stage handoffs |
 
+## Added in 2.3.0
+
+- Append reviewed retrieval history while preserving earlier attempts and source bindings.
+- Discover and read saved notes, source packets and retrieval history through CLI and Full MCP, with revision, digest and safe-path checks.
+- Full MCP now exposes 35 tools; Lite remains at 15. Literature tools declare their read-only and external-access behavior without granting approval.
+
+See the [2.3.0 release notes](https://github.com/jxpeng98/qiongli/releases/tag/v2.3.0)
+and [upgrade and rollback](upgrade.md) for the new receipt compatibility limits.
+
 ## Updated in 2.2.1
 
 This patch reorganizes the English and Chinese guides and moves native release
@@ -25,6 +34,6 @@ for the package scope and [installation](install.md) for current downloads.
 - Improved reading, writing, synthesis and evidence-review guidance.
 - Native Linux ARM64 packages; Lite exposes 15 tools and Full exposes 33.
 
-Saving `retrieval_manifest.csv` is deferred. Public full-text reading does not include paywall bypass or private-library access. Graph links canonical records; research conclusions still need source review.
+Version 2.2.0 did not save `retrieval_manifest.csv`; 2.3.0 adds reviewed persistence. Public full-text reading does not include paywall bypass or private-library access. Graph links canonical records; research conclusions still need source review.
 
 See the [2.2.0 release notes](https://github.com/jxpeng98/qiongli/releases/tag/v2.2.0) for scope, [installation](install.md) and [upgrade and rollback](upgrade.md) for setup, or the [1.x reference](../reference/cli.md) for old commands.
