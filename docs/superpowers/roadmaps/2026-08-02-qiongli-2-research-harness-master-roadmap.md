@@ -52,7 +52,7 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — October 3, 2026
+## Current execution horizon — October 4, 2026
 
 The released baseline is **2.2.1**. A read-only GitHub API observation confirms
 [v2.2.1](https://github.com/jxpeng98/qiongli/releases/tag/v2.2.1) was published on
@@ -79,18 +79,24 @@ retrieval history, note and continuation saves reuse the existing native owner.
 The current plan distinguishes actual calls, failed approval attempts and review
 scope; this is a development candidate, not a fresh published-2.2.1 qualification.
 
-The journey exposes the next bounded outcome: let a fresh Host read the saved
-paper notes, source packets and retrieval manifest through native CLI/Full MCP.
-The current project read exposes project context, while those saved documents
-have no native MCP body reader. A supplied file snapshot can test continuation
-but cannot qualify that missing path. Reuse registered project resolution and
-bounded regular-file readers, bind the expected revision and file digest, and
-reject unsafe paths, links, oversized data and stale sources. Keep notes and
-packets outside Graph's semantic artifact authority. Qualify a fresh Codex
-session without a supplied snapshot before claiming native recovery. Missing
-read-only tool annotations are a separate observed contract gap; their causal
-effect on Host approval still needs verification. Complete B2, blind/domain
-review, Graph/Hook/browser behavior and other Hosts remain separately scoped.
+Native saved-document reading is now implemented in `67a51deb`: CLI and Full MCP
+share registered project resolution, bounded regular-file reads, expected
+revision/digest checks and explicit UTF-8 pagination. Notes and source packets
+remain outside Graph's semantic artifact authority. One fresh isolated Codex
+session reads all three saved documents directly through the installed candidate,
+without supplied body snapshots, and refuses a deliberately drifted test copy.
+The current plan binds the candidate, actual calls, byte checks, initial failures
+and limits. This qualifies that scoped development path with known file bindings,
+not automatic document discovery, complete paper reading or broad acceptance.
+
+The next bounded outcome is to recover saved-document bindings from existing
+project/consolidation receipt owners, so a fresh session need not receive each
+path/hash manually. Keep it read-only and project-scoped; distinguish saved
+bindings from current file bytes, and refuse missing or drifted bindings without
+silently accepting a new hash. Reuse existing records rather than introducing a
+parallel file index. Missing annotations on older literature tools remain a
+separate descriptor gap, with no proven causal effect on Host approval. Complete
+B2, blind/domain review, Graph/Hook/browser and other Hosts retain separate scope.
 
 Use existing canonical content, source/review bindings, native provider/runtime,
 project preview/approval/CAS and evaluation owners. One coordinator integrates
@@ -173,6 +179,7 @@ macOS ARM64 and Windows x64); focused local checks do not establish that gate. T
 | **IMPLEMENTED CODEX TRANSPORT** | Prepare configured `codex exec`, then collect a successful source-bound reply through the same delegation contract. | Current plan; Host-owned launch/cancel/cleanup, actual synthetic complete/cancel/timeout/fresh-run observations, changed-source rejection and registered Full MCP candidate acceptance. No persistent-session reconnection, atomic cross-Host claims or collaboration acceptance. |
 | **RELEASED BASELINE** | 2.2.1 is published on GitHub; retain its 2.2 research capabilities and four-target distribution boundary. Earlier release-freeze records are historical. | `CLI-410`, current execution plan and `tooling/release/v2.2.1.md`. Public Release metadata is observed; no new package, Host or academic acceptance is inferred. |
 | **IMPLEMENTED RETRIEVAL HISTORY** | Append reviewed per-attempt retrieval rows, bind saved source packets, preserve explicit unknowns and resume from saved bytes. | `CLI-405`, existing project/consolidation/storage and Stage B owners. One gpt-6.1-sol / low verifier; current plan owns exact checks and limits. Installed-package qualification follows separately. |
+| **IMPLEMENTED SAVED-DOCUMENT READ** | Read known saved note, source-packet and retrieval-history bindings through one bounded CLI/Full MCP service; refuse stale bytes and preserve Graph/write boundaries. | `CLI-405`, implementation `67a51deb`, canonical content `252663aa`. One actual isolated installed Codex session uses native reads without body snapshots; the current plan owns exact source, checks and limits. Next recover bindings through existing receipt owners. |
 | **REMAINING BASELINE** | Diagnose remaining full-suite failures in bounded groups; fix demonstrated content defects before expanding observations. | Existing validation/content owners; preserve permission gates and stable/prerelease negatives. No blanket assertion removal or speculative model matrix. |
 | **QUALIFICATION** | Refresh the named installed-package Codex approval/write/restart journey and separately qualify advertised Graph/Hook/browser behavior. | `CLI-403`–`CLI-405`, `SEC-401`–`SEC-403`, `CLI-410`; reuse existing install, approval/CAS and acceptance owners. The previously paused Host-registration lane needs its own resumed scope; independent offline implementation continues. |
 | **AFTER THE BASELINE** | Complete local atomic task claims, candidate review, conflict/cancellation/revocation and restart handling with two actual Hosts. | `CLI-406`–`CLI-408`, then `CLI-411`, under their existing dependencies. `CLI-409` qualifies additional Hosts individually. |

@@ -3862,3 +3862,129 @@ base. Existing native/content checks are reused because those inputs are
 unchanged. The authorized local feature-branch commits and fast-forward merge
 into `2.x` integrate this observation and the installation-guide clarification;
 they do not accept the missing native recovery path or authorize publication.
+
+## October 4 — native saved-document reads and fresh Codex continuation
+
+The maintainer requests the next increment on local `2.x` at `01a5a8b5`.
+Branch `feat/native-saved-document-read` implements the missing body reader in
+`67a51deb3ab6582ef47b310fb1c7d96c2470779f`. Canonical workflow/schema commit is
+`252663aaceaa60597ff394e1a22e59e6f244a3f1`; the existing generator produces the
+446-entry pack with SHA-256
+`74d4e228b5e4100cccaaedc5c28467f18b5a34ae10af70d3fc9435e9631ace1a` and content root
+`a396d5e4ef9cdaa5a861f04695bbca0634ec9ead585e2101397b110396e3982a`.
+Version metadata remains 2.2.1; these development changes are not published.
+
+Native `project document read` and Full MCP `qiongli_project_document_read` use
+one project service. Requests bind registered project identity, current semantic
+revision, an explicit allowed path and the complete file SHA-256. Only canonical
+paper notes, source packets and `retrieval_manifest.csv` are readable. Packet
+filenames must also match their bytes. Existing regular-file readers retain the
+4 MiB limit, ownership, ancestor, link and recovery checks. Source, registration
+and manifest are rechecked before returning; this is a bounded snapshot, not a
+lock against external editors. UTF-8 byte windows default to 16 KiB and permit
+4–65,536 bytes, with explicit truncation and continuation offsets. Both execution
+and Host orchestration reject another project's or revision's arguments.
+
+The operation writes nothing and adds no receipt, Graph projection, arbitrary
+file access, automatic hash discovery or scholarly verification. Full gains a
+read-only annotated tool (34 total); Lite remains 15. The packaging gate retains
+historical 14/32 and 15/33 profiles. Canonical paper-reading guidance and both CLI
+guides capability-gate the operation and require authorized prior file bindings;
+existing tools and write approval/CAS owners keep their behavior.
+
+The same `/root/retrieval_verifier` uses the requested `gpt-6.1-sol / low` for
+independent tests and review. Focused checks pass: saved-document service 6,
+runtime library 65 (one existing ignored worker probe), existing Graph reader 4,
+execution dispatch 6, CLI/MCP saved-document parity 2, existing retrieval-manifest
+integration 2 and embedded pack 1. The 22 focused Python contract/package checks,
+capability-contract validation, Rust 1.97 formatting and scoped strict Clippy
+also pass. Permission, recovery, revision/digest, path/link/hardlink, oversized and
+invalid UTF-8 inputs, paging/EOF, Lite refusal and read-only byte preservation
+remain negative cases. Review against `01a5a8b5` finds no actionable issue.
+
+Initial formatting checks require formatting. The first CLI build identifies a
+missing `DocumentRead` arm/registration in the execution owner; the implementation
+then adds it and explicit revision-scope checks. An existing test still expects
+nine project registrations and fails twice before its exact assertion is updated
+to ten. These failures precede the passing results above; none is treated as a
+successful check. Previously passing checks are not rerun for a commit alone.
+
+The observed executable is built with Rust 1.97, `--locked`, the existing
+`--profile test` (which strips debug information for the Plugin composer), and
+`QIONGLI_NATIVE_SOURCE_COMMIT=67a51deb3ab6582ef47b310fb1c7d96c2470779f`.
+Its SHA-256 is
+`ac4498c1422801e3a40c33736c2f1cd45431a839e7ea1af37de1f1a1e6944705`.
+Native export preview/apply and the official Codex manager install this candidate
+in the prior private observation directory, using a new `native-exports/qiongli`
+destination. All 468 cached receipt entries agree; inventory is installed/enabled
+with Full 34/Lite 15. Earlier attempts retain the existing-destination refusal,
+a noncanonical reserialized-plan refusal and the default development binary's
+289 MiB size refusal. Reusing the canonical test profile resolves the 128 MiB
+composer limit without external stripping or changing that limit. The original
+development binary's size/hash and refusal are retained, not its executable bytes.
+
+Automatic review initially refuses authentication setup/model launch because the
+public research scope is insufficiently evidenced. That command does not run.
+Verification of the isolated registry and the prior public arXiv-derived packet,
+note and manifest establishes the narrower scope; the same authorized operation
+then passes review. No private research or real user Plugin/model settings are
+accessed or changed. The temporary auth symlink reuses normal Host authentication;
+credential contents are neither read nor copied by the agents.
+
+Exactly one actual fresh ephemeral Codex invocation requests `gpt-6.1-sol / low`,
+read-only execution and a 180-second limit. It exits 0 after 77.665 seconds. Only
+`qiongli_project_read` and `qiongli_project_document_read` have explicit approval
+in the isolated profile, and the previous supplied-snapshot server is removed.
+The prompt provides project ID, revision and known relative-path/digest bindings,
+with no document bodies. Prompt SHA-256:
+`4a3d47c53a8c725d6b43ccf64e203445b1faae642a5db4740f51abf1ac7bfd8c`.
+
+Six actual MCP calls comprise one project read and five document reads: note,
+manifest, two source-packet windows and the deliberately drifted test packet.
+The first four document calls succeed; the last refuses with
+`project-revision-conflict`. The 27,784-byte packet is returned in 16,384- and
+11,400-byte windows. Reconstructing each of the three saved files matches its
+disk bytes and complete-file digest. No shell, resource-server, fallback snapshot
+or write call occurs. Complete SHA-256 maps for the isolated `work/project` and
+`config` (`QIONGLI_CONFIG_HOME`) roots are unchanged; this excludes Codex home
+session logs. Cleanup removes the temporary auth path while it is still a symlink,
+leaving no credential copy.
+
+Answer SHA-256:
+`901f3e937d4decab39ebc61950d77c397680bfc71fedc69f3ff3b28492973276`;
+event-log SHA-256:
+`bef381057396f92d670c31f433d8025dc978dd578a7f65a655b6826f3c3a16c8`.
+Raw setup, verification, prompt, answer and events remain under
+`/home/hermes/qiongli-codex-continuity-yqk33pu3/logs/`: `native-setup-result.json`,
+`native-read-verification.json`, `native-read-before.json`,
+`native-fresh-reader-launch.json`, `native-fresh-reader-completion.json`,
+`native-fresh-reader-answer.txt` and `native-fresh-reader.jsonl`. This closes
+the previous native saved-file read gap for these known bindings and this test
+candidate. Complete saved-packet reading still covers only the previously
+inspected 16/27 paper segments, pages 1–8; it is not complete paper reading,
+remote-source revalidation, expert/blind review or published-package acceptance.
+Launch settings establish the requested model, not provider attestation.
+The verifier's answer review preserves distinct packet/PDF digests, training
+parallelism versus autoregressive generation, unresolved 41.8/Table 2 versus
+41.0/prose BLEU, and unknown identity/version/license fields. It sees the supplied
+public-source evidence and does not constitute blind or expert review.
+
+Next recover saved document locators and hashes through existing read-only
+project/consolidation receipt owners, keeping saved bindings distinct from
+current bytes and refusing drift rather than silently rebinding. This removes
+the remaining need to supply each binding manually without a new index or Graph
+authority. Full B2, Graph/Hook/browser and additional Host/platform qualification
+remain separate. No push, publication or task/accepted-evidence promotion occurs.
+
+The initial ledger edit contains a trailing comma, so the roadmap generator
+refuses invalid JSON. Removing that comma and rerunning the existing generator
+produces the current 249-task index; no state or acceptance workaround is used.
+
+Final integration review by the same lightweight verifier finds no actionable
+issue after correcting the draft's inaccurate claim that the original unstripped
+binary was retained. The 19 roadmap/CLI-documentation checks and two new packaging
+gate checks pass, as do generated-index consistency, capability validation,
+the native/frozen-source boundary guard and diff whitespace checks. All 249 task
+states/dependencies and all 46 complete accepted records match `01a5a8b5`.
+Local scoped commits and a fast-forward merge into `2.x` integrate this increment;
+they do not establish broader program acceptance or a new release.
