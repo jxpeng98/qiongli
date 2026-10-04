@@ -4368,3 +4368,68 @@ pass. All 249 task states/dependencies and 46 complete accepted records remain
 unchanged; only CLI-405 progress changes. Existing native/lint/Host results are
 reused. Local integration uses a scoped documentation commit and fast-forward
 merge into `2.x`; no push or publication is part of this increment.
+
+## October 4 — 2.3.0 delivery candidate and literature tool hints
+
+The maintainer requests continued work through the next delivery. Branch
+`fix/literature-mcp-readonly-hints` starts from `d72b5a6e`. The smallest remaining
+source increment declares the three literature tools through the existing
+canonical MCP descriptor owner. `01d46f0a` marks literature status and search
+planning as read-only, non-destructive, idempotent and closed-world; fulltext
+reading carries the same hints but remains open-world because it can fetch public
+HTTPS content. Both Lite and Full reuse these descriptors. No handler, project
+write owner, configured model or Host approval authority changes. Hints do not
+promise identical remote responses or prove the cause of an earlier refusal.
+
+The local next-delivery candidate is **2.3.0**, reflecting the new retrieval
+history, saved-document reader and receipt-backed discovery capabilities since
+2.2.1. `fd8ffcac` updates native version owners through the existing version-sync
+script and adds scoped bilingual candidate notes in `tooling/release/v2.3.0.md`.
+Published 2.2.1 download guidance remains unchanged. Candidate notes bind channels,
+compatibility, rollback limits and non-claims; no registry availability or
+publication is asserted. The supported content generator produces 446 entries:
+
+- content source: `fd8ffcacd408991cc6684304558cf657b79df18d`;
+- content root: `0ed5f807ed9c650ba9afdaf39afaad545b632c4a49e36ceb91b29f395897f97c`;
+- pack SHA-256: `95548972bf25b441a1e8a3ca407f4f6fc6259557af88603f3daa3462785e09ba`.
+
+One requested `gpt-6.1-sol / low` verifier reports 17 passing focused native
+checks: 12 Lite runtime cases, the copied-binary Lite/Full annotation regression,
+three retained CLI/approved-write/invalid-mode cases and one embedded-pack case.
+The new protocol tests retain negative assertions for configuration and Zotero
+mutators; existing blocked-URL, missing continuation hash, invalid-input and
+credential-redaction/no-load cases pass. All 41 safe native packaging tests pass.
+The 14 version tests pass using 13 unchanged results and the final pending check;
+`v2.3.0` tag alignment, capability validation, formatting and whitespace pass.
+
+Preparation failures remain distinct from these final results. The version check
+first lacks the new release note, then detects the old 2.2.1 embedded pack; creating
+the note and regenerating the pack through their owners resolves both. An
+accidental retained Python Lite-contract command starts an unrelated legacy Cargo
+build and is stopped with exit 143; it provides no passed-test evidence. No
+full-suite or Clippy result is inferred from these focused checks.
+
+Next freeze the reviewed, clean local `2.x` source and execute the existing
+`release_ready.sh --cli-github --version 2.3.0` owner for Linux ARM64, with artifacts
+under `/tmp/qiongli-2.3.0-delivery-20261004/linux-arm64`. Its generated release
+manifest and logs will own actual source, build, archive, npm/wheel install,
+Plugin and checksum results. Qualify staged Cargo source archives separately.
+The host is Linux ARM64/glibc 2.39; the actual manylinux 2.35 audit remains mandatory,
+and host version alone establishes neither ABI success nor failure. Tooling
+prerequisites use an isolated external environment, not a profile/system install.
+
+Other three targets and combined-platform install evidence require the existing
+four-target distribution workflow on the exact candidate under separately
+requested remote authority. Local source integration is not those results.
+The previous isolated public research journey remains bound to its original
+candidate; no new model session or private research access occurs here. Full B2,
+expert/blind review, Graph/Hook/browser, broader Host acceptance, managed-product
+activation, main cutover, tags, registry/publication and announcement remain
+separate. Task states, dependencies and accepted evidence are not promoted.
+
+At source integration the same lightweight verifier finds no remaining actionable
+fidelity or ownership issue after narrowing the manifest wording to a generated,
+unsigned record. All seven roadmap tests, index consistency, the frozen-source
+boundary guard and whitespace checks pass. All 249 task states/dependencies and
+46 complete accepted records remain unchanged; only CLI-405 progress text changes.
+Local integration uses scoped commits and a fast-forward merge into `2.x`.

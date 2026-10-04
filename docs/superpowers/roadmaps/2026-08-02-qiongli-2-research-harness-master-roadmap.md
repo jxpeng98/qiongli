@@ -126,11 +126,21 @@ fixtures remain intact. This increment reuses the earlier installed-Host recover
 and launches no additional model session. The plan records repository versus
 publication identity, limited visual scope and actual approval/fetch failures.
 
-Next address the previously observed missing read-only annotations on the three
-literature tools through existing MCP descriptor owners. Preserve Host approval
-and network semantics; do not claim the missing annotations caused earlier
-refusals. Full B2, remaining visual/formula checks, expert/blind review,
-Graph/Hook/browser and other Hosts remain open.
+The three literature tools now declare read-only behavior through the canonical
+MCP descriptors, with fulltext transport explicitly open-world. Focused native,
+packaging and version checks pass without changing Host approval or write owners.
+The local next-delivery candidate is **2.3.0**, covering retrieval history,
+saved-document reads/discovery and these hints. Version owners, candidate notes
+and the embedded resource pack are aligned; this does not change the published
+2.2.1 baseline or establish new installed-Host acceptance.
+
+Next freeze clean local `2.x` and qualify actual Linux ARM64 CLI, registry and
+Plugin artifacts through the existing release owners, including the manylinux
+2.35 audit and isolated installs. The current plan owns source checks and the
+external artifact location. Exact-candidate four-target CI and combined installs
+need separately authorized remote synchronization; publication and announcement
+remain separate decisions. Full B2, remaining visual/formula checks, expert/blind
+review, Graph/Hook/browser and other Hosts remain open.
 
 Use existing canonical content, source/review bindings, native provider/runtime,
 project preview/approval/CAS and evaluation owners. One coordinator integrates
