@@ -134,9 +134,12 @@ saved-document reads/discovery and these hints. Version owners, candidate notes
 and the embedded resource pack are aligned; this does not change the published
 2.2.1 baseline or establish new installed-Host acceptance.
 
-Next freeze clean local `2.x` and qualify actual Linux ARM64 CLI, registry and
-Plugin artifacts through the existing release owners, including the manylinux
-2.35 audit and isolated installs. The current plan owns source checks and the
+The first release-owner run passes strict Clippy but finds one stale Full-tool
+count assertion and three valid refusals under group-writable checkout ancestors.
+The assertion is corrected; same-binary controlled diagnosis isolates the other
+failures to directory ancestry without changing security policy. Next qualify the
+revised clean `2.x` source from an isolated secure local clone, including actual
+Linux ARM64 CLI/registry/Plugin artifacts, the manylinux 2.35 audit and installs. The current plan owns source checks and the
 external artifact location. Exact-candidate four-target CI and combined installs
 need separately authorized remote synchronization; publication and announcement
 remain separate decisions. Full B2, remaining visual/formula checks, expert/blind

@@ -4433,3 +4433,45 @@ unsigned record. All seven roadmap tests, index consistency, the frozen-source
 boundary guard and whitespace checks pass. All 249 task states/dependencies and
 46 complete accepted records remain unchanged; only CLI-405 progress text changes.
 Local integration uses scoped commits and a fast-forward merge into `2.x`.
+
+### Release-owner failure and source repair
+
+The first actual release-owner run freezes `f04bb473` on clean local `2.x`.
+Version alignment and strict headless workspace Clippy pass. Release-mode CLI
+checks report 42/46 passing and four failures; MCP tests, packaging, ABI and
+installation are not reached. Original stdout/stderr remain under
+`/tmp/qiongli-2.3.0-delivery-20261004/linux-arm64-release-owner.*`; no failed gate
+is treated as passed or skipped.
+
+One assertion still expects 33 Full tools, before the two saved-document tools;
+`fix/cli-mcp-tool-count` updates that existing assertion to the canonical 35,
+retaining Lite 15 and every local-versus-Host readiness assertion. No runtime
+or content input changes. The other three failures are valid ancestor-security
+refusals: the checkout's parents from `/home/hermes/repos` are mode 0775, although
+its test roots are already 0700. The first Plugin lifecycle status emits
+`insecure-materialization-parent` before its JSON assertion; skills preview has
+the same error, and update-channel reports `managed-root-unsafe`.
+
+The same lightweight verifier reproduces all four affected native commands with
+the identical copied binary, arguments and root-relative environment: unsafe
+checkout ancestry refuses, while a new external fixture under secure ancestors
+succeeds. No existing directory permission, runtime guard or approval policy is
+changed; the Plugin destination is never applied during diagnosis. Raw commands,
+mode observations and results remain in the existing isolated evidence root's
+`logs/delivery-fixture-diagnosis.json` and `delivery-diagnosis-*` files.
+
+After focused assertion verification and local integration, qualify a clean,
+source-identical local clone at
+`/home/hermes/qiongli-2.3.0-delivery-20261004/source`, with new directories created
+under secure ancestors. Reuse dependency caches and the isolated audit tools;
+run the original release owner without bypasses into the new output directory
+`/tmp/qiongli-2.3.0-delivery-20261004/linux-arm64-secure`. Preserve the failed
+packet separately. The new generated manifest will bind the revised source;
+Cargo archives and upgrade checks follow if their prerequisites pass. Remote
+platform evidence, publication authority and program acceptance remain separate.
+
+Before reintegration the targeted release-mode MCP-check regression passes 1/1.
+The same verifier reports no actionable review findings; seven roadmap tests,
+index consistency and whitespace checks pass. All 249 task states/dependencies
+and 46 complete accepted records remain unchanged. The strict Clippy result is
+retained at its original source; the release owner will check the revised freeze.

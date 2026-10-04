@@ -369,7 +369,7 @@ fn guided_installation_requires_a_terminal_and_local_mcp_checks_do_not_claim_hos
         assert!(!result.status.success());
         assert!(result.stdout.is_empty());
     }
-    for (profile, count) in [("full", 33), ("lite", 15)] {
+    for (profile, count) in [("full", 35), ("lite", 15)] {
         let result = fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), &fixture)
             .env("PATH", "")
             .args(["mcp", "check", "--profile", profile, "--json"])
