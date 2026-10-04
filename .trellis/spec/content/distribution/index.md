@@ -15,6 +15,13 @@ payloads are generated outputs.
   runtime cannot provide the operation, the Skill must define a truthful safe
   fallback instead of assuming another product line is installed.
 
+Native `full-project-tools.json` additionally exposes the bounded, read-only
+`qiongli_project_document_read` contract. Its canonical paper-reading guidance is
+capability-gated; the frozen Python Full inventory and native Lite are unchanged.
+Regenerate the embedded pack and Plugin projections through their existing owners.
+Published pre-extension tool counts remain valid historical observations; current
+native inventory validation also accepts the coherent Lite 15 / Full 34 pair.
+
 User-edited Plugin/Skill variants are managed project/user outputs. They do not
 replace canonical content and must retain preview, receipt, and exact-removal
 boundaries.

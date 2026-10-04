@@ -97,13 +97,29 @@ CLI 与每个 Plugin 各自携带程序。更新 CLI 后刷新 Plugin，再核�
 明确保留。绑定的来源包必须已经保存，其哈希不代表完整 PDF。新会话可读取这些历史；
 来源变化需要重新审阅。已发布的 2.2.1 CLI 尚无此选项。
 
+如果开发构建的帮助列出 `project document read`，可直接读回已保存的笔记、来源包
+和 `retrieval_manifest.csv`。使用当前项目修订号，以及从已授权的保存预览、收据或
+文件读取中取得的整文件哈希：
+
+```sh
+qiongli project document read --project-id <prj_id> \
+  --expected-project-revision <revision> --relative-path notes/<citekey>.md \
+  --expected-sha256 <sha256> --max-bytes 16384 --json
+```
+
+Full MCP 的对应工具为 `qiongli_project_document_read`。续读时将 `nextOffsetBytes`
+传给 `--offset-bytes`，保持相同修订号和哈希。响应明确标注截断情况，哈希始终对应
+整份文件。哈希不符、来源变化、路径不安全或项目待恢复时会拒绝读取；读取不授予写入
+批准，也不验证远程论文。已发布的 2.2.1 和 Lite 尚无此能力；此接口不发现未知文件
+或替调用者获取未知哈希。
+
 其他 MCP 客户端可用程序绝对路径启动：
 
 ```sh
 qiongli mcp serve --profile full --transport stdio
 ```
 
-Lite 提供 15 个工具，Full 提供 33 个，包括项目、Graph 和交接。模型与执行仍由 Host 管理。
+已发布的 2.2.1 中，Lite 提供 15 个工具，Full 提供 33 个，包括项目、Graph 和交接。包含已保存文档读取能力的开发构建提供 34 个 Full 工具。模型与执行仍由 Host 管理。
 
 `app` 命名空间保留底层安装计划，`app apply` 需要计划摘要与明确的文件写入批准。托管产品的安装、更新命令有单独权限要求；包管理器安装的 CLI 通过原渠道升级。`qiongli update` 查看托管更新状态。
 

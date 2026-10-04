@@ -14,7 +14,7 @@ pub use contract::{
     FULL_PROJECT_PUBLIC_TOOL_NAMES, FULL_PROJECT_TOOL_CONTRACT_RESOURCE_PATH, FullProjectToolId,
     FullProjectToolRegistry, LITE_PUBLIC_TOOL_NAMES, LITE_TOOL_CONTRACT_RESOURCE_PATH,
     LiteConfigHandler, LiteDispatchTarget, LiteLiteratureHandler, LiteOrchestrationHandler,
-    LiteToolId, LiteToolRegistry, LiteZoteroHandler, ToolDefinition,
+    LiteToolId, LiteToolRegistry, LiteZoteroHandler, ToolAnnotations, ToolDefinition,
 };
 pub use error::{RuntimeError, RuntimeErrorCode};
 pub use full_project::{FullProjectService, FullProjectServiceError, FullProjectServiceErrorKind};

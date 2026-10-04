@@ -17,6 +17,37 @@ packets do not transfer Host-bound checkpoints or authenticated evidence authori
 The Qiongli 2 executable, CLI, Desktop service, Full MCP, project state, and
 embedded resources live under `packages/qiongli-native/`.
 
+`project document read` and Full-only `qiongli_project_document_read` share
+`ProjectStateService::read_saved_document`. Strict snake-case requests require
+`project_id`, `expected_project_revision`, `relative_path` and `expected_sha256`;
+optional `offset_bytes` defaults to 0 and `max_bytes` to 16 KiB (4–65,536 bytes).
+Only canonical `notes/<citekey>.md`, `sources/<citekey>/<sha256>.json` and
+`retrieval_manifest.csv` paths are allowed. Existing citekey/path validators and
+the 4 MiB regular-file source reader retain ownership, link, ancestor and recovery
+checks. Packet filenames must agree with the actual complete-file hash. No
+arbitrary project file, PDF, receipt or private runtime directory is exposed.
+
+The reader checks registered identity, project revision and semantic freshness,
+then rechecks the source hash, registration and manifest before returning.
+Missing/drifted sources and stale revisions refuse. It writes no lock, file,
+receipt or derived state. These are bounded snapshots, not locks against external
+editors or remote verification. UTF-8 offsets must be character boundaries; output
+ends on a boundary, with explicit byte sizes, next offset and before/after
+truncation. `sha256` always identifies the entire file, including on later pages.
+Continuation requires the same revision/hash. Callers obtain bindings from
+authorized prior preview/receipt/file evidence; the reader adds no discovery or
+automatic trust in a newly observed hash. Academic coverage remains a review duty.
+
+Schema-1 `qiongli-saved-document-view` is identical through CLI and MCP and exposes
+no absolute filesystem path. Debug/error output omits research content. The new
+Full descriptor declares read-only, non-destructive, idempotent, closed-world
+hints; Host approval remains separate. Native Full gains one tool; Lite and old
+project/Graph reads remain unchanged. Both in-process execution and Host
+orchestration bind document arguments to the run's project and revision.
+The read does not extend Graph's registered
+artifact set or certify that arbitrary externally edited allowed files were saved
+through a reviewed transaction. Capability-gated guidance preserves older Hosts.
+
 Native Lite and Full expose `qiongli_literature_read_fulltext` from the shared
 `qiongli-runtime::fulltext` owner. Search records preserve optional abstracts,
 reported fulltext candidates and external IDs; none establishes retrieved text.

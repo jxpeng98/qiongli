@@ -99,13 +99,30 @@ metadata stays explicit. Saved packet bindings must already exist, and a packet
 hash does not establish a complete PDF. Reopen the project to read saved history;
 changed sources need fresh review. This option is not in the published 2.2.1 CLI.
 
+Development builds advertising `project document read` can read saved notes,
+source packets and `retrieval_manifest.csv` directly. Use the current project
+revision and whole-file hash from an authorized save preview, receipt or file read:
+
+```sh
+qiongli project document read --project-id <prj_id> \
+  --expected-project-revision <revision> --relative-path notes/<citekey>.md \
+  --expected-sha256 <sha256> --max-bytes 16384 --json
+```
+
+Full MCP exposes the same operation as `qiongli_project_document_read`. Follow
+`nextOffsetBytes` with `--offset-bytes`, retaining the same revision/hash. The
+response reports truncation and the complete file's hash. Wrong hashes, changed
+sources, unsafe paths and pending recovery refuse; a read never grants write
+approval or verifies the remote paper. This capability is absent from published
+2.2.1 and Lite; it does not discover unknown files or their hashes.
+
 For a standalone MCP client, launch the absolute executable path with:
 
 ```sh
 qiongli mcp serve --profile full --transport stdio
 ```
 
-Lite has 15 tools; Full has 33, including projects, Graph and handoffs. Models and execution remain owned by the Host.
+Published 2.2.1 has 15 Lite tools and 33 Full tools, including projects, Graph and handoffs. Development builds with saved-document reading have 34 Full tools. Models and execution remain owned by the Host.
 
 The `app` namespace retains lower-level installation plans. `app apply` requires the plan digest and explicit filesystem approval. Managed-product installation/update commands require their own package authority; registry-installed CLIs update through their package manager. `qiongli update` reports managed-update state.
 

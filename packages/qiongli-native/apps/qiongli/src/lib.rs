@@ -49,6 +49,7 @@ mod portfolio_cli;
 mod product_diagnostics;
 mod project_cli;
 mod repository_capture_cli;
+mod saved_document_cli;
 mod update_cli;
 mod update_reconcile;
 

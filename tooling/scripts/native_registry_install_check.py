@@ -76,7 +76,11 @@ def require_transition(observed):
 
 
 def validate_tool_inventory(profile, names):
-    expected = {'lite': 14, 'full': 32}[profile] + ('qiongli_literature_read_fulltext' in names)
+    fulltext = 'qiongli_literature_read_fulltext' in names
+    saved_document = 'qiongli_project_document_read' in names
+    if saved_document and (profile != 'full' or not fulltext):
+        raise ValueError('unsupported saved-document MCP profile')
+    expected = {'lite': 14, 'full': 32}[profile] + fulltext + saved_document
     if (any(type(name) is not str for name in names)
             or len(names) != expected or len(set(names)) != expected):
         raise ValueError('unsupported MCP tool inventory')
@@ -84,7 +88,8 @@ def validate_tool_inventory(profile, names):
 
 
 def validate_tool_counts(counts):
-    if (counts not in ({'lite': 14, 'full': 32}, {'lite': 15, 'full': 33})
+    if (counts not in ({'lite': 14, 'full': 32}, {'lite': 15, 'full': 33},
+                       {'lite': 15, 'full': 34})
             or any(type(value) is not int for value in counts.values())):
         raise ValueError('missing or incoherent MCP profile counts')
     return counts

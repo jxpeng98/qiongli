@@ -8,7 +8,7 @@ use qiongli_project::{
     AcademicGraphPortfolioService, AcademicGraphQueryV1, AcademicGraphRelation,
     AcademicGraphService, ApprovedCaptureIntake, CaptureDelivery, ProjectError, ProjectId,
     ProjectStateService, RESEARCH_CAPTURE_DOCUMENT_KIND, RESEARCH_CAPTURE_SCHEMA_VERSION,
-    ResearchCaptureDraftV1, ResearchCaptureV1,
+    ResearchCaptureDraftV1, ResearchCaptureV1, SavedDocumentReadRequest,
 };
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
@@ -140,6 +140,7 @@ impl FullProjectService {
         match tool {
             FullProjectToolId::List => self.list(arguments),
             FullProjectToolId::Read => self.read(arguments),
+            FullProjectToolId::DocumentRead => self.read_document(arguments),
             FullProjectToolId::GraphSnapshot => self.graph_snapshot(arguments),
             FullProjectToolId::GraphPortfolio => self.graph_portfolio(arguments),
             FullProjectToolId::GraphQuery => self.graph_query(arguments),
@@ -189,6 +190,25 @@ impl FullProjectService {
             })
             .map_err(|error| {
                 FullProjectServiceError::domain(error, "registered project inspection failed")
+            })
+    }
+
+    fn read_document(
+        &self,
+        arguments: &Map<String, Value>,
+    ) -> Result<Value, FullProjectServiceError> {
+        let request: SavedDocumentReadRequest =
+            serde_json::from_value(Value::Object(arguments.clone())).map_err(|_| {
+                FullProjectServiceError::invalid("Invalid saved-document read arguments")
+            })?;
+        request.validate().map_err(|_| {
+            FullProjectServiceError::invalid("Invalid saved-document read arguments")
+        })?;
+        self.projects
+            .read_saved_document(&request)
+            .map(|view| json!(view))
+            .map_err(|error| {
+                FullProjectServiceError::domain(error, "saved research document read failed")
             })
     }
 

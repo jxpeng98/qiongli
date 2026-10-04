@@ -25,7 +25,7 @@ pub const LITE_PUBLIC_TOOL_NAMES: [&str; 15] = [
     "qiongli_task_plan",
     "qiongli_literature_read_fulltext",
 ];
-pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 9] = [
+pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 10] = [
     "qiongli_project_list",
     "qiongli_project_read",
     "qiongli_project_graph_snapshot",
@@ -35,6 +35,7 @@ pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 9] = [
     "qiongli_project_capture_coverage",
     "qiongli_project_capture_preview",
     "qiongli_project_capture_apply",
+    "qiongli_project_document_read",
 ];
 
 const LITE_CONTRACT_SCHEMA_VERSION: &str = "1.0";
@@ -74,6 +75,7 @@ pub enum FullProjectToolId {
     CaptureCoverage,
     CapturePreview,
     CaptureApply,
+    DocumentRead,
 }
 
 impl FullProjectToolId {
@@ -89,6 +91,7 @@ impl FullProjectToolId {
             Self::CaptureCoverage => "qiongli_project_capture_coverage",
             Self::CapturePreview => "qiongli_project_capture_preview",
             Self::CaptureApply => "qiongli_project_capture_apply",
+            Self::DocumentRead => "qiongli_project_document_read",
         }
     }
 
@@ -109,6 +112,7 @@ impl FullProjectToolId {
             "qiongli_project_capture_coverage" => Some(Self::CaptureCoverage),
             "qiongli_project_capture_preview" => Some(Self::CapturePreview),
             "qiongli_project_capture_apply" => Some(Self::CaptureApply),
+            "qiongli_project_document_read" => Some(Self::DocumentRead),
             _ => None,
         }
     }
@@ -236,6 +240,17 @@ pub struct ToolDefinition {
     pub description: String,
     #[serde(rename = "inputSchema")]
     pub input_schema: Value,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub annotations: Option<ToolAnnotations>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ToolAnnotations {
+    pub read_only_hint: bool,
+    pub destructive_hint: bool,
+    pub idempotent_hint: bool,
+    pub open_world_hint: bool,
 }
 
 #[derive(Debug, Deserialize)]

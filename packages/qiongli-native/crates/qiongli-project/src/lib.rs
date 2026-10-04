@@ -36,11 +36,16 @@ mod portfolio_query;
 mod repository_inbox;
 mod retrieval_manifest;
 mod runtime_state;
+mod saved_document;
 mod semantic_timeline;
 mod service;
 mod source_packet;
 mod stage_summary;
 mod storage;
+
+pub use saved_document::{
+    MAX_SAVED_DOCUMENT_VIEW_BYTES, SavedDocumentReadRequest, SavedDocumentViewV1,
+};
 
 pub use academic_graph::{
     ACADEMIC_GRAPH_DOCUMENT_KIND, ACADEMIC_GRAPH_SCHEMA_VERSION, AcademicGraphArtifactTarget,
