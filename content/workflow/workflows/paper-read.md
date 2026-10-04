@@ -142,6 +142,21 @@ current manifest and packet hashes. Changed sources require new review; saved
 history does not restore approval or establish full B2 completion.
 
 For native saved-document recovery, inspect live capabilities first. When Full
+MCP exposes `qiongli_project_document_list` (or CLI `project document list`), read
+the registered project's current revision, then request its saved bindings with
+`project_id` and `expected_project_revision`. This reads existing consolidation
+receipts and their bound captures, not arbitrary files. Follow `nextOffset` with
+`offset` and `expected_bindings_sha256=bindingsSha256`, retaining the revision.
+The digest binds saved history; current file checks apply to each returned page.
+Only `current` entries provide `readArguments` for the body reader. Preserve
+`savedSha256`, receipt identity and saved revision separately from current project
+revision. `missing`, `changed` or `unavailable` entries have no usable read
+arguments: report them and request authorized inspection/review without guessing
+or adopting a replacement hash. Files without consolidation receipts are not
+discovered. Local receipt integrity does not establish external authenticity,
+complete-paper reading or renewed write approval.
+
+When Full
 MCP exposes `qiongli_project_document_read` (or CLI help exposes `project document
 read`), use it for an explicitly selected `notes/<citekey>.md`,
 `sources/<citekey>/<sha256>.json`, or `retrieval_manifest.csv`. Supply `project_id`,

@@ -597,6 +597,32 @@
         "idempotentHint": true,
         "openWorldHint": false
       }
+    },
+    {
+      "name": "qiongli_project_document_list",
+      "description": "List saved paper-note, source-packet and retrieval-manifest bindings from validated consolidation receipts in one registered project. Read the current project revision first. Only current entries supply readArguments for qiongli_project_document_read; missing, changed or unavailable files require review, never a substituted hash. Pages are sorted by relative path; continuation requires the same revision and bindingsSha256. This is bounded local history, not remote verification, a file scan or write permission.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["project_id", "expected_project_revision"],
+        "properties": {
+          "project_id": { "type": "string", "pattern": "^prj_[0-9a-f]{32}$" },
+          "expected_project_revision": { "type": "integer", "minimum": 1 },
+          "offset": { "type": "integer", "minimum": 0, "default": 0 },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 64, "default": 32 },
+          "expected_bindings_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Required for offset > 0. Use bindingsSha256 from the preceding list page; binds the complete saved receipt/capture set, not current file bytes."
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
     }
   ]
 }
