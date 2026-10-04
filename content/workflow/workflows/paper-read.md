@@ -141,6 +141,22 @@ receipt. A new session can read the retained rows, then bind a later note to the
 current manifest and packet hashes. Changed sources require new review; saved
 history does not restore approval or establish full B2 completion.
 
+For native saved-document recovery, inspect live capabilities first. When Full
+MCP exposes `qiongli_project_document_read` (or CLI help exposes `project document
+read`), use it for an explicitly selected `notes/<citekey>.md`,
+`sources/<citekey>/<sha256>.json`, or `retrieval_manifest.csv`. Supply `project_id`,
+`expected_project_revision`, `relative_path` and `expected_sha256` from actual
+authorized save/receipt/file evidence; never guess a digest or discover files by
+scanning private directories. Read current project state first. The response
+binds the whole-file `sha256` even when `content` is truncated. Continue with
+`nextOffsetBytes` as `offset_bytes`, retaining the same revision/digest; report
+partial coverage when stopping early. Each response is a rechecked file snapshot,
+not a lock, provenance certification or remote-paper refresh. A mismatch requires
+fresh authorized source inspection and review, not silently replacing the expected
+hash. If the capability or known binding is absent, disclose the recovery gap
+and use only available authorized Host reads. Older releases and Lite do not
+gain this native Full-only capability from these instructions.
+
 For project records, follow `references/academic-graph-continuity.md`: reconcile
 paper/claim candidates into the literature map and evidence ledger, reuse
 citekeys and disambiguate note-local claim IDs. Do not invent clusters or support

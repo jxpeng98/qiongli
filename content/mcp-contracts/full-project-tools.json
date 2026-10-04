@@ -546,6 +546,57 @@
           }
         }
       }
+    },
+    {
+      "name": "qiongli_project_document_read",
+      "description": "Read a bounded UTF-8 window of an explicitly selected saved paper note, source packet or retrieval_manifest.csv in a registered project. Requires the expected project revision and whole-file SHA-256 from prior authorized preview/receipt/file evidence. Recheck the same digest on every continuation; this is a local snapshot, not report verification, Graph authority or permission to write.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "project_id",
+          "expected_project_revision",
+          "relative_path",
+          "expected_sha256"
+        ],
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "pattern": "^prj_[0-9a-f]{32}$"
+          },
+          "expected_project_revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "relative_path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Only notes/<citekey>.md, sources/<citekey>/<sha256>.json, or retrieval_manifest.csv; never an absolute path."
+          },
+          "expected_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "offset_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
+          },
+          "max_bytes": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 65536,
+            "default": 16384
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
     }
   ]
 }
