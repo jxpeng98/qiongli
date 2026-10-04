@@ -113,13 +113,24 @@ project to revision 9 while preserving old bytes. One fresh project-ID-only
 `gpt-6.1-sol / low` Codex session recovers all four current documents, skips the
 changed test copy and preserves project/config bytes. The plan binds exact
 artifacts, calls, stale-binding refusal and limits. All 27 extracted text segments
-have been inspected across both retrievals; visual/table/formula validation,
-report identity and complete B2 acceptance remain open.
+have been inspected across both retrievals; the selected identity and layout
+review follows below.
 
-Next inspect the same PDF's relevant table layout to reconcile the numerical
-claims and verify report identity against its public record before promoting
-source status. Missing annotations on older literature tools remain separately
-scoped; expert/blind review, Graph/Hook/browser and other Hosts remain open.
+The same lightweight verifier now checks the retained PDF's pages 1, 8, 9 and 10
+and corroborates report identity against primary arXiv metadata. Table 4's selected
+values are visually confirmed; the 41.8 versus 41.0 BLEU discrepancy exists in
+the original layout and remains unresolved. Reviewed raw metadata/provenance,
+manifest and note saves advance the project from revision 9 to 12. Native readback
+reconstructs all five current documents exactly; previous bytes and negative
+fixtures remain intact. This increment reuses the earlier installed-Host recovery
+and launches no additional model session. The plan records repository versus
+publication identity, limited visual scope and actual approval/fetch failures.
+
+Next address the previously observed missing read-only annotations on the three
+literature tools through existing MCP descriptor owners. Preserve Host approval
+and network semantics; do not claim the missing annotations caused earlier
+refusals. Full B2, remaining visual/formula checks, expert/blind review,
+Graph/Hook/browser and other Hosts remain open.
 
 Use existing canonical content, source/review bindings, native provider/runtime,
 project preview/approval/CAS and evaluation owners. One coordinator integrates
@@ -206,6 +217,7 @@ macOS ARM64 and Windows x64); focused local checks do not establish that gate. T
 | **IMPLEMENTED SAVED BINDINGS** | Recover latest saved paths/digests from validated receipts and captures, exposing read arguments only for current files and binding pagination to history. | `CLI-405`, implementation `af2b3c6a`, canonical content `002559d1`. Focused checks, isolated official install/preflight and one explicitly authorized project-ID-only Codex recovery pass. The current plan preserves the earlier automatic refusal, exact candidate, actual calls and remaining limits. |
 | **REMAINING BASELINE** | Diagnose remaining full-suite failures in bounded groups; fix demonstrated content defects before expanding observations. | Existing validation/content owners; preserve permission gates and stable/prerelease negatives. No blanket assertion removal or speculative model matrix. |
 | **OBSERVED REVIEWED CONTINUATION** | Complete remaining extracted public-paper passages, append approved source/history/note records and recover them by project ID in a fresh session. | `CLI-405`, unchanged candidate `af2b3c6a` / content `002559d1`; same lightweight verifier. The current plan binds revisions 6–9, exact saved bytes, stale-binding refusal and the one actual recovery. Text coverage does not establish visual, identity or B2 acceptance. |
+| **OBSERVED SOURCE REVIEW** | Corroborate the public report identity and selected table layout, preserving the source-internal BLEU discrepancy and prior history. | `CLI-405`, unchanged candidate; same lightweight verifier. The current plan binds original PDF/render/metadata provenance, revisions 9–12 and exact native readback. No new model session or broad academic acceptance. |
 | **QUALIFICATION** | Refresh the named installed-package Codex approval/write/restart journey and separately qualify advertised Graph/Hook/browser behavior. | `CLI-403`–`CLI-405`, `SEC-401`–`SEC-403`, `CLI-410`; reuse existing install, approval/CAS and acceptance owners. The previously paused Host-registration lane needs its own resumed scope; independent offline implementation continues. |
 | **AFTER THE BASELINE** | Complete local atomic task claims, candidate review, conflict/cancellation/revocation and restart handling with two actual Hosts. | `CLI-406`–`CLI-408`, then `CLI-411`, under their existing dependencies. `CLI-409` qualifies additional Hosts individually. |
 | **LATER** | Use observed evidence failures to select a minimum Kernel/Evidence slice, then reproducibility and executable research gates. | M4 precedes dependent M5 schemas; these remain separate expansion decisions. Cross-device `CLI-412`, broad method packs and institutional modes retain their scope gates. |

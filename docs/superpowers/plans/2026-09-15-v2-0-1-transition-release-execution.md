@@ -4268,3 +4268,103 @@ only CLI-405's progress text changes. The drifted packet and pending negative
 capture remain intact. Unchanged native/CLI/lint results and the single fresh
 session are reused. Local integration uses one scoped documentation commit and
 a fast-forward merge into `2.x`; push and publication retain separate authority.
+
+## October 4 — public report identity and selected PDF layout
+
+Branch `test/public-paper-identity-layout` starts from `7c7054ce` for the next
+selected public-source review. The same requested `gpt-6.1-sol / low` verifier
+reuses the installed candidate and existing isolated project. No runtime, content,
+Plugin installation or model configuration changes are needed. Prior native/lint
+and fresh installed-Host observations remain applicable; this increment launches
+zero new model sessions and uses no authentication material.
+
+The retained `work/paper.pdf` still has SHA-256
+`bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697`.
+With no local PDF renderer available, an isolated temporary environment installs
+pypdfium2 5.14.0 and Pillow 12.3.0, without repository or user-profile dependency
+changes. The verifier renders and actually views pages 1, 8, 9 and 10 at scale 2.
+The PDF, PNG derivatives and render hashes remain outside the registered project;
+the saved raw packet records paths, hashes and renderer versions, not image bytes.
+
+Visual inspection confirms Table 4's four-layer Transformer F1 values, 91.3 for
+WSJ-only discriminative training and 92.7 for semi-supervised training, under
+WSJ section 23. These transcriptions supersede the earlier layout-provisional
+status; they do not establish experimental replication or superiority over every
+listed parser. Table 3 confirms the bounded development-set comparison and
+per-wordpiece perplexity. The abstract and Table 2 actually show 41.8 English–French
+BLEU while section 6.1 prose shows 41.0. This is a source-internal discrepancy in
+the same PDF, not a text-extraction artifact; the correct value remains unresolved.
+
+Actual native literature status and a new scoped search plan precede the public
+metadata lookup. Host web reads inspect the primary arXiv versioned/current
+records; direct Host HTTP fetches of both records return 200 at
+`2026-10-04T18:47:45+00:00`. The [v7 record](https://arxiv.org/abs/1706.03762v7)
+corroborates title, eight ordered authors and the PDF's arXiv identifier/version,
+dated 2 August 2023. Its `10.48550/arXiv.1706.03762` DOI is explicitly issued by
+arXiv via DataCite, not verification of a separate publication DOI. The record's
+rights link is retained. A direct license fetch returns HTTP 406 and is not
+retried; its body is unavailable. Review narrows the manifest's license wording
+to the retained link without inferring general reuse permission. An earlier
+web license view is not included in the durable raw web record and is not a basis
+for the saved rights claim. The initial manifest preview remains in the logs.
+
+Automatic approval review initially rejects a helper that combines pending-capture
+intake with consolidation preview: it interprets the coordinator's instruction
+not to apply unreviewed previews as also prohibiting that intake. The rejected
+command does not execute. A separate read-only intake preview is then inspected;
+the coordinator explicitly approves its exact pending-history digest under the
+existing public-project continuation authority. The same owner performs intake,
+then each document's concrete consolidation preview receives academic and
+filesystem approval before apply. No alternate execution route or permission
+weakening is used. The refusal and clarified scope are retained separately.
+
+Packet, manifest and note saves advance project/library revision 9 → 10 → 11 → 12.
+The new `retrieved_preprint` row is supported by retained readable body bytes and
+Host-correlated report identity. It records the repository DOI, the linked rights
+reference, controlled publication version `unknown`, and the actual metadata
+fetch time explicitly distinguished from a fresh PDF download. The local fulltext
+path stays empty. Earlier candidate/history rows and both native packets'
+`identity_status: not_checked` remain unchanged; this is reviewed Host evidence,
+not a rewritten native verification result.
+
+| Updated artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Raw metadata/render-provenance packet | 96,241 | `a8c9fccd908ff6201e6373cc943fd1e25089ffae6e055b06cbaae58d98ab7af2` |
+| Retrieval manifest | 4,251 | `db379e9c20114b96f97cd2bf52f3d0fdf2edd968cf565de6c730b292bdeadfa6` |
+| Reviewed paper note | 11,584 | `8afebc06bfbddcfb8199500690ef7c2daeb28804430ede56055436f5712eaa3f` |
+
+Deterministic native listing at revision 12 exposes five current bindings and one
+changed test copy. Six read windows reconstruct the five current files exactly;
+the new packet uses 65,536 + 30,705 bytes with its whole-file hash retained.
+Latest receipts and saved revisions agree. History binding SHA-256:
+`35ed9032ac797af16e1fc6a74baeb3d8aa1cd645c521f5340745e4a26c643555`.
+The old 7,454 note bytes, 2,875 manifest bytes, both body packets, drifted test
+packet and pending negative capture remain intact. Reading at current revision 12
+with the old note hash exits 1 with generic `project-revision-conflict`; the
+complete project byte map is unchanged around that refusal. This is deterministic
+readback of the updated records, not another live-model recovery observation.
+
+Evidence is under `/home/hermes/qiongli-codex-continuity-yqk33pu3`: `work/identity-*`
+contains the drafts and rendered pages; `logs/identity-native-events.json`,
+`identity-web-tool-output.json`, `identity-visual-provenance.raw.json`,
+`identity-visual-findings.json`, `identity-intake-approval-history.json`, the
+`identity-{packet,manifest,note}-*` previews/applies and
+`identity-final-readback-verification.json` retain the actual provenance,
+interpretations, approval history, receipt identities and readback results.
+
+This completes the selected identity and numerical-layout review, with the BLEU
+conflict still open. Other visual/formula checks, publication-version/DOI checks,
+independent experiments, full B2, expert/blind review and broader Host/platform
+qualification remain separate. Next address the previously observed missing
+read-only annotations on the three literature tools through the existing MCP
+descriptor owners. Keep annotations distinct from Host approval authority and
+network behavior; their absence is not a proven cause of earlier refusals.
+No task state, dependency, accepted evidence or publication status is promoted.
+
+At integration the same lightweight verifier reports no actionable fidelity or
+ownership findings against `7c7054ce`. All seven affected roadmap tests,
+generated-index consistency, the native boundary guard and whitespace checks
+pass. All 249 task states/dependencies and 46 complete accepted records remain
+unchanged; only CLI-405 progress changes. Existing native/lint/Host results are
+reused. Local integration uses a scoped documentation commit and fast-forward
+merge into `2.x`; no push or publication is part of this increment.
