@@ -140,11 +140,18 @@ The assertion is corrected; same-binary controlled diagnosis isolates the other
 failures to directory ancestry without changing security policy. The secure clone
 then exposes a test cache copier that loses canonical directory permissions under
 umask 077; it now preserves source modes, with runtime verification unchanged.
-Next qualify the revised clean `2.x` source from that secure local clone, including
-actual Linux ARM64 CLI/registry/Plugin artifacts, the manylinux 2.35 audit and installs. The current plan owns source checks and the
-external artifact location. Exact-candidate four-target CI and combined installs
-need separately authorized remote synchronization; publication and announcement
-remain separate decisions. Full B2, remaining visual/formula checks, expert/blind
+Linux ARM64 source `bc8c0fdd` is now qualified-unpublished through the unchanged
+release owner in rootless Ubuntu 22.04/glibc 2.35: strict Clippy, 55 CLI/MCP release
+tests, ABI audit, archive/npm/wheel installs and two Plugin archives pass. Cargo
+source installation, scoped old-package upgrades and exact packaged annotations
+also pass. The current plan binds artifact hashes and preserves the prior glibc
+2.39 ABI refusal, fixture and setup failures.
+
+Next obtain separate authority for a candidate-branch push and the existing
+four-target distribution workflow, including combined installs. Other targets
+and exact-head CI remain unqualified; source-bound local artifacts do not attest
+the later evidence-only commit. Publication and announcement remain separate
+decisions. Full B2, remaining visual/formula checks, expert/blind
 review, Graph/Hook/browser and other Hosts remain open.
 
 Use existing canonical content, source/review bindings, native provider/runtime,

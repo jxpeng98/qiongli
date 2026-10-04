@@ -4513,3 +4513,82 @@ also confirms all 99 copied source directories changed from 0755 to 0700 before
 the fix. Temporary instrumentation is absent. The same lightweight verifier finds
 no actionable review issue; seven roadmap tests, index, boundary and whitespace
 checks pass. All 249 task states/dependencies and 46 accepted records are unchanged.
+
+## October 4 — qualified local 2.3.0 Linux ARM64 candidate
+
+The final product source is `bc8c0fdd1efa31b6088a6b3910b136c23cd11804`.
+The original workspace and secure local clone both retain clean `2.x` at that
+freeze during qualification. The one requested `gpt-6.1-sol / low` verifier owns
+all execution and independent evidence review. No new authenticated research
+session, real Host registration, configured model change or private-data access
+occurs.
+
+On the host's glibc 2.39, strict Clippy and all 46 CLI + 9 MCP release tests pass,
+but the actual manylinux 2.35 audit refuses the wheel. ELF evidence identifies
+weak `pidfd_spawnp@GLIBC_2.39` and `pidfd_getpid@GLIBC_2.39` imports; auditwheel
+constrains those bytes to manylinux 2.39. That failed packet and a separately
+labelled current-host-only annotation smoke remain retained. They are not Linux
+2.35 distribution evidence.
+
+An isolated rootless Podman Ubuntu 22.04 container actually reports glibc 2.35.
+It uses the existing distribution workflow's Rust 1.97.0, Python 3.12 and Node 24
+baseline with auditwheel 6.8.2 and patchelf 0.19.1.0. Container state/tooling and
+its compilation cache are external; no host system/profile or credential mounts
+are used. The overlong initial runroot probe and two missing offline-cache runs
+remain separate setup failures. A locked public crates.io fetch resolves the
+missing canonical offline-cache prerequisites; the qualification owner still
+runs offline. No
+runtime, ABI, approval, clean-source or checksum gate is weakened.
+
+The unchanged `release_ready.sh --cli-github --version 2.3.0` owner then succeeds
+on the exact freeze: strict headless Clippy, 46 CLI tests, 9 MCP tests, actual
+manylinux 2.35 repair/audit, empty-PATH archive smoke, npm/wheel isolated installs
+and aliases, DeepSeek package checks, Codex/Claude Plugin archives and five asset
+hashes pass. The generated manifest declares `qualified-unpublished`, target
+`aarch64-unknown-linux-gnu` and `managed_product_authority: false`.
+
+All final receipts below are under `/tmp/qiongli-2.3.0-delivery-20261004`:
+
+| Evidence | Relative path | SHA-256 |
+| --- | --- | --- |
+| Exact-source release manifest | `linux-arm64-glibc235-qualified/assets/release-manifest.json` | `2bcf8adf10b7cd973a3fb729dfb1d58b3233840b025eadc4d481f8117a002d8e` |
+| Archive/package checksum list | `linux-arm64-glibc235-qualified/assets/SHA256SUMS` | `1bde78d71e2c73fdf358b32b8df618b715dab7280d9ead18a4af9b6354a22a18` |
+| Final Cargo archive install | `cargo-install-final/install-check.json` | `cada53fc0012d660927698e32dc039a76b3f7f3a53a328a81399b9e911c1ecbd` |
+| Isolated package upgrade | `upgrade-glibc235/registry-upgrade-check.json` | `264b3ef6dbd9a972075ee8ec54f70a3b6bb094ec2ebcfeac6234834364b892f9` |
+| Packaged literature annotations | `qualified-annotation-smoke/receipt.json` | `45f1a2ebeaaf6b2f87dd569130b4e1d1ec9be82469c80f50892c10686bd238f7` |
+
+The qualified executable SHA-256 is
+`d410110d1ae47b33a48f98940fe800272b324883520ec00d453396d97d4002ea`.
+The manifest binds the standalone archive, manylinux wheel, npm tarball and two
+Host Plugin tarballs. The embedded pack remains source `fd8ffcac`, 446 entries,
+SHA-256 `95548972bf25b441a1e8a3ca407f4f6fc6259557af88603f3daa3462785e09ba`.
+
+Final Cargo archives are staged from the same frozen source and independently
+installed offline on the current Linux ARM64 host; both `qiongli` and `ql` pass
+CLI/MCP smoke. This is source-archive closure/install evidence, not registry
+publication. In the glibc 2.35 container, the existing upgrade owner replaces pip
+1.17.0 and npm 2.1.1 with this candidate and preserves the three synthetic note,
+source-packet and model-setting files. It does not test a 2.2.1 predecessor,
+project-format downgrade or live Host acceptance. Exact packaged Lite 15/Full 35
+responses retain all three literature annotation sets and mutation negatives
+on their first run. The earlier harness mutator-naming mistake belongs only to
+the current-host-only, unrepaired-wheel smoke and is preserved separately.
+
+This completes local Linux ARM64 qualification. The other three targets and the
+combined package/install matrix remain unrun for this candidate. Next request
+authority to push a reviewed candidate branch matching
+`codex/cli-distribution-*` and run the existing four-target distribution workflow.
+No remote synchronization, main cutover, tag, publication or announcement occurs
+here. This documentation-only integration records the `bc8c0fdd` bytes; it does
+not rebind that manifest to the later documentation commit. Unchanged local
+checks are reused, while remote CI must bind its own exact head. All program
+states, dependencies and accepted records remain unchanged; broader installed
+Host, full B2, expert/blind and Graph/Hook/browser acceptance stays separate.
+
+At evidence integration, the same lightweight verifier confirms all recorded
+receipt hashes and scopes, with no remaining actionable fidelity/ownership
+finding after two wording corrections. Seven roadmap tests, index consistency,
+boundary and whitespace checks pass. Both the original development baseline and
+qualified product source retain all 249 task states/dependencies and 46 complete
+accepted records; only CLI-405 progress changes. Local integration uses a scoped
+documentation commit and fast-forward merge; native/package results are reused.
