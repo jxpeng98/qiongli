@@ -810,6 +810,7 @@ fn orchestration_control_tools() -> impl Iterator<Item = Value> {
                         "enum": [
                             "qiongli_project_read",
                             "qiongli_project_document_read",
+                            "qiongli_project_document_list",
                             "qiongli_project_graph_snapshot",
                             "qiongli_project_graph_query",
                             "qiongli_project_artifact_changes",
@@ -1317,7 +1318,7 @@ fn host_tool_arguments_match_scope(
     arguments: &Value,
 ) -> bool {
     match tool {
-        FullProjectToolId::DocumentRead => {
+        FullProjectToolId::DocumentRead | FullProjectToolId::DocumentList => {
             arguments.get("project_id").and_then(Value::as_str)
                 == Some(reference.project_id.as_str())
                 && arguments

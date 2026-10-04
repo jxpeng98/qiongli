@@ -2870,6 +2870,362 @@ Inspect the source table before dependent analysis.
         }
     }
 
+    fn saved_list_bytes(root: &std::path::Path) -> Vec<(std::path::PathBuf, Vec<u8>)> {
+        let mut files = Vec::new();
+        for entry in fs::read_dir(root).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                files.extend(saved_list_bytes(&path));
+            } else {
+                files.push((path.clone(), fs::read(path).unwrap()));
+            }
+        }
+        files.sort_by(|a, b| a.0.cmp(&b.0));
+        files
+    }
+
+    fn saved_list_request(fixture: &Fixture, revision: u64) -> crate::SavedDocumentListRequest {
+        crate::SavedDocumentListRequest {
+            project_id: fixture.project_id.clone(),
+            expected_project_revision: revision,
+            offset: 0,
+            limit: 32,
+            expected_bindings_sha256: None,
+        }
+    }
+
+    fn save_list_fixture() -> (Fixture, Vec<CaptureId>) {
+        let fixture = fixture();
+        let packet = packet_draft();
+        let retrieval = crate::retrieval_manifest::test_draft();
+        let mut captures = Vec::new();
+        for revision in 1..=4 {
+            let mut candidate = draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired);
+            candidate.binding.base_revision = revision;
+            candidate.captured_at_unix = 100 + revision;
+            let capture = intake(&fixture, candidate);
+            let mut note = note_draft(&fixture);
+            if revision == 4 {
+                note.previous_sha256 = Some(sha256_bytes(
+                    &fs::read(fixture.project_root.join(note.relative_path())).unwrap(),
+                ));
+                note.markdown =
+                    "## Later reviewed correction\nStill bounded source evidence.".into();
+            }
+            let drafts = CaptureConsolidationDrafts {
+                source_packet: (revision == 1).then_some(&packet),
+                retrieval_manifest: (revision == 2).then_some(&retrieval),
+                paper_note: (revision >= 3).then_some(&note),
+                ..Default::default()
+            };
+            let plan = fixture
+                .service
+                .preview_capture_consolidation_with_drafts(
+                    &fixture.project_id,
+                    &capture.capture_id,
+                    120 + revision,
+                    drafts,
+                )
+                .unwrap();
+            fixture
+                .service
+                .apply_capture_consolidation(
+                    &plan,
+                    &ApprovedCaptureConsolidation::new(
+                        plan.preview.plan_digest.clone(),
+                        true,
+                        true,
+                    ),
+                )
+                .unwrap();
+            captures.push(capture.capture_id);
+        }
+        (fixture, captures)
+    }
+
+    #[test]
+    fn saved_document_list_never_discovers_unreceipted_files() {
+        let fixture = fixture();
+        fs::create_dir_all(fixture.project_root.join("notes")).unwrap();
+        fs::write(
+            fixture.project_root.join("notes/Unreceipted.md"),
+            "not reviewed",
+        )
+        .unwrap();
+        let request = saved_list_request(&fixture, 1);
+        let listed = fixture.service.list_saved_documents(&request).unwrap();
+        assert_eq!(listed.total_documents, 0);
+        assert!(listed.documents.is_empty());
+    }
+
+    #[test]
+    fn saved_document_list_uses_latest_real_receipts_and_preserves_bindings() {
+        let (fixture, captures) = save_list_fixture();
+        fs::write(
+            fixture.project_root.join("notes/Unreceipted.md"),
+            "never saved by owner",
+        )
+        .unwrap();
+        let before = saved_list_bytes(&fixture.base);
+        let request = saved_list_request(&fixture, 5);
+        let view = fixture.service.list_saved_documents(&request).unwrap();
+        let value = serde_json::to_value(&view).unwrap();
+        assert_eq!(value["totalDocuments"], 3);
+        let entries = value["documents"].as_array().unwrap();
+        let note = entries
+            .iter()
+            .find(|e| e["artifact"] == "paper-note")
+            .unwrap();
+        assert_eq!(note["savedAtProjectRevision"], 5);
+        assert_eq!(note["captureId"], captures[3].as_str());
+        for entry in entries {
+            assert_eq!(entry["state"], "current");
+            let read: crate::SavedDocumentReadRequest =
+                serde_json::from_value(entry["readArguments"].clone()).unwrap();
+            assert_eq!(read.expected_sha256, entry["savedSha256"].as_str().unwrap());
+            fixture.service.read_saved_document(&read).unwrap();
+        }
+        let mut page = request.clone();
+        page.limit = 1;
+        let first = fixture.service.list_saved_documents(&page).unwrap();
+        page.offset = 1;
+        assert!(fixture.service.list_saved_documents(&page).is_err());
+        page.expected_bindings_sha256 = Some(first.bindings_sha256.clone());
+        let second = fixture.service.list_saved_documents(&page).unwrap();
+        assert_eq!(second.bindings_sha256, first.bindings_sha256);
+        assert_ne!(
+            second.documents[0].relative_path,
+            first.documents[0].relative_path
+        );
+        page.expected_bindings_sha256 = Some("0".repeat(64));
+        assert!(fixture.service.list_saved_documents(&page).is_err());
+        for invalid_limit in [0, 65] {
+            let mut invalid = request.clone();
+            invalid.limit = invalid_limit;
+            assert_eq!(
+                fixture.service.list_saved_documents(&invalid).unwrap_err(),
+                ProjectError::InvalidProjectDocument
+            );
+        }
+        let mut invalid = request.clone();
+        invalid.expected_project_revision = 0;
+        assert_eq!(
+            fixture.service.list_saved_documents(&invalid).unwrap_err(),
+            ProjectError::InvalidProjectDocument
+        );
+        assert_eq!(saved_list_bytes(&fixture.base), before);
+    }
+
+    #[test]
+    fn saved_document_list_keeps_good_entries_when_saved_bodies_drift_or_disappear() {
+        let (fixture, _) = save_list_fixture();
+        let request = saved_list_request(&fixture, 5);
+        let original =
+            serde_json::to_value(fixture.service.list_saved_documents(&request).unwrap()).unwrap();
+        let packet = packet_draft();
+        fs::write(
+            fixture.project_root.join("notes/Smith2024.md"),
+            "external note change",
+        )
+        .unwrap();
+        fs::remove_file(fixture.project_root.join(packet.relative_path())).unwrap();
+        let changed =
+            serde_json::to_value(fixture.service.list_saved_documents(&request).unwrap()).unwrap();
+        assert_eq!(original["bindingsSha256"], changed["bindingsSha256"]);
+        for entry in changed["documents"].as_array().unwrap() {
+            match entry["artifact"].as_str().unwrap() {
+                "paper-note" => {
+                    assert_eq!(entry["state"], "changed");
+                    assert!(entry["readArguments"].is_null());
+                }
+                "source-packet" => {
+                    assert_eq!(entry["state"], "missing");
+                    assert!(entry["readArguments"].is_null());
+                }
+                "retrieval-manifest" => {
+                    assert_eq!(entry["state"], "current");
+                    assert!(!entry["readArguments"].is_null());
+                }
+                other => panic!("unexpected {other}"),
+            }
+        }
+    }
+
+    #[test]
+    fn saved_document_list_pagination_binds_receipt_bytes_and_refuses_orphans() {
+        let (fixture, captures) = save_list_fixture();
+        let mut request = saved_list_request(&fixture, 5);
+        request.limit = 1;
+        let first = fixture.service.list_saved_documents(&request).unwrap();
+        let path = fixture
+            .project_root
+            .join(consolidation_relative_path(&captures[0]));
+        let original = fs::read(&path).unwrap();
+        let mut reencoded = b" ".to_vec();
+        reencoded.extend_from_slice(&original);
+        fs::write(&path, reencoded).unwrap();
+        request.offset = 1;
+        request.expected_bindings_sha256 = Some(first.bindings_sha256);
+        assert!(fixture.service.list_saved_documents(&request).is_err());
+        fs::write(&path, &original).unwrap();
+        fs::remove_file(
+            fixture
+                .project_root
+                .join(crate::storage::capture_history_relative_path(&captures[0])),
+        )
+        .unwrap();
+        request.offset = 0;
+        request.expected_bindings_sha256 = None;
+        assert!(fixture.service.list_saved_documents(&request).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn saved_document_list_marks_unsafe_body_unavailable_without_losing_good_entry() {
+        let (fixture, _) = save_list_fixture();
+        let path = fixture.project_root.join("notes/Smith2024.md");
+        fs::remove_file(&path).unwrap();
+        std::os::unix::fs::symlink(fixture.project_root.join("retrieval_manifest.csv"), &path)
+            .unwrap();
+        let value = serde_json::to_value(
+            fixture
+                .service
+                .list_saved_documents(&saved_list_request(&fixture, 5))
+                .unwrap(),
+        )
+        .unwrap();
+        let entries = value["documents"].as_array().unwrap();
+        let note = entries
+            .iter()
+            .find(|e| e["artifact"] == "paper-note")
+            .unwrap();
+        assert_eq!(note["state"], "unavailable");
+        assert!(note["readArguments"].is_null());
+        assert!(!note["reasonCode"].is_null());
+        assert!(
+            entries
+                .iter()
+                .any(|e| e["state"] == "current" && !e["readArguments"].is_null())
+        );
+    }
+
+    #[test]
+    fn saved_document_list_refuses_corrupt_foreign_future_and_unsafe_history() {
+        let (fixture, captures) = save_list_fixture();
+        let request = saved_list_request(&fixture, 5);
+        let path = fixture
+            .project_root
+            .join(consolidation_relative_path(&captures[0]));
+        let original = fs::read(&path).unwrap();
+        for kind in 0..3 {
+            let mut receipt: CaptureConsolidationReceiptV1 =
+                serde_json::from_slice(&original).unwrap();
+            match kind {
+                0 => {
+                    receipt.project_id =
+                        ProjectId::parse("prj_0123456789abcdef0123456789abcdef").unwrap()
+                }
+                1 => {
+                    receipt.from_project_revision = 98;
+                    receipt.to_project_revision = 99;
+                }
+                _ => receipt.source_capture_digest = "0".repeat(64),
+            }
+            receipt.acknowledgement = acknowledgement(&receipt).unwrap();
+            receipt.validate().unwrap();
+            fs::write(&path, serde_json::to_vec(&receipt).unwrap()).unwrap();
+            assert!(
+                fixture.service.list_saved_documents(&request).is_err(),
+                "history variant {kind}"
+            );
+        }
+        fs::write(&path, b"{}").unwrap();
+        assert!(fixture.service.list_saved_documents(&request).is_err());
+        fs::write(&path, &original).unwrap();
+        let mut receipt: serde_json::Value = serde_json::from_slice(&original).unwrap();
+        receipt["artifacts"][0]["relativePath"] = serde_json::json!("../outside.md");
+        fs::write(&path, serde_json::to_vec(&receipt).unwrap()).unwrap();
+        assert!(fixture.service.list_saved_documents(&request).is_err());
+        fs::write(&path, &original).unwrap();
+        fs::create_dir_all(
+            fixture
+                .project_root
+                .join(".qiongli/consolidation-transaction"),
+        )
+        .unwrap();
+        assert_eq!(
+            fixture.service.list_saved_documents(&request).unwrap_err(),
+            ProjectError::RecoveryRequired
+        );
+    }
+
+    #[test]
+    fn saved_document_list_refuses_same_revision_forks_and_bounded_history_overflow() {
+        let fixture = fixture();
+        let first = intake(
+            &fixture,
+            draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+        );
+        let mut second_draft = draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired);
+        second_draft.summary = "Distinct same-revision pending capture".into();
+        let second = intake(&fixture, second_draft);
+        let packet = packet_draft();
+        let plan = fixture
+            .service
+            .preview_capture_consolidation_with_drafts(
+                &fixture.project_id,
+                &first.capture_id,
+                120,
+                CaptureConsolidationDrafts {
+                    source_packet: Some(&packet),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        fixture
+            .service
+            .apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(plan.preview.plan_digest.clone(), true, true),
+            )
+            .unwrap();
+        let (mut receipt, _) = read_consolidation_receipt(&fixture.project_root, &first.capture_id)
+            .unwrap()
+            .unwrap();
+        receipt.capture_id = second.capture_id.clone();
+        receipt.source_capture_digest =
+            crate::storage::read_capture_document(&fixture.project_root, &second.capture_id)
+                .unwrap()
+                .unwrap()
+                .1;
+        receipt.acknowledgement = acknowledgement(&receipt).unwrap();
+        receipt.validate().unwrap();
+        fs::write(
+            fixture
+                .project_root
+                .join(consolidation_relative_path(&second.capture_id)),
+            serde_json::to_vec(&receipt).unwrap(),
+        )
+        .unwrap();
+        assert!(
+            fixture
+                .service
+                .list_saved_documents(&saved_list_request(&fixture, 2))
+                .is_err()
+        );
+        let directory = fixture.project_root.join("context/consolidations");
+        for index in 0..1025 {
+            fs::write(directory.join(format!("cap_{index:064x}.json")), b"{}").unwrap();
+        }
+        assert_eq!(
+            fixture
+                .service
+                .list_saved_documents(&saved_list_request(&fixture, 2))
+                .unwrap_err(),
+            ProjectError::DocumentTooLarge
+        );
+    }
+
     fn note_draft(fixture: &Fixture) -> PaperNoteDraftV1 {
         PaperNoteDraftV1 {
             schema_version: 1,

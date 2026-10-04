@@ -97,9 +97,24 @@ CLI 与每个 Plugin 各自携带程序。更新 CLI 后刷新 Plugin，再核�
 明确保留。绑定的来源包必须已经保存，其哈希不代表完整 PDF。新会话可读取这些历史；
 来源变化需要重新审阅。已发布的 2.2.1 CLI 尚无此选项。
 
+如果开发构建的帮助列出 `project document list`，先用 `project show` 取得已注册项目
+的当前修订号，再从保存收据恢复文件绑定信息：
+
+```sh
+qiongli project document list --project-id <prj_id> \
+  --expected-project-revision <revision> --limit 32 --json
+```
+
+Full MCP 的对应工具为 `qiongli_project_document_list`。只有 `current` 条目提供
+可交给正文读取工具的 `readArguments`。缺失、已改动或不可读取的条目保留保存时的
+摘要，需要重新检查，不能直接换成磁盘上的新摘要。续页时将 `nextOffset` 传给
+`--offset`，将 `bindingsSha256` 传给 `--expected-bindings-sha256`，保持项目修订号。
+该摘要绑定收据历史，各页分别校验其文件；没有合并保存收据的文件不会出现在列表中。
+列表不会刷新或写入项目状态，旧版本和 Lite 不会因此获得此能力。
+
 如果开发构建的帮助列出 `project document read`，可直接读回已保存的笔记、来源包
-和 `retrieval_manifest.csv`。使用当前项目修订号，以及从已授权的保存预览、收据或
-文件读取中取得的整文件哈希：
+和 `retrieval_manifest.csv`。使用当前项目修订号，以及从列表中有效条目或已授权的
+保存预览、收据、文件读取中取得的整文件哈希：
 
 ```sh
 qiongli project document read --project-id <prj_id> \
@@ -119,7 +134,7 @@ Full MCP 的对应工具为 `qiongli_project_document_read`。续读时将 `next
 qiongli mcp serve --profile full --transport stdio
 ```
 
-已发布的 2.2.1 中，Lite 提供 15 个工具，Full 提供 33 个，包括项目、Graph 和交接。包含已保存文档读取能力的开发构建提供 34 个 Full 工具。模型与执行仍由 Host 管理。
+已发布的 2.2.1 中，Lite 提供 15 个工具，Full 提供 33 个，包括项目、Graph 和交接。包含已保存文档读取能力的开发构建提供 34 个 Full 工具，收据列表再增加至 35 个。模型与执行仍由 Host 管理。
 
 `app` 命名空间保留底层安装计划，`app apply` 需要计划摘要与明确的文件写入批准。托管产品的安装、更新命令有单独权限要求；包管理器安装的 CLI 通过原渠道升级。`qiongli update` 查看托管更新状态。
 

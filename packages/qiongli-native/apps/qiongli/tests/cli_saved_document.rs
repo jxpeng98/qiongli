@@ -1,8 +1,10 @@
 #![allow(clippy::disallowed_methods)]
 use qiongli_config::resolve_config_root;
 use qiongli_project::{
-    ApprovedProjectMutation, ProjectId, ProjectKind, ProjectRegistrationOptions,
-    ProjectStateService, SavedDocumentReadRequest,
+    ApprovedCaptureConsolidation, ApprovedCaptureIntake, ApprovedProjectMutation,
+    CaptureConsolidationDrafts, CaptureDelivery, CapturePolicy, CaptureSource, ProjectBindingV1,
+    ProjectId, ProjectKind, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
+    ResearchCaptureDraftV1, SavedDocumentReadRequest, SourcePacketDraftV1,
 };
 use sha2::{Digest, Sha256};
 use std::{
@@ -51,7 +53,8 @@ impl Fixture {
             .preview_register(
                 &root,
                 ProjectRegistrationOptions::new("Public synthetic reader", ProjectKind::Article)
-                    .with_project_id(id.clone()),
+                    .with_project_id(id.clone())
+                    .with_stage(ProjectStage::Literature),
                 100,
             )
             .unwrap();
@@ -212,6 +215,154 @@ fn full_mcp_matches_cli_and_lite_refuses_saved_reader() {
             );
         } else {
             assert!(reader.is_none());
+            assert!(call.get("error").is_some() || call["result"]["isError"] == true);
+        }
+    }
+}
+
+#[test]
+fn saved_document_list_cli_and_full_mcp_match_without_unreceipted_discovery() {
+    use std::io::Write;
+    use std::process::Stdio;
+    let f = Fixture::new();
+    f.put(
+        "notes/Test2026.md",
+        b"unreceipted fixture must not be listed",
+    );
+    let capture = ResearchCaptureDraftV1 {
+        binding: ProjectBindingV1::new(
+            f.id.clone(),
+            1,
+            ProjectStage::Literature,
+            "Save public synthetic packet",
+            CapturePolicy::ReviewRequired,
+        )
+        .unwrap(),
+        source: CaptureSource::Codex,
+        delivery: CaptureDelivery::Portable,
+        captured_at_unix: 110,
+        summary: "Bound public fixture packet".into(),
+        changes: vec![],
+        decisions: vec![],
+        evidence: vec![],
+        contradictions: vec![],
+        next_actions: vec![],
+    }
+    .into_capture()
+    .unwrap();
+    let intake = f.service.preview_capture(capture.clone()).unwrap();
+    f.service
+        .apply_capture(
+            &intake,
+            &ApprovedCaptureIntake::new(intake.preview().plan_digest.clone(), true),
+            111,
+        )
+        .unwrap();
+    let packet = SourcePacketDraftV1 {
+        schema_version: 1,
+        citekey: "Public2026".into(),
+        content: "{\"public_fixture\":true}".into(),
+    };
+    let preview = f
+        .service
+        .preview_capture_consolidation_with_drafts(
+            &f.id,
+            &capture.capture_id,
+            120,
+            CaptureConsolidationDrafts {
+                source_packet: Some(&packet),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    f.service
+        .apply_capture_consolidation(
+            &preview,
+            &ApprovedCaptureConsolidation::new(preview.preview().plan_digest.clone(), true, true),
+        )
+        .unwrap();
+    let args = serde_json::json!({"project_id":f.id,"expected_project_revision":2});
+    let output = Command::new(env!("CARGO_BIN_EXE_qiongli"))
+        .current_dir(&f.base)
+        .env("QIONGLI_CONFIG_HOME", &f.config)
+        .env("HOME", &f.home)
+        .env("USERPROFILE", &f.home)
+        .env("PATH", "")
+        .args([
+            "project",
+            "document",
+            "list",
+            "--project-id",
+            f.id.as_str(),
+            "--expected-project-revision",
+            "2",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let expected: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(expected["totalDocuments"], 1);
+    assert_eq!(
+        expected["documents"][0]["relativePath"],
+        packet.relative_path()
+    );
+    let read: SavedDocumentReadRequest =
+        serde_json::from_value(expected["documents"][0]["readArguments"].clone()).unwrap();
+    assert_eq!(
+        f.service.read_saved_document(&read).unwrap().content,
+        packet.content
+    );
+    for profile in ["full", "lite"] {
+        let mut child = Command::new(env!("CARGO_BIN_EXE_qiongli"))
+            .current_dir(&f.base)
+            .env("QIONGLI_CONFIG_HOME", &f.config)
+            .env("HOME", &f.home)
+            .env("USERPROFILE", &f.home)
+            .env("PATH", "")
+            .args(["mcp", "serve", "--profile", profile, "--transport", "stdio"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        {
+            let mut input = child.stdin.take().unwrap();
+            for request in [
+                serde_json::json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{}}}),
+                serde_json::json!({"jsonrpc":"2.0","method":"notifications/initialized","params":{}}),
+                serde_json::json!({"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}),
+                serde_json::json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"qiongli_project_document_list","arguments":args}}),
+            ] {
+                writeln!(input, "{request}").unwrap();
+            }
+        }
+        let output = child.wait_with_output().unwrap();
+        assert!(output.status.success());
+        let responses: Vec<serde_json::Value> = String::from_utf8(output.stdout)
+            .unwrap()
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        let tools = responses.iter().find(|v| v["id"] == 2).unwrap()["result"]["tools"]
+            .as_array()
+            .unwrap();
+        let tool = tools
+            .iter()
+            .find(|v| v["name"] == "qiongli_project_document_list");
+        let call = responses.iter().find(|v| v["id"] == 3).unwrap();
+        if profile == "full" {
+            assert_eq!(tool.unwrap()["annotations"]["readOnlyHint"], true);
+            let actual: serde_json::Value =
+                serde_json::from_str(call["result"]["content"][0]["text"].as_str().unwrap())
+                    .unwrap();
+            assert_eq!(actual, expected);
+        } else {
+            assert!(tool.is_none());
             assert!(call.get("error").is_some() || call["result"]["isError"] == true);
         }
     }

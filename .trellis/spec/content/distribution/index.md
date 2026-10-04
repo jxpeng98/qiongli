@@ -16,11 +16,14 @@ payloads are generated outputs.
   fallback instead of assuming another product line is installed.
 
 Native `full-project-tools.json` additionally exposes the bounded, read-only
-`qiongli_project_document_read` contract. Its canonical paper-reading guidance is
+`qiongli_project_document_read` and receipt-backed `qiongli_project_document_list`
+contracts. Their canonical paper-reading guidance is
 capability-gated; the frozen Python Full inventory and native Lite are unchanged.
 Regenerate the embedded pack and Plugin projections through their existing owners.
 Published pre-extension tool counts remain valid historical observations; current
-native inventory validation also accepts the coherent Lite 15 / Full 34 pair.
+native inventory validation also accepts coherent Lite 15 / Full 34 and 35 pairs.
+The list extension requires both the saved-document reader and fulltext extension;
+Lite cannot advertise either saved-document tool.
 
 User-edited Plugin/Skill variants are managed project/user outputs. They do not
 replace canonical content and must retain preview, receipt, and exact-removal

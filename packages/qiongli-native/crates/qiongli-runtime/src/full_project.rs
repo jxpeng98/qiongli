@@ -8,7 +8,7 @@ use qiongli_project::{
     AcademicGraphPortfolioService, AcademicGraphQueryV1, AcademicGraphRelation,
     AcademicGraphService, ApprovedCaptureIntake, CaptureDelivery, ProjectError, ProjectId,
     ProjectStateService, RESEARCH_CAPTURE_DOCUMENT_KIND, RESEARCH_CAPTURE_SCHEMA_VERSION,
-    ResearchCaptureDraftV1, ResearchCaptureV1, SavedDocumentReadRequest,
+    ResearchCaptureDraftV1, ResearchCaptureV1, SavedDocumentListRequest, SavedDocumentReadRequest,
 };
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
@@ -141,6 +141,7 @@ impl FullProjectService {
             FullProjectToolId::List => self.list(arguments),
             FullProjectToolId::Read => self.read(arguments),
             FullProjectToolId::DocumentRead => self.read_document(arguments),
+            FullProjectToolId::DocumentList => self.list_documents(arguments),
             FullProjectToolId::GraphSnapshot => self.graph_snapshot(arguments),
             FullProjectToolId::GraphPortfolio => self.graph_portfolio(arguments),
             FullProjectToolId::GraphQuery => self.graph_query(arguments),
@@ -190,6 +191,25 @@ impl FullProjectService {
             })
             .map_err(|error| {
                 FullProjectServiceError::domain(error, "registered project inspection failed")
+            })
+    }
+
+    fn list_documents(
+        &self,
+        arguments: &Map<String, Value>,
+    ) -> Result<Value, FullProjectServiceError> {
+        let request: SavedDocumentListRequest =
+            serde_json::from_value(Value::Object(arguments.clone())).map_err(|_| {
+                FullProjectServiceError::invalid("Invalid saved-document list arguments")
+            })?;
+        request.validate().map_err(|_| {
+            FullProjectServiceError::invalid("Invalid saved-document list arguments")
+        })?;
+        self.projects
+            .list_saved_documents(&request)
+            .map(|view| json!(view))
+            .map_err(|error| {
+                FullProjectServiceError::domain(error, "saved document binding inspection failed")
             })
     }
 

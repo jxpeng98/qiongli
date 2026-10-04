@@ -37,6 +37,7 @@ mod repository_inbox;
 mod retrieval_manifest;
 mod runtime_state;
 mod saved_document;
+mod saved_document_list;
 mod semantic_timeline;
 mod service;
 mod source_packet;
@@ -45,6 +46,10 @@ mod storage;
 
 pub use saved_document::{
     MAX_SAVED_DOCUMENT_VIEW_BYTES, SavedDocumentReadRequest, SavedDocumentViewV1,
+};
+pub use saved_document_list::{
+    SavedDocumentBindingState, SavedDocumentBindingV1, SavedDocumentListRequest,
+    SavedDocumentListV1,
 };
 
 pub use academic_graph::{

@@ -25,7 +25,7 @@ pub const LITE_PUBLIC_TOOL_NAMES: [&str; 15] = [
     "qiongli_task_plan",
     "qiongli_literature_read_fulltext",
 ];
-pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 10] = [
+pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 11] = [
     "qiongli_project_list",
     "qiongli_project_read",
     "qiongli_project_graph_snapshot",
@@ -36,6 +36,7 @@ pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 10] = [
     "qiongli_project_capture_preview",
     "qiongli_project_capture_apply",
     "qiongli_project_document_read",
+    "qiongli_project_document_list",
 ];
 
 const LITE_CONTRACT_SCHEMA_VERSION: &str = "1.0";
@@ -76,6 +77,7 @@ pub enum FullProjectToolId {
     CapturePreview,
     CaptureApply,
     DocumentRead,
+    DocumentList,
 }
 
 impl FullProjectToolId {
@@ -92,6 +94,7 @@ impl FullProjectToolId {
             Self::CapturePreview => "qiongli_project_capture_preview",
             Self::CaptureApply => "qiongli_project_capture_apply",
             Self::DocumentRead => "qiongli_project_document_read",
+            Self::DocumentList => "qiongli_project_document_list",
         }
     }
 
@@ -113,6 +116,7 @@ impl FullProjectToolId {
             "qiongli_project_capture_preview" => Some(Self::CapturePreview),
             "qiongli_project_capture_apply" => Some(Self::CaptureApply),
             "qiongli_project_document_read" => Some(Self::DocumentRead),
+            "qiongli_project_document_list" => Some(Self::DocumentList),
             _ => None,
         }
     }

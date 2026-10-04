@@ -17,6 +17,34 @@ packets do not transfer Host-bound checkpoints or authenticated evidence authori
 The Qiongli 2 executable, CLI, Desktop service, Full MCP, project state, and
 embedded resources live under `packages/qiongli-native/`.
 
+`project document list` and Full-only `qiongli_project_document_list` share
+`ProjectStateService::list_saved_documents`. The strict request requires registered
+`project_id` and `expected_project_revision`; `offset` defaults to 0 and `limit`
+to 32 (1–64). Continuation requires `expected_bindings_sha256`. The existing
+storage owner enumerates at most 1,024 consolidation IDs, with no scan of notes or
+sources and no new index. Existing receipt parsing validates schema, paths and
+acknowledgement. Each receipt must match its capture bytes, identity, project,
+base revision and stage; foreign/future, orphaned, corrupt, unsafe and duplicate
+revision histories refuse. The latest receipt by destination revision owns each
+allowed path; timestamps and current file hashes never choose saved authority.
+
+The stable path-sorted list contains only note, source-packet and retrieval-history
+bindings. Each includes saved SHA-256, capture ID, receipt SHA-256 and saved
+revision. Only safely readable current UTF-8 bytes produce `readArguments` for the
+existing reader, using the current project revision and saved digest. Missing,
+changed or unavailable files have explicit state/reason and no read arguments;
+other usable files remain visible. Current replacement hashes and bodies are not
+returned. Existing 4 MiB source limits and link/ownership checks remain active.
+
+`bindingsSha256` includes project/revision and the entire raw receipt/capture digest
+set, including non-displayed history. It binds pagination to saved history, not
+all current research-file bytes. Each page rechecks its sources, complete history,
+registration and manifest; later body reads still recheck their expected digests.
+Invalid offsets or changed history refuse. No lock, metadata refresh, receipt or
+project/config write occurs. This is a local integrity snapshot, not authenticated
+provenance or a lock against external editors. Full now has 35 tools; previous
+tools, Lite, Graph and write approval/CAS behavior remain unchanged.
+
 `project document read` and Full-only `qiongli_project_document_read` share
 `ProjectStateService::read_saved_document`. Strict snake-case requests require
 `project_id`, `expected_project_revision`, `relative_path` and `expected_sha256`;
@@ -35,7 +63,8 @@ editors or remote verification. UTF-8 offsets must be character boundaries; outp
 ends on a boundary, with explicit byte sizes, next offset and before/after
 truncation. `sha256` always identifies the entire file, including on later pages.
 Continuation requires the same revision/hash. Callers obtain bindings from
-authorized prior preview/receipt/file evidence; the reader adds no discovery or
+authorized prior preview/receipt/file evidence or current receipt-backed list
+entries; the body reader adds no discovery or
 automatic trust in a newly observed hash. Academic coverage remains a review duty.
 
 Schema-1 `qiongli-saved-document-view` is identical through CLI and MCP and exposes

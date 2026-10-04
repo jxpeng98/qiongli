@@ -809,6 +809,34 @@ pub(crate) fn read_consolidation_document(
     read_bounded_project_file(root, &path, &metadata, MAX_MANIFEST_BYTES, false).map(Some)
 }
 
+/// Enumerate only the existing bounded consolidation history, never research files.
+pub(crate) fn list_consolidation_capture_ids(root: &Path) -> Result<Vec<CaptureId>, ProjectError> {
+    validate_existing_project_root(root)?;
+    let directory = root.join("context/consolidations");
+    let Some(metadata) = project_metadata_if_exists(root, &directory)? else {
+        return Ok(Vec::new());
+    };
+    validate_project_directory(&directory, &metadata)?;
+    let mut ids = Vec::new();
+    for entry in fs::read_dir(&directory).map_err(map_io)? {
+        let name = entry
+            .map_err(map_io)?
+            .file_name()
+            .into_string()
+            .map_err(|_| ProjectError::InvalidProjectDocument)?;
+        let id = name
+            .strip_suffix(".json")
+            .ok_or(ProjectError::InvalidProjectDocument)
+            .and_then(|value| CaptureId::parse(value.to_string()))?;
+        ids.push(id);
+        if ids.len() > MAX_CAPTURE_DOCUMENTS {
+            return Err(ProjectError::DocumentTooLarge);
+        }
+    }
+    ids.sort();
+    Ok(ids)
+}
+
 pub(crate) fn encode_project_document<T: Serialize>(value: &T) -> Result<Vec<u8>, ProjectError> {
     encode_document(value, false)
 }

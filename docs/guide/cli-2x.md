@@ -99,9 +99,27 @@ metadata stays explicit. Saved packet bindings must already exist, and a packet
 hash does not establish a complete PDF. Reopen the project to read saved history;
 changed sources need fresh review. This option is not in the published 2.2.1 CLI.
 
+Development builds advertising `project document list` can recover saved file
+bindings after `project show` supplies the registered project's current revision:
+
+```sh
+qiongli project document list --project-id <prj_id> \
+  --expected-project-revision <revision> --limit 32 --json
+```
+
+Full MCP exposes `qiongli_project_document_list`. Only `current` entries provide
+`readArguments` for the body reader. Missing, changed or unavailable entries
+retain their saved digest and require inspection; never substitute a newly
+observed hash. For another page, pass `nextOffset` as `--offset` and
+`bindingsSha256` as `--expected-bindings-sha256`, keeping the project revision.
+This hash binds receipt history; each page checks its files separately. Files
+without consolidation receipts are not listed. No project state is refreshed or
+written, and old releases/Lite do not gain this capability.
+
 Development builds advertising `project document read` can read saved notes,
 source packets and `retrieval_manifest.csv` directly. Use the current project
-revision and whole-file hash from an authorized save preview, receipt or file read:
+revision and whole-file hash from a current list entry or an authorized save
+preview, receipt or file read:
 
 ```sh
 qiongli project document read --project-id <prj_id> \
@@ -122,7 +140,7 @@ For a standalone MCP client, launch the absolute executable path with:
 qiongli mcp serve --profile full --transport stdio
 ```
 
-Published 2.2.1 has 15 Lite tools and 33 Full tools, including projects, Graph and handoffs. Development builds with saved-document reading have 34 Full tools. Models and execution remain owned by the Host.
+Published 2.2.1 has 15 Lite tools and 33 Full tools, including projects, Graph and handoffs. Development builds with saved-document reading have 34 Full tools; receipt-backed listing adds a 35th. Models and execution remain owned by the Host.
 
 The `app` namespace retains lower-level installation plans. `app apply` requires the plan digest and explicit filesystem approval. Managed-product installation/update commands require their own package authority; registry-installed CLIs update through their package manager. `qiongli update` reports managed-update state.
 
