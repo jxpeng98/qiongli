@@ -4475,3 +4475,41 @@ The same verifier reports no actionable review findings; seven roadmap tests,
 index consistency and whitespace checks pass. All 249 task states/dependencies
 and 46 complete accepted records remain unchanged. The strict Clippy result is
 retained at its original source; the release owner will check the revised freeze.
+
+### Restrictive-umask cache fixture repair
+
+The secure local clone freezes `e977cb02`, on clean `2.x` with verified secure
+ancestors. The original release owner again passes strict Clippy and advances to
+45/46 passing CLI tests. A later Plugin lifecycle assertion reports unavailable
+Host observation; MCP tests, packaging and ABI are still not reached. Logs remain
+`linux-arm64-secure-release-owner.*` in the external delivery directory.
+
+Controlled synthetic Codex and Claude reproductions identify the test helper's
+cache copy as the cause: regular-file bytes/modes are preserved, but new cache
+directories inherit restrictive umask 077 and become 0700. The existing Plugin
+verifier correctly requires the exported directories' canonical 0755 modes.
+Changing only the synthetic cache directories to their corresponding source
+permissions changes both observations to registered/session-unchecked. Evidence
+is retained under the secure delivery root's
+`cache-diagnostic-1791145723/{codex,claude}/files-preserved-dirs-*` outputs.
+
+Branch `test/plugin-cache-fixture-modes` changes the test copier to preserve source
+directory permissions, independent of umask. Runtime permission checks, inventory
+parsing, real Host settings and exported content remain unchanged. Focused
+verification uses explicit umask 077 and retains the existing missing-approval,
+tampered-plan and cache-drift negatives. Temporary diagnostic instrumentation is
+removed before source freeze; the initial relative-path instrumentation mistake
+ran the unchanged test and is retained as a harness error, not a product result.
+
+After integration, synchronize only from the local canonical repository into the
+existing secure clone and repeat the unchanged release owner with output
+`/tmp/qiongli-2.3.0-delivery-20261004/linux-arm64-final`. Earlier failed packets
+remain distinct. Staged Cargo archives at the prior source are not installed or
+claimed as final; regenerate them for the final frozen source before verification.
+
+The repaired lifecycle test passes 1/1 under umask 077, including both simulated
+Hosts and its existing approval/tamper/drift cases. The retained failing fixture
+also confirms all 99 copied source directories changed from 0755 to 0700 before
+the fix. Temporary instrumentation is absent. The same lightweight verifier finds
+no actionable review issue; seven roadmap tests, index, boundary and whitespace
+checks pass. All 249 task states/dependencies and 46 accepted records are unchanged.

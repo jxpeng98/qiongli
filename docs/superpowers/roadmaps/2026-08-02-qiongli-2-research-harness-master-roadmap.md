@@ -137,9 +137,11 @@ and the embedded resource pack are aligned; this does not change the published
 The first release-owner run passes strict Clippy but finds one stale Full-tool
 count assertion and three valid refusals under group-writable checkout ancestors.
 The assertion is corrected; same-binary controlled diagnosis isolates the other
-failures to directory ancestry without changing security policy. Next qualify the
-revised clean `2.x` source from an isolated secure local clone, including actual
-Linux ARM64 CLI/registry/Plugin artifacts, the manylinux 2.35 audit and installs. The current plan owns source checks and the
+failures to directory ancestry without changing security policy. The secure clone
+then exposes a test cache copier that loses canonical directory permissions under
+umask 077; it now preserves source modes, with runtime verification unchanged.
+Next qualify the revised clean `2.x` source from that secure local clone, including
+actual Linux ARM64 CLI/registry/Plugin artifacts, the manylinux 2.35 audit and installs. The current plan owns source checks and the
 external artifact location. Exact-candidate four-target CI and combined installs
 need separately authorized remote synchronization; publication and announcement
 remain separate decisions. Full B2, remaining visual/formula checks, expert/blind

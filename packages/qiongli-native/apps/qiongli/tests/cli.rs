@@ -5865,6 +5865,7 @@ fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
             use std::os::unix::fs::PermissionsExt;
             fn copy_tree(from: &Path, to: &Path) {
                 fs::create_dir_all(to).unwrap();
+                fs::set_permissions(to, fs::metadata(from).unwrap().permissions()).unwrap();
                 for entry in fs::read_dir(from).unwrap() {
                     let path = entry.unwrap().path();
                     let target = to.join(path.file_name().unwrap());
