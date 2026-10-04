@@ -106,10 +106,20 @@ project/config preservation and auth cleanup pass. The plan retains the earlier
 automatic refusal separately and binds the actual answer, events and limits.
 This is scoped live recovery, not complete paper reading or broad acceptance.
 
-Next complete the remaining public-paper passages and reviewed note/save/restart
-journey through existing owners. Missing annotations on older literature tools
-remain separately scoped; complete B2, expert/blind review, Graph/Hook/browser
-and other Hosts remain open.
+The remaining public-paper text continuation now completes the reviewed
+save/restart path on that unchanged candidate. A digest-bound native fetch adds
+segments 16–26; packet, manifest and reviewed note saves advance the isolated
+project to revision 9 while preserving old bytes. One fresh project-ID-only
+`gpt-6.1-sol / low` Codex session recovers all four current documents, skips the
+changed test copy and preserves project/config bytes. The plan binds exact
+artifacts, calls, stale-binding refusal and limits. All 27 extracted text segments
+have been inspected across both retrievals; visual/table/formula validation,
+report identity and complete B2 acceptance remain open.
+
+Next inspect the same PDF's relevant table layout to reconcile the numerical
+claims and verify report identity against its public record before promoting
+source status. Missing annotations on older literature tools remain separately
+scoped; expert/blind review, Graph/Hook/browser and other Hosts remain open.
 
 Use existing canonical content, source/review bindings, native provider/runtime,
 project preview/approval/CAS and evaluation owners. One coordinator integrates
@@ -195,6 +205,7 @@ macOS ARM64 and Windows x64); focused local checks do not establish that gate. T
 | **IMPLEMENTED SAVED-DOCUMENT READ** | Read known saved note, source-packet and retrieval-history bindings through one bounded CLI/Full MCP service; refuse stale bytes and preserve Graph/write boundaries. | `CLI-405`, implementation `67a51deb`, canonical content `252663aa`. One actual isolated installed Codex session uses native reads without body snapshots; the current plan owns exact source, checks and limits. Follow-up binding recovery is recorded below. |
 | **IMPLEMENTED SAVED BINDINGS** | Recover latest saved paths/digests from validated receipts and captures, exposing read arguments only for current files and binding pagination to history. | `CLI-405`, implementation `af2b3c6a`, canonical content `002559d1`. Focused checks, isolated official install/preflight and one explicitly authorized project-ID-only Codex recovery pass. The current plan preserves the earlier automatic refusal, exact candidate, actual calls and remaining limits. |
 | **REMAINING BASELINE** | Diagnose remaining full-suite failures in bounded groups; fix demonstrated content defects before expanding observations. | Existing validation/content owners; preserve permission gates and stable/prerelease negatives. No blanket assertion removal or speculative model matrix. |
+| **OBSERVED REVIEWED CONTINUATION** | Complete remaining extracted public-paper passages, append approved source/history/note records and recover them by project ID in a fresh session. | `CLI-405`, unchanged candidate `af2b3c6a` / content `002559d1`; same lightweight verifier. The current plan binds revisions 6–9, exact saved bytes, stale-binding refusal and the one actual recovery. Text coverage does not establish visual, identity or B2 acceptance. |
 | **QUALIFICATION** | Refresh the named installed-package Codex approval/write/restart journey and separately qualify advertised Graph/Hook/browser behavior. | `CLI-403`–`CLI-405`, `SEC-401`–`SEC-403`, `CLI-410`; reuse existing install, approval/CAS and acceptance owners. The previously paused Host-registration lane needs its own resumed scope; independent offline implementation continues. |
 | **AFTER THE BASELINE** | Complete local atomic task claims, candidate review, conflict/cancellation/revocation and restart handling with two actual Hosts. | `CLI-406`–`CLI-408`, then `CLI-411`, under their existing dependencies. `CLI-409` qualifies additional Hosts individually. |
 | **LATER** | Use observed evidence failures to select a minimum Kernel/Evidence slice, then reproducibility and executable research gates. | M4 precedes dependent M5 schemas; these remain separate expansion decisions. Cross-device `CLI-412`, broad method packs and institutional modes retain their scope gates. |

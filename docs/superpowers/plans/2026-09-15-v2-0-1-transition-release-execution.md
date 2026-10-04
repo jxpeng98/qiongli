@@ -4171,3 +4171,100 @@ pass. All 249 task states/dependencies and all 46 complete accepted records matc
 the base; only CLI-405 progress changes. Unchanged native/CLI/lint checks and the
 single model observation are reused. A scoped local commit and fast-forward merge
 into `2.x` record the result without remote push or publication.
+
+## October 4 — remaining public-paper passages and reviewed restart
+
+On branch `test/public-paper-note-continuation`, starting from `06748fd5`, the
+maintainer continues the named public-paper reading, reviewed save and fresh
+recovery increment. The same `gpt-6.1-sol / low` verifier performs the bounded
+checks. This reuses the exact native/content/pack/install identities in the
+preceding observation: candidate/cache binary remains
+`6d41caa0ad4a21ff8403d4fb526cf274de776a791d5fdab1b28369a97c6acea8`.
+No runtime, canonical content, installation or model configuration change is
+needed; the applicable native/CLI/lint results are reused.
+
+After actual native literature status and search-plan calls, one direct native
+Full MCP request reads offset 16, limit 11 with the prior expected PDF digest.
+At `2026-10-04T16:48:15+00:00` it fetches segments 16–26, pages 9–15, with
+`cached: false`, `identity_status: not_checked` and unchanged PDF SHA-256
+`bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697`.
+There is no discovery search, provider exhaustion or model call for this fetch.
+An initial harness assertion indexes the optional `next_offset` field at EOF;
+its absence raises `KeyError`. The verifier corrects that assertion against the
+retained successful raw response without repeating the network request.
+
+The coordinator inspects the returned text and authors an anchored note appendix;
+the verifier finds no source-fidelity issue. Each exact preview is reviewed and
+approved for academic consolidation and filesystem write before apply through
+the existing capture/consolidation owner. Packet, manifest and note transactions
+advance project/library revision 6 → 7 → 8 → 9. The packet stores the exact raw
+response; the note binds both saved packets and the latest manifest.
+
+| Current artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| New source packet | 16,547 | `6e1d97ea73b7e95d736e8a2fe08ee50f3ec948fd4412af68e7b407b62841f018` |
+| Retrieval manifest | 2,875 | `19cd07523ee0000397b6e915ab991135b87440575a0b7882b1a253ba8dca8f44` |
+| Reviewed paper note | 7,454 | `6d8cd8c144e16d08bcc2b8d4fd5e12909b4ba7007def46b450954592b9f0c1fd` |
+
+The prior 1,846 manifest bytes, 3,893 note bytes and original packet remain
+unchanged. The historical `retrieved_preprint` row is retained; the new row uses
+`not_retrieved:oa_candidate` under the current fulltext-fetcher identity rule and
+explicitly distinguishes successful text transport from unverified report
+identity. Actual retrieval time is retained; DOI/license and local fulltext path
+remain empty, with version `unknown`. The packet JSON digest is not a PDF digest.
+The existing drifted test packet and pending negative capture remain intact.
+A read with current project revision 9 and the old note hash exits 1 with generic
+`project-revision-conflict`; project bytes remain unchanged. This establishes the
+observed stale-binding refusal, without attributing a more specific error message.
+
+Exactly one fresh installed Codex session, requested as `gpt-6.1-sol / low`,
+read-only and bounded to 180 seconds, exits 0 in 66.44 seconds. Its supplied data
+binding is only project ID `prj_662afe4c2fb02ab05968e07a3d79aacd`, with no revision,
+path, hash, receipt or body. Ten successful native calls comprise one project
+read, one document list and eight complete body reads: the Host reads each of
+four current files twice. The one changed test copy has no read arguments and
+is skipped. Each returned body matches the saved whole-file bytes and digest;
+listing history SHA-256 is
+`33f6e239fa9add7ff1d339a57ed70f27e70564c91a6a33afe4cf3c586261867b`.
+There is no shell/resource fallback, new retrieval or write in this session.
+Project/Qiongli-config byte maps agree before and after; temporary auth is removed
+while still a symlink, with no auth copy left or credential contents inspected.
+
+The answer distinguishes historical 16/27 coverage from the reviewed continuation
+covering all 27 extracted text segments. It retains the provisional Table 4 values
+(91.3/92.7 pending visual layout checks), unresolved 41.8 versus 41.0 BLEU,
+caption-only attention interpretations, autoregressive generation, unknown
+identity/version/license and separate PDF/JSON identities. This is source-visible
+lightweight review, not blind/expert review, visual inspection, experimental
+replication or complete B2 acceptance. Requested model settings are not independent
+provider attestation.
+
+Evidence remains under `/home/hermes/qiongli-codex-continuity-yqk33pu3`:
+`work/remaining-reviewed-note-appendix.md` and the source/manifest/note drafts;
+`logs/remaining-native-events.json`, `remaining-fulltext.raw.json`,
+`remaining-retrieval-result.json`, the `remaining-{packet,manifest,note}-*`
+preview/apply records, `remaining-persistence-verification.json`,
+`remaining-receipt-identities.json`, `remaining-stale-note-*`,
+`remaining-fresh-reader-*`, `remaining-fresh-reader.jsonl`,
+`remaining-read-verification.json` and `remaining-recovery-verification.json`.
+Prompt SHA-256: `db1114ecc86b39e326f19ceebd51728cd06b2a9619434290ede9cbde962609ed`;
+answer: `5425b6b4a2b3c37c8dd8cb6847708032143241799e9143e0a71f987b526f9224`;
+events: `17466042e4b4fa512447768f976d8707e446ec414dce00037df62d77071bb633`.
+Prior failures and earlier authorization refusal remain historical records.
+
+The selected text-read/review/save/restart increment is complete for this candidate
+and public test project. Next inspect the same PDF's relevant table layout to
+reconcile the numerical claims, and verify report identity against its public
+record before promoting source status. Other B2 outputs, expert/blind review,
+Graph/Hook/browser, other Hosts/platforms, program acceptance and publication
+retain separate scope. No task state, dependency or accepted evidence is promoted.
+
+At integration the same lightweight verifier reports no actionable fidelity or
+ownership findings against `06748fd5`. All seven affected roadmap tests,
+generated-index consistency and the native boundary guard pass. A trailing blank
+line in this evidence entry is removed and the whitespace check then passes.
+All 249 task states/dependencies and 46 complete accepted records remain unchanged;
+only CLI-405's progress text changes. The drifted packet and pending negative
+capture remain intact. Unchanged native/CLI/lint results and the single fresh
+session are reused. Local integration uses one scoped documentation commit and
+a fast-forward merge into `2.x`; push and publication retain separate authority.
