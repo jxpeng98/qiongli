@@ -77,6 +77,16 @@ The read does not extend Graph's registered
 artifact set or certify that arbitrary externally edited allowed files were saved
 through a reviewed transaction. Capability-gated guidance preserves older Hosts.
 
+The shared canonical Lite tool descriptors declare read-only, non-destructive
+and idempotent hints for `qiongli_literature_status`, `qiongli_search_plan` and
+`qiongli_literature_read_fulltext`. Status and planning are closed-world metadata
+operations; the fulltext reader is open-world because it can fetch public HTTPS
+sources. Its session cache does not persist project data. Full reuses the same
+annotations through its Lite registry. These are MCP behavior hints, not trust,
+Host approval, source verification or permission to persist returned content.
+Existing URL/network policy, validation, tool inventories and write approvals
+remain authoritative; no other tool is reclassified by this increment.
+
 Native Lite and Full expose `qiongli_literature_read_fulltext` from the shared
 `qiongli-runtime::fulltext` owner. Search records preserve optional abstracts,
 reported fulltext candidates and external IDs; none establishes retrieved text.
