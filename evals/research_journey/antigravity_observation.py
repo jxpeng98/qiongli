@@ -294,6 +294,20 @@ def capture_command(agy, prompt, timeout_seconds):
             "--print-timeout", f"{timeout_seconds}s", "--print", prompt]
 
 
+def validate_installation(identity):
+    if not isinstance(identity, dict) or not observe.text(identity.get("agy_version")):
+        raise ValueError("Missing installed AGY identity")
+    for key in ("cli_sha256", "content_pack_sha256", "plugin_receipt_sha256"):
+        if not isinstance(identity.get(key), str) or not baseline.HASH.fullmatch(identity[key]):
+            raise ValueError("Missing installed Qiongli identity")
+    if not re.fullmatch(r"[a-f0-9]{40}", str(identity.get("source_commit", ""))):
+        raise ValueError("Missing native source commit")
+    server = identity.get("mcp_server")
+    if not isinstance(server, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", server):
+        raise ValueError("Missing exact server identity")
+    return server
+
+
 def capture(output, workspace, config_root, identity_file, agy, timeout_seconds=180, host_settings=None):
     """One explicitly invoked live observation. No configuration or permission writes."""
     if os.name != "posix" or type(timeout_seconds) is not int or not 0 < timeout_seconds <= 180:
@@ -307,16 +321,7 @@ def capture(output, workspace, config_root, identity_file, agy, timeout_seconds=
         if output.resolve().is_relative_to(root.resolve()) or root.resolve().is_relative_to(output.resolve()):
             raise ValueError("Capture directory must be separate from fixture/config roots")
     identity = json.loads(identity_file.read_text())
-    if not isinstance(identity, dict) or not observe.text(identity.get("agy_version")):
-        raise ValueError("Missing installed AGY identity")
-    for key in ("cli_sha256", "content_pack_sha256", "plugin_receipt_sha256"):
-        if not isinstance(identity.get(key), str) or not baseline.HASH.fullmatch(identity[key]):
-            raise ValueError("Missing installed Qiongli identity")
-    if not re.fullmatch(r"[a-f0-9]{40}", str(identity.get("source_commit", ""))):
-        raise ValueError("Missing native source commit")
-    server = identity.get("mcp_server")
-    if not isinstance(server, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", server):
-        raise ValueError("Missing exact server identity")
+    server = validate_installation(identity)
     before = {name: fingerprint(path) for name, path in roots.items()}
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
     prompt = request(server, workspace)
@@ -358,6 +363,7 @@ def score(root, report):
         baseline.bound_read(root, manifest, name)
     read = lambda name: baseline.bound_read(root, manifest, name)
     identity, inputs, receipt = (json.loads(read(name)) for name in ("installation.json", "inputs.json", "capture.json"))
+    validate_installation(identity)
     raw = read("events.jsonl")
     if (receipt["events_sha256"] != baseline.probe.sha(raw)
             or receipt["stderr_sha256"] != baseline.probe.sha(read("stderr.log"))

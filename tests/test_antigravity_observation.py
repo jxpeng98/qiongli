@@ -345,5 +345,24 @@ class AntigravityObservationTests(unittest.TestCase):
 
 
 
+    def test_resealed_missing_or_malformed_installation_identity_refuses(self):
+        capture, _ = self.synthetic_capture()
+        path = capture / 'installation.json'
+        original = path.read_bytes()
+        for field in ('cli_sha256', 'content_pack_sha256', 'plugin_receipt_sha256',
+                      'source_commit', 'mcp_server', 'agy_version'):
+            for mutation in ('missing', 'malformed'):
+                value = json.loads(original)
+                if mutation == 'missing':
+                    value.pop(field)
+                else:
+                    value[field] = False
+                path.write_text(json.dumps(value))
+                self.reseal(capture)
+                with self.subTest(field=field, mutation=mutation), self.assertRaises(ValueError):
+                    agy.score(capture, self.root / ('report-' + field + '-' + mutation))
+
+
+
 if __name__ == '__main__':
     unittest.main()
