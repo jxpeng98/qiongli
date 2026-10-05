@@ -177,6 +177,9 @@ jobs:
       - name: Upgrade published packages and preserve prior data
         shell: bash
         run: python tooling/scripts/native_registry_upgrade_check.py --packages "$RUNNER_TEMP/assets" --out-dir "$RUNNER_TEMP/upgrade-check"
+      - name: Upgrade from the 2.3.0 native release
+        shell: bash
+        run: python tooling/scripts/native_registry_upgrade_check.py --packages "$RUNNER_TEMP/assets" --out-dir "$RUNNER_TEMP/upgrade-2.3.0-check" --predecessor-version 2.3.0
       - name: Check Windows npm command shims
         if: runner.os == 'Windows'
         shell: pwsh
@@ -186,9 +189,11 @@ jobs:
           & "$env:RUNNER_TEMP/install-check/npm/ql.cmd" --version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: install-${{ matrix.os }}
           path: |
             ${{ runner.temp }}/install-check/install-check.json
             ${{ runner.temp }}/upgrade-check/registry-upgrade-check.json
+            ${{ runner.temp }}/upgrade-2.3.0-check/registry-upgrade-check.json
             ${{ runner.temp }}/assets/marketplace-install-check.json

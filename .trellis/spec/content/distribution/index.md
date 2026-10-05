@@ -171,9 +171,15 @@ npm package and four wheels, and tests the combined package on each target.
 ADR 0232 adds Linux ARM64 alongside Linux x64, macOS ARM64 and Windows x64.
 Cargo qualification and public-install jobs use the same four runner targets.
 Combined-package installation also upgrades disposable published pip/npm
-predecessors and hashes retained research/settings fixtures. Linux ARM64 uses
-the published 1.17.0 wheel because 2.1.1 has none for that platform; other wheels
-and npm use 2.1.1. This checks package replacement and byte retention separately
+predecessors and hashes retained research/settings fixtures. By default, Linux
+ARM64 uses the published 1.17.0 wheel because 2.1.1 has none for that platform;
+other wheels and npm use 2.1.1. The existing checker additionally accepts
+`--predecessor-version` for an exact shared release, projected through the
+canonical SemVer/PEP 440 owner. The 2.4 distribution workflow retains historical
+checks and separately requests 2.3.0 on every target. Receipts bind selected
+versions and downloaded predecessor/candidate hashes; an unavailable predecessor
+is unqualified and exits nonzero without fallback. Failed upgrade receipts are
+uploaded even when a check stops the job. This checks package replacement and byte retention separately
 from project-schema migration and real Host acceptance. The upgrade receipt is
 uploaded with the native installation evidence; no publisher runs in this check.
 Both Linux wheels require auditwheel validation against glibc 2.35; their exact

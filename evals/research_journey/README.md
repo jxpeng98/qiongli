@@ -9,6 +9,30 @@ observations. It does not run `observe.py capture` or pass the test resource rea
 off as an installed Plugin. Installation, actual model execution and reviewed
 project saves stay with their existing native/official Host owners.
 
+Before preparing a fresh Linux Codex batch, check sandbox prerequisites without
+credentials or a model call:
+
+```sh
+python3 evals/research_journey/codex_preflight.py /absolute/new-preflight \
+  --guidance-file /absolute/installed/skills/qiongli-workflow/SKILL.md \
+  --guidance-file /absolute/installed/skills/qiongli-workflow/workflows/paper-read.md
+```
+
+This creates a separate empty Host home and an explicit read-only permission
+profile with network disabled. It runs only version, sandbox `true`, and exact
+public-file reads, stopping on the first failure and retaining raw output and
+process cleanup. It never links credentials, invokes a model or changes the
+installed Plugin. The command is tested against Codex 0.160.0's Linux interface;
+other versions/platforms need their own supported prerequisite evidence.
+`preflight.json` passing proves only those sandbox/file operations. The shared
+spool owner's `events.jsonl` here contains command stdout, not model JSON events.
+Before any live batch, separately inspect effective Plugin/server/tool policy
+through the supported Host configuration interface and confirm exactly the
+authorized read tools. Missing config readback or failed sandbox access blocks
+model invocation; do not substitute broader sandbox modes. Keep preflight and
+effective-policy evidence with the new frozen inputs. A preflight file read
+cannot fill a model observation's missing guidance-use evidence.
+
 Prepare a NEW external capture directory. Copy `plugin-baseline.json` to
 `catalog.json` before model calls; do not supply its review checks to the model.
 Keep the selection of all three case IDs, even after a failure. Capture layout:
