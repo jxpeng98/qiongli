@@ -26,6 +26,12 @@
 Antigravity 使用 CLI Plugin 格式及 Host 正常信任审批流程；注册期间保留源目录，
 更新后新开会话。参见[安装说明](../advanced/plugin-installation.md#antigravity)。
 
+原生源码 `84bc1079` 的本地 Linux ARM64 检查已通过 Codex/Claude Plugin 归档及
+npm DeepSeek 内容投影。归档 CLI 导出的 Antigravity Plugin 包含 22 个 Skill 入口，
+文件字节和权限均通过核对；其内置程序通过原生 stdio 列出 35 个 Full MCP 工具，
+并返回完整的 `qiongli_config_status` 结果。这些证据仅覆盖软件包与原生传输，
+本次未进行官方 AGY 注册或新会话验证，最终源码的四平台验收仍待完成。
+
 ## 安装与运行时入口
 
 | Host | Plugin 生命周期 | Skill 发现 | Lite MCP | Full MCP | 清理 |

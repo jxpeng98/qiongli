@@ -30,6 +30,14 @@ Antigravity uses its CLI Plugin format and the normal Host trust/approval flow;
 keep its registered source directory and start a fresh session after updates.
 See [installation instructions](../advanced/plugin-installation.md#antigravity).
 
+For native source `84bc1079`, local Linux ARM64 qualification passes the archived
+Codex/Claude Plugins and the npm DeepSeek projection. The archived CLI also
+exports an Antigravity Plugin with 22 Skill entries and verified file bytes and
+modes; its bundled executable directly lists 35 Full MCP tools and returns a
+complete `qiongli_config_status` result over stdio. These are package/native
+transport checks. Official AGY registration and a fresh AGY session are not part
+of this observation, and final-source four-target qualification remains open.
+
 ## Installation and runtime surfaces
 
 | Host | Plugin lifecycle | Skill discovery | Lite MCP | Full MCP | Cleanup |

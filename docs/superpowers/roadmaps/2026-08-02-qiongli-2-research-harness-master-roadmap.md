@@ -62,10 +62,13 @@ credential-free sandbox preflight, and package qualification adds an explicit
 2.3.0 predecessor while retaining historical upgrade checks and failed receipts.
 The plan binds focused checks, the generated content pack and retained failures.
 
-Next qualify the clean candidate's local artifacts and actual 2.3.0 upgrade in
-a separate glibc 2.35 environment. A new ordinary rootless container starts
-successfully; package qualification is still pending. Codex's latest live result
-remains 0/3 complete reviewed passes, with no complete guidance-use evidence and
+Native source `84bc1079` now passes local Linux ARM64 artifact/install checks in
+a separate glibc 2.35 environment and actual public pip/npm 2.3.0 upgrades with
+synthetic fixture retention. Its archived CLI exports the AGY Plugin, verifies
+its bytes/modes and directly completes Full MCP discovery and a status call.
+Those native results do not qualify an AGY Host session or a later source.
+The current plan binds each receipt and the remaining package scope. Codex's
+latest live result remains 0/3 complete reviewed passes, with no complete guidance-use evidence and
 an actual MCP approval denial. Establish sandbox execution and effective read-tool
 policy before another newly authorized batch. AGY complete-result/clean-shutdown,
 save/restart, held-out and final four-target checks remain open. External gates

@@ -585,3 +585,92 @@ container uses the existing public tooling rootfs as a read-only overlay lower;
 new source/output mounts preserve the old release. The repository's disposable
 Rust incremental intermediates are cleared to restore build space; source,
 target executables, archived releases, logs and research data are retained.
+
+## October 5 — local 2.4 package qualification
+
+The same `gpt-6.1-sol / low` verifier runs the existing release owner on clean
+native source `84bc10791e8ee933ccfcba579b20c2976a9bea0d`, in the separate
+Ubuntu 22.04 rootless overlay described above. This is Linux ARM64 evidence,
+not four-target or final-head qualification. The later `025fe931` correction
+changes observation tooling/tests and records; it does not change these native
+or content bytes, and the receipts keep their original source identity.
+
+The successful command is:
+
+```sh
+./scripts/release_ready.sh --cli-github --version 2.4.0 \
+  --staging-dir /tmp/qiongli-2.4-delivery-20261005/linux-arm64-glibc235
+```
+
+It exits zero with 46 CLI and nine MCP tests, strict headless Clippy, formatting,
+version checks, glibc 2.35 wheel audit/repair, empty-PATH archive smoke checks,
+isolated npm/wheel installs and aliases. Lite/Full discovery remains 15/35.
+Codex/Claude native Plugin archives pass their package checks, and the npm
+DeepSeek projection retains 22 Skill entries and 35 MCP tools. These checks do
+not run those Hosts' model sessions. The packaged native binary SHA-256 is
+`604b55828e612d621d8e3efee19ea6efa983b5e24c531dd4d8e9c1eb1da4393a`;
+content source remains `e4b05659` and pack `2693f17f` as bound above.
+
+Evidence under `/tmp/qiongli-2.4-delivery-20261005`:
+
+| Record | SHA-256 |
+| --- | --- |
+| `linux-arm64-glibc235/assets/release-manifest.json` | `30f25882db0ddf7a9b9fdccffd10c4df4abfa660deb727f9e58321f37c772b59` |
+| `linux-arm64-glibc235/assets/SHA256SUMS` | `cc21d7aac489ffb68e2938e5d2f5d031e5cfce2f499e327db544f13bac0597ca` |
+| `linux-arm64-glibc235/install/install-check.json` | `dd77e41115377dca02e3b21415d009242c753a66d482c7554c2af0e3902ed376` |
+| `upgrade-2.3.0/registry-upgrade-check.json` | `37824177c345ec3cebe32674706ed0cebe3274fcbd85056b0e09c62daf7618d9` |
+| `cargo-source/registry-packages.json` | `86824e689b448ac5c383a2573f738f46911da0a4d1571093bef32437a67e3318` |
+| `cargo-install/install-check.json` | `2f9946732b52f6c598c42e790697ae6ced1217e240462e19087f8952374272a8` |
+
+The explicit upgrade owner downloads real public pip/npm 2.3.0 packages,
+verifies the installed predecessor version and upgrades each isolated install
+to the local 2.4.0 candidate. Both pass native checks and retain all three
+synthetic research/configuration canaries byte-for-byte. The receipt binds both
+predecessors and candidate packages; no fallback version is used. This qualifies
+package replacement and those fixtures, not arbitrary project-format migration.
+
+The archived CLI also performs the native preview/confirmed export into the
+isolated public directory
+`/home/hermes/qiongli-2.4-qualification-q1xw4df7/packaged-agy-us44741u`.
+Its AGY Plugin has 22 Skill entries; all 467 receipt entries, file bytes and
+directory/file modes verify. Installation receipt SHA-256 is
+`2f9b5cb1d16f7009ad69b1af8bc97011a1f2f0abb0ccd9182933583710406459`.
+The exported executable directly completes Full stdio MCP initialization,
+35-tool discovery and a matched `qiongli_config_status` call (ID 3), with full
+raw output retained. Discovery stdout SHA-256 is
+`da9d75eb4412b369bb67a9d3962541cf6f86ec95e97990a196e89fc215df0974`;
+status-call stdout SHA-256 is
+`e600eaa8471c969ad699e4a026bb21f1f66e5b59cc3bcd77c319cb2b3ac81bd5`.
+Official AGY registration is declined at its separate step. There is no new
+Host session, authentication reuse, model call or change to the user's profile.
+This direct native call does not fill the AGY complete-Host-result/clean-shutdown
+gate; the bilingual development matrix explicitly preserves that distinction.
+
+Earlier container/runtime, rootfs argument-order and interrupted image-copy
+attempts remain retained failures. The corrected release process is recorded in
+`release-process-corrected.json`; no failed attempt or old release output is
+overwritten or counted as a pass. Cargo source archives/install are recorded
+by their existing owner: ten archives pass staging and archive validation, then
+an actual release build/install from those archives passes for both `qiongli`
+and `ql`, with version 2.4.0, invalid-command refusal, Lite 15/Full 35 and the
+same content-pack digest. The archive compilation takes 6m33s. All five release
+asset checksums independently verify and the qualification clone remains clean
+at `84bc1079`. Cargo results cover this local target; no registry publication
+or installation from a published 2.4.0 package is claimed.
+
+Release status remains **Not ready**. Before another authenticated Codex batch,
+a supported environment must pass the credential-free sandbox check and expose
+the effective permissions of exactly the three native read tools. Then obtain
+a newly scoped login/model grant, freeze the installed candidate and rerun the
+three required tasks. Save/restart and fresh held-out cases follow their required
+baseline gate. AGY still needs its bounded complete-result/clean-shutdown and
+read/recovery observation. The final frozen source also needs the existing
+four-target distribution and Cargo qualification under separately authorized
+remote synchronization/CI. No push, tag, publication or announcement occurs.
+
+At integration, the same verifier reports no blocking finding in this six-file
+record and independently matches all six package receipt hashes above. Seven
+roadmap tests, generated-index consistency and whitespace checks pass. All 249
+task IDs/states/dependencies and 46 complete accepted records match `025fe931`;
+only CLI-409/410 blocker text changes. No unchanged native, package or model
+checks are rerun merely for the documentation integration.
