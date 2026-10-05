@@ -63,11 +63,17 @@ installed guidance bytes and paragraph length. The plan records focused checks
 and remaining live Host gaps. AGY now has a bounded structured-event capture and
 cleanup adapter with 56 focused checks and a read-only replay that retains the
 old denial/missing output despite Host success. Actual full-result capture and
-clean shutdown remain unqualified. A fresh installed-Codex candidate now binds
-the corrected content, a verified isolated Plugin and 16 frozen inputs. Its
-three public-material model observations remain unattempted and require a newly
-scoped temporary-login grant. Their observed answers and reviews come before
-save/restart and release/upgrade qualification; the AGY gap remains separate.
+clean shutdown remain unqualified. The newly authorized three installed-Codex
+observations now finish with 0/3 structural and complete reviewed passes. The
+plan retains the initial driver preflight failure, corrected 17-file freeze,
+sealed observations, independent answer review and verified login cleanup.
+Complete guidance-load evidence is absent; recovery encounters an actual MCP
+approval denial. Offline Host startup also reports a user-namespace limitation,
+while the effective Plugin policy remains unverified. Next demonstrate sandboxed
+read-only execution and inspect the effective read-tool policy before spending
+more model calls. The three-call grant is exhausted. Save/restart and
+release/upgrade qualification follow successful fresh observations; the AGY gap
+remains separate.
 The proposed version, task states/dependencies and accepted evidence remain
 unchanged; local implementation does not authorize a release. CLI-405/409/410 and
 the existing evaluation, installation and write owners retain responsibility.

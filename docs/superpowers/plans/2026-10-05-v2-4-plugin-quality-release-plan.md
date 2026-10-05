@@ -394,3 +394,99 @@ task IDs/states/dependencies and 46 complete accepted records remain unchanged;
 only CLI-405's progress text changes. Independent diff review has no blocking
 finding. These local checks do not promote installation, academic or release
 acceptance.
+
+## October 5 — authorized Codex observations and Host blockers
+
+The maintainer's new temporary-login grant covers the prepared three public
+cases, once each, at most 180 seconds each on `gpt-6.1-sol / low`. All three
+calls are now used; there is no retry or remaining model-call authority in this
+batch. Codex uses a temporary authentication symlink in the isolated profile.
+Both wrapper attempts remove it in cleanup; the coordinator and the same
+lightweight verifier independently confirm the authentication path is absent.
+The driver and verifier do not inspect, copy or record credential contents.
+User configuration and all prepared project/configuration snapshots remain
+unchanged.
+
+The original frozen driver fails before any model call: its preflight passes a
+UTF-8 string to a bytes-only SHA helper. Preserve that failure and the original
+`captures` directory. A new `captures-driverfix-1` uses the existing text-hash
+owner, with unchanged source, prompts, catalog, installation and fixture inputs.
+Its correction receipt binds the predecessor freeze and zero prior model
+attempts. The verifier reproduces the original TypeError and exercises the full
+corrected preflight/capture/seal/load path offline with three fake process
+results. This includes all 468 installed entries and modes, script hashes and
+fixture snapshots; no authentication or model is used by that smoke check.
+The deliberately absent fake guidance is not counted as a pass.
+
+Evidence remains under `/home/hermes/qiongli-codex-quality-next-9rubrmze`:
+
+| Record | SHA-256 |
+| --- | --- |
+| Corrected 17-file input freeze, `captures-driverfix-1/frozen-inputs.json` | `e1ceec150bed75812a1cdf02b3abbb506dfa0d15168e92ce9bdfdd1865c5627a` |
+| Sealed 42-file capture, `captures-driverfix-1/manifest.json` | `ed52402a78033107ea3bcaf0e08ee99205bbaddec12069e9e2118c3c4e3a428b` |
+| Complete answer review, `review-completed.json` | `634cacc8faec58271594e525c0ec54cf082e8996f47762560e857f8e6896388f` |
+| Score, `offline-score-driverfix-1/summary.json` | `8e1e669ea2571843229d730608d2851ea4283d0f2206ba968dd86c393e0b4288` |
+
+The candidate retains the exact source, binary, pack and receipt identities in
+the preceding section. The initial unreviewed answer record is retained beside
+the completed review. Reviewer identity is explicitly the requested model
+verifier, not a human reviewer. Raw events, answers, complete matched call/error
+payloads, invocation arguments, process outcomes and preservation receipts are
+bound by the final manifest. Authentication lifecycle receipts remain in `logs`.
+
+| Case | Structural / complete reviewed | Observed result |
+| --- | --- | --- |
+| Paper explanation | fail / fail | Main research claims, units and limitations pass source review; the 265-character recommendation meets its bound. The answer claims 11 supplied anchors where there are 10, and no complete guidance-load evidence is captured. |
+| Source paragraph | fail / fail | Returns only a 153-character failure explanation, not the required 250–350-character research paragraph. Required claims and guidance evidence are absent. |
+| Saved continuation | fail / fail | One matched `qiongli_project_read` call fails with `MCP tool call requires approval, but approval policy is never`; no bindings or document bodies are recovered. The answer discloses this and does not substitute the historical note. |
+
+Structural and complete reviewed totals are **0/3**, retaining all three cases.
+The two undelivered tasks do not receive substantive source-fidelity passes.
+Actual Host usage and driver elapsed time are:
+
+| Case | Input tokens | Cached input | Output tokens | Reasoning output | Tool calls | Seconds |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Paper explanation | 36,301 | 24,576 | 1,837 | 93 | 0 | 56.46 |
+| Source paragraph | 35,861 | 29,952 | 294 | 47 | 0 | 14.20 |
+| Saved continuation | 66,848 | 39,936 | 790 | 39 | 1 failed | 25.83 |
+
+All processes exit zero normally, with no timeout, parsing error or surviving
+owned process group. Process completion is separate from task success. These
+incomplete tasks support no token-efficiency claim. There are no command-read
+events in the captures. All answers describe a `bwrap` loopback failure, but
+those statements are model self-reports, not recorded command results. No
+supported Host injection record supplies the missing complete guidance either.
+Known installed paths were supplied, so automatic Skill discovery is untested.
+
+Offline diagnosis uses no model, credential link or changed permission policy.
+Installed Codex's local help/schema and the official
+[Plugin policy documentation](https://developers.openai.com/plugins/build/plugins)
+identify per-Plugin/server/tool configuration as the existing policy owner.
+The actual invocation's quoted dotted keys are a possible explanation for the
+observed read-tool denial, not a confirmed parser defect or effective-policy readback.
+Both quoted and unquoted `app-server` probes stop before `config/read`, reporting
+that the Linux sandbox needs access to create user namespaces. Separate
+`codex sandbox` attempts stop at permission-profile configuration validation;
+`/usr/bin/true` never executes. These diagnostic logs establish those startup
+limits, not a successful command-level reproduction of the model's error.
+No sandbox restriction is weakened and no speculative product fix is made.
+
+The next bounded increment must establish Host execution prerequisites before
+another authenticated observation: demonstrate a real read-only command in a
+supported sandbox and inspect the effective policy for exactly the three native
+read tools through the supported configuration owner. Exercise that preflight
+before freezing a new batch; failure must stop before model invocation. Only
+then request a newly scoped live batch and capture actual guidance use and
+successful recovery. Preserve this failed batch and review the anchor-count
+defect without treating undelivered tasks as evidence of a guidance regression.
+The AGY full-output/clean-shutdown, save/restart, held-out and upgrade/release
+gates remain open. CLI-405 owns this record; no task state, dependency or accepted
+evidence is promoted, and no push, publication or release monitoring occurs.
+
+At integration, the same verifier passes all seven program-roadmap tests,
+generated-index consistency, whitespace and the fast native boundary check.
+All 249 task IDs/states/dependencies and 46 complete accepted records match
+`4a59da78`; only CLI-405's blocker changes. Independent review verifies the
+original and corrected freezes, the old 24-file capture, the new 42-file seal,
+current fixture preservation and login cleanup. The final diff has no blocking
+finding; these checks validate the evidence record, not the failed live tasks.
