@@ -13,6 +13,23 @@ Status vocabulary:
 - **Not observed** — no accepted receipt proves presence or absence; this does
   not mean unsupported.
 
+## 2.4 development observations
+
+The [2.4 candidate plan](../superpowers/plans/2026-10-05-v2-4-plugin-quality-release-plan.md)
+keeps newer observations separate from the accepted August receipts below.
+These results concern the named development sources in that plan and do not
+qualify a changed final release candidate.
+
+| Host | Development evidence | Remaining qualification |
+| --- | --- | --- |
+| Codex CLI | Isolated native Plugin installation and receipt/cache verification; three newly captured research tasks | Latest complete reviewed result is 0/3. Guidance use, effective read-tool policy and successful recovery need fresh evidence in a working sandbox. |
+| Antigravity CLI | Native install/update, Skill entry reads, Full 35-tool discovery and a returned native result | Complete raw result and clean Host shutdown remain open; research continuation is not yet qualified. |
+| Claude Code / DeepSeek | Existing shared Plugin/package adapters are retained | Final-candidate compatibility/package checks are required; no new model journey is claimed. |
+
+Antigravity uses its CLI Plugin format and the normal Host trust/approval flow;
+keep its registered source directory and start a fresh session after updates.
+See [installation instructions](../advanced/plugin-installation.md#antigravity).
+
 ## Installation and runtime surfaces
 
 | Host | Plugin lifecycle | Skill discovery | Lite MCP | Full MCP | Cleanup |
@@ -52,4 +69,3 @@ qualify a changed release candidate.
 The canonical machine-readable projection is the
 [PILOT-905 matrix receipt](https://github.com/jxpeng98/qiongli/blob/5a3ab87fcba67dfbe700f895c0321e455bbbc914/docs/superpowers/acceptance/2026-08-30-qiongli-pilot905-host-capability-matrix.json).
 `publicationAllowed` remains `false`.
-

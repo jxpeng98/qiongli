@@ -16,6 +16,8 @@ $ARGUMENTS
 Reuse the supplied paper and selected project. A question about an excerpt can
 be answered in chat without retrieval, a search plan or a project folder. State
 what was actually read: full text, abstract, metadata or supplied excerpt.
+When reporting coverage, identify the sections or anchors actually read; include
+a count only after checking it against the unique source anchors in that scope.
 Do not claim a completed B2 run for a direct answer.
 
 For a formal B2 run or external lookup, follow

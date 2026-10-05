@@ -11,6 +11,21 @@
 - **已观察不存在** — 引用的 receipt 直接证明该能力不存在。
 - **未观察** — 没有已接受 receipt 证明存在或不存在；这不等于“不支持”。
 
+## 2.4 开发观察
+
+[2.4 候选计划](../../superpowers/plans/2026-10-05-v2-4-plugin-quality-release-plan.md)
+单独记录后续开发观察，不改写下方已接受的八月收据。这些结果只适用于计划中列明的
+开发源版本，不能直接为变化后的最终候选版提供验收结论。
+
+| Host | 开发证据 | 尚需验证 |
+| --- | --- | --- |
+| Codex CLI | 隔离安装、收据与缓存校验，以及新一轮三个科研任务记录 | 最新完整通过为 0/3；需在可用沙箱中补齐指导加载、有效工具策略及成功恢复证据。 |
+| Antigravity CLI | 原生安装更新、Skill 入口读取、Full 35 工具发现及一次原生结果返回 | 完整原始返回与正常退出仍未闭合，科研续接尚未验证。 |
+| Claude Code / DeepSeek | 保留现有共享 Plugin 与软件包适配器 | 需要最终候选版的兼容和软件包检查；本轮没有新的模型任务结论。 |
+
+Antigravity 使用 CLI Plugin 格式及 Host 正常信任审批流程；注册期间保留源目录，
+更新后新开会话。参见[安装说明](../advanced/plugin-installation.md#antigravity)。
+
 ## 安装与运行时入口
 
 | Host | Plugin 生命周期 | Skill 发现 | Lite MCP | Full MCP | 清理 |
