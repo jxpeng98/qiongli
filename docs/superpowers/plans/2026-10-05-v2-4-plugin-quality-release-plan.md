@@ -304,3 +304,93 @@ installed-Codex three-case baseline can proceed; its earlier three-call login
 reuse grant remains exhausted. Save/restart, held-out and upgrade qualification
 remain later increments. CLI-409 owns this progress; task states, dependencies
 and accepted evidence remain unchanged.
+
+## October 5 — fresh installed-Codex candidate and frozen inputs
+
+The next bounded increment prepares the corrected three-case baseline without
+starting another model observation. Commit `8618fb44` refreshes only the embedded
+content lock through the existing native generator. The package still reports
+2.3.0: this is a development candidate, not a version bump or release.
+
+| Identity | Exact observation |
+| --- | --- |
+| Native source | `8618fb44ee43ccc2b9b1380039fb45f0745d8ee2` |
+| Content source | `7bbcb171914a9515e14372e7d69d76b9a2255d80` |
+| CLI SHA-256 | `cbd45851208c0ccb2afe3d9157f2dea139a347c8b18992041415fea6a6cd88cc` |
+| Embedded pack SHA-256 | `caecff2f211cf7174dfb16ed064dd2329ab6589ef55325e24174ee910e9a126c` |
+| Installed Plugin receipt SHA-256 | `f8c64fbe38315f442b369f0cc5e10875b7959d1afcbbefe4401808ec209bbc04` |
+| Frozen input manifest SHA-256 | `01b799b2e56b7e585847a6c4228bcd3b18ff0f89ba8fc75fa3f3771ed07060b5` |
+
+The requested `gpt-6.1-sol / low` verifier regenerates the 446-entry pack and
+passes the closest lock round-trip/source-drift test. The CLI-only build uses
+Rust 1.97.0, `--profile test --locked --offline`, and the exact native source
+stamp; it finishes in 210 seconds. Native snapshot confirms that stamp. No
+Desktop, retained Lite package, target-platform distribution or release gate is
+run. Build logs and the build receipt remain under
+`/tmp/qiongli-codex-quality-next-9rubrmze`.
+
+The existing preview/apply owner exports a new Plugin, and Codex 0.160.0's
+official manager installs/enables `qiongli@quality-next` under the isolated root
+`/home/hermes/qiongli-codex-quality-next-9rubrmze`. Its export, marketplace copy
+and installed cache match all 468 receipt-listed file bytes and modes; the
+binary and receipt match too. Lite 15 / Full 35 discovery is directly checked
+without a model. The three modified workflow/reference files match canonical
+bytes. The installed root Skill matches the complete native projection:
+canonical Skill plus the existing Codex adapter and shared Host guidance.
+
+Public fixtures are completed before freezing or any model call. New project
+`prj_0d75b7cffdc8f871ab0f5afe56d6a624` reaches revision 4 through the existing
+capture intake, exact consolidation preview, model review, dual approval and
+CAS owners. Its note explicitly labels the reused historical answer; neither
+that answer nor its old Skill-read failure is a new model result. The original
+public source packet is unchanged. Only the separately labelled synthetic
+packet receives the deliberate changed-source marker. Two current documents
+read back byte-for-byte; changed-source and stale-revision reads refuse, with
+project/config bytes preserved throughout those negative checks.
+
+The new catalog, installation identity, source registry/packet, complete
+installed guidance, three prompts, prepared-state/run-scope records and three
+reviewed local scripts form 16 frozen input files. The paragraph prompt declares
+the exact whole-answer 250–350 counting rule. Known installed guidance paths are
+supplied for explicit supported file reads; this does not test automatic Skill
+discovery. The continuation prompt supplies the new project ID but no current
+revision, document path/hash or saved body. It permits guidance-file reads while
+requiring research-document recovery through the native read-only MCP tools.
+All three cases remain unattempted; there is no final capture manifest, answer,
+usage measurement or new academic pass.
+
+The temporary driver reuses the tested process-group cleanup owner, keeps full
+on-disk events/stderr and process/preservation receipts, refuses retries or input
+and cache drift, and leaves missing guidance evidence unsuccessful. A spawn
+failure retains a null actual exit code and its process receipt; the existing
+scorer marks that case unavailable rather than inventing a timeout. These three
+scripts pass syntax checks and independent static review; the driver has not
+been exercised with a real model in this increment.
+
+Preparation failures remain in the local logs: an initial check incorrectly
+compared the projected root Skill to canonical bytes alone; a reused variable
+reported a byte count instead of 468 cache entries; serializing a Path interrupted
+the first source-preview binding record after native preview. The checks and
+metadata are corrected without repeating installation or applied transactions;
+the original outputs and partial binding are retained. The unsafe shared `/tmp`
+ancestor was identified during review before installation, so durable native
+outputs use a new private home directory under existing path policy.
+
+No authentication file is read, copied or linked, no model is called, and the
+real user installation/model/configuration is unchanged. The earlier three-call
+login grant remains exhausted. The next live batch, if newly authorized, is
+exactly these three public-material cases on `gpt-6.1-sol / low`, once each and
+at most 180 seconds per case, with only the three named native read tools
+approved in the isolated invocation. Temporary login linking and cleanup require
+that new grant. Preserve the prepared inputs until the decision; failure or
+unavailable guidance remains in the fixed denominator. The AGY full-output/clean
+shutdown gate and the later save/restart, held-out and upgrade gates stay open.
+
+At integration, the same verifier independently checks every frozen input,
+current fixture/config snapshot, exact current-document readback and retained
+negative result, and confirms the old 24-file capture is unchanged. Seven
+program-roadmap tests, index consistency and whitespace checks pass. All 249
+task IDs/states/dependencies and 46 complete accepted records remain unchanged;
+only CLI-405's progress text changes. Independent diff review has no blocking
+finding. These local checks do not promote installation, academic or release
+acceptance.

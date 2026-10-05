@@ -63,9 +63,11 @@ installed guidance bytes and paragraph length. The plan records focused checks
 and remaining live Host gaps. AGY now has a bounded structured-event capture and
 cleanup adapter with 56 focused checks and a read-only replay that retains the
 old denial/missing output despite Host success. Actual full-result capture and
-clean shutdown remain unqualified. Prepare fresh installed-Codex observations
-independently while that AGY evidence gap remains open, before save/restart and
-release/upgrade qualification.
+clean shutdown remain unqualified. A fresh installed-Codex candidate now binds
+the corrected content, a verified isolated Plugin and 16 frozen inputs. Its
+three public-material model observations remain unattempted and require a newly
+scoped temporary-login grant. Their observed answers and reviews come before
+save/restart and release/upgrade qualification; the AGY gap remains separate.
 The proposed version, task states/dependencies and accepted evidence remain
 unchanged; local implementation does not authorize a release. CLI-405/409/410 and
 the existing evaluation, installation and write owners retain responsibility.
