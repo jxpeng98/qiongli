@@ -54,14 +54,18 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 5, 2026
 
-The maintainer now requests a next-version plan after local integration
-`186d1875`. The [2.4.0 Plugin-quality release draft](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md)
-proposes repeatable Host observations, the three core research tasks, explicit
-save/restart continuity and release/upgrade qualification. Version and scope are
-proposed; this planning step changes no runtime/version files, task states or
-accepted evidence and authorizes no release. CLI-405/409/410 and the existing
-evaluation, installation and write owners retain responsibility. The preceding
-execution plan remains the source of the completed increment's exact evidence.
+The maintainer authorizes implementation of the
+[2.4.0 Plugin-quality plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md)
+after planning integration `2813426f`. The first bounded increment strengthens
+offline observation integrity and core reading/writing guidance: freeze/seal
+inputs, retain actual call evidence separately from run completion, and check
+installed guidance bytes and paragraph length. The plan records focused checks
+and remaining live Host gaps. Next complete AGY result capture/shutdown and fresh
+installed-Codex observations before save/restart and release/upgrade qualification.
+The proposed version, task states/dependencies and accepted evidence remain
+unchanged; local implementation does not authorize a release. CLI-405/409/410 and
+the existing evaluation, installation and write owners retain responsibility.
+The preceding execution plan retains the earlier increment's exact evidence.
 
 ### Preceding local increment — Plugin baseline and AGY
 

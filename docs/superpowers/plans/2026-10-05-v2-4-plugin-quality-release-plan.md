@@ -1,7 +1,8 @@
 # Qiongli 2.4.0 — Plugin reliability and research task quality
 
-- Status: planning draft requested by the maintainer; implementation selection
-  and release authorization are separate decisions.
+- Status: implementation authorized by the maintainer on October 5; the first
+  bounded increment covers offline observation reliability and core guidance.
+  Release qualification and publication remain separate decisions.
 - Proposed version: `2.4.0`, reflecting the additive Antigravity adapter and
   improvements to existing research workflows. No version files change here.
 - Local baseline: `186d18751a272c8fffbc0c871b061068093221e6` on `2.x`.
@@ -155,7 +156,8 @@ integrations. These would need a separately selected outcome.
 Execution continues under existing CLI-405 (journey/quality), CLI-409 (AGY) and
 CLI-410 (release) ownership and existing evaluation contracts. This draft adds
 no task IDs, changes no task state/dependency/accepted evidence, sets no release
-date, and does not authorize implementation or publication by itself.
+date, and does not authorize publication. The subsequent maintainer instruction
+authorizes local implementation through the existing development loop.
 
 ## Planning-only validation
 
@@ -163,3 +165,73 @@ The requested `gpt-6.1-sol / low` review passes the seven program-roadmap tests,
 generated-index consistency and whitespace checks. The ledger is byte-identical
 to the baseline: all 249 task definitions and 46 accepted records are unchanged.
 No native build, live Host observation or release check is run for this draft.
+
+## October 5 — first authorized implementation increment
+
+Local implementation starts from `2813426f` on a feature branch. This increment
+implements the offline portion of slices 1 and 2; neither slice's live exit gate
+is declared complete. No task state, dependency or accepted record is promoted.
+
+`e167f4bd` extends the existing installed-Plugin adapter:
+
+- `freeze` and `seal` create new input/final manifests exclusively, checking frozen
+  source/prompt/installation/catalog bytes and refusing drift or overwrite.
+  These local snapshots are not a lock on live fixtures or authenticated dates.
+- Actual completed calls retain IDs, event indexes and argument/result/error
+  hashes. Empty/malformed payloads and conflicting error flags cannot satisfy
+  required reads. The installation can bind its exact MCP server name; this
+  does not implement an AGY-to-Codex event converter.
+- Tool results remain separate from process/turn completion. Timeout, denial,
+  cancellation, forced exit and incomplete turns retain usable call observations
+  while the case remains unsuccessful. A truncated final JSONL line cannot pass.
+- New catalog requirements bind installed guidance snapshots to complete command
+  output or independently retained Host context, plus a separate usage review.
+  Model prose alone cannot establish loading. Context provenance still requires
+  inspection; no unsupported Host export capability is assumed.
+- The source paragraph gets an executable whole-answer 250–350 character rule,
+  with non-whitespace Unicode counting and registered anchor-citation exclusions.
+  Semantic review cannot override a failed length check. Historical catalogs,
+  observations and reports retain their original scope and bytes.
+
+`f825c60f` updates only canonical workflow guidance: use available complete Host
+guidance or supported installed-file reads; check the final requested prose's
+length; distinguish sample, allocation, measurement and analysis units; retain
+source discrepancies and excerpt-only limits. Existing project-ID/binding/read,
+preview/approval/CAS and configured-model behavior remains with its owners.
+These instructions address observed risks but do not prove new model behavior.
+
+The requested `gpt-6.1-sol / low` verifier reports:
+
+| Check | Observed result |
+| --- | --- |
+| Focused regression modules | 77/77 pass: Plugin baseline 20, journey observations 11, journey cases 3, routing probe 10, V1 evaluation 14, research-standard validator 19. |
+| Original short-paragraph reproduction | Original answer SHA-256 `87fc5ef8048b681b30d18a06916e6efae5909f9aa1503be9c9f7f14b74c84b3f` counts 227 under the new declared rule and fails 250–350. Original capture/catalog/reports are unchanged. |
+| Capability contract | `python3 scripts/validate_capability_contract.py` passes. |
+| Content materialization | Existing `build_materialize_source` and `fail_if_symlinks` pass; all four changed canonical files match generated portable bytes. |
+| Review | No remaining blocking finding; staged whitespace checks pass. |
+
+The materialized package is retained at
+`/tmp/qiongli-quality-portable-content-p7oe7_6f/source/qiongli-workflow`;
+its local verification record SHA-256 is
+`54eada462ed4561adcb7f1ef2ab1f3b8f59662a861baad551d09d7bb7114a4dc`.
+An earlier full `--target plugin` materializer invocation selected the retained
+Lite build and was stopped/reaped with exit 130. Its partial output remains at
+`/tmp/qiongli-plugin-quality-offline-20261005-verifier-01`; it is not a passing
+Plugin package check. The content-only owner subsequently supplies the required
+bounded evidence without a Rust build. The first regression run also exposed a
+test expectation error (a shared invalid guidance hash affects all three cases,
+not one); correcting that expectation did not weaken the production check.
+
+At integration, all seven program-roadmap tests and generated-index consistency
+pass. All 249 task IDs/states/dependencies and 46 complete accepted records remain
+unchanged; only CLI-405 gains this progress record and the current plan link.
+
+No new model or Host session, credential reuse, user installation/configuration
+change, native candidate build or publication is performed. Existing live 2/3
+structural and 0/3 complete baseline results remain historical failures/gaps.
+The next increment is the retained AGY driver's offline permission/wrapping and
+shutdown fixtures plus full transport-result capture. Then freeze the changed
+installed candidate and public fixtures for newly scoped live observations,
+including the three Codex tasks with the declared counting convention. Their
+evidence enables slice 3's save/restart and held-out cases; release/upgrade
+qualification remains later work.
