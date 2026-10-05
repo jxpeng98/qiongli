@@ -141,6 +141,19 @@ MCP payloads and conflicting error flags do not satisfy required native reads.
 Full returned bytes remain in the local bound trace; the summary stores references
 and metrics, not a model reconstruction or a new transport authentication claim.
 
+The bounded `antigravity_observation.py` status adapter consumes AGY's native
+stream events without translating them into invented Codex activity. Exact
+invocation/complete native output, Host completion, process/group cleanup and
+explicit fixture preservation become behavior rows for this same V1 runner.
+Host `SUCCESS` does not waive denied actions or missing MCP output. It uses the
+existing `qiongli_config_status` schema to check structured status data and requires
+matching MCP content/structuredContent before calling the envelope complete.
+The driver never edits Host trust/permissions, restores concurrent settings over
+new bytes, chooses a model or reuses credentials outside the normal Host process.
+Raw outputs and failures remain bound locally. Its single status scope, POSIX
+process-group limit and unavailable full-output capabilities stay explicit; a
+synthetic passing trace establishes no installed-Host or academic acceptance.
+
 The primary artifact, bibliography, and cross-artifact references remain under
 the output root. Schema references remain under the case directory. Absolute
 or escaping paths are blocked. A digest may read binary bytes; text, CSV, JSON,

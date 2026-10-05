@@ -111,6 +111,80 @@ scientific truth. Independently check the installed binary/cache and snapshot
 capture. A baseline on one public packet does not qualify held-out papers,
 complete B2, upgrades or other Hosts; those remain subsequent bounded increments.
 
+## Bounded Antigravity status observation
+
+`antigravity_observation.py` extends this capture owner for one installed AGY
+`qiongli_config_status` call. It consumes AGY's own `init` / `step_update` /
+`result` stream; it does not manufacture Codex events or academic answer scores.
+The format follows the [official headless interface](https://antigravity.google/docs/cli/headless/)
+and the retained local 1.2.17 event shapes. Supported format is separate from
+evidence that a particular Host actually exposes a complete result.
+
+Prepare an isolated public workspace/configuration and verify the existing
+installed Plugin through its native owner first. Supply `installation.json` with
+`agy_version`, native `source_commit`, `cli_sha256`, `content_pack_sha256`,
+`plugin_receipt_sha256` and the exact `mcp_server` name. These are installation
+observations, not values to invent from expected tool names. The captured AGY
+executable hash independently binds the Host binary. Inspect the registered MCP
+command/environment: the runner selects `QIONGLI_CONFIG_HOME` and
+`QIONGLI_PROJECT_ROOT` for the child, but an explicit Plugin environment can
+override inheritance. Do not claim isolation until registration agrees.
+
+After the specific live observation is authorized:
+
+```sh
+python3 evals/research_journey/antigravity_observation.py capture /absolute/new-capture \
+  --workspace /absolute/public-workspace --config-root /absolute/isolated-qiongli-config \
+  --identity-file /absolute/installation.json --agy /absolute/agy \
+  --host-settings /absolute/actual-host-settings.json --timeout-seconds 180
+python3 evals/research_journey/antigravity_observation.py score /absolute/new-capture \
+  --report /absolute/new-report
+```
+
+The fixed prompt requests only the exact status call and stops on denial. The
+runner uses print mode, sandbox, plan mode and low effort, with no model override,
+permission override, conversation resume, automatic retry or trust/configuration
+write. The existing AGY process owns authentication; this adapter does not copy,
+link or read login files. Select only authorized public fixture roots. Optional
+`--host-settings` records a digest, never its contents. Missing or linked snapshot
+roots refuse; concurrent changes remain a failed preservation check and are never
+reverted over the user's new bytes.
+
+Each new capture exclusively retains prompt, installation identity, command,
+selected Qiongli environment, initial snapshots, raw stdout/stderr, final snapshots
+and process receipt. Output files sit outside the snapshot roots. The model/run
+budget is at most 180 seconds; termination has a separate short grace period.
+Exceptions and timeouts send SIGTERM before waiting, then SIGKILL only if needed,
+and reap the child. Remaining members of the owned POSIX process group are
+reported; descendants that start another session are outside that group guarantee.
+Forced termination or unresolved group cleanup cannot be a normal-exit pass.
+The full on-disk stream is hashed after cleanup, with no buffer reset across a
+session restart: this driver runs one process and a new directory per attempt.
+It replaces the earlier temporary PTY capture path for structured observations;
+the old scripts and historical hashes remain unchanged evidence.
+
+`once_permission` is an offline/current-screen checker for the retained interactive
+menu. It checks exact tool and case-sensitive JSON arguments, tolerates terminal
+wrapping, and requires the single-call choice rather than conversation/persistent
+choices. It never sends keys or authorizes anything. Use a freshly rendered
+expanded screen, not a concatenated old terminal history. Print mode provides no
+interactive approval channel: do not send unsupported control messages or widen
+permissions to make a test pass. A soft-denied call can coexist with Host
+`status: SUCCESS` and process exit zero; the scorer still rejects it.
+
+The status observation reuses Evaluation Truth V1. It requires matched invocation
+steps and exactly one expected tool, a complete Host stream/response, no denial,
+normal process/group completion and explicit unchanged snapshot maps. Complete
+native result evidence requires the full MCP envelope: `structuredContent` passes
+the existing status schema and equals the parsed `content` text, with no error.
+A bare status object, collapsed object, short tool summary or model JSON response
+is insufficient. Duplicate JSON keys, source/command/env drift and missing
+snapshots fail closed. Raw output remains in the bound event file; summaries use
+event indexes and value hashes. Capturing files is not a passing observation;
+only the separate V1 score states that result, and no academic/Skill acceptance
+follows from it. Synthetic fixtures prove parser/cleanup behavior, not that the
+installed AGY currently exports the required full envelope.
+
 ## Existing evidence packets
 
 The additive public-paper regression packet preserves actual Q1/Q2/Q3 answers
