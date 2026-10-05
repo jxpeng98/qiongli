@@ -45,9 +45,13 @@ def check(codex: Path, guidance: list[Path], output: Path, timeout_seconds: int 
     home, profile, work = (output / name for name in ("home", "codex-home", "work"))
     for path in (home, profile, work):
         path.mkdir(mode=0o700)
+    # Codex re-executes its own binary inside the sandbox. An installation
+    # outside the minimal system paths needs this exact runtime file readable.
+    # Do not grant access to its parent (which may be a user's home or `/`).
+    readable = dict.fromkeys([codex, *expected])
     config = (f'default_permissions = "{PROFILE}"\napproval_policy = "never"\n'
               f'[permissions.{PROFILE}.filesystem]\n":minimal" = "read"\n'
-              + ''.join(f'{json.dumps(str(path))} = "read"\n' for path in expected)
+              + ''.join(f'{json.dumps(str(path))} = "read"\n' for path in readable)
               + f'[permissions.{PROFILE}.network]\nenabled = false\n')
     (profile / "config.toml").write_text(config, encoding="utf-8")
     env = {key: value for key, value in os.environ.items()

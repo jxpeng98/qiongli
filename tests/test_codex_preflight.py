@@ -124,3 +124,17 @@ else:sys.exit(2)
         self.assertFalse(result['config_unchanged'])
         self.assertEqual(result['blocker'], 'profile-or-guidance-changed')
         self.assertEqual(json.loads((self.output / 'preflight.json').read_text()), result)
+
+    def test_sandbox_profile_grants_only_exact_runtime_and_public_files(self):
+        import tomllib
+        self.fake()
+        result = owner.check(self.executable, [self.guidance], self.output)
+        self.assertEqual(result['status'], 'passed')
+        config = tomllib.loads((self.output / 'codex-home/config.toml').read_text())
+        profile = config['permissions'][owner.PROFILE]
+        self.assertEqual(profile['filesystem'], {
+            ':minimal': 'read', str(self.executable.resolve()): 'read',
+            str(self.guidance.resolve()): 'read'
+        })
+        self.assertEqual(profile['network'], {'enabled': False})
+        self.assertEqual(config['approval_policy'], 'never')

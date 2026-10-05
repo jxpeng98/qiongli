@@ -563,3 +563,25 @@ accepted records match the prior `2.x`; only CLI-405/410 blocker text changes.
 The 77 focused test passes qualify these local changes, not the open live Host
 or release-artifact gates. Subsequent package evidence must bind its own clean
 native source, separate from the content-source identity above.
+
+### Exact runtime access correction
+
+A separate rootless-container probe finds the bundled sandbox helper only when
+the complete public Codex installation is mounted read-only; mounting its `bin`
+directory alone had omitted that helper. The next probe then reports the exact
+Codex executable unavailable inside the minimal sandbox. The preflight now
+grants read access to that resolved runtime file as well as the selected public
+guidance. It does not expose the executable's parent directory, alter network
+policy or add write permission. Nine focused preflight tests and the boundary
+guard pass, including an independent parsed-TOML assertion of the exact allowed
+files. A later standalone nested probe times out before providing successful
+command evidence; this correction is not declared a live sandbox or policy pass.
+
+Local package qualification starts separately on clean native source
+`84bc10791e8ee933ccfcba579b20c2976a9bea0d`. Its results must keep that identity
+despite this subsequent observation-helper correction. Large tooling-image
+copies are stopped without promoting their incomplete output. A separate
+container uses the existing public tooling rootfs as a read-only overlay lower;
+new source/output mounts preserve the old release. The repository's disposable
+Rust incremental intermediates are cleared to restore build space; source,
+target executables, archived releases, logs and research data are retained.

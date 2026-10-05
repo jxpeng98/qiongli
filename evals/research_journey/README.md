@@ -19,7 +19,9 @@ python3 evals/research_journey/codex_preflight.py /absolute/new-preflight \
 ```
 
 This creates a separate empty Host home and an explicit read-only permission
-profile with network disabled. It runs only version, sandbox `true`, and exact
+profile with network disabled. The resolved Codex executable is also readable
+so the Host can re-execute it; its parent directory is not granted. It runs only
+version, sandbox `true`, and exact
 public-file reads, stopping on the first failure and retaining raw output and
 process cleanup. It never links credentials, invokes a model or changes the
 installed Plugin. The command is tested against Codex 0.160.0's Linux interface;
