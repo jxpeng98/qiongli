@@ -54,30 +54,26 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 5, 2026
 
-The maintainer authorizes implementation of the
-[2.4.0 Plugin-quality plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md)
-after planning integration `2813426f`. The first bounded increment strengthens
-offline observation integrity and core reading/writing guidance: freeze/seal
-inputs, retain actual call evidence separately from run completion, and check
-installed guidance bytes and paragraph length. The plan records focused checks
-and remaining live Host gaps. AGY now has a bounded structured-event capture and
-cleanup adapter with 56 focused checks and a read-only replay that retains the
-old denial/missing output despite Host success. Actual full-result capture and
-clean shutdown remain unqualified. The newly authorized three installed-Codex
-observations now finish with 0/3 structural and complete reviewed passes. The
-plan retains the initial driver preflight failure, corrected 17-file freeze,
-sealed observations, independent answer review and verified login cleanup.
-Complete guidance-load evidence is absent; recovery encounters an actual MCP
-approval denial. Offline Host startup also reports a user-namespace limitation,
-while the effective Plugin policy remains unverified. Next demonstrate sandboxed
-read-only execution and inspect the effective read-tool policy before spending
-more model calls. The three-call grant is exhausted. Save/restart and
-release/upgrade qualification follow successful fresh observations; the AGY gap
-remains separate.
-The proposed version, task states/dependencies and accepted evidence remain
-unchanged; local implementation does not authorize a release. CLI-405/409/410 and
-the existing evaluation, installation and write owners retain responsibility.
-The preceding execution plan retains the earlier increment's exact evidence.
+The maintainer requests development through release readiness under the
+[2.4.0 Plugin-quality plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md).
+Canonical inputs now report 2.4.0; candidate notes keep publication and all
+remaining qualification gates explicit. The existing journey owner gains a
+credential-free sandbox preflight, and package qualification adds an explicit
+2.3.0 predecessor while retaining historical upgrade checks and failed receipts.
+The plan binds focused checks, the generated content pack and retained failures.
+
+Next qualify the clean candidate's local artifacts and actual 2.3.0 upgrade in
+a separate glibc 2.35 environment. A new ordinary rootless container starts
+successfully; package qualification is still pending. Codex's latest live result
+remains 0/3 complete reviewed passes, with no complete guidance-use evidence and
+an actual MCP approval denial. Establish sandbox execution and effective read-tool
+policy before another newly authorized batch. AGY complete-result/clean-shutdown,
+save/restart, held-out and final four-target checks remain open. External gates
+do not block independent implementation, but they still gate readiness claims.
+
+CLI-405/409/410 and the existing evaluation, installation and write owners retain
+responsibility. Task states/dependencies and accepted evidence remain unchanged.
+Local preparation does not authorize remote synchronization or publication.
 
 ### Preceding local increment — Plugin baseline and AGY
 

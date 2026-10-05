@@ -1,10 +1,11 @@
 # Qiongli 2.4.0 — Plugin reliability and research task quality
 
-- Status: implementation authorized by the maintainer on October 5; the first
-  bounded increment covers offline observation reliability and core guidance.
-  Release qualification and publication remain separate decisions.
-- Proposed version: `2.4.0`, reflecting the additive Antigravity adapter and
-  improvements to existing research workflows. No version files change here.
+- Status: the maintainer authorizes continued development through release
+  readiness on October 5. Local candidate qualification is in scope; remote
+  synchronization and publication retain their separate authority.
+- Candidate version: `2.4.0`, reflecting the additive Antigravity adapter and
+  improvements to existing research workflows. Canonical version inputs are
+  synchronized in `e4b05659`; this does not establish publication or readiness.
 - Local baseline: `186d18751a272c8fffbc0c871b061068093221e6` on `2.x`.
 - Direction: [master roadmap](../roadmaps/2026-08-02-qiongli-2-research-harness-master-roadmap.md).
 - Task state and acceptance: [existing ledger](../roadmaps/qiongli-program-ledger-v1.json).
@@ -490,3 +491,75 @@ All 249 task IDs/states/dependencies and 46 complete accepted records match
 original and corrected freezes, the old 24-file capture, the new 42-file seal,
 current fixture preservation and login cleanup. The final diff has no blocking
 finding; these checks validate the evidence record, not the failed live tasks.
+
+## October 5 — 2.4 candidate implementation and prerequisites
+
+The maintainer now requests continued development through 2.4.0 release
+readiness. `13548357` adds a credential-free Codex sandbox preflight under the
+existing journey/process owner and explicit package predecessor qualification.
+The preflight creates a separate empty home, disables network, grants only
+read access to selected public guidance, compares complete output and stops at
+the first failure. Version, process cleanup, unchanged guidance/configuration
+and absence of authentication are recorded. It cannot satisfy effective Plugin
+policy or actual model-guidance evidence and launches no model.
+
+The upgrade owner preserves historical defaults and adds
+`--predecessor-version 2.3.0`, using the shared SemVer/PEP 440 projections. It
+binds selected versions and predecessor/candidate hashes, refuses ambiguous or
+changed inputs before installation, and retains non-success receipts when a
+predecessor is unavailable, metadata is wrong or retained fixture bytes change.
+The four-target workflow adds a separate 2.3.0 check and uploads failure receipts.
+Review catches and repairs an overbroad duplicate-suffix refusal: multiple Cargo
+archives remain valid while multiple wheels/npm candidates are ambiguous.
+
+Canonical version/content commit `e4b0565992aa259017e7240d7952e6c77272220b`
+sets 2.4.0 through `sync_versions.py`, adds checked source-coverage guidance,
+candidate release notes and bilingual development Host matrices. Historical
+accepted matrices remain unchanged. The generated 446-entry pack binds that
+content source, content-root hash
+`51a12b8595402b025bb853f33cf9aee7ab99fbdca3a63b1258c0a3e797f7caec`
+and pack hash `2693f17ff7bd1aeea4576aeecb0554f9c6a22003e49bb3decfb0db909473315f`.
+The candidate is unpublished; these changes do not turn the earlier 0/3 result
+into a pass.
+
+The same `gpt-6.1-sol / low` verifier passes 70 focused tests: 11 upgrade,
+8 sandbox-preflight, 14 registry/package assets, 20 branch/workflow, 16 version
+and one native content-lock/source-drift test. Capability validation, the actual
+v2.4.0 tag/version contract and native formatting pass. Initial missing release
+notes and stale pack failures are retained, then resolved through their canonical
+owners; only affected checks are rerun. Fake executable tests exercise actual
+process execution, failure-stop behavior, content/config drift, isolated
+environment and timeout/forced-cleanup cases. They establish no live Host pass.
+
+The real no-login preflight at
+`/tmp/qiongli-codex-preflight-real-zu4epp9i/result/preflight.json`
+passes version inspection, then stops at the sandbox command with
+`bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted`. Guidance reads
+never start and authentication remains absent. Earlier direct diagnostics at
+`/tmp/qiongli-codex-readonly-prereq-o2_fjyze` also use a valid named permission
+profile and independently reproduce the failure; effective policy remains
+unavailable. No old model self-report is retroactively relabelled a tool event.
+
+For package qualification, the previous container's missing crun runtime state
+prevents `exec`; an attempted new runroot also conflicts with the existing
+storage database. Both are retained failures, not reasons to reset old state.
+A new ordinary rootless container using the established storage/runroot pair
+successfully reports glibc 2.35, without extra capabilities or credential mounts
+(`/tmp/ql24-podman-paired-o9g_6hex/receipt.json`). A separate candidate environment
+can therefore be prepared while preserving all 2.3.0 artifacts. This probe alone
+is not a release build, package audit or Codex sandbox pass.
+
+Next qualify the clean 2.4.0 candidate with the existing release owner and the
+explicit 2.3.0 upgrade check. Separately establish actual Codex sandbox/policy
+prerequisites before preparing a newly authorized live batch. Installed-Codex
+regression, save/restart/held-out cases, AGY full-output/clean shutdown and final
+four-target qualification remain required. No previous credential grant is
+extended and no remote synchronization or publication is performed.
+
+At integration, seven additional roadmap tests, generated-index consistency,
+whitespace and the native boundary guard pass. The final independent diff review
+has no blocking finding. All 249 task IDs/states/dependencies and 46 complete
+accepted records match the prior `2.x`; only CLI-405/410 blocker text changes.
+The 77 focused test passes qualify these local changes, not the open live Host
+or release-artifact gates. Subsequent package evidence must bind its own clean
+native source, separate from the content-source identity above.

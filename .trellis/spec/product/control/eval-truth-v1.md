@@ -154,6 +154,13 @@ Raw outputs and failures remain bound locally. Its single status scope, POSIX
 process-group limit and unavailable full-output capabilities stay explicit; a
 synthetic passing trace establishes no installed-Host or academic acceptance.
 
+`codex_preflight.py` checks sandbox execution and exact public guidance reads in
+a fresh credential-free read-only profile before a new observation batch. It
+reuses the bounded process/cleanup owner, stops on failure and preserves raw
+output. Its prerequisite receipt cannot replace actual model guidance evidence,
+effective Plugin-policy readback or the V1 answer review. It never changes Host
+permissions to make a failed sandbox work or authorizes another model call.
+
 The primary artifact, bibliography, and cross-artifact references remain under
 the output root. Schema references remain under the case directory. Absolute
 or escaping paths are blocked. A digest may read binary bytes; text, CSV, JSON,
