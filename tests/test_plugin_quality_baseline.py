@@ -11,7 +11,7 @@ from evals.research_journey import observe, plugin_baseline as baseline
 from evals.skill_routing import probe
 
 
-ANSWER = "The supplied ten-person study reports an association; causality and wider applicability remain uncertain."
+ANSWER = "The supplied ten-person study reports an association; causality and wider applicability remain uncertain." + "证" * 160
 
 
 def trace(*, native=True, usage=True):
@@ -23,7 +23,7 @@ def trace(*, native=True, usage=True):
             events.extend([
                 {"type": "item.started", "item": {**item, "status": "in_progress"}},
                 {"type": "item.completed", "item": {**item, "status": "completed", "error": None,
-                                                     "result": {"content": []}}},
+                                                     "result": {"content": [{"type": "text", "text": "{\"synthetic\":true}"}]}}},
             ])
     events.append({"type": "item.completed", "item": {"type": "agent_message", "text": ANSWER}})
     events.append({"type": "turn.completed", **({"usage": {"input_tokens": 100, "cached_input_tokens": 60,
@@ -59,6 +59,26 @@ class PluginBaselineTests(unittest.TestCase):
             probe.write_json(target / "preservation.json", {"before": {"project/note.md": "e" * 64},
                                                            "after": {"project/note.md": "e" * 64}})
         self.report_count = 0
+        catalog_value = json.loads(catalog.read_text())
+        guidance = {path for spec in catalog_value["cases"].values() for path in spec["guidance_paths"]}
+        identity_path = self.capture / "installation.json"
+        identity = json.loads(identity_path.read_text())
+        identity["guidance_files"] = {}
+        for path in sorted(guidance):
+            body = "Complete synthetic installed guidance for " + path + "\n"
+            artifact = "inputs/guidance/" + path
+            target = self.capture / artifact
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(body)
+            identity["guidance_files"][path] = probe.sha(body)
+        probe.write_json(identity_path, identity)
+        for case_id, spec in catalog_value["cases"].items():
+            context = case_id + "/host-context.txt"
+            (self.capture / context).write_text("\n".join(
+                (self.capture / ("inputs/guidance/" + path)).read_text() for path in spec["guidance_paths"]))
+            probe.write_json(self.capture / case_id / "guidance.json", {
+                path: {"mechanism": "host_injection", "artifact_path": "inputs/guidance/" + path,
+                       "context_artifact": context} for path in spec["guidance_paths"]})
         self.seal()
 
     def set_events(self, case_id, events, exit_code=0):
@@ -211,6 +231,214 @@ class PluginBaselineTests(unittest.TestCase):
         events[-1]["usage"] = {"input_tokens": -1}
         with self.assertRaises(ValueError):
             baseline.trace_summary("\n".join(map(json.dumps, events)), 0)
+
+
+
+    def test_empty_and_conflicting_mcp_results_do_not_satisfy_required_calls(self):
+        for result in ({}, {"content": []}, {"content": [{}]}, {"content": [{"type": "unknown", "text": "x"}]},
+                       {"content": [{"type": "text", "text": ""}]},
+                       {"content": [{"type": "text", "text": "ok"}],
+                                          "isError": False, "is_error": True}):
+            with self.subTest(result=result):
+                events = trace()
+                events[3]["item"]["result"] = result
+                self.set_events("saved-continuation", events)
+                self.seal()
+                summary = self.score()
+                self.assertFalse(summary["cases"]["saved-continuation"]["behavior"]["required_native_calls"])
+                self.assertEqual(summary["structural_passed"], 2)
+
+    def test_call_value_digests_bind_exact_raw_event_values(self):
+        events = trace()
+        _, metrics = baseline.inspect_trace("\n".join(map(json.dumps, events)), 0)
+        call = metrics["tool_calls"][0]
+        completed = events[call["completed_event"]]["item"]
+        for field in ("arguments", "result", "error"):
+            expected = probe.sha(json.dumps(completed.get(field), ensure_ascii=False,
+                                           sort_keys=True, separators=(",", ":")))
+            self.assertEqual(call[field + "_sha256"], expected)
+        self.assertEqual(events[call["started_event"]]["item"]["id"], call["id"])
+
+    def test_incomplete_runs_retain_completed_calls_without_passing(self):
+        for code, reason, expected in ((-9, None, "terminated"), (124, "timeout", "timeout"),
+                                       (0, "permission-denied", "permission-denied"),
+                                       (0, None, "incomplete-or-failed-turn")):
+            with self.subTest(code=code, reason=reason):
+                events = trace()
+                if expected == "incomplete-or-failed-turn":
+                    events.pop()
+                self.set_events("saved-continuation", events, exit_code=code)
+                receipt_path = self.capture / "saved-continuation/capture.json"
+                receipt = json.loads(receipt_path.read_text())
+                if reason:
+                    receipt["termination_reason"] = reason
+                probe.write_json(receipt_path, receipt)
+                self.seal()
+                result = self.score()
+                case = result["cases"]["saved-continuation"]
+                self.assertNotEqual(case["structural"], "pass")
+                self.assertEqual(case["metrics"]["run_outcome"], expected)
+                self.assertEqual(case["metrics"]["tool_call_count"], 3)
+                self.assertTrue(all(call["success"] for call in case["metrics"]["tool_calls"]))
+                self.assertEqual(case["metrics"]["elapsed_seconds"], 2.5)
+
+    def test_pending_call_and_failed_turn_preserve_completed_results(self):
+        for failed_turn in (False, True):
+            with self.subTest(failed_turn=failed_turn):
+                events = trace()
+                if failed_turn:
+                    events[-1] = {"type": "turn.failed", "error": {"message": "synthetic failure"}}
+                else:
+                    events.insert(-2, {"type": "item.started", "item": {
+                        "id": "pending", "type": "mcp_tool_call", "server": "qiongli",
+                        "tool": "qiongli_project_document_read", "arguments": {"project_id": "synthetic"},
+                        "status": "in_progress"}})
+                answer, metrics = baseline.inspect_trace("\n".join(map(json.dumps, events)), 0)
+                self.assertIsNone(answer)
+                self.assertEqual(metrics["run_outcome"], "incomplete-or-failed-turn")
+                self.assertEqual(len(metrics["tool_calls"]), 3)
+                self.assertTrue(all(call["success"] for call in metrics["tool_calls"]))
+                self.assertEqual(len(metrics["pending_tool_calls"]), 0 if failed_turn else 1)
+                self.assertEqual(metrics["tool_call_count"], 3 if failed_turn else 4)
+
+    def test_truncated_tail_retains_calls_but_never_completes(self):
+        raw = "\n".join(map(json.dumps, trace())) + '\n{"type":"item.completed"'
+        answer, metrics = baseline.inspect_trace(raw, 0)
+        self.assertIsNone(answer)
+        self.assertTrue(metrics["truncated_event_tail"])
+        self.assertEqual(metrics["run_outcome"], "incomplete-or-failed-turn")
+        self.assertEqual(len(metrics["tool_calls"]), 3)
+        self.assertTrue(all(call["success"] for call in metrics["tool_calls"]))
+        with self.assertRaises(ValueError):
+            baseline.trace_summary(raw, 0)
+        # Corruption before a valid later event is not a recoverable truncated tail.
+        malformed_middle = raw.splitlines()
+        malformed_middle.insert(3, '{"invalid":')
+        with self.assertRaises(ValueError):
+            baseline.inspect_trace("\n".join(malformed_middle), 0)
+
+    def test_installed_server_identity_is_exact(self):
+        identity_path = self.capture / "installation.json"
+        identity = json.loads(identity_path.read_text())
+        identity["mcp_server"] = "installed_qiongli"
+        probe.write_json(identity_path, identity)
+        for server, expected in (("installed_qiongli", True), ("qiongli", False), ("other", False)):
+            with self.subTest(server=server):
+                events = trace()
+                for event in events:
+                    if event.get("item", {}).get("type") == "mcp_tool_call":
+                        event["item"]["server"] = server
+                self.set_events("saved-continuation", events)
+                self.seal()
+                result = self.score()
+                self.assertEqual(result["cases"]["saved-continuation"]["behavior"]["required_native_calls"], expected)
+
+    def test_guidance_requires_complete_installed_bytes_not_prose(self):
+        path = self.capture / "paper-explanation/guidance.json"
+        original = path.read_bytes()
+        identity_path = self.capture / "installation.json"
+        identity_original = identity_path.read_bytes()
+        context = self.capture / "paper-explanation/host-context.txt"
+        context_original = context.read_bytes()
+        for mutation in ("missing", "wrong-version", "prose", "answer-as-context"):
+            with self.subTest(mutation=mutation):
+                path.write_bytes(original)
+                identity_path.write_bytes(identity_original)
+                context.write_bytes(context_original)
+                if mutation == "missing":
+                    path.unlink()
+                elif mutation == "wrong-version":
+                    identity = json.loads(identity_original)
+                    identity["guidance_files"]["SKILL.md"] = "f" * 64
+                    probe.write_json(identity_path, identity)
+                elif mutation == "prose":
+                    context.write_text("I read all Skills successfully.")
+                else:
+                    record = json.loads(original)
+                    record["SKILL.md"]["context_artifact"] = "paper-explanation/answer.md"
+                    probe.write_json(path, record)
+                self.seal()
+                result = self.score()
+                self.assertFalse(result["cases"]["paper-explanation"]["behavior"]["guidance_evidence"])
+                self.assertEqual(result["reviewed_passed"], 0 if mutation == "wrong-version" else 2)
+
+    def test_guidance_command_output_requires_success_and_whole_body(self):
+        record_path = self.capture / "paper-explanation/guidance.json"
+        record = json.loads(record_path.read_text())
+        body = (self.capture / record["SKILL.md"]["artifact_path"]).read_text()
+        record["SKILL.md"] = {"mechanism": "command_output", "artifact_path": record["SKILL.md"]["artifact_path"],
+                              "call_id": "guidance-read"}
+        probe.write_json(record_path, record)
+        for code, output, expected in ((0, body, True), (1, body, False), (0, body[:-5], False)):
+            with self.subTest(code=code, output=output):
+                events = trace()
+                item = {"id": "guidance-read", "type": "command_execution", "command": "cat synthetic-SKILL.md"}
+                events[2:2] = [{"type": "item.started", "item": {**item, "status": "in_progress"}},
+                               {"type": "item.completed", "item": {**item, "status": "completed",
+                                "exit_code": code, "aggregated_output": output}}]
+                self.set_events("paper-explanation", events)
+                self.seal()
+                result = self.score()
+                self.assertEqual(result["cases"]["paper-explanation"]["behavior"]["guidance_evidence"], expected)
+
+    def test_full_unicode_length_bounds_and_registered_citation_exclusion(self):
+        limit = json.loads((self.capture / "catalog.json").read_text())["cases"]["source-paragraph"]["length"]
+        sources = (self.capture / "sources.csv").read_text()
+        for count in (249, 250, 350, 351):
+            with self.subTest(count=count):
+                result = baseline.output_length("文" * count + " \n(Study:result)", limit, sources)
+                self.assertEqual(result["count"], count)
+                self.assertEqual(result["pass"], 250 <= count <= 350)
+        result = baseline.output_length("文" * 250 + "(Study:unknown)", limit, sources)
+        self.assertEqual(result["count"], 250 + len("(Study:unknown)"))
+        for citation in ("[Study:result]", "（Study:result）"):
+            self.assertEqual(baseline.output_length("文" * 250 + citation, limit, sources)["count"], 250)
+        self.set_events("source-paragraph", trace())
+        (self.capture / "source-paragraph/answer.md").write_text("短")
+        events = trace()
+        events[-2]["item"]["text"] = "短"
+        self.set_events("source-paragraph", events)
+        self.seal()
+        result = self.score()
+        self.assertFalse(result["cases"]["source-paragraph"]["behavior"]["output_length"])
+
+    def test_freeze_seal_are_exclusive_and_reject_input_drift(self):
+        fresh = self.root / "fresh"
+        fresh.mkdir()
+        names = {"catalog.json", "installation.json", "sources.csv", "inputs/source.md",
+                 *(case + "/prompt.txt" for case in baseline.CASES)}
+        for name in names:
+            target = fresh / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((self.capture / name).read_bytes())
+        baseline.freeze_inputs(fresh)
+        frozen = (fresh / "frozen-inputs.json").read_bytes()
+        with self.assertRaises((ValueError, FileExistsError)):
+            baseline.freeze_inputs(fresh)
+        (fresh / "inputs/source.md").write_text("changed input")
+        with self.assertRaises(ValueError):
+            baseline.seal_capture(fresh)
+        self.assertFalse((fresh / "manifest.json").exists())
+        self.assertEqual((fresh / "frozen-inputs.json").read_bytes(), frozen)
+        (fresh / "inputs/source.md").write_bytes((self.capture / "inputs/source.md").read_bytes())
+        baseline.seal_capture(fresh)
+        manifest = (fresh / "manifest.json").read_bytes()
+        with self.assertRaises(ValueError):
+            baseline.seal_capture(fresh)
+        self.assertEqual((fresh / "manifest.json").read_bytes(), manifest)
+
+    def test_legacy_catalog_remains_readable_without_rewriting_capture(self):
+        path = self.capture / "catalog.json"
+        catalog = json.loads(path.read_text())
+        for spec in catalog["cases"].values():
+            spec.pop("guidance_paths", None)
+            spec.pop("length", None)
+        probe.write_json(path, catalog)
+        self.seal()
+        before = {p: p.read_bytes() for p in (path, self.capture / "manifest.json")}
+        baseline.load_capture(self.capture)
+        self.assertEqual(self.score()["reviewed_passed"], 3)
+        self.assertEqual(before, {p: p.read_bytes() for p in before})
 
 
 if __name__ == "__main__":

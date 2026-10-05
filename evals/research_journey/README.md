@@ -17,6 +17,11 @@ Keep the selection of all three case IDs, even after a failure. Capture layout:
   `content_pack_sha256`, `plugin_receipt_sha256`, `codex_version`, `model`,
   `reasoning_effort`; extra source/cache/inventory evidence may be retained.
   The embedded pack's content-source commit is distinct from the native build.
+  New catalogs also require `guidance_files`, mapping each required package-relative
+  guidance path to the SHA-256 of its installed UTF-8 bytes. Snapshot those bytes
+  in the capture before freezing. Optional `mcp_server` binds the actual installed
+  server name; historical captures default to `qiongli`. A server name alone does
+  not adapt another Host's event format to this Codex JSONL reader.
 - `sources.csv`: the existing `observe.SOURCE_FIELDS`; each `artifact_path` names
   a captured UTF-8 source file (for example `inputs/source.md`) containing its
   `source_location` anchor. These are reviewed excerpts, not asserted full papers.
@@ -27,18 +32,46 @@ Keep the selection of all three case IDs, even after a failure. Capture layout:
   Only read-only model turns belong in these snapshots; reviewed fixture saves
   occur before the turn through preview/approval/CAS. Preserve timeout output;
   leave unavailable answer files absent rather than inventing a result.
+  Optional `termination_reason` is `timeout`, `permission-denied` or `cancelled`,
+  recorded by the driver, not inferred from answer prose. Otherwise a negative
+  process code is `terminated`, a positive code is `nonzero-exit`, and exit zero
+  still needs a complete successful turn. A tool result before forced termination
+  remains observed; it cannot establish a completed case. Preserve raw stderr and
+  cleanup observations as additional manifest-bound files, including on failure.
+- Each case's `guidance.json` maps every catalog `guidance_paths` entry to
+  `artifact_path` (the snapshotted full body), `mechanism`, and one evidence key.
+  For `command_output`, use `call_id` of a matched successful command whose
+  `aggregated_output` contains the full body. For `host_injection`, use
+  `context_artifact` pointing to a separately retained actual Host context export
+  containing the full body. Do not fabricate an export if the Host provides none.
+  A source snapshot or final answer is not an injection record. A reviewer must
+  still verify origin and actual use; local hashes do not authenticate a Host.
 - `manifest.json`: `kind: qiongli-plugin-baseline/v1`, the ordered three `cases`
   from the catalog, and `files` mapping every retained input/observation path to
   its SHA-256. Seal after capture; no absolute paths, escaping paths or symlinks.
   Raw traces remain local and must not be published as repository fixtures.
 
 ```sh
+# Prepare catalog, installation, source registry/packets, guidance snapshots and
+# all three prompts; finish fixture saves before this step and before any call.
+python3 evals/research_journey/plugin_baseline.py freeze /absolute/new-capture
+# Run only the separately authorized observations, recording failures and cleanup.
+python3 evals/research_journey/plugin_baseline.py seal /absolute/new-capture
 python3 evals/research_journey/plugin_baseline.py prepare /absolute/new-capture \
   --review /absolute/new-review.json
 # Review every non-whitespace answer span against sources and actual calls.
 python3 evals/research_journey/plugin_baseline.py score /absolute/new-capture \
   --review /absolute/completed-review.json --report /absolute/new-report
 ```
+
+`freeze` exclusively creates `frozen-inputs.json`; `seal` exclusively creates the
+final manifest after checking all frozen bytes. Neither overwrites an earlier
+run. Input drift refuses sealing: retain that failed directory and start a new
+observation, rather than rebinding changed inputs. The freeze is local provenance,
+not a lock on the live project or an authenticated timestamp. Continue comparing
+the actual before/after project and configuration snapshots. Old frozen v1
+catalogs/manifests remain readable with their original declared requirements;
+rescoring them does not add these new criteria or establish a new observation.
 
 Review uses the same `observe.project` span/link contract described below. Assign
 the catalog's claim IDs during review; a paragraph need not expose evaluator IDs.
@@ -50,9 +83,27 @@ Preserve failed spans and give the reviewer their actual attribution.
 
 Structural receipts use the existing V1 runner for capture/review binding,
 requested-claim coverage, required successful native recovery calls and unchanged
-project/config snapshots. Semantic judgments remain separate. Each trace requires
+project/config snapshots. New catalogs additionally require installed guidance
+evidence and the source paragraph's frozen length rule: 250–350 non-whitespace
+Unicode code points, including punctuation/digits. Exclude only bracketed
+`sources.csv` anchors (ASCII square/round or Chinese round brackets; multiple
+anchors may use commas/semicolons). Count the complete delivered answer, without
+reviewer-selected cropping; extra headings/notes remain task-scope defects for
+whole-answer review. An unknown citation is not silently removed. The new prompt
+must declare this counting convention before the observation.
+
+Semantic judgments remain separate. Each successful trace requires
 matched call starts/completions and a final answer after calls. Failed tool calls
-remain visible, even if the task recovers. Unavailable usage stays null; reported
+remain visible, even if the task recovers. Empty MCP envelopes, empty content or
+conflicting error flags cannot satisfy required native reads. Every completed call
+retains its start/completion event indexes (zero-based) and argument/result/error
+digests. Digests use sorted-key compact UTF-8 JSON; the raw event file remains the
+full-payload authority, not the model's result summary. Payload-shape checking
+does not establish tool-specific correctness or recover data omitted by a Host.
+Failed process/turn captures retain completed/pending call observations, timing,
+available usage and preservation results in the fixed denominator. A malformed
+last JSONL line is recorded as a truncated tail, never a successful final turn.
+Unavailable usage stays null; reported
 input/cached/output counts are retained without guessing a cost or speedup.
 
 Hash bindings are provenance, not authenticated installation, approval or

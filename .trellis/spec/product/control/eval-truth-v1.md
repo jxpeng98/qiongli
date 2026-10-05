@@ -128,6 +128,18 @@ failed or unattempted cases stay in the fixed denominator. Native source, conten
 pack and installed-cache identities retain their distinct owners. Missing usage
 is unknown, and semantic review is separate from structural results. See the
 journey README for the capture contract and its provenance-only limits.
+New installed-Plugin catalogs can additionally declare package-relative guidance
+paths and a whole-answer length bound. These project into the same V1 behavior
+checks: actual read/injection evidence must contain the installed guidance bytes,
+and length uses the frozen counting convention, not a reviewer's estimated pass.
+Historical catalogs retain their declared scope. The adapter's optional exclusive
+input freeze/seal refuses changed inputs and never overwrites a prior manifest.
+Tool observations and Host/driver completion are separate: valid completed calls
+retain raw-event indexes and payload digests even on nonzero exit, timeout,
+denial, cancellation or an incomplete turn; none makes that case pass. Empty
+MCP payloads and conflicting error flags do not satisfy required native reads.
+Full returned bytes remain in the local bound trace; the summary stores references
+and metrics, not a model reconstruction or a new transport authentication claim.
 
 The primary artifact, bibliography, and cross-artifact references remain under
 the output root. Schema references remain under the case directory. Absolute
