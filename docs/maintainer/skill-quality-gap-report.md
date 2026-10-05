@@ -1,39 +1,44 @@
 # Skill Quality Gap Report
 
+This report checks required sections and textual contract markers in `content/skills/`.
+It does not measure installed-Plugin behavior, answer accuracy or research acceptance.
+Flagged sections and markers need source review; a missing phrase is not proof of missing behavior.
+See [quality evidence levels](skill-quality-contract.md#quality-evidence-levels).
+
 ## Summary
 
 - Total skills scanned: 82
-- Complete skills: 82/82
+- Structurally complete skills: 70/82
 
 ## Required Section Coverage
 
 | Section | Coverage |
 |---------|----------|
 | Purpose | 82/82 (100.0%) |
-| Inputs | 82/82 (100.0%) |
+| Inputs | 81/82 (98.8%) |
 | Process | 82/82 (100.0%) |
 | Output Contract | 82/82 (100.0%) |
-| Quality Bar | 82/82 (100.0%) |
-| Common Pitfalls | 82/82 (100.0%) |
+| Quality Bar | 79/82 (96.3%) |
+| Common Pitfalls | 78/82 (95.1%) |
 
 ## Stage Coverage
 
 | Stage | Complete Coverage |
 |-------|-------------------|
-| A_framing | 6/6 (100.0%) |
-| B_literature | 9/9 (100.0%) |
+| A_framing | 5/6 (83.3%) |
+| B_literature | 8/9 (88.9%) |
 | C_design | 9/9 (100.0%) |
 | D_ethics | 3/3 (100.0%) |
-| E_synthesis | 5/5 (100.0%) |
-| F_writing | 8/8 (100.0%) |
+| E_synthesis | 4/5 (80.0%) |
+| F_writing | 6/8 (75.0%) |
 | G_compliance | 3/3 (100.0%) |
-| H_submission | 8/8 (100.0%) |
+| H_submission | 4/8 (50.0%) |
 | I_code | 10/10 (100.0%) |
-| J_proofread | 4/4 (100.0%) |
+| J_proofread | 3/4 (75.0%) |
 | K_presentation | 4/4 (100.0%) |
 | L_coursework | 4/4 (100.0%) |
 | M_dissertation | 4/4 (100.0%) |
-| Z_cross_cutting | 5/5 (100.0%) |
+| Z_cross_cutting | 3/5 (60.0%) |
 
 ## First Batch Priority
 
@@ -41,6 +46,18 @@ Prioritize A/B/F/J/I stages, then sort by missing coverage count.
 
 | Skill | Stage | Missing Sections | Missing Constraints |
 |-------|-------|------------------|---------------------|
+| `content/skills/B_literature/fulltext-fetcher.md` | B_literature | Inputs, Common Pitfalls | insufficient-input behavior, claim strength rules |
+| `content/skills/F_writing/effect-size-interpreter.md` | F_writing | Quality Bar, Common Pitfalls | claim strength rules, no hallucinated citations/data |
+| `content/skills/F_writing/analysis-interpreter.md` | F_writing | Quality Bar, Common Pitfalls | - |
+| `content/skills/A_framing/venue-analyzer.md` | A_framing | - | insufficient-input behavior |
+| `content/skills/J_proofread/human-voice-rewriter.md` | J_proofread | - | insufficient-input behavior |
+| `content/skills/E_synthesis/evidence-synthesizer.md` | E_synthesis | Quality Bar, Common Pitfalls | no hallucinated citations/data |
+| `content/skills/H_submission/fatal-flaw-detector.md` | H_submission | - | insufficient-input behavior, claim strength rules |
+| `content/skills/H_submission/journal-fit-recommender.md` | H_submission | - | insufficient-input behavior, claim strength rules |
+| `content/skills/H_submission/peer-review-simulation.md` | H_submission | - | insufficient-input behavior, claim strength rules |
+| `content/skills/H_submission/submission-packager.md` | H_submission | - | insufficient-input behavior, claim strength rules |
+| `content/skills/Z_cross_cutting/model-collaborator.md` | Z_cross_cutting | - | platform-neutral wording |
+| `content/skills/Z_cross_cutting/self-critique.md` | Z_cross_cutting | - | insufficient-input behavior |
 
 ## Full Matrix
 
@@ -78,7 +95,7 @@ Prioritize A/B/F/J/I stages, then sort by missing coverage count.
 
 - Stage: A_framing
 - Missing sections: -
-- Missing constraints: -
+- Missing constraints: insufficient-input behavior
 
 ### `content/skills/B_literature/academic-searcher.md`
 
@@ -107,8 +124,8 @@ Prioritize A/B/F/J/I stages, then sort by missing coverage count.
 ### `content/skills/B_literature/fulltext-fetcher.md`
 
 - Stage: B_literature
-- Missing sections: -
-- Missing constraints: -
+- Missing sections: Inputs, Common Pitfalls
+- Missing constraints: insufficient-input behavior, claim strength rules
 
 ### `content/skills/B_literature/literature-mapper.md`
 
@@ -215,8 +232,8 @@ Prioritize A/B/F/J/I stages, then sort by missing coverage count.
 ### `content/skills/E_synthesis/evidence-synthesizer.md`
 
 - Stage: E_synthesis
-- Missing sections: -
-- Missing constraints: -
+- Missing sections: Quality Bar, Common Pitfalls
+- Missing constraints: no hallucinated citations/data
 
 ### `content/skills/E_synthesis/publication-bias-checker.md`
 
@@ -239,7 +256,7 @@ Prioritize A/B/F/J/I stages, then sort by missing coverage count.
 ### `content/skills/F_writing/analysis-interpreter.md`
 
 - Stage: F_writing
-- Missing sections: -
+- Missing sections: Quality Bar, Common Pitfalls
 - Missing constraints: -
 
 ### `content/skills/F_writing/discussion-writer.md`
@@ -251,8 +268,8 @@ Prioritize A/B/F/J/I stages, then sort by missing coverage count.
 ### `content/skills/F_writing/effect-size-interpreter.md`
 
 - Stage: F_writing
-- Missing sections: -
-- Missing constraints: -
+- Missing sections: Quality Bar, Common Pitfalls
+- Missing constraints: claim strength rules, no hallucinated citations/data
 
 ### `content/skills/F_writing/figure-specifier.md`
 
@@ -312,13 +329,13 @@ Prioritize A/B/F/J/I stages, then sort by missing coverage count.
 
 - Stage: H_submission
 - Missing sections: -
-- Missing constraints: -
+- Missing constraints: insufficient-input behavior, claim strength rules
 
 ### `content/skills/H_submission/journal-fit-recommender.md`
 
 - Stage: H_submission
 - Missing sections: -
-- Missing constraints: -
+- Missing constraints: insufficient-input behavior, claim strength rules
 
 ### `content/skills/H_submission/limitation-auditor.md`
 
@@ -330,7 +347,7 @@ Prioritize A/B/F/J/I stages, then sort by missing coverage count.
 
 - Stage: H_submission
 - Missing sections: -
-- Missing constraints: -
+- Missing constraints: insufficient-input behavior, claim strength rules
 
 ### `content/skills/H_submission/rebuttal-assistant.md`
 
@@ -348,7 +365,7 @@ Prioritize A/B/F/J/I stages, then sort by missing coverage count.
 
 - Stage: H_submission
 - Missing sections: -
-- Missing constraints: -
+- Missing constraints: insufficient-input behavior, claim strength rules
 
 ### `content/skills/I_code/code-builder.md`
 
@@ -426,7 +443,7 @@ Prioritize A/B/F/J/I stages, then sort by missing coverage count.
 
 - Stage: J_proofread
 - Missing sections: -
-- Missing constraints: -
+- Missing constraints: insufficient-input behavior
 
 ### `content/skills/J_proofread/similarity-checker.md`
 
@@ -528,10 +545,10 @@ Prioritize A/B/F/J/I stages, then sort by missing coverage count.
 
 - Stage: Z_cross_cutting
 - Missing sections: -
-- Missing constraints: -
+- Missing constraints: platform-neutral wording
 
 ### `content/skills/Z_cross_cutting/self-critique.md`
 
 - Stage: Z_cross_cutting
 - Missing sections: -
-- Missing constraints: -
+- Missing constraints: insufficient-input behavior

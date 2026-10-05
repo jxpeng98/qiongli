@@ -8,7 +8,7 @@ through file export and official Host registration.
 
 | Surface | Guidance | Program and tools |
 |---|---|---|
-| CLI-exported Plugin | Shared Skills, workflows and references | Bundled native executable; Full MCP, 33 tools |
+| CLI-exported Plugin | Shared Skills, workflows and references | Bundled native executable; Full MCP, 35 tools in 2.3.0 |
 | Native Marketplace platform Plugin | Shared Skills, workflows and references | Bundled native executable; Lite MCP, 15 tools |
 | Standalone Skills | Exported guidance and references | No MCP connection or automatic Host registration |
 

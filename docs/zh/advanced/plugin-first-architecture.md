@@ -7,7 +7,7 @@
 
 | 入口 | 研究指导 | 程序与工具 |
 |---|---|---|
-| CLI 导出的 Plugin | 共享 Skills、工作流和参考资料 | 随包原生程序；Full MCP，33 个工具 |
+| CLI 导出的 Plugin | 共享 Skills、工作流和参考资料 | 随包原生程序；2.3.0 的 Full MCP 提供 35 个工具 |
 | 原生 Marketplace 平台 Plugin | 共享 Skills、工作流和参考资料 | 随包原生程序；Lite MCP，15 个工具 |
 | 独立 Skills | 导出的指导和参考资料 | 不连接 MCP，也不自动注册 Host |
 

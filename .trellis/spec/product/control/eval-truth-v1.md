@@ -119,6 +119,16 @@ reviewer judgments. The original observation manifest and default selection
 remain supported. A failed or replaced predecessor cannot become a valid F
 input by silently substituting a summary fixture.
 
+The optional `evals/research_journey/plugin_baseline.py` adapter consumes a frozen
+three-case installed-Host capture without launching a model or granting writes.
+It reuses `observe.project` for complete answer-span review and the V1 runner's
+`file_digest`/`field_constraint` assertions for bound observations and behavior.
+Matched actual MCP/command starts and completions remain separate from prose;
+failed or unattempted cases stay in the fixed denominator. Native source, content
+pack and installed-cache identities retain their distinct owners. Missing usage
+is unknown, and semantic review is separate from structural results. See the
+journey README for the capture contract and its provenance-only limits.
+
 The primary artifact, bibliography, and cross-artifact references remain under
 the output root. Schema references remain under the case directory. Absolute
 or escaping paths are blocked. A digest may read binary bytes; text, CSV, JSON,

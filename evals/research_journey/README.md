@@ -1,5 +1,67 @@
 # Bounded research evidence journey
 
+## Installed-Plugin baseline
+
+`plugin-baseline.json` freezes three journeys: public-paper explanation, a paragraph
+from supplied evidence, and saved-document recovery in a fresh session. The
+offline `plugin_baseline.py` adapter consumes independently captured installed-Host
+observations. It does not run `observe.py capture` or pass the test resource reader
+off as an installed Plugin. Installation, actual model execution and reviewed
+project saves stay with their existing native/official Host owners.
+
+Prepare a NEW external capture directory. Copy `plugin-baseline.json` to
+`catalog.json` before model calls; do not supply its review checks to the model.
+Keep the selection of all three case IDs, even after a failure. Capture layout:
+
+- `installation.json`: `source_commit` (native source), `cli_sha256`,
+  `content_pack_sha256`, `plugin_receipt_sha256`, `codex_version`, `model`,
+  `reasoning_effort`; extra source/cache/inventory evidence may be retained.
+  The embedded pack's content-source commit is distinct from the native build.
+- `sources.csv`: the existing `observe.SOURCE_FIELDS`; each `artifact_path` names
+  a captured UTF-8 source file (for example `inputs/source.md`) containing its
+  `source_location` anchor. These are reviewed excerpts, not asserted full papers.
+- Each case directory: `prompt.txt`, original `events.jsonl`, `answer.md`,
+  `capture.json` with `exit_code`, `elapsed_seconds`, `timeout_seconds`,
+  `prompt_sha256`, `events_sha256`, `answer_sha256`, and `preservation.json` with
+  nonempty `before`/`after` maps of project/config relative paths to SHA-256.
+  Only read-only model turns belong in these snapshots; reviewed fixture saves
+  occur before the turn through preview/approval/CAS. Preserve timeout output;
+  leave unavailable answer files absent rather than inventing a result.
+- `manifest.json`: `kind: qiongli-plugin-baseline/v1`, the ordered three `cases`
+  from the catalog, and `files` mapping every retained input/observation path to
+  its SHA-256. Seal after capture; no absolute paths, escaping paths or symlinks.
+  Raw traces remain local and must not be published as repository fixtures.
+
+```sh
+python3 evals/research_journey/plugin_baseline.py prepare /absolute/new-capture \
+  --review /absolute/new-review.json
+# Review every non-whitespace answer span against sources and actual calls.
+python3 evals/research_journey/plugin_baseline.py score /absolute/new-capture \
+  --review /absolute/completed-review.json --report /absolute/new-report
+```
+
+Review uses the same `observe.project` span/link contract described below. Assign
+the catalog's claim IDs during review; a paragraph need not expose evaluator IDs.
+All substantive answer spans need review, including extra claims; headings/status
+text can be `context`, never a way to hide a faulty research claim. `guidance_use`
+requires inspection of actual Host activity; an answer naming a Skill or a shell
+command naming a file alone does not prove the expected bytes were loaded.
+Preserve failed spans and give the reviewer their actual attribution.
+
+Structural receipts use the existing V1 runner for capture/review binding,
+requested-claim coverage, required successful native recovery calls and unchanged
+project/config snapshots. Semantic judgments remain separate. Each trace requires
+matched call starts/completions and a final answer after calls. Failed tool calls
+remain visible, even if the task recovers. Unavailable usage stays null; reported
+input/cached/output counts are retained without guessing a cost or speedup.
+
+Hash bindings are provenance, not authenticated installation, approval or
+scientific truth. Independently check the installed binary/cache and snapshot
+capture. A baseline on one public packet does not qualify held-out papers,
+complete B2, upgrades or other Hosts; those remain subsequent bounded increments.
+
+## Existing evidence packets
+
 The additive public-paper regression packet preserves actual Q1/Q2/Q3 answers
 and the external model review. Run
 `.venv/bin/python evals/research_journey/public-papers/check_integrity.py --observations --self-test`

@@ -1,0 +1,23 @@
+{
+  "kind": "qiongli-plugin-baseline/v1",
+  "cases": {
+    "paper-explanation": {
+      "description": "Explain the supplied public-paper excerpts with source anchors and explicit access limits.",
+      "required_claims": ["Q-C1", "Q-C2", "Q-C3"],
+      "checks": ["source_fidelity", "units_and_denominators", "claim_strength", "access_scope", "task_scope", "guidance_use"],
+      "required_tools": []
+    },
+    "source-paragraph": {
+      "description": "Write only the requested paragraph from the same supplied excerpts, without inventing reading or project work.",
+      "required_claims": ["Q-C2", "Q-C3"],
+      "checks": ["source_fidelity", "units_and_denominators", "claim_strength", "access_scope", "task_scope", "guidance_use"],
+      "required_tools": []
+    },
+    "saved-continuation": {
+      "description": "Recover an isolated reviewed project by ID in a fresh installed-Plugin session; use current saved bindings and explain unavailable or changed evidence.",
+      "required_claims": ["Q-C2", "Q-C3"],
+      "checks": ["source_fidelity", "claim_strength", "access_scope", "task_scope", "guidance_use", "current_bindings", "history_preservation"],
+      "required_tools": ["qiongli_project_read", "qiongli_project_document_list", "qiongli_project_document_read"]
+    }
+  }
+}
