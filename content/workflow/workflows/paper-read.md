@@ -54,6 +54,14 @@ inference strength as `direct_evidence`, `reasonable_inference` or
 `unsupported_gap`. Never invent citations, anchors, sample sizes, measurement
 procedures, results or implications to complete a template or rating.
 
+For numerical/design claims, distinguish recruited participants, available
+observations and the denominator of the reported analysis. Track allocation,
+measurement and analysis units separately; within-class allocation does not
+make a between-class treatment individually randomized. Preserve discrepancies
+between a design label and the described procedure, or between source passages,
+instead of silently reconciling them. Report absent uncertainty or clustering
+adjustments as unreported in the material read, not proven absent from the paper.
+
 ## Formal B2 outputs
 
 Reuse the known destination and existing citekey; ask only if the destination is

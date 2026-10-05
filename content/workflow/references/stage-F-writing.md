@@ -90,6 +90,18 @@ the old estimate or promote a previous review into evidence for the new claim.
 
 ### Review and completion
 
+Check the delivered text against the requested length and format, as well as its
+claims. Use the user's counting rule. If none is specified, count words for an
+English word limit; for a Chinese character limit, count non-whitespace Unicode
+characters in the prose, including punctuation and digits, excluding standalone
+source-anchor citations. Keep that convention consistent during drafting and
+review. Citation strings, headings and editorial notes must not pad a short
+paragraph. Check the actual final text rather than estimating from its appearance;
+after editing, recount the changed unit. Return only the paragraph when that is
+the requested format; an internal length check needs no extra checklist or count.
+If evidence cannot support the requested length, identify the gap rather than
+adding unsupported claims or silently returning an undersized completed draft.
+
 Check the requested unit before returning it. Revise concrete defects and verify
 what changed; further passes need new evidence, a remaining defect or an explicit
 review requirement. Honor configured minimum passes and required independent

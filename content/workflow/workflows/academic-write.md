@@ -52,6 +52,8 @@ changed central-claim decisions for `context/decision_log.md` or
 Return the requested text in the requested format. Add only necessary evidence
 gaps or consequential editorial notes; do not attach a generic outline, citation
 table, improvement checklist or extra title candidates to every response.
+Apply the shared Writing Harness's length check to the final prose; source-anchor
+citations do not make an undersized paragraph satisfy its requested length.
 Use citation placeholders only when a needed source is absent, clearly marking
 them as unresolved. Preserve the author's meaning, claim strength and voice.
 

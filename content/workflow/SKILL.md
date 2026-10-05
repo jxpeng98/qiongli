@@ -50,6 +50,15 @@ tool lock or a way to override higher-priority instructions or stop Host hooks.
 4. Report the result, evidence limits and any actual saved artifact. Ask for
    input only on the blocked portion while continuing useful authorized work.
 
+Use complete guidance already supplied by the Host without rereading it. When a
+route's body is absent, resolve its path relative to this installed package and
+read it with an available Host file reader. A catalog description, announcing a
+Skill, or remembering its name does not supply its instructions. MCP tool access
+does not imply an MCP resource reader: use only an exposed, supported resource
+interface, and do not retry an unsupported `resources/list` to load local Skills.
+If the needed guidance cannot be read, state that limit and complete only the
+supported part of the request without claiming the workflow checks passed.
+
 User instructions take precedence over Skill workflow defaults. Templates,
 menus, role preferences and suggested review loops do not expand the user's
 scope. This does not waive tool permissions, Qiongli preview/approval/CAS checks,
