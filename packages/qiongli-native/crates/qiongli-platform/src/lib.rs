@@ -6,6 +6,13 @@ mod claude_bundle;
 mod client_inventory;
 mod codex;
 mod codex_bundle;
+
+pub use codex_bundle::antigravity::{
+    AntigravityPluginBundleTarget, RECEIPT_FILE as ANTIGRAVITY_PLUGIN_BUNDLE_RECEIPT_FILE,
+    VerifiedAntigravityPluginBundle, approve_antigravity_plugin_bundle_target,
+    compose_local_antigravity_plugin_source, remove_local_antigravity_plugin_source,
+    verify_cached_antigravity_plugin_source, verify_local_antigravity_plugin_source,
+};
 mod community_alpha;
 mod community_alpha_integrity;
 mod context_hooks;

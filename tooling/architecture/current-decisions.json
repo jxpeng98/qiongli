@@ -226,6 +226,13 @@
       "title": "Linux ARM64 registry distribution",
       "path": "docs/architecture/decisions/0232-linux-arm64-registry-distribution.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-409",
+      "adr_number": "0233",
+      "title": "Antigravity local Plugin adapter",
+      "path": "docs/architecture/decisions/0233-antigravity-local-plugin-adapter.md",
+      "status": "Accepted"
     }
   ]
 }

@@ -22,6 +22,10 @@ use crate::{
     IntegrationScope, OperatingSystem, ProductId, VerifiedLaunchGrant,
 };
 
+// Antigravity reuses the receipt-bound transaction and projection owner. Signed
+// Codex packages retain their existing layout, receipts and grant scope.
+pub(crate) mod antigravity;
+
 pub const CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION: u32 = 4;
 pub const CODEX_PLUGIN_BUNDLE_RECEIPT_FILE: &str = ".qiongli-codex-plugin-bundle.json";
 
@@ -99,6 +103,7 @@ static NEXT_TRANSACTION_ID: AtomicU64 = AtomicU64::new(0);
 #[derive(Clone)]
 pub struct CodexPluginBundleTarget {
     inner: MaterializationTarget,
+    antigravity: bool,
 }
 
 impl CodexPluginBundleTarget {
@@ -129,6 +134,40 @@ pub enum CodexPluginBundleKind {
     NativeMarketplaceLite,
     NativeHostFullMcp,
     UserLocalHostFullMcp,
+    UserLocalAntigravityFullMcp,
+}
+
+impl CodexPluginBundleKind {
+    fn is_local(self) -> bool {
+        matches!(
+            self,
+            Self::UserLocalHostFullMcp | Self::UserLocalAntigravityFullMcp
+        )
+    }
+
+    fn receipt_file(self) -> &'static str {
+        if self == Self::UserLocalAntigravityFullMcp {
+            antigravity::RECEIPT_FILE
+        } else {
+            CODEX_PLUGIN_BUNDLE_RECEIPT_FILE
+        }
+    }
+
+    fn manifest_path(self) -> &'static str {
+        if self == Self::UserLocalAntigravityFullMcp {
+            "plugin.json"
+        } else {
+            PLUGIN_MANIFEST_PATH
+        }
+    }
+
+    fn mcp_path(self) -> &'static str {
+        if self == Self::UserLocalAntigravityFullMcp {
+            "mcp_config.json"
+        } else {
+            MCP_MANIFEST_PATH
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -302,7 +341,10 @@ pub fn approve_codex_plugin_bundle_target(
     let inner =
         approve_materialization_target(path).map_err(|_| CodexPluginBundleError::UnsafeTarget)?;
     validate_target_parent_security(inner.path())?;
-    Ok(CodexPluginBundleTarget { inner })
+    Ok(CodexPluginBundleTarget {
+        inner,
+        antigravity: false,
+    })
 }
 
 pub fn compose_codex_plugin_bundle(
@@ -466,6 +508,9 @@ fn compose_codex_plugin_bundle_internal(
     skill_language: Option<&str>,
 ) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
     let (artifact, kind, signed_digest) = if let Some(grant) = grant {
+        if target.antigravity {
+            return Err(CodexPluginBundleError::GrantMismatch);
+        }
         validate_composition_identity(pack, grant)?;
         (
             grant.grant().artifact.clone(),
@@ -475,9 +520,14 @@ fn compose_codex_plugin_bundle_internal(
     } else {
         let artifact = crate::identity::local_plugin_identity(&pack.manifest().content_version)
             .map_err(|_| CodexPluginBundleError::ResourcePackMismatch)?;
-        (artifact, CodexPluginBundleKind::UserLocalHostFullMcp, "")
+        let kind = if target.antigravity {
+            CodexPluginBundleKind::UserLocalAntigravityFullMcp
+        } else {
+            CodexPluginBundleKind::UserLocalHostFullMcp
+        };
+        (artifact, kind, "")
     };
-    let plugin_name = if kind == CodexPluginBundleKind::UserLocalHostFullMcp {
+    let plugin_name = if kind.is_local() {
         artifact.channel.plugin_name()
     } else {
         LEGACY_PLUGIN_NAME
@@ -485,14 +535,14 @@ fn compose_codex_plugin_bundle_internal(
     let leaf = target.path().file_name().and_then(|leaf| leaf.to_str());
     // Keep verified source directories reusable when switching release channels.
     if leaf != Some(plugin_name)
-        && !(kind == CodexPluginBundleKind::UserLocalHostFullMcp
-            && matches!(leaf, Some("qiongli" | "qiongli-next")))
+        && !(kind.is_local() && matches!(leaf, Some("qiongli" | "qiongli-next")))
+        && !(target.antigravity && leaf == Some("qiongli-antigravity"))
     {
         return Err(CodexPluginBundleError::InvalidTarget);
     }
     revalidate_target(target)?;
     let existing = if replace {
-        let existing = verify_bundle_tree(target.path())?;
+        let existing = verify_bundle_tree_for_target(target.path(), target)?;
         if existing.receipt.package_kind != kind
             || expected_receipt_sha256.is_some_and(|digest| digest != existing.receipt_sha256())
         {
@@ -511,6 +561,9 @@ fn compose_codex_plugin_bundle_internal(
             .as_ref()
             .is_some_and(|bundle| bundle.receipt.context_hooks)
     });
+    if target.antigravity && context_hooks {
+        return Err(CodexPluginBundleError::ProjectionInvalid);
+    }
     let skill_language = skill_language.map(str::to_owned).or_else(|| {
         existing
             .as_ref()
@@ -529,15 +582,25 @@ fn compose_codex_plugin_bundle_internal(
     }
 
     let binary_path = binary_relative_path(artifact.os).to_string();
-    let mut files = project_bundle_files(
-        pack,
-        &artifact,
-        &binary_path,
-        overrides,
-        context_hooks,
-        plugin_name,
-        skill_language.as_deref(),
-    )?;
+    let mut files = if target.antigravity {
+        antigravity::project(
+            pack,
+            &artifact,
+            &target.path().join(&binary_path),
+            overrides,
+            skill_language.as_deref(),
+        )?
+    } else {
+        project_bundle_files(
+            pack,
+            &artifact,
+            &binary_path,
+            overrides,
+            context_hooks,
+            plugin_name,
+            skill_language.as_deref(),
+        )?
+    };
     if files
         .insert(
             binary_path.clone(),
@@ -561,8 +624,8 @@ fn compose_codex_plugin_bundle_internal(
         );
     }
     let entries = bundle_entries(&files)?;
-    let manifest_sha256 = entry_digest(&entries, PLUGIN_MANIFEST_PATH)?;
-    let mcp_sha256 = entry_digest(&entries, MCP_MANIFEST_PATH)?;
+    let manifest_sha256 = entry_digest(&entries, kind.manifest_path())?;
+    let mcp_sha256 = entry_digest(&entries, kind.mcp_path())?;
     let package_content_root_sha256 = package_content_root(&entries);
     let manifest = pack.manifest();
     let receipt = CodexPluginBundleReceiptV1 {
@@ -599,7 +662,7 @@ fn compose_codex_plugin_bundle_internal(
     let _lock = TargetLock::acquire(target)?;
     revalidate_target(target)?;
     if let Some(existing) = existing.as_ref() {
-        if &verify_bundle_tree(target.path())? != existing {
+        if &verify_bundle_tree_for_target(target.path(), target)? != existing {
             return Err(CodexPluginBundleError::BundleDrift);
         }
     } else if path_metadata(target.path())?.is_some() {
@@ -611,15 +674,15 @@ fn compose_codex_plugin_bundle_internal(
         .ok_or(CodexPluginBundleError::InvalidTarget)?;
     let staging = create_staging_directory(parent)?;
     let cleanup = DirectoryCleanup::new(staging.clone());
-    write_bundle_tree(&staging, &files, &receipt_bytes)?;
-    let staged = verify_bundle_tree(&staging)?;
+    write_bundle_tree_with_receipt(&staging, &files, &receipt_bytes, kind.receipt_file())?;
+    let staged = verify_bundle_tree_for_target(&staging, target)?;
     if staged.receipt != receipt {
         return Err(CodexPluginBundleError::BundleDrift);
     }
 
     revalidate_target(target)?;
     if let Some(existing) = existing.as_ref() {
-        if &verify_bundle_tree(target.path())? != existing {
+        if &verify_bundle_tree_for_target(target.path(), target)? != existing {
             return Err(CodexPluginBundleError::BundleDrift);
         }
         let backup = create_removal_quarantine_path(parent)?;
@@ -630,10 +693,10 @@ fn compose_codex_plugin_bundle_internal(
         }
         cleanup.disarm();
         sync_directory(parent).map_err(committed_persistence_error)?;
-        let committed = verify_bundle_tree(target.path())
+        let committed = verify_bundle_tree_for_target(target.path(), target)
             .map_err(|_| CodexPluginBundleError::CommittedVerificationFailed)?;
         if committed.receipt != receipt
-            || verify_bundle_tree(&backup).ok().as_ref() != Some(existing)
+            || verify_bundle_tree_for_target(&backup, target).ok().as_ref() != Some(existing)
         {
             return Err(CodexPluginBundleError::CommittedVerificationFailed);
         }
@@ -654,7 +717,7 @@ fn compose_codex_plugin_bundle_internal(
         other => other,
     })?;
 
-    verify_bundle_tree(target.path())
+    verify_bundle_tree_for_target(target.path(), target)
         .map_err(|_| CodexPluginBundleError::CommittedVerificationFailed)
 }
 
@@ -663,7 +726,7 @@ pub fn verify_codex_plugin_bundle(
     target: &CodexPluginBundleTarget,
 ) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
     revalidate_target(target)?;
-    let verified = verify_bundle_tree(target.path())?;
+    let verified = verify_bundle_tree_for_target(target.path(), target)?;
     if verified.receipt.package_kind != CodexPluginBundleKind::NativeHostFullMcp {
         return Err(CodexPluginBundleError::GrantMismatch);
     }
@@ -686,7 +749,7 @@ fn remove_bundle(
     expected_receipt_sha256: Option<&str>,
 ) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
     revalidate_target(target)?;
-    let initial = verify_bundle_tree(target.path())?;
+    let initial = verify_bundle_tree_for_target(target.path(), target)?;
     if initial.receipt.package_kind != kind
         || expected_receipt_sha256.is_some_and(|digest| digest != initial.receipt_sha256())
     {
@@ -694,7 +757,7 @@ fn remove_bundle(
     }
     let _lock = TargetLock::acquire(target)?;
     revalidate_target(target)?;
-    let current = verify_bundle_tree(target.path())?;
+    let current = verify_bundle_tree_for_target(target.path(), target)?;
     if current != initial {
         return Err(CodexPluginBundleError::BundleDrift);
     }
@@ -706,7 +769,7 @@ fn remove_bundle(
     let quarantine = create_removal_quarantine_path(parent)?;
     let before =
         Handle::from_path(target.path()).map_err(|_| CodexPluginBundleError::BundleDrift)?;
-    let rechecked = verify_bundle_tree(target.path())?;
+    let rechecked = verify_bundle_tree_for_target(target.path(), target)?;
     let after =
         Handle::from_path(target.path()).map_err(|_| CodexPluginBundleError::BundleDrift)?;
     if before != after || rechecked != initial {
@@ -715,14 +778,14 @@ fn remove_bundle(
 
     rename_no_replace(target.path(), &quarantine)?;
     sync_directory(parent).map_err(committed_persistence_error)?;
-    let quarantined = verify_bundle_tree(&quarantine)
+    let quarantined = verify_bundle_tree_for_target(&quarantine, target)
         .map_err(|_| CodexPluginBundleError::CommittedVerificationFailed)?;
     if quarantined != initial {
         return Err(CodexPluginBundleError::CommittedVerificationFailed);
     }
     let quarantine_before = Handle::from_path(&quarantine)
         .map_err(|_| CodexPluginBundleError::CommittedVerificationFailed)?;
-    let final_check = verify_bundle_tree(&quarantine)
+    let final_check = verify_bundle_tree_for_target(&quarantine, target)
         .map_err(|_| CodexPluginBundleError::CommittedVerificationFailed)?;
     let quarantine_after = Handle::from_path(&quarantine)
         .map_err(|_| CodexPluginBundleError::CommittedVerificationFailed)?;
@@ -1115,9 +1178,49 @@ fn hash_field(hasher: &mut Sha256, value: &[u8]) {
     hasher.update(value);
 }
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum BundleReadLayout {
+    Codex,
+    AntigravitySource,
+    AntigravityCache,
+}
+
+impl BundleReadLayout {
+    fn receipt_file(self) -> &'static str {
+        if self == Self::Codex {
+            CODEX_PLUGIN_BUNDLE_RECEIPT_FILE
+        } else {
+            antigravity::RECEIPT_FILE
+        }
+    }
+}
+
 fn verify_bundle_tree(root: &Path) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
-    verify_directory(root)?;
-    let receipt_path = root.join(CODEX_PLUGIN_BUNDLE_RECEIPT_FILE);
+    verify_bundle_tree_with_receipt(root, BundleReadLayout::Codex)
+}
+
+fn verify_bundle_tree_for_target(
+    root: &Path,
+    target: &CodexPluginBundleTarget,
+) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
+    verify_bundle_tree_with_receipt(
+        root,
+        if target.antigravity {
+            BundleReadLayout::AntigravitySource
+        } else {
+            BundleReadLayout::Codex
+        },
+    )
+}
+
+fn verify_bundle_tree_with_receipt(
+    root: &Path,
+    layout: BundleReadLayout,
+) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
+    verify_directory(root, layout)?;
+    let antigravity = layout != BundleReadLayout::Codex;
+    let receipt_file = layout.receipt_file();
+    let receipt_path = root.join(receipt_file);
     let receipt_bytes = read_bounded_managed_file(
         &receipt_path,
         MAX_RECEIPT_BYTES,
@@ -1126,6 +1229,9 @@ fn verify_bundle_tree(root: &Path) -> Result<VerifiedCodexPluginBundle, CodexPlu
     )?;
     let receipt: CodexPluginBundleReceiptV1 = serde_json::from_slice(&receipt_bytes)
         .map_err(|_| CodexPluginBundleError::ReceiptInvalid)?;
+    if (receipt.package_kind == CodexPluginBundleKind::UserLocalAntigravityFullMcp) != antigravity {
+        return Err(CodexPluginBundleError::ReceiptInvalid);
+    }
     let canonical = canonical_json(&receipt)?;
     if canonical != receipt_bytes {
         return Err(CodexPluginBundleError::ReceiptInvalid);
@@ -1150,6 +1256,7 @@ fn verify_bundle_tree(root: &Path) -> Result<VerifiedCodexPluginBundle, CodexPlu
         &expected_directories,
         &mut seen_files,
         &mut seen_directories,
+        layout,
     )?;
     if seen_files.len() != expected_files.len()
         || seen_directories.len() != expected_directories.len()
@@ -1157,8 +1264,12 @@ fn verify_bundle_tree(root: &Path) -> Result<VerifiedCodexPluginBundle, CodexPlu
         return Err(CodexPluginBundleError::BundleDrift);
     }
 
-    verify_manifest_contract(root, &receipt)?;
-    verify_mcp_contract(root, &receipt)?;
+    if antigravity {
+        antigravity::verify_contract(root, &receipt)?;
+    } else {
+        verify_manifest_contract(root, &receipt)?;
+        verify_mcp_contract(root, &receipt)?;
+    }
     Ok(VerifiedCodexPluginBundle {
         receipt_sha256: sha256_hex(&receipt_bytes),
         receipt,
@@ -1177,8 +1288,7 @@ fn validate_receipt_shape(
     }
 
     if receipt.skill_language.is_some()
-        && (receipt.schema_version != 4
-            || receipt.package_kind != CodexPluginBundleKind::UserLocalHostFullMcp)
+        && (receipt.schema_version != 4 || !receipt.package_kind.is_local())
     {
         return Err(CodexPluginBundleError::ReceiptInvalid);
     }
@@ -1200,8 +1310,12 @@ fn validate_receipt_shape(
             && receipt.package_kind != CodexPluginBundleKind::UserLocalHostFullMcp)
         || !matches!(
             receipt.package_kind,
-            CodexPluginBundleKind::NativeHostFullMcp | CodexPluginBundleKind::UserLocalHostFullMcp
+            CodexPluginBundleKind::NativeHostFullMcp
+                | CodexPluginBundleKind::UserLocalHostFullMcp
+                | CodexPluginBundleKind::UserLocalAntigravityFullMcp
         )
+        || (receipt.package_kind == CodexPluginBundleKind::UserLocalAntigravityFullMcp
+            && receipt.schema_version != 4)
         || receipt.artifact.product != ProductId::Qiongli
         || receipt.artifact.profile != CapabilityProfile::Lite
         || receipt.artifact.installer_kind != InstallerKind::PluginBundle
@@ -1214,7 +1328,8 @@ fn validate_receipt_shape(
         || Version::parse(&receipt.content_version).is_err()
         || !is_lower_hex(&receipt.source_commit, 40)
         || match receipt.package_kind {
-            CodexPluginBundleKind::UserLocalHostFullMcp => {
+            CodexPluginBundleKind::UserLocalHostFullMcp
+            | CodexPluginBundleKind::UserLocalAntigravityFullMcp => {
                 !receipt.signed_grant_payload_sha256.is_empty()
             }
             _ => !is_lower_hex(&receipt.signed_grant_payload_sha256, 64),
@@ -1281,12 +1396,12 @@ fn validate_receipt_shape(
     let manifest = receipt
         .entries
         .iter()
-        .find(|entry| entry.path == PLUGIN_MANIFEST_PATH)
+        .find(|entry| entry.path == receipt.package_kind.manifest_path())
         .ok_or(CodexPluginBundleError::ReceiptInvalid)?;
     let mcp = receipt
         .entries
         .iter()
-        .find(|entry| entry.path == MCP_MANIFEST_PATH)
+        .find(|entry| entry.path == receipt.package_kind.mcp_path())
         .ok_or(CodexPluginBundleError::ReceiptInvalid)?;
     if binary.mode != LogicalMode::Executable
         || binary.sha256 != receipt.binary_sha256
@@ -1369,8 +1484,9 @@ fn verify_tree_directory(
     expected_directories: &BTreeSet<String>,
     seen_files: &mut BTreeSet<String>,
     seen_directories: &mut BTreeSet<String>,
+    layout: BundleReadLayout,
 ) -> Result<(), CodexPluginBundleError> {
-    verify_directory(directory)?;
+    verify_directory(directory, layout)?;
     let entries = fs::read_dir(directory)
         .map_err(|error| CodexPluginBundleError::PersistenceFailed(error.kind()))?;
     for item in entries {
@@ -1394,9 +1510,10 @@ fn verify_tree_directory(
                 expected_directories,
                 seen_files,
                 seen_directories,
+                layout,
             )?;
         } else if metadata.is_file() {
-            if relative == CODEX_PLUGIN_BUNDLE_RECEIPT_FILE {
+            if relative == layout.receipt_file() {
                 verify_managed_file(&path, LogicalMode::Regular)?;
                 continue;
             }
@@ -1423,10 +1540,20 @@ fn verify_entry(
     Ok(())
 }
 
+#[cfg(test)]
 fn write_bundle_tree(
     root: &Path,
     files: &BTreeMap<String, BundleFile>,
     receipt_bytes: &[u8],
+) -> Result<(), CodexPluginBundleError> {
+    write_bundle_tree_with_receipt(root, files, receipt_bytes, CODEX_PLUGIN_BUNDLE_RECEIPT_FILE)
+}
+
+fn write_bundle_tree_with_receipt(
+    root: &Path,
+    files: &BTreeMap<String, BundleFile>,
+    receipt_bytes: &[u8],
+    receipt_file: &str,
 ) -> Result<(), CodexPluginBundleError> {
     let mut directories = vec![root.to_path_buf()];
     for (relative, file) in files {
@@ -1436,7 +1563,7 @@ fn write_bundle_tree(
         write_new_file(&destination, &file.bytes, file.mode)?;
     }
     write_new_file(
-        &root.join(CODEX_PLUGIN_BUNDLE_RECEIPT_FILE),
+        &root.join(receipt_file),
         receipt_bytes,
         LogicalMode::Regular,
     )?;
@@ -1515,6 +1642,8 @@ fn validate_bundle_path(path: &str) -> Result<(), CodexPluginBundleError> {
         }
     }
     let allowed = path == LOCAL_MARKETPLACE_PATH
+        || path == "plugin.json"
+        || path == "mcp_config.json"
         || path == PLUGIN_MANIFEST_PATH
         || path == MCP_MANIFEST_PATH
         || path == "bin/qiongli"
@@ -1855,13 +1984,21 @@ fn finalize_directory(_path: &Path) -> Result<(), CodexPluginBundleError> {
     Err(CodexPluginBundleError::UnsupportedPlatform)
 }
 
-fn verify_directory(path: &Path) -> Result<(), CodexPluginBundleError> {
+fn verify_directory(path: &Path, layout: BundleReadLayout) -> Result<(), CodexPluginBundleError> {
     let metadata = fs::symlink_metadata(path)
         .map_err(|error| CodexPluginBundleError::PersistenceFailed(error.kind()))?;
     if metadata.file_type().is_symlink() || is_reparse_point(&metadata) || !metadata.is_dir() {
         return Err(CodexPluginBundleError::BundleDrift);
     }
-    verify_directory_security(path, &metadata)
+    let canonical = verify_directory_security(path, &metadata);
+    if layout == BundleReadLayout::AntigravityCache {
+        // AGY preserves file bytes/modes but creates cache directories as 0700.
+        // Both paths enforce ownership and reject links; source/signed readers
+        // retain their canonical directory mode. No cache chmod is performed.
+        canonical.or_else(|_| verify_staging_directory_security(path, &metadata))
+    } else {
+        canonical
+    }
 }
 
 fn verify_staging_directory(path: &Path) -> Result<(), CodexPluginBundleError> {

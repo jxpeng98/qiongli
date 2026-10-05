@@ -3363,6 +3363,8 @@ pub(crate) fn resolve_host_plugin_executable(
     let installed = match name {
         "codex" => home.join(".local/share/mise/installs/codex/latest/bin/codex"),
         "claude" => home.join(".local/share/mise/installs/claude-code/latest/claude"),
+        "agy" => home
+            .join(".local/share/mise/installs/aqua-google-antigravity-antigravity-cli/latest/agy"),
         _ => return Err("host-plugin-executable-unavailable"),
     };
     fs::canonicalize(installed).map_err(|_| "host-plugin-executable-unavailable")

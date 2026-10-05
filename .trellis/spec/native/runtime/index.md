@@ -382,7 +382,7 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   Plugin install/upgrade/update share one upsert path, discover the registered
   source through the official Host inventory and validate its receipt before
   updating. A shared Host table/parser accepts comma/space selections, deduplicates
-  in order, keeps 3/both as Codex+Claude and expands all to Codex/Claude/DeepSeek. Each Host
+  in order, keeps 3/both as Codex+Claude and expands all to Codex/Claude/DeepSeek/Antigravity. Each Host
   retains its existing installer and separate approval. This selection flow
   stops on cancellation/failure. Foreign enabled Plugins refuse before export
   with their exact names and manual disable guidance. See ADR 0225.
@@ -837,6 +837,31 @@ power-loss durability or deletion interrupted inside every application tree.
 - Confirm public CLI examples exist in the parser and `--help` output.
 
 ## User-approved Plugin source lifecycle
+
+Antigravity's terminal adapter (`plugin_host/antigravity.rs`, choice 5, targets
+`antigravity`/`agy`) reuses the existing bundle transaction with the separate
+`user-local-antigravity-full-mcp` kind and receipt filename. It projects the same
+canonical Skills/variant/language, a native binary, root `plugin.json` and
+`mcp_config.json`. The root guidance uses `other-local` for Full Host descriptors;
+it never invents an Antigravity enum in the shared schema. Signed kinds and
+Codex/Claude public App target schemas remain unchanged.
+
+Two terminal confirmations bind source, executable and prior receipt hashes,
+variant, language, AGY cache receipt and profile-file digests. Both expire after
+ten minutes and recheck under the managed-write guard. The existing staging,
+target lock, no-replace moves, whole-tree verification and CAS own file changes.
+Only official `agy plugin install` / `enable` write the Host profile; unknown or
+changed caches and duplicate standalone MCP definitions refuse. The installer
+checks native cache equality, import registration and enablement independently.
+The read-only AGY cache verifier accepts owner-owned `0700` or canonical `0755`
+directories; source and signed readers still require canonical modes. All readers
+retain file-mode, link, receipt and whole-tree byte checks. Cache permissions are
+never rewritten to satisfy verification.
+It makes no live-session claim. `--hooks`, scripted App plans and signed AGY
+activation are not provided. The AGY manager currently uses `.gemini/config`.
+The source directory remains required: its absolute bundled binary command
+avoids unverified Plugin-root expansion. Context, model and credentials remain
+Host-owned. The existing Codex receipt wire bytes retain their previous form.
 
 `plugin_source.rs` owns the bounded local source export, routed through
 `app plan plugin-source-install|plugin-source-update|plugin-source-remove` and the

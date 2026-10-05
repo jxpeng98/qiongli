@@ -20,6 +20,7 @@ use crate::plugin_source::{PluginSourcePlan, plugin_id, plugin_name};
 
 const MARKETPLACE: &str = "qiongli-cli-local";
 
+pub(crate) mod antigravity;
 mod codex_config;
 pub(crate) mod deepseek;
 

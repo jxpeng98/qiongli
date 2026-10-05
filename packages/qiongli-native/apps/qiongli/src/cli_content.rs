@@ -149,6 +149,7 @@ pub struct InstallationGuide {
 pub(crate) enum PluginInstallHost {
     Managed(crate::managed_operation::ManagedIntegrationTargetV1),
     DeepSeek,
+    Antigravity,
 }
 
 use crate::managed_operation::ManagedIntegrationTargetV1 as ManagedHost;
@@ -173,6 +174,12 @@ const PLUGIN_HOSTS: &[(&str, &str, &str, PluginInstallHost)] = &[
         "DeepSeek Harness",
         PluginInstallHost::DeepSeek,
     ),
+    (
+        "5",
+        "antigravity",
+        "Antigravity",
+        PluginInstallHost::Antigravity,
+    ),
 ];
 
 pub(crate) fn plugin_hosts(selection: &str) -> Result<Vec<PluginInstallHost>, &'static str> {
@@ -191,7 +198,11 @@ pub(crate) fn plugin_hosts(selection: &str) -> Result<Vec<PluginInstallHost>, &'
             std::slice::from_ref(
                 PLUGIN_HOSTS
                     .iter()
-                    .find(|entry| selected == entry.0 || selected == entry.1)
+                    .find(|entry| {
+                        selected == entry.0
+                            || selected == entry.1
+                            || (selected == "agy" && entry.1 == "antigravity")
+                    })
                     .ok_or("installation-selection-invalid")?,
             )
         };
@@ -215,6 +226,7 @@ pub(crate) fn validate_host_options(
     if (targets.len() > 1 && destination.is_some())
         || (targets.contains(&PluginInstallHost::DeepSeek)
             && (destination.is_some() || context_hooks.is_some()))
+        || (targets.contains(&PluginInstallHost::Antigravity) && context_hooks.is_some())
     {
         return Err("installation-host-options-invalid");
     }
@@ -232,7 +244,7 @@ impl InstallationGuide {
     pub fn run(self, environment: &CommandEnvironment, content: &EmbeddedContent) -> CliOutput {
         if !io::stdin().is_terminal() || !io::stdout().is_terminal() {
             return CliOutput::usage_text(
-                "installation requires a terminal; use --dry-run with an explicit target/destination for scripts",
+                "installation requires a terminal; scripted --dry-run is available only for Codex/Claude source exports and standalone Skills",
             );
         }
         let reader = &mut io::stdin().lock();
@@ -388,6 +400,19 @@ fn install_plugins(
             .2;
         line(writer, &format!("\n{host} Plugin — install or update\n"))?;
         let target = match selected {
+            PluginInstallHost::Antigravity => {
+                if !crate::plugin_host::antigravity::install(
+                    environment,
+                    content,
+                    destination.as_deref(),
+                    &language,
+                    reader,
+                    writer,
+                )? {
+                    break;
+                }
+                continue;
+            }
             PluginInstallHost::DeepSeek => {
                 if !crate::plugin_host::deepseek::install(
                     environment,
@@ -702,7 +727,16 @@ fn installation_failure(code: &'static str) -> CliOutput {
             "Context hooks need Claude Code 2.1.139 or newer. Update Claude Code, or rerun install plugin --hooks off."
         }
         "host-plugin-executable-unavailable" | "local-host-version-unsupported" => {
-            "Install or update the selected Host CLI (codex, claude or dsh), then retry this command."
+            "Install or update the selected Host CLI (codex, claude, dsh or agy), then retry this command."
+        }
+        "antigravity-version-unsupported" => {
+            "Update Antigravity CLI to 1.2.17 or newer, then retry."
+        }
+        "antigravity-plugin-conflict" => {
+            "The AGY cache contains another enabled Qiongli Plugin or unverified files. Review it with agy plugin before retrying."
+        }
+        "antigravity-mcp-conflict" => {
+            "An existing standalone Qiongli MCP entry would duplicate the Plugin. Review it in AGY before retrying."
         }
         "deepseek-version-unsupported" => "Update DeepSeek Harness to 0.2 or newer, then retry.",
         "deepseek-desktop-profile-unavailable" => {
@@ -712,7 +746,7 @@ fn installation_failure(code: &'static str) -> CliOutput {
             "Review the old dsh-qiongli-* bundle in this profile and remove it through the official DSH manager before installing qiongli."
         }
         "installation-host-options-invalid" => {
-            "Use separate Codex/Claude selections for --hooks/--destination. DeepSeek uses its own npm profile."
+            "Use a single Host for --destination. Hooks support Codex/Claude only; DeepSeek uses its own npm profile."
         }
         "local-host-plugin-scope-conflict" => {
             "Review duplicate or project-scoped Qiongli Plugins in the Host; this command uses user scope."
@@ -800,18 +834,18 @@ mod tests {
     fn plugin_selection_supports_multiple_hosts_without_duplicate_steps() {
         let all = PLUGIN_HOSTS.iter().map(|entry| entry.3).collect::<Vec<_>>();
         for selection in [
-            "1,2,4",
-            "1 2 4",
-            "codex,claude,deepseek",
-            "3,4",
-            "both 4",
+            "1,2,4,5",
+            "1 2 4 5",
+            "codex,claude,deepseek,antigravity",
+            "3,4,5",
+            "both 4 agy",
             "all",
-            "1,1,2,4,4",
+            "1,1,2,4,4,5",
         ] {
             assert_eq!(plugin_hosts(selection).unwrap(), all);
         }
         assert_eq!(plugin_hosts("4 1").unwrap(), vec![all[2], all[0]]);
-        for selection in ["", "0", "1,unknown", "1 all", "5"] {
+        for selection in ["", "0", "1,unknown", "1 all", "6"] {
             assert!(plugin_hosts(selection).is_err());
         }
         assert!(validate_host_options(&all, None, None).is_ok());

@@ -8,6 +8,7 @@
 qiongli install plugin --target codex
 qiongli install plugin --target claude
 qiongli install plugin --target deepseek
+qiongli install plugin --target antigravity
 qiongli install plugin --target codex,deepseek
 ```
 
@@ -50,6 +51,39 @@ dsh plugin --profile desktop add qiongli@2.3.0
 向导优先使用已存在的 Desktop profile，否则使用 `web`。新 CLI profile 由官方 `web` 模板初始化；Desktop 的保留 profile 由 Desktop 自行初始化。DSH 使用自己的包管理器和 profile；`--destination`、上下文 `--hooks` 需要另选 Codex/Claude。
 
 更新时通过向导或管理器指定版本。Desktop 对话框按其说明移除后重新添加，保留 profile 与模型设置。开发者导出和外部任务见[外部 Agent 协作](../../advanced/external-host-coordination.md)。
+
+## Antigravity CLI {#antigravity}
+
+当前开发版 CLI 新增此入口；此前打标签的 2.3.0 程序尚未包含它。
+
+```sh
+qiongli install plugin --target antigravity --language zh
+# agy 是同一个目标的别名
+qiongli update plugin --target agy
+```
+
+先安装 `agy` 1.2.17 或更新版本。向导分别确认源文件导出与官方 `agy plugin
+install`、`enable` 命令。默认源目录为 `~/qiongli-antigravity`；单独选择此 Host
+时可用 `--destination` 指定安全绝对路径，末级目录为 `qiongli`、`qiongli-next`
+或 `qiongli-antigravity`，更新时复用同一路径。包内含 22 个 Skill 入口、原生程序
+和 Full MCP，采用根目录 `plugin.json`、`mcp_config.json`。
+
+**安装后保留源目录。** MCP 通过其中程序的绝对路径启动，不依赖未经验证的路径
+变量展开。实测 AGY 1.2.17 由官方管理器复制到 `~/.gemini/config/plugins/<name>`；
+安装器逐文件核对缓存收据，并单独检查注册和启用状态。缓存有未知或被修改的文件、
+另一个穷理 Plugin 已启用，或存在独立配置的穷理 MCP 时会停止并提示处理。
+安装器不选择模型，也不迁移登录凭据。
+
+新开 AGY 会话调用 `qiongli` Skill，再要求调用 `qiongli_config_status` 并列出
+穷理工具。安装成功与会话实际使用分别验证；`agy plugin list` 可查看 Plugin，
+但导入的 MCP 不一定出现在独立的 `agy mcp list` 中。请在交互会话中审阅并批准
+所需的 MCP 调用；实测无交互 `--print` 会拒绝尚未授权的调用，即使退出码为 0，
+仍应检查实际工具结果和 `denied_actions`。移除时先运行
+`agy plugin uninstall qiongli`（预发布用 `qiongli-next`），再处理源目录。
+当前不提供此 Host 的上下文 Hook、签名集成、`app plan` 或 `--dry-run`。
+
+格式依据官方 [Plugin 文档](https://www.antigravity.google/docs/plugins?tab=cli)和
+[MCP 文档](https://antigravity.google/docs/mcp)。IDE 与其他操作系统需另行验证。
 
 ## 独立 Skills
 

@@ -8,6 +8,7 @@ For a first installation, run `qiongli install` and follow the [quickstart](../q
 qiongli install plugin --target codex
 qiongli install plugin --target claude
 qiongli install plugin --target deepseek
+qiongli install plugin --target antigravity
 qiongli install plugin --target codex,deepseek
 ```
 
@@ -50,6 +51,48 @@ Replace `desktop` with your profile. The bundle includes 22 Skill entries, Full 
 The installer prefers an existing Desktop profile, otherwise `web`. New CLI profiles use the official `web` template; Desktop initializes its reserved profile itself. DSH uses its package manager and profile, so `--destination` and context `--hooks` require separate Codex/Claude selections.
 
 Use the installer or manager to update an exact version. In the Desktop dialog, follow its remove/add instructions while retaining your profile and model settings. For developer bundle exports and external proposals, see [external Agent coordination](external-host-coordination.md).
+
+## Antigravity CLI {#antigravity}
+
+The current development CLI adds Antigravity support; the previously tagged
+2.3.0 binary does not contain this installer.
+
+```sh
+qiongli install plugin --target antigravity --language en
+# agy is also accepted as the target name
+qiongli update plugin --target agy
+```
+
+Install `agy` 1.2.17 or newer first. The terminal guide separately confirms the
+local export and `agy plugin install` / `enable`. Its default source directory is
+`~/qiongli-antigravity`; `--destination` can select an absolute secure directory
+ending in `qiongli`, `qiongli-next` or `qiongli-antigravity`. Reuse the same custom
+destination when updating. The export contains 22 Skill entries, the native
+binary and Full MCP. It uses Antigravity's root `plugin.json` and `mcp_config.json`.
+
+**Keep the exported source directory.** MCP starts its binary by absolute path;
+no Plugin-root variable or working-directory expansion is assumed. In the
+observed AGY 1.2.17, the official manager copies the Plugin to
+`~/.gemini/config/plugins/<name>`. The installer verifies that entire cache
+against the export receipt and checks registration and enablement separately.
+Unknown/modified caches, another enabled Qiongli Plugin and an existing
+standalone Qiongli MCP entry stop installation for review. The manager owns
+configuration writes; Qiongli does not select a model or migrate credentials.
+
+Start a new AGY session, invoke the `qiongli` Skill, then ask it to call
+`qiongli_config_status` and list the available Qiongli tools. Registration alone
+does not prove those session behaviors. Review Plugin state with `agy plugin
+list`; imported MCP definitions need not appear in standalone `agy mcp list`.
+Use an interactive session to review and approve the requested MCP call. In the
+observed headless `--print` session, an unapproved call was denied even though
+AGY exited with status 0; inspect the actual tool result and `denied_actions`.
+To remove it, run `agy plugin uninstall qiongli` (or `qiongli-next` for a
+prerelease) before removing its retained source. Context hooks, managed signed
+integration, `app plan` and `--dry-run` for this Host remain outside this adapter.
+
+The native layout follows the official [Plugin format](https://www.antigravity.google/docs/plugins?tab=cli)
+and [MCP configuration](https://antigravity.google/docs/mcp). IDE installation and
+other operating systems need separate qualification.
 
 ## Standalone Skills
 
