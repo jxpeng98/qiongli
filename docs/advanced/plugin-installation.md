@@ -79,7 +79,8 @@ Unknown/modified caches, another enabled Qiongli Plugin and an existing
 standalone Qiongli MCP entry stop installation for review. The manager owns
 configuration writes; Qiongli does not select a model or migrate credentials.
 
-Start a new AGY session, invoke the `qiongli` Skill, then ask it to call
+Complete AGY's normal workspace trust review, then start a fresh session and
+check `/mcp` for the Qiongli server and tools. Invoke the `qiongli` Skill, then ask it to call
 `qiongli_config_status` and list the available Qiongli tools. Registration alone
 does not prove those session behaviors. Review Plugin state with `agy plugin
 list`; imported MCP definitions need not appear in standalone `agy mcp list`.

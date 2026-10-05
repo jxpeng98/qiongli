@@ -52,7 +52,33 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — October 4, 2026
+## Current execution horizon — October 5, 2026
+
+The maintainer selects Plugin task quality and continuity as the next increment
+after the authorized 2.3.0 publication handoff. Release monitoring remains outside
+scope. Use local tagged source `153cb15d` as the baseline; do not infer public
+publication or new acceptance from that source identity.
+
+The first bounded outcome is a reproducible installed-Codex baseline for three
+flows: explain supplied public-paper excerpts, write a source-bound paragraph,
+and recover reviewed saved documents in a fresh session with changed-source
+handling. Reuse existing official Plugin installation, preview/approval/CAS,
+answer-span review and Evaluation Truth V1. Keep structural, observed behavior,
+semantic review and actual token/tool/time metrics separate. One requested
+`gpt-6.1-sol / low` verifier owns isolated observations and checks. Retain failures,
+configured user profiles/models and all accepted records. Fix concrete observed
+defects before expanding to held-out tasks, upgrade continuity or further Hosts.
+The existing execution plan and CLI-405 ledger row own progress; no new task
+registry, permanent Agent topology or parallel evaluation engine is introduced.
+
+The maintainer subsequently adds native Antigravity/`agy` Plugin installation and
+actual Skill/MCP use to this increment. This explicitly selected Host adaptation
+can progress alongside the three-case baseline. Reuse local bundle transactions
+and shared Host contracts, preserve Codex/Claude behavior and configured models,
+and qualify each observed AGY behavior separately. CLI-409 records scoped adapter
+progress; its dependencies and acceptance state do not change.
+
+### Previous execution horizon — October 4, 2026
 
 The released baseline is **2.2.1**. A read-only GitHub API observation confirms
 [v2.2.1](https://github.com/jxpeng98/qiongli/releases/tag/v2.2.1) was published on

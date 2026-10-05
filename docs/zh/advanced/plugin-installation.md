@@ -74,7 +74,8 @@ install`、`enable` 命令。默认源目录为 `~/qiongli-antigravity`；单独
 另一个穷理 Plugin 已启用，或存在独立配置的穷理 MCP 时会停止并提示处理。
 安装器不选择模型，也不迁移登录凭据。
 
-新开 AGY 会话调用 `qiongli` Skill，再要求调用 `qiongli_config_status` 并列出
+完成 AGY 的工作区信任审阅后，新开会话，用 `/mcp` 确认穷理服务及工具已加载。
+调用 `qiongli` Skill，再要求调用 `qiongli_config_status` 并列出
 穷理工具。安装成功与会话实际使用分别验证；`agy plugin list` 可查看 Plugin，
 但导入的 MCP 不一定出现在独立的 `agy mcp list` 中。请在交互会话中审阅并批准
 所需的 MCP 调用；实测无交互 `--print` 会拒绝尚未授权的调用，即使退出码为 0，

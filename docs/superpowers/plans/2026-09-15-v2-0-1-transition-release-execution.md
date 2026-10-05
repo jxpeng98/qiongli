@@ -4621,3 +4621,281 @@ roadmap tests pass, together with index consistency, tag alignment, frozen-sourc
 boundary and whitespace checks. It independently confirms unchanged task states,
 dependencies and accepted records. Native builds are not repeated for these docs;
 the publication owner must qualify its own exact tagged source.
+
+## October 5 — installed Plugin quality baseline
+
+The maintainer authorizes the Plugin-quality plan. The first increment freezes
+three public/synthetic journeys at local tag source `153cb15d`: explain selected
+public-paper passages, write a bounded paragraph from the same supplied evidence,
+and recover reviewed saved documents by project ID in a fresh session, preserving
+changed-source handling. The requested `gpt-6.1-sol / low` verifier owns bounded
+isolated Host observations and validation. Private research, user installation or
+model changes, remote release monitoring and publication are outside this scope.
+
+Extend the existing research-journey owner with an offline capture/review adapter;
+reuse whole-answer span checks and Evaluation Truth V1 rather than another truth
+engine. Freeze the three-case denominator, retain raw failures locally, and report
+structural behavior, semantic review, token usage and tool/time measurements
+separately. Refresh the structural quality report's claims and canonical paths;
+correct stale bilingual Plugin tool counts. Actual source/cache identities,
+preview review, observation outcomes, checks and remaining gaps follow here at
+integration. No broader academic, upgrade or additional-Host acceptance is implied.
+
+### Baseline observation and limits
+
+The isolated native binary is source `153cb15d8257ad04612b84932c81b7e8f65a156b`,
+SHA-256 `001e8df2af78e21e1257fe9e4e02c499a782a5fb89c99036d2c4b1ae824dfdac`.
+Its canonical content source is separately `fd8ffcacd408991cc6684304558cf657b79df18d`,
+pack SHA-256 `95548972bf25b441a1e8a3ca407f4f6fc6259557af88603f3daa3462785e09ba`.
+Codex 0.160.0 installs/enables `qiongli@quality-baseline`, with 468 verified entries,
+receipt `b7a8f95c6a3bb8dfd2eb21854a391c090ad07fc7778cdcc28d930cecc169468e`,
+Lite 15/Full 35. An initial harness assumption incorrectly equated binary and
+content source commits; the failed preparation remains in the local logs.
+
+The maintainer explicitly authorizes one temporary existing-login symlink for
+these three public-material calls only, each `gpt-6.1-sol / low`, at most 180s.
+Earlier automatic approval refusals and a delegated-context refusal after the
+grant remain recorded. The same operation succeeds through the main Agent with
+the original trusted approval present; no alternate credential path or permission
+bypass is used. No credential bytes are copied or output. The symlink is removed
+after each batch, and all three calls finish with exit 0; none is retried.
+
+| Case | Seconds | Reported input / cached input / output tokens | Actual MCP calls | Result limit |
+| --- | ---: | --- | --- | --- |
+| Paper explanation | 80.683 | 56,763 / 42,240 / 1,969 | 0 | Approved fixture consolidation overlapped this call; preservation fails and remains in the denominator. |
+| Source paragraph | 23.330 | 35,326 / 29,696 / 466 | 0 | Source-bound but too short: 186 CJK or 227 non-whitespace characters after excluding anchor citations, below 250–350. |
+| Saved continuation | 79.124 | 162,078 / 134,784 / 1,694 | 5, including 1 failure | Four native project/list/document calls succeed; `resources/list` fails with Method not found. |
+
+The first overlap was a harness coordination error, not an observed model write.
+The other two captures preserve their frozen project/config snapshots. The
+recovery finds revision 4, reads the current 7,052-byte note and 10,308-byte source
+packet using returned bindings, and skips the separate explicitly changed
+synthetic packet. Native preview/academic/file approval, consolidation and
+readback bind revisions 1–4; the negative marker changes only that synthetic
+packet. It preserves the original excerpt, note and previous history.
+
+Whole-answer review finds no identified source-fidelity violation in these three
+answers, but successful Skill-body loading is unproven throughout. Earlier
+messages announcing a Skill and self-reporting failed reads do not establish
+tool execution. The first review also overlooked the paragraph length; its
+original review/report is retained and the corrected review marks task scope
+failed. The recommendation inside the longer explanation is within its requested
+200–300-character bound. Overall structural checks are 2/3; complete reviewed
+passes are 0/3. These measurements do not prove token savings or broad quality.
+
+The 24-file capture manifest is
+`ad8f24bdcd575bfabbdce63d2b0a10c6c7baf7d4d48005854b8e48bf45e9d7cb` under
+`/home/hermes/qiongli-codex-continuity-yqk33pu3/plugin-quality-qewbuh2w/captures`.
+The corrected review SHA-256 is
+`0d7a727f42a3b90ef3622e479acd0f552bbc61211bbcf459d8eeec3730f0f9f7`;
+`offline-score-final/summary.json` is
+`7d523fce5cd9aaf9aeeb91dcac19d572042f4f479d7e537dcdc03dcc91230ee1`.
+Baseline implementation is local commit `bcec1b0f`; its offline report retains
+the original `153cb15d` Host observation identity.
+The baseline adapter's 50 focused checks pass (9 new baseline, 11 observation,
+3 research-journey, 10 routing, 14 V1 evaluation and 3 section-audit tests).
+The regenerated structural audit is 70/82 literal-section coverage, replacing a
+stale 82/82 report; it is not a count of academic-quality defects. Next isolate
+why successful Skill reads are absent and enforce requested output bounds before
+expanding cases. Any additional authenticated Codex observation needs new scope;
+this three-call authorization is exhausted.
+
+### Added scope — Antigravity local Plugin
+
+The maintainer explicitly adds Antigravity/`agy` support and actual installation,
+Skill use and MCP calls. This changes the Host ordering for this bounded increment;
+it does not replace the Codex baseline or authorize a new release. ADR 0233 records
+the local adapter over the existing bundle transaction and canonical projection.
+The terminal guide adds choice 5 and `antigravity`/`agy`, separate export and
+registration confirmations, fixed official commands, complete cache verification
+and preserved model settings. Signed App targets and canonical MCP schemas stay
+unchanged; Full descriptors use `other-local`.
+
+Read-only discovery initially observed AGY 1.2.16; a later independent check found
+1.2.17 without this task running an upgrade. Disposable native-format probes on
+1.2.17 confirm install, same-name update, preserved disabled state and exact
+manifest/Skill/binary/dot-receipt copies in `.gemini/config/plugins`. Imported
+Plugin MCP definitions are absent from standalone `mcp list`; that absence alone
+is not a failed Plugin connection. Literal Claude Plugin-root variables and
+relative executable validation fail from the launch directory, so the local
+adapter binds the retained source binary's absolute path. The official manager,
+not Qiongli, owns AGY cache and configuration writes. These synthetic probes do
+not yet establish candidate installation, runtime MCP or Skill use.
+
+The development test-profile binary is SHA-256
+`e8951e8cb51b44526232412a2de20f42e0c7a90ab989f283c5f841c18e872705`.
+The temporary input manifest at `/tmp/qiongli-agy-native-workingtree-copy.json`
+is later refreshed for the corrected candidate and cannot independently recover
+this older candidate's source bytes. Its retained binary, export and raw logs
+bind the old observations. Embedded content retains the `fd8ffcac` source and
+`95548972` pack above. This binary is not a new published 2.3.0 artifact.
+Tests use a private checkout because the normal checkout's
+group-writable ancestors correctly fail the existing materialization policy.
+No permissions or security checks are relaxed. The first new test fixture used
+uncanonicalized parent components and failed; fixing only the fixture preserved
+that negative boundary. An initial ownership compile error and redundant build
+setup are also retained, rather than counted as passing checks.
+
+Actual terminal observations are under
+`/home/hermes/qiongli-codex-continuity-yqk33pu3/agy-quality-oirf9ema`.
+Cancellation exits 0 without source or Host writes. Approving only file export
+passes in 174.034 seconds, retaining the verified source and leaving AGY
+registration untouched. The subsequent complete installation exceeded the
+harness's initial 180-second native budget before its second approval; its
+logs and partial directory are retained. The corrected native-only budget is
+600 seconds in a fresh isolated HOME; this does not enlarge model-call limits.
+
+The separate normal authenticated AGY observation uses a workspace-local copy
+of that verified Plugin, the supplied public excerpt and an isolated Qiongli
+configuration. It neither copies credentials nor changes the user's Plugin,
+model or permission settings. Evidence is under
+`/home/hermes/qiongli-codex-continuity-yqk33pu3/agy-session-1jd6tkog`.
+The actual 26.481-second `--print --mode plan --sandbox --effort low` session
+discovers the Plugin, reads the 22,796-byte workflow Skill and 1,151-byte paper-read
+wrapper, and reads the discovered `qiongli_config_status` schema. It attempts
+`qiongli_qiongli/qiongli_config_status`, but AGY automatically denies the required
+MCP permission in headless mode. Exit 0 and a `SUCCESS` envelope accompany an
+empty answer and `denied_actions`; they do not prove a successful MCP call.
+There is no returned status, excerpt read or expanded paper-reading resource
+read in this observation. Workspace and Qiongli configuration byte maps remain
+unchanged; AGY creates its normal tool-schema session cache. Keep this failure
+separate from installation and from any subsequent explicitly scoped interactive
+call. The installation guides explain this observed permission behavior.
+
+The fresh 600-second native attempt finishes in 169.957 seconds with
+`antigravity-plugin-conflict` after both official commands. Inspection of
+`agy-quality-di3opt6f/logs/cache-comparison.json` establishes the concrete defect:
+all 563 source/cache entries have matching file bytes and file modes, including
+the executable, while AGY creates directories as `0700` instead of canonical
+`0755`. Source/cache receipt SHA-256 is
+`8252cb7d8658aae3f4a7ebc016914947c6dcafbc1dfa71b61f6b389040518a13`.
+Native import registration and enablement both succeeded. The original full
+verification correctly refused its unsupported layout; no cache chmod or
+permission bypass was used. The fix adds an AGY-cache-only read path that accepts
+owner-owned `0700` or `0755` directories through the existing security checks.
+Source/signed readers, file modes, links, receipt bindings and byte verification
+retain their previous requirements. Preserve the failed attempt under its old
+binary identity; the corrected candidate and update observation are separate.
+
+A normal interactive attempt under `agy-interactive-7cayhqlk` stops at AGY's
+workspace trust screen without approval or a model task. A targeted follow-up
+may temporarily trust only this already reviewed public test workspace through
+the normal UI, approve only the single read-only status call, and remove that
+new `trustedWorkspaces` entry with a compare-and-swap cleanup. Other trusted
+paths, settings, models and permission rules must remain intact; no blanket
+permission option is used. The configured model shown by this Host is Gemini
+3.8 Flash, with low effort; the independent verifier remains the requested
+`gpt-6.1-sol / low`. These are separate roles, and Qiongli selects neither model.
+
+Native implementation is local commit `ff62b06a`. The final test-profile binary
+SHA-256 is `726154bad8cd404edf1adf6b73e9a8e49cee4dd837304b737572ef5b00a637f0`
+(68,687,568 bytes), bound to the copied working-tree manifest SHA-256
+`71d99284317af1dddbda84254162bdb6528c294399ae7ce27f58790e69b282bf`.
+It was built before that commit from the named file inputs; neither the commit
+nor this record rebinds earlier binaries or constitutes release qualification.
+Five adapter unit tests, three original AGY bundle tests, four retained Codex
+bundle regressions, four guide and two parser checks pass. The strengthened
+malformed-profile preflight and the later cache-policy negative case also pass;
+the latter uses an explicit small executable fixture for file policy only.
+It accepts private cache directories while rejecting private source directories,
+writable directories, noncanonical executable modes and modified content.
+Strict affected Clippy passes after the fix. The earlier Codex regression run
+takes 800.62 seconds due to repeated full-binary transactions; unchanged tests
+are reused. Staged whitespace and the ADR registry validator pass (7 frozen,
+33 current decisions). Independent final review reports no remaining actionable
+finding in the corrected native scope.
+
+Updating the previously registered isolated AGY profile with the corrected
+candidate succeeds: `update-cache-fixed-600s` exits 0 in 272.044 seconds after
+both explicit approvals. Its logs remain under `agy-quality-di3opt6f/logs`.
+The new source/cache receipt is
+`debf43d08de64b590be7d6d795ae7de9914ba8fc2d3db8193651763dc4269018`.
+`update-cache-fixed-comparison.json` confirms all 468 files match in bytes and
+file modes, including the new bundled binary; only directory modes differ as
+expected. The official manager registers/enables the Plugin and final native
+verification passes. An initial syntax error in the read-only comparison helper
+is retained; correcting it repeats no installation or model call.
+
+The supplementary actual interactive observation is under
+`agy-trusted-interactive-l5ev5naw`. It finishes in 27.016 seconds after the exact
+public workspace is trusted through the normal UI, but no MCP approval or call
+occurs: the Host log records an empty `mcp_servers` prompt section and the model
+reports that the requested server is unavailable. This is a distinct failure
+from the earlier headless permission denial. Project/config maps remain equal.
+The temporary trust entry is removed by CAS and the original settings bytes are
+restored (SHA-256
+`9ed1c60873721d012d70340638025c1979c95a1ba80c61a54f6472b6d29d0b56`).
+No other trust path, model or permission rule changes. A preceding 55.042-second
+interactive harness attempt rejected terminal control-response input before
+trust/model execution; its failed record is retained. Only those known terminal
+responses were filtered for the successful harness run, without broadening any
+approval condition. Installation, Skill reads and actual MCP execution remain
+separate results: this candidate's install/update passes, but no successful AGY
+MCP result has been observed at this point.
+
+A subsequent no-model trust/exit/fresh-session probe under
+`agy-no-model-mcp-_z77kei9` completes in 68.153 seconds. AGY's local `/mcp` menu
+shows a healthy `qiongli_qiongli` connection and all 35 Full tools. This establishes
+fresh-session discovery, without proving the sole cause of the earlier empty
+tool section. Project/config maps and original settings bytes are restored.
+The next targeted model attempt under `agy-final-mcp-on8x32c0` reaches the exact
+read-only status call's permission UI: option 1 is `Yes, allow tool call`, while
+other options grant conversation-wide or persistent permission. The test driver
+only recognizes different single-use wording and refuses to forward approval.
+It stops after 63.100 seconds, with no returned MCP result and successful trust
+cleanup. This is a reproducible driver defect; the real permission UI is retained
+in `permission-interface.txt`. A correction must be checked offline against that
+captured menu before any targeted rerun. All observations so far retain the old
+`e8951e` workspace Plugin identity, separate from the new installed candidate.
+
+The corrected driver creates a new public workspace under
+`agy-driver-fixed-hobqnstn` from the verified final source. Its binary and receipt
+are `726154ba` and `debf43d0`, matching the installed candidate above. Offline
+tests accept the captured exact single-call menu and reject a different tool,
+selection or permission scope. The first run with this candidate stops after
+40.199 seconds because the terminal wraps the exact `cwd` argument across two
+lines. No approval is sent; preservation and trust cleanup pass. The driver then
+parses only the latest expanded invocation JSON, removes terminal CR/LF wrapping
+and compares the complete arguments to the single expected `cwd`. The saved
+positive case and wrong-cwd/extra-argument/wrong-tool negatives pass before the
+targeted rerun. No product source changes or broader permission grants result
+from either driver correction.
+
+The final observation under `agy-driver-fixed-run-e8lo5jpd` obtains an actual
+native MCP return through that final candidate. A fresh session first displays
+the healthy 35-tool server; the exact `qiongli_config_status` invocation and
+public-workspace `cwd` are reviewed, then option 1 approves this call only.
+The Host independently records `approved=true`, `sandboxOverride=false` and
+`persistGrants=[]`; the tool UI displays a returned object. The full raw MCP JSON
+is not separately serialized, so the model's final `status: ok` description is
+not substituted for transport bytes or a field-by-field result check.
+
+The model phase lasts 64.768 seconds. A later inspection assertion fails after
+the return/final answer, causing the harness to terminate the still-open Host
+with exit -9. Retain this infrastructure failure: the run is not a clean-exit
+pass, even though the actual tool return was observed. Workspace and Qiongli
+configuration maps remain equal; CAS cleanup restores the original settings
+SHA-256 `9ed1c60873721d012d70340638025c1979c95a1ba80c61a54f6472b6d29d0b56`.
+The full terminal file SHA-256 is
+`22f43bd59cc1c1f65acb8cf1d912392f57979285a8a50549652f080756ba5740`;
+the sealed `verification-summary.json` is
+`aaadb4cecd2b2279fe6a46deecd23babfa9269365cafe9b86fb28c5716339ca9`.
+`historical-full-terminal-hashes.json` distinguishes complete file hashes from
+the earlier capture field that hashed only the buffer after a session restart;
+no historical capture is rewritten. Final cache-fixed formatting also passes.
+
+The delivered scope is the local installer/update adapter, actual installed
+cache verification, observed workflow/paper-read entry reads, fresh-session MCP
+discovery and one native status return. The isolated official-manager profile
+and authenticated workspace-local Plugin observation remain separate contexts,
+bound to matching final source/binary identities for that last call. No user-wide
+Plugin installation, model change, credential migration or persistent permission
+change is performed. Next improve complete structured result capture and clean
+driver shutdown before extending to academic write/restart tasks. IDE, other
+platforms, full academic quality and program/release acceptance remain separate.
+
+At local integration, the requested lightweight verifier passes all seven
+program-roadmap tests, generated-index consistency and whitespace checks. It
+confirms that all 249 task states/dependencies and all 46 complete accepted
+records remain unchanged; only CLI-405/409 progress text and dates change.
+The original native checks are reused under their stated input identities.
