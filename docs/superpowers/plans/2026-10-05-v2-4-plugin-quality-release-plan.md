@@ -235,3 +235,72 @@ installed candidate and public fixtures for newly scoped live observations,
 including the three Codex tasks with the declared counting convention. Their
 evidence enables slice 3's save/restart and held-out cases; release/upgrade
 qualification remains later work.
+
+## October 5 — bounded AGY capture and cleanup increment
+
+The maintainer requests the next step after `b60518bf`. Implementation
+`1ae2bbdd`, followed by scoring-identity fix `0cac3641`, adds
+`evals/research_journey/antigravity_observation.py` under the existing
+journey owner. It prepares one new capture directory for an exact read-only status
+request, binds installed identities, command, selected Qiongli environment and
+fixture/configuration snapshots, and spools full raw stdout/stderr to disk. It
+neither replaces the user's model nor writes trust/permission settings, links
+credentials, resumes a conversation or retries a denied call.
+
+The adapter consumes AGY's own stream events and uses the existing V1 runner for
+behavior checks. Matched invocation steps, native envelope bytes and Host/process
+completion are distinct observations. Full status evidence requires the existing
+status schema plus matching MCP content/structuredContent; short tool summaries,
+bare status objects and model descriptions cannot fill missing output. A Host's
+`SUCCESS` status or process exit zero cannot erase a denied action.
+
+The old PTY driver lowercased invocation paths, depended on a recent terminal
+buffer after the final answer and hashed a reset buffer across restarts. A new
+current-screen checker preserves JSON path case and exact arguments while
+recognizing the single-use permission choice; it never sends approval keys.
+The print driver uses one process and hashes its entire saved stream, with
+SIGTERM-before-wait, bounded SIGKILL fallback and child reaping on timeout or
+exceptions. Remaining members of its owned POSIX process group are reported;
+other-session descendants remain outside that guarantee. The temporary old
+drivers and captures are unchanged, and no repaired live interactive run is claimed.
+
+The requested `gpt-6.1-sol / low` verifier passes **56 unique focused checks**:
+22 new AGY observation cases, 20 existing Plugin baseline cases and 14 V1 cases.
+The final nested-JSON and scoring-identity fixes rerun only the AGY module;
+unchanged baseline and V1 results are reused. Coverage includes full synthetic envelopes, denied calls with
+Host success, summaries/missing output, duplicate/foreign/truncated events,
+wrapped/case-sensitive arguments, actual fake-child normal/timeout/kill/exception
+cleanup, signal-exit races, missing/drifted snapshots, exact command/environment
+bindings and refusal to overwrite an existing capture.
+
+Initial validation/review exposed missing-snapshot booleans, `false == 0` exit
+comparison, inconsistent selected environment, nested duplicate JSON keys and
+missing installation-identity validation when scoring a resealed capture;
+all now refuse success with regression coverage. A mock's one-shot exception
+caused a test-only `StopIteration` and was corrected to model the repeatable
+process-disappearance race. Final code review has no blocking finding and staged
+whitespace checks pass. All seven roadmap tests pass; the ledger retains 249
+tasks and 46 accepted evidence records without state or dependency changes.
+
+The existing real headless record at
+`/home/hermes/qiongli-codex-continuity-yqk33pu3/agy-session-1jd6tkog/events.jsonl`
+is replayed read-only, SHA-256
+`31214c12927530d5746ed5976f18558640565570d1b09daffc1e44c1106f9b46`.
+It reports Host `SUCCESS` and `num_turns: 1`, but its response is empty, one action
+is denied, and the matching MCP step has no output. The adapter retains those
+facts and refuses a pass. Earlier file-read steps also mean this historical
+session is not the new exactly-one-tool status scope. No historical observation
+or failed attempt is promoted into a live success.
+
+Installed `agy --help` and the [official headless documentation](https://antigravity.google/docs/cli/headless/)
+confirm the structured-output interface, not that the local Host exposes the
+required full MCP envelope. This turn runs no new model/Host session, permission
+or login change, native build, installation or publication. The live slice-1
+exit gate remains open: a normally authorized actual status invocation must
+provide complete output and clean shutdown on the named installed candidate.
+If only a summary is available, retain that capability gap without broadening
+permission or substituting another result. Independent preparation of the fresh
+installed-Codex three-case baseline can proceed; its earlier three-call login
+reuse grant remains exhausted. Save/restart, held-out and upgrade qualification
+remain later increments. CLI-409 owns this progress; task states, dependencies
+and accepted evidence remain unchanged.

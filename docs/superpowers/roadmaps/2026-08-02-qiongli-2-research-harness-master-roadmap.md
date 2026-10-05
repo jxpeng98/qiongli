@@ -60,8 +60,12 @@ after planning integration `2813426f`. The first bounded increment strengthens
 offline observation integrity and core reading/writing guidance: freeze/seal
 inputs, retain actual call evidence separately from run completion, and check
 installed guidance bytes and paragraph length. The plan records focused checks
-and remaining live Host gaps. Next complete AGY result capture/shutdown and fresh
-installed-Codex observations before save/restart and release/upgrade qualification.
+and remaining live Host gaps. AGY now has a bounded structured-event capture and
+cleanup adapter with 56 focused checks and a read-only replay that retains the
+old denial/missing output despite Host success. Actual full-result capture and
+clean shutdown remain unqualified. Prepare fresh installed-Codex observations
+independently while that AGY evidence gap remains open, before save/restart and
+release/upgrade qualification.
 The proposed version, task states/dependencies and accepted evidence remain
 unchanged; local implementation does not authorize a release. CLI-405/409/410 and
 the existing evaluation, installation and write owners retain responsibility.
