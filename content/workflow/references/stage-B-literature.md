@@ -266,9 +266,16 @@ Suggested `snowball_log.md` table:
 Organize related work around the argument; chronology is useful when development
 over time is part of that argument.
 
+Read **Literature review tied to the paper** and the citation/note guidance in
+`references/stage-F-writing.md`. That shared writing owner governs analytical
+depth, connection to the research question, readable prose and claim coverage.
+Reuse inspected notes, the existing map and synthesis when available; a bounded
+section does not require new B1/B6 artifacts or a systematic-review claim.
+
 **Definition of done**
 - A source-grounded structure with the distinctions needed for the argument
-- Positioning paragraph: “we differ because…”
+- Source comparisons explain what follows for this paper's question or choices,
+  including limits on a proposed contribution; novelty is not assumed
 - Claims are supported by citations that actually match the statement
 
 Write into: `manuscript/manuscript.md` (related work section).

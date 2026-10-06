@@ -1,5 +1,16 @@
 # Bounded research evidence journey
 
+## Writing depth and expression checks
+
+`writing-quality/tasks.md` and `sources.md` provide three synthetic requests for
+an RQ-linked literature review, faithful English expression editing and cited
+background with explanatory notes. Keep `review-criteria.md` out of the drafting
+prompt; preserve full answers before review and retain failures. Freeze source,
+task and actual guidance bytes before a trial. Use the existing source/span review
+principles below, without representing a materialized-guidance/subagent exercise
+as an installed-Plugin trace or awarding V1 passes without its required evidence.
+These tasks do not replace or rescore the fixed installed-Plugin baseline.
+
 ## Installed-Plugin baseline
 
 `plugin-baseline.json` freezes three journeys: public-paper explanation, a paragraph

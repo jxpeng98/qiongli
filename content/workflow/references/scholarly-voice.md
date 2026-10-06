@@ -1,7 +1,9 @@
 # Scholarly Voice: English and Chinese
 
-Use with J2 for stiff, translated or generic scholarly prose. Resolve the
-specific expression problem; sound academic by being precise, not ornate.
+Use while drafting Stage F prose and with J2 for stiff, translated or generic
+scholarly prose. In revisions, resolve the specific expression problem; in new
+drafts, establish clear information order from the start. Sound academic by being
+precise, not ornate. This reference does not require starting a separate J2 task.
 
 ## Shared editing decisions
 

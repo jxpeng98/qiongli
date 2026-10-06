@@ -52,6 +52,14 @@ contract; they must not duplicate mandatory chunk sequences or paragraph quotas.
 impose a minimum pass count. Explicit protocols, saved-run limits and required
 independent review remain binding; the retained 1.x controller is unchanged.
 
+The Stage F owner also governs prose flow, research-question-linked literature
+review depth and explanatory-note placement. Stage B's B4 route consumes that
+owner; a manuscript LR request is not automatically a formal B1 systematic review.
+`scholarly-voice.md` applies during drafting as well as J2 revision, and
+`citation-risk-policy.md` covers source-dependent background and note claims.
+Neither citation/paragraph quotas nor explanatory notes replace inspected support
+or authorize a new search, project write or substantive change during proofreading.
+
 Stage C design cards, workflows, role perspectives and the core digest share
 `content/workflow/references/stage-C-design.md`. They retain method/protocol
 requirements without imposing generic sample, rival or robustness quotas. The

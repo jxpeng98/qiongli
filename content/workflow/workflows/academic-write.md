@@ -35,7 +35,8 @@ Select evidence checks for the section's purpose:
 | Section | Evidence boundary |
 |---|---|
 | Title / abstract | Represent the supplied work and findings; follow the requested venue or word limit |
-| Introduction / related work | Ground the gap and positioning in available sources; no invented citations or novelty claims |
+| Introduction | Support source-dependent background and positioning; no invented citations or novelty claims |
+| Literature review / related work | Apply the shared contract's literature-review guidance: compare inspected evidence and explain its consequences for this paper's question or choices |
 | Methods | Describe reported procedures; leave missing sampling, measurement and ethics details unknown |
 | Results | Preserve supplied numbers and uncertainty; do not infer significance, causality or an unreported analysis |
 | Discussion / limitations | Separate supported interpretation, alternatives and hypotheses; keep inferential limits visible |

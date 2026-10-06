@@ -99,6 +99,7 @@ Check for:
 | **Equation references** | "Equation (2)" → Equation 2 exists |
 | **Section references** | "As discussed in Section 3" → Section 3 covers that topic |
 | **Citation references** | Every (AuthorYear) has a bibliography entry |
+| **Footnotes / endnotes** | Markers and definitions resolve; identifiers are unambiguous; source-dependent note claims have citations and follow the selected note style |
 | **Bibliography completeness** | Every bibliography entry is cited in text |
 
 ### Step 5: Venue-Specific Formatting
@@ -113,6 +114,7 @@ If venue style guide is available, check:
 | **p-value formatting** | p < .05 vs. p < 0.05; italic p or not |
 | **Heading hierarchy** | Match venue's heading level system |
 | **Reference style** | APA, Chicago, Vancouver, numbered — match venue |
+| **Explanatory notes** | Follow the note boundaries in `references/stage-F-writing.md`; flag essential argument or limitations hidden in notes without silently changing substantive content |
 | **Figure/table placement** | End of document vs. inline |
 
 ### Step 6: Final Checklist

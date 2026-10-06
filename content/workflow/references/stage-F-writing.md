@@ -93,7 +93,82 @@ the old estimate or promote a previous review into evidence for the new claim.
   scope inspectable without forcing empirical section names. For mixed methods,
   explain what integration adds and where the strands disagree.
 
+### Readable, specific prose
+
+Build natural expression into the draft, not only a later J2 polish. Use the
+relevant language guidance in `references/scholarly-voice.md` for English or
+Chinese phrasing. Keep a recognizable subject, clear referents and an information
+order that lets each sentence develop the preceding point. Explain the actual
+relation between ideas before adding a transition. Abstract nouns, stacked
+modifiers and translated clause order must not obscure who does what or what a
+finding means. Retain necessary technical terms and qualifications; neither
+ornate phrasing nor uniformly short sentences establishes scholarly quality.
+
+Make detail serve the argument: unpack a consequential concept, comparison or
+inferential step with inspected evidence. Removing repeated generalities is
+compatible with explaining the important point more fully. During revision,
+preserve quotations, numbers, citation attribution and the author's intended
+meaning; flag unresolved ambiguity rather than silently choosing a new claim.
+
+### Literature review tied to the paper
+
+For a manuscript's literature review/related work, reuse its research question,
+central argument and scope before choosing themes. The section should explain
+what existing evidence lets this paper assume, question or investigate. A missing
+research question may permit a provisional source synthesis, but not invented
+project positioning; ask for the missing focus when it determines the argument.
+A section request does not by itself commission a systematic review or new search.
+
+Develop the consequential comparisons beyond an author/topic inventory. Select
+the details that explain the inference: what a source argues or finds, how its
+evidence supports that statement, and what context or limitation changes its
+relevance here. Compare studies or interpretations on a shared question using
+their actual constructs, designs, texts, populations or time horizons as relevant.
+Explain why convergence or disagreement matters; a difference in topic alone
+does not establish a contradiction. Do not fill unreported methods or mechanisms
+from expectations, treat overlapping samples as independent confirmation, or turn
+abstract-only access into a claim of full-paper appraisal.
+
+Connect the resulting synthesis to a concrete choice in this paper: a construct
+definition, theoretical expectation, comparison, design decision or unresolved
+question. "This is relevant to our topic" is insufficient without that connection.
+Keep competing explanations and limits that constrain the proposed contribution.
+An unmeasured outcome is a gap in the inspected corpus, not proof that no prior
+research exists. The evidence may support adopting or refining an existing account
+rather than claiming novelty. These are analytical decisions, not a fixed
+paragraph template, a study-count quota or a demand for a mechanism everywhere.
+
+### Citation coverage and explanatory notes
+
+Apply `references/citation-risk-policy.md` throughout the requested text,
+including background, definitions and footnotes, not just the central claims.
+Add inspected, claim-matching support where it is needed; citation coverage is
+not a target number of references. Do not fabricate a source or a detail to make
+a paragraph appear more complete. Keep unsupported assertions visibly unresolved
+or narrow them to the available evidence.
+
+Use an explanatory footnote/endnote when a useful qualification, term distinction,
+historical aside or secondary detail would interrupt the main argument. Keep the
+main claim, the evidence needed to assess it and consequential inferential limits
+in the body. A note must not conceal a contradiction or missing support. Distinguish
+explanatory notes from a venue's bibliographic note system: both may need source
+citations, and neither exempts its factual claims from checking.
+
+Follow the requested format and venue's note rules; use Markdown footnotes only
+when the deliverable supports them. Preserve existing note identifiers where
+possible, resolve every marker to its definition, avoid duplicate definitions
+and check citations inside notes. If notes are forbidden, incorporate the useful
+explanation concisely in the permitted form. Do not add notes without a reader
+need, invent page locators, or use notes to evade the requested length limit.
+
 ### Review and completion
+
+Read the complete requested unit for flow and depth: can the reader follow the
+argument without reconstructing missing steps? For related work, inspect the
+source comparisons and their specific connection to the paper. Check citation
+coverage in background as well as analysis, and note placement and references
+when notes are used. Revise the demonstrated defect; do not append these internal
+checks as boilerplate to a requested passage.
 
 Check the delivered text against the requested length and format, as well as its
 claims. Use the user's counting rule. If none is specified, count words for an
@@ -158,7 +233,7 @@ Use when you want to draft one component precisely (e.g., “intro gap paragraph
 **Definition of done**
 - The component has a clear rhetorical role (setup / gap / contribution / method / evidence / limitation)
 - The component fulfills its section purpose at the depth supported by the evidence
-- Citations are present where claims of prior work are made
+- Source-dependent claims, including background and notes, have matching support
 - No new claims that contradict earlier artifacts
 
 Write into: `manuscript/manuscript.md` (or a section placeholder within it).

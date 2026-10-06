@@ -116,6 +116,7 @@ general entry; skill cards, references and templates are loaded only as needed.
 | Read a paper, PDF or DOI | `workflows/paper-read.md` (B2) |
 | Find a bounded set of references | `skills/B_literature/academic-searcher.md` (targeted discovery) |
 | Conduct a systematic literature review | `workflows/lit-review.md` (formal B1) |
+| Write or deepen a manuscript's literature review / related work from existing sources | `workflows/academic-write.md` (B4/F2); a section draft does not start formal B1 |
 | Scope/map a literature or prepare another specified review type | `references/stage-B-literature.md`; use the declared review protocol and relevant cards |
 | Synthesize findings or meta-analysis | `workflows/synthesize.md` (E) |
 | Design a study or analysis plan | `workflows/study-design.md` (C) |

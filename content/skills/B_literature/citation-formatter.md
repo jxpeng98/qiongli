@@ -99,7 +99,7 @@ Use comments or a report section rather than fabricated values.
 For writing-facing checks, verify the selected style family only at the level
 needed for consistency:
 
-- author-date vs numeric citation mode
+- author-date, numeric or bibliographic-note citation mode, as specified
 - bibliography sort order
 - whether DOI URLs or bare DOI values are expected in final prose
 - whether preprints need archive identifiers
