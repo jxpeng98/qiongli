@@ -16,8 +16,10 @@ $ARGUMENTS
 Reuse the supplied paper and selected project. A question about an excerpt can
 be answered in chat without retrieval, a search plan or a project folder. State
 what was actually read: full text, abstract, metadata or supplied excerpt.
-When reporting coverage, identify the sections or anchors actually read; include
-a count only after checking it against the unique source anchors in that scope.
+For a reading handoff, identify the sections or anchors actually read and the
+material still unavailable. Include a numerical coverage total only when requested;
+derive it from the enumerated unique source identifiers in that scope. A short
+handoff needs no estimated total or coverage percentage.
 Do not claim a completed B2 run for a direct answer.
 
 For a formal B2 run or external lookup, follow
