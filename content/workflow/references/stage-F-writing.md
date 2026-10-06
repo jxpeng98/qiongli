@@ -81,6 +81,11 @@ the old estimate or promote a previous review into evidence for the new claim.
   units, direction, time window and uncertainty. Distinguish statistical from
   substantive importance. A nonsignificant result does not establish equivalence;
   equivalence/noninferiority claims need their own design, margin and analysis.
+- Preserve the source's level of methodological detail. A named analysis or
+  transformation does not establish its unreported grouping, parameters or
+  implementation. Check those qualifiers against the source before compressing
+  prose; omit unsupported detail or label a necessary inference explicitly,
+  rather than presenting a customary procedure as a reported fact.
 - Separate planned from performed methods and confirmatory from exploratory
   analyses. Account for deviations, missing observations and null/contradictory
   findings before compressing results into an abstract or recommendation.

@@ -44,10 +44,12 @@ methods, figures, results or systematic-review-grade coverage.
 
 ## Evidence and interpretation
 
-Use `paper-extractor` for structured extraction and `quality-assessor` when a
-critical appraisal is requested or required by formal B2. Choose the relevant
-questions about the problem, design, findings, contribution and limitations;
-the paper's type and evidence determine the depth.
+Use `skills/B_literature/paper-extractor.md` for structured extraction and
+`skills/E_synthesis/quality-assessor.md` when a critical appraisal is requested
+or required by formal B2. Resolve these paths from the installed
+`qiongli-workflow` root containing `SKILL.md`. Choose the relevant questions about
+the problem, design, findings, contribution and limitations; the paper's type and
+evidence determine the depth.
 
 Every central claim needs a `source_anchor`: section, page, table, quotation,
 abstract, metadata field or existing note anchor. Keep author claims, extracted
