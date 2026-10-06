@@ -35,6 +35,8 @@ impl Fixture {
             .as_nanos();
         let base =
             std::env::temp_dir().join(format!("qiongli-saved-read-{}-{nonce}", std::process::id()));
+        fs::create_dir(&base).unwrap();
+        let base = fs::canonicalize(base).unwrap();
         let root = base.join("project");
         let home = base.join("home");
         let config = base.join("config");

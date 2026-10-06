@@ -23,6 +23,9 @@ impl Fixture {
                 .unwrap()
                 .as_nanos()
         ));
+        #[cfg(windows)]
+        qiongli_windows_security::create_owner_only_directory(&root).unwrap();
+        #[cfg(not(windows))]
         fs::create_dir(&root).unwrap();
         #[cfg(unix)]
         {
@@ -30,6 +33,9 @@ impl Fixture {
             fs::set_permissions(&root, fs::Permissions::from_mode(0o700)).unwrap();
         }
         let home = root.join("home");
+        #[cfg(windows)]
+        qiongli_windows_security::create_owner_only_directory(&home).unwrap();
+        #[cfg(not(windows))]
         fs::create_dir(&home).unwrap();
         let environment = CommandEnvironment::with_paths(
             Some(root.join("config").into_os_string()),

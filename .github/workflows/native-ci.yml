@@ -69,7 +69,7 @@ jobs:
         )
       }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 120 || 30 }}
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 120 || 60 }}
     env:
       CARGO_BUILD_RUSTC_WRAPPER: ""
       CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""

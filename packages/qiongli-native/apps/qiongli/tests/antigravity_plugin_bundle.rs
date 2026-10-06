@@ -33,6 +33,9 @@ impl Fixture {
                 .unwrap()
                 .as_nanos()
         ));
+        #[cfg(windows)]
+        qiongli_windows_security::create_owner_only_directory(&root).unwrap();
+        #[cfg(not(windows))]
         fs::create_dir(&root).unwrap();
         #[cfg(unix)]
         {

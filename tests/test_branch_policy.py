@@ -290,7 +290,7 @@ class BranchPolicyTests(unittest.TestCase):
         )
         self.assertEqual(job.count(manual_capacity_condition), 2)
         self.assertIn(
-            "timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 120 || 30 }}",
+            "timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 120 || 60 }}",
             job,
         )
         self.assertIn("name: Measure opt-in platform capacity baseline", job)

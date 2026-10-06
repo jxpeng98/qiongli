@@ -628,7 +628,17 @@ mod tests {
             else {
                 panic!("multiple Hosts required")
             };
-            assert_eq!(guide.targets.len(), 3);
+            use crate::cli_content::PluginInstallHost;
+            use crate::managed_operation::ManagedIntegrationTargetV1;
+            assert_eq!(
+                guide.targets,
+                vec![
+                    PluginInstallHost::Managed(ManagedIntegrationTargetV1::Codex),
+                    PluginInstallHost::Managed(ManagedIntegrationTargetV1::ClaudeCode),
+                    PluginInstallHost::DeepSeek,
+                    PluginInstallHost::Antigravity,
+                ]
+            );
         }
         for args in [
             vec!["install", "plugin", "--target", "unknown"],

@@ -39,6 +39,8 @@ impl Fixture {
             "qiongli-manifest-cli-{}-{nonce}",
             std::process::id()
         ));
+        fs::create_dir(&base).unwrap();
+        let base = fs::canonicalize(base).unwrap();
         let root = base.join("paper");
         let home = base.join("home");
         let config = base.join("config");
