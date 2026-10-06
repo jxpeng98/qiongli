@@ -45,13 +45,15 @@ database, vector index, review-status vocabulary or automatic approval is added.
 | --- | --- | --- |
 | A — exact passage readback, first implementation | Extend the saved-document reader with an optional JSON pointer into a known saved source packet. Preserve file hash/revision bindings and raw reads; connect the locator to existing note and ledger guidance. | CLI and Full MCP return identical decoded UTF-8 passage windows. Escaped text, repeated passages and array packets retain distinct locations; invalid selectors, stale hashes/revisions and unsafe files refuse. |
 | B — bounded passage discovery | Search text within explicitly selected saved sources through the same project/read ownership. Return inspectable candidates, exact locators and surrounding context, distinguishing no match, multiple matches and incomplete access. | Find an actual phrase despite JSON encoding; preserve every relevant match within declared bounds and continuation. A translated/paraphrased query or absent match cannot manufacture a quotation or establish absence from an unread paper. |
-| C — claim-to-source traversal and review | Connect existing project-wide claim IDs and citekeys through ledger rows, notes and retained packets. Present each supporting or conflicting source separately, with manuscript location and original evidence limits. | Select a claim and recover its actual source passages; distinguish author's result, synthesis and inference. Missing bindings or ambiguous identities remain unresolved. A reviewer checks source support, not just locator validity. |
+| C — manuscript-first claim detection, traversal and review | Inspect the actual requested draft, including body sections, captions and notes, and identify independently checkable claims even when absent from existing records. Connect exact manuscript spans through current claim IDs, ledger rows, notes and retained sources; inspect supporting/conflicting evidence separately. Apply the shared prose, explanation and note rules during writing. | Draft/review actual body text and recover its source locations. Distinguish results, synthesis and inference; preserve unmapped claims, missing bindings and identity/version conflicts. Check semantic support separately from explanation, paragraph continuity, language and useful note placement. Tool readback alone does not pass either writing judgment. |
 | D — summaries, synthesis and change tracking | Reuse reading matrices/summaries and manuscript claim maps for cross-paper comparison and writing. Preserve source versions, search/retrieval failures and prior reviews; identify affected claims when material changes. | A summary and LR maintain the same identities through background, analysis and notes. Changed sources trigger bounded re-review; old evidence and unrelated verified work survive. |
 | E — installed journey and final candidate | Exercise search provenance → inspected passages → reviewed notes/synthesis → manuscript claims → reverse lookup → fresh-session recovery through existing installation and write owners. | Frozen public/synthetic inputs, complete actual outputs, exact candidate/source bindings and reviewed support judgments. Requalify final-source packages and retained upgrade/Host gates before readiness. |
 
 Implement A first, then B/C on the settled locator interface, followed by D/E.
-Local A and B implementations are now integrated in sequence below; C is next.
-Their focused checks do not complete C/D/E or the final release gates.
+Local A/B and the Host-guided C increment are integrated in sequence below.
+C starts from actual manuscript prose under the maintainer's clarification;
+its synthetic observations do not establish installed or real-manuscript quality.
+These focused checks do not complete D/E or the final release gates.
 For A, `json_pointer` selects only an observed string field from a content-addressed
 source packet. Offsets refer to decoded UTF-8 text while SHA-256 still binds the
 whole saved JSON file. Preserve native page/section/segment metadata in that packet;
@@ -1621,3 +1623,89 @@ journey and final-source qualification. The B result establishes local native
 retrieval behavior, not academic support, installed-Host quality or release
 readiness. Prior package results, strict AGY gaps and pending scope/publication
 decisions retain their existing boundaries.
+
+## October 6 — manuscript-first claims, explanation and writing quality
+
+The maintainer clarifies that exact sourcing and quality must apply during body
+writing, not only to reading notes or pre-existing claims. The implementation
+starts from `da3ca8b0`. Inspection finds that Stage F already discusses prose,
+depth and notes, but F4 coverage emphasizes major abstract/introduction/discussion
+claims and its type examples differ from the ledger vocabulary. There is no
+explicit shared manuscript-first traversal of unlisted assertions during drafting.
+The maintainer confirms no original failing passage is available yet; a later
+supplied manuscript/source pair remains the real-use regression input.
+
+Canonical increment `8e25df35` connects the existing owners:
+
+- The existing evidence-verification reference starts from exact manuscript spans
+  across body sections, captions and notes. Compound assertions, causal bridges,
+  numerical qualifications and unlisted claims receive their own source checks.
+- Stage F and both writing workflows apply that route while drafting/revising.
+  Claim maps retain final text locations and compatible ledger type examples;
+  column headers, stable IDs, statuses and project-write owners stay unchanged.
+- The Host follows all relevant records, including gaps and conflicting sources,
+  and uses existing Graph reads and saved-passage read/search tools. It preserves
+  note-local versus project-wide identity, version uncertainty and access limits.
+  Native tools do not extract semantic claims from arbitrary manuscript text.
+- Writing review separately checks explanations, premises, paragraph continuity,
+  clear language and useful sourced notes. Core reasoning/limits stay in the body;
+  a readable transition or populated citation list cannot replace support/depth.
+
+The frozen synthetic `evals/research_journey/manuscript-trace/` packet supplies
+actual body-writing and complete-claim audit tasks. One requested
+`gpt-6.1-sol / low` verifier uses materialized guidance, preserves both original
+answers and only then reads the separate criteria for self-review. A returns
+657 body characters of results/discussion with source-bound comparisons and a
+resolved glossary note. No material support or flow defect is identified in that
+bounded review. It omits an explicit statement that the trial did not measure
+benefit receipt, although the criteria name it and the answer makes no claim about
+receipt; the omission remains recorded, not relabelled as an all-criteria pass.
+B identifies the manuscript's unsupported and unmapped assertions, preserves
+supported proportions, distinguishes incorrect causal/relative-percent wording,
+and leaves an unbound two-version claim unresolved. These are same-agent forward
+trials and self-review, not independent blind judgment or full-manuscript validity.
+
+Actual CLI observations use an isolated registered fixture at revision 2. They
+open both CLM-001 ledger support records and recover both bound Trial2026 strings
+at `/segments/1/text` and `/segments/2/text` through search/read arguments. These
+are explicit fixture bindings; the empty receipt-backed list is not called failed
+discovery or a project-ID-only save/restart pass. Changing the isolated packet
+then reusing the old request refuses with `project-revision-conflict`; original
+bytes/reviews are preserved. This is read refusal, not automatic manuscript
+invalidation or completion of D's change-tracking outcome.
+
+The 29 scoped content tests, capability validator, exact content materialization
+and resource-link audit pass. The regenerated candidate's embedded-pack test
+passes 1/1; seven roadmap checks and generated-index consistency pass. No Rust
+production code changed, so unchanged native suites/Clippy are not replayed.
+Retained failures/corrections are explicit: the first combined content invocation
+reaches a Plugin materialization test and is interrupted; the final scoped run
+excludes that method and uses the existing content-only audit. Copying source
+directory modes initially makes the synthetic root unsafe; only verifier-owned
+permissions are repaired. CSV CRLF triggers whitespace failures; `4ffa62fe`
+normalizes only that fixture to LF and updates its manifest digest. Parsed rows,
+source/draft/task/criteria bytes remain equivalent or unchanged. A separately
+bound LF native recovery passes; original observations and model answers remain
+unchanged instead of being silently rebound or rewritten.
+
+Pack `2e154819` contains 446 resources, canonical source
+`8e25df358e83bf441356b9c422bf8ef4a72da50e`, content root
+`19b6718d63b0b07cf4c492a188ed765e02b3fa7f179af481e1e97953817bbcdc`, and pack
+`195c20a323417ff88882ae241a377a486fc0e25bf6e7f6b5da7baaa2f781f4ec`.
+Original native binary identities and the rebuilt pack check remain separately
+bound. Consolidated observations are in
+`/tmp/qiongli-manuscript-verifier/self-review.md`, SHA-256
+`59b527d36ea1ceb5752b7679e013267439b7d8219026e6133bce3fc266c3a655`;
+`final-artifact-hashes.json` in that directory binds the answers, inputs and calls,
+SHA-256 `1519ec9b708cd12aaecfad5c39b21ae8f73ec6b02e19a763c2d0e7563eb968e5`.
+Temporary observations are not accepted program evidence. All 249 task IDs,
+states/dependencies, 46 accepted records and 76 nonempty evidence fields remain
+unchanged; only CLI-405/410 progress text changes.
+
+C now has a bounded Host-guided implementation and synthetic/native observations.
+Next is D: retain these identities through summaries, synthesis and substantive
+source changes, identifying the affected manuscript claims and preserving old
+reviews. E still qualifies actual installed behavior and final-source packages.
+Real manuscript quality, automatic Skill discovery, strict AGY gaps and release
+readiness are not established by this increment. Publication authority and the
+pending AGY scope decision remain unchanged.

@@ -74,6 +74,18 @@ plan records native/CLI/MCP checks and content pack `b4e70b64`. Next is C,
 claim-to-source traversal and support review, then D/E. This local capability
 does not establish installed-Host or final-source release qualification.
 
+The maintainer clarifies that C must begin with manuscript drafting itself,
+including body text, explanations, logical links and notes. Canonical increment
+`8e25df35` connects that coverage to the existing writing/evidence-review owners
+and reconciles claim-map type examples with the ledger. The Host identifies
+claims from actual prose, follows all relevant records and inspects saved sources;
+native tools do not become semantic extractors. The plan records synthetic body
+writing, complete-claim review and actual two-location native recovery, keeping
+source support separate from language/depth judgments. Original answers and
+fixture failures remain preserved. D's synthesis/change tracking and E's installed
+journey/final qualification remain open; no original failing user manuscript was
+provided for reproduction and no accepted task record changes.
+
 The preceding maintainer feedback selects a bounded writing-quality increment:
 natural prose, substantive literature comparisons tied to the paper, supported
 background and useful explanatory notes. On local baseline `16a9d7c4`, canonical
