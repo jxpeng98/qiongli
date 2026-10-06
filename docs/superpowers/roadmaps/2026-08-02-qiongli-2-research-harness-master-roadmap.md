@@ -70,8 +70,8 @@ within one explicitly bound saved file through CLI and the existing Full documen
 reader. It returns bounded context and exact readback arguments, preserving
 distinct locations and query/source-bound pagination. Packet string values include
 metadata; no hit does not establish absence from unread material. The current
-plan records native/CLI/MCP checks and content pack `b4e70b64`. Next is C,
-claim-to-source traversal and support review, then D/E. This local capability
+plan records native/CLI/MCP checks and content pack `b4e70b64`. C/D extend that
+reader through the Host-guided increments below. This local capability
 does not establish installed-Host or final-source release qualification.
 
 The maintainer clarifies that C must begin with manuscript drafting itself,
@@ -82,9 +82,22 @@ claims from actual prose, follows all relevant records and inspects saved source
 native tools do not become semantic extractors. The plan records synthetic body
 writing, complete-claim review and actual two-location native recovery, keeping
 source support separate from language/depth judgments. Original answers and
-fixture failures remain preserved. D's synthesis/change tracking and E's installed
-journey/final qualification remain open; no original failing user manuscript was
+fixture failures remain preserved. No original failing user manuscript was
 provided for reproduction and no accepted task record changes.
+
+D follows on baseline `3e154f9d`: `f469c8e6` carries claim/source identities through
+reading summaries, cross-paper synthesis and actual manuscript revisions, with
+Host-directed comparison of corrections, new access, byte changes, duplicate
+reports and retrieval failures. The synthesis template no longer implies certainty
+from paper counts. `56ee4916` repairs a demonstrated excerpt-label ambiguity:
+claim-level body support retains explicit partial scope and does not establish
+whole-paper retrieval. A frozen synthetic continuation exercises actual revised
+LR/body/abstract/notes and retained conclusions. Original claim atomization/binding
+omissions and separate prompted repairs remain recorded; these are same-agent
+observations, not blind acceptance or automatic semantic invalidation. The current
+plan owns exact checks and pack bindings. Next is E, installed continuity and
+final-source qualification; real-manuscript quality and strict AGY gates remain
+open, with all task states and accepted evidence unchanged.
 
 The preceding maintainer feedback selects a bounded writing-quality increment:
 natural prose, substantive literature comparisons tied to the paper, supported

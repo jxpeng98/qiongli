@@ -50,10 +50,11 @@ database, vector index, review-status vocabulary or automatic approval is added.
 | E — installed journey and final candidate | Exercise search provenance → inspected passages → reviewed notes/synthesis → manuscript claims → reverse lookup → fresh-session recovery through existing installation and write owners. | Frozen public/synthetic inputs, complete actual outputs, exact candidate/source bindings and reviewed support judgments. Requalify final-source packages and retained upgrade/Host gates before readiness. |
 
 Implement A first, then B/C on the settled locator interface, followed by D/E.
-Local A/B and the Host-guided C increment are integrated in sequence below.
+Local A/B and the Host-guided C/D increments are recorded in sequence below.
 C starts from actual manuscript prose under the maintainer's clarification;
 its synthetic observations do not establish installed or real-manuscript quality.
-These focused checks do not complete D/E or the final release gates.
+D extends that path through synthesis and actual changed-source prose revisions.
+These focused checks do not complete E or the final release gates.
 For A, `json_pointer` selects only an observed string field from a content-addressed
 source packet. Offsets refer to decoded UTF-8 text while SHA-256 still binds the
 whole saved JSON file. Preserve native page/section/segment metadata in that packet;
@@ -1709,3 +1710,85 @@ reviews. E still qualifies actual installed behavior and final-source packages.
 Real manuscript quality, automatic Skill discovery, strict AGY gaps and release
 readiness are not established by this increment. Publication authority and the
 pending AGY scope decision remain unchanged.
+
+## October 6 — synthesis continuity and source-change impact
+
+D starts from local `3e154f9d`. Canonical `f469c8e6` connects the existing Stage E,
+evidence-verification, reading-summary/matrix and writing/handoff owners. A
+cross-paper conclusion retains its own claim identity and contributing evidence;
+comparisons explain design, outcome, context and uncertainty in relation to the
+current paper. The synthesis template removes paper-count consensus cues and
+distinguishes unknown access, inconclusive findings and comparable contradiction.
+
+Changed-source review compares old/new content before following dependent notes,
+summaries, synthesis and actual manuscript uses, including paraphrases, background,
+abstract and notes. It distinguishes corrections, additional access, reserialized
+bytes, duplicate reports and missing material. Revised prose, unchanged conclusions
+with reasons and unresolved checks travel together; originals and prior reviews
+survive. Native Graph/artifact-change reads do not become a semantic dependency
+engine. Existing IDs, statuses, fields and preview/approval/CAS owners remain.
+
+The frozen `evals/research_journey/synthesis-change/` continuation references C's
+immutable invented sources. One requested `gpt-6.1-sol / low` verifier writes an
+initial complete candidate, freezes it, then receives updated sources and writes
+the continuation before reading separate criteria. The initial/revised LR has
+645/654 characters under the recorded counting scope. Actual prose carries the
+trial's 9-point estimate to the explicit 4-point correction (CI −2 to 10), revises
+abstract/LR/interpretation/notes, retains the cohort's noncausal 40%/60% result and
+the outcome distinction, and preserves the missing supplement. Parsed equal JSON
+with different bytes and a companion report do not add independent evidence.
+
+These are forward trials with same-agent self-review, not blind acceptance. The
+original outputs retain concrete imperfections: compound claim IDs, an omitted
+OUT-1 digest inside the initial candidate, and a free-form excerpt label outside
+the templates' controlled fields. `56ee4916` repairs the demonstrated guidance
+ambiguity: claim-level `full_text` body evidence requires an explicit partial-body
+scope when appropriate, with inspected/missing locations; it never upgrades
+whole-paper retrieval or coverage. A separate prompted candidate repair splits
+claims and supplies the bindings. Final inspection also identifies custom map
+headers, decorated ID cells and range-like pointer shorthand in that first repair.
+A second prompted repair retains that attempt and produces the existing eight
+columns, bare IDs, permitted vocabularies and individual locators (29 checked
+rows). Neither repair is relabelled as an original or independent pass.
+
+Mechanical evidence: 36 focused content tests pass, followed by 12 affected tests
+after the excerpt repair. Content-only materialization and resource-link audits
+pass before/after, with five repaired canonical/materialized files byte-identical.
+The final complete capability validator passes. All manifest input hashes and
+the 16 frozen C files remain unchanged. The first pytest invocation reports its
+module unavailable; the verifier uses existing unittest instead, without installing
+anything. Both intermediate and final embedded-pack checks pass 1/1, with the
+unchanged activation deprecation warning retained. No broad native/Clippy suite,
+network, Host installation, login reuse or project save/restart is exercised.
+
+Final pack `5f47649e` contains 446 resources, canonical source
+`56ee4916878336669956f1033f7b293c4efbe872`, content root
+`3f451128cfe5437c4932eae412941dc31a5dc142f517f5aece38d1f08646d7b8`, and pack
+`d421f2ee33c31ac062d8b3bcce2aeb01dbf4e108b6820641bd8c1ef8ae62d090`.
+The intermediate `f469c8e6` pack/check remains separately identified in the report.
+Evidence is retained in `/tmp/qiongli-synthesis-change-verifier/`:
+
+- `initial-original.md`: SHA-256
+  `198f0008883c77d0f1fa51115dd4f6caacef750b5d31f2f076ef297cc53946c2`;
+- `continuation-original.md`: SHA-256
+  `45a52e301ffea0ba04a0ab4770a7a36804387f0ea1f3438838cb51166df51147`;
+- `continuation-repaired-v2.md`: SHA-256
+  `2a47b61681ac560829de61f0dfc12073283c76316bb6495a3fd339d09f342cc7`;
+- `final-report-v2.md`: SHA-256
+  `122d8cb93c8735a49e7741f8f6479732ffe97f7e5f644444030c709764155a84`;
+- `artifact-hashes-v2.json`: SHA-256
+  `762b65cdf10f870de9115f0b77ed1bf094a672908f0783b4a8d56e4368688fb7`.
+
+Seven roadmap checks and generated-index consistency pass. All 249 task
+IDs/states/dependencies, 46 complete accepted records and 76 nonempty evidence
+fields remain unchanged (198 populated evidence/commit/run fields preserved).
+Only CLI-405/410 progress text changes; temporary observations are not accepted
+program evidence. The main Agent reviews the final diff before local integration.
+
+D now has a bounded Host-guided implementation, actual changed-source continuation
+and separately reviewed prompted repairs. Next is E: use the final installed
+candidate for the source-to-manuscript-to-recovery journey and requalify its
+packages/upgrade paths. Real failing manuscript reproduction, automatic discovery,
+strict AGY gaps and final-source release qualification remain open. Earlier
+package results do not qualify the new content; the AGY scope decision and
+publication authority remain unchanged.
