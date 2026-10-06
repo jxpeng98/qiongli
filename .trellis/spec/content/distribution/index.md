@@ -20,6 +20,10 @@ Native `full-project-tools.json` additionally exposes the bounded, read-only
 contracts. Their canonical paper-reading guidance is
 capability-gated; the frozen Python Full inventory and native Lite are unchanged.
 Regenerate the embedded pack and Plugin projections through their existing owners.
+The saved-document reader's optional `json_pointer` is capability-gated. Its
+decoded passage offsets and original packet hash are retained in existing note
+anchors/ledger source locations; no second evidence register is introduced.
+Exact readback does not establish scholarly support or invent paper page numbers.
 Published pre-extension tool counts remain valid historical observations; current
 native inventory validation also accepts coherent Lite 15 / Full 34 and 35 pairs.
 The list extension requires both the saved-document reader and fulltext extension;

@@ -186,6 +186,26 @@ hash. If the capability or known binding is absent, disclose the recovery gap
 and use only available authorized Host reads. Older releases and Lite do not
 gain this native Full-only capability from these instructions.
 
+For an exact passage in a saved source packet, inspect the actual packet shape.
+When CLI help exposes `--json-pointer` or the Full reader schema includes
+`json_pointer`, select the observed string field, for example `/segments/2/text`
+or `/0/segments/2/text` for an array of retrieval responses. These are examples,
+not assumed paths. Escape `/` and `~` inside keys as `~1` and `~0`. The reader
+returns decoded text with `jsonPointer` and `selectedTextSizeBytes`; its content,
+offsets, truncation and `nextOffsetBytes` now refer to that string. Keep the same
+pointer, project revision and whole-file digest on every continuation.
+
+`sha256` and `sourceSizeBytes` still identify the entire raw JSON file. Preserve
+its original source URL/version/digest and observed page/section/segment anchor
+separately in the reading note. A selected string or byte offset is not a PDF
+page, printed page label or proof that the quoted passage supports a claim. Read
+the needed neighboring passages/table headings/notes through their actual packet
+locations before judging support. Identical text at different pointers remains
+distinct evidence locations. Missing, malformed or non-string selectors refuse;
+return the unresolved locator rather than guessing or substituting another
+passage. Without this capability, use the existing bounded raw read and disclose
+that selection/decoding is performed by the Host, not a native passage call.
+
 For project records, follow `references/academic-graph-continuity.md`: reconcile
 paper/claim candidates into the literature map and evidence ledger, reuse
 citekeys and disambiguate note-local claim IDs. Do not invent clusters or support

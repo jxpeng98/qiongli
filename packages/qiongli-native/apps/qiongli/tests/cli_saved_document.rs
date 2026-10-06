@@ -96,6 +96,7 @@ impl Fixture {
             expected_sha256: sha(bytes),
             offset_bytes: 0,
             max_bytes: 16384,
+            json_pointer: None,
         }
     }
 }
@@ -103,7 +104,8 @@ impl Fixture {
 use std::process::{Command, Output};
 impl Fixture {
     fn run(&self, r: &SavedDocumentReadRequest) -> Output {
-        Command::new(env!("CARGO_BIN_EXE_qiongli"))
+        let mut command = Command::new(env!("CARGO_BIN_EXE_qiongli"));
+        command
             .current_dir(&self.base)
             .env("QIONGLI_CONFIG_HOME", &self.config)
             .env("HOME", &self.home)
@@ -126,9 +128,11 @@ impl Fixture {
                 "--max-bytes",
                 &r.max_bytes.to_string(),
                 "--json",
-            ])
-            .output()
-            .unwrap()
+            ]);
+        if let Some(pointer) = &r.json_pointer {
+            command.args(["--json-pointer", pointer]);
+        }
+        command.output().unwrap()
     }
 }
 #[test]
@@ -169,64 +173,97 @@ fn full_mcp_matches_cli_and_lite_refuses_saved_reader() {
     let bytes = b"public saved note";
     f.put("notes/Test2026.md", bytes);
     let r = f.request("notes/Test2026.md", bytes);
-    let args = serde_json::json!({"project_id":r.project_id,"expected_project_revision":1,"relative_path":r.relative_path,"expected_sha256":r.expected_sha256});
-    let expected: serde_json::Value = serde_json::from_slice(&f.run(&r).stdout).unwrap();
-    for profile in ["full", "lite"] {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_qiongli"))
-            .current_dir(&f.base)
-            .env("QIONGLI_CONFIG_HOME", &f.config)
-            .env("HOME", &f.home)
-            .env("USERPROFILE", &f.home)
-            .env("PATH", "")
-            .args(["mcp", "serve", "--profile", profile, "--transport", "stdio"])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap();
-        {
-            let mut input = child.stdin.take().unwrap();
-            for request in [
-                serde_json::json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{}}}),
-                serde_json::json!({"jsonrpc":"2.0","method":"notifications/initialized","params":{}}),
-                serde_json::json!({"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}),
-                serde_json::json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"qiongli_project_document_read","arguments":args}}),
-            ] {
-                writeln!(input, "{request}").unwrap();
+    let packet = br#"{"passages":[{"a/b~c":"ab\u00e9\u4e2d\n\"quoted\""},{"a/b~c":"ab\u00e9\u4e2d\n\"quoted\""}]}"#;
+    let path = format!("sources/Public2026/{}.json", sha(packet));
+    f.put(&path, packet);
+    let mut selected = f.request(&path, packet);
+    selected.json_pointer = Some("/passages/1/a~1b~0c".into());
+    selected.max_bytes = 4;
+    let first: serde_json::Value = serde_json::from_slice(&f.run(&selected).stdout).unwrap();
+    assert_eq!(first["content"], "abé");
+    assert_eq!(first["sha256"], sha(packet));
+    assert_eq!(first["sourceSizeBytes"], packet.len());
+    selected.offset_bytes = first["nextOffsetBytes"].as_u64().unwrap();
+    for r in [r, selected.clone()] {
+        let args = serde_json::to_value(&r).unwrap();
+        let expected: serde_json::Value = serde_json::from_slice(&f.run(&r).stdout).unwrap();
+        for profile in ["full", "lite"] {
+            let mut child = Command::new(env!("CARGO_BIN_EXE_qiongli"))
+                .current_dir(&f.base)
+                .env("QIONGLI_CONFIG_HOME", &f.config)
+                .env("HOME", &f.home)
+                .env("USERPROFILE", &f.home)
+                .env("PATH", "")
+                .args(["mcp", "serve", "--profile", profile, "--transport", "stdio"])
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap();
+            {
+                let mut input = child.stdin.take().unwrap();
+                for request in [
+                    serde_json::json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{}}}),
+                    serde_json::json!({"jsonrpc":"2.0","method":"notifications/initialized","params":{}}),
+                    serde_json::json!({"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}),
+                    serde_json::json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"qiongli_project_document_read","arguments":args}}),
+                ] {
+                    writeln!(input, "{request}").unwrap();
+                }
+            }
+            let output = child.wait_with_output().unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            let responses: Vec<serde_json::Value> = String::from_utf8(output.stdout)
+                .unwrap()
+                .lines()
+                .map(|line| serde_json::from_str(line).unwrap())
+                .collect();
+            let tools = responses.iter().find(|v| v["id"] == 2).unwrap()["result"]["tools"]
+                .as_array()
+                .unwrap();
+            let reader = tools
+                .iter()
+                .find(|v| v["name"] == "qiongli_project_document_read");
+            let call = responses.iter().find(|v| v["id"] == 3).unwrap();
+            assert_eq!(tools.len(), if profile == "full" { 35 } else { 15 });
+            if profile == "full" {
+                let tool = reader.unwrap();
+                assert_eq!(
+                    tool["inputSchema"]["properties"]["json_pointer"]["type"],
+                    "string"
+                );
+                assert!(
+                    !tool["inputSchema"]["required"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .any(|v| v == "json_pointer")
+                );
+                assert_eq!(tool["annotations"]["readOnlyHint"], true);
+                assert_eq!(tool["annotations"]["destructiveHint"], false);
+                let text = call["result"]["content"][0]["text"].as_str().unwrap();
+                assert_eq!(
+                    serde_json::from_str::<serde_json::Value>(text).unwrap(),
+                    expected
+                );
+            } else {
+                assert!(reader.is_none());
+                assert!(call.get("error").is_some() || call["result"]["isError"] == true);
             }
         }
-        let output = child.wait_with_output().unwrap();
-        assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        let responses: Vec<serde_json::Value> = String::from_utf8(output.stdout)
-            .unwrap()
-            .lines()
-            .map(|line| serde_json::from_str(line).unwrap())
-            .collect();
-        let tools = responses.iter().find(|v| v["id"] == 2).unwrap()["result"]["tools"]
-            .as_array()
-            .unwrap();
-        let reader = tools
-            .iter()
-            .find(|v| v["name"] == "qiongli_project_document_read");
-        let call = responses.iter().find(|v| v["id"] == 3).unwrap();
-        if profile == "full" {
-            let tool = reader.unwrap();
-            assert_eq!(tool["annotations"]["readOnlyHint"], true);
-            assert_eq!(tool["annotations"]["destructiveHint"], false);
-            let text = call["result"]["content"][0]["text"].as_str().unwrap();
-            assert_eq!(
-                serde_json::from_str::<serde_json::Value>(text).unwrap(),
-                expected
-            );
-        } else {
-            assert!(reader.is_none());
-            assert!(call.get("error").is_some() || call["result"]["isError"] == true);
-        }
     }
+    let mut rejected = selected.clone();
+    rejected.json_pointer = Some("/passages/0".into());
+    assert!(!f.run(&rejected).status.success());
+    rejected = selected.clone();
+    rejected.expected_project_revision = 2;
+    assert!(!f.run(&rejected).status.success());
+    f.put(&selected.relative_path, br#"{"passages":[]}"#);
+    assert!(!f.run(&selected).status.success());
 }
 
 #[test]

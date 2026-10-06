@@ -35,6 +35,13 @@ Metadata search coverage and full-text access are separate. A paper found throug
 | C1 | author_claim / extracted_fact / interpretation / project_relevance | section/table/page/abstract/metadata | direct_evidence / reasonable_inference / unsupported_gap | |
 | C2 | author_claim / extracted_fact / interpretation / project_relevance | section/table/page/abstract/metadata | direct_evidence / reasonable_inference / unsupported_gap | |
 
+When the source is a saved packet, retain its exact path/hash and observed JSON
+pointer in the relevant anchor, with any decoded UTF-8 byte range actually used.
+Keep the original document version/digest and page/section/table locator distinct;
+a JSON pointer or text offset is not a paper page. Use the saved passage procedure
+in `workflows/paper-read.md` when available. Missing locators remain gaps, and
+successful readback still requires source-to-claim review.
+
 ## Extraction Slot Summary
 
 | Slot | Quick Capture |

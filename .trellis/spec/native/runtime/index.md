@@ -67,6 +67,23 @@ authorized prior preview/receipt/file evidence or current receipt-backed list
 entries; the body reader adds no discovery or
 automatic trust in a newly observed hash. Academic coverage remains a review duty.
 
+An optional `json_pointer` (CLI `--json-pointer`) selects one observed string
+field in a saved source packet. It uses slash-prefixed JSON Pointer syntax with
+`~0`/`~1` escapes, at most 4,096 UTF-8 bytes and no control characters. Note and
+retrieval-history paths cannot use it. Unique-key JSON parsing rejects malformed
+or duplicate-key packets; absent pointers and non-string targets refuse without
+fallback. No schema for third-party packet contents, new file discovery or
+semantic support judgment is implied.
+
+Selected reads return `jsonPointer` and `selectedTextSizeBytes`. Content, byte
+offsets, continuation and truncation refer to that decoded UTF-8 string;
+`sourceSizeBytes` and `sha256` still bind the complete raw JSON file. Continue
+with the same pointer, revision and whole-file digest. Source metadata such as
+page/section and remote PDF digest remains in the packet, distinct from local
+JSON identity and text offsets. The same safety/recheck owner handles both modes.
+Without a selector the request, returned fields and raw byte semantics remain
+unchanged. Full retains 35 tools; Lite gains none.
+
 Schema-1 `qiongli-saved-document-view` is identical through CLI and MCP and exposes
 no absolute filesystem path. Debug/error output omits research content. The new
 Full descriptor declares read-only, non-destructive, idempotent, closed-world

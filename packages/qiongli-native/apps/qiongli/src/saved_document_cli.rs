@@ -3,7 +3,7 @@ use std::ffi::OsString;
 use qiongli_project::{SavedDocumentListRequest, SavedDocumentReadRequest};
 use serde_json::{Map, Value};
 
-pub(crate) const USAGE: &str = "Saved research document:\n  qiongli project document read --project-id <prj_id> --expected-project-revision <revision> --relative-path <path> --expected-sha256 <sha256> [--offset-bytes <offset>] [--max-bytes <4..65536>]\n\nReads only notes/<citekey>.md, sources/<citekey>/<sha256>.json, or retrieval_manifest.csv. The SHA-256 always binds the entire file; continue with nextOffsetBytes and the same revision/digest. This is a file snapshot, not academic verification or a Graph projection.";
+pub(crate) const USAGE: &str = "Saved research document:\n  qiongli project document read --project-id <prj_id> --expected-project-revision <revision> --relative-path <path> --expected-sha256 <sha256> [--offset-bytes <offset>] [--max-bytes <4..65536>] [--json-pointer <pointer>]\n\nReads only notes/<citekey>.md, sources/<citekey>/<sha256>.json, or retrieval_manifest.csv. The SHA-256 always binds the entire file; continue with nextOffsetBytes and the same revision/digest. With --json-pointer, select an observed string in a source packet; offsets, content and nextOffsetBytes address decoded UTF-8 text. Keep the same pointer on continuation; sourceSizeBytes and SHA-256 still identify the raw file. Missing or non-string targets refuse. This is a file snapshot, not academic verification or a Graph projection.";
 
 pub(crate) fn parse(args: &[OsString]) -> Result<SavedDocumentReadRequest, &'static str> {
     if args.first().and_then(|arg| arg.to_str()) != Some("read") {
@@ -42,6 +42,7 @@ fn parse_fields(args: &[OsString], list: bool) -> Result<Map<String, Value>, &'s
             Some("--expected-project-revision") => ("expected_project_revision", true),
             Some("--relative-path") if !list => ("relative_path", false),
             Some("--expected-sha256") if !list => ("expected_sha256", false),
+            Some("--json-pointer") if !list => ("json_pointer", false),
             Some("--offset-bytes") if !list => ("offset_bytes", true),
             Some("--max-bytes") if !list => ("max_bytes", true),
             Some("--offset") if list => ("offset", true),

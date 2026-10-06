@@ -189,6 +189,7 @@ fn bind_current_source(
     binding.state = state;
     binding.reason_code = reason.map(|error| error.reason_code().to_string());
     binding.read_arguments = (state == Current).then(|| SavedDocumentReadRequest {
+        json_pointer: None,
         project_id: request.project_id.clone(),
         expected_project_revision: request.expected_project_revision,
         relative_path: binding.relative_path.clone(),

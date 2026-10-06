@@ -3,6 +3,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+use crate::json::parse_unique_json;
 use crate::model::valid_lower_hex;
 use crate::paper_note::valid_note_path;
 use crate::source_packet::valid_packet_path;
@@ -22,6 +23,9 @@ pub struct SavedDocumentReadRequest {
     pub expected_project_revision: u64,
     pub relative_path: String,
     pub expected_sha256: String,
+    /// Select an observed string field in a saved source packet, never another file.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub json_pointer: Option<String>,
     #[serde(default)]
     pub offset_bytes: u64,
     #[serde(default = "default_max_bytes")]
@@ -43,8 +47,26 @@ impl SavedDocumentReadRequest {
         {
             return Err(ProjectError::ProjectArtifactUnsupported);
         }
+        if let Some(pointer) = &self.json_pointer {
+            if !valid_packet_path(&self.relative_path) || !valid_json_pointer(pointer) {
+                return Err(ProjectError::InvalidProjectDocument);
+            }
+        }
         Ok(())
     }
+}
+
+fn valid_json_pointer(pointer: &str) -> bool {
+    if !pointer.starts_with('/') || pointer.len() > 4096 || pointer.chars().any(char::is_control) {
+        return false;
+    }
+    let mut bytes = pointer.bytes();
+    while let Some(byte) = bytes.next() {
+        if byte == b'~' && !matches!(bytes.next(), Some(b'0' | b'1')) {
+            return false;
+        }
+    }
+    true
 }
 
 #[derive(Clone, Eq, PartialEq, Serialize)]
@@ -58,6 +80,11 @@ pub struct SavedDocumentViewV1 {
     /// Digest of the complete file, never of just the returned window.
     pub sha256: String,
     pub source_size_bytes: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub json_pointer: Option<String>,
+    /// With a selector, offsets and truncation describe this decoded string.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub selected_text_size_bytes: Option<u64>,
     pub content_size_bytes: u64,
     pub offset_bytes: u64,
     pub next_offset_bytes: Option<u64>,
@@ -103,8 +130,19 @@ impl ProjectStateService {
         {
             return Err(ProjectError::RevisionConflict);
         }
-        let source =
+        let raw_source =
             std::str::from_utf8(&bytes).map_err(|_| ProjectError::ProjectArtifactContentInvalid)?;
+        let packet;
+        let source = if let Some(pointer) = &request.json_pointer {
+            packet = parse_unique_json(&bytes)
+                .map_err(|_| ProjectError::ProjectArtifactContentInvalid)?;
+            packet
+                .pointer(pointer)
+                .and_then(serde_json::Value::as_str)
+                .ok_or(ProjectError::InvalidProjectDocument)?
+        } else {
+            raw_source
+        };
         let start = usize::try_from(request.offset_bytes)
             .map_err(|_| ProjectError::InvalidProjectDocument)?;
         if start > source.len() || !source.is_char_boundary(start) {
@@ -133,6 +171,8 @@ impl ProjectStateService {
             relative_path: request.relative_path.clone(),
             sha256: digest,
             source_size_bytes: bytes.len() as u64,
+            json_pointer: request.json_pointer.clone(),
+            selected_text_size_bytes: request.json_pointer.as_ref().map(|_| source.len() as u64),
             content_size_bytes: (end - start) as u64,
             offset_bytes: request.offset_bytes,
             next_offset_bytes: (end < source.len()).then_some(end as u64),

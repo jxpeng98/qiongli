@@ -46,3 +46,33 @@ Host 可以结合自身可用的原生搜索和获准读取的本地材料。引
 审阅提取结果后，再提出结构化论点和来源关联，保存时保留不确定性与未解决的冲突。
 [Research Graph](../guide/cli-2x.md#research-graph) 用来检查已经保存的关系，
 不能代替筛选决定，也不能证明检索召回率。
+
+## 回读已经保存的原文片段 — 2.4.0 候选版
+
+候选版读取接口可以选取来源文件中的一个已知文本字段。先读取项目当前修订号，
+通过 `qiongli project document list` 恢复保存记录；只有 `current` 条目中的
+`readArguments` 可用于回读。保留其中的路径与整个文件的 SHA-256，再用原始文件
+读取接口检查真实结构，确定片段位置。
+
+例如，实际检查确认原文位于 `/segments/2/text` 后，可以执行：
+
+```bash
+qiongli project document read \
+  --project-id <prj_id> --expected-project-revision <revision> \
+  --relative-path sources/<citekey>/<sha256>.json --expected-sha256 <sha256> \
+  --json-pointer /segments/2/text --max-bytes 4096 --json
+```
+
+Full MCP 的 `qiongli_project_document_read` 提供相同的可选参数 `json_pointer`。
+先检查 CLI 帮助或实际工具声明；旧版仍使用原始读取。数组形式的来源文件可能使用
+`/0/segments/2/text`，示例路径不能代替检查实际文件。
+
+返回值包含解码后的原文、`jsonPointer` 和 `selectedTextSizeBytes`。字节偏移及
+`nextOffsetBytes` 对应这段文本；`sha256` 和 `sourceSizeBytes` 仍对应整个原始
+来源文件。分页时保持定位参数、项目修订号和文件摘要不变。定位错误或文件变化时
+操作会拒绝，不会自动换用其他片段，也不会搜索其他文件。
+
+将这个位置保留在现有论断或阅读笔记中，同时记录原始文献版本、章节、表格或页码。
+判断论断是否得到支持前，还要检查相关上下文和表下注释。字节位置不是论文页码，
+原文回读成功也不代表学术核查通过。跨文献片段检索、从论断自动回溯原文仍属于
+2.4 计划的后续工作；当前 Graph 打开的是结构化证据记录。

@@ -549,7 +549,7 @@
     },
     {
       "name": "qiongli_project_document_read",
-      "description": "Read a bounded UTF-8 window of an explicitly selected saved paper note, source packet or retrieval_manifest.csv in a registered project. Requires the expected project revision and whole-file SHA-256 from prior authorized preview/receipt/file evidence. Recheck the same digest on every continuation; this is a local snapshot, not report verification, Graph authority or permission to write.",
+      "description": "Read a bounded UTF-8 window of an explicitly selected saved paper note, source packet or retrieval_manifest.csv in a registered project. Requires the expected project revision and whole-file SHA-256 from prior authorized preview/receipt/file evidence. Recheck the same digest on every continuation; this is a local snapshot, not report verification, Graph authority or permission to write. Optional json_pointer selects an observed string in a saved source packet; offsets then address decoded UTF-8 text. Retain the same pointer, revision and whole-file hash on continuation. Exact readback does not establish source support.",
       "inputSchema": {
         "type": "object",
         "required": [
@@ -576,6 +576,13 @@
           "expected_sha256": {
             "type": "string",
             "pattern": "^[0-9a-f]{64}$"
+          },
+          "json_pointer": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "^/",
+            "description": "Optional JSON Pointer into sources/<citekey>/<sha256>.json, selecting a string. At most 4096 UTF-8 bytes; escape ~ as ~0 and / as ~1 within keys. Missing/non-string targets, duplicate JSON keys, control characters and invalid escapes refuse. Observe the pointer from actual packet structure; never guess an original paper page from byte offsets."
           },
           "offset_bytes": {
             "type": "integer",

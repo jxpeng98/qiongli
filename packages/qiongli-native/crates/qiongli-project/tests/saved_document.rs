@@ -94,6 +94,7 @@ impl Fixture {
             expected_sha256: sha(bytes),
             offset_bytes: 0,
             max_bytes: 16384,
+            json_pointer: None,
         }
     }
 }
@@ -297,4 +298,203 @@ fn saved_document_rejects_hardlinked_file() {
             .read_saved_document(&f.request("notes/Linked.md", b"safe"))
             .is_err()
     );
+}
+
+#[test]
+fn packet_selector_decodes_strings_and_pages_the_selected_utf8_identity() {
+    let f = Fixture::new();
+    let text = "abé中\n\"quoted\" / ~";
+    let bytes = br#"{"passages":[{"a/b~c":"ab\u00e9\u4e2d\n\"quoted\" / ~"},{"a/b~c":"ab\u00e9\u4e2d\n\"quoted\" / ~"}]}"#;
+    let path = format!("sources/Public2026/{}.json", sha(bytes));
+    f.put(&path, bytes);
+    let mut r = f.request(&path, bytes);
+    let plain = serde_json::to_value(f.service.read_saved_document(&r).unwrap()).unwrap();
+    assert_eq!(plain["content"], std::str::from_utf8(bytes).unwrap());
+    assert!(plain.get("jsonPointer").is_none());
+    assert!(plain.get("selectedTextSizeBytes").is_none());
+    assert!(
+        serde_json::to_value(&r)
+            .unwrap()
+            .get("json_pointer")
+            .is_none()
+    );
+    for pointer in ["/passages/0/a~1b~0c", "/passages/1/a~1b~0c"] {
+        r.json_pointer = Some(pointer.into());
+        r.offset_bytes = 0;
+        r.max_bytes = 4;
+        let first = serde_json::to_value(f.service.read_saved_document(&r).unwrap()).unwrap();
+        assert_eq!(first["content"], "abé");
+        assert_eq!(first["jsonPointer"], pointer);
+        assert_eq!(first["selectedTextSizeBytes"], text.len());
+        assert_eq!(first["sourceSizeBytes"], bytes.len());
+        assert_eq!(first["sha256"], sha(bytes));
+        let mut reconstructed = first["content"].as_str().unwrap().to_owned();
+        let mut next = first["nextOffsetBytes"].as_u64();
+        while let Some(offset) = next {
+            r.offset_bytes = offset;
+            let page = f.service.read_saved_document(&r).unwrap();
+            assert_eq!(page.sha256, sha(bytes));
+            assert!(page.truncated_before);
+            reconstructed.push_str(&page.content);
+            next = page.next_offset_bytes;
+        }
+        assert_eq!(reconstructed, text);
+        r.offset_bytes = text.len() as u64;
+        let end = f.service.read_saved_document(&r).unwrap();
+        assert_eq!(end.content, "");
+        assert_eq!(end.next_offset_bytes, None);
+        r.offset_bytes = 3;
+        assert!(f.service.read_saved_document(&r).is_err());
+        r.offset_bytes = text.len() as u64 + 1;
+        assert!(f.service.read_saved_document(&r).is_err());
+    }
+    let array = br#"["first","\u4e2d","",{"":"empty key"}]"#;
+    let path = format!("sources/Array2026/{}.json", sha(array));
+    f.put(&path, array);
+    for (pointer, expected) in [
+        ("/0", "first"),
+        ("/1", "中"),
+        ("/2", ""),
+        ("/3/", "empty key"),
+    ] {
+        let mut r = f.request(&path, array);
+        r.json_pointer = Some(pointer.into());
+        assert_eq!(f.service.read_saved_document(&r).unwrap().content, expected);
+    }
+}
+
+#[test]
+fn packet_selector_refuses_ambiguous_json_invalid_pointers_and_non_string_targets() {
+    let f = Fixture::new();
+    let bytes = br#"{"text":"safe","null":null,"number":1,"object":{},"array":["safe"]}"#;
+    let path = format!("sources/Public2026/{}.json", sha(bytes));
+    f.put(&path, bytes);
+    for pointer in [
+        "",
+        "text",
+        "/text~",
+        "/text~2",
+        "/text\n",
+        "/missing",
+        "/null",
+        "/number",
+        "/object",
+        "/array",
+        "/array/01",
+        "/array/-",
+        "/array/1",
+    ] {
+        let mut r = f.request(&path, bytes);
+        r.json_pointer = Some(pointer.into());
+        assert!(
+            f.service.read_saved_document(&r).is_err(),
+            "pointer {pointer:?}"
+        );
+    }
+    let mut r = f.request(&path, bytes);
+    r.json_pointer = Some(format!("/{}", "é".repeat(2048)));
+    assert!(f.service.read_saved_document(&r).is_err());
+    for malformed in [
+        br#"{"text":"one","text":"two"}"#.as_slice(),
+        br#"{"text":"one","te\u0078t":"two"}"#.as_slice(),
+        br#"{"text":"safe","nested":{"x":1,"x":2}}"#.as_slice(),
+        br#"{"text":"safe"} trailing"#.as_slice(),
+        br#"{"text":"\ud800"}"#.as_slice(),
+    ] {
+        let path = format!("sources/Invalid2026/{}.json", sha(malformed));
+        f.put(&path, malformed);
+        let mut r = f.request(&path, malformed);
+        r.json_pointer = Some("/text".into());
+        assert!(f.service.read_saved_document(&r).is_err());
+    }
+    // Count the bound in UTF-8 bytes and permit an exactly 4096-byte pointer.
+    let key = format!("{}x", "é".repeat(2047));
+    let boundary = serde_json::to_vec(&serde_json::json!({key.clone(): "safe"})).unwrap();
+    let boundary_path = format!("sources/Boundary2026/{}.json", sha(&boundary));
+    f.put(&boundary_path, &boundary);
+    let mut boundary_request = f.request(&boundary_path, &boundary);
+    boundary_request.json_pointer = Some(format!("/{key}"));
+    assert_eq!(boundary_request.json_pointer.as_ref().unwrap().len(), 4096);
+    assert_eq!(
+        f.service
+            .read_saved_document(&boundary_request)
+            .unwrap()
+            .content,
+        "safe"
+    );
+    for other in ["notes/Public2026.md", "retrieval_manifest.csv"] {
+        f.put(other, bytes);
+        let mut r = f.request(other, bytes);
+        r.json_pointer = Some("/text".into());
+        assert!(f.service.read_saved_document(&r).is_err());
+    }
+}
+
+#[test]
+fn packet_selector_keeps_revision_hash_and_path_refusals() {
+    let f = Fixture::new();
+    let bytes = br#"{"text":"safe"}"#;
+    let path = format!("sources/Public2026/{}.json", sha(bytes));
+    f.put(&path, bytes);
+    let mut r = f.request(&path, bytes);
+    r.json_pointer = Some("/text".into());
+    let mut bad = r.clone();
+    bad.expected_project_revision = 2;
+    assert_eq!(
+        f.service.read_saved_document(&bad).unwrap_err(),
+        ProjectError::RevisionConflict
+    );
+    bad = r.clone();
+    bad.expected_sha256 = sha(b"different");
+    assert_eq!(
+        f.service.read_saved_document(&bad).unwrap_err(),
+        ProjectError::RevisionConflict
+    );
+    for path in [
+        format!("../{path}"),
+        "sources/Public2026/not-a-hash.json".into(),
+        "context/project_manifest.json".into(),
+    ] {
+        bad = r.clone();
+        bad.relative_path = path;
+        assert!(f.service.read_saved_document(&bad).is_err());
+    }
+    f.put(&r.relative_path, br#"{"text":"changed"}"#);
+    assert_eq!(
+        f.service.read_saved_document(&r).unwrap_err(),
+        ProjectError::RevisionConflict
+    );
+    assert_eq!(
+        fs::read(f.root.join(&r.relative_path)).unwrap(),
+        br#"{"text":"changed"}"#
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn packet_selector_preserves_link_and_owner_refusals() {
+    use std::os::unix::fs::{PermissionsExt, symlink};
+    let f = Fixture::new();
+    let bytes = br#"{"text":"safe"}"#;
+    let path = format!("sources/Public2026/{}.json", sha(bytes));
+    f.put(&path, bytes);
+    let mut r = f.request(&path, bytes);
+    r.json_pointer = Some("/text".into());
+    let outside = f.base.join("outside.json");
+    fs::write(&outside, bytes).unwrap();
+    fs::remove_file(f.root.join(&path)).unwrap();
+    symlink(&outside, f.root.join(&path)).unwrap();
+    assert!(f.service.read_saved_document(&r).is_err());
+    fs::remove_file(f.root.join(&path)).unwrap();
+    fs::hard_link(&outside, f.root.join(&path)).unwrap();
+    assert!(f.service.read_saved_document(&r).is_err());
+    fs::remove_file(f.root.join(&path)).unwrap();
+    f.put(&path, bytes);
+    fs::set_permissions(f.root.join(&path), fs::Permissions::from_mode(0o666)).unwrap();
+    assert!(f.service.read_saved_document(&r).is_err());
+    fs::set_permissions(f.root.join(&path), fs::Permissions::from_mode(0o600)).unwrap();
+    fs::rename(f.root.join("sources"), f.root.join("outside-sources")).unwrap();
+    symlink(f.root.join("outside-sources"), f.root.join("sources")).unwrap();
+    assert!(f.service.read_saved_document(&r).is_err());
+    assert_eq!(fs::read(&outside).unwrap(), bytes);
 }

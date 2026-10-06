@@ -51,3 +51,22 @@ Allowed `evidence_type`:
   Reordering CSV rows preserves that edge identity. Opening it resolves the
   matching record at the current bound revision; limitations remain in that row.
 - Confidence labels should be `high`, `medium`, or `low`; explain limitations even when confidence is high.
+
+## Recoverable passage locations
+
+For a claim supported by a saved source packet, keep the packet's existing
+project-relative path as `artifact_path` and its observed original passage
+location in `source_location`. Include the actual JSON pointer and any decoded
+UTF-8 byte range used to select that passage, alongside the original page,
+section or table locator when available. The packet's content-addressed path
+binds its whole-file SHA-256; retain remote document digest/version separately
+in the existing note/retrieval record. Do not substitute a note hash or PDF hash
+for the packet hash, or infer a printed page from extraction order.
+
+Reuse the source-bound saved-document readback procedure in
+`workflows/paper-read.md`. The Graph opens the ledger record; it does not parse
+this location text into an automatic PDF jump or certify the support relation.
+The Host follows observed bindings and compares the actual passage with the
+claim through `references/evidence-verification.md`. Missing/changed sources or
+ambiguous locations stay unresolved; a recovered quotation alone does not mark
+a claim `supported`. Preserve prior locations and reviews when sources change.

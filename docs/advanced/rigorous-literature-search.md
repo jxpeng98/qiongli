@@ -52,3 +52,38 @@ After reviewing the extraction, propose structured claims and source links.
 Preserve uncertainty and unresolved conflicts when saving them. The
 [Research Graph](../guide/cli-2x.md#research-graph) helps inspect those saved
 relationships; it does not replace screening decisions or establish search recall.
+
+## Read back a saved passage — 2.4.0 candidate
+
+The candidate reader can select an observed string field in a saved source
+packet. First read the project's current revision and recover its saved bindings
+with `qiongli project document list`. Only a `current` binding supplies usable
+`readArguments`; preserve its path and whole-file SHA-256. Inspect the packet's
+actual structure with the raw document reader before selecting a field.
+
+For example, if the inspected passage is at `/segments/2/text`:
+
+```bash
+qiongli project document read \
+  --project-id <prj_id> --expected-project-revision <revision> \
+  --relative-path sources/<citekey>/<sha256>.json --expected-sha256 <sha256> \
+  --json-pointer /segments/2/text --max-bytes 4096 --json
+```
+
+Full MCP exposes the same optional `json_pointer` on
+`qiongli_project_document_read`. Check CLI help or the live tool schema first;
+older installations retain raw reads. Array packets have different paths, such
+as `/0/segments/2/text`; these examples must not replace inspecting real data.
+
+The response contains decoded text, `jsonPointer` and `selectedTextSizeBytes`.
+Offsets and `nextOffsetBytes` address that string; `sha256` and `sourceSizeBytes`
+still describe the entire raw packet. Continue with the same pointer, revision
+and hash. Invalid locations or changed files refuse instead of choosing a
+replacement passage. The operation reads only the selected known file.
+
+Retain this locator with the existing claim/reading-note record and the observed
+source version, section, table or page. Read relevant surrounding passages and
+table notes before judging support. Byte offsets are not paper page numbers,
+and exact text readback is not academic verification. Automatic cross-document
+passage search and claim-to-passage traversal remain subsequent work in the
+2.4 plan; the Graph currently opens the structured evidence record.
