@@ -1,0 +1,82 @@
+{
+  "fixture_kind": "invented source-change continuation; not published research",
+  "binding_scope": "explicit fixture files, not native receipts or authority for project writes",
+  "initial_inputs": [
+    {
+      "path": "../manuscript-trace/project/sources/Trial2026/4687ae970ef60cb3b0c9b45f44b2186e20cca606a1c024b7248d0d6d6afe250b.json",
+      "sha256": "4687ae970ef60cb3b0c9b45f44b2186e20cca606a1c024b7248d0d6d6afe250b"
+    },
+    {
+      "path": "../manuscript-trace/project/sources/Followup2026/ba8d3de06430a27afa9ad27e6f186c73c9879b95d6d525ef2f426f15779832b9.json",
+      "sha256": "ba8d3de06430a27afa9ad27e6f186c73c9879b95d6d525ef2f426f15779832b9"
+    },
+    {
+      "path": "../manuscript-trace/project/analysis/outputs/cohort.md",
+      "sha256": "c06f65f664ab3253131d451b36aab0f4a7bef9eb5e9b4fb398e7cb196f55135b"
+    },
+    {
+      "path": "../manuscript-trace/project/evidence/claim-evidence-ledger.csv",
+      "sha256": "18d5f04875d98e319ef8336f83e4e8a4fdfab34440cf1792e8d203fb130199c5"
+    }
+  ],
+  "updates": [
+    {
+      "role": "correction",
+      "path": "updates/37f139763535fb13a556d9a81a35e49ad7468cc4de02574b45710f7ae1086b48.json",
+      "sha256": "37f139763535fb13a556d9a81a35e49ad7468cc4de02574b45710f7ae1086b48"
+    },
+    {
+      "role": "new_body_access",
+      "path": "updates/0f67d0944ebf0704118c2d645a43a01e976255d980d11d6c9d80534af0db03e2.json",
+      "sha256": "0f67d0944ebf0704118c2d645a43a01e976255d980d11d6c9d80534af0db03e2"
+    },
+    {
+      "role": "reserialized_abstract",
+      "path": "updates/6d3e140b3af432cfc57ebc74ebd6348b441383ae651cd7b9e4e7d993951b758d.json",
+      "sha256": "6d3e140b3af432cfc57ebc74ebd6348b441383ae651cd7b9e4e7d993951b758d"
+    },
+    {
+      "role": "companion_report",
+      "path": "updates/e702c7193f214c44af18d563ea1bc4ada4ced510ae5c1a59daf1ef0a8e003a0b.json",
+      "sha256": "e702c7193f214c44af18d563ea1bc4ada4ced510ae5c1a59daf1ef0a8e003a0b"
+    }
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "fc5da56951e25039c01a2aec1f06399df900af6091066f68d3f24cc5713900fd"
+    },
+    {
+      "path": "review-criteria.md",
+      "sha256": "696fe77bcbb347d90e957fa020cc98f8d31bfdffc743df17c34c60b8028735a8"
+    },
+    {
+      "path": "task-initial.md",
+      "sha256": "37f7d67c43a057b15ecae59fc19e9fcf6a56fc5d829d7e4090ecc6a944bb26de"
+    },
+    {
+      "path": "task-update.md",
+      "sha256": "8e6eeb12bbc36bde71774ff97a614b0a96ffce3f3a827a3380ef4fbf0ecda619"
+    },
+    {
+      "path": "updates/0f67d0944ebf0704118c2d645a43a01e976255d980d11d6c9d80534af0db03e2.json",
+      "sha256": "0f67d0944ebf0704118c2d645a43a01e976255d980d11d6c9d80534af0db03e2"
+    },
+    {
+      "path": "updates/37f139763535fb13a556d9a81a35e49ad7468cc4de02574b45710f7ae1086b48.json",
+      "sha256": "37f139763535fb13a556d9a81a35e49ad7468cc4de02574b45710f7ae1086b48"
+    },
+    {
+      "path": "updates/6d3e140b3af432cfc57ebc74ebd6348b441383ae651cd7b9e4e7d993951b758d.json",
+      "sha256": "6d3e140b3af432cfc57ebc74ebd6348b441383ae651cd7b9e4e7d993951b758d"
+    },
+    {
+      "path": "updates/e702c7193f214c44af18d563ea1bc4ada4ced510ae5c1a59daf1ef0a8e003a0b.json",
+      "sha256": "e702c7193f214c44af18d563ea1bc4ada4ced510ae5c1a59daf1ef0a8e003a0b"
+    },
+    {
+      "path": "updates/retrieval-attempts.md",
+      "sha256": "8346261b17d4ac460e2fc79e1d561b48e3aaa612a474c755a6826646fc5aa137"
+    }
+  ]
+}

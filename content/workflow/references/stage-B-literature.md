@@ -229,6 +229,12 @@ Use for the supplied or selected seed papers, including a single paper.
 - `literature/paper_reading_matrix.md` compares seed papers by theory, method/identification, dataset/source, main finding, limitation, project relevance, source anchors, and evidence limit
 - `literature/paper_reading_summary.md` organizes targeted reading into grounded themes, method/data patterns, stable single-paper or multi-paper findings, contradictions, gaps, writing-ready citation points, and uncertainty registers
 
+Carry project claim IDs and per-source versions/locators through both artifacts;
+qualify note-local IDs and distinguish reports from independent studies. Use
+Stage E's **Carry source identities into substantive synthesis** when comparing
+papers for writing. Changed sources follow `references/evidence-verification.md`
+through summary claims to actual prose; new access is not automatically correction.
+
 Recommended note filename convention:
 - `notes/{citekey}.md` (preserve the supplied or export-generated stable citekey)
 

@@ -143,9 +143,56 @@ to one coordinator. The coordinator checks the cited passages, resolves conflict
 by evidence and uses the existing ledger statuses and preview/approval/CAS owner.
 Different wording or reviewer agreement is not additional source evidence.
 
-When evidence or candidate bytes change, preserve the old review and identify
-affected claims, decisions and downstream passages. Verify those dependencies
-against the new source before reusing their conclusions; unrelated settled work
-can continue. A later-supplied section is new access to evidence, not necessarily
-a correction to the paper. Record the revision, reason and resumption condition
-in the existing decision log, handoff and collaboration trace.
+## Re-review after a source change
+
+Start from the observed change and the requested project scope. Preserve the old
+source, source binding, candidate and review before preparing a new candidate.
+Record the old and new version/path/digest, inspected locations and access limits
+in the existing note or review packet. A date, filename or changed digest alone
+does not establish a correction, supersession or changed academic conclusion.
+
+| Observed change | What to check before reuse |
+|---|---|
+| Correction to a result, definition, design or appraisal | Inspect the correction's identity and scope, original context and revised passage. Recheck the dependent extraction, synthesis and wording, including derived quantities and interpretations |
+| Newly accessible body section or supplement | Compare the newly inspected content with the earlier access-limited claim. New access need not change the source's result, but may resolve a gap or reveal a limitation |
+| Different bytes with apparently unchanged content | Inspect relevant text, values, metadata and locators. A new binding still needs verification; semantic conclusions can survive an explained comparison, never an automatic hash replacement |
+| Missing or unreadable material, failed retrieval | Retain the previous evidence and failed attempt. Distinguish unavailable fresh verification from actual contradiction; name the dependent claim and specific recovery needed |
+| Another report or version of an existing study | Reconcile report/cohort and version identity before treating it as new evidence. Preserve ambiguous alternatives; neither a newer date nor an extra report establishes independent replication |
+
+Trace the impact through existing records and actual text:
+
+1. Follow the changed source locations to note claims, reading-matrix/summary
+   claims, synthesis rows and decisions, and manuscript-map/ledger entries.
+   Carry each contributing source separately. A synthesis claim has its own ID
+   and explicit contributing claim IDs/anchors; it must not impersonate one
+   paper's finding or inherit support solely from that paper's citation.
+2. Read the affected draft unit as well as its records. Look for paraphrases and
+   reused estimates in background, LR, results, discussion, abstract, captions,
+   recommendations and notes as applicable. Include newly found, unmapped uses
+   and indirect inferences. ID/phrase search finds candidates, not complete
+   semantic coverage; disclose sections or dependencies that were not inspected.
+3. Compare each dependent claim with old and new evidence. State which wording
+   changes, which survives and why, which remains unresolved, and what further
+   check would resolve it. Preserve unchanged source-supported clauses. Changing
+   a premise does not automatically negate every conclusion that cites the paper;
+   absence of a declared dependency does not prove independence either.
+4. Prepare the revised summary/synthesis and actual affected prose together when
+   in scope, preserving argument, explanation, citations and note links. A list
+   of stale IDs alone is not a completed writing revision. If the proposition or
+   qualifiers change, retain the old claim and propose a linked successor ID;
+   never reuse an ID for an incompatible claim. Record continuity for unchanged
+   claims and the exact new manuscript spans. Use existing ledger statuses and
+   map/review fields, not a new invalidation vocabulary or evidence database.
+5. Recheck source support and then language/logic for the revised text. Retain
+   the earlier review as evidence about its original bytes, with the new review
+   explicitly bound to the new candidate and inputs. Record old-to-new rationale,
+   affected claims, unchecked remainder and resumption conditions in the existing
+   decision log/handoff. For saved stage summaries, follow
+   `references/stage-consolidation.md`: append a new revision with its predecessor,
+   never overwrite earlier summaries or erase failed retrieval history.
+
+This is Host-directed comparison, not native automatic dependency invalidation.
+Graph and artifact-change reads cover registered records, not all source packets,
+summaries or prose. Persist only through the existing preview/approval/CAS owner;
+a stale-source refusal requires fresh evidence and a new preview, not a retry with
+an unverified new hash. Unaffected work can continue within the inspected scope.

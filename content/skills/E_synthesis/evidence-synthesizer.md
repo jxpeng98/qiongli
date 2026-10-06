@@ -104,6 +104,12 @@ visible. Explain contradictions only as far as sources support; count neither
 significant results nor papers mentioning a theme as proof of effect or certainty.
 Appraisal grades alone do not establish outcome-level certainty.
 
+Use **Carry source identities into substantive synthesis** in
+`references/stage-E-synthesis.md` for source-to-summary-to-manuscript continuity.
+For a changed input, follow **Re-review after a source change** in
+`references/evidence-verification.md`; return the affected revised prose as well
+as the bounded impact record when writing is in scope.
+
 ## Output Contract
 
 - `EvidenceTable`: `RESEARCH/[topic]/synthesis.md`.

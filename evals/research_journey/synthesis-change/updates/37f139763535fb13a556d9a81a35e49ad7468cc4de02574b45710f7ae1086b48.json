@@ -1,0 +1,26 @@
+{
+  "citekey": "Trial2026",
+  "version": "synthetic report v2 with explicit correction",
+  "evidence_limit": "supplied_body_excerpt",
+  "metadata_label": "independent completion improved (catalogue label, not a finding)",
+  "segments": [
+    {
+      "section": "Methods",
+      "text": "Eight service centres were randomly assigned to offer a staff-assisted online appointment or printed instructions. The trial enrolled 320 applicants aged 60 or above. Its outcome was first application submission within seven days."
+    },
+    {
+      "section": "Results",
+      "text": "The corrected centre-adjusted difference in seven-day submission was 4 percentage points in favour of assistance (95% confidence interval: -2 to 10 percentage points)."
+    },
+    {
+      "section": "Limitations",
+      "text": "The trial did not measure benefit receipt or later independent portal use. Its estimate concerns initial submission, not lasting independent ability."
+    },
+    {
+      "section": "Terminology note",
+      "text": "Assisted digital access means that another person helps someone complete an online procedure. Assistance may enable task completion without demonstrating that the applicant can repeat the task alone."
+    }
+  ],
+  "study_id": "S-TRIAL-1",
+  "correction_notice": "This corrected report replaces the v1 Results estimate, which used an incorrect centre-adjustment weight. The same eight-centre study, 320 participants, outcome and follow-up window remain. Methods, Limitations and Terminology note are unchanged. It replaces v1 Results including that estimate in the companion brief."
+}

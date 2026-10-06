@@ -38,6 +38,8 @@ Stage handoffs preserve what a downstream stage inherits and what remains uncert
 - Before resuming a dependent task, compare its source/result revision with the
   basis of the inherited decision. A changed input requires rechecking affected
   conclusions and naming stale downstream artifacts; unrelated work can continue.
+  Use **Re-review after a source change** in `references/evidence-verification.md`
+  for old/new bindings, affected and retained claims, and uninspected prose uses.
 - When a saved stage consolidation is requested, follow
   `references/stage-consolidation.md` and link its versioned document from the
   handoff. Preserve completed work, earlier summaries and source dependencies;

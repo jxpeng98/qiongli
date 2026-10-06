@@ -28,6 +28,11 @@ context load while retaining evidence. Disk cleanup is optional and separate.
 
 ## Read before consolidating
 
+When a source changes, first use **Re-review after a source change** in
+`references/evidence-verification.md`. Retain the old summary's evidence scope;
+carry affected and unchanged claims, access failures and unresolved checks into
+the new revision rather than treating every earlier conclusion as invalid.
+
 1. Inventory only the authorized project's requested stage material and its
    dependencies. Reuse prior summaries, state, decisions, claims, sources, notes,
    analyses and drafts as applicable. Do not read other projects implicitly.

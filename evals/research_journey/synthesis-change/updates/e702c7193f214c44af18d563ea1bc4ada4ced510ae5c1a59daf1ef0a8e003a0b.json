@@ -1,0 +1,16 @@
+{
+  "citekey": "TrialBrief2026",
+  "version": "synthetic companion brief of v1",
+  "study_id": "S-TRIAL-1",
+  "evidence_limit": "supplied_body_excerpt",
+  "segments": [
+    {
+      "section": "Report identity",
+      "text": "This brief summarizes Trial2026 v1: the same eight-centre study and the same 320 applicants, not an independent replication."
+    },
+    {
+      "section": "Summary",
+      "text": "The v1 report estimated a 9 percentage-point improvement in seven-day submission (95% confidence interval: 1 to 17 percentage points)."
+    }
+  ]
+}

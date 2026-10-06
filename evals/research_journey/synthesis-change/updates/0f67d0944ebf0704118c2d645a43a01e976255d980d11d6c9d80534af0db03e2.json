@@ -1,0 +1,16 @@
+{
+  "citekey": "Followup2026",
+  "version": "synthetic original report; newly supplied body excerpt",
+  "study_id": "S-FOLLOWUP-1",
+  "evidence_limit": "supplied_body_excerpt",
+  "segments": [
+    {
+      "section": "Methods: reuse definition",
+      "text": "This is the report underlying the 180-applicant eight-week survey abstract. Portal reuse meant any self-reported later visit, with or without help, during weeks two to eight. It did not measure independent completion separately. Assisted appointment attendance was not collected."
+    },
+    {
+      "section": "Results and access limit",
+      "text": "Greater perceived procedural complexity was associated with less self-reported reuse after adjustment for prior internet use. Adjusted estimates and intervals are in the supplementary regression table, which is not included in this excerpt. Applicants unavailable at follow-up were excluded."
+    }
+  ]
+}

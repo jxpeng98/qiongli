@@ -146,3 +146,26 @@ This is a Host-guided writing/review process using existing records and tools,
 not native semantic extraction or automatic academic approval. A direct paragraph
 request needs no new project or unsolicited claim table. The 2.4 plan retains
 installed-workflow and final-candidate qualification separately.
+
+## Keep synthesis and later revisions traceable — 2.4.0 candidate
+
+Carry claim IDs and each inspected source/version/locator from the reading matrix
+into the summary, synthesis and manuscript map. Give a cross-paper inference its
+own identity and retain its contributing claims. Compare designs, outcomes, time
+points and uncertainty in relation to the paper's question. Several notes or
+reports from one study are not independent corroboration; paper counts alone do
+not establish consensus. Unknown access is different from a conflicting finding.
+
+When a source changes, the Host compares its old and new content and follows the
+affected claims through actual prose, including paraphrases, background, abstract
+and notes. Return revised passages with the impact record, retaining unchanged
+conclusions and reasons. A correction, newly accessible section, reformatted file
+and failed retrieval need different checks; a changed digest alone says nothing
+about the academic conclusion. Preserve old source bindings, reviews and failures,
+and state the missing evidence needed for any unresolved use.
+
+Use the existing decision log and handoff for this comparison; saved stage
+summaries receive a new revision linked to the predecessor. Native Graph and
+artifact-change reads do not automatically find every semantic dependency.
+Proposed edits still use the existing project preview, approval and revision
+checks; neither re-reading a source nor updating a matrix approves the manuscript.

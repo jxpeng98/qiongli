@@ -38,8 +38,33 @@ Record selected outcomes, method choices and continuation conditions in
 `meta_analysis_plan.md` for E1; record actual evidence and limits in the selected
 E outputs. A narrow explanation needs no full review scaffold. Use the existing
 decision log for consequential changes and the handoff for downstream conditions.
-If a corrected source changes eligibility, scale or uncertainty, recheck the
-affected estimate and conclusion before reusing its table, claim or prose.
+For changed inputs, use **Re-review after a source change** in
+`references/evidence-verification.md` to carry the comparison through dependent
+summary claims and actual manuscript uses, retaining prior versions and reviews.
+
+## Carry source identities into substantive synthesis
+
+Reuse B2's reading matrix/summary and the existing synthesis matrix. For each
+material conclusion, retain its project claim ID and the contributing note/claim
+IDs, citekeys, study/report identity, inspected source version and exact anchors
+in the existing claim, evidence and source fields. Note-local IDs stay qualified
+by their note. Preserve partial access and unresolved identity conflicts.
+
+Organize each comparison around the current paper's question: what outcome or
+relationship needs explaining, which findings can inform it, and what remains
+unanswered. Compare the actual design, population, measure, time point, magnitude
+and uncertainty or qualitative context that matter to that inference. Explain
+how those differences limit agreement, conflict or transfer to this project;
+do not substitute a sequence of author summaries or invent a mechanism for depth.
+Keep incompatible outcomes separate rather than declaring a contradiction.
+
+In the narrative, distinguish source findings from the writer's synthesis and
+the project's proposed use. A cross-paper inference needs its own claim identity
+and inspectable premises. Carry contrary evidence, absent appraisals and access
+gaps alongside supporting evidence. Multiple notes, reports or versions of one
+study are not independent corroboration; mention counts do not establish certainty.
+Pass the supported wording and these dependencies to F, including background and
+explanatory notes. Apply Stage F's prose and explanation checks to the actual LR.
 
 ## Check comparability before combining
 

@@ -82,6 +82,15 @@ review. Claim-map column headers stay frozen and claim types use the ledger's
 existing vocabulary. No native extractor, state vocabulary or evidence store is
 introduced by these instructions.
 
+Stage E owns source-bound cross-paper synthesis, consumed by B2 summaries and
+Stage F writing. The existing evidence-verification reference owns changed-input
+impact review through notes, summaries, synthesis and actual manuscript uses.
+Preserve old bindings/reviews, distinguish corrections from new access and byte
+changes, and explain affected, unchanged and unresolved claims. Existing matrix,
+summary, ledger, map and handoff fields carry these relationships; neither native
+Graph nor artifact-change reads provide automatic semantic invalidation. Template
+marks and paper counts do not establish certainty or independent replication.
+
 Stage C design cards, workflows, role perspectives and the core digest share
 `content/workflow/references/stage-C-design.md`. They retain method/protocol
 requirements without imposing generic sample, rival or robustness quotas. The

@@ -18,6 +18,13 @@ Use these controlled labels:
 - `inference_strength`: `direct_evidence`, `reasonable_inference`, `unsupported_gap`
 - `source_anchor`: citekey plus section, page, table, quote ID, abstract, or metadata field
 
+Retain the project claim ID in each material Finding, Grounded Summary or Citation
+Point cell. In `source_anchor`, preserve each contributing source/version and
+exact inspected location; qualify note-local IDs by their note. A synthesis has
+its own claim ID and contributing claims/anchors, not a borrowed paper's ID.
+Keep access limits per source; one full-text paper does not upgrade the others.
+These are uses of existing fields, not new required columns or status labels.
+
 ## Corpus Overview
 
 | Metric | Value | source_anchor | evidence_limit |
@@ -42,7 +49,10 @@ Use these controlled labels:
 
 ## Stable Findings
 
-Only list a finding as stable when multiple notes support it or when the summary explicitly says it is a single-paper finding.
+State whether each finding rests on one study or several independent studies,
+and retain uncertainty and appraisal limits. Multiple notes, reports or versions
+of one cohort are not replication; a paper count alone does not make a finding
+stable. Retain tentative findings explicitly rather than implying consensus.
 
 | Finding | Supporting Papers | Boundary | source_anchor | evidence_limit | inference_strength |
 |---|---|---|---|---|---|
@@ -63,6 +73,9 @@ Only list a finding as stable when multiple notes support it or when the summary
 ## Implications For Current Project
 
 Separate what papers say from how the current project may use it.
+Explain the comparison that matters to the project's question, including the
+design, outcome and context limits that constrain transfer. An author-by-author
+list or a shared topic is not a cross-paper argument.
 
 | Project Use | Grounded Input | Project Interpretation | source_anchor | inference_strength |
 |---|---|---|---|---|
@@ -79,6 +92,12 @@ Separate what papers say from how the current project may use it.
 | unsupported_gap | Affected Summary Claim | Missing Evidence | Next Action | Do Not Claim As Fact |
 |---|---|---|---|---|
 | | | full text / supplement / dataset documentation / additional papers | retrieve / screen / snowball / ask user | |
+
+For a source correction or new access, follow **Re-review after a source change**
+in `references/evidence-verification.md`. Retain old evidence and compare affected
+summary claims with their actual manuscript uses, including background and notes.
+Record the old/new basis and remaining checks in the existing decision log/handoff;
+saved stage summaries get a new revision under `references/stage-consolidation.md`.
 
 ---
 *Summary created: [Date]*

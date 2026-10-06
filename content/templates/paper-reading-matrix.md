@@ -18,6 +18,14 @@ Controlled labels:
 - `inference_strength`: `direct_evidence`, `reasonable_inference`, `unsupported_gap`
 - `source_anchor`: citekey plus section, page, table, quote ID, abstract, or metadata field
 
+Keep the inspected source version and exact passage binding in `source_anchor`;
+use method/dataset/limitations cells to distinguish reports from independent
+studies and preserve overlap or ambiguity. Reuse project claim IDs in the Claim
+Index; qualify note-local IDs by their note. Carry the same IDs into the summary
+and manuscript map. For a cross-source inference, give its own claim ID and name
+its contributing claims/anchors. Unknown access or missing text is not contrary
+evidence or proof that a paper did not address the question.
+
 ## Matrix
 
 | citekey | evidence_limit | theory/framework | method/identification | dataset/source | main finding | limitations | project relevance | source_anchor | inference_strength | gap note |

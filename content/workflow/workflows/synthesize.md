@@ -61,5 +61,8 @@ missing evidence or establish certainty. Do not claim a pooled result from a pla
 For a formal transition, use `references/stage-handoff-contract.md`: carry the
 method decision, source/output revision, claim limits, outstanding check and
 next supported action into F. If an input changed, revisit affected decisions
-before reusing old results or prose. Finish at the requested deliverable with its
+before reusing old results or prose, following **Re-review after a source change**
+in `references/evidence-verification.md`. Include actual revised passages when
+requested, and preserve unchanged claims and earlier evidence.
+Finish at the requested deliverable with its
 specific evidence gaps; do not restart completed upstream stages automatically.

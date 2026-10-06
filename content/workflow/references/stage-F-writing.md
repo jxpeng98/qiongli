@@ -61,6 +61,8 @@ scope. On a changed upstream result, identify dependent manuscript passages,
 tables, abstracts and recommendations; revise them together within authorized
 scope or name the remaining affected work in the handoff. Do not silently reuse
 the old estimate or promote a previous review into evidence for the new claim.
+Use **Re-review after a source change** in `references/evidence-verification.md`
+to inspect indirect inferences and unmapped uses as well as recorded links.
 
 ### Direction and freedom
 
