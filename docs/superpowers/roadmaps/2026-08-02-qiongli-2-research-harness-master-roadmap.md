@@ -52,7 +52,7 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — October 5, 2026
+## Current execution horizon — October 6, 2026
 
 The maintainer requests development through release readiness under the
 [2.4.0 Plugin-quality plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md).
@@ -68,9 +68,13 @@ synthetic fixture retention. Its archived CLI exports the AGY Plugin, verifies
 its bytes/modes and directly completes Full MCP discovery and a status call.
 Those native results do not qualify an AGY Host session or a later source.
 The current plan binds each receipt and the remaining package scope. Codex's
-latest live result remains 0/3 complete reviewed passes, with no complete guidance-use evidence and
-an actual MCP approval denial. Establish sandbox execution and effective read-tool
-policy before another newly authorized batch. AGY complete-result/clean-shutdown,
+latest live result remains 0/3 complete reviewed passes, with no complete
+guidance-use evidence and an actual MCP approval denial. On October 6 the
+maintainer authorizes using the existing system Codex login for validation.
+The fresh credential-free check still fails at sandbox startup before any model
+call; login authority is available and remains unused. Establish sandbox
+execution and effective read-tool policy, then continue the authorized public
+validation without requesting the same login authority again. AGY complete-result/clean-shutdown,
 save/restart, held-out and final four-target checks remain open. External gates
 do not block independent implementation, but they still gate readiness claims.
 

@@ -674,3 +674,49 @@ roadmap tests, generated-index consistency and whitespace checks pass. All 249
 task IDs/states/dependencies and 46 complete accepted records match `025fe931`;
 only CLI-409/410 blocker text changes. No unchanged native, package or model
 checks are rerun merely for the documentation integration.
+
+## October 6 — existing login authorized, sandbox prerequisite still blocked
+
+The maintainer explicitly authorizes using the system's existing Codex login
+for validation. This supersedes the need for a new login grant in the October 5
+next-step record. Use an isolated profile and temporary authentication link,
+without reading, copying or logging credential contents; remove the link after
+use. The first model batch remains the three public baseline tasks, once each,
+at most 180 seconds each on `gpt-6.1-sol / low`. Those operational bounds do not
+expire the maintainer's authority for the same planned public validation; no
+repeat login-permission question is needed merely because prerequisites are
+repaired. Private research, real profile/permission changes, push and publication
+remain outside this grant.
+
+The same lightweight verifier runs the existing credential-free preflight once
+from clean `2.x` source `9dfad782`. Installed Codex remains 0.160.0, executable
+SHA-256 `50b06603bdcdac39b714f5c3e68583c002b8ad8779ebfdaaf4932ff016b379c0`.
+Version inspection passes, but the normal read-only sandbox's `/usr/bin/true`
+exits 1 with `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted`.
+Guidance reads and effective Plugin-policy inspection do not run. Both command
+processes are reaped with their groups gone; guidance and configuration remain
+unchanged and the isolated authentication path is absent. Zero model calls or
+authentication links are made. This is a prerequisite failure, not a new failed
+three-case model batch and not an authentication failure.
+
+Complete commands, stdout/stderr and cleanup are retained at
+`/tmp/qiongli-codex-oct6-preflight-14u3ong_/result/preflight.json`, SHA-256
+`40e26f4b40a80b02600264215590e849e524ced5656edfed573fd5ba5b50c8af`.
+Sibling `kernel-clues.json` records read-only environment clues, including
+AppArmor user-namespace restriction enabled and the inspecting process's zero
+Seccomp/NoNewPrivs flags. These do not establish the cause of the loopback denial.
+An initial log-read helper used the wrong stderr filename; the verifier then
+reads the actual `stderr.log` without rerunning the preflight. All prior evidence
+is retained and no policy, sysctl or permission is changed.
+
+The next action is a supported Codex sandbox environment or administrator
+diagnosis of the current execution denial, followed by effective tool-policy
+readback and the already authorized public batch. Release remains Not ready;
+earlier Linux ARM64 package evidence and the remaining AGY, save/restart,
+held-out and final-source four-target gates retain their scope.
+
+At integration, the same verifier finds no blocking issue in this four-file
+record, matches the new receipt hash and passes seven roadmap tests, index
+consistency and whitespace checks. All 249 task IDs/states/dependencies and
+46 complete accepted records match `9dfad782`; only CLI-405 blocker/date changes.
+No preflight, native package or model check is repeated for this record.
