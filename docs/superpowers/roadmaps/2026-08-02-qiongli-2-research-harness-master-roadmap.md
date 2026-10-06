@@ -62,11 +62,12 @@ credential-free sandbox preflight, and package qualification adds an explicit
 2.3.0 predecessor while retaining historical upgrade checks and failed receipts.
 The plan binds focused checks, the generated content pack and retained failures.
 
-Native source `84bc1079` now passes local Linux ARM64 artifact/install checks in
-a separate glibc 2.35 environment and actual public pip/npm 2.3.0 upgrades with
-synthetic fixture retention. Its archived CLI exports the AGY Plugin, verifies
-its bytes/modes and directly completes Full MCP discovery and a status call.
-Those native results do not qualify an AGY Host session or a later source.
+Native source `c2cae736` now passes current-content Linux ARM64 artifact/install
+checks in a separate glibc 2.35 environment, actual public pip/npm 2.3.0 upgrades
+with synthetic fixture retention, and installation from ten Cargo archives. Its
+archived CLI exports the AGY Plugin and directly completes Full MCP discovery
+and a status call. The plan retains older `84bc1079` results separately; these
+native results do not qualify an AGY Host session or a later source.
 The current plan binds each receipt and the remaining package scope. After the
 maintainer repairs the sandbox, Codex 0.160.1 passes credential-free execution and
 effective read-tool policy checks. Three new public cohorts retain their own
@@ -84,10 +85,13 @@ candidate `85758cac`, a newly reviewed actual answer passes native save and fres
 project-ID recovery (structure/review 1/1). The three frozen synthetic cases also
 pass structure/review 3/3, covering abstract-only evidence, conflicting units and
 changed-source continuation. The plan binds full reviews, negative cases, metrics
-and cleanup; those observed materials now become regression cases. AGY actual
-complete-result/clean-shutdown/read-recovery and final-source local artifacts plus
-four-target/Cargo checks remain open. External gates do not block independent
-implementation, but they still gate readiness claims.
+and cleanup; those observed materials now become regression cases. AGY 1.3.0
+isolated install/enable and source/cache checks pass on the unchanged Host-test
+candidate, but its fresh profile lacks login: zero model turns and MCP calls,
+with cleanup/preservation verified. User login is needed before a new actual
+complete-result/normal-completion and read/recovery observation. Final-source
+four-target/Cargo remote checks also remain open. These gates keep release
+readiness separate from completed local development.
 
 CLI-405/409/410 and the existing evaluation, installation and write owners retain
 responsibility. Task states/dependencies and accepted evidence remain unchanged.

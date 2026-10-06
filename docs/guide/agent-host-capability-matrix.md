@@ -22,21 +22,22 @@ qualify a changed final release candidate.
 
 | Host | Development evidence | Remaining qualification |
 | --- | --- | --- |
-| Codex CLI | Isolated native Plugin installation and receipt/cache verification; three newly captured research tasks | Latest complete reviewed result is 0/3. Guidance use, effective read-tool policy and successful recovery need fresh evidence in a working sandbox. |
-| Antigravity CLI | Native install/update, Skill entry reads, Full 35-tool discovery and a returned native result | Complete raw result and clean Host shutdown remain open; research continuation is not yet qualified. |
-| Claude Code / DeepSeek | Existing shared Plugin/package adapters are retained | Final-candidate compatibility/package checks are required; no new model journey is claimed. |
+| Codex CLI | On `85758cac`, installed regression passes structure/review 3/3, actual new-note save/restart 1/1, and one frozen fresh synthetic cohort 3/3; guidance, read-tool policy and cleanup are verified | Bounded tasks with supplied guidance locations; no automatic discovery, full-paper or broad academic acceptance. Earlier failures remain in the plan. |
+| Antigravity CLI | Earlier 1.2.17 install/update, Skill reads and native return remain scoped observations; isolated 1.3.0 install/enable and source/cache verification also pass on `85758cac` | The fresh 1.3.0 profile requires login and makes no MCP call. Complete raw result, successful Host completion and research continuation remain open. |
+| Claude Code / DeepSeek | `c2cae736` Linux ARM64 qualification passes the Claude archive and npm DeepSeek projection | Other target qualification remains open; no new model journey is claimed. |
 
 Antigravity uses its CLI Plugin format and the normal Host trust/approval flow;
 keep its registered source directory and start a fresh session after updates.
 See [installation instructions](../advanced/plugin-installation.md#antigravity).
 
-For native source `84bc1079`, local Linux ARM64 qualification passes the archived
+For native source `c2cae736`, local Linux ARM64 qualification passes the archived
 Codex/Claude Plugins and the npm DeepSeek projection. The archived CLI also
 exports an Antigravity Plugin with 22 Skill entries and verified file bytes and
 modes; its bundled executable directly lists 35 Full MCP tools and returns a
 complete `qiongli_config_status` result over stdio. These are package/native
-transport checks. Official AGY registration and a fresh AGY session are not part
-of this observation, and final-source four-target qualification remains open.
+transport checks. This archived-binary observation does not register a Plugin or
+run an AGY session; the separate 1.3.0 installation/authentication outcome is
+listed above. Final-source four-target qualification remains open.
 
 ## Installation and runtime surfaces
 

@@ -937,3 +937,118 @@ records and 76 nonempty evidence fields match `2.x`; only CLI-405/410 blocker
 text changes. Final review clarifies the deliberate pre-freeze synthetic source
 replacement and the native transaction actor. Unchanged native, content, package
 and model checks are reused; this documentation integration adds no acceptance.
+
+
+## October 6 — current-content local packages and AGY 1.3.0
+
+After local integration, a separate clean `2.x` clone at native source
+`c2cae7360667ba722d41f2ca2adb8647fbda8090` qualifies Linux ARM64 in the existing
+rootless glibc 2.35 environment. It binds canonical content `f26ee4a5` and pack
+`1d84ed12`, rather than inheriting the earlier `84bc1079` results. No credential
+mount, extra container privilege, remote synchronization or publication is used.
+The source clone is `/home/hermes/qiongli24-final-source-6l3po_h5/source` and new
+output root `/tmp/qiongli24-final-delivery-meywqu48`; the old artifacts remain.
+
+The existing release owner passes formatting, strict Clippy, **46 CLI + 9 MCP**
+tests, archive smoke, glibc/wheel checks and actual npm/wheel installs. The
+494.638661-second successful process produces five assets whose actual sizes
+and SHA-256 values all match the manifest. Codex/Claude archives and the npm
+DeepSeek projection pass, with 22 DeepSeek Skills and 35 Full tools. The archived
+CLI SHA-256 is `548909b6649291b0e7f28e155a4271d77dfdb9b77bee4e33e1ef0026d0d0bc57`;
+Lite 15 / Full 35 and the current content-pack digest match across installations.
+
+The separate 470.796946-second follow-up passes actual public pip/npm 2.3.0
+upgrades without fallback and retains the synthetic canaries through the existing
+owner. Ten Cargo source archives validate, then actual installation from those
+archives passes both `qiongli` and `ql`, version, invalid-command refusal and MCP/
+content checks. The source clone remains clean. These are local target results,
+not a published-package install or four-target qualification.
+
+Preparation retains the initial insecure `/tmp` source-location diagnosis and
+new clone's inherited group-writable directories; no tests start in either
+condition. Only newly owned real clone directories have group/world write bits
+removed, without changing tracked bytes or Git file modes. The first owner run
+then correctly refuses a detached clone before tests/builds. A local `2.x` branch
+at the same frozen source satisfies that existing guard; no guard or source is
+changed. Its failed receipt remains separate from the successful run.
+
+### AGY package transport and actual Host are separate
+
+The archived CLI exports 22 AGY Skill entries into the new isolated
+`/home/hermes/qiongli24-packaged-agy-t6446ljm` fixture. Exported executable bytes
+match the archive; Full stdio discovery returns 35 tools and a matched ID-3
+`qiongli_config_status` call succeeds with complete raw native output. Official
+Host registration is deliberately declined at its separate confirmation. This
+qualifies package/native transport, not an AGY model session.
+
+Separately, `/home/hermes/qiongli24-agy-next-nhow8box` retains an actual isolated
+AGY **1.3.0** installation of the unchanged Host-test candidate `85758cac` /
+CLI `2aa5079d`. The Host executable SHA-256 is
+`b3df69538e3de96f341c2bd12e5354954ecfb94aa93dabc79f695bc05b386302`.
+Native source export and the official `plugin install` / `enable qiongli` each
+receive their own reviewed confirmation. Installation completes normally in
+225.527519 seconds; source/cache bytes, allowed modes, receipt identity and
+registration/enablement match. The Plugin receipt SHA-256 is
+`20b9a48f8fcfe92fc46dad4dc5d7e76ac21024ab9669f259c6070afa36f46e9f`.
+The initial invalid source-leaf refusal and canceled valid preview remain.
+A reused temporary PTY receipt misleadingly names a field
+`cancelled_first_write_confirmation`; its raw log records both actual approvals.
+The packaged-export log instead records source approval then registration denial.
+These retained labels do not override the actual command/confirmation evidence.
+
+Before one status observation, the isolated settings allow only
+`mcp(qiongli_qiongli/qiongli_config_status)` and deny model shell/browser/direct
+file-read/write actions. Only the new public workspace is trusted. Registered
+MCP configuration has no environment override; the observer selects the isolated
+Qiongli configuration/workspace for any native child. The authentication failure
+does not establish that the Host actually started such a child. AGY's rule does not restrict tool
+arguments; the existing observer fixes and matches the exact `cwd` instead.
+The complete capture/score path is mocked offline before execution. The live
+invocation uses plan mode, sandbox, low effort and at most 180 seconds, with no
+model override or permission bypass. Credential files are never inspected,
+linked, copied or logged; only the official Host may use its normal login flow.
+
+The isolated Host does **not** obtain silent login. It reports authentication
+required, waits through its normal 60-second login timeout, then exits 1 after
+60.787555 seconds. It reports zero model turns/usage and makes zero MCP calls.
+The V1 score correctly fails the required Host/result gate; the process is reaped,
+its group is gone and workspace/Qiongli configuration/settings snapshots match.
+No login URL is opened, fallback login performed or model attempt repeated.
+The maintained temporary profile is available for the user's normal interactive
+login; any subsequent login or observation has its own new evidence. This is a
+missing authentication prerequisite, not an observed MCP implementation failure.
+
+### Evidence and next action
+
+The local output's `evidence-summary.json` binds all thirteen principal records,
+all five assets, exact source identities, durations and preserved failures. Its
+SHA-256 is `cea37483179bdcbe792e9468cbb615fdd69f9640568c42e9b55beacadc8e9253`.
+Selected underlying records are:
+
+| Record | SHA-256 |
+| --- | --- |
+| `linux-arm64-glibc235/assets/release-manifest.json` | `db12965e781acca505b9ae9a4f8a026692998870a083dbf23c87a41e3a05f9e6` |
+| `upgrade-2.3.0/registry-upgrade-check.json` | `a772c11a33fe2c2204d4e06a79417e5f8e43d60bae542fb9bf3e0facbab5b2ba` |
+| `cargo-source/registry-packages.json` | `2cf26e5f71319d440e44152dbaf792c758dc8a99519223b7d839df6868167ce2` |
+| `cargo-install/install-check.json` | `211dc8024474a7be4174a74cd8c22e2d0759ac664bb440befedd839cf580a27e` |
+| Packaged AGY `logs/native-mcp-receipt.json` | `43688ce4dc3f7276569f035df92c29a5ee37c67fc83f3a4db94084f1736340fe` |
+| Isolated AGY `installation.json` | `6735fa78e7068f38548a2e9c3e12dd89cd556c2b4d9b463b42b500217017ac52` |
+| Isolated AGY `status-capture/manifest.json` | `126a243f1b57ac486bde724c6808db84645886cb50c0dfe63696e7b8fcacdec7` |
+
+The bilingual development Host matrix now reflects the current Codex scoped
+passes, separate AGY install/authentication result and current-content ARM64
+package checks; historical accepted matrices remain unchanged. Release remains
+**Not ready** pending AGY's authenticated complete-result/normal-completion and
+bounded recovery observations, plus final-source four-target distribution/Cargo
+qualification under separate remote authority. No push, tag, publication or
+acceptance promotion occurs. Unchanged Codex/model/content checks are reused.
+
+At integration, the same lightweight verifier passes seven roadmap tests,
+generated-index consistency and whitespace checks. It matches the summary,
+thirteen bound records, seven selected hashes and five assets without accessing
+the live AGY authentication/settings directory awaiting user login. All 249 task
+IDs/states/dependencies, 46 complete accepted records and 76 nonempty evidence
+fields remain unchanged from `c2cae736`; only CLI-409 progress/date and CLI-410
+progress change. Final review distinguishes selected child environment from an
+actually observed child launch, which this authentication failure cannot prove.
+No unchanged model, native, package or content check is repeated for integration.
