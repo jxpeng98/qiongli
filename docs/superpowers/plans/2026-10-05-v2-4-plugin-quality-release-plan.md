@@ -50,6 +50,8 @@ database, vector index, review-status vocabulary or automatic approval is added.
 | E — installed journey and final candidate | Exercise search provenance → inspected passages → reviewed notes/synthesis → manuscript claims → reverse lookup → fresh-session recovery through existing installation and write owners. | Frozen public/synthetic inputs, complete actual outputs, exact candidate/source bindings and reviewed support judgments. Requalify final-source packages and retained upgrade/Host gates before readiness. |
 
 Implement A first, then B/C on the settled locator interface, followed by D/E.
+Local A and B implementations are now integrated in sequence below; C is next.
+Their focused checks do not complete C/D/E or the final release gates.
 For A, `json_pointer` selects only an observed string field from a content-addressed
 source packet. Offsets refer to decoded UTF-8 text while SHA-256 still binds the
 whole saved JSON file. Preserve native page/section/segment metadata in that packet;
@@ -1560,3 +1562,62 @@ The initial frozen report accidentally omitted the first two pack-digest digits;
 the correction is verified against committed lock `5c81e14e` and preserves the
 original report and its hash. No source/input change or test replay follows that
 transcription correction. Temporary local verification is not accepted evidence.
+
+## October 6 — bounded saved-passage discovery
+
+Starting from local `fc0abaef`, slice B is implemented in `8da74df2` through the
+existing checked saved-document owner. CLI adds `project document search`; Full
+selects search mode with `search_text` on `qiongli_project_document_read`. Raw and
+selected reads remain compatible, and Full 35 / Lite 15 are unchanged. Strict
+requests reject mixed read/search controls. There is no new evidence store,
+project write, directory scan, remote fetch or installed-Host mutation.
+
+The search scans decoded string values in one explicitly bound source packet,
+one selected string, or raw saved note/retrieval-history text. It retains distinct
+locations, returns bounded context with exact replay arguments and binds
+continuation to source/revision/query/pointer/context/page size. Matching is
+literal, case-sensitive and non-overlapping within each string. Packet metadata
+is included, so hits require content inspection; no hit cannot establish absence
+from unread material. Existing reading and evidence-review guidance retains
+reviewed locators in current note/ledger records and discloses those limits.
+
+Pack commit `b4e70b64` binds 446 resources to canonical source
+`8da74df254a8e7e717ea6fd5197ddfb43eab42ca`, content root
+`008314f7a8e95e2891447948c0c35e7abfd7da90b0bcb8a2c6a0503fffe989b7`, and pack
+`7174bfd715438f49042b7a335604267f9b8564810553c473799f354558bc13fe`.
+Regeneration uses the existing offline `update_qiongli_core_lock` owner.
+
+One requested `gpt-6.1-sol / low` verifier passes 21 focused tests: 16 project
+saved-document tests, four actual CLI/MCP tests and one embedded-pack test.
+The 14 prior cases are retained. Added coverage includes decoded/escaped Chinese,
+deterministic repeated matches and pagination, exact context replay, minimum
+UTF-8 context clipping, metadata and no-hit scope, literal/case/non-overlap limits,
+changed source/query/page bindings, invalid mode combinations, invalid JSON and
+locators, source permissions/links/size, and unchanged Lite refusal. Fixtures use
+`umask 077`; checks run offline and locked without weakening production guards.
+
+Capability validation, content-only materialization/resource reachability,
+formatting, seven roadmap checks and generated-index consistency pass. Strict
+project Clippy passes. Combined project/app Clippy passes with only the two known
+Rust 1.99 baseline allowances, `deprecated` and `chunks_exact_to_as_chunks`;
+the preceding strict failure remains recorded above and is not relabelled a pass
+or rerun merely to reproduce it. No new diagnostic category is allowed. Final
+diff review finds no remaining actionable issue. All 249 task IDs/states/dependencies,
+46 complete accepted records and 76 nonempty evidence fields remain unchanged;
+only CLI-405/410 progress text changes.
+
+Commands, exact source/pack bindings, results and limits are recorded in
+`/tmp/qiongli-saved-passage-search-verifier-2026-10-06.md`, SHA-256
+`bc504b26872dc046d32d371a8dac8f57e450d7b973b34ef1f2e434aa75e659f0`.
+The content-only materialization used an automatically removed temporary directory;
+the committed resource lock retains its pack identity. This local report is not
+accepted program evidence.
+
+Next implement C: select an existing claim, traverse its actual ledger/note/source
+bindings and present supporting/conflicting passages separately for source-support
+review. Ambiguous identities, missing passages and access limits remain unresolved.
+Then D connects synthesis and changed-source review, followed by E's installed
+journey and final-source qualification. The B result establishes local native
+retrieval behavior, not academic support, installed-Host quality or release
+readiness. Prior package results, strict AGY gaps and pending scope/publication
+decisions retain their existing boundaries.

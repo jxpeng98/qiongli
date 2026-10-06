@@ -65,6 +65,15 @@ This first readback capability does not yet implement automatic claim traversal,
 cross-document search or PDF viewing. CLI-405/410 and existing evidence/write
 owners retain responsibility; no task acceptance or pending AGY decision changes.
 
+The subsequent local increment `8da74df2` implements B: literal passage search
+within one explicitly bound saved file through CLI and the existing Full document
+reader. It returns bounded context and exact readback arguments, preserving
+distinct locations and query/source-bound pagination. Packet string values include
+metadata; no hit does not establish absence from unread material. The current
+plan records native/CLI/MCP checks and content pack `b4e70b64`. Next is C,
+claim-to-source traversal and support review, then D/E. This local capability
+does not establish installed-Host or final-source release qualification.
+
 The preceding maintainer feedback selects a bounded writing-quality increment:
 natural prose, substantive literature comparisons tied to the paper, supported
 background and useful explanatory notes. On local baseline `16a9d7c4`, canonical
