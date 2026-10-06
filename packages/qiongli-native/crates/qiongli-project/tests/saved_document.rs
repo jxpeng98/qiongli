@@ -8,8 +8,12 @@ use sha2::{Digest, Sha256};
 use std::{
     fs,
     path::PathBuf,
+    sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
 };
+
+static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
+
 fn sha(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
@@ -33,8 +37,11 @@ impl Fixture {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let base =
-            std::env::temp_dir().join(format!("qiongli-saved-read-{}-{nonce}", std::process::id()));
+        let base = std::env::temp_dir().join(format!(
+            "qiongli-saved-read-{}-{nonce}-{}",
+            std::process::id(),
+            NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+        ));
         fs::create_dir(&base).unwrap();
         let base = fs::canonicalize(base).unwrap();
         let root = base.join("project");

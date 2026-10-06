@@ -13,8 +13,11 @@ use std::{
     fs,
     path::{Path, PathBuf},
     process::{Command, Output},
+    sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
 };
+
+static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
 
 struct Fixture {
     base: PathBuf,
@@ -36,8 +39,9 @@ impl Fixture {
             .unwrap()
             .as_nanos();
         let base = std::env::temp_dir().join(format!(
-            "qiongli-manifest-cli-{}-{nonce}",
-            std::process::id()
+            "qiongli-manifest-cli-{}-{nonce}-{}",
+            std::process::id(),
+            NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir(&base).unwrap();
         let base = fs::canonicalize(base).unwrap();
