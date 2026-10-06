@@ -79,9 +79,13 @@ full-answer reviews, source hashes, metrics and previous failures remain in the
 package qualification or establish automatic Skill discovery.
 
 The October 6 login authorization remains available for planned public
-validation, using isolated profiles and temporary links with cleanup. Next
-qualify a newly reviewed note through save/restart and run the frozen fresh
-synthetic cases. AGY complete-result/clean-shutdown/read-recovery and final-source
+validation, using isolated profiles and temporary links with cleanup. On unchanged
+candidate `85758cac`, a newly reviewed actual answer passes native save and fresh
+project-ID recovery (structure/review 1/1). The three frozen synthetic cases also
+pass structure/review 3/3, covering abstract-only evidence, conflicting units and
+changed-source continuation. The plan binds full reviews, negative cases, metrics
+and cleanup; those observed materials now become regression cases. AGY actual
+complete-result/clean-shutdown/read-recovery and final-source local artifacts plus
 four-target/Cargo checks remain open. External gates do not block independent
 implementation, but they still gate readiness claims.
 

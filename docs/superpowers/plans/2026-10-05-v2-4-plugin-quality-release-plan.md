@@ -836,3 +836,104 @@ states and dependencies, 46 complete accepted records and all existing evidence
 fields remain unchanged from `2.x`; only CLI-405/410 blocker text and CLI-410's
 date change. No unchanged native, package or model checks are rerun for this
 documentation integration.
+
+
+## October 6 — new-note persistence and fresh synthetic cases
+
+The unchanged installed-Host candidate `85758cac` / content `f26ee4a5` / pack
+`1d84ed12` now passes the separate save/restart journey and three previously
+unobserved synthetic cases. These reuse the installed-Codex regression's exact
+CLI bytes, official installation owner, read-only policy, Codex 0.160.1 and
+`gpt-6.1-sol / low`. Each model case runs once, for at most 180 seconds; no result,
+criterion or fixture is changed to obtain a pass. Complete guidance reads,
+normal process completion, group cleanup, preserved project/configuration bytes
+and temporary authentication-link removal are verified for all four cases.
+
+### Actual reviewed answer saved and recovered
+
+`/home/hermes/qiongli24-new-note-restart-lusj0r5h` retains a new isolated project,
+`prj_06f5b05814e4b3d0bd0de361d3fa8e43`. Reviewed native transactions save the
+independently reviewed actual D paper-explanation answer verbatim, with its
+answer/review/manifest provenance, through source capture, exact preview, academic
+review, approval and revision/CAS. This is an actual answer save, not a claim
+that the read-only model performed the write. Source and note saves advance the
+new project to revision 3. Missing-approval attempts for both writes are refused
+without mutation; temporarily missing source bytes cause read and note-preview
+refusal, then are restored exactly before a fresh approved preview. Stale
+revision-2 reads are refused. The original D fixtures remain unchanged.
+
+A fresh session receives only the project ID and installed guidance locations,
+with no research paths, hashes, revision or body snapshots. Seven successful
+native calls obtain project/list/read results, including complete byte-matched
+8,450-byte note and 10,308-byte packet bodies; duplicate reads remain in the
+metrics. Three guidance command calls bring the total to ten, with zero failed
+calls. The 44.230030-second run reports 263,669 input, 197,760 cached and 1,401
+output tokens. Its 256-character paragraph passes the declared 250–350 rule and
+all six independently reviewed answer spans. Structural and reviewed results
+are both **1/1** through the existing trace/span and Evaluation Truth V1 owners.
+
+Two offline verification mistakes remain retained: an initial helper expected
+blocked JSON instead of the actual missing-source preview's exit 1; another
+incorrectly required optional MCP `structuredContent` despite complete JSON in
+`content`. Only the helpers were corrected; no model case was repeated and the
+source-restoration finally block preserved the original bytes.
+
+### Three frozen synthetic cases
+
+`/home/hermes/qiongli24-heldout-8os90b1t` binds the source/request/reviewer criteria
+previously frozen at material digest `651a9567`, with 35 final input files plus
+the freeze record and 60 sealed files. Reviewer criteria and the changed-source
+replacement are withheld from the model. Before final preview/save/freeze, the
+coordinator removes an extra recovery instruction from the synthetic historical
+note; the saved note contains provenance, findings and limits. No material or
+criterion changes during or after the actual batch. The initial preparation's
+external-file sandbox refusal is retained and corrected using the authorized
+external write; it is not a model retry.
+
+| Case | Reviewed behavior | Seconds | Input / cached / output tokens | Calls / failed |
+| --- | --- | ---: | --- | --- |
+| ShiftBreak2026, abstract only | Preserves 46 volunteers, three workplaces and eight days of observational self-reports; does not infer causal support for a fixed-break policy. | 31.339207 | 61,231 / 44,416 / 963 | 4 / 0 |
+| CyclePilot2026, conflicting units | The 314-character paragraph distinguishes six randomized machines from 120 cycles and 58 + 60 valid records; retains −4.2 seconds versus 4.2% as unresolved, with unknown precision. | 31.294074 | 77,549 / 64,384 / 879 | 2 / 0 |
+| StreetShade2026, changed source | Three native calls recover revision 3, bindings and the complete current 1,300-byte note. The changed source has no usable read arguments and is not read; 2.5°C is explicitly historical, while the unseen 0.7°C replacement is not adopted. | 38.425721 | 177,246 / 147,968 / 1,066 | 6 / 0 |
+
+Structural and complete independent answer-review results are both **3/3**.
+After saving the original source and note, preparation deliberately replaces only
+the synthetic packet before freezing the observation. Changed-source and stale-
+revision refusal checks cause no further mutation. This is one frozen synthetic
+cohort, not expert,
+full-paper or cross-discipline acceptance. Having been observed, these cases are
+now regressions; replaying them cannot establish another fresh held-out result.
+Supplied installed guidance locations still do not establish automatic discovery.
+No efficiency comparison against earlier differing tasks is claimed.
+
+### Evidence and remaining release scope
+
+Each root retains its complete `evidence-summary.json`, including exact file
+paths, source identities, native negative receipts, traces, reviews and metrics.
+The summaries and principal records are bound here:
+
+| Record | New-note save/restart SHA-256 | Held-out SHA-256 |
+| --- | --- | --- |
+| Evidence summary | `2e707d399e5607e4a3eba275e16a6125204d83cb2cf2319c46f7707f21e26532` | `8bdfb1766c62df1dd2675d48755fa3be292a1391fd1d8236363924f31b5e74de` |
+| Frozen inputs | `1473439e30f4372969bf071ff1422baaf5b4bba74005a0a83815880a707b3477` | `f9b2af5a1ba9d62c2a335718c9c1c7425f21fc6d204e4f257c5b1879eadb4480` |
+| Sealed manifest | `5e10641a49a587112d0cf908e95fd66101e7891daa477f9431994ac23558a8cc` | `f5512235cdda9f40d1ab508a7bb196179a7fe0f5378a00d6d9c127043f4b3ff3` |
+| Complete review | `c7ff475e219ff3f9d310550db6f753ed8f71ae8a33ef616358c9e1c1b514d9f7` | `4de0fff3a7463a817e58143c0814e6351226e697ea0a97ddee8193faf8f6b847` |
+| Score summary | `ca9c70b9b6d1bcc857dfd2d449443db2501d196d42e274a9e6fe4de0bfbd65c7` | `69a400fba86c51527fde601092d27522596cf8fea94ef96d805a223cad5bc8c6` |
+| Authentication lifecycle | `b92a24e7e40a1c82c1bb722d9eb85b47b4ddcbac8ef989c68c18839507cb6a9f` | `8ff5675987987fff457d7dd1bc286488d5c9f75a7acd8054750eb1554d180c72` |
+
+Slice 3's scoped Codex save/restart and held-out exit is now observed. Next close
+AGY's actual complete-result/clean-shutdown status call and bounded read/recovery,
+and qualify final-source local artifacts before separately authorized four-target
+remote distribution/Cargo checks. Older `84bc1079` release artifacts retain their
+original scope; these test-profile observations do not qualify new packages.
+Release remains **Not ready**. No push, publication, real profile/model change,
+new task state or accepted-evidence promotion occurs.
+
+At integration, the same verifier passes seven roadmap tests, generated-index
+consistency and whitespace checks, matches all twelve principal hashes above and
+all 32 files referenced by the two evidence summaries, and confirms both auth
+links are absent. All 249 task IDs/states/dependencies, 46 complete accepted
+records and 76 nonempty evidence fields match `2.x`; only CLI-405/410 blocker
+text changes. Final review clarifies the deliberate pre-freeze synthetic source
+replacement and the native transaction actor. Unchanged native, content, package
+and model checks are reused; this documentation integration adds no acceptance.
