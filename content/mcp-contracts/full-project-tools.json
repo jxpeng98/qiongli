@@ -549,7 +549,7 @@
     },
     {
       "name": "qiongli_project_document_read",
-      "description": "Read a bounded UTF-8 window of an explicitly selected saved paper note, source packet or retrieval_manifest.csv in a registered project. Requires the expected project revision and whole-file SHA-256 from prior authorized preview/receipt/file evidence. Recheck the same digest on every continuation; this is a local snapshot, not report verification, Graph authority or permission to write. Optional json_pointer selects an observed string in a saved source packet; offsets then address decoded UTF-8 text. Retain the same pointer, revision and whole-file hash on continuation. Exact readback does not establish source support.",
+      "description": "Read or search one explicitly selected saved paper note, source packet or retrieval_manifest.csv. Requires the expected project revision and whole-file SHA-256 from authorized binding evidence. Without search_text, read a bounded UTF-8 window; optional json_pointer selects an observed saved packet string and offsets address decoded text. With search_text, find literal, case-sensitive, non-overlapping matches within each decoded packet string value (including metadata), one selected string, or raw note/manifest text. No normalization, cross-field match or full-paper coverage is implied. Search returns bounded contexts and exact readArguments; continuation retains query/scope/page settings plus searchSha256. Read controls offset_bytes/max_bytes and search controls are mutually exclusive. Recheck source identity on every call. This local snapshot is not source-support verification, Graph authority or write permission.",
       "inputSchema": {
         "type": "object",
         "required": [
@@ -594,6 +594,37 @@
             "minimum": 4,
             "maximum": 65536,
             "default": 16384
+          },
+          "search_text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "description": "Select search mode. Exact non-whitespace-only query of 1..512 UTF-8 bytes; no NUL. Literal case-sensitive matches do not overlap or span packet string values."
+          },
+          "match_offset": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0,
+            "description": "Search mode only. Zero-based match cursor in deterministic pointer order; values above zero require expected_search_sha256."
+          },
+          "max_matches": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16,
+            "default": 8,
+            "description": "Search mode only. Maximum matches returned per page."
+          },
+          "context_bytes": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 512,
+            "default": 128,
+            "description": "Search mode only. Up to this many UTF-8 bytes on each side of each match, rounded inward to character boundaries."
+          },
+          "expected_search_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Search mode only. Required for match_offset > 0; use searchSha256 from the preceding page. Binds source identity, revision, query, pointer, context and page size."
           }
         },
         "additionalProperties": false

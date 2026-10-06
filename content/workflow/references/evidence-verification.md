@@ -18,6 +18,10 @@ passage, not just entries already present in a ledger. Retain claim/decision IDs
 citekeys, exact candidate identity and current source revision/digests. Give the
 reviewer the relevant original passages, tables/notes and source access limits;
 an author's summary or another review cannot substitute for these materials.
+For saved material, use the capability-gated binding, passage-read and literal
+search route in `workflows/paper-read.md` to recover inspectable source locations.
+A search hit is a candidate for this review; retain its packet/version binding,
+read the needed context and distinguish metadata from original body evidence.
 
 Choose the smallest useful assignment:
 

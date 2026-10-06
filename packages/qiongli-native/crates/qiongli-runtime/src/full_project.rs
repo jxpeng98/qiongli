@@ -217,6 +217,22 @@ impl FullProjectService {
         &self,
         arguments: &Map<String, Value>,
     ) -> Result<Value, FullProjectServiceError> {
+        if arguments.contains_key("search_text") {
+            let request: qiongli_project::SavedDocumentSearchRequest =
+                serde_json::from_value(Value::Object(arguments.clone())).map_err(|_| {
+                    FullProjectServiceError::invalid("Invalid saved-document search arguments")
+                })?;
+            request.validate().map_err(|_| {
+                FullProjectServiceError::invalid("Invalid saved-document search arguments")
+            })?;
+            return self
+                .projects
+                .search_saved_document(&request)
+                .map(|view| json!(view))
+                .map_err(|error| {
+                    FullProjectServiceError::domain(error, "saved document search failed")
+                });
+        }
         let request: SavedDocumentReadRequest =
             serde_json::from_value(Value::Object(arguments.clone())).map_err(|_| {
                 FullProjectServiceError::invalid("Invalid saved-document read arguments")

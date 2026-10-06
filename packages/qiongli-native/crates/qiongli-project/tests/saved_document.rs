@@ -2,7 +2,7 @@
 use qiongli_config::resolve_config_root;
 use qiongli_project::{
     ApprovedProjectMutation, ProjectId, ProjectKind, ProjectRegistrationOptions,
-    ProjectStateService, SavedDocumentReadRequest,
+    ProjectStateService, SavedDocumentReadRequest, SavedDocumentSearchRequest,
 };
 use sha2::{Digest, Sha256};
 use std::{
@@ -497,4 +497,371 @@ fn packet_selector_preserves_link_and_owner_refusals() {
     symlink(f.root.join("outside-sources"), f.root.join("sources")).unwrap();
     assert!(f.service.read_saved_document(&r).is_err());
     assert_eq!(fs::read(&outside).unwrap(), bytes);
+}
+
+impl Fixture {
+    fn search_request(&self, path: &str, bytes: &[u8], query: &str) -> SavedDocumentSearchRequest {
+        SavedDocumentSearchRequest {
+            project_id: self.id.clone(),
+            expected_project_revision: 1,
+            relative_path: path.into(),
+            expected_sha256: sha(bytes),
+            json_pointer: None,
+            search_text: query.into(),
+            match_offset: 0,
+            max_matches: 8,
+            context_bytes: 128,
+            expected_search_sha256: None,
+        }
+    }
+    fn search(&self, r: &SavedDocumentSearchRequest) -> serde_json::Value {
+        serde_json::to_value(self.service.search_saved_document(r).unwrap()).unwrap()
+    }
+    fn check_search_readback(&self, view: &serde_json::Value) {
+        for hit in view["matches"].as_array().unwrap() {
+            let read: SavedDocumentReadRequest =
+                serde_json::from_value(hit["readArguments"].clone()).unwrap();
+            let actual = self.service.read_saved_document(&read).unwrap();
+            assert_eq!(actual.content, hit["content"].as_str().unwrap());
+            assert_eq!(
+                read.offset_bytes,
+                hit["contextOffsetBytes"].as_u64().unwrap()
+            );
+            assert!(
+                hit["matchEndOffsetBytes"].as_u64().unwrap()
+                    > hit["matchOffsetBytes"].as_u64().unwrap()
+            );
+        }
+    }
+}
+
+#[test]
+fn saved_search_decodes_values_preserves_locators_and_reproduces_every_page() {
+    let f = Fixture::new();
+    let bytes = br#"{"z":"ab\u00e9\u4e2d\n\"quoted\" ab\u00e9\u4e2d", "a":[{"a/b~c":"ab\u00e9\u4e2d"},"ab\u00e9\u4e2d"],"page":"ab\u00e9\u4e2d","ab\u00e9\u4e2d":42}"#;
+    let path = format!("sources/Search2026/{}.json", sha(bytes));
+    f.put(&path, bytes);
+    let mut r = f.search_request(&path, bytes, "abé中");
+    r.max_matches = 2;
+    r.context_bytes = 12;
+    let first = f.search(&r);
+    assert_eq!(first["schemaVersion"], 1);
+    assert_eq!(first["documentKind"], "qiongli-saved-document-search");
+    assert_eq!(first["searchScope"], "saved_json_string_values");
+    assert_eq!(first["totalMatches"], 5);
+    assert_eq!(first["scannedTextFields"], 4);
+    assert_eq!(first["sourceSizeBytes"], bytes.len());
+    assert_eq!(first["sha256"], sha(bytes));
+    assert_eq!(
+        first["matches"][0]["readArguments"]["json_pointer"],
+        "/a/0/a~1b~0c"
+    );
+    assert_eq!(first["matches"][1]["readArguments"]["json_pointer"], "/a/1");
+    let token = first["searchSha256"].as_str().unwrap().to_owned();
+    let mut pointers = vec![];
+    let mut page = first;
+    loop {
+        f.check_search_readback(&page);
+        for hit in page["matches"].as_array().unwrap() {
+            let content = hit["content"].as_str().unwrap();
+            assert!(content.len() <= 2 * r.context_bytes + r.search_text.len());
+            assert!(content.contains(&r.search_text));
+            let base = hit["contextOffsetBytes"].as_u64().unwrap();
+            let start = (hit["matchOffsetBytes"].as_u64().unwrap() - base) as usize;
+            let end = (hit["matchEndOffsetBytes"].as_u64().unwrap() - base) as usize;
+            assert_eq!(&content[start..end], r.search_text);
+
+            pointers.push(
+                hit["readArguments"]["json_pointer"]
+                    .as_str()
+                    .unwrap()
+                    .to_owned(),
+            );
+        }
+        let Some(next) = page["nextMatchOffset"].as_u64() else {
+            break;
+        };
+        r.match_offset = next;
+        r.expected_search_sha256 = Some(token.clone());
+        page = f.search(&r);
+        assert_eq!(page["searchSha256"], token);
+    }
+    assert_eq!(pointers, ["/a/0/a~1b~0c", "/a/1", "/page", "/z", "/z"]);
+    r.match_offset = 5;
+    assert!(f.search(&r)["matches"].as_array().unwrap().is_empty());
+    r.match_offset = 6;
+    assert!(f.service.search_saved_document(&r).is_err());
+    r.match_offset = 0;
+    r.expected_search_sha256 = None;
+    r.json_pointer = Some("/z".into());
+    r.search_text = "中\n\"quoted\"".into();
+    let selected = f.search(&r);
+    assert_eq!(selected["searchScope"], "selected_saved_string");
+    assert_eq!(selected["totalMatches"], 1);
+    assert_eq!(selected["scannedTextFields"], 1);
+    f.check_search_readback(&selected);
+    assert_eq!(fs::read(f.root.join(path)).unwrap(), bytes);
+}
+
+#[test]
+fn saved_search_is_literal_case_sensitive_nonoverlapping_and_field_local() {
+    let f = Fixture::new();
+    let bytes = "aaaaa É é e\u{301} 中中".as_bytes();
+    for path in ["notes/Search2026.md", "retrieval_manifest.csv"] {
+        f.put(path, bytes);
+        for (query, count) in [
+            ("aa", 2),
+            ("É", 1),
+            ("é", 1),
+            ("e\u{301}", 1),
+            ("é中", 0),
+            ("AAAA", 0),
+            ("translated phrase", 0),
+        ] {
+            let view = f.search(&f.search_request(path, bytes, query));
+            assert_eq!(view["searchScope"], "saved_plain_text");
+            assert_eq!(view["totalMatches"], count, "{query}");
+            f.check_search_readback(&view);
+            if count == 0 {
+                assert!(view["matches"].as_array().unwrap().is_empty());
+            }
+        }
+    }
+    let emoji = "😀a😀a😀".as_bytes();
+    f.put("notes/Emoji.md", emoji);
+    let mut emoji_request = f.search_request("notes/Emoji.md", emoji, "a");
+    emoji_request.context_bytes = 4;
+    let emoji_view = f.search(&emoji_request);
+    assert_eq!(emoji_view["totalMatches"], 2);
+    f.check_search_readback(&emoji_view);
+    for hit in emoji_view["matches"].as_array().unwrap() {
+        assert_eq!(hit["content"], "😀a😀");
+    }
+    // The second ASCII query clips a four-byte character from each side.
+    f.put("notes/Emoji.md", "😀ab😀ab😀".as_bytes());
+    let mut clipped = f.search_request("notes/Emoji.md", "😀ab😀ab😀".as_bytes(), "b");
+    clipped.context_bytes = 4;
+    let clipped_view = f.search(&clipped);
+    f.check_search_readback(&clipped_view);
+    assert_eq!(clipped_view["matches"][0]["content"], "ab😀");
+    assert_eq!(clipped_view["matches"][0]["contextOffsetBytes"], 4);
+    let bytes = br#"{"needle":"none", "a":"cross", "b":"field", "c":["aa", "aa"]}"#;
+    let path = format!("sources/Search2026/{}.json", sha(bytes));
+    f.put(&path, bytes);
+    for query in ["needle", "crossfield", "aaaa"] {
+        assert_eq!(
+            f.search(&f.search_request(&path, bytes, query))["totalMatches"],
+            0
+        );
+    }
+}
+
+#[test]
+fn saved_search_continuation_binds_query_context_selector_and_source() {
+    let f = Fixture::new();
+    let bytes = br#"{"a":"safe safe safe", "b":"safe safe safe"}"#;
+    let path = format!("sources/Search2026/{}.json", sha(bytes));
+    f.put(&path, bytes);
+    let mut r = f.search_request(&path, bytes, "safe");
+    r.max_matches = 1;
+    let first = f.search(&r);
+    r.match_offset = 1;
+    assert!(f.service.search_saved_document(&r).is_err());
+    r.expected_search_sha256 = Some(first["searchSha256"].as_str().unwrap().into());
+    assert_eq!(f.search(&r)["totalMatches"], 6);
+    for variant in 0..6 {
+        let mut bad = r.clone();
+        match variant {
+            0 => bad.search_text = "Safe".into(),
+            1 => bad.context_bytes += 1,
+            2 => bad.max_matches += 1,
+            3 => bad.json_pointer = Some("/a".into()),
+            4 => bad.expected_search_sha256 = Some(sha(b"wrong")),
+            _ => bad.expected_project_revision += 1,
+        }
+        assert!(
+            f.service.search_saved_document(&bad).is_err(),
+            "variant {variant}"
+        );
+    }
+    f.put(&path, br#"{"a":"changed"}"#);
+    assert_eq!(
+        f.service.search_saved_document(&r).unwrap_err(),
+        ProjectError::RevisionConflict
+    );
+}
+
+#[test]
+fn saved_search_refuses_invalid_inputs_json_selectors_and_paths() {
+    let f = Fixture::new();
+    let bytes = b"safe safe";
+    f.put("notes/Search2026.md", bytes);
+    let r = f.search_request("notes/Search2026.md", bytes, "safe");
+    for query in ["".into(), " \n\t".into(), "safe\0".into(), "é".repeat(257)] {
+        let mut bad = r.clone();
+        bad.search_text = query;
+        assert!(f.service.search_saved_document(&bad).is_err());
+    }
+    for (max_matches, context_bytes) in [(0, 128), (17, 128), (8, 3), (8, 513)] {
+        let mut bad = r.clone();
+        bad.max_matches = max_matches;
+        bad.context_bytes = context_bytes;
+        assert!(f.service.search_saved_document(&bad).is_err());
+    }
+    for path in [
+        "../notes/Search2026.md",
+        "/notes/Search2026.md",
+        "context/research_state.md",
+        "paper.pdf",
+        "sources/Search2026/nohash.json",
+    ] {
+        let mut bad = r.clone();
+        bad.relative_path = path.into();
+        assert!(f.service.search_saved_document(&bad).is_err());
+    }
+    let mut bad = r.clone();
+    bad.json_pointer = Some("/a".into());
+    assert!(f.service.search_saved_document(&bad).is_err());
+    let mut raw = serde_json::to_value(&r).unwrap();
+    raw["offset_bytes"] = serde_json::json!(0);
+    assert!(serde_json::from_value::<SavedDocumentSearchRequest>(raw).is_err());
+    for invalid in [
+        br#"{"text":"safe","text":"safe"}"#.as_slice(),
+        br#"{"text":"safe","nested":{"x":1,"x":2}}"#.as_slice(),
+        br#"{"text":"safe"} trailing"#.as_slice(),
+        br#"{"text":"\ud800"}"#.as_slice(),
+    ] {
+        let path = format!("sources/Invalid2026/{}.json", sha(invalid));
+        f.put(&path, invalid);
+        assert!(
+            f.service
+                .search_saved_document(&f.search_request(&path, invalid, "safe"))
+                .is_err()
+        );
+    }
+    for invalid in [
+        br#"{"bad\nkey":"safe"}"#.as_slice(),
+        br#"{"a":{"bad\u0000key":"safe"}}"#.as_slice(),
+    ] {
+        let path = format!("sources/Locator2026/{}.json", sha(invalid));
+        f.put(&path, invalid);
+        assert!(
+            f.service
+                .search_saved_document(&f.search_request(&path, invalid, "safe"))
+                .is_err()
+        );
+    }
+    let packet = br#"{"a":"safe", "array":["safe"], "number":1}"#;
+    let path = format!("sources/Search2026/{}.json", sha(packet));
+    f.put(&path, packet);
+    for pointer in [
+        "",
+        "a",
+        "/a~2",
+        "/missing",
+        "/array",
+        "/array/01",
+        "/number",
+    ] {
+        let mut bad = f.search_request(&path, packet, "safe");
+        bad.json_pointer = Some(pointer.into());
+        assert!(f.service.search_saved_document(&bad).is_err());
+    }
+    f.put("notes/Invalid.md", &[255]);
+    assert!(
+        f.service
+            .search_saved_document(&f.search_request("notes/Invalid.md", &[255], "safe"))
+            .is_err()
+    );
+}
+
+#[test]
+fn saved_search_defaults_bounds_and_identity_recovery_refusals() {
+    let f = Fixture::new();
+    let bytes = "é".repeat(256).into_bytes();
+    f.put("notes/Boundary.md", &bytes);
+    let r = f.search_request(
+        "notes/Boundary.md",
+        &bytes,
+        std::str::from_utf8(&bytes).unwrap(),
+    );
+    assert_eq!(f.search(&r)["totalMatches"], 1);
+    let mut value = serde_json::to_value(&r).unwrap();
+    for field in [
+        "match_offset",
+        "max_matches",
+        "context_bytes",
+        "expected_search_sha256",
+        "json_pointer",
+    ] {
+        value.as_object_mut().unwrap().remove(field);
+    }
+    let defaults: SavedDocumentSearchRequest = serde_json::from_value(value.clone()).unwrap();
+    assert_eq!(
+        (
+            defaults.match_offset,
+            defaults.max_matches,
+            defaults.context_bytes
+        ),
+        (0, 8, 128)
+    );
+    value.as_object_mut().unwrap().remove("expected_sha256");
+    assert!(serde_json::from_value::<SavedDocumentSearchRequest>(value).is_err());
+    let mut wrong = r.clone();
+    wrong.project_id = ProjectId::parse("prj_0123456789abcdef0123456789abcdef").unwrap();
+    assert_eq!(
+        f.service.search_saved_document(&wrong).unwrap_err(),
+        ProjectError::ProjectNotRegistered
+    );
+    let mut wrong = r.clone();
+    wrong.expected_project_revision = 0;
+    assert!(f.service.search_saved_document(&wrong).is_err());
+    fs::create_dir_all(f.root.join(".qiongli/consolidation-transaction")).unwrap();
+    assert_eq!(
+        f.service.search_saved_document(&r).unwrap_err(),
+        ProjectError::RecoveryRequired
+    );
+    assert!(f.root.join(".qiongli/consolidation-transaction").exists());
+}
+
+#[cfg(unix)]
+#[test]
+fn saved_search_keeps_link_permission_and_size_refusals() {
+    use std::os::unix::fs::{PermissionsExt, symlink};
+    let f = Fixture::new();
+    let bytes = b"safe";
+    f.put("notes/Real.md", bytes);
+    let outside = f.base.join("outside.md");
+    fs::write(&outside, bytes).unwrap();
+    symlink(&outside, f.root.join("notes/Link.md")).unwrap();
+    assert!(
+        f.service
+            .search_saved_document(&f.search_request("notes/Link.md", bytes, "safe"))
+            .is_err()
+    );
+    fs::hard_link(&outside, f.root.join("notes/Hard.md")).unwrap();
+    assert!(
+        f.service
+            .search_saved_document(&f.search_request("notes/Hard.md", bytes, "safe"))
+            .is_err()
+    );
+    fs::set_permissions(
+        f.root.join("notes/Real.md"),
+        fs::Permissions::from_mode(0o666),
+    )
+    .unwrap();
+    assert!(
+        f.service
+            .search_saved_document(&f.search_request("notes/Real.md", bytes, "safe"))
+            .is_err()
+    );
+    let large = vec![b'x'; 4 * 1024 * 1024 + 1];
+    f.put("notes/Large.md", &large);
+    assert_eq!(
+        f.service
+            .search_saved_document(&f.search_request("notes/Large.md", &large, "x"))
+            .unwrap_err(),
+        ProjectError::DocumentTooLarge
+    );
+    assert_eq!(fs::read(outside).unwrap(), bytes);
 }

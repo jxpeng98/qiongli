@@ -74,5 +74,35 @@ Full MCP 的 `qiongli_project_document_read` 提供相同的可选参数 `json_p
 
 将这个位置保留在现有论断或阅读笔记中，同时记录原始文献版本、章节、表格或页码。
 判断论断是否得到支持前，还要检查相关上下文和表下注释。字节位置不是论文页码，
-原文回读成功也不代表学术核查通过。跨文献片段检索、从论断自动回溯原文仍属于
-2.4 计划的后续工作；当前 Graph 打开的是结构化证据记录。
+原文回读成功也不代表学术核查通过。
+
+## 在保存材料中查找原文 — 2.4.0 候选版
+
+候选版可以在一个明确选定、已绑定版本的保存文件中查找原文。按上述步骤取得
+当前有效的文件记录后，使用原文中的短语检索：
+
+```bash
+qiongli project document search \
+  --project-id <prj_id> --expected-project-revision <revision> \
+  --relative-path sources/<citekey>/<sha256>.json --expected-sha256 <sha256> \
+  --search-text '原文中的短语' --max-matches 8 --context-bytes 128 --json
+```
+
+Full MCP 在 `qiongli_project_document_read` 中加入 `search_text` 即可使用
+相同能力，此时不要传入读取模式的 `offset_bytes` 或 `max_bytes`。先检查实际
+帮助或工具声明。可选的 `json_pointer` 将范围限定到一个已知文本字段；未指定时，
+来源文件会检索解码后的所有字符串值，包括元数据，笔记与检索历史则检索原始文本。
+匹配区分大小写、逐字且不重叠，不做翻译、规范化，也不跨字段拼接。
+
+每个命中包含上下文、UTF-8 字节位置，以及能通过读取接口重现上下文的
+`readArguments`。`context_bytes` 分别限制命中前后两侧的字节数；需要更多
+上下文时，可继续扩大读取范围。不同位置的重复文本分别保留。先检查原始版本、
+章节或页码等元数据及实际内容，再判断命中能否支持论断；把经过审阅的位置保留在
+现有笔记和证据记录中。字节位置不是论文页码，元数据中的命中也不是正文证据。
+
+分页时将 `nextMatchOffset` 传给 `--match-offset`，将 `searchSha256` 传给
+`--expected-search-sha256`，保持检索短语、定位字段、上下文大小、每页数量、
+项目修订号及文件摘要不变。绑定变化时操作拒绝。`searchScope`、
+`scannedTextFields` 和 `totalMatches` 只描述本次保存材料的检索范围；没有命中
+不能说明完整论文中不存在相关内容。其他选定来源可通过各自的有效绑定逐一检索。
+跨文献自动遍历、从论断回溯原文并逐项审查，仍属于 2.4 计划的后续工作。

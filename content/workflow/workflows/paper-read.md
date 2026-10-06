@@ -206,6 +206,31 @@ return the unresolved locator rather than guessing or substituting another
 passage. Without this capability, use the existing bounded raw read and disclose
 that selection/decoding is performed by the Host, not a native passage call.
 
+To locate a remembered phrase in an explicitly bound saved document, check for
+`search_text` in the Full reader schema or `project document search` in CLI help.
+Use the same project/revision/path/whole-file hash and a short literal query;
+omit read-only `offset_bytes` and `max_bytes`. An observed `json_pointer` limits
+search to one string; otherwise packets scan decoded string values, including
+metadata, while notes and retrieval history scan raw text. Search does not scan
+other files. Compare selected sources by searching their known bindings in turn.
+
+Matches are case-sensitive and non-overlapping, with no translation,
+normalization or joining across fields. `context_bytes` bounds each side of the
+match. Retain `searchScope` and `scannedTextFields` when reporting coverage;
+`totalMatches` is a count in this saved scope, not a count of relevant studies.
+Use each match's exact `readArguments` to reproduce its context and inspect its
+original page/section/version metadata before deciding whether it is body evidence
+and supports the claim. A metadata match, mention or matching phrase alone is
+insufficient. Expand context with the existing reader when review needs more.
+
+Continue with `match_offset=nextMatchOffset` and
+`expected_search_sha256=searchSha256`, preserving query, pointer, context, page
+size, source hash and revision. Changed bindings refuse. For no match, name the
+saved scope searched; do not infer absence from an unread paper or silently widen
+the source scope. Keep unresolved claims explicit. Older installations can use
+bounded reads and Host inspection, with that limitation disclosed. Retain reviewed
+locators in the existing note/evidence ledger, not a separate search-hit register.
+
 For project records, follow `references/academic-graph-continuity.md`: reconcile
 paper/claim candidates into the literature map and evidence ledger, reuse
 citekeys and disambiguate note-local claim IDs. Do not invent clusters or support

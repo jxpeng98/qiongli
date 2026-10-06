@@ -24,6 +24,12 @@ The saved-document reader's optional `json_pointer` is capability-gated. Its
 decoded passage offsets and original packet hash are retained in existing note
 anchors/ledger source locations; no second evidence register is introduced.
 Exact readback does not establish scholarly support or invent paper page numbers.
+Its optional `search_text` selects bounded literal passage search in the same
+tool; CLI exposes `project document search`. Gate guidance on the live schema/help,
+reuse exact returned `readArguments` and preserve query/scope/page bindings on
+continuation. Searching packet string values includes metadata, so hits are
+candidate locations for review, not inferred body evidence. A no-hit result
+covers only the selected saved material. No new tool or evidence store is added.
 Published pre-extension tool counts remain valid historical observations; current
 native inventory validation also accepts coherent Lite 15 / Full 34 and 35 pairs.
 The list extension requires both the saved-document reader and fulltext extension;

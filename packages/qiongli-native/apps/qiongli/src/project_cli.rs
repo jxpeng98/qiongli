@@ -24,6 +24,7 @@ pub(crate) enum ProjectCliCommand {
     List,
     Show(ProjectId),
     DocumentRead(qiongli_project::SavedDocumentReadRequest),
+    DocumentSearch(qiongli_project::SavedDocumentSearchRequest),
     DocumentList(qiongli_project::SavedDocumentListRequest),
     GraphSnapshot(ProjectId),
     GraphView(ProjectId, crate::graph_view::GraphViewMode),
@@ -124,6 +125,9 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ProjectCliCommand, &'static str
             if args.get(1).and_then(|arg| arg.to_str()) == Some("list") {
                 crate::saved_document_cli::parse_list(&args[1..])
                     .map(ProjectCliCommand::DocumentList)
+            } else if args.get(1).and_then(|arg| arg.to_str()) == Some("search") {
+                crate::saved_document_cli::parse_search(&args[1..])
+                    .map(ProjectCliCommand::DocumentSearch)
             } else {
                 crate::saved_document_cli::parse(&args[1..]).map(ProjectCliCommand::DocumentRead)
             }
@@ -145,7 +149,7 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ProjectCliCommand, &'static str
 pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironment) -> CliOutput {
     if command == ProjectCliCommand::Help {
         return CliOutput::success_text(format!(
-            "{PROJECT_USAGE}\n{GRAPH_NEIGHBOURHOOD_USAGE}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+            "{PROJECT_USAGE}\n{GRAPH_NEIGHBOURHOOD_USAGE}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
             crate::portfolio_cli::USAGE,
             crate::capture_cli::CAPTURE_USAGE,
             crate::capture_delivery_cli::USAGE,
@@ -153,7 +157,8 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
             crate::capture_resolution_cli::USAGE,
             crate::repository_capture_cli::USAGE,
             crate::saved_document_cli::USAGE,
-            crate::saved_document_cli::LIST_USAGE
+            crate::saved_document_cli::LIST_USAGE,
+            crate::saved_document_cli::SEARCH_USAGE
         ));
     }
     if command == ProjectCliCommand::Capture(crate::capture_cli::CaptureCliCommand::Help) {
@@ -202,6 +207,9 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
         ProjectCliCommand::DocumentRead(request) => service
             .read_saved_document(&request)
             .map(ProjectCliOutput::Document),
+        ProjectCliCommand::DocumentSearch(request) => service
+            .search_saved_document(&request)
+            .map(ProjectCliOutput::DocumentSearch),
         ProjectCliCommand::DocumentList(request) => service
             .list_saved_documents(&request)
             .map(ProjectCliOutput::Documents),
@@ -1501,6 +1509,7 @@ fn json_output<T: Serialize>(value: &T) -> CliOutput {
 #[serde(untagged)]
 enum ProjectCliOutput {
     Document(qiongli_project::SavedDocumentViewV1),
+    DocumentSearch(qiongli_project::SavedDocumentSearchViewV1),
     Documents(qiongli_project::SavedDocumentListV1),
     Library(ProjectListOutput),
     Project(ProjectShowOutput),

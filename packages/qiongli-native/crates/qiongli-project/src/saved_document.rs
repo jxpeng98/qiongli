@@ -56,7 +56,7 @@ impl SavedDocumentReadRequest {
     }
 }
 
-fn valid_json_pointer(pointer: &str) -> bool {
+pub(crate) fn valid_json_pointer(pointer: &str) -> bool {
     if !pointer.starts_with('/') || pointer.len() > 4096 || pointer.chars().any(char::is_control) {
         return false;
     }
@@ -113,6 +113,58 @@ impl ProjectStateService {
         &self,
         request: &SavedDocumentReadRequest,
     ) -> Result<SavedDocumentViewV1, ProjectError> {
+        self.with_saved_document(request, |bytes, digest| {
+            let raw_source = std::str::from_utf8(bytes)
+                .map_err(|_| ProjectError::ProjectArtifactContentInvalid)?;
+            let packet;
+            let source = if let Some(pointer) = &request.json_pointer {
+                packet = parse_unique_json(bytes)
+                    .map_err(|_| ProjectError::ProjectArtifactContentInvalid)?;
+                packet
+                    .pointer(pointer)
+                    .and_then(serde_json::Value::as_str)
+                    .ok_or(ProjectError::InvalidProjectDocument)?
+            } else {
+                raw_source
+            };
+            let start = usize::try_from(request.offset_bytes)
+                .map_err(|_| ProjectError::InvalidProjectDocument)?;
+            if start > source.len() || !source.is_char_boundary(start) {
+                return Err(ProjectError::InvalidProjectDocument);
+            }
+            let mut end = start.saturating_add(request.max_bytes).min(source.len());
+            while !source.is_char_boundary(end) {
+                end -= 1;
+            }
+
+            Ok(SavedDocumentViewV1 {
+                schema_version: 1,
+                document_kind: "qiongli-saved-document-view".into(),
+                project_id: request.project_id.clone(),
+                project_revision: request.expected_project_revision,
+                relative_path: request.relative_path.clone(),
+                sha256: digest.to_owned(),
+                source_size_bytes: bytes.len() as u64,
+                json_pointer: request.json_pointer.clone(),
+                selected_text_size_bytes: request
+                    .json_pointer
+                    .as_ref()
+                    .map(|_| source.len() as u64),
+                content_size_bytes: (end - start) as u64,
+                offset_bytes: request.offset_bytes,
+                next_offset_bytes: (end < source.len()).then_some(end as u64),
+                truncated_before: start > 0,
+                truncated_after: end < source.len(),
+                content: source[start..end].to_owned(),
+            })
+        })
+    }
+
+    pub(crate) fn with_saved_document<T>(
+        &self,
+        request: &SavedDocumentReadRequest,
+        read: impl FnOnce(&[u8], &str) -> Result<T, ProjectError>,
+    ) -> Result<T, ProjectError> {
         request.validate()?;
         let root = self.resolve_project_root(&request.project_id)?;
         let before = read_manifest(root.path())?.ok_or(ProjectError::ProjectManifestMissing)?;
@@ -130,29 +182,7 @@ impl ProjectStateService {
         {
             return Err(ProjectError::RevisionConflict);
         }
-        let raw_source =
-            std::str::from_utf8(&bytes).map_err(|_| ProjectError::ProjectArtifactContentInvalid)?;
-        let packet;
-        let source = if let Some(pointer) = &request.json_pointer {
-            packet = parse_unique_json(&bytes)
-                .map_err(|_| ProjectError::ProjectArtifactContentInvalid)?;
-            packet
-                .pointer(pointer)
-                .and_then(serde_json::Value::as_str)
-                .ok_or(ProjectError::InvalidProjectDocument)?
-        } else {
-            raw_source
-        };
-        let start = usize::try_from(request.offset_bytes)
-            .map_err(|_| ProjectError::InvalidProjectDocument)?;
-        if start > source.len() || !source.is_char_boundary(start) {
-            return Err(ProjectError::InvalidProjectDocument);
-        }
-        let mut end = start.saturating_add(request.max_bytes).min(source.len());
-        while !source.is_char_boundary(end) {
-            end -= 1;
-        }
-
+        let result = read(&bytes, &digest)?;
         // Reuse the same bounded, link/ownership/recovery-checked source owner.
         let (_, current_digest) = read_project_source(root.path(), &request.relative_path)?
             .ok_or(ProjectError::RevisionConflict)?;
@@ -163,22 +193,6 @@ impl ProjectStateService {
         {
             return Err(ProjectError::RevisionConflict);
         }
-        Ok(SavedDocumentViewV1 {
-            schema_version: 1,
-            document_kind: "qiongli-saved-document-view".into(),
-            project_id: request.project_id.clone(),
-            project_revision: request.expected_project_revision,
-            relative_path: request.relative_path.clone(),
-            sha256: digest,
-            source_size_bytes: bytes.len() as u64,
-            json_pointer: request.json_pointer.clone(),
-            selected_text_size_bytes: request.json_pointer.as_ref().map(|_| source.len() as u64),
-            content_size_bytes: (end - start) as u64,
-            offset_bytes: request.offset_bytes,
-            next_offset_bytes: (end < source.len()).then_some(end as u64),
-            truncated_before: start > 0,
-            truncated_after: end < source.len(),
-            content: source[start..end].to_owned(),
-        })
+        Ok(result)
     }
 }

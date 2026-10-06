@@ -84,6 +84,38 @@ replacement passage. The operation reads only the selected known file.
 Retain this locator with the existing claim/reading-note record and the observed
 source version, section, table or page. Read relevant surrounding passages and
 table notes before judging support. Byte offsets are not paper page numbers,
-and exact text readback is not academic verification. Automatic cross-document
-passage search and claim-to-passage traversal remain subsequent work in the
-2.4 plan; the Graph currently opens the structured evidence record.
+and exact text readback is not academic verification.
+
+## Find a phrase in saved material — 2.4.0 candidate
+
+The candidate can search one explicitly bound saved file. After recovering its
+current binding as above, use a phrase from the source language:
+
+```bash
+qiongli project document search \
+  --project-id <prj_id> --expected-project-revision <revision> \
+  --relative-path sources/<citekey>/<sha256>.json --expected-sha256 <sha256> \
+  --search-text 'reported phrase' --max-matches 8 --context-bytes 128 --json
+```
+
+Full MCP selects the same mode by adding `search_text` to
+`qiongli_project_document_read`; omit read-only `offset_bytes`/`max_bytes`.
+Check live help/schema for availability. An optional `json_pointer` searches one
+observed string. Without it, a packet searches decoded string values, including
+metadata; notes and retrieval history search raw text. Matches are literal,
+case-sensitive and non-overlapping, without normalization or crossing fields.
+
+Each match returns context, UTF-8 match offsets and `readArguments` that reproduce
+the context through the reader. `context_bytes` is the maximum on each side;
+raise the read window if the claim needs more surrounding text. Repeated text at
+different pointers remains separate. Check original source metadata and content
+before treating a match as evidence. Keep reviewed locations in existing notes
+and evidence records; neither byte offsets nor metadata matches are paper pages.
+
+For another page, pass `nextMatchOffset` as `--match-offset` and `searchSha256`
+as `--expected-search-sha256`, retaining the same query, pointer, context, page
+size, revision and file hash. Changed bindings refuse. `searchScope`,
+`scannedTextFields` and `totalMatches` describe only that saved scope. No match
+does not establish absence from the full paper. Search other selected sources
+through their own known bindings. Automatic cross-document traversal and
+claim-to-passage review remain subsequent work in the 2.4 plan.

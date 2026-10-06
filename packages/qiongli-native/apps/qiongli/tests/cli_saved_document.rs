@@ -4,7 +4,8 @@ use qiongli_project::{
     ApprovedCaptureConsolidation, ApprovedCaptureIntake, ApprovedProjectMutation,
     CaptureConsolidationDrafts, CaptureDelivery, CapturePolicy, CaptureSource, ProjectBindingV1,
     ProjectId, ProjectKind, ProjectRegistrationOptions, ProjectStage, ProjectStateService,
-    ResearchCaptureDraftV1, SavedDocumentReadRequest, SourcePacketDraftV1,
+    ResearchCaptureDraftV1, SavedDocumentReadRequest, SavedDocumentSearchRequest,
+    SourcePacketDraftV1,
 };
 use sha2::{Digest, Sha256};
 use std::{
@@ -417,4 +418,215 @@ fn saved_document_list_cli_and_full_mcp_match_without_unreceipted_discovery() {
             assert!(call.get("error").is_some() || call["result"]["isError"] == true);
         }
     }
+}
+
+impl Fixture {
+    fn run_search(&self, r: &SavedDocumentSearchRequest) -> Output {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_qiongli"));
+        command
+            .current_dir(&self.base)
+            .env("QIONGLI_CONFIG_HOME", &self.config)
+            .env("HOME", &self.home)
+            .env("USERPROFILE", &self.home)
+            .env("PATH", "")
+            .args([
+                "project",
+                "document",
+                "search",
+                "--project-id",
+                r.project_id.as_str(),
+                "--expected-project-revision",
+                &r.expected_project_revision.to_string(),
+                "--relative-path",
+                &r.relative_path,
+                "--expected-sha256",
+                &r.expected_sha256,
+                "--search-text",
+                &r.search_text,
+                "--match-offset",
+                &r.match_offset.to_string(),
+                "--max-matches",
+                &r.max_matches.to_string(),
+                "--context-bytes",
+                &r.context_bytes.to_string(),
+            ]);
+        if let Some(pointer) = &r.json_pointer {
+            command.args(["--json-pointer", pointer]);
+        }
+        if let Some(digest) = &r.expected_search_sha256 {
+            command.args(["--expected-search-sha256", digest]);
+        }
+        command.arg("--json").output().unwrap()
+    }
+    fn mcp_search(&self, profile: &str, args: serde_json::Value) -> Vec<serde_json::Value> {
+        use std::io::Write;
+        use std::process::Stdio;
+        let mut child = Command::new(env!("CARGO_BIN_EXE_qiongli"))
+            .current_dir(&self.base)
+            .env("QIONGLI_CONFIG_HOME", &self.config)
+            .env("HOME", &self.home)
+            .env("USERPROFILE", &self.home)
+            .env("PATH", "")
+            .args(["mcp", "serve", "--profile", profile, "--transport", "stdio"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        {
+            let mut input = child.stdin.take().unwrap();
+            for request in [
+                serde_json::json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{}}}),
+                serde_json::json!({"jsonrpc":"2.0","method":"notifications/initialized","params":{}}),
+                serde_json::json!({"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}),
+                serde_json::json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"qiongli_project_document_read","arguments":args}}),
+            ] {
+                writeln!(input, "{request}").unwrap();
+            }
+        }
+        let output = child.wait_with_output().unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect()
+    }
+}
+
+#[test]
+fn saved_search_actual_cli_full_mcp_parity_pagination_and_mode_refusals() {
+    let f = Fixture::new();
+    let bytes=br#"{"page":"public safe metadata", "passages":[{"text":"ab\u00e9\u4e2d\n\"quoted\" ab\u00e9\u4e2d"},{"text":"ab\u00e9\u4e2d"}]}"#;
+    let path = format!("sources/Search2026/{}.json", sha(bytes));
+    f.put(&path, bytes);
+    let mut r = SavedDocumentSearchRequest {
+        project_id: f.id.clone(),
+        expected_project_revision: 1,
+        relative_path: path,
+        expected_sha256: sha(bytes),
+        json_pointer: None,
+        search_text: "abé中".into(),
+        match_offset: 0,
+        max_matches: 1,
+        context_bytes: 16,
+        expected_search_sha256: None,
+    };
+    loop {
+        let output = f.run_search(&r);
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let expected: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(
+            expected,
+            serde_json::to_value(f.service.search_saved_document(&r).unwrap()).unwrap()
+        );
+        for hit in expected["matches"].as_array().unwrap() {
+            let read: SavedDocumentReadRequest =
+                serde_json::from_value(hit["readArguments"].clone()).unwrap();
+            let output = f.run(&read);
+            assert!(output.status.success());
+            let view: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            assert_eq!(view["content"], hit["content"]);
+        }
+        for profile in ["full", "lite"] {
+            let responses = f.mcp_search(profile, serde_json::to_value(&r).unwrap());
+            let tools = responses.iter().find(|v| v["id"] == 2).unwrap()["result"]["tools"]
+                .as_array()
+                .unwrap();
+            assert_eq!(tools.len(), if profile == "full" { 35 } else { 15 });
+            let tool = tools
+                .iter()
+                .find(|v| v["name"] == "qiongli_project_document_read");
+            let call = responses.iter().find(|v| v["id"] == 3).unwrap();
+            if profile == "full" {
+                let schema = &tool.unwrap()["inputSchema"];
+                assert_eq!(schema["properties"]["search_text"]["type"], "string");
+                for key in [
+                    "search_text",
+                    "match_offset",
+                    "max_matches",
+                    "context_bytes",
+                    "expected_search_sha256",
+                    "offset_bytes",
+                    "max_bytes",
+                    "json_pointer",
+                ] {
+                    assert!(schema["properties"].get(key).is_some(), "{key}");
+                    assert!(
+                        !schema["required"]
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .any(|v| v == key),
+                        "{key}"
+                    );
+                }
+                let actual: serde_json::Value =
+                    serde_json::from_str(call["result"]["content"][0]["text"].as_str().unwrap())
+                        .unwrap();
+                assert_eq!(actual, expected);
+            } else {
+                assert!(tool.is_none());
+                assert!(call.get("error").is_some() || call["result"]["isError"] == true);
+            }
+        }
+        let Some(next) = expected["nextMatchOffset"].as_u64() else {
+            break;
+        };
+        r.match_offset = next;
+        r.expected_search_sha256 = Some(expected["searchSha256"].as_str().unwrap().into());
+    }
+    for (pointer, query, count) in [
+        (Some("/passages/0/text"), "中\n\"quoted\"", 1),
+        (None, "translated phrase", 0),
+    ] {
+        let mut selected = r.clone();
+        selected.match_offset = 0;
+        selected.expected_search_sha256 = None;
+        selected.json_pointer = pointer.map(str::to_owned);
+        selected.search_text = query.into();
+        let output = f.run_search(&selected);
+        assert!(output.status.success());
+        let expected: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(expected["totalMatches"], count);
+        let responses = f.mcp_search("full", serde_json::to_value(selected).unwrap());
+        let call = responses.iter().find(|v| v["id"] == 3).unwrap();
+        let actual: serde_json::Value =
+            serde_json::from_str(call["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+        assert_eq!(actual, expected);
+    }
+    for key in ["offset_bytes", "max_bytes", "unexpected"] {
+        let mut args = serde_json::to_value(&r).unwrap();
+        args[key] = serde_json::json!(4);
+        let responses = f.mcp_search("full", args);
+        let call = responses.iter().find(|v| v["id"] == 3).unwrap();
+        assert!(
+            call.get("error").is_some() || call["result"]["isError"] == true,
+            "{key}"
+        );
+    }
+    let mut read_mode = serde_json::to_value(&r).unwrap();
+    read_mode.as_object_mut().unwrap().remove("search_text");
+    let responses = f.mcp_search("full", read_mode);
+    let call = responses.iter().find(|v| v["id"] == 3).unwrap();
+    assert!(call.get("error").is_some() || call["result"]["isError"] == true);
+    let mut bad = r.clone();
+    bad.expected_search_sha256 = None;
+    assert!(!f.run_search(&bad).status.success());
+    bad = r.clone();
+    bad.search_text = "different".into();
+    assert!(!f.run_search(&bad).status.success());
+    bad = r.clone();
+    bad.json_pointer = Some("/passages/0".into());
+    assert!(!f.run_search(&bad).status.success());
+    f.put(&r.relative_path, br#"{"changed":"safe"}"#);
+    assert!(!f.run_search(&r).status.success());
 }

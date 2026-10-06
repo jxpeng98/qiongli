@@ -38,6 +38,7 @@ mod retrieval_manifest;
 mod runtime_state;
 mod saved_document;
 mod saved_document_list;
+mod saved_document_search;
 mod semantic_timeline;
 mod service;
 mod source_packet;
@@ -50,6 +51,9 @@ pub use saved_document::{
 pub use saved_document_list::{
     SavedDocumentBindingState, SavedDocumentBindingV1, SavedDocumentListRequest,
     SavedDocumentListV1,
+};
+pub use saved_document_search::{
+    SavedDocumentMatchV1, SavedDocumentSearchRequest, SavedDocumentSearchViewV1,
 };
 
 pub use academic_graph::{

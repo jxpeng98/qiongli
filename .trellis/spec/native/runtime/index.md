@@ -84,6 +84,35 @@ JSON identity and text offsets. The same safety/recheck owner handles both modes
 Without a selector the request, returned fields and raw byte semantics remain
 unchanged. Full retains 35 tools; Lite gains none.
 
+`project document search` shares the same checked file owner through
+`ProjectStateService::search_saved_document`. Full reuses
+`qiongli_project_document_read`: the presence of `search_text` selects search
+mode, whose strict request rejects read-only `offset_bytes`/`max_bytes`. Without
+`search_text`, search-only fields refuse. The inventory stays Full 35 / Lite 15.
+
+Search binds one allowed saved file, revision and whole-file hash. A packet
+without a pointer scans decoded JSON string values, including metadata, in sorted
+object-key/array-index order; keys and other scalar values are not searched.
+An optional pointer selects one saved string. Notes and retrieval history use raw
+UTF-8. Duplicate/malformed JSON and unsupported locator paths refuse. Matching is
+literal, case-sensitive and non-overlapping within each string; there is no
+normalization, translation or match across fields. Queries are 1–512 UTF-8 bytes,
+not whitespace-only and contain no NUL. `max_matches` defaults to 8 (1–16),
+`context_bytes` to 128 (4–512 per side, rounded inward at UTF-8 boundaries).
+
+Schema-1 `qiongli-saved-document-search` returns `searchScope`, `totalMatches`,
+`scannedTextFields`, `searchSha256`, `nextMatchOffset` and bounded matches. Each
+match has byte offsets into its decoded string (or raw text), context/truncation
+and `readArguments` that reproduce that context through the existing reader.
+Duplicate text at distinct locations remains distinct. `match_offset` defaults
+to 0; positive cursors require `expected_search_sha256`. That digest binds source,
+revision, query, pointer, context and page size, excluding the cursor. An offset
+equal to the match count returns an empty last page; larger offsets refuse.
+Every page retains both source/identity/manifest checks. Only page excerpts are
+allocated, although all text in the bounded saved file is scanned for counts.
+No file discovery, write, remote fetch, full-paper coverage or semantic support
+judgment is implied. Debug/errors omit query and research text.
+
 Schema-1 `qiongli-saved-document-view` is identical through CLI and MCP and exposes
 no absolute filesystem path. Debug/error output omits research content. The new
 Full descriptor declares read-only, non-destructive, idempotent, closed-world
