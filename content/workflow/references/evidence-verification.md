@@ -1,14 +1,85 @@
 # Source-bound evidence verification
 
-Use when checking whether a draft's substantive claims follow from its sources,
-or when new source material may change an earlier conclusion. This is a bounded
-review of the selected claims, not a new literature review or reporting checklist.
+Use while drafting or revising manuscript text, checking whether its substantive
+claims follow from sources, or incorporating new evidence. Begin with the actual
+text being delivered, including claims that have not reached a map or ledger.
+This is a bounded review of the requested text, not a new literature search.
 For independent execution, use `skills/Z_cross_cutting/model-collaborator.md` and
 an actual authorized Host reviewer. Changing roles within one conversation is
 self-review. A reviewer may not see its dispatch receipt: leave unavailable
 execution identity or independence unverified for the coordinator to reconcile,
 rather than infer either independent execution or same-conversation self-review.
 Text comparison performed by a model remains model review, not human review.
+
+## Start from the manuscript
+
+Identify the exact draft/version and selected section, paragraphs or sentences.
+Read that unit in order, including relevant captions and footnotes/endnotes.
+Split independently checkable assertions: one sentence can contain a background
+fact, a reported result and an added inference with different evidence needs.
+Inspect definitions, method descriptions, numbers, comparisons, generalizations,
+causal transitions and claims of novelty or absence; a smooth transition can
+introduce an unsupported claim. Citations already present do not establish support.
+Do not limit this inventory to abstract/introduction/discussion or to existing IDs.
+
+Use `references/citation-risk-policy.md` to distinguish source-dependent claims,
+the project's own results, attributed interpretations and the writer's synthesis
+or inference. A signpost or stated research aim needs no invented external source.
+Original reasoning needs explicit premises and evidence, not a citation falsely
+attributing the conclusion to another author. Each independently supported part
+must be traceable even when prose combines it with other parts.
+
+For project work, compare these assertions with
+`manuscript/claims_evidence_map.md` and `evidence/claim-evidence-ledger.csv`.
+Reuse an ID only for the same atomic claim and qualifiers. A note-local `C1` from
+one paper is not a project-wide claim ID. If an existing ID names incompatible
+claims, preserve both records and report the conflict before merging. Propose a
+new stable ID for an unmapped substantive claim; do not silently omit it from review.
+Keep the actual manuscript location and a short exact text span in the existing
+map/coverage record, bound to the draft identity in the review packet. Paragraph
+numbers alone can drift after edits; reconcile locations against the final text.
+For a direct chat paragraph, use the same check without requiring project files
+or exposing an internal claim table the user did not request.
+
+## Follow each claim to its evidence
+
+1. Inspect every matching ledger row and manuscript-map entry, retaining claim
+   text/type, citekey or analysis identity, source location, artifact, limitations
+   and recorded status. Inspect explicit gaps and conflicting evidence too.
+   A Graph `supports` edge is a recorded relationship, not a fresh verdict or a
+   complete inventory; missing edges cannot hide `needs_evidence` rows. Graph
+   query/source opens registered records, not arbitrary manuscript prose or PDFs.
+   Bounded/truncated artifact reads require further authorized inspection before
+   claiming all rows were reviewed.
+2. Follow the existing artifact/note references and exact citekeys. Keep each
+   source/version separate, including different passages from the same paper.
+   A reading-note paraphrase is a route to its original evidence, not a substitute
+   for inspecting it. For one's own results, read the bound output/table and
+   relevant procedure; never force those claims to cite an unrelated publication.
+3. Recover an explicitly bound saved packet through `workflows/paper-read.md`.
+   Use current receipt bindings or authorized exact file evidence; retain the
+   expected project revision, packet path/hash and observed JSON pointer/range.
+   When no exact location is recorded, search a phrase from the source in those
+   selected saved materials, inspect each candidate and use its `readArguments`.
+   A translated manuscript sentence may have no literal hit; inspect its cited
+   source rather than fabricate an original quotation. Preserve the original
+   document version and page/section/table independently from JSON offsets.
+4. Compare the actual passage and necessary neighboring material with every part
+   of the claim. Read table headings/notes, definitions and design limitations
+   when they affect meaning. Separate source results, source-author interpretation,
+   cross-source synthesis and the manuscript's inference. Name the supported
+   wording and why the evidence supports it; a matching topic or citation is
+   insufficient. Assess contrary evidence separately instead of voting by count.
+5. Return the coverage judgments below with exact manuscript and source locations.
+   Ambiguous citekeys/versions, missing or changed files, absent supplements and
+   uninspected context stay unresolved. Never choose the newest packet, replace
+   an expected hash or turn `no match` into proof of absence. Preserve prior review
+   evidence and state what would resolve the particular gap.
+
+This traversal is performed by the active Host using existing reads and records;
+it is not a native semantic claim extractor or an automatic scholarly verdict.
+Older Hosts lacking saved-passage tools use authorized source reads and disclose
+the missing capability. No new search, project write or approval is implied.
 
 ## Select the review and its inputs
 

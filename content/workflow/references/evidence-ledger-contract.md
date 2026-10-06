@@ -33,7 +33,10 @@ Allowed `evidence_type`:
 
 ## Rules
 
-- Every central manuscript claim must have at least one ledger row. Keep one row
+- Every substantive source-dependent or inferential manuscript claim in the
+  selected formal scope must have a ledger row or an explicit gap row, including
+  claims in body sections, captions and notes. A direct chat edit does not require
+  creating a ledger. Keep one row
   per claim/source/location; multiple sources reuse the same claim ID, exact
   atomic claim text and claim type. An exact repeated row adds no new evidence.
 - Supported claims must include `source_id`, `source_location`, and `artifact_path`.
@@ -51,6 +54,10 @@ Allowed `evidence_type`:
   Reordering CSV rows preserves that edge identity. Opening it resolves the
   matching record at the current bound revision; limitations remain in that row.
 - Confidence labels should be `high`, `medium`, or `low`; explain limitations even when confidence is high.
+- Identify claims from the actual draft through `references/evidence-verification.md`;
+  existing rows are not proof of exhaustive coverage. Keep the final manuscript
+  location in the claim map and exact candidate/source bindings in the review
+  packet. Body and note citations must point to the source supporting that assertion.
 
 ## Recoverable passage locations
 

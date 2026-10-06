@@ -70,10 +70,13 @@ structural aids except for machine-readable contract fields.
 1. Reuse or refine the outline around the question, contribution and available
    evidence. Select a drafting order and granularity suited to the requested
    deliverable; do not add an outline approval to an authorized full draft.
-2. Draft with source anchors and the paper type's structure. Methods and results
+2. Draft from inspected source anchors and the paper type's structure. Methods and results
    may be descriptive. Discussion interprets supported findings, distinguishes
    hypotheses and explains consequential alternatives or limits.
-3. Check claims against the actual sources and analysis. Fix concrete defects,
+3. Follow `references/evidence-verification.md` from the actual manuscript to all
+   affected claim/source records, including previously unmapped assertions in body
+   sections, captions and notes. Check support separately from explanation, flow
+   and paragraph continuity under the shared Writing Harness. Fix concrete defects,
    verify the affected text and preserve unresolved gaps. A clean review needs
    no invented criticism; explicit run/protocol requirements still apply.
 4. For formal F4, reconcile the claim map as described below. Use F5 figure/table
@@ -89,6 +92,9 @@ claim text. Assign stable `CLM-###` claim IDs only to new claims, and never
 renumber or reuse a recorded ID. Keep citation keys distinct from evidence
 pointers: citation edges record attribution and do not by themselves prove a
 claim. Preserve user-written prose and source anchors when merging.
+Record the final manuscript location and exact claim span; recheck them after
+edits. A note-local claim label does not establish project-wide identity. Inspect
+all sources and gaps for the claim, not just one convenient supporting row.
 
 Check that evidence supports both the claim's content and its strength. An
 association is not a causal result; a quotation is not proof of prevalence.

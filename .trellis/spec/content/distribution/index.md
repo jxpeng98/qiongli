@@ -70,6 +70,18 @@ owner; a manuscript LR request is not automatically a formal B1 systematic revie
 Neither citation/paragraph quotas nor explanatory notes replace inspected support
 or authorize a new search, project write or substantive change during proofreading.
 
+Manuscript-first claim detection and reverse lookup are owned by the existing
+`evidence-verification.md` reference and consumed by Stage F during drafting and
+revision. Start from actual body text, captions and notes, including assertions
+absent from the ledger. Use existing claim-map/ledger/review fields and native
+Graph records plus saved read/search tools; semantic extraction and source-support
+judgments remain Host work. Inspect all relevant records, including gaps and
+conflicts; no Graph edge or recovered quotation supplies a fresh academic verdict.
+Keep source-support review distinct from explanation, coherence and language
+review. Claim-map column headers stay frozen and claim types use the ledger's
+existing vocabulary. No native extractor, state vocabulary or evidence store is
+introduced by these instructions.
+
 Stage C design cards, workflows, role perspectives and the core digest share
 `content/workflow/references/stage-C-design.md`. They retain method/protocol
 requirements without imposing generic sample, rival or robustness quotas. The

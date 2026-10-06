@@ -33,6 +33,10 @@ choose drafting order and chunk size from the task's length, dependencies and
 evidence risks. An authorized full-draft request does not require another user
 confirmation after the outline. Explicit review protocols and project write
 approvals still apply.
+Apply the shared contract's manuscript-first trace throughout drafting, including
+body sections, captions and notes. Reconcile new or changed claims with exact
+source locations and the final manuscript wording; source verification and
+readability/depth review must both pass for the selected unit.
 
 For the requested formal tasks, use the canonical output paths:
 
@@ -44,7 +48,7 @@ For the requested formal tasks, use the canonical output paths:
 | F5 | `manuscript/figures_tables_plan.md`, `manuscript/tables/`, `manuscript/figures/`; `templates/figures-tables-plan.md` |
 
 Preserve existing prose, stable claim IDs and citation keys. A full paper's
-central claims need the F4 integrity check; use F5 when figures/tables belong
+substantive claims need the F4 integrity check; use F5 when figures/tables belong
 to the requested deliverable. Mark non-applicable interpretation outputs with
 their basis rather than inventing analyses to populate them.
 

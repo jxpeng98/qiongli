@@ -485,3 +485,14 @@ exact selected paragraph text. Its negative cases reject a changed count, swappe
 paper and forged anchor even if the excerpt file hash is recomputed for the last
 case. These are local integrity checks, not model quality or scientific truth
 checks. Hashes bind a frozen snapshot; they do not authenticate its preparer.
+
+## Manuscript writing and reverse lookup
+
+`writing-quality/` retains the bounded prose/LR/note tasks. The separate
+[`manuscript-trace/`](manuscript-trace/README.md) packet exercises results/discussion
+writing and claim detection from an actual faulty body and its notes, including
+assertions absent from the map. It uses invented sources, existing claim records
+and actual native packet readback in an isolated fixture. Freeze original answers
+before reading its separate criteria; preserve source-support, prose-quality and
+tool-observation results separately. It adds no automated semantic scorer or
+installed-Host qualification, and same-agent drafting/review remains self-review.

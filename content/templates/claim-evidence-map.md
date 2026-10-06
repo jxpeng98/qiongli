@@ -19,10 +19,18 @@ claim use separate evidence-ledger rows with that same ID. Use the same citekeys
 throughout, separated by semicolons. Keep evidence pointers separate from
 citations: a citation link records
 attribution, not direct support.
+Build coverage from the current manuscript, including methods/results, captions
+and footnotes/endnotes, not only central introductory or discussion claims. Split
+compound assertions when their sources or limits differ. In Manuscript Location,
+retain the section/paragraph or note ID and a short exact text span; reconcile it
+after edits and bind the draft identity in the existing review packet. Missing
+support stays an explicit gap. Signposts and stated aims need no invented source.
+Use the ledger's claim-type vocabulary below; rhetorical roles such as background
+or novelty do not replace those types.
 
 | Claim ID | Claim | Claim Type | Evidence Pointer | Citation Keys | Manuscript Location | Confidence | Action |
 |---|---|---|---|---|---|---|---|
-| CLM-001 |  | background / method / result / interpretation / implication / limitation |  | Smith2024; Lee2025 | Section X, paragraph Y | high / medium / low / unknown | keep / hedge / remove |
+| CLM-001 |  | finding / interpretation / implication / method_assumption / limitation / speculation |  | Smith2024; Lee2025 | Section X, paragraph Y; exact claim span | high / medium / low / unknown | keep / hedge / remove |
 
 ---
 
@@ -32,3 +40,5 @@ attribution, not direct support.
 - [ ] Results statements do not leak interpretation beyond evidence
 - [ ] Limitations address main threats (not cosmetic)
 - [ ] Every figure/table is referenced and explained
+- [ ] Source-dependent assertions in body text, captions and notes have inspected locators or named gaps
+- [ ] Explanations and transitions preserve what the sources actually support

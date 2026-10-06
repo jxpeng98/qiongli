@@ -1,0 +1,84 @@
+{
+  "fixture_kind": "invented manuscript and source excerpts; not published research",
+  "binding_scope": "Explicit synthetic file evidence, not consolidation receipts or a reviewed corpus",
+  "packets": [
+    {
+      "citekey": "Trial2026",
+      "version": "synthetic report v1",
+      "relative_path": "sources/Trial2026/4687ae970ef60cb3b0c9b45f44b2186e20cca606a1c024b7248d0d6d6afe250b.json",
+      "sha256": "4687ae970ef60cb3b0c9b45f44b2186e20cca606a1c024b7248d0d6d6afe250b",
+      "evidence_limit": "supplied_body_excerpt"
+    },
+    {
+      "citekey": "Followup2026",
+      "version": "synthetic abstract only",
+      "relative_path": "sources/Followup2026/ba8d3de06430a27afa9ad27e6f186c73c9879b95d6d525ef2f426f15779832b9.json",
+      "sha256": "ba8d3de06430a27afa9ad27e6f186c73c9879b95d6d525ef2f426f15779832b9",
+      "evidence_limit": "abstract_only"
+    },
+    {
+      "citekey": "Versioned2026",
+      "version": "synthetic v1",
+      "relative_path": "sources/Versioned2026/fc565c7ec3dc4d4a58eadea092ca81bed265fdd5da0e00fa6ee80fccd1d0c6fa.json",
+      "sha256": "fc565c7ec3dc4d4a58eadea092ca81bed265fdd5da0e00fa6ee80fccd1d0c6fa",
+      "evidence_limit": "supplied_body_excerpt"
+    },
+    {
+      "citekey": "Versioned2026",
+      "version": "synthetic v2",
+      "relative_path": "sources/Versioned2026/15bebfdad97a0ec083f26cec01c4eeb227f240d3adeb415575efa0217a9a6598.json",
+      "sha256": "15bebfdad97a0ec083f26cec01c4eeb227f240d3adeb415575efa0217a9a6598",
+      "evidence_limit": "supplied_body_excerpt"
+    }
+  ],
+  "files": [
+    {
+      "path": "analysis/outputs/cohort.md",
+      "sha256": "c06f65f664ab3253131d451b36aab0f4a7bef9eb5e9b4fb398e7cb196f55135b"
+    },
+    {
+      "path": "context/gap_notes.md",
+      "sha256": "a548aeea5b5a4e10d213a44897d8bd8b3b86e6e51c563ba0462f61fb7e5d42f7"
+    },
+    {
+      "path": "evidence/claim-evidence-ledger.csv",
+      "sha256": "c3be9b5bf5bf8c80a78f32d5fd03a777948b9a339a95487591dd08aa464f186a"
+    },
+    {
+      "path": "manuscript/claims_evidence_map.md",
+      "sha256": "dba403527540d7a49ee14b894b99b36aa3b4c6c1b1471c3c5cec8032c9bc57e5"
+    },
+    {
+      "path": "manuscript/manuscript.md",
+      "sha256": "95cd4e701c55093d8af1a8e30e1e701f5c120b7e9fce5f8d496dc62aac1a6bfd"
+    },
+    {
+      "path": "notes/Followup2026.md",
+      "sha256": "25afc9a18a7fa2b74ae70358338cc0c55842c415a9b62ff02ecdbc6fa0ef61f3"
+    },
+    {
+      "path": "notes/Trial2026.md",
+      "sha256": "96baf2a23293ef154566d375b6d7c6389ba4dcb1b623f6aedf2399fee9505dfa"
+    },
+    {
+      "path": "notes/Versioned2026.md",
+      "sha256": "fa0d749445131d50d46788fca46f6452cbf61a48ceed1f86025eec77ca0f4931"
+    },
+    {
+      "path": "sources/Followup2026/ba8d3de06430a27afa9ad27e6f186c73c9879b95d6d525ef2f426f15779832b9.json",
+      "sha256": "ba8d3de06430a27afa9ad27e6f186c73c9879b95d6d525ef2f426f15779832b9"
+    },
+    {
+      "path": "sources/Trial2026/4687ae970ef60cb3b0c9b45f44b2186e20cca606a1c024b7248d0d6d6afe250b.json",
+      "sha256": "4687ae970ef60cb3b0c9b45f44b2186e20cca606a1c024b7248d0d6d6afe250b"
+    },
+    {
+      "path": "sources/Versioned2026/15bebfdad97a0ec083f26cec01c4eeb227f240d3adeb415575efa0217a9a6598.json",
+      "sha256": "15bebfdad97a0ec083f26cec01c4eeb227f240d3adeb415575efa0217a9a6598"
+    },
+    {
+      "path": "sources/Versioned2026/fc565c7ec3dc4d4a58eadea092ca81bed265fdd5da0e00fa6ee80fccd1d0c6fa.json",
+      "sha256": "fc565c7ec3dc4d4a58eadea092ca81bed265fdd5da0e00fa6ee80fccd1d0c6fa"
+    }
+  ]
+}

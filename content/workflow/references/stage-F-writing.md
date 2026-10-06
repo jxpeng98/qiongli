@@ -15,7 +15,7 @@ This stage turns artifacts into a publishable narrative: outline → draft → c
 ## Quality gate focus
 
 - `Q1` (question-to-method alignment): intro/method/results must answer the same RQ(s).
-- `Q2` (claim-evidence traceability): enforced via `F4` and `G3`.
+- `Q2` (claim-evidence traceability): check during drafting/revision; `F4` and `G3` record formal coverage.
 - Semantic gate report: update `quality-gate-report.md` with `q2_claim_evidence_traceability`; evidence must anchor central claims to the claim-evidence ledger, source notes, analysis outputs, citations, or explicit gap notes.
 
 ## Writing Harness Contract
@@ -24,6 +24,22 @@ This shared contract applies to Stage F workflows, skill cards and role prompts.
 It specifies the result and boundaries; the active model chooses how to reach it.
 Formal task outputs and Q1/Q2 gates above remain required for the selected task.
 A direct paragraph answer does not require the full artifact set or a gate report.
+
+### Trace the text being written
+
+Use `references/evidence-verification.md` for manuscript-first claim detection
+and source traversal during drafting and revision. Start from the actual text,
+not only a completed reading note or a pre-existing claim map. Cover substantive
+assertions throughout the requested unit, including background, methods, results,
+discussion, captions and explanatory notes. Track independently supported clauses;
+new explanations and connective inferences can introduce claims too.
+
+Draft from inspected evidence with its scope and locator available. If a useful
+explanation needs an uninspected premise, inspect the authorized source or keep
+that premise as a named gap; do not draft it as fact and attach a nearby citation
+afterward. Reconcile changed wording, attribution and manuscript location with
+the final claim/source records. This is part of writing the selected unit, not a
+requirement to start F4 or a separate reviewer for every chat paragraph.
 
 ### Result-to-claim decisions
 
@@ -110,6 +126,21 @@ compatible with explaining the important point more fully. During revision,
 preserve quotations, numbers, citation attribution and the author's intended
 meaning; flag unresolved ambiguity rather than silently choosing a new claim.
 
+When a paragraph is shallow, locate the missing step: what the evidence actually
+shows, how it bears on the paragraph's point, or what follows for this paper.
+Explain that step with available source detail. Define a consequential term at
+first use, unpack a comparison's basis, and explain how an inference follows
+from its premises. A list of authors or a paraphrase of results cannot substitute
+for the needed explanation. Unsupported mechanisms, extra citations and longer
+sentences do not add depth.
+
+Across paragraphs, carry forward a specific established point or unresolved
+question. Check whether the next paragraph answers, qualifies, contrasts with or
+builds on it; supply the missing reasoning or reorder within the authorized edit.
+Do not manufacture continuity with “therefore”, “however” or a repeated topic label.
+Keep consistent terms and explicit referents so that the reader can follow the
+argument without consulting internal notes.
+
 ### Literature review tied to the paper
 
 For a manuscript's literature review/related work, reuse its research question,
@@ -154,6 +185,13 @@ in the body. A note must not conceal a contradiction or missing support. Disting
 explanatory notes from a venue's bibliographic note system: both may need source
 citations, and neither exempts its factual claims from checking.
 
+Make the body understandable on its own. A concept needed to follow the argument
+belongs in the body; a secondary naming distinction or source-specific detail may
+belong in a note. When such a detail matters for the intended reader, supply its
+supported explanation instead of merely leaving a technical label unexplained.
+Track a note's substantive assertions to their own passages, not automatically
+to the nearest body citation. Do not invent extra content to force a footnote.
+
 Follow the requested format and venue's note rules; use Markdown footnotes only
 when the deliverable supports them. Preserve existing note identifiers where
 possible, resolve every marker to its definition, avoid duplicate definitions
@@ -169,6 +207,13 @@ source comparisons and their specific connection to the paper. Check citation
 coverage in background as well as analysis, and note placement and references
 when notes are used. Revise the demonstrated defect; do not append these internal
 checks as boilerplate to a requested passage.
+
+Keep two review conclusions distinct: whether the statements are supported, and
+whether the complete unit explains and connects them clearly. A source-accurate
+author list can still fail depth/coherence; fluent prose can still overclaim.
+After a meaning-bearing edit, recheck the affected claim and source location as
+well as the revised flow. Do not mark the unit complete with a known missing
+explanation, unsupported bridge or unresolved substantive note presented as fact.
 
 Check the delivered text against the requested length and format, as well as its
 claims. Use the user's counting rule. If none is specified, count words for an
@@ -263,12 +308,15 @@ Write into:
 
 ## F4 — Claim–Evidence Map
 
-This is the anti-overclaim tool: every major claim must trace to evidence (data, analysis, or citations).
+Build this map from the actual manuscript, not only the claims already in a ledger.
+Every substantive source-dependent or inferential assertion in the selected scope
+must trace to inspected evidence or an explicit unresolved gap.
 
 **Definition of done**
-- All major claims in abstract/introduction/discussion appear in the map
-- Each claim has at least one evidence pointer
-- Claims are typed (novelty / mechanism / empirical effect / robustness / synthesis)
+- Coverage includes all selected body sections, captions and footnotes/endnotes
+- Compound assertions are separated when their evidence or qualifiers differ
+- Each claim has an inspected evidence pointer or a named gap, with manuscript location
+- Claim types retain the evidence-ledger vocabulary; source results, synthesis and inference remain distinct
 
 Use `templates/claim-evidence-map.md` for `manuscript/claims_evidence_map.md`.
 Preserve its exact headers, stable claim IDs and distinction between evidence

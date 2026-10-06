@@ -68,6 +68,21 @@ not checked as review judgments, not ledger statuses. Inspect substantive claims
 in the requested passage even when they are absent from the supplied ledger.
 Record actual coverage and the unreviewed remainder; an empty table or no findings
 does not mean verification passed. Preserve existing claim and issue IDs.
+Use separate rows for distinct source passages or independently checkable clauses;
+include unmapped body, caption and note claims. Bind quoted candidate spans to the
+reviewed draft, and preserve source type/version and original access limits.
+
+## Writing Quality (when manuscript writing is in scope)
+
+| Exact passage location | Explanation, logical connection or language issue | Source-faithful correction and recheck |
+|---|---|---|
+
+Keep source-support judgments separate from depth, continuity and prose quality.
+A claim can be well sourced yet unexplained; a fluent transition can add an
+unsupported inference. Review useful body/footnote placement and resolved markers
+where applicable. Record actual inspected scope; neither an empty table nor
+numerous citations establishes a writing-quality pass. This internal review
+section is not boilerplate to append to a requested paragraph.
 
 ## Blocking Issues
 

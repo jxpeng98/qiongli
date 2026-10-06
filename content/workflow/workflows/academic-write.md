@@ -29,6 +29,12 @@ Read the shared Writing Harness Contract in `references/stage-F-writing.md`.
 It owns scope, Story Spine, drafting granularity, review and completion. Use
 `manuscript-architect` when the task needs manuscript structure or a formal
 claim-evidence map; its full-paper outputs do not become paragraph prerequisites.
+During drafting and after substantive edits, follow its manuscript-first trace
+route in `references/evidence-verification.md`. Detect claims in the actual text,
+including added explanations, background and notes; inspect matching original
+evidence and recheck the final wording. Check paragraph depth and continuity
+separately from source support. Existing citations or a completed note are not
+enough to certify the new prose.
 
 Select evidence checks for the section's purpose:
 

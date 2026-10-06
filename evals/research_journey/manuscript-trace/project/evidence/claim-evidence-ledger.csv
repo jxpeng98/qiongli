@@ -1,0 +1,6 @@
+claim_id,claim_text,claim_type,evidence_type,source_id,source_location,artifact_path,confidence,limitations,status
+CLM-001,Trial2026 reports a 9 percentage-point advantage in initial submission within seven days.,finding,paper,Trial2026,/segments/1/text; Results,sources/Trial2026/4687ae970ef60cb3b0c9b45f44b2186e20cca606a1c024b7248d0d6d6afe250b.json,medium,Supplied excerpts; 95% CI 1 to 17 percentage points; initial submission only,supported
+CLM-001,Trial2026 reports a 9 percentage-point advantage in initial submission within seven days.,finding,paper,Trial2026,/segments/2/text; Limitations,sources/Trial2026/4687ae970ef60cb3b0c9b45f44b2186e20cca606a1c024b7248d0d6d6afe250b.json,medium,Scope qualification: later independent use not measured,supported
+CLM-002,The current cohort uses voluntary appointment attendance and cannot identify an assistance effect.,method_assumption,analysis_result,OUT-1,Methods,analysis/outputs/cohort.md,high,Voluntary attendance; no adjusted analysis,supported
+CLM-003,Versioned2026 reports 22 participants.,finding,paper,Versioned2026,Sample; version not recorded,notes/Versioned2026.md,low,Two retained versions disagree; no approved version binding,needs_evidence
+CLM-004,Assistance improves lasting independent ability.,interpretation,gap_note,,,context/gap_notes.md,low,Not established by inspected materials,needs_evidence

@@ -118,4 +118,31 @@ size, revision and file hash. Changed bindings refuse. `searchScope`,
 `scannedTextFields` and `totalMatches` describe only that saved scope. No match
 does not establish absence from the full paper. Search other selected sources
 through their own known bindings. Automatic cross-document traversal and
-claim-to-passage review remain subsequent work in the 2.4 plan.
+native claim extraction remain outside this reader's scope.
+
+## Trace the manuscript being written — 2.4.0 candidate
+
+Traceability also applies during drafting and revision. Start with the actual
+body text, captions and notes: a sentence may combine a finding, explanation and
+inference that need different support. Include assertions absent from the current
+claim map. Retain the final text span and location, reuse an existing claim ID only
+for the same meaning, and keep note-local IDs distinct from project-wide IDs.
+
+The writing Host follows each claim through the current map and all relevant
+ledger rows, then inspects the original source or analysis output. Saved packets
+use the bound read/search route above. A note summary or Graph support edge is
+not a substitute for reading the evidence. Record supporting and contrary material
+separately; ambiguous versions, unavailable context and changed files remain gaps.
+Do not choose a replacement hash or source merely because it matches the wording.
+
+Review the prose separately: explain what the evidence means for the paragraph's
+point, make the connection to the next paragraph explicit, and define concepts
+needed by the reader. Put essential reasoning and limits in the body; use a
+sourced explanatory note for useful secondary detail when the format allows it.
+A citation-complete paragraph can still be shallow or disconnected. After a
+meaning-bearing edit, recheck both the source match and the revised flow.
+
+This is a Host-guided writing/review process using existing records and tools,
+not native semantic extraction or automatic academic approval. A direct paragraph
+request needs no new project or unsolicited claim table. The 2.4 plan retains
+installed-workflow and final-candidate qualification separately.
