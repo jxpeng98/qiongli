@@ -101,8 +101,14 @@ CLI-405/409/410 and the existing evaluation, installation and write owners retai
 responsibility. Task states/dependencies and accepted evidence remain unchanged.
 The October 6 maintainer grant authorizes remote synchronization, the existing
 protected PR route, Native CI and four-target CLI/Cargo qualification. PR 183
-is open; changed-source checks must bind the new head. Publication, tags, main
-cutover, announcement and remote-rule changes remain outside this grant.
+merges after all required checks pass. Frozen merged source `8fd774a0` passes
+four-target CLI distribution, combined installs, historical/2.3.0 upgrades and
+four-target Cargo archive qualification. Manual Native CI passes all three
+foundation jobs but fails overall on seven retained Alpha/Desktop product jobs
+on the stable version; the existing CLI
+release boundary does not require App/Community Alpha promotion. The plan keeps
+those failures and the still-failed strict AGY gates visible. Publication, tags,
+main cutover, announcement and remote-rule changes remain outside this grant.
 
 ### Preceding local increment — Plugin baseline and AGY
 

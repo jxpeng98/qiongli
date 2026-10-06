@@ -24,7 +24,7 @@ qualify a changed final release candidate.
 | --- | --- | --- |
 | Codex CLI | On `85758cac`, installed regression passes structure/review 3/3, actual new-note save/restart 1/1, and one frozen fresh synthetic cohort 3/3; guidance, read-tool policy and cleanup are verified | Bounded tasks with supplied guidance locations; no automatic discovery, full-paper or broad academic acceptance. Earlier failures remain in the plan. |
 | Antigravity CLI | On `85758cac`, isolated 1.3.0 installation and an authenticated status call pass their scoped checks. With public tool schemas supplied, native calls reconstruct both complete saved document bodies with matching hashes | The retained status stream omits the MCP envelope. Both recovery observations remain 0/1 under their full criteria; the second has an omitted result, denied Host output-file read and inaccurate reported character count. No automatic discovery or broad research-quality claim. |
-| Claude Code / DeepSeek | `c2cae736` Linux ARM64 qualification passes the Claude archive and npm DeepSeek projection | Other target qualification remains open; no new model journey is claimed. |
+| Claude Code / DeepSeek | `8fd774a0` four-target package qualification passes the Claude archives and npm DeepSeek projection | Package/native checks only; no new authenticated model journey is claimed. |
 
 Antigravity uses its CLI Plugin format and the normal Host trust/approval flow;
 keep its registered source directory and start a fresh session after updates.
@@ -37,7 +37,9 @@ modes; its bundled executable directly lists 35 Full MCP tools and returns a
 complete `qiongli_config_status` result over stdio. These are package/native
 transport checks. This archived-binary observation does not register a Plugin or
 run an AGY session; the separate 1.3.0 installation/authenticated status outcome is
-listed above. Final-source four-target qualification remains open.
+listed above. The later frozen source `8fd774a0` passes four-target CLI/package
+qualification, historical and explicit 2.3.0 upgrades, and Cargo archive installs.
+The plan binds those artifact bytes separately; AGY's strict Host gates remain open.
 
 ## Installation and runtime surfaces
 

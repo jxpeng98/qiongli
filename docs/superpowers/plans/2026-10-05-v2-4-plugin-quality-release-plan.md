@@ -1294,3 +1294,95 @@ evidence fields remain unchanged. Documentation builds in 51.994152 seconds;
 `f53c04ecac3404ffc4b5ec93f1510384e2f9044cde5e536451ad4cb33b0f2ccc`.
 The final operator-versus-Host credential wording is a reviewed plain-text
 clarification; it changes no links, build configuration or dependencies.
+
+## October 6 — protected synchronization and four-target qualification
+
+The final PR source `1df769f9bc228caf4dd7622e47faf9d0a9b94709` passes
+Native CI `37487108616`: Linux, macOS and Windows foundations, the native change
+boundary and Lite compatibility. Evaluation Truth `37487108729` and Cloudflare
+Pages also pass. The macOS execution qualifies the atomic-counter fixture repair.
+The preceding `f97b5f7a` run remains cancelled after supersession: Windows passes,
+macOS fails its single directory-collision case, and Linux is incomplete. Its
+retained cancellation log contains no observed assertion failure; that partial
+execution is not a platform pass.
+
+[PR 183](https://github.com/jxpeng98/qiongli/pull/183) merges normally through the
+existing protected route. The frozen merged source is
+`8fd774a05f5fc08fd0b61b0857fe869e87cd3af0`, with exactly the same tree as the
+qualified PR head. Local `2.x` fast-forwards to it. Subsequent documentation
+records do not change the source identity of these checks or artifacts.
+
+- [CLI distribution `37494107157`](https://github.com/jxpeng98/qiongli/actions/runs/37494107157)
+  succeeds on all four targets: Linux x64/ARM64, macOS ARM64 and Windows x64.
+  Target-native builds and installs, assembly and all four combined-package
+  installation jobs pass. The downloaded packet passes the existing
+  `native_release_assets.py verify --require-ci` owner for version `2.4.0` and
+  the exact merged source. This includes the successful-run API gate, not only
+  receipt inspection.
+- [Cargo distribution `37494107269`](https://github.com/jxpeng98/qiongli/actions/runs/37494107269)
+  succeeds in all four qualification jobs. Publication and post-publication
+  registry installation are skipped as required for this branch run.
+- [Manual Native CI `37494133020`](https://github.com/jxpeng98/qiongli/actions/runs/37494133020)
+  completes on the same merged source with all three foundation jobs, the
+  change boundary and Lite compatibility passing. All three foundation jobs
+  include Desktop consumer tests and the opt-in capacity step. Seven retained
+  Community Alpha/product jobs fail, so the overall workflow is **failure**;
+  Community Alpha promotion is skipped. These outcomes remain separate from
+  the successful CLI and Cargo distribution lanes.
+
+Independent downloaded-receipt verification confirms all four npm/PyPI installs,
+Lite 15 / Full 35, pack `1d84ed12`, package hashes and Codex/Claude archive bytes.
+Each target passes both historical and explicitly selected 2.3.0 upgrade checks
+with three retained synthetic fixtures. Each of the four Cargo receipts reports
+ten archive installations and both `qiongli`/`ql` checks. Cargo receipts contain
+archive hashes but no `source_commit`; their source binding comes from the exact
+GitHub run head, not an invented receipt field.
+
+The external receipt review at
+`/tmp/qiongli24-merge-8fd774a0-receipts/receipt-verification.json` binds 42 files
+and has SHA-256
+`c7db1e3cb1b02f3c5f54717f2507d0f6fd012f1e6bdbd9df4dc28db320f6b8a6`.
+The release manifest has SHA-256
+`1e06335c6e80859a0c5be157117fdd9d69c91a08f37b8c532762cbb74a576ed0`.
+The verifier initially misdescribes `--require-ci` as receipt-only; inspection
+corrects that explanation to its actual successful-run API requirement. The
+recorded command succeeds with that flag, and the exact-source workflow is
+confirmed successful. No extra verification run or artifact rewrite is needed.
+
+The completed manual-run API snapshot and six capacity receipts are separately
+bound by `/tmp/qiongli24-manual-final-37494133020/verification.json`, SHA-256
+`4c05b49fe1c190bfc70c4c55d56f0d85c444a3b0e49a3240f87b7fc346ad4b73`.
+All six receipts match the merged source and run `37494133020` with status
+`observation-only`. They establish no performance acceptance. The original
+42-file CLI/Cargo review remains unchanged.
+
+### Retained Alpha product boundary
+
+All three candidate-lifecycle jobs reject an ephemeral Alpha authority while
+building stable `2.4.0`, reporting
+`native-release-authority-product-version-mismatch`. The retained acceptance
+owner explicitly constructs Alpha identities, update state and notes. All three
+desktop package jobs report `desktop-package-target-unsupported`; their owner maps
+the Alpha identity failure to that general error, so this does not establish an
+unsupported Linux platform. The macOS packaged-product wrapper reports
+`packaged-product-acceptance-product-build-failed` without the inner build error
+in its retained output; its precise underlying failure remains unestablished.
+
+The existing [CLI distribution decision](../../architecture/decisions/0219-cli-github-release-distribution.md)
+and contributor release instructions separate standalone CLI qualification from
+App/Community Alpha signing and promotion. This increment does not expand the
+retained Alpha helpers to stable Desktop, change the embedded production
+authority or represent the complete manual workflow as passing. Its failures
+remain visible; they do not replace or invalidate the separately observed CLI
+package checks. The original required AGY status/recovery gates remain failed,
+and the proposed experimental AGY release boundary still awaits a maintainer
+decision. Overall 2.4 release readiness is **Not ready** under the current plan.
+
+Independent review of the hosted-evidence documentation finds no issue and
+verifies all 42 bound files. Seven roadmap checks, the generated index and
+whitespace pass; all 249 task IDs/states/dependencies, 46 complete accepted
+records and 76 nonempty evidence fields remain unchanged. Before this final
+result paragraph, the documentation build passes in 54.390599 seconds, including
+the new local ADR link. Receipt
+`/tmp/qiongli24-hosted-docs-build/receipt.json` has SHA-256
+`4fd0d15d8bcf869a211fef3c6b2aff7d78b655f2ce6b5f807ef6452925805695`.
