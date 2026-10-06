@@ -23,7 +23,7 @@ qualify a changed final release candidate.
 | Host | Development evidence | Remaining qualification |
 | --- | --- | --- |
 | Codex CLI | On `85758cac`, installed regression passes structure/review 3/3, actual new-note save/restart 1/1, and one frozen fresh synthetic cohort 3/3; guidance, read-tool policy and cleanup are verified | Bounded tasks with supplied guidance locations; no automatic discovery, full-paper or broad academic acceptance. Earlier failures remain in the plan. |
-| Antigravity CLI | Earlier 1.2.17 observations remain scoped; isolated 1.3.0 install/enable and source/cache verification pass on `85758cac`. After user login, one status call returns schema-valid native data and exits normally with cleanup verified | The Host stream omits the MCP response envelope; the unchanged strict result gate fails. The first bounded recovery fails on invalid arguments; its policy also blocks Host schema reads. A corrected observation remains pending. |
+| Antigravity CLI | On `85758cac`, isolated 1.3.0 installation and an authenticated status call pass their scoped checks. With public tool schemas supplied, native calls reconstruct both complete saved document bodies with matching hashes | The retained status stream omits the MCP envelope. Both recovery observations remain 0/1 under their full criteria; the second has an omitted result, denied Host output-file read and inaccurate reported character count. No automatic discovery or broad research-quality claim. |
 | Claude Code / DeepSeek | `c2cae736` Linux ARM64 qualification passes the Claude archive and npm DeepSeek projection | Other target qualification remains open; no new model journey is claimed. |
 
 Antigravity uses its CLI Plugin format and the normal Host trust/approval flow;

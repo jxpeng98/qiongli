@@ -90,8 +90,12 @@ isolated install/enable and source/cache checks pass on the unchanged Host-test
 candidate. After user login, one actual status call returns schema-valid native
 data and exits normally with cleanup/preservation verified. Its stream omits
 the MCP response envelope, so the unchanged strict result gate still fails;
-the earlier authentication failure remains retained. The plan records separately
-scoped projected-body recovery and final-source platform qualification.
+the earlier authentication failure remains retained. Two separately frozen recovery
+observations remain 0/1. With public tool metadata supplied, the second recovers
+both complete hash-matched bodies, but missing/denied Host output access and an
+inaccurate count prevent a whole-session pass. The plan records exact captures
+and final-source platform qualification; a proposed experimental AGY release
+boundary awaits the maintainer decision.
 
 CLI-405/409/410 and the existing evaluation, installation and write owners retain
 responsibility. Task states/dependencies and accepted evidence remain unchanged.
