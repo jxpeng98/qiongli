@@ -12,6 +12,7 @@ use crate::academic_graph::{
 use crate::academic_graph_coverage::{
     AcademicGraphExtractorV1, AcademicGraphPortableAuthorityV1, academic_graph_source_coverage,
 };
+use crate::csv::{MAX_FIELD_BYTES, MAX_TABLE_COLUMNS, MAX_TABLE_ROWS, parse_csv};
 use crate::model::ProjectId;
 
 const RESEARCH_STATE_PATH: &str = "context/research_state.md";
@@ -21,9 +22,6 @@ const IDEA_FUNNEL_PATH: &str = "context/idea_funnel.md";
 const LITERATURE_MAP_PATH: &str = "literature/literature_map.md";
 const EVIDENCE_LEDGER_PATH: &str = "evidence/claim-evidence-ledger.csv";
 const MANUSCRIPT_CLAIM_MAP_PATH: &str = "manuscript/claims_evidence_map.md";
-const MAX_TABLE_COLUMNS: usize = 16;
-const MAX_TABLE_ROWS: usize = 2_048;
-const MAX_FIELD_BYTES: usize = 8 * 1_024;
 const MAX_RELATED_ID_BYTES: usize = 512;
 const MAX_LIST_ITEMS: usize = 64;
 
@@ -241,8 +239,12 @@ fn extract_decision_log(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAcadem
             return projection;
         }
     };
+    let mut counts = BTreeMap::new();
+    for row in &rows {
+        *counts.entry(row.decision_id.trim()).or_insert(0) += 1;
+    }
     let mut seen = BTreeMap::new();
-    for row in rows {
+    for row in &rows {
         let decision_id = row.decision_id.trim();
         let decision = row.decision.trim();
         let anchor = format!("row:{}", row.line_number);
@@ -270,7 +272,9 @@ fn extract_decision_log(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAcadem
             ));
             continue;
         }
-        if !row.status.is_empty() && !valid_decision_status(&row.status) {
+        if (!row.status.is_empty() || !row.related_claims.is_empty())
+            && !valid_decision_status(&row.status)
+        {
             projection.diagnostics.push(diagnostic(
                 AcademicGraphDiagnosticCode::AmbiguousRelation,
                 DECISION_LOG_PATH,
@@ -291,6 +295,70 @@ fn extract_decision_log(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAcadem
             DECISION_LOG_PATH,
             format!("decision:{decision_id}"),
         );
+        // Ambiguous identities and statuses must never produce reviewed relations.
+        if counts[decision_id] != 1 || !valid_decision_status(&row.status) {
+            continue;
+        }
+        let claims = match reference_list(&row.related_claims) {
+            Ok(claims) => claims,
+            Err(()) => {
+                projection.diagnostics.push(diagnostic(
+                    AcademicGraphDiagnosticCode::AmbiguousRelation,
+                    DECISION_LOG_PATH,
+                    Some(&anchor),
+                    Some(decision_id),
+                ));
+                continue;
+            }
+        };
+        for claim in claims {
+            let edge = (|| {
+                let source = crate::academic_graph::node_id(
+                    project_id,
+                    AcademicGraphNodeType::Decision,
+                    AcademicGraphIdentityScope::Project,
+                    decision_id,
+                )?;
+                let target = crate::academic_graph::node_id(
+                    project_id,
+                    AcademicGraphNodeType::Claim,
+                    AcademicGraphIdentityScope::Project,
+                    &claim,
+                )?;
+                AcademicGraphEdgeV1::new(
+                    project_id,
+                    &source,
+                    AcademicGraphRelation::Informs,
+                    &target,
+                    vec![
+                        AcademicGraphLayer::IdeaDecision,
+                        AcademicGraphLayer::Argument,
+                        AcademicGraphLayer::Combined,
+                    ],
+                    "The decision log explicitly identifies this claim as affected by the decision.",
+                    DECISION_LOG_PATH,
+                    format!("decision:{decision_id}"),
+                    "A review or venue decision is not supporting evidence. Inspect its rationale, evidence basis and manuscript impact in the decision log.",
+                    AcademicInferenceStrength::ReasonableInference,
+                    AcademicGraphConfidence::Unknown,
+                    if row.status.trim().eq_ignore_ascii_case("locked") {
+                        AcademicGraphEdgeStatus::Reviewed
+                    } else {
+                        AcademicGraphEdgeStatus::Proposed
+                    },
+                    None,
+                )
+            })();
+            match edge {
+                Ok(edge) => projection.edges.push(edge),
+                Err(_) => projection.diagnostics.push(diagnostic(
+                    AcademicGraphDiagnosticCode::UnsupportedRelation,
+                    DECISION_LOG_PATH,
+                    Some(&anchor),
+                    Some(decision_id),
+                )),
+            }
+        }
     }
     projection
 }
@@ -300,6 +368,7 @@ struct DecisionRow {
     decision_id: String,
     status: String,
     decision: String,
+    related_claims: String,
 }
 
 fn decision_rows(text: &str) -> Result<Vec<DecisionRow>, &'static str> {
@@ -319,6 +388,7 @@ fn decision_rows(text: &str) -> Result<Vec<DecisionRow>, &'static str> {
             continue;
         };
         let status_index = normalized.iter().position(|cell| cell == "status");
+        let claims_index = normalized.iter().position(|cell| cell == "related_claims");
         let mut rows = Vec::new();
         for (row_index, line) in lines.iter().enumerate().skip(index + 1) {
             let Some(cells) = markdown_cells(line) else {
@@ -341,6 +411,9 @@ fn decision_rows(text: &str) -> Result<Vec<DecisionRow>, &'static str> {
                     .cloned()
                     .unwrap_or_default(),
                 decision: cells[decision_index].clone(),
+                related_claims: claims_index
+                    .map(|position| cells[position].clone())
+                    .unwrap_or_default(),
             });
         }
         return Ok(rows);
@@ -364,6 +437,9 @@ fn decision_rows(text: &str) -> Result<Vec<DecisionRow>, &'static str> {
         .position(|field| field == "decision")
         .ok_or("header")?;
     let status_index = normalized.iter().position(|field| field == "status");
+    let claims_index = normalized
+        .iter()
+        .position(|field| field == "related_claims");
     let header_len = header.fields.len();
     let mut rows = Vec::new();
     for record in records.into_iter().skip(1) {
@@ -378,9 +454,19 @@ fn decision_rows(text: &str) -> Result<Vec<DecisionRow>, &'static str> {
                 .cloned()
                 .unwrap_or_default(),
             decision: record.fields[decision_index].clone(),
+            related_claims: claims_index
+                .map(|position| record.fields[position].clone())
+                .unwrap_or_default(),
         });
     }
     Ok(rows)
+}
+
+pub(crate) fn decision_log_anchor_line(text: &str, id: &str) -> Option<usize> {
+    let rows = decision_rows(text).ok()?;
+    let mut matches = rows.iter().filter(|row| row.decision_id.trim() == id);
+    let line = matches.next()?.line_number;
+    matches.next().is_none().then_some(line)
 }
 
 fn extract_idea_funnel(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAcademicGraph {
@@ -1280,6 +1366,8 @@ fn extract_manuscript_claim_map(project_id: &ProjectId, bytes: &[u8]) -> Extract
                 | "robustness"
                 | "synthesis"
                 | "limitation"
+                | "method_assumption"
+                | "speculation"
         ) {
             projection.diagnostics.push(diagnostic(
                 AcademicGraphDiagnosticCode::AmbiguousRelation,
@@ -1466,6 +1554,7 @@ fn extract_evidence_ledger(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAca
     let mut claims = BTreeMap::new();
     let mut evidence_nodes = BTreeMap::new();
     let mut support_edges = BTreeMap::new();
+    let mut support_records = BTreeMap::new();
     for record in records.into_iter().skip(1) {
         let anchor = format!("row:{}", record.line_number);
         if record.fields.len() != EVIDENCE_COLUMNS.len() {
@@ -1487,6 +1576,7 @@ fn extract_evidence_ledger(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAca
         let claim_type = fields[2].to_ascii_lowercase();
         let evidence_type = fields[3].to_ascii_lowercase();
         let source_id = fields[4];
+        let source_location = fields[5];
         let referenced_artifact = fields[6];
         let confidence = fields[7].to_ascii_lowercase();
         let status = fields[9].to_ascii_lowercase();
@@ -1500,7 +1590,11 @@ fn extract_evidence_ledger(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAca
             ));
             continue;
         }
-        if claims.contains_key(claim_id) {
+        if claims.get(claim_id).is_some_and(
+            |(existing, existing_type): &(AcademicGraphNodeV1, String)| {
+                existing.label != claim_text || existing_type != &claim_type
+            },
+        ) {
             projection.diagnostics.push(diagnostic(
                 AcademicGraphDiagnosticCode::ConflictingIdentity,
                 EVIDENCE_LEDGER_PATH,
@@ -1530,7 +1624,9 @@ fn extract_evidence_ledger(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAca
                 continue;
             }
         };
-        claims.insert(claim_id.to_string(), claim.clone());
+        claims
+            .entry(claim_id.to_string())
+            .or_insert_with(|| (claim.clone(), claim_type.clone()));
 
         let valid_contract_types = CLAIM_TYPES.contains(&claim_type.as_str())
             && EVIDENCE_TYPES.contains(&evidence_type.as_str());
@@ -1546,6 +1642,7 @@ fn extract_evidence_ledger(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAca
         if matches!(status.as_str(), "unsupported" | "needs_evidence")
             || evidence_type == "gap_note"
             || source_id.is_empty()
+            || source_location.is_empty()
         {
             projection.diagnostics.push(diagnostic(
                 AcademicGraphDiagnosticCode::UnsupportedRelation,
@@ -1609,6 +1706,28 @@ fn extract_evidence_ledger(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAca
         evidence_nodes
             .entry(evidence.node_id.clone())
             .or_insert_with(|| evidence.clone());
+        let Ok(support_anchor) = evidence_support_anchor(&record.fields) else {
+            continue;
+        };
+        let normalized_record = fields
+            .iter()
+            .map(|field| (*field).to_string())
+            .collect::<Vec<_>>();
+        if support_records
+            .get(&support_anchor)
+            .is_some_and(|existing| existing != &normalized_record)
+        {
+            projection.diagnostics.push(diagnostic(
+                AcademicGraphDiagnosticCode::ConflictingIdentity,
+                EVIDENCE_LEDGER_PATH,
+                Some(&anchor),
+                Some(claim_id),
+            ));
+            continue;
+        }
+        support_records
+            .entry(support_anchor.clone())
+            .or_insert(normalized_record);
         let edge = match AcademicGraphEdgeV1::new(
             project_id,
             &evidence.node_id,
@@ -1617,8 +1736,14 @@ fn extract_evidence_ledger(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAca
             vec![AcademicGraphLayer::Argument, AcademicGraphLayer::Combined],
             "The canonical claim-evidence ledger records this source as supporting evidence.",
             EVIDENCE_LEDGER_PATH,
-            format!("claim:{claim_id}"),
-            "Evidence limitations remain authoritative in the claim-evidence ledger.",
+            &support_anchor,
+            if fields[8].is_empty() {
+                "No evidence limitations recorded; inspect the source before generalizing."
+            } else if valid_text(fields[8], crate::academic_graph::MAX_EVIDENCE_LIMIT_BYTES) {
+                fields[8]
+            } else {
+                "Evidence limitations need the full source record; inspect it before interpreting this relation."
+            },
             AcademicInferenceStrength::DirectEvidence,
             graph_confidence,
             AcademicGraphEdgeStatus::Reviewed,
@@ -1636,12 +1761,88 @@ fn extract_evidence_ledger(project_id: &ProjectId, bytes: &[u8]) -> ExtractedAca
             }
         };
         support_edges.entry(edge.edge_id.clone()).or_insert(edge);
+
+        // Only an explicit paper citekey joins the literature/manuscript identity.
+        // Other source IDs remain evidence; titles and DOI aliases are not guessed.
+        let citekey = clean_citekey(source_id);
+        if evidence_type == "paper" && valid_reference_id(citekey) {
+            let paper = AcademicGraphNodeV1::new(
+                project_id,
+                AcademicGraphNodeType::Paper,
+                AcademicGraphIdentityScope::Global,
+                format!("citekey:{citekey}"),
+                citekey,
+                vec![AcademicGraphLayer::Argument, AcademicGraphLayer::Combined],
+                EVIDENCE_LEDGER_PATH,
+                format!("source:{source_id}"),
+            );
+            if let Ok(paper) = paper {
+                let origin = AcademicGraphEdgeV1::new(
+                    project_id,
+                    &evidence.node_id,
+                    AcademicGraphRelation::DerivedFrom,
+                    &paper.node_id,
+                    vec![AcademicGraphLayer::Argument, AcademicGraphLayer::Combined],
+                    "The ledger identifies this paper as the evidence source.",
+                    EVIDENCE_LEDGER_PATH,
+                    &support_anchor,
+                    "Source identity only; the ledger's source location and limitations remain authoritative.",
+                    AcademicInferenceStrength::DirectEvidence,
+                    graph_confidence,
+                    AcademicGraphEdgeStatus::Reviewed,
+                    None,
+                );
+                if let Ok(origin) = origin {
+                    evidence_nodes.entry(paper.node_id.clone()).or_insert(paper);
+                    support_edges
+                        .entry(origin.edge_id.clone())
+                        .or_insert(origin);
+                }
+            }
+        }
     }
 
-    projection.nodes.extend(claims.into_values());
+    projection
+        .nodes
+        .extend(claims.into_values().map(|(node, _)| node));
     projection.nodes.extend(evidence_nodes.into_values());
     projection.edges.extend(support_edges.into_values());
     projection
+}
+
+fn evidence_support_anchor(fields: &[String]) -> Result<String, ProjectError> {
+    let digest = crate::academic_graph::canonical_domain_digest(
+        b"qiongli-evidence-support-anchor-v1",
+        &[
+            fields[0].trim(),
+            fields[4].trim(),
+            fields[5].trim(),
+            fields[6].trim(),
+        ],
+    )?;
+    Ok(format!("support:{digest}"))
+}
+
+pub(crate) fn evidence_ledger_anchor_line(text: &str, anchor: &str) -> Option<usize> {
+    let records = parse_csv(text).ok()?;
+    let (header, rows) = records.split_first()?;
+    if header
+        .fields
+        .iter()
+        .map(|field| normalize_header(field))
+        .collect::<Vec<_>>()
+        != EVIDENCE_COLUMNS
+    {
+        return None;
+    }
+    rows.iter()
+        .filter(|row| row.fields.len() == EVIDENCE_COLUMNS.len())
+        .find(|row| {
+            anchor == format!("claim:{}", row.fields[0].trim())
+                || anchor == format!("source:{}", row.fields[4].trim())
+                || evidence_support_anchor(&row.fields).ok().as_deref() == Some(anchor)
+        })
+        .map(|row| row.line_number)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1974,115 +2175,90 @@ fn markdown_separator(cells: &[String]) -> bool {
         })
 }
 
-struct CsvRecord {
-    line_number: usize,
-    fields: Vec<String>,
-}
-
-fn parse_csv(text: &str) -> Result<Vec<CsvRecord>, ()> {
-    let bytes = text.as_bytes();
-    let mut records = Vec::new();
-    let mut fields = Vec::new();
-    let mut field = Vec::new();
-    let mut index = 0usize;
-    let mut line_number = 1usize;
-    let mut record_line = 1usize;
-    let mut in_quotes = false;
-    let mut after_quote = false;
-    while index < bytes.len() {
-        let byte = bytes[index];
-        if in_quotes {
-            if byte == b'"' {
-                if bytes.get(index + 1) == Some(&b'"') {
-                    field.push(b'"');
-                    index += 1;
-                } else {
-                    in_quotes = false;
-                    after_quote = true;
-                }
-            } else {
-                if byte == b'\n' {
-                    line_number += 1;
-                }
-                field.push(byte);
-            }
-        } else if after_quote {
-            match byte {
-                b',' => {
-                    push_csv_field(&mut fields, &mut field)?;
-                    after_quote = false;
-                }
-                b'\n' => {
-                    push_csv_field(&mut fields, &mut field)?;
-                    push_csv_record(&mut records, &mut fields, record_line)?;
-                    line_number += 1;
-                    record_line = line_number;
-                    after_quote = false;
-                }
-                b'\r' if bytes.get(index + 1) == Some(&b'\n') => {}
-                _ => return Err(()),
-            }
-        } else {
-            match byte {
-                b'"' if field.is_empty() => in_quotes = true,
-                b'"' => return Err(()),
-                b',' => push_csv_field(&mut fields, &mut field)?,
-                b'\n' => {
-                    push_csv_field(&mut fields, &mut field)?;
-                    push_csv_record(&mut records, &mut fields, record_line)?;
-                    line_number += 1;
-                    record_line = line_number;
-                }
-                b'\r' if bytes.get(index + 1) == Some(&b'\n') => {}
-                _ => field.push(byte),
-            }
-        }
-        if field.len() > MAX_FIELD_BYTES {
-            return Err(());
-        }
-        index += 1;
-    }
-    if in_quotes {
-        return Err(());
-    }
-    if after_quote || !field.is_empty() || !fields.is_empty() {
-        push_csv_field(&mut fields, &mut field)?;
-        push_csv_record(&mut records, &mut fields, record_line)?;
-    }
-    Ok(records)
-}
-
-fn push_csv_field(fields: &mut Vec<String>, field: &mut Vec<u8>) -> Result<(), ()> {
-    if fields.len() >= MAX_TABLE_COLUMNS || field.len() > MAX_FIELD_BYTES {
-        return Err(());
-    }
-    let bytes = std::mem::take(field);
-    fields.push(String::from_utf8(bytes).map_err(|_| ())?);
-    Ok(())
-}
-
-fn push_csv_record(
-    records: &mut Vec<CsvRecord>,
-    fields: &mut Vec<String>,
-    line_number: usize,
-) -> Result<(), ()> {
-    if records.len() > MAX_TABLE_ROWS {
-        return Err(());
-    }
-    if fields.len() == 1 && fields[0].is_empty() {
-        fields.clear();
-        return Ok(());
-    }
-    records.push(CsvRecord {
-        line_number,
-        fields: std::mem::take(fields),
-    });
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ledger_preserves_multiple_supports_and_resolves_stable_record_anchors() {
+        let project_id = ProjectId::parse("prj_829c159ea9a35837376cb3533a4ab1c9").unwrap();
+        let header = EVIDENCE_COLUMNS.join(",");
+        let first = "C1,An association,finding,paper,Smith2024,p. 4,notes/smith.md,high,One setting,supported";
+        let second = "C1,An association,finding,paper,Jones2025,Table 2,notes/jones.md,medium,Observational,supported";
+        let third = "C1,An association,finding,paper,Smith2024,p. 8,notes/smith.md,low,Robustness only,supported";
+        let text = format!("{header}\n{first}\n{second}\n{third}\n{first}\n");
+        let graph = extract_evidence_ledger(&project_id, text.as_bytes());
+        assert!(graph.diagnostics.is_empty());
+        assert_eq!(
+            graph
+                .nodes
+                .iter()
+                .filter(|node| node.node_type == AcademicGraphNodeType::Claim)
+                .count(),
+            1
+        );
+        assert_eq!(
+            graph
+                .nodes
+                .iter()
+                .filter(|node| node.node_type == AcademicGraphNodeType::Paper)
+                .count(),
+            2
+        );
+        let supports = graph
+            .edges
+            .iter()
+            .filter(|edge| edge.relation == AcademicGraphRelation::Supports)
+            .collect::<Vec<_>>();
+        assert_eq!(supports.len(), 3);
+        let lines = supports
+            .iter()
+            .map(|edge| evidence_ledger_anchor_line(&text, &edge.source_anchor).unwrap())
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(lines, [2, 3, 4].into());
+        assert_eq!(evidence_ledger_anchor_line(&text, "claim:C1"), Some(2));
+        assert_eq!(
+            evidence_ledger_anchor_line(&text, "source:Jones2025"),
+            Some(3)
+        );
+        assert_eq!(evidence_ledger_anchor_line(&text, "support:missing"), None);
+        let reordered = format!("{header}\n{third}\n{second}\n{first}\n");
+        let rebuilt = extract_evidence_ledger(&project_id, reordered.as_bytes());
+        assert_eq!(graph.nodes, rebuilt.nodes);
+        assert_eq!(graph.edges, rebuilt.edges);
+
+        for invalid in [
+            second.replace("An association", "A causal effect"),
+            second.replace(",finding,", ",interpretation,"),
+            first.replace(",high,", ",low,"),
+            first.replace("One setting", "A different limitation"),
+        ] {
+            let text = format!("{header}\n{first}\n{invalid}\n");
+            let graph = extract_evidence_ledger(&project_id, text.as_bytes());
+            assert!(
+                graph.diagnostics.iter().any(|diagnostic| diagnostic.code
+                    == AcademicGraphDiagnosticCode::ConflictingIdentity)
+            );
+            assert_eq!(
+                graph
+                    .edges
+                    .iter()
+                    .filter(|edge| edge.relation == AcademicGraphRelation::Supports)
+                    .count(),
+                1
+            );
+        }
+        for invalid in [
+            first.replace("p. 4", ""),
+            first.replace(",supported", ",needs_evidence"),
+            first.replace("notes/smith.md", "../private.md"),
+        ] {
+            let graph =
+                extract_evidence_ledger(&project_id, format!("{header}\n{invalid}\n").as_bytes());
+            assert!(!graph.diagnostics.is_empty());
+            assert!(graph.edges.is_empty());
+        }
+    }
 
     #[test]
     fn csv_parser_accepts_quotes_commas_crlf_and_embedded_newlines() {

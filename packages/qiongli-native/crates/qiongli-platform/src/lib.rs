@@ -6,8 +6,16 @@ mod claude_bundle;
 mod client_inventory;
 mod codex;
 mod codex_bundle;
+
+pub use codex_bundle::antigravity::{
+    AntigravityPluginBundleTarget, RECEIPT_FILE as ANTIGRAVITY_PLUGIN_BUNDLE_RECEIPT_FILE,
+    VerifiedAntigravityPluginBundle, approve_antigravity_plugin_bundle_target,
+    compose_local_antigravity_plugin_source, remove_local_antigravity_plugin_source,
+    verify_cached_antigravity_plugin_source, verify_local_antigravity_plugin_source,
+};
 mod community_alpha;
 mod community_alpha_integrity;
+mod context_hooks;
 mod desktop_package;
 mod distribution;
 mod error;
@@ -27,6 +35,10 @@ mod transaction;
 mod zotero_companion;
 mod zotero_companion_stage;
 
+pub use context_hooks::plugin_context_hooks;
+
+const HOST_TOOL_AVAILABILITY_GUIDANCE: &str = include_str!("host-tool-availability.md");
+
 pub use activation::{
     CLIENT_ACTIVATION_SCHEMA_VERSION, ClientActivationCommit, ClientActivationCoordinator,
     ClientActivationDiscoveryV1, ClientActivationDisposition, ClientActivationEffect,
@@ -42,7 +54,8 @@ pub use candidate_install::{
     NativeCandidateRegistrationLifecycleCommit, NativeCandidateRegistrationVerification,
     apply_native_release_candidate_local, discover_native_candidate_managed_root,
     prepare_native_candidate_managed_root, remove_native_release_candidate_local,
-    verify_native_release_candidate_local,
+    stage_native_release_candidate_local, verify_installed_native_candidate_product,
+    verify_native_release_candidate_local, verify_receipt_owned_native_candidate_local,
 };
 pub use candidate_source::{
     NativeCandidatePluginSourceCommit, NativeCandidatePluginSourceDisposition,
@@ -71,8 +84,11 @@ pub use claude_bundle::{
     ClaudePluginBundleEntryV1, ClaudePluginBundleError, ClaudePluginBundleKind,
     ClaudePluginBundleReceiptV1, ClaudePluginBundleTarget, VerifiedClaudePluginBundle,
     approve_claude_plugin_bundle_target, compose_claude_plugin_bundle,
-    compose_claude_plugin_bundle_with_overrides, remove_claude_plugin_bundle,
-    replace_claude_plugin_bundle_with_overrides, verify_claude_plugin_bundle,
+    compose_claude_plugin_bundle_with_overrides, compose_local_claude_plugin_source,
+    compose_local_claude_plugin_source_with_hooks,
+    compose_local_claude_plugin_source_with_language, remove_claude_plugin_bundle,
+    remove_local_claude_plugin_source, replace_claude_plugin_bundle_with_overrides,
+    verify_claude_plugin_bundle, verify_local_claude_plugin_source,
 };
 pub use client_inventory::{
     CLIENT_INVENTORY_SCHEMA_VERSION, ClientActionReadiness, ClientComponentInventoryV1,
@@ -99,8 +115,11 @@ pub use codex_bundle::{
     CodexPluginBundleEntryV1, CodexPluginBundleError, CodexPluginBundleKind,
     CodexPluginBundleReceiptV1, CodexPluginBundleTarget, VerifiedCodexPluginBundle,
     approve_codex_plugin_bundle_target, compose_codex_plugin_bundle,
-    compose_codex_plugin_bundle_with_overrides, remove_codex_plugin_bundle,
+    compose_codex_plugin_bundle_with_overrides, compose_local_codex_plugin_source,
+    compose_local_codex_plugin_source_with_hooks, compose_local_codex_plugin_source_with_language,
+    remove_codex_plugin_bundle, remove_local_codex_plugin_source,
     replace_codex_plugin_bundle_with_overrides, verify_codex_plugin_bundle,
+    verify_local_codex_plugin_source,
 };
 pub use community_alpha::{
     MAX_NATIVE_COMMUNITY_ALPHA_CANDIDATE_SET_BYTES, MAX_NATIVE_COMMUNITY_ALPHA_PROMOTION_BYTES,
@@ -150,7 +169,7 @@ pub use grant::{
 };
 pub use identity::{
     Architecture, ArtifactIdentityV1, CapabilityProfile, InstallerKind, OperatingSystem, ProductId,
-    ReleaseChannel,
+    ReleaseChannel, native_plugin_name,
 };
 pub use legacy_migration::{
     ApprovedLegacyMigrationPlan, LEGACY_MIGRATION_INVENTORY_SCHEMA_VERSION,
@@ -228,7 +247,7 @@ pub use product_control::{
     packaged_product_control_path, preview_packaged_product_batch_install,
     preview_packaged_product_batch_install_with_variant, preview_packaged_product_install,
     preview_packaged_product_install_with_variant, remove_packaged_product_install,
-    verify_packaged_product, verify_packaged_product_install,
+    verify_native_packaged_product, verify_packaged_product, verify_packaged_product_install,
     verify_packaged_product_install_with_variant, verify_receipt_owned_packaged_product_install,
 };
 pub use release_authority::{
@@ -240,7 +259,8 @@ pub use release_candidate::{
     NATIVE_RELEASE_CANDIDATE_SCHEMA_VERSION, NativeClientPluginGrantV1,
     NativeReleaseCandidateError, NativeReleaseCandidateStatus, NativeReleaseCandidateV1,
     NativeReleaseCandidateVerificationContext, NativeReleaseNotesV1,
-    SignedNativeReleaseCandidateV1, VerifiedNativeReleaseCandidate, build_native_release_candidate,
+    SignedNativeReleaseCandidateV1, VerifiedInstalledNativeCandidate,
+    VerifiedNativeReleaseCandidate, build_native_release_candidate,
     native_release_candidate_file_name, native_release_candidate_signing_bytes,
     native_release_notes_file_name,
 };

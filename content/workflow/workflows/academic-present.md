@@ -1,5 +1,5 @@
 ---
-description: 准备学术报告（选择报告类型 → 内容规划 → 幻灯片设计 → 选择输出格式）
+description: "Prepare an academic talk: plan the content, design the slides, and choose the output format."
 ---
 
 # Academic Presentation Workflow

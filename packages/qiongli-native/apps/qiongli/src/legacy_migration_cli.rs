@@ -165,7 +165,9 @@ pub(crate) fn execute_with_secret_store(
                 inventory: inventory.summary().clone(),
             })
         }
-        LegacyMigrationCliCommand::Recover { migration_id } => recover(&inventory, &migration_id),
+        LegacyMigrationCliCommand::Recover { migration_id } => {
+            recover(&inventory, environment, &migration_id)
+        }
     }
 }
 
@@ -183,9 +185,9 @@ fn preview(
         inventory,
         LegacyMigrationPlanInput {
             plan_id: &format!("migration-{now_unix}-{}", std::process::id()),
-            product_version: &product.manifest().artifact.version,
-            source_commit: &product.manifest().product_source_commit,
-            resource_pack_sha256: &product.manifest().resource_pack_sha256,
+            product_version: &product.artifact().version,
+            source_commit: product.product_source_commit(),
+            resource_pack_sha256: product.resource_pack_sha256(),
             created_at_unix: now_unix,
             provider_resolutions: &provider_resolutions,
         },
@@ -241,12 +243,18 @@ fn apply(
         .map_err(|error| error.reason_code())?;
     let targets = migration_targets(&plan);
     let product = verify_running_packaged_product(environment, content)?;
-    if product.manifest().artifact.version != plan.product_version
-        || product.manifest().product_source_commit != plan.source_commit
-        || product.manifest().resource_pack_sha256 != plan.resource_pack_sha256
+    if product.artifact().version != plan.product_version
+        || product.product_source_commit() != plan.source_commit
+        || product.resource_pack_sha256() != plan.resource_pack_sha256
     {
         return Err("legacy-migration-product-identity-mismatch");
     }
+    let _write_guard = crate::update_reconcile::acquire_managed_write_guard(
+        environment
+            .platform_home()
+            .ok_or("native-candidate-home-unavailable")?,
+        crate::command::config_root(environment).map_err(|error| error.reason_code())?,
+    )?;
     let staged_provider =
         stage_legacy_provider_config(&plan, inventory, environment, secret_store)?;
     if targets.is_empty() && staged_provider.is_none() {
@@ -317,6 +325,12 @@ fn continue_migration(
         .load_receipt(migration_id)
         .map_err(|error| error.reason_code())?;
     let product = verify_running_packaged_product(environment, content)?;
+    let _write_guard = crate::update_reconcile::acquire_managed_write_guard(
+        environment
+            .platform_home()
+            .ok_or("native-candidate-home-unavailable")?,
+        crate::command::config_root(environment).map_err(|error| error.reason_code())?,
+    )?;
     let next = match action {
         LegacyMigrationContinueAction::ConfirmHostActivation => {
             if receipt.state == LegacyMigrationState::Staged {
@@ -419,6 +433,7 @@ fn continue_migration(
 
 fn recover(
     inventory: &LegacyMigrationInventory,
+    environment: &CommandEnvironment,
     migration_id: &str,
 ) -> Result<LegacyMigrationCliOutput, &'static str> {
     let store =
@@ -426,6 +441,12 @@ fn recover(
     let current = store
         .load_receipt(migration_id)
         .map_err(|error| error.reason_code())?;
+    let _write_guard = crate::update_reconcile::acquire_managed_write_guard(
+        environment
+            .platform_home()
+            .ok_or("native-candidate-home-unavailable")?,
+        crate::command::config_root(environment).map_err(|error| error.reason_code())?,
+    )?;
     let recovery = recover_legacy_migration_cleanup(inventory, migration_id)
         .map_err(|error| error.reason_code())?;
     let items = current

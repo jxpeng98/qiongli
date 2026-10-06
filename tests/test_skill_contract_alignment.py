@@ -25,6 +25,20 @@ REGISTRY = RepoLayout(REPO_ROOT).skills / "registry.yaml"
 
 
 class SkillContractAlignmentTests(unittest.TestCase):
+    def test_interpretation_cards_match_f3_output_paths_and_registry_types(self) -> None:
+        contract = yaml.safe_load(WORKFLOW_CONTRACT.read_text(encoding="utf-8"))
+        registry = yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))
+        entries = {item["id"]: item for item in registry["skills"]}
+        for name in ("analysis-interpreter", "effect-size-interpreter"):
+            entry = entries[name]
+            card = (REPO_ROOT / "content" / entry["file"]).read_text(encoding="utf-8")
+            metadata = yaml.safe_load(card.split("---", 2)[1])
+            with self.subTest(skill=name):
+                self.assertTrue(metadata["outputs"])
+                for output in metadata["outputs"]:
+                    self.assertIn(output["artifact"], contract["task_catalog"]["F3"]["outputs"])
+                    self.assertIn(output["type"], entry["outputs"])
+
     def test_skill_files_use_canonical_artifact_paths(self) -> None:
         qualitative = QUALITATIVE_CODING.read_text(encoding="utf-8")
         discussion = DISCUSSION_WRITER.read_text(encoding="utf-8")
@@ -67,8 +81,9 @@ class SkillContractAlignmentTests(unittest.TestCase):
         self.assertIn("开题报告", proposal)
 
         academic_write = ACADEMIC_WRITE_WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("Research Proposal", academic_write)
-        self.assertIn("Opening Report", academic_write)
+        self.assertIn("`proposal-writer`", academic_write)
+        self.assertIn("research proposal", academic_write)
+        self.assertIn("Proposal / opening report", academic_write)
         self.assertIn("开题报告", academic_write)
 
         stage_f = STAGE_F_REFERENCE.read_text(encoding="utf-8")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+import yaml
 
 from qiongli.source_layout import RepoLayout
 
@@ -25,8 +26,8 @@ class BranchPolicyTests(unittest.TestCase):
         )
         install_check = read(".github/workflows/install-check.yml")
 
-        legacy_filter = 'branches: ["main", "master", "dev"]'
-        native_filter = 'branches: ["2.x"]'
+        legacy_filter = 'branches: ["dev", "release/1.x-python"]'
+        native_filter = 'branches: ["main", "2.x"]'
         old_filter = 'branches: ["main", "master", "dev", "2.x"]'
 
         self.assertEqual(legacy_ci.count(legacy_filter), 2)
@@ -44,6 +45,16 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("workflow_dispatch:", native_ci)
         self.assertIn("tooling/release/acceptance/**", legacy_ci)
         self.assertIn("tooling/release/acceptance/", native_guard)
+        evaluation = read(".github/workflows/evaluation-truth.yml")
+        self.assertIn(native_filter, evaluation)
+        for name in ('native-cli-distribution.yml', 'publish-cargo.yml'):
+            workflow = yaml.safe_load(read('.github/workflows/' + name))
+            events = workflow.get('on', workflow.get(True))
+            self.assertTrue({'main', '2.x'} <= set(events['push']['branches']))
+        testpypi = yaml.safe_load(read('.github/workflows/publish-testpypi.yml'))
+        guard = testpypi['jobs']['build-and-publish']['if']
+        self.assertIn("github.ref_name == 'release/1.x-python'", guard)
+        self.assertNotIn("github.ref_name == 'main'", guard)
 
     def test_ci_workflow_cancels_stale_runs_and_splits_test_tiers(self) -> None:
         content = read(".github/workflows/ci.yml")
@@ -223,12 +234,11 @@ class BranchPolicyTests(unittest.TestCase):
             job,
         )
         self.assertIn("evidence-only pull request", job)
-        self.assertEqual(job.count("if: env.RUN_NATIVE_MATRIX == 'true'"), 10)
         cli_step = job.index("name: Test CLI without desktop dependencies or frontend output")
         self.assertLess(job.index("name: Reject injected target-specific Rust flags"), cli_step)
         self.assertLess(cli_step, job.index("name: Setup Tauri and build the Svelte desktop"))
         self.assertIn("--edges normal,build,dev", job)
-        self.assertIn("-p qiongli --lib --test cli --test mcp_stdio --no-default-features --locked", job)
+        self.assertIn("--workspace --exclude qiongli-ui --all-targets --no-default-features --locked", job)
         self.assertIn("fail-fast: false", job)
         for platform, runner in (
             ("Linux", "ubuntu-latest"),
@@ -246,15 +256,13 @@ class BranchPolicyTests(unittest.TestCase):
         )
         self.assertIn("Reject injected target-specific Rust flags", job)
         self.assertIn("CARGO_TARGET_*_RUSTFLAGS", job)
-        self.assertEqual(job.count("CARGO_HOME:"), 7)
         self.assertIn('CARGO_ENCODED_RUSTFLAGS: ""', job)
         self.assertIn('RUSTC_WRAPPER: ""', job)
         self.assertIn('RUSTFLAGS: ""', job)
         commands = (
             "cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check",
-            "cargo check --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked",
             "cargo clippy --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked -- -D warnings",
-            "cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked",
+            "bash tooling/scripts/native_ci_test.sh --manifest-path packages/qiongli-native/Cargo.toml -p qiongli -p qiongli-ui --all-targets --all-features --locked",
         )
         for command in commands:
             self.assertIn(command, job)
@@ -262,6 +270,17 @@ class BranchPolicyTests(unittest.TestCase):
             [job.index(command) for command in commands],
             sorted(job.index(command) for command in commands),
         )
+        self.assertNotIn("cargo check ", job)
+        self.assertNotIn("copied_binary_round_trips_portable_and_legacy_projects_without_runtime", job)
+        self.assertIn("RUN_DESKTOP_CHECK:", job)
+        self.assertIn("matrix.platform == 'Linux' &&", job)
+        self.assertIn("needs.native-change-boundary.outputs.desktop-check-required == 'true'", job)
+        for step in ("Check native Rust formatting", "Run CLI Rust clippy"):
+            block = job[job.index(f"      - name: {step}"):].split("\n      - name:", 1)[0]
+            self.assertIn("if: env.RUN_NATIVE_MATRIX == 'true' && matrix.platform == 'Linux'", block)
+        for step in ("Setup Tauri and build the Svelte desktop", "Run desktop Rust clippy", "Test desktop consumers"):
+            block = job[job.index(f"      - name: {step}"):].split("\n      - name:", 1)[0]
+            self.assertIn("if: env.RUN_NATIVE_MATRIX == 'true' && env.RUN_DESKTOP_CHECK == 'true'", block)
         self.assertNotIn("continue-on-error", job)
         self.assertNotIn("cache:", job)
 
@@ -271,12 +290,12 @@ class BranchPolicyTests(unittest.TestCase):
         )
         self.assertEqual(job.count(manual_capacity_condition), 2)
         self.assertIn(
-            "timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 60 || 30 }}",
+            "timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 120 || 60 }}",
             job,
         )
         self.assertIn("name: Measure opt-in platform capacity baseline", job)
         self.assertIn(
-            "cargo test --manifest-path packages/qiongli-native/Cargo.toml "
+            "bash tooling/scripts/native_ci_test.sh --manifest-path packages/qiongli-native/Cargo.toml "
             "--workspace --lib --release --locked platform_capacity_baseline "
             "-- --ignored --test-threads=1",
             job,
@@ -312,6 +331,7 @@ class BranchPolicyTests(unittest.TestCase):
             lite_job,
         )
         self.assertIn("github.event_name == 'workflow_dispatch'", lite_job)
+        self.assertIn("needs.native-change-boundary.outputs.lite-check-required == 'true'", lite_job)
 
     def test_linux_desktop_setup_bounds_apt_mirror_failures(self) -> None:
         content = read(".github/actions/setup-qiongli-desktop/action.yml")

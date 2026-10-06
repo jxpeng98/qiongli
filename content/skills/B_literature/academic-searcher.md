@@ -23,7 +23,7 @@ outputs:
   - type: SearchDiagnostics
     artifact: "search_diagnostics.md"
 constraints:
-  - "Must route discovery through scholarly-search or a compatible MCP/provider adapter"
+  - "Must use available authorized provider or Host search with distinct provenance and capability limits"
   - "Must log exact translated queries, filters, provider names, counts, and timestamps"
   - "Must write search_diagnostics.md before systematic-review or review-grade screening claims"
 failure_modes:
@@ -68,10 +68,11 @@ Hybrid search coordination belongs to the workflow/router layer. Provider layer 
 | Metadata enrichment | `metadata-registry` | final `bibliography.bib`, not this skill |
 | Full-text resolution | `fulltext-retrieval` | `retrieval_manifest.csv`, not this skill |
 
-Do not make direct web or API calls the default execution path inside this
-skill. Provider mechanics belong in the MCP/provider layer. Manual web checks,
-including Google Scholar checks, are supplemental and logged; they are not the
-default reproducible pipeline.
+Provider API mechanics belong in the MCP/provider layer. In `native_only`, the
+active Host searches directly and records its sources; it need not wait for an
+unavailable provider. In `hybrid_search`, record Host and provider results
+separately. Manual spot checks are supplemental to the declared execution mode;
+no route may bypass a permission denial.
 
 The `qiongli_search_plan` contract uses four execution modes:
 `hybrid_search`, `provider_connected`, `native_only`, and `strategy_only`.
@@ -95,6 +96,36 @@ execution path. Preserve provenance labels across all outputs:
   evidence sources. Keep unsupported assumptions visibly marked.
 
 ## Process
+
+For a bounded reference lookup, use the user's topic and filters, record the
+query/mode/provenance, verify and deduplicate the relevant records, and return
+the requested set or a clearly stated shortfall. These may be reported in chat
+when no saved artifact was requested. Stop at the requested scope; do not start
+screening, snowballing, full-text retrieval or a systematic review automatically.
+The formal B1 output/diagnostic contract below remains required for a formal
+run or review-grade claims. A small lookup must not be labelled exhaustive.
+
+For requested papers/BibTeX/Zotero delivery:
+
+1. Run a targeted query with the requested bounds; narrow or expand only with a
+   recorded reason. `title`/`doi` mode checks exact normalized matches in the
+   bounded candidate set. Year/venue filters exclude unknown values and do not
+   establish exhaustive database coverage; record failures and shortfalls.
+2. Confirm the intended title, authors, year and version against an official
+   publisher/registry or repository record. A same-title hit, a resolvable DOI,
+   or provider provenance alone is not verified identity.
+3. Read `metadata-enricher` when bibliography is requested. Check authoritative
+   metadata and conflicts, preserve ordered authors/type/date/links and stable
+   identifiers, and export only the requested formats. Keep missing fields
+   explicit; never invent an author, DOI or venue to complete a citation.
+4. Read `reference-manager-bridge` when Zotero delivery is requested. Use its
+   status → exact dry-run → user approval → receipt-bound apply sequence. Record
+   citekey/source_id ↔ returned item_key/select_uri only after actual apply.
+
+Return the requested candidates with brief relevance, persistent source links,
+verification basis and missing fields, plus the requested bibliography. Tool
+absence permits a transparent Host-source/manual export path, not fabricated
+provider output or an unsupported claim that Zotero import succeeded.
 
 ### 1. Build or validate `search_strategy.md`
 
@@ -173,8 +204,9 @@ review-grade.
 
 ### 5. Handle fallback without hiding limitations
 
-Fallback means choosing another configured provider or recording a manual
-supplemental check. It does not mean bypassing the reproducibility contract.
+Fallback follows the declared execution mode: another configured provider,
+authorized Host search, or supplied corpus. Preserve provenance and limitations;
+never bypass a permission denial or the formal B1 reproducibility contract.
 
 | Situation | Required action |
 | --- | --- |
@@ -222,7 +254,7 @@ supplemental check. It does not mean bypassing the reproducibility contract.
 | Pitfall | Problem | Fix |
 | --- | --- | --- |
 | Direct provider calls in prose | Agent bypasses MCP/provider audit trail | Route through `scholarly-search` and log provider output |
-| Google Scholar as default fallback | Search cannot be reproduced reliably | Use only as supplemental manual evidence |
+| Unlogged Host search | Search coverage cannot be audited | Declare native_only/hybrid_search and record source/query/date |
 | Missing diagnostics | Screening inherits unknown coverage risk | Write `search_diagnostics.md` before screening |
 | Query broadening without trace | Reviewers cannot see why scope changed | Update `search_strategy.md` and `search_log.md` |
 | Dedup only in memory | PRISMA counts cannot reconcile | Append every decision to `dedup_log.csv` |
@@ -233,3 +265,8 @@ supplemental check. It does not mean bypassing the reproducibility contract.
   provider-backed literature discovery.
 - Do not use for Zotero import/export, full-text retrieval, citation
   snowballing, or screening decisions; use the corresponding B-stage skill.
+
+Manual Google Scholar spot checks are not the default provider route. They are
+supplemental evidence within the declared
+search mode; record their provenance and do not present them as an exhaustive
+provider search.

@@ -1,5 +1,8 @@
 # 原生桌面 Alpha 安装包
 
+> 本页用于保留的桌面端维护，不是 2.x CLI 的安装前提。
+> 当前 CLI、Plugin 和 MCP 请从 [2.x 指南](/zh/guide/cli-2x) 开始。
+
 Qiongli 2 桌面包仍是预发布产物。原始 CI 包始终属于
 `assembled-unpublished` 测试证据，不能直接分发。首个公开版本计划使用明确标记的
 零费用 `community-alpha` 分发类型，但仍须完成精确源码候选提升、穷理自身发布签名、

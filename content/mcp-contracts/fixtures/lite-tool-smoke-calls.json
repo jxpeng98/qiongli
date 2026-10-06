@@ -127,6 +127,20 @@
       "expected_response_class": "input_error",
       "side_effects": { "config": false, "network": false, "loopback_listener": false },
       "forbidden_output": ["QIONGLI_CANARY_DO_NOT_ECHO_7f3a9c"]
+    },
+    {
+      "id": "lite.qiongli_literature_read_fulltext.missing-url",
+      "name": "qiongli_literature_read_fulltext",
+      "arguments": {},
+      "expected_response_class": "input_error",
+      "side_effects": {
+        "config": false,
+        "network": false,
+        "loopback_listener": false
+      },
+      "forbidden_output": [
+        "QIONGLI_CANARY_DO_NOT_ECHO_7f3a9c"
+      ]
     }
   ]
 }

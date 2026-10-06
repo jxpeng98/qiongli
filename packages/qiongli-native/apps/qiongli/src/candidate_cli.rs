@@ -51,6 +51,35 @@ pub(crate) struct CandidateReceiptOptions {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum CandidateCliCommand {
+    Activate {
+        options: CandidateReleaseOptions,
+        previous_install_id: String,
+        transaction_id: String,
+        expected_journal_sha256: String,
+        expected_approval_digest: String,
+    },
+    ActivateRecover {
+        transaction_id: String,
+        expected_journal_sha256: String,
+    },
+    ActivateDiscard {
+        transaction_id: String,
+        expected_journal_sha256: String,
+    },
+    ActivatePrepare {
+        options: CandidateReleaseOptions,
+        previous_install_id: String,
+        expected_preflight_digest: String,
+    },
+    ActivatePreview {
+        options: CandidateReleaseOptions,
+        previous_install_id: String,
+    },
+    StagePreview(CandidateReleaseOptions),
+    Stage {
+        options: CandidateReleaseOptions,
+        expected_approval_digest: String,
+    },
     Preview(CandidateReleaseOptions),
     Apply {
         options: CandidateReleaseOptions,
@@ -63,20 +92,262 @@ pub(crate) enum CandidateCliCommand {
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub(crate) enum CandidateCliOutput {
+    ActivationCompleted(CandidateActivationCompletedOutput),
+    ActivationDiscarded(CandidateActivationDiscardedOutput),
+    ActivationPrepared(CandidateActivationPreparedOutput),
+    ActivationPreview(CandidateActivationPreviewOutput),
+    Stage(CandidateStageOutput),
     Preview(CandidatePreviewOutput),
     Apply(CandidateApplyOutput),
     Verify(CandidateVerifyOutput),
     Remove(CandidateRemoveOutput),
 }
 
+/// Runs the installed command with an empty PATH and checks its verified native
+/// product plan against the already verified candidate. This does not approve writes.
+pub fn check_native_cli_health(
+    home: &Path,
+    config_root: &Path,
+    candidate: &VerifiedNativeReleaseCandidate,
+) -> Result<(), &'static str> {
+    if !home.is_absolute() || !config_root.is_absolute() {
+        return Err("native-activation-health-root-invalid");
+    }
+    let executable = crate::cli_install::cli_target(home);
+    let release = &candidate.candidate().signed_portable_release.envelope;
+    let verify_binary = || {
+        if crate::cli_install::regular_file_sha256(&executable)? != release.binary_sha256 {
+            return Err("native-activation-health-binary-mismatch");
+        }
+        Ok(())
+    };
+    verify_binary()?;
+    let output = crate::desktop::native_cli_health_output(home, config_root, &executable)?;
+    crate::managed_operation::verify_native_cli_health_plan(
+        &output,
+        &candidate.candidate().artifact.version,
+        &release.resource_pack_sha256,
+        candidate.signed_payload_sha256(),
+    )?;
+    verify_binary()
+}
+
 pub(crate) fn execute(
     command: CandidateCliCommand,
     authority: Option<&NativeReleaseAuthority>,
     expected_source_commit: Option<&str>,
-    home: Option<&Path>,
+    environment: &crate::command::CommandEnvironment,
     content: &EmbeddedContent,
 ) -> Result<CandidateCliOutput, &'static str> {
+    let home = environment.platform_home();
     match command {
+        CandidateCliCommand::ActivateRecover {
+            transaction_id,
+            expected_journal_sha256,
+        } => {
+            if !cfg!(any(target_os = "macos", target_os = "linux")) {
+                return Err("native-update-target-unsupported");
+            }
+            let store = crate::desktop::update_store(environment)?;
+            let outcome = crate::update_reconcile::recover_native_reconciliation(
+                &store,
+                &transaction_id,
+                &expected_journal_sha256,
+            )?;
+            Ok(CandidateCliOutput::ActivationCompleted(
+                CandidateActivationCompletedOutput {
+                    schema_version: 1,
+                    command: ActivationCompletedCommand::Recover,
+                    transaction_id,
+                    journal_sha256: expected_journal_sha256,
+                    outcome,
+                },
+            ))
+        }
+        CandidateCliCommand::Activate {
+            options,
+            previous_install_id,
+            transaction_id,
+            expected_journal_sha256,
+            expected_approval_digest,
+        } => {
+            if !cfg!(any(target_os = "macos", target_os = "linux")) {
+                return Err("native-update-target-unsupported");
+            }
+            let now = now_unix()?;
+            let authority = require_authority(authority)?;
+            let source = require_source_commit(expected_source_commit)?;
+            let prepared = prepare_candidate(&options, authority, source, content, now)?;
+            let home = home.ok_or("native-candidate-home-unavailable")?;
+            let executable =
+                std::env::current_exe().map_err(|_| "native-activation-process-unavailable")?;
+            let product = qiongli_platform::verify_native_packaged_product(
+                content.pack(),
+                authority,
+                home,
+                &executable,
+                &prepared.verified.candidate().artifact.version,
+                source,
+                now,
+            )
+            .map_err(|error| error.reason_code())?;
+            let config =
+                crate::command::config_root(environment).map_err(|error| error.reason_code())?;
+            let outcome = activate_native_candidate(
+                &product,
+                &prepared.verified,
+                &previous_install_id,
+                &transaction_id,
+                &expected_journal_sha256,
+                &expected_approval_digest,
+                content,
+                config,
+            )?;
+            Ok(CandidateCliOutput::ActivationCompleted(
+                CandidateActivationCompletedOutput {
+                    schema_version: 1,
+                    command: ActivationCompletedCommand::Activate,
+                    transaction_id,
+                    journal_sha256: expected_journal_sha256,
+                    outcome,
+                },
+            ))
+        }
+        CandidateCliCommand::ActivateDiscard {
+            transaction_id,
+            expected_journal_sha256,
+        } => {
+            let store = crate::desktop::update_store(environment)?;
+            crate::update_reconcile::discard_native_reconciliation(
+                &store,
+                &transaction_id,
+                &expected_journal_sha256,
+            )?;
+            Ok(CandidateCliOutput::ActivationDiscarded(
+                CandidateActivationDiscardedOutput {
+                    schema_version: 1,
+                    command: ActivationDiscardCommand::Discard,
+                    transaction_id,
+                    journal_sha256: expected_journal_sha256,
+                },
+            ))
+        }
+        CandidateCliCommand::ActivatePrepare {
+            options,
+            previous_install_id,
+            expected_preflight_digest,
+        } => {
+            let now = now_unix()?;
+            let authority = require_authority(authority)?;
+            let source = require_source_commit(expected_source_commit)?;
+            let prepared = prepare_candidate(&options, authority, source, content, now)?;
+            let home = home.ok_or("native-candidate-home-unavailable")?;
+            let executable =
+                std::env::current_exe().map_err(|_| "native-activation-process-unavailable")?;
+            let product = qiongli_platform::verify_native_packaged_product(
+                content.pack(),
+                authority,
+                home,
+                &executable,
+                &prepared.verified.candidate().artifact.version,
+                source,
+                now,
+            )
+            .map_err(|error| error.reason_code())?;
+            let root =
+                crate::command::config_root(environment).map_err(|error| error.reason_code())?;
+            Ok(CandidateCliOutput::ActivationPrepared(
+                prepare_native_candidate_activation(
+                    &product,
+                    &prepared.verified,
+                    &previous_install_id,
+                    &expected_preflight_digest,
+                    content,
+                    root,
+                    now,
+                )?,
+            ))
+        }
+        CandidateCliCommand::ActivatePreview {
+            options,
+            previous_install_id,
+        } => {
+            let now = now_unix()?;
+            let authority = require_authority(authority)?;
+            let source = require_source_commit(expected_source_commit)?;
+            let prepared = prepare_candidate(&options, authority, source, content, now)?;
+            let home = home.ok_or("native-candidate-home-unavailable")?;
+            let executable =
+                std::env::current_exe().map_err(|_| "native-activation-process-unavailable")?;
+            let product = qiongli_platform::verify_native_packaged_product(
+                content.pack(),
+                authority,
+                home,
+                &executable,
+                &prepared.verified.candidate().artifact.version,
+                source,
+                now,
+            )
+            .map_err(|error| error.reason_code())?;
+            Ok(CandidateCliOutput::ActivationPreview(
+                preview_native_candidate_activation(
+                    &product,
+                    &prepared.verified,
+                    &previous_install_id,
+                )?,
+            ))
+        }
+        CandidateCliCommand::StagePreview(options) => {
+            let prepared = prepare_candidate(
+                &options,
+                require_authority(authority)?,
+                require_source_commit(expected_source_commit)?,
+                content,
+                now_unix()?,
+            )?;
+            Ok(CandidateCliOutput::Stage(stage_output(
+                &prepared,
+                StageCommand::Preview,
+                StageState::Ready,
+            )))
+        }
+        CandidateCliCommand::Stage {
+            options,
+            expected_approval_digest,
+        } => {
+            let now = now_unix()?;
+            let prepared = prepare_candidate(
+                &options,
+                require_authority(authority)?,
+                require_source_commit(expected_source_commit)?,
+                content,
+                now,
+            )?;
+            if stage_approval_digest(&prepared.approval_digest_sha256) != expected_approval_digest {
+                return Err("native-candidate-stage-approval-digest-mismatch");
+            }
+            let _write_guard = crate::update_reconcile::acquire_managed_write_guard(
+                home.ok_or("native-candidate-home-unavailable")?,
+                crate::command::config_root(environment).map_err(|error| error.reason_code())?,
+            )?;
+            let commit = qiongli_platform::stage_native_release_candidate_local(
+                content.pack(),
+                &prepared.verified,
+                home.ok_or("native-candidate-home-unavailable")?,
+                now,
+            )
+            .map_err(|error| error.reason_code())?;
+            let state = if commit.disposition == InstallDisposition::Applied {
+                StageState::Staged
+            } else {
+                StageState::AlreadyStaged
+            };
+            Ok(CandidateCliOutput::Stage(stage_output(
+                &prepared,
+                StageCommand::Stage,
+                state,
+            )))
+        }
         CandidateCliCommand::Preview(options) => {
             let prepared = prepare_candidate(
                 &options,
@@ -102,6 +373,10 @@ pub(crate) fn execute(
             if prepared.approval_digest_sha256 != expected_approval_digest {
                 return Err("native-candidate-approval-digest-mismatch");
             }
+            let _write_guard = crate::update_reconcile::acquire_managed_write_guard(
+                home.ok_or("native-candidate-home-unavailable")?,
+                crate::command::config_root(environment).map_err(|error| error.reason_code())?,
+            )?;
             let home = home.ok_or("native-candidate-home-unavailable")?;
             let commit = apply_native_release_candidate_local(
                 content.pack(),
@@ -124,6 +399,10 @@ pub(crate) fn execute(
             Ok(CandidateCliOutput::Verify(verify_output(verification)))
         }
         CandidateCliCommand::Remove(options) => {
+            let _write_guard = crate::update_reconcile::acquire_managed_write_guard(
+                home.ok_or("native-candidate-home-unavailable")?,
+                crate::command::config_root(environment).map_err(|error| error.reason_code())?,
+            )?;
             let home = home.ok_or("native-candidate-home-unavailable")?;
             let commit = remove_native_release_candidate_local(
                 content.pack(),
@@ -136,6 +415,610 @@ pub(crate) fn execute(
             Ok(CandidateCliOutput::Remove(remove_output(commit)))
         }
     }
+}
+
+#[derive(Debug, Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct CandidateStageOutput {
+    #[schemars(range(min = 1, max = 1))]
+    schema_version: u32,
+    command: StageCommand,
+    state: StageState,
+    #[schemars(regex(pattern = "^(codex|claude-code)$"))]
+    target: String,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    candidate_digest_sha256: String,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    approval_digest_sha256: String,
+    #[schemars(regex(pattern = "^native-payload-[0-9a-f]{64}$"))]
+    install_id: String,
+    approvals_required: [StageApproval; 1],
+}
+
+#[derive(Debug, Serialize, serde::Deserialize, schemars::JsonSchema)]
+enum StageCommand {
+    #[serde(rename = "install-candidate-stage-preview")]
+    Preview,
+    #[serde(rename = "install-candidate-stage")]
+    Stage,
+}
+#[derive(Debug, Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+enum StageState {
+    Ready,
+    Staged,
+    AlreadyStaged,
+}
+#[derive(Debug, Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+enum StageApproval {
+    FilesystemWrite,
+}
+
+fn stage_approval_digest(install_digest: &str) -> String {
+    let mut hash = Sha256::new();
+    hash.update(b"QIONGLI-CANDIDATE-STAGE-V1\0");
+    hash.update(install_digest.as_bytes());
+    encode_hex(&hash.finalize())
+}
+
+fn stage_output(
+    prepared: &PreparedCandidate,
+    command: StageCommand,
+    state: StageState,
+) -> CandidateStageOutput {
+    CandidateStageOutput {
+        schema_version: 1,
+        command,
+        state,
+        target: match prepared.verified.target() {
+            ClientActivationTarget::Codex => "codex",
+            ClientActivationTarget::ClaudeCode => "claude-code",
+        }
+        .to_string(),
+        candidate_digest_sha256: prepared.verified.signed_payload_sha256().to_string(),
+        approval_digest_sha256: stage_approval_digest(&prepared.approval_digest_sha256),
+        install_id: native_payload_install_id(prepared.verified.portable_release().archive()),
+        approvals_required: [StageApproval::FilesystemWrite],
+    }
+}
+
+pub fn candidate_stage_contract_json() -> Result<String, serde_json::Error> {
+    let schema = schemars::generate::SchemaSettings::draft2020_12()
+        .into_generator()
+        .into_root_schema_for::<CandidateStageOutput>();
+    let fixtures = [
+        (StageCommand::Preview, StageState::Ready),
+        (StageCommand::Stage, StageState::Staged),
+        (StageCommand::Stage, StageState::AlreadyStaged),
+    ]
+    .into_iter()
+    .map(|(command, state)| CandidateStageOutput {
+        schema_version: 1,
+        command,
+        state,
+        target: "codex".to_string(),
+        candidate_digest_sha256: "1".repeat(64),
+        approval_digest_sha256: stage_approval_digest(&"2".repeat(64)),
+        install_id: format!("native-payload-{}", "3".repeat(64)),
+        approvals_required: [StageApproval::FilesystemWrite],
+    })
+    .collect::<Vec<_>>();
+    serde_json::to_string_pretty(&serde_json::json!({"schema": schema, "fixtures": fixtures}))
+}
+
+/// A read-only identity snapshot. This digest is not an activation approval.
+#[derive(Debug, Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct CandidateActivationPreviewOutput {
+    #[schemars(range(min = 1, max = 1))]
+    schema_version: u32,
+    command: ActivationPreviewCommand,
+    #[schemars(regex(pattern = "^(codex|claude-code)$"))]
+    target: String,
+    previous_version: String,
+    candidate_version: String,
+    #[schemars(regex(pattern = "^native-payload-[0-9a-f]{64}$"))]
+    previous_install_id: String,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    previous_pack_sha256: String,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    candidate_digest_sha256: String,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    cli_plan_sha256: String,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    preflight_digest_sha256: String,
+    mutation: PreviewMutation,
+}
+
+#[derive(Debug, Serialize, serde::Deserialize, schemars::JsonSchema)]
+enum ActivationPreviewCommand {
+    #[serde(rename = "install-candidate-activate-preview")]
+    Preview,
+}
+#[derive(Debug, Serialize, serde::Deserialize, schemars::JsonSchema)]
+enum PreviewMutation {
+    #[serde(rename = "none")]
+    None,
+}
+
+/// The caller supplies freshly verified running-product and candidate authority.
+/// Checks do not reserve a transaction or authorize activation; apply must revalidate.
+pub fn preview_native_candidate_activation(
+    product: &qiongli_platform::VerifiedPackagedProduct,
+    candidate: &VerifiedNativeReleaseCandidate,
+    previous_install_id: &str,
+) -> Result<CandidateActivationPreviewOutput, &'static str> {
+    if product.artifact() != &candidate.candidate().artifact
+        || product.control_sha256() != candidate.signed_payload_sha256()
+        || product.product_source_commit() != candidate.candidate().source_commit
+        || product.resource_pack_sha256()
+            != candidate
+                .candidate()
+                .signed_portable_release
+                .envelope
+                .resource_pack_sha256
+    {
+        return Err("native-activation-candidate-process-mismatch");
+    }
+    let previous = qiongli_platform::verify_receipt_owned_native_candidate_local(
+        product.home(),
+        candidate.target(),
+        previous_install_id,
+    )
+    .map_err(|error| error.reason_code())?;
+    let mut expected = previous.payload.receipt.artifact.clone();
+    expected
+        .version
+        .clone_from(&candidate.candidate().artifact.version);
+    if expected != candidate.candidate().artifact
+        || semver::Version::parse(&candidate.candidate().artifact.version)
+            .map_err(|_| "native-activation-version-invalid")?
+            <= semver::Version::parse(&previous.payload.receipt.artifact.version)
+                .map_err(|_| "native-activation-version-invalid")?
+    {
+        return Err("native-activation-predecessor-incompatible");
+    }
+    let home = product.home();
+    let target = crate::cli_install::cli_target(home);
+    let plan = crate::cli_install::preview_cli_install(
+        home,
+        product.current_executable(),
+        &candidate.candidate().artifact.version,
+    )?;
+    crate::cli_install::installed_native_cli_source(
+        home,
+        &target,
+        &previous.payload.receipt.artifact,
+    )?
+    .ok_or("native-activation-predecessor-cli-unavailable")?;
+    crate::cli_install::verify_cli_install_plan(&plan)?;
+    if plan.source_sha256
+        != candidate
+            .candidate()
+            .signed_portable_release
+            .envelope
+            .binary_sha256
+    {
+        return Err("native-activation-candidate-process-mismatch");
+    }
+    let registration = match &previous.registration {
+        NativeCandidateRegistrationVerification::Codex(value) => {
+            serde_json::to_value(&value.receipt)
+        }
+        NativeCandidateRegistrationVerification::ClaudeCode(value) => {
+            serde_json::to_value(&value.receipt)
+        }
+    }
+    .map_err(|_| "native-activation-preview-serialization-failed")?;
+    let bytes = serde_json::to_vec(&(
+        "QIONGLI-NATIVE-ACTIVATION-PREFLIGHT-V1",
+        candidate.signed_payload_sha256(),
+        candidate.target(),
+        plan.plan_sha256(),
+        &previous.payload.receipt,
+        &previous.source.receipt_sha256,
+        registration,
+    ))
+    .map_err(|_| "native-activation-preview-serialization-failed")?;
+    Ok(CandidateActivationPreviewOutput {
+        schema_version: 1,
+        command: ActivationPreviewCommand::Preview,
+        target: match candidate.target() {
+            ClientActivationTarget::Codex => "codex",
+            ClientActivationTarget::ClaudeCode => "claude-code",
+        }
+        .to_string(),
+        previous_version: previous.payload.receipt.artifact.version,
+        candidate_version: candidate.candidate().artifact.version.clone(),
+        previous_install_id: previous_install_id.to_string(),
+        previous_pack_sha256: previous.payload.receipt.operation.pack_sha256,
+        candidate_digest_sha256: candidate.signed_payload_sha256().to_string(),
+        cli_plan_sha256: plan.plan_sha256().to_string(),
+        preflight_digest_sha256: encode_hex(&Sha256::digest(bytes)),
+        mutation: PreviewMutation::None,
+    })
+}
+
+pub fn candidate_activation_preview_contract_json() -> Result<String, serde_json::Error> {
+    let schema = schemars::generate::SchemaSettings::draft2020_12()
+        .into_generator()
+        .into_root_schema_for::<CandidateActivationPreviewOutput>();
+    let fixture = CandidateActivationPreviewOutput {
+        schema_version: 1,
+        command: ActivationPreviewCommand::Preview,
+        target: "codex".to_string(),
+        previous_version: "2.0.0-alpha.5".to_string(),
+        candidate_version: "2.0.0-alpha.6".to_string(),
+        previous_install_id: format!("native-payload-{}", "1".repeat(64)),
+        previous_pack_sha256: "2".repeat(64),
+        candidate_digest_sha256: "3".repeat(64),
+        cli_plan_sha256: "4".repeat(64),
+        preflight_digest_sha256: "5".repeat(64),
+        mutation: PreviewMutation::None,
+    };
+    serde_json::to_string_pretty(&serde_json::json!({"schema": schema, "fixture": fixture}))
+}
+
+#[derive(Debug, Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct CandidateActivationPreparedOutput {
+    #[schemars(range(min = 1, max = 1))]
+    schema_version: u32,
+    command: ActivationPrepareCommand,
+    #[schemars(regex(pattern = "^update-[0-9a-f]{32}$"))]
+    transaction_id: String,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    candidate_digest_sha256: String,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    preflight_digest_sha256: String,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    journal_sha256: String,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    approval_digest_sha256: String,
+    update_state_revision: u64,
+    workflow_revision: u64,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    workflow_variant_sha256: Option<String>,
+    #[schemars(range(min = 2, max = 138))]
+    operation_count: usize,
+    surfaces: Vec<crate::update_reconcile::ReconciliationSurface>,
+    approvals_required: [ActivationApproval; 3],
+}
+#[derive(Debug, Serialize, serde::Deserialize, schemars::JsonSchema)]
+enum ActivationPrepareCommand {
+    #[serde(rename = "install-candidate-activate-prepare")]
+    Prepare,
+}
+#[derive(Debug, Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+enum ActivationApproval {
+    FilesystemWrite,
+    ClientConfigChange,
+    HostTrust,
+}
+
+fn activation_approval_digest(
+    candidate: &VerifiedNativeReleaseCandidate,
+    preflight: &str,
+    journal: &str,
+    update_revision: u64,
+    workflow: &qiongli_config::LoadedWorkflowVariant,
+) -> Result<String, &'static str> {
+    let bytes = serde_json::to_vec(&(
+        "QIONGLI-NATIVE-ACTIVATION-APPROVAL-V1",
+        candidate.signed_payload_sha256(),
+        preflight,
+        journal,
+        update_revision,
+        workflow.revision(),
+        workflow.variant_sha256(),
+    ))
+    .map_err(|_| "native-activation-preview-serialization-failed")?;
+    Ok(encode_hex(&Sha256::digest(bytes)))
+}
+
+/// Activates an exact prepared approval after fresh product/candidate verification.
+/// The caller supplies all three explicit approvals; installed CLI health is mandatory.
+#[allow(clippy::too_many_arguments)]
+pub fn activate_native_candidate(
+    product: &qiongli_platform::VerifiedPackagedProduct,
+    candidate: &VerifiedNativeReleaseCandidate,
+    previous_install_id: &str,
+    transaction_id: &str,
+    expected_journal: &str,
+    expected_approval: &str,
+    content: &EmbeddedContent,
+    config: qiongli_config::ConfigRoot,
+) -> Result<crate::update_reconcile::NativeActivationOutcome, &'static str> {
+    if !cfg!(any(target_os = "macos", target_os = "linux")) {
+        return Err("native-update-target-unsupported");
+    }
+    let workflow_store = qiongli_config::WorkflowVariantStore::new(config.clone());
+    let store = qiongli_config::UpdateStateStore::new(
+        config.clone(),
+        qiongli_config::UpdateStreamPreference::Beta,
+    );
+    crate::update_reconcile::activate_native_reconciliation_with_preflight(
+        &store,
+        transaction_id,
+        expected_journal,
+        |journal| {
+            crate::update_reconcile::verify_native_candidate_journal(
+                journal,
+                product.home(),
+                candidate,
+            )?;
+            let preview =
+                preview_native_candidate_activation(product, candidate, previous_install_id)?;
+            let workflow = workflow_store
+                .load(content.pack())
+                .map_err(|error| error.reason_code())?;
+            let loaded = store.load().map_err(|error| error.reason_code())?;
+            if activation_approval_digest(
+                candidate,
+                &preview.preflight_digest_sha256,
+                expected_journal,
+                loaded.revision,
+                &workflow,
+            )? != expected_approval
+            {
+                return Err("native-activation-approval-digest-mismatch");
+            }
+            Ok(())
+        },
+        || check_native_cli_health(product.home(), config.compatibility_root(), candidate),
+    )
+}
+
+#[derive(Debug, Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct CandidateActivationCompletedOutput {
+    #[schemars(range(min = 1, max = 1))]
+    schema_version: u32,
+    command: ActivationCompletedCommand,
+    #[schemars(regex(pattern = "^update-[0-9a-f]{32}$"))]
+    transaction_id: String,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    journal_sha256: String,
+    outcome: crate::update_reconcile::NativeActivationOutcome,
+}
+#[derive(Debug, Serialize, serde::Deserialize, schemars::JsonSchema)]
+enum ActivationCompletedCommand {
+    #[serde(rename = "install-candidate-activate")]
+    Activate,
+    #[serde(rename = "install-candidate-activate-recover")]
+    Recover,
+}
+pub fn candidate_activation_completed_contract_json() -> Result<String, serde_json::Error> {
+    let schema = schemars::generate::SchemaSettings::draft2020_12()
+        .into_generator()
+        .into_root_schema_for::<CandidateActivationCompletedOutput>();
+    let fixtures = [
+        CandidateActivationCompletedOutput {
+            schema_version: 1,
+            command: ActivationCompletedCommand::Activate,
+            transaction_id: format!("update-{}", "1".repeat(32)),
+            journal_sha256: "2".repeat(64),
+            outcome: crate::update_reconcile::NativeActivationOutcome::Committed,
+        },
+        CandidateActivationCompletedOutput {
+            schema_version: 1,
+            command: ActivationCompletedCommand::Recover,
+            transaction_id: format!("update-{}", "1".repeat(32)),
+            journal_sha256: "2".repeat(64),
+            outcome: crate::update_reconcile::NativeActivationOutcome::RolledBack,
+        },
+    ];
+    serde_json::to_string_pretty(&serde_json::json!({"schema": schema, "fixtures": fixtures}))
+}
+
+/// Stages an exact preview after filesystem-write approval. The caller owns fresh
+/// product/candidate verification and approval; this never activates installed files.
+pub fn prepare_native_candidate_activation(
+    product: &qiongli_platform::VerifiedPackagedProduct,
+    candidate: &VerifiedNativeReleaseCandidate,
+    previous_install_id: &str,
+    expected_preflight_digest: &str,
+    content: &EmbeddedContent,
+    config_root: qiongli_config::ConfigRoot,
+    now_unix: u64,
+) -> Result<CandidateActivationPreparedOutput, &'static str> {
+    let preview = preview_native_candidate_activation(product, candidate, previous_install_id)?;
+    if preview.preflight_digest_sha256 != expected_preflight_digest {
+        return Err("native-activation-preflight-digest-mismatch");
+    }
+    let workflow_store = qiongli_config::WorkflowVariantStore::new(config_root.clone());
+    let workflow = workflow_store
+        .load(content.pack())
+        .map_err(|error| error.reason_code())?;
+    let default_stream =
+        if candidate.candidate().artifact.channel == qiongli_platform::ReleaseChannel::Stable {
+            qiongli_config::UpdateStreamPreference::Stable
+        } else {
+            qiongli_config::UpdateStreamPreference::Beta
+        };
+    let settings = qiongli_config::GlobalSettingsStore::new(config_root.clone());
+    let store = qiongli_config::UpdateStateStore::new(config_root, default_stream);
+    let loaded = store.load().map_err(|error| error.reason_code())?;
+    if loaded.state.active_transaction.is_some() {
+        return Err("native-update-replacement-active");
+    }
+    if candidate.candidate().generation <= loaded.state.last_accepted_generation {
+        return Err("native-activation-generation-rejected");
+    }
+    settings
+        .prepare_store()
+        .map_err(|error| error.reason_code())?;
+    let transaction_binding = serde_json::to_vec(&(
+        expected_preflight_digest,
+        loaded.revision,
+        workflow.revision(),
+        workflow.variant_sha256(),
+    ))
+    .map_err(|_| "native-activation-preview-serialization-failed")?;
+    let transaction_id = format!(
+        "update-{}",
+        &encode_hex(&Sha256::digest(transaction_binding))[..32]
+    );
+    crate::update_reconcile::prepare_reconciliation_transaction_root(&store, &transaction_id)?;
+    let result = (|| {
+        let _home_lock = crate::update_reconcile::acquire_native_home_write_lock(product.home())?;
+        crate::update_reconcile::refuse_native_home_activation(product.home())?;
+        let _lock = crate::update_reconcile::acquire_replacement_lock(&store)?;
+        if store.load().map_err(|error| error.reason_code())? != loaded {
+            return Err("native-activation-state-changed");
+        }
+        let refreshed =
+            preview_native_candidate_activation(product, candidate, previous_install_id)?;
+        if refreshed.preflight_digest_sha256 != expected_preflight_digest {
+            return Err("native-activation-preflight-digest-mismatch");
+        }
+        let plan = crate::cli_install::preview_cli_install(
+            product.home(),
+            product.current_executable(),
+            &product.artifact().version,
+        )?;
+        if plan.plan_sha256() != preview.cli_plan_sha256 {
+            return Err("native-activation-preflight-digest-mismatch");
+        }
+        let prepared = crate::update_reconcile::prepare_update_reconciliation(
+            &crate::update_reconcile::ReconciliationPreparation {
+                store: &store,
+                transaction_id: &transaction_id,
+                target_version: &product.artifact().version,
+                content,
+                platform_home: product.home(),
+                claude_config_root: &product.home().join(".claude"),
+                source_binary: product.current_executable(),
+                codex_grant: product
+                    .capability(ClientActivationTarget::Codex)
+                    .ok_or("packaged-product-authority-unavailable")?
+                    .grant(),
+                claude_grant: product
+                    .capability(ClientActivationTarget::ClaudeCode)
+                    .ok_or("packaged-product-authority-unavailable")?
+                    .grant(),
+                workflow_overrides: workflow.overrides(),
+                targets: &[candidate.target()],
+                now_unix,
+                cli_update: Some((&plan, &preview.previous_pack_sha256)),
+                native_release: Some((candidate, &loaded)),
+            },
+        )?;
+        if workflow_store
+            .load(content.pack())
+            .map_err(|error| error.reason_code())?
+            != workflow
+            || store.load().map_err(|error| error.reason_code())? != loaded
+        {
+            return Err("native-activation-state-changed");
+        }
+        let approval_digest_sha256 = activation_approval_digest(
+            candidate,
+            expected_preflight_digest,
+            &prepared.journal_sha256,
+            loaded.revision,
+            &workflow,
+        )?;
+        Ok(CandidateActivationPreparedOutput {
+            schema_version: 1,
+            command: ActivationPrepareCommand::Prepare,
+            transaction_id: transaction_id.clone(),
+            candidate_digest_sha256: candidate.signed_payload_sha256().to_string(),
+            preflight_digest_sha256: expected_preflight_digest.to_string(),
+            journal_sha256: prepared.journal_sha256,
+            approval_digest_sha256,
+            update_state_revision: loaded.revision,
+            workflow_revision: workflow.revision(),
+            workflow_variant_sha256: workflow.variant_sha256().map(str::to_string),
+            operation_count: prepared.operation_count,
+            surfaces: crate::update_reconcile::load_reconciliation_journal(
+                &store,
+                &transaction_id,
+            )?
+            .operations
+            .into_iter()
+            .map(|operation| operation.surface)
+            .collect(),
+            approvals_required: [
+                ActivationApproval::FilesystemWrite,
+                ActivationApproval::ClientConfigChange,
+                ActivationApproval::HostTrust,
+            ],
+        })
+    })();
+    if result.is_err() {
+        // Only the fresh transaction created above is eligible for cleanup.
+        if crate::update_reconcile::discard_prepared_reconciliation(&store, &transaction_id).is_ok()
+        {
+            let _ = crate::update_reconcile::remove_reconciliation_transaction_root(
+                &store,
+                &transaction_id,
+            );
+        }
+    }
+    result
+}
+
+pub fn candidate_activation_prepared_contract_json() -> Result<String, serde_json::Error> {
+    let schema = schemars::generate::SchemaSettings::draft2020_12()
+        .into_generator()
+        .into_root_schema_for::<CandidateActivationPreparedOutput>();
+    let fixture = CandidateActivationPreparedOutput {
+        schema_version: 1,
+        command: ActivationPrepareCommand::Prepare,
+        transaction_id: format!("update-{}", "1".repeat(32)),
+        candidate_digest_sha256: "2".repeat(64),
+        preflight_digest_sha256: "3".repeat(64),
+        journal_sha256: "4".repeat(64),
+        approval_digest_sha256: "5".repeat(64),
+        update_state_revision: 0,
+        workflow_revision: 0,
+        workflow_variant_sha256: None,
+        operation_count: 4,
+        surfaces: vec![
+            crate::update_reconcile::ReconciliationSurface::CodexPluginBundle,
+            crate::update_reconcile::ReconciliationSurface::CodexRegistration,
+            crate::update_reconcile::ReconciliationSurface::CliBinary,
+            crate::update_reconcile::ReconciliationSurface::CliReceipt,
+        ],
+        approvals_required: [
+            ActivationApproval::FilesystemWrite,
+            ActivationApproval::ClientConfigChange,
+            ActivationApproval::HostTrust,
+        ],
+    };
+    serde_json::to_string_pretty(&serde_json::json!({"schema": schema, "fixture": fixture}))
+}
+
+#[derive(Debug, Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct CandidateActivationDiscardedOutput {
+    #[schemars(range(min = 1, max = 1))]
+    schema_version: u32,
+    command: ActivationDiscardCommand,
+    #[schemars(regex(pattern = "^update-[0-9a-fA-F]{32}$"))]
+    transaction_id: String,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    journal_sha256: String,
+}
+#[derive(Debug, Serialize, serde::Deserialize, schemars::JsonSchema)]
+enum ActivationDiscardCommand {
+    #[serde(rename = "install-candidate-activate-discard")]
+    Discard,
+}
+pub fn candidate_activation_discarded_contract_json() -> Result<String, serde_json::Error> {
+    let schema = schemars::generate::SchemaSettings::draft2020_12()
+        .into_generator()
+        .into_root_schema_for::<CandidateActivationDiscardedOutput>();
+    let fixture = CandidateActivationDiscardedOutput {
+        schema_version: 1,
+        command: ActivationDiscardCommand::Discard,
+        transaction_id: format!("update-{}", "1".repeat(32)),
+        journal_sha256: "2".repeat(64),
+    };
+    serde_json::to_string_pretty(&serde_json::json!({"schema": schema, "fixture": fixture}))
 }
 
 pub(crate) struct PreparedCandidate {
@@ -578,6 +1461,128 @@ mod tests {
     use super::*;
 
     #[test]
+    fn activation_completed_contract_matches_generated_and_consumer() {
+        let generated: serde_json::Value =
+            serde_json::from_str(&candidate_activation_completed_contract_json().unwrap()).unwrap();
+        let schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/candidate-activation-completed-v1.schema.json"
+        ))
+        .unwrap();
+        assert_eq!(generated["schema"], schema);
+        for (index, source) in [
+            include_str!("../tests/fixtures/candidate-activation-completed-v1.activate.json"),
+            include_str!("../tests/fixtures/candidate-activation-completed-v1.recover.json"),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let fixture: serde_json::Value = serde_json::from_str(source).unwrap();
+            assert_eq!(generated["fixtures"][index], fixture);
+            let decoded: CandidateActivationCompletedOutput =
+                serde_json::from_value(fixture.clone()).unwrap();
+            assert_eq!(serde_json::to_value(decoded).unwrap(), fixture);
+            let mut invalid = fixture.clone();
+            invalid["extra"] = serde_json::json!(true);
+            assert!(serde_json::from_value::<CandidateActivationCompletedOutput>(invalid).is_err());
+            let mut invalid = fixture;
+            invalid["outcome"] = serde_json::json!("pending");
+            assert!(serde_json::from_value::<CandidateActivationCompletedOutput>(invalid).is_err());
+        }
+    }
+
+    #[test]
+    fn activation_discarded_contract_matches_generated_and_consumer() {
+        let generated: serde_json::Value =
+            serde_json::from_str(&candidate_activation_discarded_contract_json().unwrap()).unwrap();
+        let schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/candidate-activation-discarded-v1.schema.json"
+        ))
+        .unwrap();
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/candidate-activation-discarded-v1.json"
+        ))
+        .unwrap();
+        assert_eq!(generated["schema"], schema);
+        assert_eq!(generated["fixture"], fixture);
+        let decoded: CandidateActivationDiscardedOutput =
+            serde_json::from_value(fixture.clone()).unwrap();
+        assert_eq!(serde_json::to_value(decoded).unwrap(), fixture);
+        let mut invalid = fixture;
+        invalid["activated"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<CandidateActivationDiscardedOutput>(invalid).is_err());
+    }
+
+    #[test]
+    fn activation_prepared_contract_matches_generated_and_consumer() {
+        let generated: serde_json::Value =
+            serde_json::from_str(&candidate_activation_prepared_contract_json().unwrap()).unwrap();
+        let schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/candidate-activation-prepared-v1.schema.json"
+        ))
+        .unwrap();
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/candidate-activation-prepared-v1.json"
+        ))
+        .unwrap();
+        assert_eq!(generated["schema"], schema);
+        assert_eq!(generated["fixture"], fixture);
+        let decoded: CandidateActivationPreparedOutput =
+            serde_json::from_value(fixture.clone()).unwrap();
+        assert_eq!(serde_json::to_value(decoded).unwrap(), fixture);
+        let mut invalid = fixture;
+        invalid["activated"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<CandidateActivationPreparedOutput>(invalid).is_err());
+    }
+
+    #[test]
+    fn activation_preview_contract_matches_generated_and_consumer() {
+        let generated: serde_json::Value =
+            serde_json::from_str(&candidate_activation_preview_contract_json().unwrap()).unwrap();
+        let schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/candidate-activation-preview-v1.schema.json"
+        ))
+        .unwrap();
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/candidate-activation-preview-v1.json"
+        ))
+        .unwrap();
+        assert_eq!(generated["schema"], schema);
+        assert_eq!(generated["fixture"], fixture);
+        let decoded: CandidateActivationPreviewOutput =
+            serde_json::from_value(fixture.clone()).unwrap();
+        assert_eq!(serde_json::to_value(decoded).unwrap(), fixture);
+        let mut invalid = fixture;
+        invalid["approval_digest_sha256"] = serde_json::json!("a".repeat(64));
+        assert!(serde_json::from_value::<CandidateActivationPreviewOutput>(invalid).is_err());
+    }
+
+    #[test]
+    fn candidate_stage_contract_matches_generated_schema_and_fixtures() {
+        let generated: serde_json::Value =
+            serde_json::from_str(&candidate_stage_contract_json().unwrap()).unwrap();
+        let schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/candidate-stage-v1.schema.json"))
+                .unwrap();
+        assert_eq!(generated["schema"], schema);
+        for (index, fixture) in [
+            include_str!("../tests/fixtures/candidate-stage-v1.ready.json"),
+            include_str!("../tests/fixtures/candidate-stage-v1.staged.json"),
+            include_str!("../tests/fixtures/candidate-stage-v1.already-staged.json"),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let value: serde_json::Value = serde_json::from_str(fixture).unwrap();
+            assert_eq!(generated["fixtures"][index], value);
+            let decoded: CandidateStageOutput = serde_json::from_value(value.clone()).unwrap();
+            assert_eq!(serde_json::to_value(decoded).unwrap(), value);
+            let mut unknown = value;
+            unknown["unexpected"] = true.into();
+            assert!(serde_json::from_value::<CandidateStageOutput>(unknown).is_err());
+        }
+    }
+
+    #[test]
     fn approval_digest_is_deterministic_lower_hex_and_target_bound() {
         let candidate = "a".repeat(64);
         let codex = candidate_approval_digest(&candidate, ClientActivationTarget::Codex);
@@ -593,5 +1598,17 @@ mod tests {
             candidate_approval_digest(&candidate, ClientActivationTarget::Codex)
         );
         assert_ne!(codex, claude);
+        assert_ne!(stage_approval_digest(&codex), codex);
+        assert_ne!(
+            stage_approval_digest(&codex),
+            stage_approval_digest(&claude)
+        );
+        assert_ne!(
+            stage_approval_digest(&codex),
+            stage_approval_digest(&candidate_approval_digest(
+                &"b".repeat(64),
+                ClientActivationTarget::Codex
+            ))
+        );
     }
 }

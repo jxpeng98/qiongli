@@ -1,0 +1,2076 @@
+{
+  "date": "2026-09-14",
+  "scope": "One fixed synthetic C-to-F journey, two ordered checkpoints per attempt; local diagnostic observations, not program acceptance.",
+  "development_base": "69e3daa5b2d2a86c12375f0972b5b9936ac98ecd",
+  "released_reference": "4f2107f7fda9d8f6dd8874b7dcffb36f5d7751ba",
+  "kind": "qiongli-research-continuity/v1",
+  "attempts": [
+    {
+      "attempt": 1,
+      "declared_checkpoint_budget_seconds": 180,
+      "budget_provenance": "First attempt used the snapshotted shared helper fixed at 180 seconds; its original receipts omit timeout_seconds.",
+      "snapshot_hashes": {
+        "entry.md": "b355117e11917b2ec79d0bab8d590044c74bcc518c02b8f74d5fe062827d1fe0",
+        "instruction.txt": "10ee7d223c68fdc32cc62962a627e0d7814708d71aa3994f1009748ece6002ec",
+        "resources.json": "2e06d83b3a38ea9ac10ace8e505e3988a2c6ea13f9ea8c8a3ca1df215dc5e811",
+        "resource_reader.py": "605e95e0b7b3fde30fe01b2f51439a7846d2bc64df917c665ee37fe0cf0eb086",
+        "producer.py": "113a2c5281b07c5bf563438abc758873175f262f4979678c7b267251fd9e4fd5",
+        "shared-probe.py": "8dcd9da48daed62b92e7967d587a928c52e73c9e80fc27214986eda2328db1ef",
+        "inputs/source.md": "19758a19d9d51b6096b59bb4fbdfdabc4d60d02323c4021e3a81eb42c5f0130e",
+        "inputs/sources.csv": "86e73fd376b8544dc33686496e44d57068dfa5b679377647607685b40c4e7922",
+        "inputs/references.bib": "7509126f9fac8f97fb1b64913ef9c8a7b24e29f1018d2bd8d0352954323664c1",
+        "inputs/required_claims.csv": "db02780230ab49a181892946e5e479292c6712d606cf5c837154c46d2a9bae99",
+        "inputs/context/research_state.md": "a39f1952e68901f076668aa0f73ce532da02f7aa434f026043173517a38d887d",
+        "inputs/context/decision_log.md": "ad48d6d530a0969a87f0b6535648f295a822b151181d497fafb3196e190a1a64",
+        "inputs/context/stage_handoff.md": "61970b28db1bdc0ff95fdcc88e09d7da5f596c4144aad7e24e4df4f583e8b4c8",
+        "inputs/context/stage_summaries/STG-B-001.md": "cc0cdc285bb46f5f7294af1492a739311ff0bdba808463287dd3c1acf3165b0e",
+        "inputs/revision-2/source.md": "624529b8a600cf9a41d7fb28908634a4b9965d9e1ffe1e24eb8946c42bcdc985",
+        "inputs/revision-2/context/research_state.md": "51933442a4bc42ba4015f86a925b74277294c7807238e552a6f54a07385a4b91",
+        "inputs/revision-2/context/stage_handoff.md": "e2eda5aea08b7b9f3d7c31cd1743d5e9a6c525d6142d7a09843790df7b06464d",
+        "cases/f-stage-continuation.yaml": "f74922c8de3f0274dff1c771b8763dcc28ebe42005fe0371dad5d0a866c4f9d1",
+        "cases/reading.schema.json": "db506da8028f73f2b903e843665f7b873226d8e08f214364d9adda0d6209f00d",
+        "cases/manuscript.schema.json": "1ed1b6d9f2855a775bef71f36adfd599b8491d18357781aa8fb0aba207d8a446",
+        "cases/c-stage-summary.yaml": "24635a66d7e475926935c4d6c428dccac467f05e8ec5e1f4e81724c43bb151a6"
+      },
+      "result": {
+        "kind": "qiongli-research-continuity/v1",
+        "capture_sha256": "b9538eeb832517d8416322d613f29035f91272c59880f9efad1a231dec8e9008",
+        "review_sha256": "2566b66f928a3c43610ac55e2f3c4b177640072a1dd16b71a8d9caba20091b81",
+        "reviewer": {
+          "kind": "model",
+          "id": "Codex coordinator self-review; not independent human approval"
+        },
+        "cases": {
+          "c-stage-summary": {
+            "semantic": {
+              "status": "pass",
+              "segments": 27,
+              "mapped_segments": 11,
+              "failed_segments": 0,
+              "pending_segments": 0,
+              "checks": {
+                "association": {
+                  "status": "pass",
+                  "segments": [
+                    3,
+                    6,
+                    9,
+                    14
+                  ],
+                  "reason": "R1 positive association, cross-sectional sample 120 and r=.32 are preserved; no R2 values leak into C."
+                },
+                "causality": {
+                  "status": "pass",
+                  "segments": [
+                    6,
+                    7,
+                    8,
+                    21,
+                    25
+                  ],
+                  "reason": "C2 and DEC-001 expressly withhold causal inference and intervention benefit."
+                },
+                "statistics": {
+                  "status": "pass",
+                  "segments": [
+                    7,
+                    10,
+                    14,
+                    23
+                  ],
+                  "reason": "No absent CI, p-value or adjusted estimate is invented; measurement/diagnostic omissions remain explicit."
+                },
+                "access": {
+                  "status": "pass",
+                  "segments": [
+                    1,
+                    4,
+                    7,
+                    10,
+                    13,
+                    14,
+                    19
+                  ],
+                  "reason": "Supplied abstract/context only, with hashes labeled supplied rather than independently observed; no project writes or full-text access claimed."
+                },
+                "added_claims": {
+                  "status": "pass",
+                  "segments": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    23
+                  ],
+                  "reason": "C3 remains open and unused; proposed future design requirements are conditional, not a conducted study or new empirical evidence."
+                },
+                "stable_ids": {
+                  "status": "pass",
+                  "segments": [
+                    3,
+                    6,
+                    7,
+                    8,
+                    14,
+                    18,
+                    21,
+                    22,
+                    25
+                  ],
+                  "reason": "C1/C2/C3, DEC-001/002, SyntheticStudy2026 and both full locators retain the fixture's meanings."
+                },
+                "source_revision": {
+                  "status": "pass",
+                  "segments": [
+                    1,
+                    6,
+                    14,
+                    16,
+                    17,
+                    22
+                  ],
+                  "reason": "C consistently uses R1 and distinguishes the historical STG-B-001 summary from source evidence."
+                },
+                "stage_limits": {
+                  "status": "pass",
+                  "segments": [
+                    1,
+                    4,
+                    9,
+                    11,
+                    19,
+                    26
+                  ],
+                  "reason": "The response is a partial chat-only design boundary, with no D/E execution, ethics approval, gate pass, save or cleanup."
+                },
+                "summary_history": {
+                  "status": "pass",
+                  "segments": [
+                    1,
+                    16,
+                    17,
+                    18,
+                    19,
+                    21,
+                    22,
+                    23,
+                    26
+                  ],
+                  "reason": "STG-C-001 names STG-B-001 as predecessor, preserves original history and open questions, and retains source-change/identification revisit triggers."
+                }
+              }
+            },
+            "answer_sha256": "8332960ba2e52c2b5deb84962e823a0d4815a79bbbc112a3de03e03a81604325",
+            "events_sha256": "0c082726d564c88af6801574ae72f1bcc26a89c2083cd4f433563e42593dd36d",
+            "resource_reads": [],
+            "source_access": "supplied-in-prompt",
+            "elapsed_seconds": 121.249,
+            "timeout_seconds": null,
+            "covered_claims": [
+              "C1",
+              "C2"
+            ],
+            "structural": "pass"
+          },
+          "f-stage-continuation": {
+            "semantic": {
+              "status": "unreviewed"
+            },
+            "binding": "missing-or-invalid",
+            "structural": "blocked"
+          }
+        },
+        "codex_version": "codex-cli 0.154.0",
+        "configured_settings": {
+          "model": "gpt-6-astra",
+          "model_reasoning_effort": "xhigh"
+        },
+        "scorer_sha256": "83b347e24e5959cab0b3887d51dd8f4064a97fa00596c66f7bc566fe2d56e282",
+        "shared_probe_sha256": "68e19b2b5acd5e9adfdd66fd42c7aabad11f6eda4c00b8169462f465e8298a0e",
+        "resource_reader_sha256": "605e95e0b7b3fde30fe01b2f51439a7846d2bc64df917c665ee37fe0cf0eb086",
+        "runner_sha256": {
+          "run_eval.py": "a5bb6f49820a3e6bd1f78ff2e2d8edd40635353c1451f99e295fd9c6f9a6234b",
+          "run_suite.py": "3fe3a15b9b9cc765db7d1a81b8700aa71c00159c18bfa1b267640fde19122c2e"
+        },
+        "case_count": 2,
+        "structural_passed": 1,
+        "reviewed_passed": 1,
+        "limitations": "Span judgments are reviewer assertions, not automated entailment or authenticated approval. Synthetic isolated captures do not qualify installed Plugins, project writes or model superiority."
+      },
+      "review": {
+        "kind": "qiongli-research-continuity/v1",
+        "capture_sha256": "b9538eeb832517d8416322d613f29035f91272c59880f9efad1a231dec8e9008",
+        "reviewer": {
+          "kind": "model",
+          "id": "Codex coordinator self-review; not independent human approval"
+        },
+        "cases": {
+          "c-stage-summary": {
+            "answer_sha256": "8332960ba2e52c2b5deb84962e823a0d4815a79bbbc112a3de03e03a81604325",
+            "events_sha256": "0c082726d564c88af6801574ae72f1bcc26a89c2083cd4f433563e42593dd36d",
+            "segments": [
+              {
+                "start": 0,
+                "end": 27,
+                "quote": "# Stage Summary — STG-C-001",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Section heading only."
+              },
+              {
+                "start": 29,
+                "end": 466,
+                "quote": "- Stage and requested scope: C; bounded study-design summary for C5-fixture-R1, returned in chat only.\n- Created at: 2026-09-14.\n- Status: partial; design boundaries documented, with unresolved evidence and method questions.\n- Previous summary: STG-B-001.\n- Project revision: R1 (synthetic fixture; unregistered project).\n- Source observation time: supplied fixture dated 2026-09-14; no independent live observation or hash verification.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Task status, provenance or continuity/history text; checked against the supplied R1 context files, not treated as new research evidence."
+              },
+              {
+                "start": 468,
+                "end": 484,
+                "quote": "## Stage Outcome",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Section heading only."
+              },
+              {
+                "start": 486,
+                "end": 761,
+                "quote": "The supplied abstract supports an associational interpretation of study time and examination score. This summary carries that evidence into C-stage design boundaries while preserving DEC-001, DEC-002 and the distinction between supported claims C1/C2 and unresolved claim C3.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "R1 source.md supports the association and limits; current state/decision log preserve DEC-001/002 and pending C3."
+              },
+              {
+                "start": 763,
+                "end": 1033,
+                "quote": "The current exercise interprets supplied material; it does not constitute a conducted study or a completed empirical study design. No data collection, ethics approval, D/E analysis execution or research gate has been completed here. No project artifact has been written.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Task status, provenance or continuity/history text; checked against the supplied R1 context files, not treated as new research evidence."
+              },
+              {
+                "start": 1035,
+                "end": 1063,
+                "quote": "## Retained Research Content",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Section heading only."
+              },
+              {
+                "start": 1065,
+                "end": 1570,
+                "quote": "**C1 — reported association.** `SyntheticStudy2026:abstract-result` reports that study time was positively associated with examination score in a cross-sectional survey of 120 students, with Pearson r = .32. These are source-reported results, not calculations performed in this exercise. The reported 120 students are the source study’s sample, not a proposed recruitment target. The result supports an association in that reported sample; it does not establish that increasing study time improves scores.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "The R1 abstract gives a cross-sectional sample of 120 and r=.32; the paragraph expressly withholds causal and newly executed-study claims."
+              },
+              {
+                "start": 1572,
+                "end": 2048,
+                "quote": "**C2 — identification and evidence limits.** `SyntheticStudy2026:abstract-limit` explicitly states that causality cannot be inferred. No confidence interval, p-value or adjusted analysis was supplied. Statistical significance, precision and an association adjusted for potential confounding therefore remain unestablished from the supplied material. Only the abstract is available; no full text was read. `SyntheticStudy2026` is a synthetic test source, not a published paper.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "R1 abstract-limit withholds causality, CI, p-value, adjusted analysis and full text; the source header is explicitly synthetic and unpublished."
+              },
+              {
+                "start": 2050,
+                "end": 2422,
+                "quote": "**C3 — intervention benefit.** Whether an intervention increasing study time would improve examination scores remains **needs_evidence**, open and unused as a supported conclusion. Neither C1 nor the continuity documents supply an intervention comparison or evidence identifying a causal effect. `required_claims.csv` lists C1 and C2; it does not establish support for C3.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "The source provides no intervention comparison; C3 remains pending per current state and is not projected as a supported C3 claim."
+              },
+              {
+                "start": 2424,
+                "end": 2837,
+                "quote": "**Study-design boundary and proposal status.** The retained question is: “What association can this supplied abstract support, and what remains unidentifiable?” The present contribution is a bounded interpretation of one abstract, with no new empirical contribution. The evidence unit available for this exercise is the abstract describing a survey of 120 students; participant-level observations are unavailable.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "The sample is source-reported, not recruited here; question/contribution/access boundaries match R1 research_state.md."
+              },
+              {
+                "start": 2839,
+                "end": 3305,
+                "quote": "Study time and examination score remain the source’s variable descriptions. Their measurement instruments, units, reference periods, scoring scales and measurement timing are unreported. The survey label does not establish self-report measurement. Recruitment, eligibility, setting, missing-data handling and the rationale or diagnostics for Pearson correlation are also unknown. Representativeness and the direction of any causal relationship cannot be established.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "The supplied abstract does not specify these measurement/recruitment/diagnostic details; no unseen full-text method or causal identification is claimed."
+              },
+              {
+                "start": 3307,
+                "end": 3818,
+                "quote": "Any later empirical study proposal would need to specify its population, measurements, access arrangements and analysis assumptions before its adequacy could be assessed. An associational proposal would retain a noncausal target; a proposal addressing C3 would additionally require a justified causal identification strategy. These are unresolved design requirements, not approved methods or work executed here. Participant access, new data collection and causal identification remain outside the current scope.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Conditional future-design requirements, not new empirical results or a claim of approved/executed methods; scope reviewed against the supplied state and handoff."
+              },
+              {
+                "start": 3820,
+                "end": 3838,
+                "quote": "## Source Coverage",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Section heading only."
+              },
+              {
+                "start": 3840,
+                "end": 4002,
+                "quote": "The SHA-256 values below are **supplied snapshot hashes**, not independently computed observations. Coverage refers only to material supplied in the conversation.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Task status, provenance or continuity/history text; checked against the supplied R1 context files, not treated as new research evidence."
+              },
+              {
+                "start": 4004,
+                "end": 7189,
+                "quote": "| Exact source file | Observed SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| `source.md` | `19758a19d9d51b6096b59bb4fbdfdabc4d60d02323c4021e3a81eb42c5f0130e` | Supplied abstract and synthetic-source label | `SyntheticStudy2026:abstract-result`; `SyntheticStudy2026:abstract-limit`; C1; C2; unresolved C3 | Cross-sectional survey; 120 students; Pearson r = .32; causal and reporting limits | Full text, participant data and unreported methods/statistics are unavailable | Retain as the evidence anchor; additional authorized evidence is needed to resolve unavailable details or C3 |\n| `sources.csv` | `86e73fd376b8544dc33686496e44d57068dfa5b679377647607685b40c4e7922` | Both supplied inventory rows | `SyntheticStudy2026`; `SyntheticStudy2026:abstract-result`; `SyntheticStudy2026:abstract-limit` | Source-to-file mapping and `abstract_only` access limit | No additional sources supplied | Retain both locators and the access limit |\n| `references.bib` | `7509126f9fac8f97fb1b64913ef9c8a7b24e29f1018d2bd8d0352954323664c1` | Supplied bibliography entry | `SyntheticStudy2026` | Stable citekey and explicit synthetic, unpublished status | No external publication verification performed | Preserve identity; do not present as a published study |\n| `required_claims.csv` | `db02780230ab49a181892946e5e479292c6712d606cf5c837154c46d2a9bae99` | Both supplied claim rows | C1; C2 | Required claim identities | No C3 requirement or supporting evidence appears in this file | Preserve C1/C2; keep C3 separately open |\n| `context/research_state.md` | `a39f1952e68901f076668aa0f73ce532da02f7aa434f026043173517a38d887d` | Supplied R1 state | C5-fixture-R1; DEC-001; DEC-002; C1; C2; C3; STG-B-001 | Research question, contribution boundary, scope, risks and history | No registered or live project state available | Retain R1 context and unresolved boundaries |\n| `context/decision_log.md` | `ad48d6d530a0969a87f0b6535648f295a822b151181d497fafb3196e190a1a64` | Both supplied decisions | DEC-001; DEC-002; C1; C2; C3 | Locked decisions, rationales, revisit triggers and downstream constraints | No subsequent decision revision supplied | Preserve both decisions until their triggers warrant reconsideration |\n| `context/stage_handoff.md` | `61970b28db1bdc0ff95fdcc88e09d7da5f596c4144aad7e24e4df4f583e8b4c8` | Supplied R1 handoff | C5-fixture-R1; DEC-001; DEC-002; C1; C2; C3; `SyntheticStudy2026:abstract-result`; `SyntheticStudy2026:abstract-limit` | Access assumptions, unresolved questions, dependencies and stale-source risk | No evidence of approvals, collection or executed analyses | Carry forward open issues and source-change triggers |\n| `context/stage_summaries/STG-B-001.md` | `cc0cdc285bb46f5f7294af1492a739311ff0bdba808463287dd3c1acf3165b0e` | Entire supplied historical summary | STG-B-001; C1; C2; C3; `SyntheticStudy2026:abstract-result`; `SyntheticStudy2026:abstract-limit` | Partial source inventory and predecessor history | Historical summary is not independent source evidence; its original source-hash observation was unavailable | Retain unchanged as the predecessor |",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "The table retains both abstract anchors and source-reported numbers/limits, while labeling source hashes as supplied and context files as continuity records."
+              },
+              {
+                "start": 7191,
+                "end": 7224,
+                "quote": "## Changes Since Previous Summary",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Section heading only."
+              },
+              {
+                "start": 7226,
+                "end": 7504,
+                "quote": "STG-B-001 inventoried one supplied abstract. STG-C-001 adds explicit design boundaries: the associational target, unavailable operationalization and participant access, unresolved causal identification, and the separation of source findings from possible future study proposals.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Task status, provenance or continuity/history text; checked against the supplied R1 context files, not treated as new research evidence."
+              },
+              {
+                "start": 7506,
+                "end": 7756,
+                "quote": "The supplied R1 materials show no change to the reported sample, correlation, claim status or locked decisions. The snapshot hashes document supplied provenance without retroactively filling STG-B-001’s unavailable historical source-hash observation.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "No R1 source correction was supplied to C; the history does not retroactively replace STG-B-001's missing historical hash observation."
+              },
+              {
+                "start": 7758,
+                "end": 8034,
+                "quote": "| Summary ID | Stage | Date | Document | Previous summary | Status |\n|---|---|---|---|---|---|\n| STG-B-001 | B | 2026-09-14 | `context/stage_summaries/STG-B-001.md` | none | partial |\n| STG-C-001 | C | 2026-09-14 | This chat response; no saved document | STG-B-001 | partial |",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Task status, provenance or continuity/history text; checked against the supplied R1 context files, not treated as new research evidence."
+              },
+              {
+                "start": 8036,
+                "end": 8123,
+                "quote": "This history is reproduced in chat only; no persistent history record has been updated.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Task status, provenance or continuity/history text; checked against the supplied R1 context files, not treated as new research evidence."
+              },
+              {
+                "start": 8125,
+                "end": 8156,
+                "quote": "## Decisions and Open Questions",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Section heading only."
+              },
+              {
+                "start": 8158,
+                "end": 8654,
+                "quote": "**DEC-001 remains locked: use associational wording only.** The cross-sectional abstract cannot identify causality, so the alternative claim that more study time causes better scores remains rejected. Its evidence basis is `source.md`, specifically `SyntheticStudy2026:abstract-result` and `SyntheticStudy2026:abstract-limit`. Revisit only if new authorized evidence changes identification assumptions. Preserve this restriction in every downstream summary and F-stage paragraph concerning C1/C2.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "DEC-001 matches the decision log and source's noncausal boundary; its revisit trigger is retained, not treated as an approval."
+              },
+              {
+                "start": 8656,
+                "end": 9038,
+                "quote": "**DEC-002 remains locked: use the currently supplied source revision and keep unseen materials unavailable.** Historical summaries cannot replace current source evidence, and a source correction is not new statistical analysis. Any changed source bytes require fresh review and an explicit correction. Preserve `SyntheticStudy2026`, both full locators and C1/C2/C3; keep C3 pending.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Task status, provenance or continuity/history text; checked against the supplied R1 context files, not treated as new research evidence."
+              },
+              {
+                "start": 9040,
+                "end": 9456,
+                "quote": "Open questions include intervention benefit, full-text methods, measurement definitions, confidence intervals, p-values, adjusted analysis and submission suitability. No contradictory or null evidence was supplied; its absence from this material does not establish that none exists. Changed source bytes, contradictory evidence or access gaps affecting a proposed claim reopen the affected interpretation and review.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Unknown statistics/access and open C3 remain unresolved. Absence of contrary evidence in this supplied packet is not stated as universal absence."
+              },
+              {
+                "start": 9458,
+                "end": 9479,
+                "quote": "## Next-Stage Handoff",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Section heading only."
+              },
+              {
+                "start": 9481,
+                "end": 9837,
+                "quote": "A later F-stage paragraph may report C1 and C2 using the current source and the full locators `SyntheticStudy2026:abstract-result` and `SyntheticStudy2026:abstract-limit`. It must retain the synthetic-source label, associational wording and unavailable-statistics limits. C3 must remain an unresolved question, not a finding or intervention recommendation.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "The prospective F guidance preserves C1/C2 limits and does not promote C3 to a finding."
+              },
+              {
+                "start": 9839,
+                "end": 10204,
+                "quote": "Before relying on these results after any source change, review the changed source and explicitly reconcile affected claims and summaries. Retain STG-B-001 and all originals. This chat-only partial summary does not authorize or establish participant access, data collection, ethics approval, D/E analysis execution, research-gate completion or submission readiness.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Task status, provenance or continuity/history text; checked against the supplied R1 context files, not treated as new research evidence."
+              }
+            ],
+            "checks": {
+              "association": {
+                "status": "pass",
+                "segments": [
+                  3,
+                  6,
+                  9,
+                  14
+                ],
+                "reason": "R1 positive association, cross-sectional sample 120 and r=.32 are preserved; no R2 values leak into C."
+              },
+              "causality": {
+                "status": "pass",
+                "segments": [
+                  6,
+                  7,
+                  8,
+                  21,
+                  25
+                ],
+                "reason": "C2 and DEC-001 expressly withhold causal inference and intervention benefit."
+              },
+              "statistics": {
+                "status": "pass",
+                "segments": [
+                  7,
+                  10,
+                  14,
+                  23
+                ],
+                "reason": "No absent CI, p-value or adjusted estimate is invented; measurement/diagnostic omissions remain explicit."
+              },
+              "access": {
+                "status": "pass",
+                "segments": [
+                  1,
+                  4,
+                  7,
+                  10,
+                  13,
+                  14,
+                  19
+                ],
+                "reason": "Supplied abstract/context only, with hashes labeled supplied rather than independently observed; no project writes or full-text access claimed."
+              },
+              "added_claims": {
+                "status": "pass",
+                "segments": [
+                  6,
+                  7,
+                  8,
+                  9,
+                  10,
+                  11,
+                  23
+                ],
+                "reason": "C3 remains open and unused; proposed future design requirements are conditional, not a conducted study or new empirical evidence."
+              },
+              "stable_ids": {
+                "status": "pass",
+                "segments": [
+                  3,
+                  6,
+                  7,
+                  8,
+                  14,
+                  18,
+                  21,
+                  22,
+                  25
+                ],
+                "reason": "C1/C2/C3, DEC-001/002, SyntheticStudy2026 and both full locators retain the fixture's meanings."
+              },
+              "source_revision": {
+                "status": "pass",
+                "segments": [
+                  1,
+                  6,
+                  14,
+                  16,
+                  17,
+                  22
+                ],
+                "reason": "C consistently uses R1 and distinguishes the historical STG-B-001 summary from source evidence."
+              },
+              "stage_limits": {
+                "status": "pass",
+                "segments": [
+                  1,
+                  4,
+                  9,
+                  11,
+                  19,
+                  26
+                ],
+                "reason": "The response is a partial chat-only design boundary, with no D/E execution, ethics approval, gate pass, save or cleanup."
+              },
+              "summary_history": {
+                "status": "pass",
+                "segments": [
+                  1,
+                  16,
+                  17,
+                  18,
+                  19,
+                  21,
+                  22,
+                  23,
+                  26
+                ],
+                "reason": "STG-C-001 names STG-B-001 as predecessor, preserves original history and open questions, and retains source-change/identification revisit triggers."
+              }
+            }
+          },
+          "f-stage-continuation": null
+        }
+      },
+      "captures": {
+        "c-stage-summary": {
+          "receipt": {
+            "exit_code": 0,
+            "elapsed_seconds": 121.249,
+            "prompt_sha256": "8b1581ec58056271c56d39dba400d0dedfd1429051220bd5f2d887aa2cf64f96",
+            "events_sha256": "0c082726d564c88af6801574ae72f1bcc26a89c2083cd4f433563e42593dd36d",
+            "answer_sha256": "8332960ba2e52c2b5deb84962e823a0d4815a79bbbc112a3de03e03a81604325"
+          },
+          "turn_completed_count": 1,
+          "verified_resource_reads": [],
+          "answer": "# Stage Summary — STG-C-001\n\n- Stage and requested scope: C; bounded study-design summary for C5-fixture-R1, returned in chat only.\n- Created at: 2026-09-14.\n- Status: partial; design boundaries documented, with unresolved evidence and method questions.\n- Previous summary: STG-B-001.\n- Project revision: R1 (synthetic fixture; unregistered project).\n- Source observation time: supplied fixture dated 2026-09-14; no independent live observation or hash verification.\n\n## Stage Outcome\n\nThe supplied abstract supports an associational interpretation of study time and examination score. This summary carries that evidence into C-stage design boundaries while preserving DEC-001, DEC-002 and the distinction between supported claims C1/C2 and unresolved claim C3.\n\nThe current exercise interprets supplied material; it does not constitute a conducted study or a completed empirical study design. No data collection, ethics approval, D/E analysis execution or research gate has been completed here. No project artifact has been written.\n\n## Retained Research Content\n\n**C1 — reported association.** `SyntheticStudy2026:abstract-result` reports that study time was positively associated with examination score in a cross-sectional survey of 120 students, with Pearson r = .32. These are source-reported results, not calculations performed in this exercise. The reported 120 students are the source study’s sample, not a proposed recruitment target. The result supports an association in that reported sample; it does not establish that increasing study time improves scores.\n\n**C2 — identification and evidence limits.** `SyntheticStudy2026:abstract-limit` explicitly states that causality cannot be inferred. No confidence interval, p-value or adjusted analysis was supplied. Statistical significance, precision and an association adjusted for potential confounding therefore remain unestablished from the supplied material. Only the abstract is available; no full text was read. `SyntheticStudy2026` is a synthetic test source, not a published paper.\n\n**C3 — intervention benefit.** Whether an intervention increasing study time would improve examination scores remains **needs_evidence**, open and unused as a supported conclusion. Neither C1 nor the continuity documents supply an intervention comparison or evidence identifying a causal effect. `required_claims.csv` lists C1 and C2; it does not establish support for C3.\n\n**Study-design boundary and proposal status.** The retained question is: “What association can this supplied abstract support, and what remains unidentifiable?” The present contribution is a bounded interpretation of one abstract, with no new empirical contribution. The evidence unit available for this exercise is the abstract describing a survey of 120 students; participant-level observations are unavailable.\n\nStudy time and examination score remain the source’s variable descriptions. Their measurement instruments, units, reference periods, scoring scales and measurement timing are unreported. The survey label does not establish self-report measurement. Recruitment, eligibility, setting, missing-data handling and the rationale or diagnostics for Pearson correlation are also unknown. Representativeness and the direction of any causal relationship cannot be established.\n\nAny later empirical study proposal would need to specify its population, measurements, access arrangements and analysis assumptions before its adequacy could be assessed. An associational proposal would retain a noncausal target; a proposal addressing C3 would additionally require a justified causal identification strategy. These are unresolved design requirements, not approved methods or work executed here. Participant access, new data collection and causal identification remain outside the current scope.\n\n## Source Coverage\n\nThe SHA-256 values below are **supplied snapshot hashes**, not independently computed observations. Coverage refers only to material supplied in the conversation.\n\n| Exact source file | Observed SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| `source.md` | `19758a19d9d51b6096b59bb4fbdfdabc4d60d02323c4021e3a81eb42c5f0130e` | Supplied abstract and synthetic-source label | `SyntheticStudy2026:abstract-result`; `SyntheticStudy2026:abstract-limit`; C1; C2; unresolved C3 | Cross-sectional survey; 120 students; Pearson r = .32; causal and reporting limits | Full text, participant data and unreported methods/statistics are unavailable | Retain as the evidence anchor; additional authorized evidence is needed to resolve unavailable details or C3 |\n| `sources.csv` | `86e73fd376b8544dc33686496e44d57068dfa5b679377647607685b40c4e7922` | Both supplied inventory rows | `SyntheticStudy2026`; `SyntheticStudy2026:abstract-result`; `SyntheticStudy2026:abstract-limit` | Source-to-file mapping and `abstract_only` access limit | No additional sources supplied | Retain both locators and the access limit |\n| `references.bib` | `7509126f9fac8f97fb1b64913ef9c8a7b24e29f1018d2bd8d0352954323664c1` | Supplied bibliography entry | `SyntheticStudy2026` | Stable citekey and explicit synthetic, unpublished status | No external publication verification performed | Preserve identity; do not present as a published study |\n| `required_claims.csv` | `db02780230ab49a181892946e5e479292c6712d606cf5c837154c46d2a9bae99` | Both supplied claim rows | C1; C2 | Required claim identities | No C3 requirement or supporting evidence appears in this file | Preserve C1/C2; keep C3 separately open |\n| `context/research_state.md` | `a39f1952e68901f076668aa0f73ce532da02f7aa434f026043173517a38d887d` | Supplied R1 state | C5-fixture-R1; DEC-001; DEC-002; C1; C2; C3; STG-B-001 | Research question, contribution boundary, scope, risks and history | No registered or live project state available | Retain R1 context and unresolved boundaries |\n| `context/decision_log.md` | `ad48d6d530a0969a87f0b6535648f295a822b151181d497fafb3196e190a1a64` | Both supplied decisions | DEC-001; DEC-002; C1; C2; C3 | Locked decisions, rationales, revisit triggers and downstream constraints | No subsequent decision revision supplied | Preserve both decisions until their triggers warrant reconsideration |\n| `context/stage_handoff.md` | `61970b28db1bdc0ff95fdcc88e09d7da5f596c4144aad7e24e4df4f583e8b4c8` | Supplied R1 handoff | C5-fixture-R1; DEC-001; DEC-002; C1; C2; C3; `SyntheticStudy2026:abstract-result`; `SyntheticStudy2026:abstract-limit` | Access assumptions, unresolved questions, dependencies and stale-source risk | No evidence of approvals, collection or executed analyses | Carry forward open issues and source-change triggers |\n| `context/stage_summaries/STG-B-001.md` | `cc0cdc285bb46f5f7294af1492a739311ff0bdba808463287dd3c1acf3165b0e` | Entire supplied historical summary | STG-B-001; C1; C2; C3; `SyntheticStudy2026:abstract-result`; `SyntheticStudy2026:abstract-limit` | Partial source inventory and predecessor history | Historical summary is not independent source evidence; its original source-hash observation was unavailable | Retain unchanged as the predecessor |\n\n## Changes Since Previous Summary\n\nSTG-B-001 inventoried one supplied abstract. STG-C-001 adds explicit design boundaries: the associational target, unavailable operationalization and participant access, unresolved causal identification, and the separation of source findings from possible future study proposals.\n\nThe supplied R1 materials show no change to the reported sample, correlation, claim status or locked decisions. The snapshot hashes document supplied provenance without retroactively filling STG-B-001’s unavailable historical source-hash observation.\n\n| Summary ID | Stage | Date | Document | Previous summary | Status |\n|---|---|---|---|---|---|\n| STG-B-001 | B | 2026-09-14 | `context/stage_summaries/STG-B-001.md` | none | partial |\n| STG-C-001 | C | 2026-09-14 | This chat response; no saved document | STG-B-001 | partial |\n\nThis history is reproduced in chat only; no persistent history record has been updated.\n\n## Decisions and Open Questions\n\n**DEC-001 remains locked: use associational wording only.** The cross-sectional abstract cannot identify causality, so the alternative claim that more study time causes better scores remains rejected. Its evidence basis is `source.md`, specifically `SyntheticStudy2026:abstract-result` and `SyntheticStudy2026:abstract-limit`. Revisit only if new authorized evidence changes identification assumptions. Preserve this restriction in every downstream summary and F-stage paragraph concerning C1/C2.\n\n**DEC-002 remains locked: use the currently supplied source revision and keep unseen materials unavailable.** Historical summaries cannot replace current source evidence, and a source correction is not new statistical analysis. Any changed source bytes require fresh review and an explicit correction. Preserve `SyntheticStudy2026`, both full locators and C1/C2/C3; keep C3 pending.\n\nOpen questions include intervention benefit, full-text methods, measurement definitions, confidence intervals, p-values, adjusted analysis and submission suitability. No contradictory or null evidence was supplied; its absence from this material does not establish that none exists. Changed source bytes, contradictory evidence or access gaps affecting a proposed claim reopen the affected interpretation and review.\n\n## Next-Stage Handoff\n\nA later F-stage paragraph may report C1 and C2 using the current source and the full locators `SyntheticStudy2026:abstract-result` and `SyntheticStudy2026:abstract-limit`. It must retain the synthetic-source label, associational wording and unavailable-statistics limits. C3 must remain an unresolved question, not a finding or intervention recommendation.\n\nBefore relying on these results after any source change, review the changed source and explicitly reconcile affected claims and summaries. Retain STG-B-001 and all originals. This chat-only partial summary does not authorize or establish participant access, data collection, ethics approval, D/E analysis execution, research-gate completion or submission readiness."
+        },
+        "f-stage-continuation": {
+          "receipt": {
+            "exit_code": 124,
+            "elapsed_seconds": 180.009,
+            "prompt_sha256": "962b1bc76d215e189e6652fc87bfb8e10b55b3e952e38bb3692b12f236e20329",
+            "events_sha256": "a91f0e19119d3f9dbbd596a290748a388151a19476f9573d666545d7bfcb4527"
+          },
+          "turn_completed_count": 0,
+          "verified_resource_reads": [
+            "workflows/academic-write.md",
+            "references/evidence-ledger-contract.md",
+            "references/academic-output-rubric.md",
+            "references/citation-risk-policy.md",
+            "references/stage-F-writing.md",
+            "workflows/stage-close.md",
+            "skills/Z_cross_cutting/academic-context-maintainer.md",
+            "references/stage-consolidation.md",
+            "templates/stage-summary.md",
+            "references/scholarly-voice.md",
+            "skills/J_proofread/human-voice-rewriter.md"
+          ],
+          "answer": null,
+          "limitation": "Partial event trace only; no final answer and no semantic review. All listed guidance results match snapshotted resources; this is not task completion."
+        }
+      }
+    },
+    {
+      "attempt": 2,
+      "declared_checkpoint_budget_seconds": 360,
+      "budget_provenance": "Each original capture receipt records timeout_seconds=360.",
+      "snapshot_hashes": {
+        "entry.md": "b355117e11917b2ec79d0bab8d590044c74bcc518c02b8f74d5fe062827d1fe0",
+        "instruction.txt": "10ee7d223c68fdc32cc62962a627e0d7814708d71aa3994f1009748ece6002ec",
+        "resources.json": "2e06d83b3a38ea9ac10ace8e505e3988a2c6ea13f9ea8c8a3ca1df215dc5e811",
+        "resource_reader.py": "605e95e0b7b3fde30fe01b2f51439a7846d2bc64df917c665ee37fe0cf0eb086",
+        "producer.py": "83b347e24e5959cab0b3887d51dd8f4064a97fa00596c66f7bc566fe2d56e282",
+        "shared-probe.py": "68e19b2b5acd5e9adfdd66fd42c7aabad11f6eda4c00b8169462f465e8298a0e",
+        "inputs/source.md": "19758a19d9d51b6096b59bb4fbdfdabc4d60d02323c4021e3a81eb42c5f0130e",
+        "inputs/sources.csv": "86e73fd376b8544dc33686496e44d57068dfa5b679377647607685b40c4e7922",
+        "inputs/references.bib": "7509126f9fac8f97fb1b64913ef9c8a7b24e29f1018d2bd8d0352954323664c1",
+        "inputs/required_claims.csv": "db02780230ab49a181892946e5e479292c6712d606cf5c837154c46d2a9bae99",
+        "inputs/context/research_state.md": "a39f1952e68901f076668aa0f73ce532da02f7aa434f026043173517a38d887d",
+        "inputs/context/decision_log.md": "ad48d6d530a0969a87f0b6535648f295a822b151181d497fafb3196e190a1a64",
+        "inputs/context/stage_handoff.md": "61970b28db1bdc0ff95fdcc88e09d7da5f596c4144aad7e24e4df4f583e8b4c8",
+        "inputs/context/stage_summaries/STG-B-001.md": "cc0cdc285bb46f5f7294af1492a739311ff0bdba808463287dd3c1acf3165b0e",
+        "inputs/revision-2/source.md": "624529b8a600cf9a41d7fb28908634a4b9965d9e1ffe1e24eb8946c42bcdc985",
+        "inputs/revision-2/context/research_state.md": "51933442a4bc42ba4015f86a925b74277294c7807238e552a6f54a07385a4b91",
+        "inputs/revision-2/context/stage_handoff.md": "e2eda5aea08b7b9f3d7c31cd1743d5e9a6c525d6142d7a09843790df7b06464d",
+        "cases/reading.schema.json": "db506da8028f73f2b903e843665f7b873226d8e08f214364d9adda0d6209f00d",
+        "cases/c-stage-summary.yaml": "24635a66d7e475926935c4d6c428dccac467f05e8ec5e1f4e81724c43bb151a6",
+        "cases/manuscript.schema.json": "1ed1b6d9f2855a775bef71f36adfd599b8491d18357781aa8fb0aba207d8a446",
+        "cases/f-stage-continuation.yaml": "f74922c8de3f0274dff1c771b8763dcc28ebe42005fe0371dad5d0a866c4f9d1"
+      },
+      "result": {
+        "kind": "qiongli-research-continuity/v1",
+        "capture_sha256": "950b41fd5e5a99db53179789a2dd4f409037793ff4986f565e20e73fc05ab727",
+        "review_sha256": "8b4a50bf248fd89d83bf4c15099274ed9c3a73e935b65f284dc7e70774bb0e28",
+        "reviewer": {
+          "kind": "model",
+          "id": "Codex coordinator self-review; not independent human approval"
+        },
+        "cases": {
+          "c-stage-summary": {
+            "semantic": {
+              "status": "pass",
+              "segments": 26,
+              "mapped_segments": 11,
+              "failed_segments": 0,
+              "pending_segments": 0,
+              "checks": {
+                "association": {
+                  "status": "pass",
+                  "segments": [
+                    6,
+                    9,
+                    13
+                  ],
+                  "reason": "R1 source.md abstract-result supplies n=120 and Pearson r=.32; the summary reports association, not a new analysis."
+                },
+                "causality": {
+                  "status": "pass",
+                  "segments": [
+                    7,
+                    8,
+                    19,
+                    23
+                  ],
+                  "reason": "R1 abstract-limit and DEC-001 forbid causal inference; C3 remains needs_evidence and unused."
+                },
+                "statistics": {
+                  "status": "pass",
+                  "segments": [
+                    7,
+                    10,
+                    21
+                  ],
+                  "reason": "R1 abstract-limit supplies no confidence interval, p-value or adjusted analysis; no value or significance is invented."
+                },
+                "access": {
+                  "status": "pass",
+                  "segments": [
+                    7,
+                    9,
+                    13,
+                    21
+                  ],
+                  "reason": "Coverage stays abstract-only. Methods, participant access and full text remain unavailable, consistent with R1 source/state."
+                },
+                "added_claims": {
+                  "status": "pass",
+                  "segments": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    13,
+                    15,
+                    19,
+                    20,
+                    21,
+                    23
+                  ],
+                  "reason": "Reviewed all substantive text. Design proposals are conditional requirements, not empirical findings; no unsupported measured variable, analysis or intervention effect added."
+                },
+                "stable_ids": {
+                  "status": "pass",
+                  "segments": [
+                    1,
+                    6,
+                    7,
+                    8,
+                    13,
+                    17,
+                    19,
+                    20,
+                    24
+                  ],
+                  "reason": "C1/C2/C3, DEC-001/DEC-002, SyntheticStudy2026 and both full source anchors match supplied R1 records."
+                },
+                "source_revision": {
+                  "status": "pass",
+                  "segments": [
+                    6,
+                    13,
+                    16,
+                    20,
+                    24
+                  ],
+                  "reason": "Only R1 was supplied. All eight table hashes match exact supplied inputs. Missing historical B source hash is not invented, and later source changes explicitly require fresh review."
+                },
+                "stage_limits": {
+                  "status": "pass",
+                  "segments": [
+                    1,
+                    4,
+                    9,
+                    10,
+                    25
+                  ],
+                  "reason": "Partial chat-only stage C candidate; no data collection, participant access, ethics approval, D/E execution, project write or gate completion is asserted."
+                },
+                "summary_history": {
+                  "status": "pass",
+                  "segments": [
+                    1,
+                    15,
+                    16,
+                    17,
+                    20,
+                    25
+                  ],
+                  "reason": "Six required sections retain content, changes, decisions and next steps. STG-B-001 remains partial predecessor; current summary is STG-C-001. Neither becomes new source evidence or approval."
+                }
+              }
+            },
+            "answer_sha256": "10f01f5a97194a1397d605e53ee4ceaf1497d85242287780b9626645442aa824",
+            "events_sha256": "5e930d892aa2b456699aa5e1d616a2de35ebd5da0b9eff0236d7b96ec3c75dde",
+            "resource_reads": [],
+            "source_access": "supplied-in-prompt",
+            "elapsed_seconds": 118.504,
+            "timeout_seconds": 360,
+            "covered_claims": [
+              "C1",
+              "C2"
+            ],
+            "structural": "pass"
+          },
+          "f-stage-continuation": {
+            "semantic": {
+              "status": "pass",
+              "segments": 30,
+              "mapped_segments": 13,
+              "failed_segments": 0,
+              "pending_segments": 0,
+              "checks": {
+                "association": {
+                  "status": "pass",
+                  "segments": [
+                    1,
+                    8,
+                    11,
+                    16,
+                    27
+                  ],
+                  "reason": "Current revision-2/source.md abstract-result supplies n=118 and r=.23. Both paragraph and design boundary use R2; n=120/r=.32 occur only as explicitly superseded R1 history."
+                },
+                "causality": {
+                  "status": "pass",
+                  "segments": [
+                    1,
+                    9,
+                    10,
+                    22,
+                    27
+                  ],
+                  "reason": "R2 abstract-limit and DEC-001 remain associational-only. C3 intervention benefit remains unsupported and unused as a finding."
+                },
+                "statistics": {
+                  "status": "pass",
+                  "segments": [
+                    1,
+                    9,
+                    24
+                  ],
+                  "reason": "No confidence interval, p-value, adjusted analysis or statistical-significance claim is supplied or invented; R2 changes only sample/correlation values."
+                },
+                "access": {
+                  "status": "pass",
+                  "segments": [
+                    1,
+                    9,
+                    11,
+                    14,
+                    24
+                  ],
+                  "reason": "Source access remains abstract-only; no full text, participant data or new methods are claimed. All nine coverage hashes match supplied inputs including the actual captured C answer."
+                },
+                "added_claims": {
+                  "status": "pass",
+                  "segments": [
+                    1,
+                    6,
+                    8,
+                    9,
+                    10,
+                    11,
+                    14,
+                    16,
+                    17,
+                    22,
+                    23,
+                    24,
+                    27
+                  ],
+                  "reason": "Reviewed all substantive text against current R2 and supplied context. Correction is not a new study, replication, analysis or population/time comparison; methodological unknowns remain unknown."
+                },
+                "stable_ids": {
+                  "status": "pass",
+                  "segments": [
+                    3,
+                    8,
+                    9,
+                    10,
+                    14,
+                    19,
+                    22,
+                    23,
+                    27
+                  ],
+                  "reason": "C1/C2/C3, DEC-001/DEC-002, SyntheticStudy2026 and full abstract-result/abstract-limit anchors are preserved across actual C and R2 F."
+                },
+                "source_revision": {
+                  "status": "pass",
+                  "segments": [
+                    1,
+                    8,
+                    11,
+                    14,
+                    16,
+                    17,
+                    18,
+                    23,
+                    27
+                  ],
+                  "reason": "Actual C R1 values are explicitly reconciled with R2, including its design-boundary repetition. All nine path hashes and historical/current source hashes match; supplied hashes are not claimed as independently verified."
+                },
+                "stage_limits": {
+                  "status": "pass",
+                  "segments": [
+                    3,
+                    6,
+                    11,
+                    20,
+                    29
+                  ],
+                  "reason": "Chat-only partial F continuation does not claim ethics approval, data collection, D/E analysis, gate passage, submission readiness, persistence or deletion."
+                },
+                "summary_history": {
+                  "status": "pass",
+                  "segments": [
+                    3,
+                    6,
+                    18,
+                    19,
+                    20,
+                    28,
+                    29
+                  ],
+                  "reason": "Actual captured STG-C-001 is the unreviewed historical predecessor; STG-B-001 is preserved, its missing historical hash is not filled, and STG-F-001 supplies a correction without approval inheritance."
+                }
+              }
+            },
+            "answer_sha256": "1677458a466c3f126d2e5fa58de853e874331d442037bcec102e86311c2d8322",
+            "events_sha256": "b557bfb6cbe070a9fea09b00334b7d316592d621306cd773db64435358d85ecc",
+            "resource_reads": [
+              "workflows/academic-write.md",
+              "references/stage-F-writing.md",
+              "references/academic-output-rubric.md",
+              "references/evidence-ledger-contract.md",
+              "references/citation-risk-policy.md"
+            ],
+            "source_access": "supplied-in-prompt",
+            "elapsed_seconds": 147.478,
+            "timeout_seconds": 360,
+            "covered_claims": [
+              "C1",
+              "C2"
+            ],
+            "predecessor": {
+              "answer_sha256": "10f01f5a97194a1397d605e53ee4ceaf1497d85242287780b9626645442aa824",
+              "events_sha256": "5e930d892aa2b456699aa5e1d616a2de35ebd5da0b9eff0236d7b96ec3c75dde"
+            },
+            "structural": "pass"
+          }
+        },
+        "codex_version": "codex-cli 0.154.0",
+        "configured_settings": {
+          "model": "gpt-6-astra",
+          "model_reasoning_effort": "xhigh"
+        },
+        "scorer_sha256": "83b347e24e5959cab0b3887d51dd8f4064a97fa00596c66f7bc566fe2d56e282",
+        "shared_probe_sha256": "68e19b2b5acd5e9adfdd66fd42c7aabad11f6eda4c00b8169462f465e8298a0e",
+        "resource_reader_sha256": "605e95e0b7b3fde30fe01b2f51439a7846d2bc64df917c665ee37fe0cf0eb086",
+        "runner_sha256": {
+          "run_eval.py": "a5bb6f49820a3e6bd1f78ff2e2d8edd40635353c1451f99e295fd9c6f9a6234b",
+          "run_suite.py": "3fe3a15b9b9cc765db7d1a81b8700aa71c00159c18bfa1b267640fde19122c2e"
+        },
+        "case_count": 2,
+        "structural_passed": 2,
+        "reviewed_passed": 2,
+        "limitations": "Span judgments are reviewer assertions, not automated entailment or authenticated approval. Synthetic isolated captures do not qualify installed Plugins, project writes or model superiority."
+      },
+      "review": {
+        "kind": "qiongli-research-continuity/v1",
+        "capture_sha256": "950b41fd5e5a99db53179789a2dd4f409037793ff4986f565e20e73fc05ab727",
+        "reviewer": {
+          "kind": "model",
+          "id": "Codex coordinator self-review; not independent human approval"
+        },
+        "cases": {
+          "c-stage-summary": {
+            "answer_sha256": "10f01f5a97194a1397d605e53ee4ceaf1497d85242287780b9626645442aa824",
+            "events_sha256": "5e930d892aa2b456699aa5e1d616a2de35ebd5da0b9eff0236d7b96ec3c75dde",
+            "segments": [
+              {
+                "start": 0,
+                "end": 27,
+                "quote": "# Stage Summary — STG-C-001",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 29,
+                "end": 488,
+                "quote": "- Stage and requested scope: C; study-design boundaries for the supplied synthetic abstract.\n- Created at: 2026-09-14\n- Status: partial; chat-only summary.\n- Previous summary: STG-B-001\n- Project revision: R1 (synthetic fixture; unregistered project).\n- Task: C5-fixture-R1\n- Source observation time: no fresh observation; STG-B-001 records fixture construction on 2026-09-14. Hashes below are supplied snapshot values, not independently computed or verified.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 490,
+                "end": 506,
+                "quote": "## Stage Outcome",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 508,
+                "end": 745,
+                "quote": "The retained research question is: **What association can this supplied abstract support, and what remains unidentifiable?** The contribution remains a bounded interpretation of one synthetic abstract, with no new empirical contribution.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 747,
+                "end": 1010,
+                "quote": "This summary establishes the interpretation and design boundaries carried forward under DEC-001 and DEC-002. It does not establish a completed study or protocol. No data collection, ethics approval, D/E analysis execution or research gate has been completed here.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 1012,
+                "end": 1040,
+                "quote": "## Retained Research Content",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 1042,
+                "end": 1453,
+                "quote": "**C1 — reported association.** `SyntheticStudy2026:abstract-result` reports a positive association between study time and examination score in a cross-sectional survey of 120 students, with Pearson r = .32. These are reported source findings; neither the sample nor the coefficient was generated or independently reanalysed in this exercise. SyntheticStudy2026 is synthetic test material, not a published study.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against R1; reported association/correction matches abstract-result; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 1455,
+                "end": 1883,
+                "quote": "**C2 — reported evidence limits.** `SyntheticStudy2026:abstract-limit` states that causality cannot be inferred. No confidence interval, p-value or adjusted analysis was supplied. Only the abstract is available; no full text was read. Consequently, the supplied material does not establish statistical significance, the precision of the correlation, an adjusted association or a causal effect of study time on examination score.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against R1; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 1885,
+                "end": 2146,
+                "quote": "**C3 — unresolved intervention benefit.** The proposition that an intervention increasing study time would improve examination scores remains `needs_evidence` and unused. C1 does not establish this benefit; C2 explicitly preserves the causal-inference boundary.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against R1; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 2148,
+                "end": 2732,
+                "quote": "**Study-design boundary — proposed constraints, not executed research.** The evidence unit for this exercise is the abstract’s report of a cross-sectional survey of 120 students. Those 120 students are not a proposed recruitment target or an accessible participant dataset. Study time and examination score are the named variables, but their measurement instruments, units, operational definitions and collection procedures are not supplied. The survey label does not establish that either variable was self-reported. Recruitment, eligibility and sampling details also remain unknown.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against R1; reported association/correction matches abstract-result; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 2734,
+                "end": 3238,
+                "quote": "Any later authorized associational study proposal would need to specify its population, access, measurements and analysis before execution. The supplied abstract cannot establish those choices, justify a sample-size calculation or identify an adjustment set. An intervention-benefit proposal would additionally require a defensible causal-identification strategy and new evidence. Such work lies outside the current scope, which excludes causal identification, participant access and new data collection.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against R1; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 3240,
+                "end": 3258,
+                "quote": "## Source Coverage",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 3260,
+                "end": 3400,
+                "quote": "All SHA-256 values in this table reproduce the supplied snapshot metadata. Coverage is limited to the material provided in the conversation.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 3402,
+                "end": 6410,
+                "quote": "| Exact source file | Supplied snapshot SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| `source.md` | `19758a19d9d51b6096b59bb4fbdfdabc4d60d02323c4021e3a81eb42c5f0130e` | Supplied abstract and synthetic-source identification | SyntheticStudy2026; SyntheticStudy2026:abstract-result; SyntheticStudy2026:abstract-limit; C1; C2 | Cross-sectional survey; 120 students; Pearson r = .32; positive association; causal and statistical limits | Full text and additional methods/statistics unavailable | Additional authorized evidence for stronger claims; C3 remains unsupported |\n| `sources.csv` | `86e73fd376b8544dc33686496e44d57068dfa5b679377647607685b40c4e7922` | Both supplied inventory rows | SyntheticStudy2026:abstract-result; SyntheticStudy2026:abstract-limit | Both locators map to `source.md` with `abstract_only` coverage | No additional sources supplied | New inventory evidence only if authorized source coverage changes |\n| `references.bib` | `7509126f9fac8f97fb1b64913ef9c8a7b24e29f1018d2bd8d0352954323664c1` | Supplied bibliographic entry | SyntheticStudy2026 | Stable citekey and explicit synthetic, unpublished status | No external bibliographic verification | None for this bounded summary |\n| `required_claims.csv` | `db02780230ab49a181892946e5e479292c6712d606cf5c837154c46d2a9bae99` | Both supplied claim identifiers | C1; C2 | Required claim identities | File contains no claim evidence and does not list C3 | C3 remains open through the continuity records |\n| `context/research_state.md` | `a39f1952e68901f076668aa0f73ce532da02f7aa434f026043173517a38d887d` | Supplied R1 research state | C5-fixture-R1; DEC-001; DEC-002; C1; C2; C3; STG-B-001 | Research question, bounded contribution, scope, risks and predecessor | No live project state available | Reconcile any changed source bytes before downstream reuse |\n| `context/decision_log.md` | `ad48d6d530a0969a87f0b6535648f295a822b151181d497fafb3196e190a1a64` | Both supplied locked decisions | DEC-001; DEC-002; C1; C2; C3 | Associational wording, current-source rule and revisit triggers | No later decision revision supplied | Reopen affected decisions when their triggers occur |\n| `context/stage_handoff.md` | `61970b28db1bdc0ff95fdcc88e09d7da5f596c4144aad7e24e4df4f583e8b4c8` | Supplied R1 handoff | C5-fixture-R1; DEC-001; DEC-002; C1; C2; C3 | Access limits, unresolved questions and unperformed downstream work | No approval or execution evidence supplied | Resolve relevant evidence and access gaps before expanding scope |\n| `context/stage_summaries/STG-B-001.md` | `cc0cdc285bb46f5f7294af1492a739311ff0bdba808463287dd3c1acf3165b0e` | Supplied historical summary | STG-B-001; SyntheticStudy2026:abstract-result; SyntheticStudy2026:abstract-limit; C1; C2; C3 | Partial B inventory and predecessor history | Historical summary is not fresh or independent source evidence | Use current source content when carrying claims forward |",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against R1; reported association/correction matches abstract-result; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 6412,
+                "end": 6445,
+                "quote": "## Changes Since Previous Summary",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 6447,
+                "end": 6698,
+                "quote": "STG-B-001 inventoried one abstract. STG-C-001 carries that substantive evidence into explicit design boundaries: an associational target, unavailable measurement and sampling details, no established intervention benefit and no executed empirical work.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against R1; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 6700,
+                "end": 6989,
+                "quote": "The present summary records the supplied snapshot hashes; STG-B-001’s historical coverage table listed its source hash as unavailable. This added metadata does not establish that source bytes changed. No source correction, new empirical evidence or revision of DEC-001/DEC-002 is supplied.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 6991,
+                "end": 7267,
+                "quote": "| Summary ID | Stage | Date | Document | Previous summary | Status |\n|---|---|---|---|---|---|\n| STG-B-001 | B | 2026-09-14 | `context/stage_summaries/STG-B-001.md` | none | partial |\n| STG-C-001 | C | 2026-09-14 | This chat response; no saved document | STG-B-001 | partial |",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 7269,
+                "end": 7300,
+                "quote": "## Decisions and Open Questions",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 7302,
+                "end": 7701,
+                "quote": "**DEC-001 remains locked:** use associational wording only. Its evidence basis is `source.md`, specifically `SyntheticStudy2026:abstract-result` and `SyntheticStudy2026:abstract-limit`. Claiming that more study time causes better scores remains rejected. New authorized evidence that changes identification assumptions triggers reconsideration. This decision governs C1/C2 and any later F paragraph.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against R1; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 7703,
+                "end": 8144,
+                "quote": "**DEC-002 remains locked:** use the currently supplied source revision and retain the unavailability of full text and missing statistics. Historical summaries preserve continuity but cannot replace current source evidence. Any changed source bytes require fresh review and an explicit correction; a source correction is not new statistical analysis. Preserve SyntheticStudy2026, both full locators and C1/C2/C3 throughout any reconciliation.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against R1; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 8146,
+                "end": 8475,
+                "quote": "C3 intervention benefit remains open. Full-text methods, confidence intervals, p-values, adjusted analysis and submission suitability remain unavailable. Missing access, contradictory evidence or a corrected abstract reopen the affected claims and review. Neither a target venue nor submission qualification has been established.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against R1; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 8477,
+                "end": 8498,
+                "quote": "## Next-Stage Handoff",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 8500,
+                "end": 8717,
+                "quote": "A later F paragraph may describe the reported positive association using C1 while retaining C2’s causal and statistical limits. C3 must remain unused as a finding unless adequate authorized evidence becomes available.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against R1; reported association/correction matches abstract-result; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 8719,
+                "end": 9055,
+                "quote": "Before downstream drafting, reconcile any changed source bytes against the current evidence and explicitly correct affected claims; do not copy historical numbers without checking the supplied revision. Preserve DEC-001/DEC-002, C1/C2/C3, SyntheticStudy2026, `SyntheticStudy2026:abstract-result` and `SyntheticStudy2026:abstract-limit`.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 9057,
+                "end": 9363,
+                "quote": "This handoff does not authorize or complete participant access, ethics approval, data collection, D/E analysis execution or any research gate. STG-C-001 is delivered only in chat. No project files were written, no separate reading artifact was created and no originals or historical summaries were deleted.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              }
+            ],
+            "checks": {
+              "association": {
+                "status": "pass",
+                "segments": [
+                  6,
+                  9,
+                  13
+                ],
+                "reason": "R1 source.md abstract-result supplies n=120 and Pearson r=.32; the summary reports association, not a new analysis."
+              },
+              "causality": {
+                "status": "pass",
+                "segments": [
+                  7,
+                  8,
+                  19,
+                  23
+                ],
+                "reason": "R1 abstract-limit and DEC-001 forbid causal inference; C3 remains needs_evidence and unused."
+              },
+              "statistics": {
+                "status": "pass",
+                "segments": [
+                  7,
+                  10,
+                  21
+                ],
+                "reason": "R1 abstract-limit supplies no confidence interval, p-value or adjusted analysis; no value or significance is invented."
+              },
+              "access": {
+                "status": "pass",
+                "segments": [
+                  7,
+                  9,
+                  13,
+                  21
+                ],
+                "reason": "Coverage stays abstract-only. Methods, participant access and full text remain unavailable, consistent with R1 source/state."
+              },
+              "added_claims": {
+                "status": "pass",
+                "segments": [
+                  6,
+                  7,
+                  8,
+                  9,
+                  10,
+                  13,
+                  15,
+                  19,
+                  20,
+                  21,
+                  23
+                ],
+                "reason": "Reviewed all substantive text. Design proposals are conditional requirements, not empirical findings; no unsupported measured variable, analysis or intervention effect added."
+              },
+              "stable_ids": {
+                "status": "pass",
+                "segments": [
+                  1,
+                  6,
+                  7,
+                  8,
+                  13,
+                  17,
+                  19,
+                  20,
+                  24
+                ],
+                "reason": "C1/C2/C3, DEC-001/DEC-002, SyntheticStudy2026 and both full source anchors match supplied R1 records."
+              },
+              "source_revision": {
+                "status": "pass",
+                "segments": [
+                  6,
+                  13,
+                  16,
+                  20,
+                  24
+                ],
+                "reason": "Only R1 was supplied. All eight table hashes match exact supplied inputs. Missing historical B source hash is not invented, and later source changes explicitly require fresh review."
+              },
+              "stage_limits": {
+                "status": "pass",
+                "segments": [
+                  1,
+                  4,
+                  9,
+                  10,
+                  25
+                ],
+                "reason": "Partial chat-only stage C candidate; no data collection, participant access, ethics approval, D/E execution, project write or gate completion is asserted."
+              },
+              "summary_history": {
+                "status": "pass",
+                "segments": [
+                  1,
+                  15,
+                  16,
+                  17,
+                  20,
+                  25
+                ],
+                "reason": "Six required sections retain content, changes, decisions and next steps. STG-B-001 remains partial predecessor; current summary is STG-C-001. Neither becomes new source evidence or approval."
+              }
+            }
+          },
+          "f-stage-continuation": {
+            "answer_sha256": "1677458a466c3f126d2e5fa58de853e874331d442037bcec102e86311c2d8322",
+            "events_sha256": "b557bfb6cbe070a9fea09b00334b7d316592d621306cd773db64435358d85ecc",
+            "segments": [
+              {
+                "start": 0,
+                "end": 30,
+                "quote": "**Draft manuscript paragraph**",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 32,
+                "end": 802,
+                "quote": "The corrected R2 abstract of SyntheticStudy2026, a synthetic source rather than a published study, reports a positive association between study time and examination score in a cross-sectional survey of 118 students (Pearson r = .23; SyntheticStudy2026:abstract-result). This finding supports an associational interpretation within the reported sample. Causality cannot be inferred, and no confidence interval, p-value or adjusted analysis was supplied; statistical significance, precision and an adjusted association therefore remain unestablished from the available material (SyntheticStudy2026:abstract-limit). Only the abstract is available, and no full text was read. Whether an intervention increasing study time would improve examination scores remains unresolved.",
+                "role": "manuscript",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against current R2 source and explicitly historical R1 predecessor; reported association/correction matches abstract-result; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 804,
+                "end": 831,
+                "quote": "# Stage Summary — STG-F-001",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 833,
+                "end": 1371,
+                "quote": "- Stage and requested scope: F; one bounded manuscript paragraph and correction/handoff summary.\n- Created at: 2026-09-14\n- Status: partial; chat-only draft and handoff.\n- Previous summary: STG-C-001, retained as the actual captured, unreviewed historical candidate.\n- Project revision: R2 (synthetic fixture; unregistered project).\n- Task: F1-fixture-R2\n- Source observation: supplied R2 text examined in this conversation. SHA-256 values below reproduce supplied snapshot metadata; they were not independently computed or live-verified.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 1373,
+                "end": 1389,
+                "quote": "## Stage Outcome",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 1391,
+                "end": 1649,
+                "quote": "The paragraph addresses the retained research question: **What association can this supplied abstract support, and what remains unidentifiable?** The contribution remains a bounded interpretation of one synthetic abstract, with no new empirical contribution.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 1651,
+                "end": 2016,
+                "quote": "Comparison of the supplied R2 source with STG-B-001 and the actual captured STG-C-001 identifies superseded sample and correlation values. The paragraph uses the corrected values while retaining DEC-001/DEC-002 and the existing claim identities. This completes the requested chat deliverables, without establishing formal Stage F completion or submission readiness.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against current R2 source and explicitly historical R1 predecessor; reported association/correction matches abstract-result; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 2018,
+                "end": 2046,
+                "quote": "## Retained Research Content",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 2048,
+                "end": 2466,
+                "quote": "**C1 — reported association.** The current R2 `source.md`, at `SyntheticStudy2026:abstract-result`, reports a positive association between study time and examination score in a cross-sectional survey of **118 students, Pearson r = .23**. The earlier **120 students, r = .32** belong to R1 and are superseded. C1 retains its identity; the correction is neither a second finding nor a new study, replication or analysis.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against current R2 source and explicitly historical R1 predecessor; reported association/correction matches abstract-result; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 2468,
+                "end": 2829,
+                "quote": "**C2 — reported evidence limits.** `SyntheticStudy2026:abstract-limit` states that causality cannot be inferred. No confidence interval, p-value or adjusted analysis was supplied. Coverage remains abstract-only, and no full text was read. The available material does not establish statistical significance, precision, an adjusted association or a causal effect.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against current R2 source and explicitly historical R1 predecessor; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 2831,
+                "end": 3115,
+                "quote": "**C3 — unresolved intervention benefit.** The proposition that an intervention increasing study time would improve examination scores remains `needs_evidence` and unused as a manuscript finding. Neither the positive association nor its correction supplies the missing causal evidence.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against current R2 source and explicitly historical R1 predecessor; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 3117,
+                "end": 3666,
+                "quote": "**Retained design boundaries.** The corrected abstract describes 118 students; this number is neither a recruitment target nor evidence of participant or dataset access. Measurement instruments, units, operational definitions, collection procedures, recruitment, eligibility and sampling details remain unknown. The survey label does not establish self-report. The source cannot establish a sample-size rationale or an adjustment set for a future study. Causal identification, participant access and new data collection remain outside this exercise.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against current R2 source and explicitly historical R1 predecessor; reported association/correction matches abstract-result; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 3668,
+                "end": 3686,
+                "quote": "## Source Coverage",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 3688,
+                "end": 3893,
+                "quote": "Coverage is limited to the supplied conversation snapshots. Research support comes from the abstract; inventory, bibliography, claim lists and continuity records serve their respective documentation roles.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 3895,
+                "end": 7500,
+                "quote": "| Exact source file | Supplied snapshot SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| `source.md` | `624529b8a600cf9a41d7fb28908634a4b9965d9e1ffe1e24eb8946c42bcdc985` | Supplied R2 correction notice and both abstract sections | SyntheticStudy2026; SyntheticStudy2026:abstract-result; SyntheticStudy2026:abstract-limit; C1; C2 | Corrected n = 118 and r = .23; positive association; unchanged causal and statistical limits | Full text, additional methods and statistics unavailable | Authorized additional evidence for stronger claims; C3 remains unsupported |\n| `sources.csv` | `86e73fd376b8544dc33686496e44d57068dfa5b679377647607685b40c4e7922` | Both supplied inventory rows | SyntheticStudy2026:abstract-result; SyntheticStudy2026:abstract-limit | Both locators map to `source.md`; coverage remains `abstract_only` | No additional sources supplied | Revised inventory if authorized source coverage changes |\n| `references.bib` | `7509126f9fac8f97fb1b64913ef9c8a7b24e29f1018d2bd8d0352954323664c1` | Supplied bibliographic entry | SyntheticStudy2026 | Stable citekey; synthetic test material, not a published study | No external bibliographic verification | None for this bounded draft |\n| `required_claims.csv` | `db02780230ab49a181892946e5e479292c6712d606cf5c837154c46d2a9bae99` | Both supplied claim identifiers | C1; C2 | Required claim identities preserved | Contains no supporting evidence and does not list C3 | Retain C3 through continuity records |\n| `context/research_state.md` | `51933442a4bc42ba4015f86a925b74277294c7807238e552a6f54a07385a4b91` | Supplied current R2 state | F1-fixture-R2; DEC-001; DEC-002; C1; C2; C3; STG-B-001; STG-C-001 | Question, bounded contribution, corrected evidence position, scope and risks | No live project-state verification | Reconsider affected content after further source changes |\n| `context/decision_log.md` | `ad48d6d530a0969a87f0b6535648f295a822b151181d497fafb3196e190a1a64` | Both supplied locked decisions | DEC-001; DEC-002; C1; C2; C3 | Associational wording; current-source requirement; correction and revisit rules | No revised decision supplied | Reopen affected decisions when their triggers occur |\n| `context/stage_handoff.md` | `e2eda5aea08b7b9f3d7c31cd1743d5e9a6c525d6142d7a09843790df7b06464d` | Supplied current R2 handoff | DEC-001; DEC-002; C1; C2; C3; STG-C-001 | Required correction, historical-candidate status, unresolved questions and execution boundaries | No approval or empirical-execution evidence supplied | Resolve relevant gaps before expanding scope |\n| `context/stage_summaries/STG-B-001.md` | `cc0cdc285bb46f5f7294af1492a739311ff0bdba808463287dd3c1acf3165b0e` | Supplied historical partial B summary | STG-B-001; SyntheticStudy2026:abstract-result; SyntheticStudy2026:abstract-limit; C1; C2; C3 | R1 inventory history, including n = 120 and r = .32 | Historical record supplies no new research evidence; its source hash remains recorded as unavailable | Use R2 values downstream; preserve the historical record |\n| `context/stage_summaries/STG-C-001.md` | `10f01f5a97194a1397d605e53ee4ceaf1497d85242287780b9626645442aa824` | Entire supplied captured C candidate | STG-C-001; STG-B-001; C5-fixture-R1; DEC-001; DEC-002; C1; C2; C3; SyntheticStudy2026:abstract-result; SyntheticStudy2026:abstract-limit | Immediate predecessor, R1 values, design boundaries and unresolved issues | Unreviewed historical candidate; neither new source evidence nor approval for R2 | Carry this explicit correction with downstream reuse |",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against current R2 source and explicitly historical R1 predecessor; reported association/correction matches abstract-result; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 7502,
+                "end": 7535,
+                "quote": "## Changes Since Previous Summary",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 7537,
+                "end": 7843,
+                "quote": "STG-C-001 reports **120 students and r = .32** in C1 and repeats **120 students** in its study-design boundary. Those statements reflect R1. The supplied current `source.md` explicitly corrects them to **118 students and r = .23**. Both the manuscript paragraph and the retained design boundary now use R2.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against current R2 source and explicitly historical R1 predecessor; reported association/correction matches abstract-result; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 7845,
+                "end": 8152,
+                "quote": "STG-C-001’s statement that no source correction had been supplied describes its historical R1 context. It cannot describe the current R2 evidence position. The direction of association and C2’s limits remain unchanged; the numerical correction does not establish a change between populations or time points.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against current R2 source and explicitly historical R1 predecessor; reported association/correction matches abstract-result; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 8154,
+                "end": 8621,
+                "quote": "The C candidate records the historical R1 source snapshot hash as `19758a19d9d51b6096b59bb4fbdfdabc4d60d02323c4021e3a81eb42c5f0130e`; the supplied R2 source hash is `624529b8a600cf9a41d7fb28908634a4b9965d9e1ffe1e24eb8946c42bcdc985`. These are supplied metadata. The explicit R2 correction and source content establish the correction recorded here; no hash was independently verified, and STG-B-001’s missing historical source hash has not been retrospectively filled.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 8623,
+                "end": 8909,
+                "quote": "C1/C2/C3, DEC-001/DEC-002, citekey **SyntheticStudy2026**, and both full locators—**SyntheticStudy2026:abstract-result** and **SyntheticStudy2026:abstract-limit**—remain unchanged. STG-C-001 remains the predecessor. Its historical content and any R1 review do not qualify or approve R2.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 8911,
+                "end": 9437,
+                "quote": "| Summary ID | Stage | Date | Document | Previous summary | Status |\n|---|---|---|---|---|---|\n| STG-B-001 | B | 2026-09-14 | Supplied `context/stage_summaries/STG-B-001.md` | none | Historical partial summary |\n| STG-C-001 | C | 2026-09-14 | Supplied captured `context/stage_summaries/STG-C-001.md` | STG-B-001 | Unreviewed historical candidate; captured text describes itself as partial/chat-only |\n| STG-F-001 | F | 2026-09-14 | This chat response; no saved document | STG-C-001 | Partial; chat-only R2 correction/handoff |",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 9439,
+                "end": 9470,
+                "quote": "## Decisions and Open Questions",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 9472,
+                "end": 9797,
+                "quote": "**DEC-001 remains locked:** use associational wording only. Its source basis remains `source.md`, specifically `SyntheticStudy2026:abstract-result` and `SyntheticStudy2026:abstract-limit`. New authorized evidence that changes identification assumptions may reopen this decision. The numerical correction alone does not do so.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against current R2 source and explicitly historical R1 predecessor; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 9799,
+                "end": 10170,
+                "quote": "**DEC-002 remains locked:** use the current source revision, preserve unavailable full text and missing statistics, and explicitly reconcile changed source content. Its correction trigger is addressed here by comparing the supplied R2 text with the captured historical summaries. This is a bounded source comparison, with no inherited review approval or formal gate pass.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against current R2 source and explicitly historical R1 predecessor; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 10172,
+                "end": 10445,
+                "quote": "C3 intervention benefit remains pending. Full text, confidence intervals, p-values, adjusted analysis, measurement and sampling details, and participant access remain unavailable or unspecified. The target venue remains undecided, and submission readiness is unestablished.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against current R2 source and explicitly historical R1 predecessor; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 10447,
+                "end": 10845,
+                "quote": "Further source changes require fresh review and an explicit correction of affected content. Authorized contradictory evidence or newly available methods and statistics require reassessment of the relevant claims and limits. Changed identification evidence may reopen DEC-001; adequate intervention evidence would be needed to reconsider C3. Continued access gaps remain blockers to stronger claims.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 10847,
+                "end": 10868,
+                "quote": "## Next-Stage Handoff",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 10870,
+                "end": 11157,
+                "quote": "Carry forward the R2 paragraph with C1’s **118 students and r = .23**, C2’s abstract-only, causal and statistical limits, and C3’s `needs_evidence` status. Preserve DEC-001/DEC-002, **SyntheticStudy2026**, **SyntheticStudy2026:abstract-result** and **SyntheticStudy2026:abstract-limit**.",
+                "role": "summary",
+                "links": [
+                  {
+                    "claim_id": "C1",
+                    "source_location": "SyntheticStudy2026:abstract-result",
+                    "status": "supported",
+                    "claim_type": "finding"
+                  },
+                  {
+                    "claim_id": "C2",
+                    "source_location": "SyntheticStudy2026:abstract-limit",
+                    "status": "supported",
+                    "claim_type": "limitation"
+                  }
+                ],
+                "verdict": "pass",
+                "reason": "Source-bearing span checked against current R2 source and explicitly historical R1 predecessor; reported association/correction matches abstract-result; limits and unavailable evidence match abstract-limit; context portions retain supplied IDs/status and add no empirical evidence."
+              },
+              {
+                "start": 11159,
+                "end": 11394,
+                "quote": "Use STG-C-001 to retain historical continuity and design questions, alongside this correction. Future claim support must come from the applicable source revision; historical summaries supply neither new empirical evidence nor approval.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              },
+              {
+                "start": 11396,
+                "end": 11726,
+                "quote": "D/E data collection and analysis execution remain unperformed in this exercise, and no ethics approval has been obtained here. This writing continuation establishes no formal research-gate pass, submission readiness or full lifecycle completion. No project files were written, overwritten or deleted, and no cleanup was performed.",
+                "role": "context",
+                "links": [],
+                "verdict": "not-evidence",
+                "reason": "Heading, supplied status/provenance, history metadata or bounded workflow instruction; checked against supplied continuity records and actual capture, not independent empirical evidence."
+              }
+            ],
+            "checks": {
+              "association": {
+                "status": "pass",
+                "segments": [
+                  1,
+                  8,
+                  11,
+                  16,
+                  27
+                ],
+                "reason": "Current revision-2/source.md abstract-result supplies n=118 and r=.23. Both paragraph and design boundary use R2; n=120/r=.32 occur only as explicitly superseded R1 history."
+              },
+              "causality": {
+                "status": "pass",
+                "segments": [
+                  1,
+                  9,
+                  10,
+                  22,
+                  27
+                ],
+                "reason": "R2 abstract-limit and DEC-001 remain associational-only. C3 intervention benefit remains unsupported and unused as a finding."
+              },
+              "statistics": {
+                "status": "pass",
+                "segments": [
+                  1,
+                  9,
+                  24
+                ],
+                "reason": "No confidence interval, p-value, adjusted analysis or statistical-significance claim is supplied or invented; R2 changes only sample/correlation values."
+              },
+              "access": {
+                "status": "pass",
+                "segments": [
+                  1,
+                  9,
+                  11,
+                  14,
+                  24
+                ],
+                "reason": "Source access remains abstract-only; no full text, participant data or new methods are claimed. All nine coverage hashes match supplied inputs including the actual captured C answer."
+              },
+              "added_claims": {
+                "status": "pass",
+                "segments": [
+                  1,
+                  6,
+                  8,
+                  9,
+                  10,
+                  11,
+                  14,
+                  16,
+                  17,
+                  22,
+                  23,
+                  24,
+                  27
+                ],
+                "reason": "Reviewed all substantive text against current R2 and supplied context. Correction is not a new study, replication, analysis or population/time comparison; methodological unknowns remain unknown."
+              },
+              "stable_ids": {
+                "status": "pass",
+                "segments": [
+                  3,
+                  8,
+                  9,
+                  10,
+                  14,
+                  19,
+                  22,
+                  23,
+                  27
+                ],
+                "reason": "C1/C2/C3, DEC-001/DEC-002, SyntheticStudy2026 and full abstract-result/abstract-limit anchors are preserved across actual C and R2 F."
+              },
+              "source_revision": {
+                "status": "pass",
+                "segments": [
+                  1,
+                  8,
+                  11,
+                  14,
+                  16,
+                  17,
+                  18,
+                  23,
+                  27
+                ],
+                "reason": "Actual C R1 values are explicitly reconciled with R2, including its design-boundary repetition. All nine path hashes and historical/current source hashes match; supplied hashes are not claimed as independently verified."
+              },
+              "stage_limits": {
+                "status": "pass",
+                "segments": [
+                  3,
+                  6,
+                  11,
+                  20,
+                  29
+                ],
+                "reason": "Chat-only partial F continuation does not claim ethics approval, data collection, D/E analysis, gate passage, submission readiness, persistence or deletion."
+              },
+              "summary_history": {
+                "status": "pass",
+                "segments": [
+                  3,
+                  6,
+                  18,
+                  19,
+                  20,
+                  28,
+                  29
+                ],
+                "reason": "Actual captured STG-C-001 is the unreviewed historical predecessor; STG-B-001 is preserved, its missing historical hash is not filled, and STG-F-001 supplies a correction without approval inheritance."
+              }
+            }
+          }
+        }
+      },
+      "captures": {
+        "c-stage-summary": {
+          "receipt": {
+            "exit_code": 0,
+            "timeout_seconds": 360,
+            "elapsed_seconds": 118.504,
+            "prompt_sha256": "8b1581ec58056271c56d39dba400d0dedfd1429051220bd5f2d887aa2cf64f96",
+            "events_sha256": "5e930d892aa2b456699aa5e1d616a2de35ebd5da0b9eff0236d7b96ec3c75dde",
+            "answer_sha256": "10f01f5a97194a1397d605e53ee4ceaf1497d85242287780b9626645442aa824"
+          },
+          "turn_completed_count": 1,
+          "verified_resource_reads": [],
+          "answer": "# Stage Summary — STG-C-001\n\n- Stage and requested scope: C; study-design boundaries for the supplied synthetic abstract.\n- Created at: 2026-09-14\n- Status: partial; chat-only summary.\n- Previous summary: STG-B-001\n- Project revision: R1 (synthetic fixture; unregistered project).\n- Task: C5-fixture-R1\n- Source observation time: no fresh observation; STG-B-001 records fixture construction on 2026-09-14. Hashes below are supplied snapshot values, not independently computed or verified.\n\n## Stage Outcome\n\nThe retained research question is: **What association can this supplied abstract support, and what remains unidentifiable?** The contribution remains a bounded interpretation of one synthetic abstract, with no new empirical contribution.\n\nThis summary establishes the interpretation and design boundaries carried forward under DEC-001 and DEC-002. It does not establish a completed study or protocol. No data collection, ethics approval, D/E analysis execution or research gate has been completed here.\n\n## Retained Research Content\n\n**C1 — reported association.** `SyntheticStudy2026:abstract-result` reports a positive association between study time and examination score in a cross-sectional survey of 120 students, with Pearson r = .32. These are reported source findings; neither the sample nor the coefficient was generated or independently reanalysed in this exercise. SyntheticStudy2026 is synthetic test material, not a published study.\n\n**C2 — reported evidence limits.** `SyntheticStudy2026:abstract-limit` states that causality cannot be inferred. No confidence interval, p-value or adjusted analysis was supplied. Only the abstract is available; no full text was read. Consequently, the supplied material does not establish statistical significance, the precision of the correlation, an adjusted association or a causal effect of study time on examination score.\n\n**C3 — unresolved intervention benefit.** The proposition that an intervention increasing study time would improve examination scores remains `needs_evidence` and unused. C1 does not establish this benefit; C2 explicitly preserves the causal-inference boundary.\n\n**Study-design boundary — proposed constraints, not executed research.** The evidence unit for this exercise is the abstract’s report of a cross-sectional survey of 120 students. Those 120 students are not a proposed recruitment target or an accessible participant dataset. Study time and examination score are the named variables, but their measurement instruments, units, operational definitions and collection procedures are not supplied. The survey label does not establish that either variable was self-reported. Recruitment, eligibility and sampling details also remain unknown.\n\nAny later authorized associational study proposal would need to specify its population, access, measurements and analysis before execution. The supplied abstract cannot establish those choices, justify a sample-size calculation or identify an adjustment set. An intervention-benefit proposal would additionally require a defensible causal-identification strategy and new evidence. Such work lies outside the current scope, which excludes causal identification, participant access and new data collection.\n\n## Source Coverage\n\nAll SHA-256 values in this table reproduce the supplied snapshot metadata. Coverage is limited to the material provided in the conversation.\n\n| Exact source file | Supplied snapshot SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| `source.md` | `19758a19d9d51b6096b59bb4fbdfdabc4d60d02323c4021e3a81eb42c5f0130e` | Supplied abstract and synthetic-source identification | SyntheticStudy2026; SyntheticStudy2026:abstract-result; SyntheticStudy2026:abstract-limit; C1; C2 | Cross-sectional survey; 120 students; Pearson r = .32; positive association; causal and statistical limits | Full text and additional methods/statistics unavailable | Additional authorized evidence for stronger claims; C3 remains unsupported |\n| `sources.csv` | `86e73fd376b8544dc33686496e44d57068dfa5b679377647607685b40c4e7922` | Both supplied inventory rows | SyntheticStudy2026:abstract-result; SyntheticStudy2026:abstract-limit | Both locators map to `source.md` with `abstract_only` coverage | No additional sources supplied | New inventory evidence only if authorized source coverage changes |\n| `references.bib` | `7509126f9fac8f97fb1b64913ef9c8a7b24e29f1018d2bd8d0352954323664c1` | Supplied bibliographic entry | SyntheticStudy2026 | Stable citekey and explicit synthetic, unpublished status | No external bibliographic verification | None for this bounded summary |\n| `required_claims.csv` | `db02780230ab49a181892946e5e479292c6712d606cf5c837154c46d2a9bae99` | Both supplied claim identifiers | C1; C2 | Required claim identities | File contains no claim evidence and does not list C3 | C3 remains open through the continuity records |\n| `context/research_state.md` | `a39f1952e68901f076668aa0f73ce532da02f7aa434f026043173517a38d887d` | Supplied R1 research state | C5-fixture-R1; DEC-001; DEC-002; C1; C2; C3; STG-B-001 | Research question, bounded contribution, scope, risks and predecessor | No live project state available | Reconcile any changed source bytes before downstream reuse |\n| `context/decision_log.md` | `ad48d6d530a0969a87f0b6535648f295a822b151181d497fafb3196e190a1a64` | Both supplied locked decisions | DEC-001; DEC-002; C1; C2; C3 | Associational wording, current-source rule and revisit triggers | No later decision revision supplied | Reopen affected decisions when their triggers occur |\n| `context/stage_handoff.md` | `61970b28db1bdc0ff95fdcc88e09d7da5f596c4144aad7e24e4df4f583e8b4c8` | Supplied R1 handoff | C5-fixture-R1; DEC-001; DEC-002; C1; C2; C3 | Access limits, unresolved questions and unperformed downstream work | No approval or execution evidence supplied | Resolve relevant evidence and access gaps before expanding scope |\n| `context/stage_summaries/STG-B-001.md` | `cc0cdc285bb46f5f7294af1492a739311ff0bdba808463287dd3c1acf3165b0e` | Supplied historical summary | STG-B-001; SyntheticStudy2026:abstract-result; SyntheticStudy2026:abstract-limit; C1; C2; C3 | Partial B inventory and predecessor history | Historical summary is not fresh or independent source evidence | Use current source content when carrying claims forward |\n\n## Changes Since Previous Summary\n\nSTG-B-001 inventoried one abstract. STG-C-001 carries that substantive evidence into explicit design boundaries: an associational target, unavailable measurement and sampling details, no established intervention benefit and no executed empirical work.\n\nThe present summary records the supplied snapshot hashes; STG-B-001’s historical coverage table listed its source hash as unavailable. This added metadata does not establish that source bytes changed. No source correction, new empirical evidence or revision of DEC-001/DEC-002 is supplied.\n\n| Summary ID | Stage | Date | Document | Previous summary | Status |\n|---|---|---|---|---|---|\n| STG-B-001 | B | 2026-09-14 | `context/stage_summaries/STG-B-001.md` | none | partial |\n| STG-C-001 | C | 2026-09-14 | This chat response; no saved document | STG-B-001 | partial |\n\n## Decisions and Open Questions\n\n**DEC-001 remains locked:** use associational wording only. Its evidence basis is `source.md`, specifically `SyntheticStudy2026:abstract-result` and `SyntheticStudy2026:abstract-limit`. Claiming that more study time causes better scores remains rejected. New authorized evidence that changes identification assumptions triggers reconsideration. This decision governs C1/C2 and any later F paragraph.\n\n**DEC-002 remains locked:** use the currently supplied source revision and retain the unavailability of full text and missing statistics. Historical summaries preserve continuity but cannot replace current source evidence. Any changed source bytes require fresh review and an explicit correction; a source correction is not new statistical analysis. Preserve SyntheticStudy2026, both full locators and C1/C2/C3 throughout any reconciliation.\n\nC3 intervention benefit remains open. Full-text methods, confidence intervals, p-values, adjusted analysis and submission suitability remain unavailable. Missing access, contradictory evidence or a corrected abstract reopen the affected claims and review. Neither a target venue nor submission qualification has been established.\n\n## Next-Stage Handoff\n\nA later F paragraph may describe the reported positive association using C1 while retaining C2’s causal and statistical limits. C3 must remain unused as a finding unless adequate authorized evidence becomes available.\n\nBefore downstream drafting, reconcile any changed source bytes against the current evidence and explicitly correct affected claims; do not copy historical numbers without checking the supplied revision. Preserve DEC-001/DEC-002, C1/C2/C3, SyntheticStudy2026, `SyntheticStudy2026:abstract-result` and `SyntheticStudy2026:abstract-limit`.\n\nThis handoff does not authorize or complete participant access, ethics approval, data collection, D/E analysis execution or any research gate. STG-C-001 is delivered only in chat. No project files were written, no separate reading artifact was created and no originals or historical summaries were deleted."
+        },
+        "f-stage-continuation": {
+          "receipt": {
+            "exit_code": 0,
+            "timeout_seconds": 360,
+            "elapsed_seconds": 147.478,
+            "prompt_sha256": "a8a310415c447f5531d40a9beee80fc0766aa63fecf42d98be062fccd06aa774",
+            "events_sha256": "b557bfb6cbe070a9fea09b00334b7d316592d621306cd773db64435358d85ecc",
+            "answer_sha256": "1677458a466c3f126d2e5fa58de853e874331d442037bcec102e86311c2d8322"
+          },
+          "turn_completed_count": 1,
+          "verified_resource_reads": [
+            "workflows/academic-write.md",
+            "references/stage-F-writing.md",
+            "references/academic-output-rubric.md",
+            "references/evidence-ledger-contract.md",
+            "references/citation-risk-policy.md"
+          ],
+          "answer": "**Draft manuscript paragraph**\n\nThe corrected R2 abstract of SyntheticStudy2026, a synthetic source rather than a published study, reports a positive association between study time and examination score in a cross-sectional survey of 118 students (Pearson r = .23; SyntheticStudy2026:abstract-result). This finding supports an associational interpretation within the reported sample. Causality cannot be inferred, and no confidence interval, p-value or adjusted analysis was supplied; statistical significance, precision and an adjusted association therefore remain unestablished from the available material (SyntheticStudy2026:abstract-limit). Only the abstract is available, and no full text was read. Whether an intervention increasing study time would improve examination scores remains unresolved.\n\n# Stage Summary — STG-F-001\n\n- Stage and requested scope: F; one bounded manuscript paragraph and correction/handoff summary.\n- Created at: 2026-09-14\n- Status: partial; chat-only draft and handoff.\n- Previous summary: STG-C-001, retained as the actual captured, unreviewed historical candidate.\n- Project revision: R2 (synthetic fixture; unregistered project).\n- Task: F1-fixture-R2\n- Source observation: supplied R2 text examined in this conversation. SHA-256 values below reproduce supplied snapshot metadata; they were not independently computed or live-verified.\n\n## Stage Outcome\n\nThe paragraph addresses the retained research question: **What association can this supplied abstract support, and what remains unidentifiable?** The contribution remains a bounded interpretation of one synthetic abstract, with no new empirical contribution.\n\nComparison of the supplied R2 source with STG-B-001 and the actual captured STG-C-001 identifies superseded sample and correlation values. The paragraph uses the corrected values while retaining DEC-001/DEC-002 and the existing claim identities. This completes the requested chat deliverables, without establishing formal Stage F completion or submission readiness.\n\n## Retained Research Content\n\n**C1 — reported association.** The current R2 `source.md`, at `SyntheticStudy2026:abstract-result`, reports a positive association between study time and examination score in a cross-sectional survey of **118 students, Pearson r = .23**. The earlier **120 students, r = .32** belong to R1 and are superseded. C1 retains its identity; the correction is neither a second finding nor a new study, replication or analysis.\n\n**C2 — reported evidence limits.** `SyntheticStudy2026:abstract-limit` states that causality cannot be inferred. No confidence interval, p-value or adjusted analysis was supplied. Coverage remains abstract-only, and no full text was read. The available material does not establish statistical significance, precision, an adjusted association or a causal effect.\n\n**C3 — unresolved intervention benefit.** The proposition that an intervention increasing study time would improve examination scores remains `needs_evidence` and unused as a manuscript finding. Neither the positive association nor its correction supplies the missing causal evidence.\n\n**Retained design boundaries.** The corrected abstract describes 118 students; this number is neither a recruitment target nor evidence of participant or dataset access. Measurement instruments, units, operational definitions, collection procedures, recruitment, eligibility and sampling details remain unknown. The survey label does not establish self-report. The source cannot establish a sample-size rationale or an adjustment set for a future study. Causal identification, participant access and new data collection remain outside this exercise.\n\n## Source Coverage\n\nCoverage is limited to the supplied conversation snapshots. Research support comes from the abstract; inventory, bibliography, claim lists and continuity records serve their respective documentation roles.\n\n| Exact source file | Supplied snapshot SHA-256 | Read scope | Source locator / stable IDs | Content retained here | Omitted material / reason | Still required |\n|---|---|---|---|---|---|---|\n| `source.md` | `624529b8a600cf9a41d7fb28908634a4b9965d9e1ffe1e24eb8946c42bcdc985` | Supplied R2 correction notice and both abstract sections | SyntheticStudy2026; SyntheticStudy2026:abstract-result; SyntheticStudy2026:abstract-limit; C1; C2 | Corrected n = 118 and r = .23; positive association; unchanged causal and statistical limits | Full text, additional methods and statistics unavailable | Authorized additional evidence for stronger claims; C3 remains unsupported |\n| `sources.csv` | `86e73fd376b8544dc33686496e44d57068dfa5b679377647607685b40c4e7922` | Both supplied inventory rows | SyntheticStudy2026:abstract-result; SyntheticStudy2026:abstract-limit | Both locators map to `source.md`; coverage remains `abstract_only` | No additional sources supplied | Revised inventory if authorized source coverage changes |\n| `references.bib` | `7509126f9fac8f97fb1b64913ef9c8a7b24e29f1018d2bd8d0352954323664c1` | Supplied bibliographic entry | SyntheticStudy2026 | Stable citekey; synthetic test material, not a published study | No external bibliographic verification | None for this bounded draft |\n| `required_claims.csv` | `db02780230ab49a181892946e5e479292c6712d606cf5c837154c46d2a9bae99` | Both supplied claim identifiers | C1; C2 | Required claim identities preserved | Contains no supporting evidence and does not list C3 | Retain C3 through continuity records |\n| `context/research_state.md` | `51933442a4bc42ba4015f86a925b74277294c7807238e552a6f54a07385a4b91` | Supplied current R2 state | F1-fixture-R2; DEC-001; DEC-002; C1; C2; C3; STG-B-001; STG-C-001 | Question, bounded contribution, corrected evidence position, scope and risks | No live project-state verification | Reconsider affected content after further source changes |\n| `context/decision_log.md` | `ad48d6d530a0969a87f0b6535648f295a822b151181d497fafb3196e190a1a64` | Both supplied locked decisions | DEC-001; DEC-002; C1; C2; C3 | Associational wording; current-source requirement; correction and revisit rules | No revised decision supplied | Reopen affected decisions when their triggers occur |\n| `context/stage_handoff.md` | `e2eda5aea08b7b9f3d7c31cd1743d5e9a6c525d6142d7a09843790df7b06464d` | Supplied current R2 handoff | DEC-001; DEC-002; C1; C2; C3; STG-C-001 | Required correction, historical-candidate status, unresolved questions and execution boundaries | No approval or empirical-execution evidence supplied | Resolve relevant gaps before expanding scope |\n| `context/stage_summaries/STG-B-001.md` | `cc0cdc285bb46f5f7294af1492a739311ff0bdba808463287dd3c1acf3165b0e` | Supplied historical partial B summary | STG-B-001; SyntheticStudy2026:abstract-result; SyntheticStudy2026:abstract-limit; C1; C2; C3 | R1 inventory history, including n = 120 and r = .32 | Historical record supplies no new research evidence; its source hash remains recorded as unavailable | Use R2 values downstream; preserve the historical record |\n| `context/stage_summaries/STG-C-001.md` | `10f01f5a97194a1397d605e53ee4ceaf1497d85242287780b9626645442aa824` | Entire supplied captured C candidate | STG-C-001; STG-B-001; C5-fixture-R1; DEC-001; DEC-002; C1; C2; C3; SyntheticStudy2026:abstract-result; SyntheticStudy2026:abstract-limit | Immediate predecessor, R1 values, design boundaries and unresolved issues | Unreviewed historical candidate; neither new source evidence nor approval for R2 | Carry this explicit correction with downstream reuse |\n\n## Changes Since Previous Summary\n\nSTG-C-001 reports **120 students and r = .32** in C1 and repeats **120 students** in its study-design boundary. Those statements reflect R1. The supplied current `source.md` explicitly corrects them to **118 students and r = .23**. Both the manuscript paragraph and the retained design boundary now use R2.\n\nSTG-C-001’s statement that no source correction had been supplied describes its historical R1 context. It cannot describe the current R2 evidence position. The direction of association and C2’s limits remain unchanged; the numerical correction does not establish a change between populations or time points.\n\nThe C candidate records the historical R1 source snapshot hash as `19758a19d9d51b6096b59bb4fbdfdabc4d60d02323c4021e3a81eb42c5f0130e`; the supplied R2 source hash is `624529b8a600cf9a41d7fb28908634a4b9965d9e1ffe1e24eb8946c42bcdc985`. These are supplied metadata. The explicit R2 correction and source content establish the correction recorded here; no hash was independently verified, and STG-B-001’s missing historical source hash has not been retrospectively filled.\n\nC1/C2/C3, DEC-001/DEC-002, citekey **SyntheticStudy2026**, and both full locators—**SyntheticStudy2026:abstract-result** and **SyntheticStudy2026:abstract-limit**—remain unchanged. STG-C-001 remains the predecessor. Its historical content and any R1 review do not qualify or approve R2.\n\n| Summary ID | Stage | Date | Document | Previous summary | Status |\n|---|---|---|---|---|---|\n| STG-B-001 | B | 2026-09-14 | Supplied `context/stage_summaries/STG-B-001.md` | none | Historical partial summary |\n| STG-C-001 | C | 2026-09-14 | Supplied captured `context/stage_summaries/STG-C-001.md` | STG-B-001 | Unreviewed historical candidate; captured text describes itself as partial/chat-only |\n| STG-F-001 | F | 2026-09-14 | This chat response; no saved document | STG-C-001 | Partial; chat-only R2 correction/handoff |\n\n## Decisions and Open Questions\n\n**DEC-001 remains locked:** use associational wording only. Its source basis remains `source.md`, specifically `SyntheticStudy2026:abstract-result` and `SyntheticStudy2026:abstract-limit`. New authorized evidence that changes identification assumptions may reopen this decision. The numerical correction alone does not do so.\n\n**DEC-002 remains locked:** use the current source revision, preserve unavailable full text and missing statistics, and explicitly reconcile changed source content. Its correction trigger is addressed here by comparing the supplied R2 text with the captured historical summaries. This is a bounded source comparison, with no inherited review approval or formal gate pass.\n\nC3 intervention benefit remains pending. Full text, confidence intervals, p-values, adjusted analysis, measurement and sampling details, and participant access remain unavailable or unspecified. The target venue remains undecided, and submission readiness is unestablished.\n\nFurther source changes require fresh review and an explicit correction of affected content. Authorized contradictory evidence or newly available methods and statistics require reassessment of the relevant claims and limits. Changed identification evidence may reopen DEC-001; adequate intervention evidence would be needed to reconsider C3. Continued access gaps remain blockers to stronger claims.\n\n## Next-Stage Handoff\n\nCarry forward the R2 paragraph with C1’s **118 students and r = .23**, C2’s abstract-only, causal and statistical limits, and C3’s `needs_evidence` status. Preserve DEC-001/DEC-002, **SyntheticStudy2026**, **SyntheticStudy2026:abstract-result** and **SyntheticStudy2026:abstract-limit**.\n\nUse STG-C-001 to retain historical continuity and design questions, alongside this correction. Future claim support must come from the applicable source revision; historical summaries supply neither new empirical evidence nor approval.\n\nD/E data collection and analysis execution remain unperformed in this exercise, and no ethics approval has been obtained here. This writing continuation establishes no formal research-gate pass, submission readiness or full lifecycle completion. No project files were written, overwritten or deleted, and no cleanup was performed."
+        }
+      }
+    }
+  ],
+  "source_text": {
+    "source.md": "# SyntheticStudy2026 — synthetic test source, not a published paper\n\n## abstract-result\nIn a cross-sectional survey of 120 students, study time was positively\nassociated with examination score (Pearson r = .32).\n\n## abstract-limit\nCausality cannot be inferred. No confidence interval, p-value or adjusted\nanalysis was supplied. Only this abstract is available; no full text was read.\n",
+    "revision-2/source.md": "# SyntheticStudy2026 — synthetic test source, not a published paper\n\nRevision R2 corrects the earlier synthetic abstract R1: the sample is 118, not\n120, and Pearson r = .23, not .32. This correction is not a new study or analysis.\nThe citekey, source anchors and C1/C2 claim identities are unchanged.\n\n## abstract-result\nIn a cross-sectional survey of 118 students, study time was positively\nassociated with examination score (Pearson r = .23).\n\n## abstract-limit\nCausality cannot be inferred. No confidence interval, p-value or adjusted\nanalysis was supplied. Only this abstract is available; no full text was read.\n"
+  },
+  "interpretation": [
+    "Attempt 1 remains structural 1/2 and coordinator-reviewed 1/2: C completed; F timed out at 180 seconds after 11 validated guidance reads with no turn.completed or answer.md.",
+    "Attempt 2 is structural 2/2 (19 assertions each) and coordinator-reviewed 2/2: C completed in 118.504 seconds with zero guidance reads, F in 147.478 seconds with five guidance reads.",
+    "The second attempt has a 360-second budget but completed both turns under 180 seconds. Its regenerated C answer, F prompt and guidance-read path differ from attempt 1. This cannot establish that the larger budget caused success or improved model quality.",
+    "Both attempts preserve the currently configured gpt-6-astra/xhigh on Codex CLI 0.154.0. The earlier short-lane observation used a different CLI/model; do not compare it as a same-condition measurement.",
+    "Full-span coordinator self-review is not independent human review, authenticated approval or automated entailment. Literal identity/heading and file hash assertions do not prove semantic continuity on their own.",
+    "All 8 C and 9 F source-coverage table path/hash pairs in attempt 2 match supplied input bytes including actual C predecessor. The model labels them supplied, not independently verified.",
+    "Both successful summaries label the coverage hash column Supplied snapshot SHA-256 instead of template wording Observed SHA-256. This honest provenance wording is advisory; strict template-column fidelity was not a predeclared gate.",
+    "No installed-Plugin activation, resumed Host session, project write, ethics approval, data collection, D/E execution, gate completion, model superiority, performance qualification or acceptance is established.",
+    "Raw events, stderr, command configuration, transient reports and any non-final reasoning remain local and are not embedded here. Hashes provide local provenance, not an authenticated transcript."
+  ]
+}

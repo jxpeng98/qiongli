@@ -1,17 +1,6 @@
-# Examples
+# 示例
 
-这一部分适合想看“具体范例”而不是抽象规则的使用者。
+- [按论文类型选择路线](paper-type-playbooks.md)：根据论文与现有材料选择研究任务。
+- [Research Graph](research-graph.md)：从研究摘录生成离线证据视图，附可复现步骤。
 
-## 示例页面
-
-- [Paper Type 路线图](/zh/examples/paper-type-playbooks)
-
-## 这部分适合什么
-
-- 看某一种 paper type 的标准路线
-- 看推荐的 Task ID 序列
-- 看这类论文通常会产出什么
-- 看什么时候该收窄，什么时候该走完整链
-
-如果你更需要按真实任务场景来选路径，请去 [任务场景](/zh/guide/task-recipes)。
-如果你更需要完整的 skill 地图，请去 [Skills 指南](/zh/reference/skills)。
+提出具体请求见[研究任务](../guide/task-recipes.md)，查询技能见 [Skills 指南](../reference/skills.md)。

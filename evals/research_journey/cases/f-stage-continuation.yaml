@@ -1,0 +1,141 @@
+schema_version: '1.0'
+case_id: f-stage-continuation
+pipeline: bounded-c-to-f-continuity
+input:
+  topic: 'Continue the same synthetic exercise at F using the supplied current R2
+    research_state, decision_log, stage_handoff, historical STG-B-001 and the actual
+    captured STG-C-001 candidate. Draft one bounded manuscript paragraph and a chat-only
+    STG-F-001 correction/handoff summary using the existing stage-summary sections
+    and source coverage. Reconcile the old summary with current source bytes: explain
+    earlier versus corrected sample/r values, preserving C1/C2/C3, DEC-001/DEC-002,
+    citekey SyntheticStudy2026 and both full source locators. Keep C3 pending, the
+    abstract-only and causal/statistical limits, unresolved questions and revisit
+    triggers. Retain STG-C-001 as predecessor, never as new source evidence or as
+    approval for R2. Do not claim D/E collection, ethics approval, analysis execution,
+    project writes, cleanup or full lifecycle completion. Return the requested prose
+    only; no separate reading artifacts or evaluator annotations.'
+expected_outputs:
+  source:
+    artifact: source.md
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: 624529b8a600cf9a41d7fb28908634a4b9965d9e1ffe1e24eb8946c42bcdc985
+  source_registry:
+    artifact: sources.csv
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: 86e73fd376b8544dc33686496e44d57068dfa5b679377647607685b40c4e7922
+  bibliography:
+    artifact: references.bib
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: 7509126f9fac8f97fb1b64913ef9c8a7b24e29f1018d2bd8d0352954323664c1
+  ledger:
+    artifact: ledger.csv
+    required: true
+    assertions:
+    - type: citation_identity
+      bibliography: references.bib
+    - type: locator_syntax
+      field: source_location
+    - type: field_constraint
+      field: evidence_type
+      allowed_values:
+      - paper
+      - gap_note
+  manuscript:
+    artifact: manuscript.csv
+    required: true
+    assertions:
+    - type: schema
+      schema: manuscript.schema.json
+    - type: cross_artifact_consistency
+      field: &id001
+      - claim_id
+      - source_id
+      - source_location
+      - artifact_path
+      - evidence_limit
+      - status
+      - claim_type
+      other_artifact: ledger.csv
+      other_field: *id001
+      relation: subset
+    - type: cross_artifact_consistency
+      field: &id002
+      - source_id
+      - source_location
+      - artifact_path
+      - evidence_limit
+      other_artifact: sources.csv
+      other_field: *id002
+      relation: subset
+    - type: field_constraint
+      field: status
+      allowed_values:
+      - supported
+    - type: field_constraint
+      field: claim_type
+      allowed_values:
+      - finding
+      - limitation
+  requested_claims:
+    artifact: required_claims.csv
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: db02780230ab49a181892946e5e479292c6712d606cf5c837154c46d2a9bae99
+    - type: cross_artifact_consistency
+      field: claim_id
+      other_artifact: manuscript.csv
+      other_field: claim_id
+      relation: subset
+  context/research_state.md:
+    artifact: context/research_state.md
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: 51933442a4bc42ba4015f86a925b74277294c7807238e552a6f54a07385a4b91
+  context/decision_log.md:
+    artifact: context/decision_log.md
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: ad48d6d530a0969a87f0b6535648f295a822b151181d497fafb3196e190a1a64
+  context/stage_handoff.md:
+    artifact: context/stage_handoff.md
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: e2eda5aea08b7b9f3d7c31cd1743d5e9a6c525d6142d7a09843790df7b06464d
+  context/stage_summaries/STG-B-001.md:
+    artifact: context/stage_summaries/STG-B-001.md
+    required: true
+    assertions:
+    - type: file_digest
+      sha256: cc0cdc285bb46f5f7294af1492a739311ff0bdba808463287dd3c1acf3165b0e
+  continuity_identity:
+    artifact: answer.md
+    required: true
+    assertions:
+    - type: contains_all
+      values:
+      - C1
+      - C2
+      - C3
+      - DEC-001
+      - DEC-002
+      - SyntheticStudy2026:abstract-result
+      - SyntheticStudy2026:abstract-limit
+      - STG-C-001
+      - STG-F-001
+      - R2
+      - '## Stage Outcome'
+      - '## Retained Research Content'
+      - '## Source Coverage'
+      - '## Changes Since Previous Summary'
+      - '## Decisions and Open Questions'
+      - '## Next-Stage Handoff'

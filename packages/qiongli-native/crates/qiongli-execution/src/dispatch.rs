@@ -282,6 +282,14 @@ impl FullProjectReadService {
         };
         if argument_project_id(self.tool, request.arguments)
             .is_some_and(|argument_id| argument_id != project_id.as_str())
+            || (matches!(
+                self.tool,
+                FullProjectToolId::DocumentRead | FullProjectToolId::DocumentList
+            ) && request
+                .arguments
+                .get("expected_project_revision")
+                .and_then(Value::as_u64)
+                != Some(revision))
         {
             return Err(static_service_error("tool-project-scope-mismatch"));
         }
@@ -297,6 +305,8 @@ fn argument_project_id(tool: FullProjectToolId, arguments: &Value) -> Option<&st
             .pointer("/capture/binding/project_id")
             .and_then(Value::as_str),
         FullProjectToolId::Read
+        | FullProjectToolId::DocumentRead
+        | FullProjectToolId::DocumentList
         | FullProjectToolId::GraphSnapshot
         | FullProjectToolId::GraphQuery
         | FullProjectToolId::ArtifactChanges
@@ -311,10 +321,12 @@ fn static_service_error(reason_code: &'static str) -> ToolServiceError {
     ToolServiceError::new(reason_code).expect("shared service reason codes are valid")
 }
 
-fn full_project_tools() -> [FullProjectToolId; 9] {
+fn full_project_tools() -> [FullProjectToolId; 11] {
     [
         FullProjectToolId::List,
         FullProjectToolId::Read,
+        FullProjectToolId::DocumentRead,
+        FullProjectToolId::DocumentList,
         FullProjectToolId::GraphSnapshot,
         FullProjectToolId::GraphPortfolio,
         FullProjectToolId::GraphQuery,
@@ -666,6 +678,44 @@ mod tests {
     }
 
     #[test]
+    fn saved_document_handler_rejects_project_and_revision_substitution() {
+        let fixture_root =
+            std::env::temp_dir().join(format!("qiongli-document-scope-{}", std::process::id()));
+        let config =
+            resolve_config_root(Some(fixture_root.as_os_str()), &fixture_root.join("home"))
+                .unwrap();
+        for tool in [
+            FullProjectToolId::DocumentRead,
+            FullProjectToolId::DocumentList,
+        ] {
+            let handler = FullProjectReadService {
+                service: FullProjectService::new(ProjectStateService::new(config.clone())),
+                tool,
+            };
+            let allowed = ProjectId::parse(format!("prj_{}", "1".repeat(32))).unwrap();
+            let substituted = ProjectId::parse(format!("prj_{}", "2".repeat(32))).unwrap();
+            for arguments in [
+                json!({"project_id":substituted.as_str(),"expected_project_revision":1}),
+                json!({"project_id":allowed.as_str(),"expected_project_revision":2}),
+                json!({"project_id":allowed.as_str()}),
+            ] {
+                let error = handler
+                    .invoke(
+                        ReadOnlyToolRequest {
+                            arguments: &arguments,
+                            project_id: Some(&allowed),
+                            expected_project_revision: Some(1),
+                            project_root: Some(&fixture_root),
+                        },
+                        &CancellationToken::new(),
+                    )
+                    .unwrap_err();
+                assert_eq!(error.reason_code(), "tool-project-scope-mismatch");
+            }
+        }
+    }
+
+    #[test]
     fn shared_full_project_list_dispatches_through_the_same_service() {
         let fixture_root = std::env::temp_dir().join(format!(
             "qiongli-tool-host-read-only-{}",
@@ -678,7 +728,7 @@ mod tests {
             ProjectStateService::new(config),
         ))
         .unwrap();
-        assert_eq!(host.registry().len(), 9);
+        assert_eq!(host.registry().len(), 11);
 
         let registration = host
             .registry()

@@ -1,0 +1,250 @@
+{
+  "schema": "qiongli-public-paper-regressions/v1",
+  "scope": "Offline replay of five selected spans from unchanged actual answers, using research_journey.observe.project. Coordinator model judgments are frozen annotations, not an automatic semantic oracle or a whole-answer/Host pass. Null events_sha256 means this adapter does not have a captured event stream. Original failed units and attribution remain failures.",
+  "reviewer": {
+    "kind": "model",
+    "id": "/root",
+    "relationship": "coordinator review; not human/expert certification"
+  },
+  "files": {
+    "manifest.json": "fb9f1279115f22d41fca225642a16ad2cfcf66c882115b4fd8c8f814c28b5b0a",
+    "quantitative-education/continuation-source.md": "d226a53c7eb2741900d0f03f8584eb82639d601362843bf4af323e79a4b15244",
+    "quantitative-education/observations/claude-execution.json": "2469f71b1d88cf78ee391a057e4d305a95b8aeadff9f5caf3f0aa95d765083c0",
+    "quantitative-education/observations/claude-q1-review.md": "0dad5c1ece4c7bb4ba2b647440dfbc1db1fe65e157fb666cbad4ef8398416278",
+    "quantitative-education/observations/q3-answer.md": "3d1230c8ba5481509bbe4a86f576c6c0ac2d66992a162cc9510b57e6b55aa5e6",
+    "quantitative-education/observations/r1-answer.md": "05730f1badaaed42a6f104f57021eb97a0bd2adbae9ac8c41e8b9a15f69c9ff8",
+    "quantitative-education/observations/r2-answer.md": "bbca19307461c20bb0db97675af677810dbd1ac80412b760dcb153163a39d703",
+    "quantitative-education/source.md": "8cdb89377b9991d0dda5192e10e4e4cd93d55f3181c2e6ac3ae9bcb462af3917",
+    "quantitative-education/tables-manifest.json": "f865b00eac01a6903974317f19a9f535e2819da276730b2fdb1323adfaca8530",
+    "quantitative-education/tables-source.md": "3eca31d16e9ddf2803697236fe9f904c3a86f4743756f8b0bb930c92d4b7ac34",
+    "systematic-review-audit/answer.md": "f67482c24ab4d90a84837ba70eecd4bdc4f5b77c03476e80cbaf485fc93f1c3b",
+    "systematic-review-audit/source.md": "02d8e40e2a8ebb565c94b8e6032f7097f45e59f7d6c7aad9be6c33b5f3b445fc"
+  },
+  "cases": [
+    {
+      "id": "units",
+      "answer_file": "quantitative-education/observations/r1-answer.md",
+      "answer_sha256": "05730f1badaaed42a6f104f57021eb97a0bd2adbae9ac8c41e8b9a15f69c9ff8",
+      "start": 2543,
+      "end": 3004,
+      "expected": "fail",
+      "source": {
+        "source_id": "Ritchie2013Retrieval",
+        "source_location": "Ritchie2013Retrieval:adjusted-findings",
+        "artifact_path": "quantitative-education/source.md",
+        "evidence_limit": "Supplied selected source material only; see frozen scope and source digest."
+      },
+      "review": {
+        "answer_sha256": "1635d318577d0705193a6e3fbf3bc48747806c5317dc43faae51dabe9a72b13c",
+        "events_sha256": null,
+        "segments": [
+          {
+            "start": 0,
+            "end": 461,
+            "quote": "| Q-C2 / `Ritchie2013Retrieval` | 作者报告调整后检索组回忆更多：F(1,104)=6.33，p=.01，偏η²=.06。导图主效应p=.17；交互F(1,104)=10.66，p=.001，偏η²=.09。事后比较：非检索条件下导图较非导图高14.93个百分点（原文写为%），p=.001；检索条件下差异−6.16个百分点，p=.19。来源：`Ritchie2013Retrieval:adjusted-findings`；模型与测量范围见 `Ritchie2013Retrieval:analysis`、`Ritchie2013Retrieval:testing`。 | **支持“作者报告该情境下调整后平均回忆差异”及有限的实验性提示。** 交互存在，不能断言两种笔记条件下检索均显著有效；事后数字是导图有无之差，不是检索的总体提升。偏η²=.06不是成绩提高6个百分点；p=.19也不证明两条件等效。缺少单元均值、区间及可复核数据，无法判定绝对教育收益或校正后的推断是否保持。 |\n",
+            "role": "reading",
+            "links": [
+              {
+                "claim_id": "Q-C2",
+                "source_location": "Ritchie2013Retrieval:adjusted-findings",
+                "status": "needs_evidence",
+                "claim_type": "finding"
+              }
+            ],
+            "verdict": "fail",
+            "reason": "Q1 changes author-reported percentages to definite percentage points. Actual tables/supplement do not supply the post-hoc scale conversion. Preserve author labels and calculation gap; do not substitute Table 1 descriptive subtraction."
+          }
+        ],
+        "checks": {
+          "units": {
+            "status": "fail",
+            "segments": [
+              0
+            ],
+            "reason": "Q1 changes author-reported percentages to definite percentage points. Actual tables/supplement do not supply the post-hoc scale conversion. Preserve author labels and calculation gap; do not substitute Table 1 descriptive subtraction."
+          }
+        }
+      }
+    },
+    {
+      "id": "denominators",
+      "answer_file": "quantitative-education/observations/q3-answer.md",
+      "answer_sha256": "3d1230c8ba5481509bbe4a86f576c6c0ac2d66992a162cc9510b57e6b55aa5e6",
+      "start": 3527,
+      "end": 3770,
+      "expected": "pass",
+      "source": {
+        "source_id": "Ritchie2013Retrieval",
+        "source_location": "Ritchie2013Retrieval:table-s4",
+        "artifact_path": "quantitative-education/tables-source.md",
+        "evidence_limit": "Supplied selected source material only; see frozen scope and source digest."
+      },
+      "review": {
+        "answer_sha256": "d631e52d0a754decf15abdd19c2c3b01c36f2e6f1620d40f07a261208a8437a6",
+        "events_sha256": null,
+        "segments": [
+          {
+            "start": 0,
+            "end": 243,
+            "quote": "| `:table-s4` | 按检索/导图、检索/非导图、非检索/导图、非检索/非导图的顺序，跨年级相加为26、26、26、30，总108。Primary 5 的单元相加为58，汇总行28+30也为58，但该行印刷 Total 是38；Primary 7 为24+26=50。 | 按单元复核后与表1边际人数相符，38 与该行加法不符。保留印刷38并标出算术冲突，不把58冒充已确认勘误。表注称仅含所有测试时间均有数据者，但未解释与109参与者、笔记缺失及各模型人数的完整关系。 |\n",
+            "role": "reading",
+            "links": [
+              {
+                "claim_id": "Q-C1",
+                "source_location": "Ritchie2013Retrieval:table-s4",
+                "status": "supported",
+                "claim_type": "finding"
+              }
+            ],
+            "verdict": "pass",
+            "reason": "Q3 preserves printed 38, independently sums 28+30=58 and total108, and does not invent a correction or missing-data explanation. This is the selected row only, not a whole-answer pass."
+          }
+        ],
+        "checks": {
+          "denominators": {
+            "status": "pass",
+            "segments": [
+              0
+            ],
+            "reason": "Q3 preserves printed 38, independently sums 28+30=58 and total108, and does not invent a correction or missing-data explanation. This is the selected row only, not a whole-answer pass."
+          }
+        }
+      }
+    },
+    {
+      "id": "abstract_body",
+      "answer_file": "systematic-review-audit/answer.md",
+      "answer_sha256": "f67482c24ab4d90a84837ba70eecd4bdc4f5b77c03476e80cbaf485fc93f1c3b",
+      "start": 1905,
+      "end": 2151,
+      "expected": "pass",
+      "source": {
+        "source_id": "Trumble2023Review",
+        "source_location": "Trumble2023Review:experiment-denominator",
+        "artifact_path": "systematic-review-audit/source.md",
+        "evidence_limit": "Supplied selected source material only; see frozen scope and source digest."
+      },
+      "review": {
+        "answer_sha256": "f3d20ccaa030a48cd3cdf58ef81acd01194d978428ac504461fd9966be0e0405",
+        "events_sha256": null,
+        "segments": [
+          {
+            "start": 0,
+            "end": 246,
+            "quote": "| 63；43 | 56项研究中部分包含多个实验，因此合计63个实验。正文及结论明确：其中43个实验显示分散练习和/或提取练习相对集中练习、重读、常规课堂或无干预有显著正向效果。摘要却写“43 studies”；课程说明宜引用正文的“43/63个实验”，同时披露这一用词差异。 | `Trumble2023Review:experiment-denominator`、`Trumble2023Review:conclusion`、`Trumble2023Review:abstract` |\n",
+            "role": "reading",
+            "links": [
+              {
+                "claim_id": "S-C2",
+                "source_location": "Trumble2023Review:experiment-denominator",
+                "status": "supported",
+                "claim_type": "finding"
+              }
+            ],
+            "verdict": "pass",
+            "reason": "The actual source abstract says43 studies; body states43 of63 experiments. The answer preserves the discrepancy and uses the body denominator, without silently reconciling reports and studies."
+          }
+        ],
+        "checks": {
+          "abstract_body": {
+            "status": "pass",
+            "segments": [
+              0
+            ],
+            "reason": "The actual source abstract says43 studies; body states43 of63 experiments. The answer preserves the discrepancy and uses the body denominator, without silently reconciling reports and studies."
+          }
+        }
+      }
+    },
+    {
+      "id": "source_revision",
+      "answer_file": "quantitative-education/observations/r2-answer.md",
+      "answer_sha256": "bbca19307461c20bb0db97675af677810dbd1ac80412b760dcb153163a39d703",
+      "start": 0,
+      "end": 226,
+      "expected": "pass",
+      "source": {
+        "source_id": "Ritchie2013Retrieval",
+        "source_location": "Ritchie2013Retrieval:covariate-sensitivity",
+        "artifact_path": "quantitative-education/continuation-source.md",
+        "evidence_limit": "Supplied selected source material only; see frozen scope and source digest."
+      },
+      "review": {
+        "answer_sha256": "1c42a47fe6c435aea34a4786c7700de9584b060aa1f350138af126d06a5997a0",
+        "events_sha256": null,
+        "segments": [
+          {
+            "start": 0,
+            "end": 226,
+            "quote": "已读取并核对实际上一轮答复，其 SHA-256 为 `05730f1badaaed42a6f104f57021eb97a0bd2adbae9ac8c41e8b9a15f69c9ff8`，与本轮交接值一致。当前依据为原 R1 选段加 R2-addendum 两段新增正文，仍使用 citekey `Ritchie2013Retrieval`。这是同一论文的阅读范围扩大，不是勘误或新研究。本轮仅追加受影响判断，R1、原答复及 STG-Q1 的历史保留。\n",
+            "role": "reading",
+            "links": [
+              {
+                "claim_id": "Q-C2",
+                "source_location": "Ritchie2013Retrieval:covariate-sensitivity",
+                "status": "supported",
+                "claim_type": "finding"
+              }
+            ],
+            "verdict": "pass",
+            "reason": "The actual continuation binds Q1 and expanded access to the same XML; it does not invent a paper correction or treat the old review as fresh source evidence."
+          }
+        ],
+        "checks": {
+          "source_revision": {
+            "status": "pass",
+            "segments": [
+              0
+            ],
+            "reason": "The actual continuation binds Q1 and expanded access to the same XML; it does not invent a paper correction or treat the old review as fresh source evidence."
+          }
+        }
+      }
+    },
+    {
+      "id": "review_attribution",
+      "answer_file": "quantitative-education/observations/claude-q1-review.md",
+      "answer_sha256": "0dad5c1ece4c7bb4ba2b647440dfbc1db1fe65e157fb666cbad4ef8398416278",
+      "start": 3454,
+      "end": 3544,
+      "expected": "fail",
+      "source": {
+        "source_id": "ClaudeQ1",
+        "source_location": "ClaudeQ1:execution",
+        "artifact_path": "quantitative-education/observations/claude-execution.json",
+        "evidence_limit": "Supplied selected source material only; see frozen scope and source digest."
+      },
+      "review": {
+        "answer_sha256": "a4bee3c6d4a8c7a36c0b3e96e59786fdab9c9af25babb099954663f1051c0832",
+        "events_sha256": null,
+        "segments": [
+          {
+            "start": 0,
+            "end": 90,
+            "quote": "【Verification Evidence】未运行：本次未执行任何工具操作、检索或复算，不声称任何自动化验证；全部「支持」判断出自对包内锚点文本的人工比对，不可读材料保持为缺项。",
+            "role": "reading",
+            "links": [
+              {
+                "claim_id": "REVIEW-ATTRIBUTION",
+                "source_location": "ClaudeQ1:execution",
+                "status": "needs_evidence",
+                "claim_type": "finding"
+              }
+            ],
+            "verdict": "fail",
+            "reason": "A model-generated comparison calls its review human comparison. Actual configured Claude Code transport ran deepseek-v4-pro[1m]; correct attribution is model review. Original review remains unchanged."
+          }
+        ],
+        "checks": {
+          "review_attribution": {
+            "status": "fail",
+            "segments": [
+              0
+            ],
+            "reason": "A model-generated comparison calls its review human comparison. Actual configured Claude Code transport ran deepseek-v4-pro[1m]; correct attribution is model review. Original review remains unchanged."
+          }
+        }
+      }
+    }
+  ]
+}

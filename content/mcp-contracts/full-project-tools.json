@@ -156,7 +156,7 @@
     },
     {
       "name": "qiongli_project_capture_preview",
-      "description": "Validate and preview one connected normalized research capture against its bound article project without writing project state.",
+      "description": "Validate and preview a connected research capture without writing. For a new draft omit only capture_id; the existing owner computes it and returns capture plus planDigest. Apply must use that returned capture unchanged. Supplied identities are validated, never repaired.",
       "inputSchema": {
         "type": "object",
         "required": ["capture"],
@@ -275,10 +275,10 @@
           },
           "capture": {
             "type": "object",
+            "description": "New drafts omit capture_id. Envelope schema_version and document_kind, and all binding fields, remain required.",
             "required": [
               "schema_version",
               "document_kind",
-              "capture_id",
               "binding",
               "source",
               "delivery",
@@ -545,6 +545,83 @@
             "additionalProperties": false
           }
         }
+      }
+    },
+    {
+      "name": "qiongli_project_document_read",
+      "description": "Read a bounded UTF-8 window of an explicitly selected saved paper note, source packet or retrieval_manifest.csv in a registered project. Requires the expected project revision and whole-file SHA-256 from prior authorized preview/receipt/file evidence. Recheck the same digest on every continuation; this is a local snapshot, not report verification, Graph authority or permission to write.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "project_id",
+          "expected_project_revision",
+          "relative_path",
+          "expected_sha256"
+        ],
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "pattern": "^prj_[0-9a-f]{32}$"
+          },
+          "expected_project_revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "relative_path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Only notes/<citekey>.md, sources/<citekey>/<sha256>.json, or retrieval_manifest.csv; never an absolute path."
+          },
+          "expected_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "offset_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
+          },
+          "max_bytes": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 65536,
+            "default": 16384
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "qiongli_project_document_list",
+      "description": "List saved paper-note, source-packet and retrieval-manifest bindings from validated consolidation receipts in one registered project. Read the current project revision first. Only current entries supply readArguments for qiongli_project_document_read; missing, changed or unavailable files require review, never a substituted hash. Pages are sorted by relative path; continuation requires the same revision and bindingsSha256. This is bounded local history, not remote verification, a file scan or write permission.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["project_id", "expected_project_revision"],
+        "properties": {
+          "project_id": { "type": "string", "pattern": "^prj_[0-9a-f]{32}$" },
+          "expected_project_revision": { "type": "integer", "minimum": 1 },
+          "offset": { "type": "integer", "minimum": 0, "default": 0 },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 64, "default": 32 },
+          "expected_bindings_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Required for offset > 0. Use bindingsSha256 from the preceding list page; binds the complete saved receipt/capture set, not current file bytes."
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
       }
     }
   ]

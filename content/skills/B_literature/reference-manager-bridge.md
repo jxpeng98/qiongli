@@ -75,8 +75,8 @@ generate import files instead of attempting an unsafe write.
 - `references.json` and `references.ris` when already present.
 - If inputs are missing or insufficient, write
   `RESEARCH/[topic]/context/gap_notes.md` or `zotero-import-report.md` conflict
-  notes. Do not invent titles, authors, years, venues, DOIs, abstracts, or
-  citekeys.
+  notes. Do not invent titles, authors, years, venues, DOIs or abstracts. Preserve explicit citekeys; when absent, use the export
+  owner’s stable generated keys.
 - Treat bibliography entries, provider metadata, local Zotero records, Crossref
   verification, and notes as evidence sources with different authority levels.
 
@@ -95,9 +95,16 @@ Collect references from:
 
 Normalize each record into fields: `citekey`, `title`, `authors`, `year`,
 `venue`, `doi`, `url`, `abstract`, `provider`, `source_id`, `status`, and
-`tags`.
+`tags`. Keep `record_type`, `published_date`, `volume`, `issue`, `pages`,
+`publisher` and `metadata_conflicts` when available. Export accepts only its
+declared fields: omit bridge-only `abstract`, `status`, `tags` and note fields
+from `qiongli_zotero_export_import_files.records`.
 
 ### 2. Resolve duplicates and conflicts
+
+Treat matching keys as identity candidates. Check version, edition, identifiers
+and publication type first; preserve distinct versions even if a preprint
+reports the DOI of its later formal publication.
 
 Deduplicate in this order:
 
@@ -114,6 +121,11 @@ When the user explicitly requests their existing library, call
 `qiongli_zotero_search` with at least one DOI, title, citekey, or year filter.
 Do not use Zotero as an implicit discovery provider.
 
+Preserve source ID, source URL, ordered authors, publication type/date and existing
+citekey through normalization. `citekey` links Qiongli artifacts; it is not a
+native Zotero item field. Do not write it as an invented Zotero property or infer
+that a third-party citekey plugin is installed.
+
 ### 3. Generate export files
 
 Always keep `bibliography.bib` as the canonical Qiongli export target. Generate
@@ -124,6 +136,12 @@ unavailable:
 - `RESEARCH/[topic]/references.ris`
 - `RESEARCH/[topic]/references.json`
 - `RESEARCH/[topic]/zotero-import-report.md`
+
+Pass `qiongli_zotero_export_import_files.records` as an array of objects, not
+serialized strings. Request only the needed formats, inspect the returned files
+for author order, entry type, DOI/date and stable citekeys, and record missing
+fields/conflicts. Use `metadata-enricher` to confirm identity and authoritative
+metadata before describing the bibliography as verified.
 
 ### 4. Write to local Zotero only after explicit confirmation
 
@@ -142,12 +160,26 @@ Local Zotero sync sequence:
    collections, and notes unless the user selects `update_policy:
    "prefer_enriched"`.
 8. Add Qiongli review tags such as `qiongli:imported`,
-   `qiongli:needs-review`, `qiongli:crossref-verified`, and
-   `qiongli:metadata-conflict`.
+   `qiongli:needs-review` and `qiongli:metadata-conflict`. Use
+   `qiongli:crossref-verified` only when the returned verification evidence
+   establishes the intended record and checked fields; never tag a provider hit
+   as verified merely because Crossref was configured or returned a result.
 9. When paper-reading notes are available, pass them as per-record
    `reading_note`, `reading_notes`, `notes`, or structured `note` fields so the
    companion writes them as Zotero child notes. Do not place reading notes in
    `abstractNote` or `extra`.
+
+After apply, inspect each returned result. In the existing import report retain
+`record_id`, `citekey`, `source_id`, `item_key`, `select_uri`, library scope and
+created/updated/unchanged/skipped/failed status. Use only returned item keys and
+select URIs; verify library scope before deriving a group link. Preserve this
+mapping on retry and recheck the actual target instead of creating duplicates.
+The current Companion targets the personal library. Its DOI and exact arXiv/PMID
+URL checks precede unique title/year fallback; distinct source versions/types are
+not merged through that fallback. Remove confirmed within-batch duplicates before
+preview (`duplicate_items` rejects them); never discard an unresolved version.
+Changed inputs, stale receipts, cancellation or partial failure require a new
+reviewed dry-run as appropriate. A successful dry-run is not a successful import.
 
 ### 5. Fall back safely
 
@@ -157,6 +189,9 @@ disabled, or an upsert fails, generate import files with
 summary, Crossref verification summary, and manual import instructions.
 
 ## Output Contract
+
+Produce the formats requested by the user; these are canonical destinations
+when that artifact is needed, not a requirement to generate every format.
 
 - `Bibliography`: write `RESEARCH/[topic]/bibliography.bib`.
 - `RISExport`: write `RESEARCH/[topic]/references.ris`.
@@ -189,7 +224,7 @@ summary, Crossref verification summary, and manual import instructions.
       policy.
 - [ ] Paper-reading notes are written as child notes, not into abstract or extra
       metadata fields.
-- [ ] Import-file fallback produces JSON, RIS, BibTeX, and report artifacts.
+- [ ] Import-file fallback produces the requested formats and a report.
 
 ## Common Pitfalls
 

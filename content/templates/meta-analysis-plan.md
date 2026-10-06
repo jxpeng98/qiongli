@@ -3,6 +3,7 @@
 <!--
 Usage:
 - Use this document to pre-specify how you will synthesize outcomes (meta-analysis, narrative, qualitative).
+- Use the decision guidance in references/stage-E-synthesis.md; complete applicable sections only.
 - Aligns with PRISMA 2020: items 12–15 and 13d–13f.
 Save to: RESEARCH/[topic]/meta_analysis_plan.md
 -->
@@ -23,6 +24,9 @@ Save to: RESEARCH/[topic]/meta_analysis_plan.md
 | O2 | | | | Meta-analysis / Narrative / Qualitative | |
 
 **Direction Convention:** Define what “positive” means for each outcome (e.g., lower score = better).
+
+For each consequential choice, record its source basis, missing prerequisite and
+condition to proceed or revisit. Reuse decision IDs from `context/decision_log.md`.
 
 ---
 
@@ -52,12 +56,16 @@ Define how studies will be grouped for each synthesis:
 - Repeated measures handling (change scores, correlation assumptions):
 
 ### Handling missing or incomplete reporting
-- Contact authors? (Y/N)
+- Missing information and source/recovery action (contact requires actual authorization):
 - Derive SE from CI/p-values? (rules below)
 - Imputation rules (if any):
 
-**SE from 95% CI (on the analysis scale):**
-- `SE ≈ (upper - lower) / (2 * 1.96)`
+**Derivation conditions:** For a symmetric normal-based 95% interval on the
+analysis scale, `SE ≈ (upper - lower) / (2 * 1.96)`. Ratio measures generally need
+the log scale. Check the interval method/level; t-based intervals need the
+appropriate critical value/degrees of freedom, and other interval constructions
+may not permit this recovery. Record the source and assumptions; otherwise leave
+the variance unavailable. See the applicable [effect-measure guidance](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-06).
 
 ---
 
@@ -70,13 +78,13 @@ For each outcome, specify the *analysis scale*:
 | O1 | OR / RR / SMD / MD / Fisher’s z / etc. | log-scale / raw / z | |
 
 ### Model choice and estimators
-- Fixed vs random effects (default: random):
+- Effect model and target quantity (justify its assumptions):
 - Between-study variance (τ²) estimator: DL / REML / Paule-Mandel / other
 - CI method: normal / Hartung-Knapp / other
 
 ### Heterogeneity (PRISMA item 13e)
 - Statistics to report: I², τ², Q
-- Thresholds for action (contextual):
+- Evidence that would change grouping, model or claim scope:
 - Planned subgroup analyses:
 - Planned meta-regression (only if enough studies; specify covariates):
 
@@ -90,14 +98,15 @@ Pre-specify:
 ### Small-study effects / missing results (PRISMA item 14)
 Planned assessments (choose as appropriate):
 - Funnel plot:
-- Egger’s test (requires ~10+ studies; interpret cautiously):
+- Small-study-effects test (justify applicability and information available):
 - Trim-and-fill (exploratory):
 
 ---
 
 ## 5) Certainty / Confidence in Evidence (Optional)
 
-If using GRADE (recommended for clinical/health-style questions):
+Use the framework required by the protocol or justified for the review question;
+if using GRADE:
 - Outcomes assessed:
 - Downgrade/upgrade rules:
 - Planned Summary of Findings table: `RESEARCH/[topic]/grade_sof.md`
@@ -109,8 +118,8 @@ If using GRADE (recommended for clinical/health-style questions):
 - Data source: `RESEARCH/[topic]/effect_size_table.md` (and optional CSV export)
 - Code location: `RESEARCH/[topic]/analysis/`
 - Tools:
-  - R: `metafor`, `meta`
-  - Python: pandas/numpy + custom random-effects implementation
+  - Available implementation and version appropriate to the chosen method:
+  - Input/output identity and checks needed before results can feed writing:
 
 ---
 
@@ -119,4 +128,3 @@ If using GRADE (recommended for clinical/health-style questions):
 | Date | Change | Rationale |
 |------|--------|-----------|
 | | | |
-

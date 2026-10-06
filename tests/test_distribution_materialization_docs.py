@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import tomllib
 from pathlib import Path
 
 
@@ -128,7 +129,7 @@ class DistributionMaterializationDocsTests(unittest.TestCase):
 
     def test_subject_development_docs_point_to_staged_package_contract_tests(self) -> None:
         docs = {
-            "README.md": README_PATH.read_text(encoding="utf-8"),
+            "docs/development/index.md": (REPO_ROOT / "docs/development/index.md").read_text(encoding="utf-8"),
             "docs/reference/cli.md": CLI_DOC.read_text(encoding="utf-8"),
             "docs/zh/reference/cli.md": CLI_ZH_DOC.read_text(encoding="utf-8"),
         }
@@ -139,20 +140,19 @@ class DistributionMaterializationDocsTests(unittest.TestCase):
                 self.assertIn("staged materialization", content)
                 self.assertIn("npm package contract tests", content)
 
-    def test_publish_docs_use_staged_preflight_roots_for_manual_checks(self) -> None:
-        docs = {
-            "docs/advanced/publish-pypi.md": PUBLISH_PYPI_DOC.read_text(encoding="utf-8"),
-            "docs/zh/advanced/publish-pypi.md": PUBLISH_PYPI_ZH_DOC.read_text(encoding="utf-8"),
-        }
-
-        for path, content in docs.items():
+    def test_publish_docs_use_native_release_gate(self) -> None:
+        manifest = tomllib.loads((REPO_ROOT / "packages/qiongli-native/Cargo.toml").read_text())
+        version = manifest["workspace"]["package"]["version"]
+        for path in (PUBLISH_PYPI_DOC, PUBLISH_PYPI_ZH_DOC):
+            content = path.read_text(encoding="utf-8")
             with self.subTest(path=path):
-                self.assertIn("--out /tmp/qiongli-dist --force", content)
-                self.assertIn("bash scripts/pypi_preflight.sh --root /tmp/qiongli-dist", content)
-                self.assertIn("bash scripts/npm_preflight.sh --root /tmp/qiongli-dist", content)
-                self.assertNotIn("bash scripts/pypi_preflight.sh\n", content)
-                self.assertNotIn("bash scripts/pypi_preflight.sh --no-build\n", content)
-                self.assertNotIn("inject_project_toml.sh --root", content)
+                self.assertIn(f"--version {version} --cli-github", content)
+                self.assertIn("--staging-dir", content)
+                self.assertIn("release-automation.yml", content)
+                self.assertIn("mode=post", content)
+                self.assertIn("CARGO_REGISTRY_TOKEN", content)
+                self.assertNotIn("native registry publication remains disabled", content)
+                self.assertNotIn("bash scripts/pypi_preflight.sh", content)
 
     def test_docs_show_unified_materializer_commands(self) -> None:
         content = DOC_PATH.read_text(encoding="utf-8")

@@ -3350,7 +3350,7 @@ fn prepare_host_plugin_plan(
     )
 }
 
-fn resolve_host_plugin_executable(
+pub(crate) fn resolve_host_plugin_executable(
     home: &Path,
     name: &str,
     discovered: &Path,
@@ -3363,6 +3363,8 @@ fn resolve_host_plugin_executable(
     let installed = match name {
         "codex" => home.join(".local/share/mise/installs/codex/latest/bin/codex"),
         "claude" => home.join(".local/share/mise/installs/claude-code/latest/claude"),
+        "agy" => home
+            .join(".local/share/mise/installs/aqua-google-antigravity-antigravity-cli/latest/agy"),
         _ => return Err("host-plugin-executable-unavailable"),
     };
     fs::canonicalize(installed).map_err(|_| "host-plugin-executable-unavailable")
@@ -6277,9 +6279,11 @@ impl NativeDesktopService {
         }
         let prepared = crate::update_reconcile::prepare_update_reconciliation(
             &crate::update_reconcile::ReconciliationPreparation {
+                cli_update: None,
+                native_release: None,
                 store: &store,
                 transaction_id: &transaction_id,
-                target_version: &product.manifest().artifact.version,
+                target_version: &product.artifact().version,
                 content: &self.content,
                 platform_home: product.home(),
                 claude_config_root: &claude_config_root,
@@ -8050,6 +8054,37 @@ impl DesktopService for NativeDesktopService {
                     .active_operation
                     .take()
                     .expect("validated active operation remains available");
+                let _write_guard = if matches!(
+                    &operation,
+                    PendingDesktopOperation::SkillsMaterialization { .. }
+                        | PendingDesktopOperation::SkillsRemoval { .. }
+                        | PendingDesktopOperation::SkillsDetach { .. }
+                        | PendingDesktopOperation::WorkflowVariantChange { .. }
+                        | PendingDesktopOperation::CliInstall { .. }
+                        | PendingDesktopOperation::CliRemove { .. }
+                        | PendingDesktopOperation::CliPathConfigure { .. }
+                        | PendingDesktopOperation::Activation { .. }
+                        | PendingDesktopOperation::Candidate { .. }
+                        | PendingDesktopOperation::PackagedProduct { .. }
+                        | PendingDesktopOperation::PackagedProductBatch { .. }
+                        | PendingDesktopOperation::IntegrationReconciliation { .. }
+                        | PendingDesktopOperation::PackagedProductRemoval { .. }
+                ) {
+                    let guard = (|| {
+                        crate::update_reconcile::acquire_managed_write_guard(
+                            self.environment
+                                .platform_home()
+                                .ok_or("native-candidate-home-unavailable")?,
+                            config_root(&self.environment).map_err(|error| error.reason_code())?,
+                        )
+                    })();
+                    match guard {
+                        Ok(guard) => guard,
+                        Err(code) => return DesktopEvent::Failed { code },
+                    }
+                } else {
+                    None
+                };
                 match operation {
                     PendingDesktopOperation::Blocked(_) => DesktopEvent::Failed {
                         code: "desktop-apply-unavailable",
@@ -9085,7 +9120,7 @@ fn zotero_version_is_incompatible(version: Option<&str>) -> bool {
     let Some(version) = version.and_then(|value| semver::Version::parse(value).ok()) else {
         return false;
     };
-    version.major < 8 || version.major > 9 || version.major == 9 && version.minor > 0
+    version.major < 8 || version.major > 10 || version.major == 10 && version.minor > 0
 }
 
 #[cfg(target_os = "macos")]
@@ -9503,6 +9538,39 @@ pub(crate) fn verify_running_packaged_product(
         Ok(path) => path,
         Err(_) => return Err("packaged-product-executable-invalid"),
     };
+    if process_executable.starts_with(home.join(".qiongli/native/payloads")) {
+        return qiongli_platform::verify_native_packaged_product(
+            content.pack(),
+            &authority,
+            home,
+            &process_executable,
+            env!("CARGO_PKG_VERSION"),
+            source_commit,
+            now_unix()?,
+        )
+        .map_err(|error| error.reason_code());
+    }
+    let native_artifact = qiongli_platform::current_target_native_artifact_identity(
+        env!("CARGO_PKG_VERSION"),
+        authority.channel(),
+    )
+    .map_err(|error| error.reason_code())?;
+    if let Some(source) = crate::cli_install::installed_native_cli_source(
+        home,
+        &process_executable,
+        &native_artifact,
+    )? {
+        return qiongli_platform::verify_native_packaged_product(
+            content.pack(),
+            &authority,
+            home,
+            &source,
+            env!("CARGO_PKG_VERSION"),
+            source_commit,
+            now_unix()?,
+        )
+        .map_err(|error| error.reason_code());
+    }
     let direct_manifest_path = running_desktop_manifest_path(&process_executable);
     let (current_executable, desktop_manifest_path, expected_control_sha256) =
         if direct_manifest_path.is_file() {
@@ -10783,7 +10851,7 @@ fn bounded_host_command_result(
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum HostCommandFailure {
+pub(crate) enum HostCommandFailure {
     Spawn,
     Timeout,
     Wait,
@@ -10795,7 +10863,7 @@ enum HostCommandFailure {
 }
 
 impl HostCommandFailure {
-    const fn reason_code(self) -> &'static str {
+    pub(crate) const fn reason_code(self) -> &'static str {
         match self {
             Self::Spawn => "host-command-spawn-failed",
             Self::Timeout => "host-command-timeout",
@@ -10827,14 +10895,27 @@ fn bounded_host_command_with_timeout(
     clippy::disallowed_methods,
     reason = "ARC-213 permits only resolved official Host CLIs, the managed CLI, or a fixed login shell through this bounded launcher"
 )]
-fn bounded_host_os_command_with_timeout(
+pub(crate) fn bounded_host_os_command_with_timeout(
     environment: &CommandEnvironment,
     executable: &Path,
     arguments: &[OsString],
     timeout: Duration,
 ) -> Result<String, HostCommandFailure> {
-    const MAX_HOST_PROBE_OUTPUT_BYTES: usize = 512 * 1024;
+    run_bounded_command(
+        official_host_command(environment, executable, arguments)?,
+        timeout,
+    )
+}
 
+#[allow(
+    clippy::disallowed_methods,
+    reason = "resolved official Host executable and the existing isolated Host environment"
+)]
+pub(crate) fn official_host_command(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    arguments: &[OsString],
+) -> Result<Command, HostCommandFailure> {
     let mut command = Command::new(executable);
     command
         .env_clear()
@@ -10856,13 +10937,83 @@ fn bounded_host_os_command_with_timeout(
     if let Some(root) = environment.claude_config_root() {
         command.env("CLAUDE_CONFIG_DIR", root);
     }
+    if let Some(root) = environment.dsh_config_root() {
+        command.env("DSH_HOME", root);
+    }
+    Ok(command)
+}
+
+#[allow(
+    clippy::disallowed_methods,
+    reason = "Launch only the digest-verified managed CLI for a bounded read-only health check"
+)]
+pub(crate) fn native_cli_health_output(
+    home: &Path,
+    config_root: &Path,
+    executable: &Path,
+) -> Result<String, &'static str> {
+    let mut command = Command::new(executable);
+    command
+        .env_clear()
+        .current_dir(home)
+        .args(["app", "plan", "cli-install"])
+        .env("PATH", "")
+        .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("QIONGLI_CONFIG_HOME", config_root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    for name in ["SYSTEMROOT", "WINDIR", "TEMP", "TMP", "TMPDIR"] {
+        if let Some(value) = std::env::var_os(name) {
+            command.env(name, value);
+        }
+    }
+    run_bounded_command(command, Duration::from_secs(30))
+        .map_err(|_| "native-activation-health-process-failed")
+}
+
+#[cfg(target_os = "macos")]
+#[allow(
+    clippy::disallowed_methods,
+    reason = "fixed native lsof utility performs read-only installation process inspection"
+)]
+pub(crate) fn installation_process_output() -> Result<String, &'static str> {
+    let mut command = Command::new("/usr/sbin/lsof");
+    command
+        .env_clear()
+        .env("LC_ALL", "C")
+        .args(["-n", "-P", "-a", "-u"])
+        .arg(rustix::process::geteuid().as_raw().to_string())
+        .args(["-d", "txt", "-F0pn"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let (stdout, stderr) =
+        run_bounded_command_output(command, Duration::from_secs(30), 8 * 1024 * 1024)
+            .map_err(|_| "native-update-process-inspection-failed")?;
+    if !stderr.is_empty() {
+        return Err("native-update-process-inspection-failed");
+    }
+    Ok(stdout)
+}
+
+fn run_bounded_command(command: Command, timeout: Duration) -> Result<String, HostCommandFailure> {
+    run_bounded_command_output(command, timeout, 512 * 1024).map(|(stdout, _)| stdout)
+}
+
+fn run_bounded_command_output(
+    mut command: Command,
+    timeout: Duration,
+    maximum_output_bytes: usize,
+) -> Result<(String, String), HostCommandFailure> {
     let mut child = command.spawn().map_err(|_| HostCommandFailure::Spawn)?;
     let stdout = child.stdout.take().ok_or(HostCommandFailure::OutputRead)?;
     let stderr = child.stderr.take().ok_or(HostCommandFailure::OutputRead)?;
     let stdout_reader =
-        thread::spawn(move || read_bounded_host_output(stdout, MAX_HOST_PROBE_OUTPUT_BYTES));
+        thread::spawn(move || read_bounded_host_output(stdout, maximum_output_bytes));
     let stderr_reader =
-        thread::spawn(move || read_bounded_host_output(stderr, MAX_HOST_PROBE_OUTPUT_BYTES));
+        thread::spawn(move || read_bounded_host_output(stderr, maximum_output_bytes));
     let deadline = Instant::now() + timeout;
     let status = loop {
         match child.try_wait() {
@@ -10890,8 +11041,8 @@ fn bounded_host_os_command_with_timeout(
         return Err(HostCommandFailure::NonZeroExit);
     }
     let stdout = String::from_utf8(stdout).map_err(|_| HostCommandFailure::InvalidUtf8)?;
-    String::from_utf8(stderr).map_err(|_| HostCommandFailure::InvalidUtf8)?;
-    Ok(stdout)
+    let stderr = String::from_utf8(stderr).map_err(|_| HostCommandFailure::InvalidUtf8)?;
+    Ok((stdout, stderr))
 }
 
 fn read_bounded_host_output(
@@ -12379,7 +12530,7 @@ mod tests {
         assert!(snapshot.zotero.fallback_import_available);
         assert_eq!(
             snapshot.zotero.available_companion_version.as_deref(),
-            Some("0.3.0")
+            Some("0.3.1")
         );
         assert!(snapshot.zotero.can_prepare_install);
         assert!(!config.exists());
@@ -12456,8 +12607,11 @@ mod tests {
         assert!(!zotero_version_is_incompatible(Some("8.0.0")));
         assert!(!zotero_version_is_incompatible(Some("8.9.1")));
         assert!(!zotero_version_is_incompatible(Some("9.0.12")));
-        assert!(zotero_version_is_incompatible(Some("9.1.0")));
-        assert!(zotero_version_is_incompatible(Some("10.0.0")));
+        assert!(!zotero_version_is_incompatible(Some("9.1.0")));
+        assert!(!zotero_version_is_incompatible(Some("10.0.0")));
+        assert!(!zotero_version_is_incompatible(Some("10.0.2")));
+        assert!(zotero_version_is_incompatible(Some("10.1.0")));
+        assert!(zotero_version_is_incompatible(Some("11.0.0")));
     }
 
     #[test]
@@ -12550,7 +12704,7 @@ mod tests {
         let mut incompatible = zotero_integration_snapshot();
         apply_zotero_live_observation(
             &mut incompatible,
-            &observed("ok", true, true, Some("0.3.0"), Some("1")),
+            &observed("ok", true, true, Some("0.3.1"), Some("1")),
         );
         assert_eq!(
             incompatible.state,
@@ -12579,7 +12733,7 @@ mod tests {
         let mut ready = zotero_integration_snapshot();
         apply_zotero_live_observation(
             &mut ready,
-            &observed("ok", true, true, Some("0.3.0"), Some("2")),
+            &observed("ok", true, true, Some("0.3.1"), Some("2")),
         );
         assert_eq!(ready.state, ZoteroIntegrationStateView::Ready);
 

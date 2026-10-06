@@ -15,12 +15,16 @@ embedded-content = ["dep:qiongli-content"]
 native-config = ["dep:qiongli-config"]
 
 [dependencies]
+qiongli-bounded-alloc = { path = "../qiongli-bounded-alloc" }
+flate2 = "1.1.9"
+pdf-extract = "=0.12.1"
 qiongli-config = { path = "../qiongli-config", optional = true }
 qiongli-content = { path = "../qiongli-content", optional = true }
 qiongli-project = { path = "../qiongli-project" }
 quick-xml.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 thiserror.workspace = true
 url.workspace = true
 zeroize.workspace = true

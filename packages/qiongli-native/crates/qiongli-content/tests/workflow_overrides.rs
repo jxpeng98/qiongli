@@ -26,6 +26,88 @@ const DIRECTORY_ROOTS: [&str; 12] = [
 ];
 static NEXT_TREE_ID: AtomicU64 = AtomicU64::new(0);
 
+#[test]
+fn skill_language_localizes_metadata_and_preserves_bodies_and_receipts() {
+    use qiongli_content::{materialize_profile_with_language, project_profile_with_language};
+    let tree = TestTree::new();
+    let source = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../content/workflow");
+    let mut paths = vec![
+        "SKILL.md".to_owned(),
+        "no-qiongli/SKILL.md".into(),
+        "agents/openai.yaml".into(),
+        "references/skill-descriptions.json".into(),
+    ];
+    for entry in fs::read_dir(source.join("workflows")).unwrap() {
+        paths.push(format!(
+            "workflows/{}",
+            entry.unwrap().file_name().to_str().unwrap()
+        ));
+    }
+    for path in paths {
+        let target = tree.source.join("workflow").join(&path);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::copy(source.join(path), target).unwrap();
+    }
+    let built = tree.pack();
+    let pack = load_resource_pack(built.core_bytes(), built.pack_sha256()).unwrap();
+    let mut count = 0;
+    for language in ["zh", "en"] {
+        let resources = project_profile_with_language(&pack, "full", None, Some(language)).unwrap();
+        for r in resources.iter().filter(|r| {
+            r.path() == "workflow/SKILL.md"
+                || r.path() == "workflow/no-qiongli/SKILL.md"
+                || (r.path().starts_with("workflow/workflows/")
+                    && !r.path().ends_with("/qiongli.md"))
+        }) {
+            let original = pack
+                .resource_for_profile("full", r.path())
+                .unwrap()
+                .unwrap();
+            let text = std::str::from_utf8(r.bytes()).unwrap();
+            assert_eq!(
+                text.split_once("\n---\n").unwrap().1,
+                std::str::from_utf8(original.bytes())
+                    .unwrap()
+                    .split_once("\n---\n")
+                    .unwrap()
+                    .1
+            );
+            let description = text
+                .lines()
+                .find(|line| line.starts_with("description: "))
+                .unwrap();
+            assert_eq!(
+                description
+                    .chars()
+                    .any(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)),
+                language == "zh",
+                "{}",
+                r.path()
+            );
+            count += 1;
+        }
+        let ui = resources
+            .iter()
+            .find(|r| r.path() == "workflow/agents/openai.yaml")
+            .unwrap();
+        assert_eq!(
+            std::str::from_utf8(ui.bytes()).unwrap().contains("问理"),
+            language == "zh"
+        );
+        let target = approve_materialization_target(tree.root.join("localized")).unwrap();
+        let receipt =
+            materialize_profile_with_language(&pack, "full", &target, None, Some(language))
+                .unwrap();
+        assert_eq!(receipt.skill_language.as_deref(), Some(language));
+        assert_eq!(verify_materialization(&target).unwrap(), receipt);
+    }
+    assert_eq!(count, 44);
+    assert!(project_profile_with_language(&pack, "full", None, Some("fr")).is_err());
+    let target = approve_materialization_target(tree.root.join("localized")).unwrap();
+    fs::write(target.path().join("workflow/SKILL.md"), "changed").unwrap();
+    assert!(verify_materialization(&target).is_err());
+}
+
 struct TestTree {
     root: PathBuf,
     source: PathBuf,

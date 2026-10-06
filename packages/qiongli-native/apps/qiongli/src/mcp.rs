@@ -77,6 +77,61 @@ pub fn serve_full_mcp<R: BufRead, W: Write>(
     full_server(environment, content)?.serve(reader, writer)
 }
 
+/// Exercise the real protocol handlers locally; this cannot attest a Host connection.
+pub(crate) fn check_local(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    full: bool,
+) -> Result<String, &'static str> {
+    let requests = [
+        json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}),
+        json!({"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}),
+        json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{
+            "name":"qiongli_config_status","arguments":{}}}),
+    ];
+    let input = requests
+        .iter()
+        .map(|v| format!("{v}\n"))
+        .collect::<String>();
+    let mut reader = input.as_bytes();
+    let mut output = Vec::new();
+    if full {
+        serve_full_mcp(&mut reader, &mut output, environment, content)
+    } else {
+        serve_lite_mcp(&mut reader, &mut output, environment, content)
+    }
+    .map_err(|_| "local-mcp-check-failed")?;
+    let replies = output
+        .split(|b| *b == b'\n')
+        .filter(|line| !line.is_empty())
+        .map(serde_json::from_slice::<Value>)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| "local-mcp-check-failed")?;
+    let tools = replies
+        .get(1)
+        .and_then(|r| r.pointer("/result/tools"))
+        .and_then(Value::as_array)
+        .ok_or("local-mcp-check-failed")?;
+    if replies.len() != 3
+        || replies[0]["result"]["serverInfo"]["version"] != env!("CARGO_PKG_VERSION")
+        || !tools.iter().any(|t| t["name"] == "qiongli_config_status")
+        || replies[2].get("error").is_some()
+        || replies[2]["result"].is_null()
+        || replies[2]["result"]["isError"] == true
+    {
+        return Err("local-mcp-check-failed");
+    }
+    Ok(
+        json!({"schema_version":1,"command":"mcp-check","version":env!("CARGO_PKG_VERSION"),
+            "profile":if full {"full"} else {"lite"},"scope":"local-in-process-protocol",
+            "initialize":"passed","tool_count":tools.len(),"read_only_call":"passed",
+            "host_session":"not-checked","provider_connectivity":"not-checked",
+            "next_step":"In a new Host session, list Qiongli tools and call qiongli_config_status."
+        })
+        .to_string(),
+    )
+}
+
 pub(crate) fn full_server(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
@@ -277,6 +332,15 @@ impl FullMcpServer {
                 "requires_full_runtime": true,
                 "platform": platform,
                 "platform_note": "The active host executes each bounded handoff; Qiongli does not launch model processes.",
+                "collaboration": {
+                    "executor": "active-host-tools",
+                    "subagentAvailability": "not-checked",
+                    "crossHost": "source-bound-review-or-edit-proposals",
+                    "automaticCrossHostDispatch": false,
+                    "checkpointOwner": "originating-host",
+                    "completionEvidence": ["returned-task-identity", "actual-result", "matching-source-and-candidate"],
+                    "unavailablePeer": "awaiting-external-review"
+                },
                 "why": ["the active Full MCP already provides host-driven orchestration"],
                 "sequence": [
                     {"tool": "qiongli_project_list", "purpose": "select a registered project and its exact revision"},
@@ -745,6 +809,8 @@ fn orchestration_control_tools() -> impl Iterator<Item = Value> {
                         "type": "string",
                         "enum": [
                             "qiongli_project_read",
+                            "qiongli_project_document_read",
+                            "qiongli_project_document_list",
                             "qiongli_project_graph_snapshot",
                             "qiongli_project_graph_query",
                             "qiongli_project_artifact_changes",
@@ -776,7 +842,7 @@ fn orchestration_control_tools() -> impl Iterator<Item = Value> {
         }),
         json!({
             "name": "qiongli_orchestration_submit",
-            "description": "Validate one host-produced candidate and authenticated project-read evidence, persist only its digest, and return the next handoff.",
+            "description": "Validate one host-produced candidate, optional completed delegation observations and authenticated project-read evidence; persist only its digest and return the next handoff. Delegation observations do not authenticate execution or approve project writes.",
             "inputSchema": host_run_input_schema(true),
             "annotations": {
                 "readOnlyHint": false,
@@ -1027,6 +1093,26 @@ fn host_candidate_schema() -> Value {
                 "type": "array",
                 "maxItems": 16,
                 "items": {"type": "string", "minLength": 1, "maxLength": 1024}
+            },
+            "delegationResults": {
+                "type": "array",
+                "maxItems": 8,
+                "description": "Optional coordinator-reported observations. Only completed results may be submitted; use the original tool-returned execution identity and current handoff digest. Combined content and resultText UTF-8 bytes must fit handoff.limits.maxCandidateBytes. Neither execution authentication nor source evidence.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "adapter": {"type": "string", "enum": ["native-subagent", "external-agent"]},
+                        "executionId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\s\\u0000-\\u001f\\u007f]+$"},
+                        "dispatchTool": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\s\\u0000-\\u001f\\u007f]+$"},
+                        "scope": {"type": "string", "minLength": 1, "maxLength": 1024},
+                        "handoffSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                        "status": {"type": "string", "enum": ["queued", "running", "completed", "failed", "cancelled"]},
+                        "resultText": {"type": "string", "minLength": 1, "maxLength": 65536},
+                        "resultSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 of the exact UTF-8 resultText, before JSON escaping."}
+                    },
+                    "required": ["adapter", "executionId", "dispatchTool", "scope", "handoffSha256", "status", "resultText", "resultSha256"],
+                    "additionalProperties": false
+                }
             }
         },
         "required": [
@@ -1232,6 +1318,14 @@ fn host_tool_arguments_match_scope(
     arguments: &Value,
 ) -> bool {
     match tool {
+        FullProjectToolId::DocumentRead | FullProjectToolId::DocumentList => {
+            arguments.get("project_id").and_then(Value::as_str)
+                == Some(reference.project_id.as_str())
+                && arguments
+                    .get("expected_project_revision")
+                    .and_then(Value::as_u64)
+                    == Some(reference.expected_project_revision)
+        }
         FullProjectToolId::Read
         | FullProjectToolId::GraphSnapshot
         | FullProjectToolId::GraphQuery

@@ -14,12 +14,19 @@ pub use acp_control::{
 mod all_chat;
 mod artifact_review;
 mod backend;
+mod codex_exec;
 mod control;
 mod dispatch;
 mod error;
+mod external_exec;
+pub use external_exec::{ExternalAgentV1, collect_external_exec, prepare_external_exec};
 mod fake;
 mod host_acceptance;
 mod host_handoff;
+pub use codex_exec::{
+    CODEX_EXEC_MAX_INPUT_BYTES, CodexExecDispatchV1, CodexExecOutcomeV1, CodexExecPacketV1,
+    collect_codex_exec, prepare_codex_exec,
+};
 mod identity;
 mod openai;
 mod orchestration;
@@ -68,8 +75,9 @@ pub use host_acceptance::{
 pub use host_handoff::{
     FULL_MCP_HOST_PROTOCOL_VERSION, HOST_CANDIDATE_SCHEMA_VERSION, HOST_HANDOFF_PROTOCOL_VERSION,
     HOST_HANDOFF_SCHEMA_VERSION, HostCandidateEnvelopeV1, HostCandidateKindV1, HostCapabilityV1,
-    HostComponentStateV1, HostEvidenceReferenceV1, HostExecutionLimitsV1, HostFamilyV1,
-    HostHandoffError, HostReviewResultV1, HostRuntimeDescriptorV1, OrchestrationHandoffV1,
+    HostComponentStateV1, HostDelegationAdapterV1, HostDelegationResultV1, HostDelegationStatusV1,
+    HostEvidenceReferenceV1, HostExecutionLimitsV1, HostFamilyV1, HostHandoffError,
+    HostReviewResultV1, HostRuntimeDescriptorV1, OrchestrationHandoffV1,
 };
 pub use identity::{
     BackendId, OrchestrationProfileId, OrchestrationTaskId, RunId, ToolCallId, ToolId, WorkerId,

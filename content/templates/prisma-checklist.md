@@ -95,6 +95,11 @@ Save to: RESEARCH/[topic]/prisma_checklist.md
 
 ## Completion Summary
 
+This template expands 27 numbered items into 42 rows. Count applicable subitems
+consistently; record not-applicable reasons and unverified items separately.
+Completion counts do not establish methodological quality or waive missing
+required reporting. Verify the applicable official checklist and extensions.
+
 | Section | Items Completed | Total Items |
 |---------|-----------------|-------------|
 | Title | /1 | 1 |
@@ -103,8 +108,8 @@ Save to: RESEARCH/[topic]/prisma_checklist.md
 | Methods | /17 | 17 |
 | Results | /11 | 11 |
 | Discussion | /4 | 4 |
-| Other Information | /4 | 4 |
-| **Total** | **/40** | **40** |
+| Other Information | /6 | 6 |
+| **Total** | **/42** | **42** |
 
 ---
 

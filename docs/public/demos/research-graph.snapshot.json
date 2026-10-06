@@ -1,0 +1,881 @@
+{
+  "schemaVersion": 1,
+  "command": "project-graph-snapshot",
+  "snapshot": {
+    "schemaVersion": 1,
+    "documentKind": "qiongli-academic-graph",
+    "projectionId": "grp_adda74e210162ae61e38b175c96d70177ec2b0baf6c37714848960d0691f7b6d",
+    "projectionDigest": "adda74e210162ae61e38b175c96d70177ec2b0baf6c37714848960d0691f7b6d",
+    "projectId": "prj_8a7265e3ee65073c3b4981e75998e23e",
+    "projectRevision": 1,
+    "projectStage": "idea",
+    "projectLifecycle": "active",
+    "projectManifestDigest": "faac04520201236d5f11cc24a6c2aaae1ba134d0c978559e77807271227c990e",
+    "projectSemanticDigest": "0a8c202237b38cc2c3e963cb60a738985fb48f3695a62b71daa3ac77437cdc05",
+    "graphSourceDigest": "930169d885080bd1011b662108204445fe96fbfba7f99e5323c8711fb10cb813",
+    "sourceCount": 10,
+    "presentSourceCount": 5,
+    "nodeCount": 14,
+    "edgeCount": 21,
+    "diagnosticCount": 1,
+    "sources": [
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "context/boundary_review.md",
+        "present": false,
+        "contentDigest": null,
+        "sizeBytes": 0
+      },
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "context/decision_log.md",
+        "present": true,
+        "contentDigest": "53f87b4d824d32cf5afa78b61b123f8534759cce2f2e88ca2c645c08dc6eb8fe",
+        "sizeBytes": 289
+      },
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "context/idea_funnel.md",
+        "present": false,
+        "contentDigest": null,
+        "sizeBytes": 0
+      },
+      {
+        "sourceKind": "project-manifest",
+        "artifactPath": "context/project_manifest.json",
+        "present": true,
+        "contentDigest": "faac04520201236d5f11cc24a6c2aaae1ba134d0c978559e77807271227c990e",
+        "sizeBytes": 394
+      },
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "context/research_state.md",
+        "present": true,
+        "contentDigest": "c61289f7051e860a4f556d7f6b11a7f00c5ac8cf75db58ed48fae842d31fef64",
+        "sizeBytes": 272
+      },
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "context/stage_handoff.md",
+        "present": false,
+        "contentDigest": null,
+        "sizeBytes": 0
+      },
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "present": true,
+        "contentDigest": "fa6cb6a709fb155e134d03e1aa9820dd3758bc5bb066639d6c828e5a06fa8e8d",
+        "sizeBytes": 657
+      },
+      {
+        "sourceKind": "semantic-links",
+        "artifactPath": "graph/semantic_links.jsonl",
+        "present": false,
+        "contentDigest": null,
+        "sizeBytes": 0
+      },
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "literature/literature_map.md",
+        "present": false,
+        "contentDigest": null,
+        "sizeBytes": 0
+      },
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "manuscript/claims_evidence_map.md",
+        "present": true,
+        "contentDigest": "4b52af887ef32ea3fd32d86f89c9f69696b661fe93c85717695840c773aa7630",
+        "sizeBytes": 476
+      }
+    ],
+    "nodes": [
+      {
+        "nodeId": "nod_2bbc1e861c4df912fe7ff2a106d4588c7672813354e25bbd41f18e60ca7b7df3",
+        "nodeType": "artifact",
+        "identityScope": "project",
+        "canonicalId": "manuscript/claims_evidence_map.md",
+        "label": "Manuscript claim map",
+        "layers": [
+          "argument",
+          "manuscript",
+          "combined"
+        ],
+        "artifactPath": "manuscript/claims_evidence_map.md",
+        "sourceAnchor": "document"
+      },
+      {
+        "nodeId": "nod_2f1e3ad2cba60078201144010a0854f0a4fc71f436d319685d7f7e35ea78a76d",
+        "nodeType": "artifact",
+        "identityScope": "project",
+        "canonicalId": "context/research_state.md",
+        "label": "Research state",
+        "layers": [
+          "idea-decision",
+          "combined"
+        ],
+        "artifactPath": "context/research_state.md",
+        "sourceAnchor": "document"
+      },
+      {
+        "nodeId": "nod_3c7911b539f1e3b06d763af399b6c2328b6016d331892f75717e32d25fef63ff",
+        "nodeType": "claim",
+        "identityScope": "project",
+        "canonicalId": "CLM-2",
+        "label": "Lasting improvement remains untested",
+        "layers": [
+          "argument",
+          "combined"
+        ],
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "claim:CLM-2"
+      },
+      {
+        "nodeId": "nod_3d95c21ab9ea5ca3cd726db68ba1915c7c139b5988a87972407529ee7fdfef02",
+        "nodeType": "paper",
+        "identityScope": "global",
+        "canonicalId": "citekey:DemoA",
+        "label": "DemoA",
+        "layers": [
+          "literature",
+          "argument",
+          "manuscript",
+          "combined"
+        ],
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "source:DemoA"
+      },
+      {
+        "nodeId": "nod_8cbd4f32d2c794276433ccf84d1df727a81a3b892ffc44528edadd409c00da5e",
+        "nodeType": "artifact",
+        "identityScope": "project",
+        "canonicalId": "context/decision_log.md",
+        "label": "Decision log",
+        "layers": [
+          "idea-decision",
+          "combined"
+        ],
+        "artifactPath": "context/decision_log.md",
+        "sourceAnchor": "document"
+      },
+      {
+        "nodeId": "nod_99913c0dd91c834941d2c5f40cb5bdc0765f298d265137808387b476b4fb18e9",
+        "nodeType": "evidence",
+        "identityScope": "project",
+        "canonicalId": "evidence-source:DemoA",
+        "label": "DemoA",
+        "layers": [
+          "argument",
+          "combined"
+        ],
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "source:DemoA"
+      },
+      {
+        "nodeId": "nod_b9d9973e6755ba9ab9fe5f19845028d27948c4da462f32e28095e7c9aec07541",
+        "nodeType": "evidence",
+        "identityScope": "project",
+        "canonicalId": "evidence-source:DemoB",
+        "label": "DemoB",
+        "layers": [
+          "argument",
+          "combined"
+        ],
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "source:DemoB"
+      },
+      {
+        "nodeId": "nod_be8e09d8a484737d8c40e0f751397599f3f7f5224f9b2cb6c1518f6f5ca05c0f",
+        "nodeType": "decision",
+        "identityScope": "project",
+        "canonicalId": "DEC-2",
+        "label": "Plan a delayed recall test before making a lasting-effect claim",
+        "layers": [
+          "idea-decision",
+          "combined"
+        ],
+        "artifactPath": "context/decision_log.md",
+        "sourceAnchor": "decision:DEC-2"
+      },
+      {
+        "nodeId": "nod_c7957e32d3f44b8f670fd95c14ac0657e644869f5a938a403b1a60940d8d1360",
+        "nodeType": "artifact",
+        "identityScope": "project",
+        "canonicalId": "evidence/claim-evidence-ledger.csv",
+        "label": "Claim-evidence ledger",
+        "layers": [
+          "argument",
+          "combined"
+        ],
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "document"
+      },
+      {
+        "nodeId": "nod_cab392c37a8c71bf45a663b5c682b6cc4951f807c2dd00f2e736d230702f580b",
+        "nodeType": "paper",
+        "identityScope": "global",
+        "canonicalId": "citekey:DemoB",
+        "label": "DemoB",
+        "layers": [
+          "literature",
+          "argument",
+          "manuscript",
+          "combined"
+        ],
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "source:DemoB"
+      },
+      {
+        "nodeId": "nod_d28bb573b19cf115b7f21bfcbe45fe740fd3fb40d502a671d593117c72ba3cb6",
+        "nodeType": "decision",
+        "identityScope": "project",
+        "canonicalId": "DEC-1",
+        "label": "Keep association wording; do not claim causality",
+        "layers": [
+          "idea-decision",
+          "combined"
+        ],
+        "artifactPath": "context/decision_log.md",
+        "sourceAnchor": "decision:DEC-1"
+      },
+      {
+        "nodeId": "nod_f00defa7a2ac645864260df46b3c25e5424feba00668131865540485dbbabbd6",
+        "nodeType": "claim",
+        "identityScope": "project",
+        "canonicalId": "CLM-1",
+        "label": "Short breaks are associated with higher immediate recall",
+        "layers": [
+          "argument",
+          "manuscript",
+          "combined"
+        ],
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "claim:CLM-1"
+      },
+      {
+        "nodeId": "nod_fa4ea8639ab6bf1b1336b289818c5d1696ed731f863a1b47acac6e776706a7e3",
+        "nodeType": "research-question",
+        "identityScope": "project",
+        "canonicalId": "research-question:current",
+        "label": "Are short breaks associated with immediate recall?",
+        "layers": [
+          "idea-decision",
+          "argument",
+          "combined"
+        ],
+        "artifactPath": "context/research_state.md",
+        "sourceAnchor": "field:main_question_or_thesis"
+      },
+      {
+        "nodeId": "nod_ff5edfe2ae15aeaadc693f3c4e6cbed2273d9cb571a617e9b49228874333f007",
+        "nodeType": "project",
+        "identityScope": "project",
+        "canonicalId": "prj_8a7265e3ee65073c3b4981e75998e23e",
+        "label": "Synthetic reading study",
+        "layers": [
+          "portfolio",
+          "combined"
+        ],
+        "artifactPath": "context/project_manifest.json",
+        "sourceAnchor": "#/project_id"
+      }
+    ],
+    "edges": [
+      {
+        "edgeId": "edg_0333ea0047cd5045afffd0946a1945b31ae2e7fe757aadd43ed4b8c79af53502",
+        "sourceNodeId": "nod_c7957e32d3f44b8f670fd95c14ac0657e644869f5a938a403b1a60940d8d1360",
+        "relation": "contains",
+        "targetNodeId": "nod_3c7911b539f1e3b06d763af399b6c2328b6016d331892f75717e32d25fef63ff",
+        "layers": [
+          "argument",
+          "combined"
+        ],
+        "rationale": "This canonical graph source defines this academic record.",
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "claim:CLM-2",
+        "evidenceLimit": "Structural containment only; no scholarly support is implied.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "high",
+        "status": "observed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_0ba22a220d30dc6edc49f63d49df42cce13e8af4509e24abc8193d127d0efa17",
+        "sourceNodeId": "nod_8cbd4f32d2c794276433ccf84d1df727a81a3b892ffc44528edadd409c00da5e",
+        "relation": "contains",
+        "targetNodeId": "nod_be8e09d8a484737d8c40e0f751397599f3f7f5224f9b2cb6c1518f6f5ca05c0f",
+        "layers": [
+          "idea-decision",
+          "combined"
+        ],
+        "rationale": "This canonical graph source defines this academic record.",
+        "artifactPath": "context/decision_log.md",
+        "sourceAnchor": "decision:DEC-2",
+        "evidenceLimit": "Structural containment only; no scholarly support is implied.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "high",
+        "status": "observed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_10730b142d6758895ad8d0636318f94063b0a4bf0cbcb7cdddb1022b625f04ee",
+        "sourceNodeId": "nod_c7957e32d3f44b8f670fd95c14ac0657e644869f5a938a403b1a60940d8d1360",
+        "relation": "contains",
+        "targetNodeId": "nod_3d95c21ab9ea5ca3cd726db68ba1915c7c139b5988a87972407529ee7fdfef02",
+        "layers": [
+          "literature",
+          "argument",
+          "manuscript",
+          "combined"
+        ],
+        "rationale": "This canonical graph source defines this academic record.",
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "source:DemoA",
+        "evidenceLimit": "Structural containment only; no scholarly support is implied.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "high",
+        "status": "observed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_19f3cb8b6e83591c072179ba3dec340f130603a7479461d0332599827ee2908b",
+        "sourceNodeId": "nod_f00defa7a2ac645864260df46b3c25e5424feba00668131865540485dbbabbd6",
+        "relation": "cites",
+        "targetNodeId": "nod_3d95c21ab9ea5ca3cd726db68ba1915c7c139b5988a87972407529ee7fdfef02",
+        "layers": [
+          "argument",
+          "manuscript",
+          "combined"
+        ],
+        "rationale": "The manuscript claim map records this citation for the claim.",
+        "artifactPath": "manuscript/claims_evidence_map.md",
+        "sourceAnchor": "claim-citation:CLM-1:DemoA",
+        "evidenceLimit": "Citation presence is observed; evidential sufficiency remains governed by the claim-evidence ledger.",
+        "inferenceStrength": "reasonable_inference",
+        "confidence": "medium",
+        "status": "reviewed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_2cf3ae84d30e18cf9a84a3c8fe9bebb2c923e2252b8fdb11b5bd81a3eca22f11",
+        "sourceNodeId": "nod_c7957e32d3f44b8f670fd95c14ac0657e644869f5a938a403b1a60940d8d1360",
+        "relation": "contains",
+        "targetNodeId": "nod_f00defa7a2ac645864260df46b3c25e5424feba00668131865540485dbbabbd6",
+        "layers": [
+          "argument",
+          "manuscript",
+          "combined"
+        ],
+        "rationale": "This canonical graph source defines this academic record.",
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "claim:CLM-1",
+        "evidenceLimit": "Structural containment only; no scholarly support is implied.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "high",
+        "status": "observed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_301b09ff2db7adfb869205d49f15274a895e511e3cac112760d4985c27f73e98",
+        "sourceNodeId": "nod_8cbd4f32d2c794276433ccf84d1df727a81a3b892ffc44528edadd409c00da5e",
+        "relation": "contains",
+        "targetNodeId": "nod_d28bb573b19cf115b7f21bfcbe45fe740fd3fb40d502a671d593117c72ba3cb6",
+        "layers": [
+          "idea-decision",
+          "combined"
+        ],
+        "rationale": "This canonical graph source defines this academic record.",
+        "artifactPath": "context/decision_log.md",
+        "sourceAnchor": "decision:DEC-1",
+        "evidenceLimit": "Structural containment only; no scholarly support is implied.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "high",
+        "status": "observed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_385bd329f06929ab26aeda470b80f7044dff34a195165bd0deab5602ca7758ae",
+        "sourceNodeId": "nod_c7957e32d3f44b8f670fd95c14ac0657e644869f5a938a403b1a60940d8d1360",
+        "relation": "contains",
+        "targetNodeId": "nod_b9d9973e6755ba9ab9fe5f19845028d27948c4da462f32e28095e7c9aec07541",
+        "layers": [
+          "argument",
+          "combined"
+        ],
+        "rationale": "This canonical graph source defines this academic record.",
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "source:DemoB",
+        "evidenceLimit": "Structural containment only; no scholarly support is implied.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "high",
+        "status": "observed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_3930000880fb4a817863a6372fe3559d8c831ac78231c3a9ba2f8521d6feb14c",
+        "sourceNodeId": "nod_ff5edfe2ae15aeaadc693f3c4e6cbed2273d9cb571a617e9b49228874333f007",
+        "relation": "contains",
+        "targetNodeId": "nod_2f1e3ad2cba60078201144010a0854f0a4fc71f436d319685d7f7e35ea78a76d",
+        "layers": [
+          "idea-decision",
+          "combined"
+        ],
+        "rationale": "The registered project contains this canonical graph source.",
+        "artifactPath": "context/research_state.md",
+        "sourceAnchor": "document",
+        "evidenceLimit": "Structural containment only; no scholarly support is implied.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "high",
+        "status": "observed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_4a8fa2fa876f62958424cad859ee4588a1555ebd9c97b41daab7cba6c049bd9b",
+        "sourceNodeId": "nod_ff5edfe2ae15aeaadc693f3c4e6cbed2273d9cb571a617e9b49228874333f007",
+        "relation": "contains",
+        "targetNodeId": "nod_2bbc1e861c4df912fe7ff2a106d4588c7672813354e25bbd41f18e60ca7b7df3",
+        "layers": [
+          "argument",
+          "manuscript",
+          "combined"
+        ],
+        "rationale": "The registered project contains this canonical graph source.",
+        "artifactPath": "manuscript/claims_evidence_map.md",
+        "sourceAnchor": "document",
+        "evidenceLimit": "Structural containment only; no scholarly support is implied.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "high",
+        "status": "observed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_6bff744d30d610ef05dc14f4580ebadcdbd953570e7e791e0c90772118d75ff4",
+        "sourceNodeId": "nod_b9d9973e6755ba9ab9fe5f19845028d27948c4da462f32e28095e7c9aec07541",
+        "relation": "derived-from",
+        "targetNodeId": "nod_cab392c37a8c71bf45a663b5c682b6cc4951f807c2dd00f2e736d230702f580b",
+        "layers": [
+          "argument",
+          "combined"
+        ],
+        "rationale": "The ledger identifies this paper as the evidence source.",
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "support:9be436592c018ebf1a0faddff4b54a2906d6b6a452ccf14174ccb7c43fd9b928",
+        "evidenceLimit": "Source identity only; the ledger's source location and limitations remain authoritative.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "medium",
+        "status": "reviewed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_6efbaaf72a63ac10d73b99823f706081ab6d65e9506e512f8bb72644651e6d3e",
+        "sourceNodeId": "nod_c7957e32d3f44b8f670fd95c14ac0657e644869f5a938a403b1a60940d8d1360",
+        "relation": "contains",
+        "targetNodeId": "nod_cab392c37a8c71bf45a663b5c682b6cc4951f807c2dd00f2e736d230702f580b",
+        "layers": [
+          "literature",
+          "argument",
+          "manuscript",
+          "combined"
+        ],
+        "rationale": "This canonical graph source defines this academic record.",
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "source:DemoB",
+        "evidenceLimit": "Structural containment only; no scholarly support is implied.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "high",
+        "status": "observed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_76f335a76b6ae0d35e87726e2eae12f1a7ddf6baad0f5f492e8a8bd93dd0bf52",
+        "sourceNodeId": "nod_99913c0dd91c834941d2c5f40cb5bdc0765f298d265137808387b476b4fb18e9",
+        "relation": "supports",
+        "targetNodeId": "nod_f00defa7a2ac645864260df46b3c25e5424feba00668131865540485dbbabbd6",
+        "layers": [
+          "argument",
+          "combined"
+        ],
+        "rationale": "The canonical claim-evidence ledger records this source as supporting evidence.",
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "support:1021889ad3d26db94447a5a766fae7b30bac96a14281d3129fcffd4daa1fc564",
+        "evidenceLimit": "Synthetic pilot; no random assignment; not causal",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "medium",
+        "status": "reviewed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_80040e6a5ba6a31c9a9b5a048064867c2a6a546d99546c94aa44f1d8cfb73097",
+        "sourceNodeId": "nod_ff5edfe2ae15aeaadc693f3c4e6cbed2273d9cb571a617e9b49228874333f007",
+        "relation": "contains",
+        "targetNodeId": "nod_8cbd4f32d2c794276433ccf84d1df727a81a3b892ffc44528edadd409c00da5e",
+        "layers": [
+          "idea-decision",
+          "combined"
+        ],
+        "rationale": "The registered project contains this canonical graph source.",
+        "artifactPath": "context/decision_log.md",
+        "sourceAnchor": "document",
+        "evidenceLimit": "Structural containment only; no scholarly support is implied.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "high",
+        "status": "observed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_900640ddf558ae22a68a5b0bfbcdf888948cb8f486f56f5212dbf987b225fa15",
+        "sourceNodeId": "nod_2f1e3ad2cba60078201144010a0854f0a4fc71f436d319685d7f7e35ea78a76d",
+        "relation": "contains",
+        "targetNodeId": "nod_fa4ea8639ab6bf1b1336b289818c5d1696ed731f863a1b47acac6e776706a7e3",
+        "layers": [
+          "idea-decision",
+          "argument",
+          "combined"
+        ],
+        "rationale": "This canonical graph source defines this academic record.",
+        "artifactPath": "context/research_state.md",
+        "sourceAnchor": "field:main_question_or_thesis",
+        "evidenceLimit": "Structural containment only; no scholarly support is implied.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "high",
+        "status": "observed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_9c08b61f26e7f12e63764b7df8ed7c3068c839959005e98c0fe883c96d5431b5",
+        "sourceNodeId": "nod_be8e09d8a484737d8c40e0f751397599f3f7f5224f9b2cb6c1518f6f5ca05c0f",
+        "relation": "informs",
+        "targetNodeId": "nod_3c7911b539f1e3b06d763af399b6c2328b6016d331892f75717e32d25fef63ff",
+        "layers": [
+          "idea-decision",
+          "argument",
+          "combined"
+        ],
+        "rationale": "The decision log explicitly identifies this claim as affected by the decision.",
+        "artifactPath": "context/decision_log.md",
+        "sourceAnchor": "decision:DEC-2",
+        "evidenceLimit": "A review or venue decision is not supporting evidence. Inspect its rationale, evidence basis and manuscript impact in the decision log.",
+        "inferenceStrength": "reasonable_inference",
+        "confidence": "unknown",
+        "status": "proposed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_a14b1de561bcedeb0a175c3065efc0071b4165b70113253343fb3ee418a33e6b",
+        "sourceNodeId": "nod_f00defa7a2ac645864260df46b3c25e5424feba00668131865540485dbbabbd6",
+        "relation": "cites",
+        "targetNodeId": "nod_cab392c37a8c71bf45a663b5c682b6cc4951f807c2dd00f2e736d230702f580b",
+        "layers": [
+          "argument",
+          "manuscript",
+          "combined"
+        ],
+        "rationale": "The manuscript claim map records this citation for the claim.",
+        "artifactPath": "manuscript/claims_evidence_map.md",
+        "sourceAnchor": "claim-citation:CLM-1:DemoB",
+        "evidenceLimit": "Citation presence is observed; evidential sufficiency remains governed by the claim-evidence ledger.",
+        "inferenceStrength": "reasonable_inference",
+        "confidence": "medium",
+        "status": "reviewed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_b6821d048d9b720777289f75ba5849a9679f05f50513879c99e08c756b016985",
+        "sourceNodeId": "nod_99913c0dd91c834941d2c5f40cb5bdc0765f298d265137808387b476b4fb18e9",
+        "relation": "derived-from",
+        "targetNodeId": "nod_3d95c21ab9ea5ca3cd726db68ba1915c7c139b5988a87972407529ee7fdfef02",
+        "layers": [
+          "argument",
+          "combined"
+        ],
+        "rationale": "The ledger identifies this paper as the evidence source.",
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "support:1021889ad3d26db94447a5a766fae7b30bac96a14281d3129fcffd4daa1fc564",
+        "evidenceLimit": "Source identity only; the ledger's source location and limitations remain authoritative.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "medium",
+        "status": "reviewed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_bc33292ef4e35274abc20c9176575547d4f6ea1f235c77a01bc35951a67ff97f",
+        "sourceNodeId": "nod_ff5edfe2ae15aeaadc693f3c4e6cbed2273d9cb571a617e9b49228874333f007",
+        "relation": "contains",
+        "targetNodeId": "nod_c7957e32d3f44b8f670fd95c14ac0657e644869f5a938a403b1a60940d8d1360",
+        "layers": [
+          "argument",
+          "combined"
+        ],
+        "rationale": "The registered project contains this canonical graph source.",
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "document",
+        "evidenceLimit": "Structural containment only; no scholarly support is implied.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "high",
+        "status": "observed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_d9e3f940955201eda219406a8bbd16c077f8ca67e15fc67ed57c6df116f88a1e",
+        "sourceNodeId": "nod_b9d9973e6755ba9ab9fe5f19845028d27948c4da462f32e28095e7c9aec07541",
+        "relation": "supports",
+        "targetNodeId": "nod_f00defa7a2ac645864260df46b3c25e5424feba00668131865540485dbbabbd6",
+        "layers": [
+          "argument",
+          "combined"
+        ],
+        "rationale": "The canonical claim-evidence ledger records this source as supporting evidence.",
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "support:9be436592c018ebf1a0faddff4b54a2906d6b6a452ccf14174ccb7c43fd9b928",
+        "evidenceLimit": "Synthetic pilot; one task; no delayed measurement",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "medium",
+        "status": "reviewed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_e5bff86731d8a516cfefbb76e1951aedc762449aa26d56401f399c219df267ae",
+        "sourceNodeId": "nod_c7957e32d3f44b8f670fd95c14ac0657e644869f5a938a403b1a60940d8d1360",
+        "relation": "contains",
+        "targetNodeId": "nod_99913c0dd91c834941d2c5f40cb5bdc0765f298d265137808387b476b4fb18e9",
+        "layers": [
+          "argument",
+          "combined"
+        ],
+        "rationale": "This canonical graph source defines this academic record.",
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "source:DemoA",
+        "evidenceLimit": "Structural containment only; no scholarly support is implied.",
+        "inferenceStrength": "direct_evidence",
+        "confidence": "high",
+        "status": "observed",
+        "createdFromCapture": null
+      },
+      {
+        "edgeId": "edg_f4d31ead36a9190292410745ae718603946a62ec392aa0726f4e5fc59c19b256",
+        "sourceNodeId": "nod_d28bb573b19cf115b7f21bfcbe45fe740fd3fb40d502a671d593117c72ba3cb6",
+        "relation": "informs",
+        "targetNodeId": "nod_f00defa7a2ac645864260df46b3c25e5424feba00668131865540485dbbabbd6",
+        "layers": [
+          "idea-decision",
+          "argument",
+          "combined"
+        ],
+        "rationale": "The decision log explicitly identifies this claim as affected by the decision.",
+        "artifactPath": "context/decision_log.md",
+        "sourceAnchor": "decision:DEC-1",
+        "evidenceLimit": "A review or venue decision is not supporting evidence. Inspect its rationale, evidence basis and manuscript impact in the decision log.",
+        "inferenceStrength": "reasonable_inference",
+        "confidence": "unknown",
+        "status": "reviewed",
+        "createdFromCapture": null
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "unsupported-relation",
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "sourceAnchor": "row:4",
+        "relatedId": "CLM-2"
+      }
+    ]
+  },
+  "readiness": {
+    "schemaVersion": 1,
+    "documentKind": "qiongli-academic-graph-readiness",
+    "projectionId": "grp_adda74e210162ae61e38b175c96d70177ec2b0baf6c37714848960d0691f7b6d",
+    "projectId": "prj_8a7265e3ee65073c3b4981e75998e23e",
+    "projectRevision": 1,
+    "graphSourceDigest": "930169d885080bd1011b662108204445fe96fbfba7f99e5323c8711fb10cb813",
+    "lastSuccessfulBuild": {
+      "projectRevision": 1,
+      "projectionId": "grp_adda74e210162ae61e38b175c96d70177ec2b0baf6c37714848960d0691f7b6d",
+      "graphSourceDigest": "930169d885080bd1011b662108204445fe96fbfba7f99e5323c8711fb10cb813"
+    },
+    "state": "sparse",
+    "reasonCode": "academic-graph-artifacts-need-repair",
+    "remediation": "repair-graph-artifacts",
+    "recognizedSourceCount": 10,
+    "presentSourceCount": 5,
+    "missingSourceCount": 5,
+    "invalidSourceCount": 0,
+    "unsupportedSourceCount": 1,
+    "staleSourceCount": 0,
+    "nodeCount": 14,
+    "semanticNodeCount": 9,
+    "connectedNodeCount": 14,
+    "isolatedNodeCount": 0,
+    "relationCount": 21,
+    "layerCounts": [
+      {
+        "layer": "portfolio",
+        "nodeCount": 1
+      },
+      {
+        "layer": "literature",
+        "nodeCount": 2
+      },
+      {
+        "layer": "idea-decision",
+        "nodeCount": 5
+      },
+      {
+        "layer": "argument",
+        "nodeCount": 9
+      },
+      {
+        "layer": "manuscript",
+        "nodeCount": 4
+      },
+      {
+        "layer": "combined",
+        "nodeCount": 14
+      }
+    ],
+    "nodeTypeCounts": [
+      {
+        "nodeType": "project",
+        "nodeCount": 1
+      },
+      {
+        "nodeType": "research-question",
+        "nodeCount": 1
+      },
+      {
+        "nodeType": "paper",
+        "nodeCount": 2
+      },
+      {
+        "nodeType": "claim",
+        "nodeCount": 2
+      },
+      {
+        "nodeType": "evidence",
+        "nodeCount": 2
+      },
+      {
+        "nodeType": "decision",
+        "nodeCount": 2
+      },
+      {
+        "nodeType": "artifact",
+        "nodeCount": 4
+      }
+    ],
+    "relationCounts": [
+      {
+        "relation": "contains",
+        "edgeCount": 13
+      },
+      {
+        "relation": "cites",
+        "edgeCount": 2
+      },
+      {
+        "relation": "supports",
+        "edgeCount": 2
+      },
+      {
+        "relation": "informs",
+        "edgeCount": 2
+      },
+      {
+        "relation": "derived-from",
+        "edgeCount": 2
+      }
+    ],
+    "sources": [
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "context/boundary_review.md",
+        "state": "missing",
+        "freshness": "fresh",
+        "nodeCount": 0,
+        "edgeCount": 0,
+        "diagnosticCount": 0
+      },
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "context/decision_log.md",
+        "state": "present",
+        "freshness": "fresh",
+        "nodeCount": 3,
+        "edgeCount": 5,
+        "diagnosticCount": 0
+      },
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "context/idea_funnel.md",
+        "state": "missing",
+        "freshness": "fresh",
+        "nodeCount": 0,
+        "edgeCount": 0,
+        "diagnosticCount": 0
+      },
+      {
+        "sourceKind": "project-manifest",
+        "artifactPath": "context/project_manifest.json",
+        "state": "present",
+        "freshness": "fresh",
+        "nodeCount": 1,
+        "edgeCount": 0,
+        "diagnosticCount": 0
+      },
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "context/research_state.md",
+        "state": "present",
+        "freshness": "fresh",
+        "nodeCount": 2,
+        "edgeCount": 2,
+        "diagnosticCount": 0
+      },
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "context/stage_handoff.md",
+        "state": "missing",
+        "freshness": "fresh",
+        "nodeCount": 0,
+        "edgeCount": 0,
+        "diagnosticCount": 0
+      },
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "evidence/claim-evidence-ledger.csv",
+        "state": "unsupported",
+        "freshness": "fresh",
+        "nodeCount": 7,
+        "edgeCount": 11,
+        "diagnosticCount": 1
+      },
+      {
+        "sourceKind": "semantic-links",
+        "artifactPath": "graph/semantic_links.jsonl",
+        "state": "missing",
+        "freshness": "fresh",
+        "nodeCount": 0,
+        "edgeCount": 0,
+        "diagnosticCount": 0
+      },
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "literature/literature_map.md",
+        "state": "missing",
+        "freshness": "fresh",
+        "nodeCount": 0,
+        "edgeCount": 0,
+        "diagnosticCount": 0
+      },
+      {
+        "sourceKind": "registered-artifact",
+        "artifactPath": "manuscript/claims_evidence_map.md",
+        "state": "present",
+        "freshness": "fresh",
+        "nodeCount": 1,
+        "edgeCount": 3,
+        "diagnosticCount": 0
+      }
+    ]
+  }
+}

@@ -237,6 +237,15 @@ pub fn project_profile(
     profile: &str,
     overrides: Option<&WorkflowOverrides>,
 ) -> Result<Vec<ProjectedResource>, WorkflowOverrideError> {
+    project_profile_with_language(pack, profile, overrides, None)
+}
+
+pub fn project_profile_with_language(
+    pack: &LoadedResourcePack<'_>,
+    profile: &str,
+    overrides: Option<&WorkflowOverrides>,
+    language: Option<&str>,
+) -> Result<Vec<ProjectedResource>, WorkflowOverrideError> {
     if let Some(overrides) = overrides {
         overrides.validate_parent(pack)?;
     }
@@ -245,17 +254,26 @@ pub fn project_profile(
         .into_iter()
         .map(|resource| {
             let override_entry = overrides.and_then(|value| value.entry(&resource.entry().path));
-            let bytes = override_entry
+            let mut bytes = override_entry
                 .map_or_else(|| resource.bytes().to_vec(), |entry| entry.bytes.clone());
+            let mut current_sha256 = override_entry.map_or_else(
+                || resource.entry().sha256.clone(),
+                |entry| entry.current_sha256.clone(),
+            );
+            if let Some(language) = language {
+                bytes =
+                    crate::localize_skill_metadata(pack, &resource.entry().path, &bytes, language)
+                        .map_err(|_| {
+                            WorkflowOverrideError::InvalidMarkdown(resource.entry().path.clone())
+                        })?;
+                current_sha256 = sha256_hex(&bytes);
+            }
             Ok(ProjectedResource {
                 path: resource.entry().path.clone(),
                 resource_kind: resource.entry().resource_kind,
                 mode: resource.entry().mode,
                 canonical_sha256: resource.entry().sha256.clone(),
-                current_sha256: override_entry.map_or_else(
-                    || resource.entry().sha256.clone(),
-                    |entry| entry.current_sha256.clone(),
-                ),
+                current_sha256,
                 bytes,
             })
         })

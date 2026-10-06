@@ -12,6 +12,7 @@ import unittest
 from unittest.mock import patch
 
 from tooling.scripts import native_release_dry_run as dry_run
+from tooling.scripts.release_version import parse_release_version
 from tooling.scripts.validate_capability_contract import validate_instance
 
 
@@ -21,6 +22,7 @@ SOURCE_COMMIT = "a" * 40
 with (REPO_ROOT / "packages/qiongli-native/Cargo.toml").open("rb") as handle:
     NATIVE_VERSION = tomllib.load(handle)["workspace"]["package"]["version"]
 NATIVE_TAG = f"v{NATIVE_VERSION}"
+NATIVE_IDENTITY = parse_release_version(NATIVE_TAG)
 
 
 def _write_native_fixture(
@@ -67,7 +69,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
             NATIVE_TAG,
             target_os="linux",
             target_arch="amd64",
-            source_ref="2.x",
+            source_ref=NATIVE_IDENTITY.source_branch,
             source_ref_type="branch",
             worktree_state="clean",
             source_commit=SOURCE_COMMIT,
@@ -92,13 +94,13 @@ class NativeReleaseDryRunTests(unittest.TestCase):
                 "product": "qiongli",
                 "version": NATIVE_VERSION,
                 "repo_tag": NATIVE_TAG,
-                "channel": "alpha",
+                "channel": NATIVE_IDENTITY.channel,
                 "release_line": "native-2x",
             },
         )
-        self.assertEqual(plan["source"]["required_branch"], "2.x")
+        self.assertEqual(plan["source"]["required_branch"], NATIVE_IDENTITY.source_branch)
         self.assertEqual(plan["source"]["required_ref_type"], "branch")
-        self.assertEqual(plan["source"]["observed_ref"], "2.x")
+        self.assertEqual(plan["source"]["observed_ref"], NATIVE_IDENTITY.source_branch)
         self.assertEqual(plan["source"]["observed_ref_type"], "branch")
         self.assertEqual(plan["source"]["worktree_state"], "clean")
         self.assertEqual(plan["source"]["source_commit"], SOURCE_COMMIT)
@@ -137,7 +139,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
             {
                 "product": "qiongli",
                 "version": NATIVE_VERSION,
-                "channel": "alpha",
+                "channel": NATIVE_IDENTITY.channel,
                 "profile": "bootstrap",
                 "os": "linux",
                 "arch": "x86_64",
@@ -155,7 +157,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
         publication = plan["publication"]
 
         self.assertEqual(isolation["canonical_channels"], ["alpha", "beta", "stable"])
-        self.assertEqual(isolation["selected_channel"], "alpha")
+        self.assertEqual(isolation["selected_channel"], NATIVE_IDENTITY.channel)
         self.assertFalse(isolation["mutable_alias_is_canonical"])
         self.assertFalse(isolation["cross_channel_fallback"])
         self.assertFalse(isolation["legacy_1x_feed_included"])
@@ -176,6 +178,24 @@ class NativeReleaseDryRunTests(unittest.TestCase):
 
         self.assertTrue(failures)
         self.assertTrue(any("oneOf" in failure for failure in failures))
+
+    def test_stable_plan_requires_main_and_does_not_authorize_publication(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _write_native_fixture(root, version="2.0.0", channel="stable")
+            for branch in ("main", "2.x"):
+                plan = dry_run.build_plan(
+                    root, "v2.0.0", target_os="linux", target_arch="amd64",
+                    source_ref=branch, source_ref_type="branch",
+                    worktree_state="clean", source_commit=SOURCE_COMMIT,
+                )
+                self.assertEqual(validate_instance(plan, self.schema), [])
+                self.assertEqual(plan["source"]["required_branch"], "main")
+                self.assertEqual(plan["source"]["release_source_eligible"], branch == "main")
+                self.assertFalse(plan["publication"]["publication_allowed"])
+                plan["source"]["required_branch"] = "2.x"
+                with self.assertRaises(dry_run.DryRunError):
+                    dry_run.validate_plan_semantics(plan)
 
     def test_bundle_is_byte_deterministic_and_does_not_mutate_source(self) -> None:
         manifest = REPO_ROOT / dry_run.NATIVE_MANIFEST_RELATIVE
@@ -210,7 +230,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
             self.assertNotIn("artifact built", text.lower())
         self.assertIn("planned only; publication is not allowed", notes)
         self.assertIn("Release Notes", notes)
-        self.assertIn("Stage: Alpha", notes)
+        self.assertIn(f"Stage: {NATIVE_IDENTITY.channel.title()}", notes)
         self.assertIn("Artifact produced: `false`", notes)
         self.assertIn("PyPI publication: `not-applicable`", notes)
         self.assertIn("npm publication: `not-applicable`", notes)
@@ -289,7 +309,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
                     NATIVE_TAG,
                     target_os="linux",
                     target_arch="x86_64",
-                    source_ref="2.x",
+                    source_ref=NATIVE_IDENTITY.source_branch,
                     source_ref_type="branch",
                     worktree_state="clean",
                     source_commit=value,
@@ -305,7 +325,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
             source_ref_type="branch",
             worktree_state="dirty",
         )
-        self.assertEqual(dirty["source"]["required_branch"], "2.x")
+        self.assertEqual(dirty["source"]["required_branch"], NATIVE_IDENTITY.source_branch)
         self.assertEqual(
             dirty["source"]["observed_ref"], "feat/rel-201-native-alpha-release"
         )
@@ -329,7 +349,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
             NATIVE_TAG,
             target_os="linux",
             target_arch="x86_64",
-            source_ref="2.x",
+            source_ref=NATIVE_IDENTITY.source_branch,
             source_ref_type="tag",
             worktree_state="clean",
             source_commit=SOURCE_COMMIT,
@@ -461,7 +481,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
         mutations = (
             lambda plan: plan["identity"].__setitem__("version", "2.0.0-alpha.2"),
             lambda plan: plan["channel_isolation"].__setitem__(
-                "selected_channel", "beta"
+                "selected_channel", "alpha" if NATIVE_IDENTITY.channel != "alpha" else "beta"
             ),
             lambda plan: plan["planned_artifacts"][0]["identity"].__setitem__(
                 "version", "2.0.0-alpha.2"
@@ -501,7 +521,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
                     "--source-commit",
                     SOURCE_COMMIT,
                     "--source-ref",
-                    "2.x",
+                    NATIVE_IDENTITY.source_branch,
                     "--source-ref-type",
                     "branch",
                     "--worktree-state",
@@ -515,7 +535,7 @@ class NativeReleaseDryRunTests(unittest.TestCase):
             self.assertEqual(payload["status"], "pass")
             self.assertEqual(payload["code"], "native-release-dry-run-written")
             self.assertEqual(payload["repo_tag"], NATIVE_TAG)
-            self.assertEqual(payload["channel"], "alpha")
+            self.assertEqual(payload["channel"], NATIVE_IDENTITY.channel)
             self.assertFalse(payload["publication_performed"])
             self.assertFalse(payload["publication_allowed"])
             self.assertEqual(

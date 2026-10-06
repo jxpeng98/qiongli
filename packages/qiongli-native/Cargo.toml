@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
     "apps/qiongli",
+    "crates/qiongli-bounded-alloc",
     "crates/qiongli-config",
     "crates/qiongli-content",
     "crates/qiongli-execution",
@@ -14,7 +15,7 @@ members = [
 default-members = ["apps/qiongli"]
 
 [workspace.package]
-version = "2.0.0-alpha.5"
+version = "2.4.0"
 edition = "2024"
 rust-version = "1.97"
 authors = ["Jiaxin Peng"]
@@ -24,7 +25,7 @@ publish = false
 
 [workspace.metadata.qiongli]
 product = "qiongli"
-channel = "alpha"
+channel = "stable"
 
 [workspace.dependencies]
 agent-client-protocol = "=2.1.0"

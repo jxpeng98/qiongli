@@ -13,7 +13,7 @@ pub const ZOTERO_COMPANION_ID: &str = "qiongli-zotero-companion@qiongli.local";
 pub const ZOTERO_COMPANION_DISPLAY_NAME: &str = "Qiongli Zotero Companion";
 pub const ZOTERO_COMPANION_ENDPOINT_VERSION: &str = "2";
 pub const ZOTERO_COMPANION_ZOTERO_MIN_VERSION: &str = "8.0";
-pub const ZOTERO_COMPANION_ZOTERO_MAX_VERSION: &str = "9.0.*";
+pub const ZOTERO_COMPANION_ZOTERO_MAX_VERSION: &str = "10.0.*";
 pub const ZOTERO_COMPANION_UPDATE_URL: &str = "https://github.com/jxpeng98/qiongli/releases/latest/download/qiongli-zotero-companion-updates.json";
 pub const ZOTERO_COMPANION_SOURCE_PATHS: [&str; 4] = [
     "README.md",

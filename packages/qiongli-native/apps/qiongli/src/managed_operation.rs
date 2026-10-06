@@ -30,10 +30,10 @@ use crate::desktop::{
     prepare_host_plugin_plans, update_store,
 };
 use crate::managed_content::{
-    ManagedContentEntryV1, ManagedSkillsEntryState, apply_managed_materialization_with_overrides,
-    detach_managed_materialization, load_managed_content_registry, managed_skills_target_id,
-    materialization_receipt_sha256, observe_managed_skills_entry_with_variant,
-    remove_managed_materialization_with_overrides,
+    ManagedContentEntryV1, ManagedSkillsEntryState, apply_managed_materialization_with_language,
+    apply_managed_materialization_with_overrides, detach_managed_materialization,
+    load_managed_content_registry, managed_skills_target_id, materialization_receipt_sha256,
+    observe_managed_skills_entry_with_variant, remove_managed_materialization_with_overrides,
 };
 
 const PLAN_DOCUMENT_KIND: &str = "qiongli-managed-operation-plan";
@@ -42,14 +42,14 @@ const PLAN_TTL_SECONDS: u64 = 600;
 const PLAN_CLOCK_SKEW_SECONDS: u64 = 60;
 const MAX_PLAN_BYTES: u64 = 64 * 1024;
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum ManagedSkillsPresetV1 {
     QiongliManaged,
     CurrentProject,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum ManagedSkillsStateV1 {
     Missing,
@@ -58,7 +58,9 @@ pub(crate) enum ManagedSkillsStateV1 {
     Drifted,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize, schemars::JsonSchema,
+)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum ManagedOperationApprovalV1 {
     FilesystemWrite,
@@ -66,14 +68,16 @@ pub(crate) enum ManagedOperationApprovalV1 {
     HostTrust,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize, schemars::JsonSchema,
+)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum ManagedIntegrationTargetV1 {
     Codex,
     ClaudeCode,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum ManagedIntegrationEffectV1 {
     Install,
@@ -82,14 +86,14 @@ pub(crate) enum ManagedIntegrationEffectV1 {
     AlreadyCurrent,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum ManagedIntegrationModeV1 {
     Install,
     Repair,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ManagedIntegrationInstallPreviewV1 {
     target: ManagedIntegrationTargetV1,
@@ -97,37 +101,47 @@ pub(crate) struct ManagedIntegrationInstallPreviewV1 {
     native_plan_digest_sha256: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ManagedIntegrationVerificationV1 {
     target: ManagedIntegrationTargetV1,
     evidence_digest_sha256: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub(crate) enum ManagedOperationV1 {
+    PluginSource {
+        source: crate::plugin_source::PluginSourcePlan,
+    },
     SkillsReconcilePreset {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schemars(regex(pattern = "^(en|zh)$"))]
+        skill_language: Option<String>,
         preset: ManagedSkillsPresetV1,
         target_id: String,
+        #[schemars(schema_with = "profile_schema")]
         profile: ProfileId,
         expected_state: ManagedSkillsStateV1,
         expected_receipt_sha256: Option<String>,
     },
     SkillsUpdateTarget {
         target_id: String,
+        #[schemars(schema_with = "profile_schema")]
         profile: ProfileId,
         expected_state: ManagedSkillsStateV1,
         expected_receipt_sha256: String,
     },
     SkillsRemoveTarget {
         target_id: String,
+        #[schemars(schema_with = "profile_schema")]
         profile: ProfileId,
         expected_state: ManagedSkillsStateV1,
         expected_receipt_sha256: String,
     },
     SkillsDetachTarget {
         target_id: String,
+        #[schemars(schema_with = "profile_schema")]
         profile: ProfileId,
         expected_state: ManagedSkillsStateV1,
         expected_receipt_sha256: String,
@@ -157,10 +171,11 @@ pub(crate) enum ManagedOperationV1 {
     },
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ManagedOperationPlanV1 {
     document_kind: String,
+    #[schemars(range(min = 1, max = 2))]
     schema_version: u32,
     product_version: String,
     content_pack_sha256: String,
@@ -175,7 +190,19 @@ pub(crate) struct ManagedOperationPlanV1 {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ManagedOperationCliCommand {
+    PlanPluginSource {
+        action: crate::plugin_source::PluginSourceAction,
+        target: ManagedIntegrationTargetV1,
+        destination: PathBuf,
+        context_hooks: Option<bool>,
+        language: Option<String>,
+    },
+    PluginSourceStatus {
+        target: ManagedIntegrationTargetV1,
+        destination: PathBuf,
+    },
     PlanSkillsReconcile {
+        language: Option<String>,
         preset: ManagedSkillsPresetV1,
         profile: ProfileId,
     },
@@ -224,7 +251,7 @@ struct ManagedOperationPlanBodyV1<'a> {
     semantic_digest_sha256: &'a str,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct ManagedOperationResultV1 {
     schema_version: u32,
@@ -250,8 +277,60 @@ pub(crate) fn execute(
     content: &EmbeddedContent,
 ) -> Result<String, &'static str> {
     match command {
-        ManagedOperationCliCommand::PlanSkillsReconcile { preset, profile } => {
-            let plan = prepare_skills_reconcile_plan(environment, content, *preset, *profile)?;
+        ManagedOperationCliCommand::PlanPluginSource {
+            action,
+            target,
+            destination,
+            context_hooks,
+            language,
+        } => {
+            let source = crate::plugin_source::plan(
+                environment,
+                content,
+                *action,
+                *target,
+                destination,
+                *context_hooks,
+                language.as_deref(),
+            )?;
+            let semantic = source.digest()?;
+            ManagedOperationPlanV1::new(
+                content,
+                now_unix()?,
+                ManagedOperationV1::PluginSource { source },
+                vec![ManagedOperationApprovalV1::FilesystemWrite],
+                semantic,
+            )?
+            .to_canonical_json()
+        }
+        ManagedOperationCliCommand::PluginSourceStatus {
+            target,
+            destination,
+        } => crate::plugin_source::status(environment, content, *target, destination),
+        ManagedOperationCliCommand::PlanSkillsReconcile {
+            preset,
+            profile,
+            language,
+        } => {
+            let mut plan = prepare_skills_reconcile_plan(environment, content, *preset, *profile)?;
+            if let Some(language) = language {
+                let language = if language == "auto" {
+                    environment.skill_language()
+                } else {
+                    language
+                };
+                if !qiongli_content::skill_language_valid(language) {
+                    return Err("skill-language-invalid");
+                }
+                if let ManagedOperationV1::SkillsReconcilePreset { skill_language, .. } =
+                    &mut plan.operation
+                {
+                    *skill_language = Some(language.into());
+                }
+                plan.semantic_digest_sha256 =
+                    language_semantic_digest(&plan.semantic_digest_sha256, Some(language));
+                plan.plan_digest_sha256 = plan.compute_digest()?;
+            }
             plan.to_canonical_json()
         }
         ManagedOperationCliCommand::PlanSkillsUpdate { target_id } => {
@@ -336,7 +415,11 @@ impl ManagedOperationPlanV1 {
     ) -> Result<Self, &'static str> {
         let mut plan = Self {
             document_kind: PLAN_DOCUMENT_KIND.to_string(),
-            schema_version: PLAN_SCHEMA_VERSION,
+            schema_version: if matches!(operation, ManagedOperationV1::PluginSource { .. }) {
+                2
+            } else {
+                PLAN_SCHEMA_VERSION
+            },
             product_version: env!("CARGO_PKG_VERSION").to_string(),
             content_pack_sha256: content.pack().pack_sha256().to_string(),
             content_root_sha256: content.pack().manifest().content_root_sha256.clone(),
@@ -374,9 +457,18 @@ impl ManagedOperationPlanV1 {
     }
 
     fn validate(&self, now_unix: u64) -> Result<(), &'static str> {
+        self.validate_for_version(now_unix, env!("CARGO_PKG_VERSION"))
+    }
+
+    fn validate_for_version(&self, now_unix: u64, version: &str) -> Result<(), &'static str> {
         if self.document_kind != PLAN_DOCUMENT_KIND
-            || self.schema_version != PLAN_SCHEMA_VERSION
-            || self.product_version != env!("CARGO_PKG_VERSION")
+            || self.schema_version
+                != if matches!(self.operation, ManagedOperationV1::PluginSource { .. }) {
+                    2
+                } else {
+                    PLAN_SCHEMA_VERSION
+                }
+            || self.product_version != version
             || !valid_sha256(&self.content_pack_sha256)
             || !valid_sha256(&self.content_root_sha256)
             || !valid_sha256(&self.semantic_digest_sha256)
@@ -407,6 +499,27 @@ impl ManagedOperationPlanV1 {
     }
 }
 
+pub(crate) fn verify_native_cli_health_plan(
+    output: &str,
+    version: &str,
+    pack: &str,
+    candidate_digest: &str,
+) -> Result<(), &'static str> {
+    let plan: ManagedOperationPlanV1 =
+        serde_json::from_str(output).map_err(|_| "native-activation-health-plan-invalid")?;
+    // Health observes the verified candidate, which may be the restored predecessor.
+    // Managed writes still validate against this process's own version.
+    plan.validate_for_version(now_unix()?, version)?;
+    if plan.product_version != version
+        || plan.content_pack_sha256 != pack
+        || !matches!(&plan.operation, ManagedOperationV1::CliInstall { control_sha256, .. }
+            if control_sha256 == candidate_digest)
+    {
+        return Err("native-activation-health-identity-mismatch");
+    }
+    Ok(())
+}
+
 fn prepare_skills_reconcile_plan(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
@@ -425,6 +538,7 @@ fn prepare_skills_reconcile_plan(
     }
     let target_id = target_id(&observation.target)?;
     let operation = ManagedOperationV1::SkillsReconcilePreset {
+        skill_language: None,
         preset,
         target_id: target_id.clone(),
         profile,
@@ -787,9 +901,11 @@ fn apply_integration_content_update(
     };
     let prepared = match crate::update_reconcile::prepare_update_reconciliation(
         &crate::update_reconcile::ReconciliationPreparation {
+            cli_update: None,
+            native_release: None,
             store: &store,
             transaction_id: &transaction_id,
-            target_version: &product.manifest().artifact.version,
+            target_version: &product.artifact().version,
             content,
             platform_home: product.home(),
             claude_config_root: &claude_config_root,
@@ -883,11 +999,42 @@ fn apply_plan(
     expected_plan_digest: &str,
     approvals: &[(ManagedOperationApprovalV1, bool)],
 ) -> Result<String, &'static str> {
+    apply_prepared_plan(
+        environment,
+        content,
+        &read_plan(plan_path)?,
+        expected_plan_digest,
+        approvals,
+    )
+}
+
+/// Terminal approval applies the exact preview, through the same write owner.
+pub(crate) fn apply_reviewed_plan(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    json: &str,
+) -> Result<String, &'static str> {
+    let plan = parse_plan(json.as_bytes())?;
+    apply_prepared_plan(
+        environment,
+        content,
+        &plan,
+        &plan.plan_digest_sha256,
+        &[(ManagedOperationApprovalV1::FilesystemWrite, true)],
+    )
+}
+
+fn apply_prepared_plan(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    plan: &ManagedOperationPlanV1,
+    expected_plan_digest: &str,
+    approvals: &[(ManagedOperationApprovalV1, bool)],
+) -> Result<String, &'static str> {
     if !valid_sha256(expected_plan_digest) {
         return Err("managed-operation-plan-digest-invalid");
     }
     let validation_now_unix = now_unix()?;
-    let plan = read_plan(plan_path)?;
     plan.validate(validation_now_unix)?;
     if plan.plan_digest_sha256 != expected_plan_digest {
         return Err("managed-operation-plan-digest-mismatch");
@@ -899,8 +1046,33 @@ fn apply_plan(
     }
     validate_approvals(&plan.approvals_required, approvals)?;
     let root = config_root(environment).map_err(|error| error.reason_code())?;
+    let _write_guard = crate::update_reconcile::acquire_managed_write_guard(
+        environment
+            .platform_home()
+            .ok_or("native-candidate-home-unavailable")?,
+        root.clone(),
+    )?;
     let result = match &plan.operation {
+        ManagedOperationV1::PluginSource { source } => {
+            if source.digest()? != plan.semantic_digest_sha256 {
+                return Err("managed-operation-precondition-changed");
+            }
+            let receipt = crate::plugin_source::apply(environment, content, source)?;
+            ManagedOperationResultV1 {
+                schema_version: 1,
+                command: "app-apply",
+                operation: "plugin-source",
+                targets: vec![source.destination.display().to_string()],
+                result: if source.action == crate::plugin_source::PluginSourceAction::Remove {
+                    "source-removed-host-state-unchanged"
+                } else {
+                    "source-ready-host-action-required"
+                },
+                receipt_sha256: Some(receipt),
+            }
+        }
         ManagedOperationV1::SkillsReconcilePreset {
+            skill_language,
             preset,
             target_id,
             profile,
@@ -927,15 +1099,23 @@ fn apply_plan(
                 content.pack().pack_sha256(),
                 observation.workflow_variant_sha256.as_deref(),
             );
+            let semantic = language_semantic_digest(&semantic, skill_language.as_deref());
+            if skill_language
+                .as_deref()
+                .is_some_and(|s| !qiongli_content::skill_language_valid(s))
+            {
+                return Err("skill-language-invalid");
+            }
             if semantic != plan.semantic_digest_sha256 {
                 return Err("managed-operation-precondition-changed");
             }
-            let receipt = apply_managed_materialization_with_overrides(
+            let receipt = apply_managed_materialization_with_language(
                 &root,
                 content,
                 &observation.target,
                 *profile,
                 workflow_variant.overrides(),
+                skill_language.as_deref(),
             )?;
             ManagedOperationResultV1 {
                 schema_version: 1,
@@ -944,7 +1124,15 @@ fn apply_plan(
                 targets: vec![target_id.clone()],
                 result: if *expected_state == ManagedSkillsStateV1::Missing {
                     "installed"
-                } else if *expected_state == ManagedSkillsStateV1::Current {
+                } else if *expected_state == ManagedSkillsStateV1::Current
+                    && skill_language.as_deref().is_none_or(|language| {
+                        observation
+                            .receipt
+                            .as_ref()
+                            .and_then(|r| r.skill_language.as_deref())
+                            == Some(language)
+                    })
+                {
                     "already-current"
                 } else {
                     "updated"
@@ -1370,7 +1558,18 @@ fn observe_preset(
     content: &EmbeddedContent,
     preset: ManagedSkillsPresetV1,
 ) -> Result<ManagedSkillsObservation, &'static str> {
-    let path = match preset {
+    observe_path(
+        environment,
+        content,
+        &skills_preset_path(environment, preset)?,
+    )
+}
+
+pub(crate) fn skills_preset_path(
+    environment: &CommandEnvironment,
+    preset: ManagedSkillsPresetV1,
+) -> Result<PathBuf, &'static str> {
+    Ok(match preset {
         ManagedSkillsPresetV1::QiongliManaged => environment
             .platform_home()
             .ok_or("managed-skills-home-unavailable")?
@@ -1379,8 +1578,7 @@ fn observe_preset(
             .project_root()
             .ok_or("managed-skills-project-unavailable")?
             .join(".qiongli-skills"),
-    };
-    observe_path(environment, content, &path)
+    })
 }
 
 fn observe_registered_target(
@@ -1507,13 +1705,21 @@ fn validate_workflow_variant_observation(
 
 fn validate_operation(operation: &ManagedOperationV1) -> Result<(), &'static str> {
     match operation {
+        ManagedOperationV1::PluginSource { source } => source.validate()?,
         ManagedOperationV1::SkillsReconcilePreset {
+            skill_language,
             target_id,
             expected_state,
             expected_receipt_sha256,
             ..
         } => {
             validate_target_id(target_id)?;
+            if skill_language
+                .as_deref()
+                .is_some_and(|s| !qiongli_content::skill_language_valid(s))
+            {
+                return Err("managed-operation-plan-invalid");
+            }
             if *expected_state == ManagedSkillsStateV1::Drifted
                 || ((*expected_state == ManagedSkillsStateV1::Missing)
                     != expected_receipt_sha256.is_none())
@@ -1641,7 +1847,8 @@ fn validate_operation(operation: &ManagedOperationV1) -> Result<(), &'static str
 
 fn expected_approvals(operation: &ManagedOperationV1) -> Vec<ManagedOperationApprovalV1> {
     match operation {
-        ManagedOperationV1::SkillsReconcilePreset { .. }
+        ManagedOperationV1::PluginSource { .. }
+        | ManagedOperationV1::SkillsReconcilePreset { .. }
         | ManagedOperationV1::SkillsUpdateTarget { .. }
         | ManagedOperationV1::SkillsRemoveTarget { .. }
         | ManagedOperationV1::SkillsDetachTarget { .. }
@@ -1690,8 +1897,15 @@ fn read_plan(path: &Path) -> Result<ManagedOperationPlanV1, &'static str> {
     if bytes.len() as u64 > MAX_PLAN_BYTES {
         return Err("managed-operation-plan-invalid");
     }
+    parse_plan(&bytes)
+}
+
+fn parse_plan(bytes: &[u8]) -> Result<ManagedOperationPlanV1, &'static str> {
+    if bytes.len() as u64 > MAX_PLAN_BYTES {
+        return Err("managed-operation-plan-invalid");
+    }
     let plan: ManagedOperationPlanV1 =
-        serde_json::from_slice(&bytes).map_err(|_| "managed-operation-plan-invalid")?;
+        serde_json::from_slice(bytes).map_err(|_| "managed-operation-plan-invalid")?;
     let canonical =
         serde_json_canonicalizer::to_vec(&plan).map_err(|_| "managed-operation-plan-invalid")?;
     if bytes != canonical && bytes != [canonical.as_slice(), b"\n"].concat() {
@@ -2021,6 +2235,13 @@ const fn integration_mode_name(mode: ManagedIntegrationModeV1) -> &'static str {
     }
 }
 
+fn language_semantic_digest(digest: &str, language: Option<&str>) -> String {
+    match language {
+        Some(language) => format!("{:x}", Sha256::digest(format!("{digest}\0{language}"))),
+        None => digest.into(),
+    }
+}
+
 fn skills_semantic_digest(
     action: &str,
     target_id: &str,
@@ -2103,6 +2324,81 @@ fn encode_lower_hex(bytes: &[u8]) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn native_cli_health_requires_the_exact_candidate_plan() {
+        let content = crate::embedded_content().unwrap();
+        let candidate = "1".repeat(64);
+        let mut plan = super::ManagedOperationPlanV1::new(
+            &content,
+            super::now_unix().unwrap(),
+            super::ManagedOperationV1::CliInstall {
+                control_sha256: candidate.clone(),
+                native_plan_digest_sha256: "2".repeat(64),
+            },
+            vec![super::ManagedOperationApprovalV1::FilesystemWrite],
+            "3".repeat(64),
+        )
+        .unwrap();
+        let output = plan.to_canonical_json().unwrap();
+        let version = env!("CARGO_PKG_VERSION");
+        let pack = content.pack().pack_sha256();
+        assert!(super::verify_native_cli_health_plan(&output, version, pack, &candidate).is_ok());
+        for (v, p, c) in [
+            ("2.0.0-alpha.0", pack, candidate.as_str()),
+            (version, "wrong-pack", candidate.as_str()),
+            (version, pack, "wrong-candidate"),
+        ] {
+            assert!(super::verify_native_cli_health_plan(&output, v, p, c).is_err());
+        }
+        plan.product_version = "2.0.0-alpha.4".to_string();
+        plan.plan_digest_sha256 = plan.compute_digest().unwrap();
+        let previous = plan.to_canonical_json().unwrap();
+        assert!(
+            super::verify_native_cli_health_plan(
+                &previous,
+                &plan.product_version,
+                pack,
+                &candidate
+            )
+            .is_ok()
+        );
+        assert_eq!(
+            plan.validate(super::now_unix().unwrap()),
+            Err("managed-operation-plan-invalid")
+        );
+        assert!(
+            super::verify_native_cli_health_plan(&previous, version, pack, &candidate).is_err()
+        );
+        plan.plan_digest_sha256 = "0".repeat(64);
+        assert_eq!(
+            super::verify_native_cli_health_plan(
+                &plan.to_canonical_json().unwrap(),
+                &plan.product_version,
+                pack,
+                &candidate
+            ),
+            Err("managed-operation-plan-digest-invalid")
+        );
+        plan.product_version = version.to_string();
+        plan.operation = super::ManagedOperationV1::CliRemove {
+            control_sha256: candidate.clone(),
+            native_plan_digest_sha256: "2".repeat(64),
+        };
+        plan.plan_digest_sha256 = plan.compute_digest().unwrap();
+        assert!(
+            super::verify_native_cli_health_plan(
+                &plan.to_canonical_json().unwrap(),
+                version,
+                pack,
+                &candidate
+            )
+            .is_err()
+        );
+        assert!(
+            super::verify_native_cli_health_plan("not-json", version, pack, &candidate).is_err()
+        );
+    }
+
     use super::*;
 
     #[cfg(unix)]
@@ -2459,6 +2755,7 @@ mod tests {
     fn plan_contract_rejects_unknown_or_path_bearing_fields() {
         let content = crate::embedded_content().unwrap();
         let operation = ManagedOperationV1::SkillsReconcilePreset {
+            skill_language: None,
             preset: ManagedSkillsPresetV1::QiongliManaged,
             target_id: format!("skills-target-{}", "1".repeat(64)),
             profile: ProfileId::SkillOnly,
@@ -2675,6 +2972,118 @@ mod tests {
             )
             .unwrap_err(),
             "managed-operation-plan-invalid"
+        );
+    }
+}
+
+fn profile_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    serde_json::json!({"type":"string", "enum":[ProfileId::SkillOnly, ProfileId::MarketplaceLite, ProfileId::Full]}).try_into().unwrap()
+}
+
+pub(crate) fn generated_plan_contract() -> serde_json::Value {
+    let mut plan = ManagedOperationPlanV1 {
+        document_kind: PLAN_DOCUMENT_KIND.to_owned(),
+        schema_version: 2,
+        product_version: "2.0.0-alpha.1".to_owned(),
+        content_pack_sha256: "1".repeat(64),
+        content_root_sha256: "2".repeat(64),
+        created_at_unix: 1750000000,
+        expires_at_unix: 1750000600,
+        operation: ManagedOperationV1::PluginSource {
+            source: crate::plugin_source::contract_source(),
+        },
+        approvals_required: vec![ManagedOperationApprovalV1::FilesystemWrite],
+        semantic_digest_sha256: crate::plugin_source::contract_source().digest().unwrap(),
+        plan_digest_sha256: String::new(),
+    };
+    plan.plan_digest_sha256 = plan.compute_digest().unwrap();
+    let result = ManagedOperationResultV1 {
+        schema_version: 1,
+        command: "app-apply",
+        operation: "plugin-source",
+        targets: vec!["/example/qiongli-next".to_owned()],
+        result: "source-ready-host-action-required",
+        receipt_sha256: Some("3".repeat(64)),
+    };
+    serde_json::json!({
+        "schema": schemars::generate::SchemaSettings::draft2020_12().into_generator().into_root_schema_for::<ManagedOperationPlanV1>(),
+        "fixture": plan,
+        "result_schema": schemars::generate::SchemaSettings::draft2020_12().into_generator().into_root_schema_for::<ManagedOperationResultV1>(),
+        "result_fixture": result
+    })
+}
+
+#[cfg(test)]
+mod plugin_source_schema_tests {
+    use super::*;
+
+    #[test]
+    fn generated_source_contract_preserves_legacy_plans_and_rejects_version_relabeling() {
+        let generated: serde_json::Value =
+            serde_json::from_str(&crate::plugin_source_contract_json().unwrap()).unwrap();
+        for (actual, fixture) in [
+            (
+                &generated["managed"]["schema"],
+                include_str!("../schemas/managed-operation-v2.schema.json"),
+            ),
+            (
+                &generated["managed"]["fixture"],
+                include_str!("../tests/fixtures/plugin-source-v2.plan.json"),
+            ),
+            (
+                &generated["managed"]["result_schema"],
+                include_str!("../schemas/managed-operation-result-v1.schema.json"),
+            ),
+            (
+                &generated["managed"]["result_fixture"],
+                include_str!("../tests/fixtures/plugin-source-v1.applied.json"),
+            ),
+            (
+                &generated["status"]["schema"],
+                include_str!("../schemas/plugin-source-status-v2.schema.json"),
+            ),
+            (
+                &generated["status"]["fixture"],
+                include_str!("../tests/fixtures/plugin-source-v2.status.json"),
+            ),
+        ] {
+            assert_eq!(
+                actual,
+                &serde_json::from_str::<serde_json::Value>(fixture).unwrap()
+            );
+        }
+        let mut plan: ManagedOperationPlanV1 =
+            serde_json::from_value(generated["managed"]["fixture"].clone()).unwrap();
+        // Golden paths are display examples; use a platform-native absolute path for validation.
+        if let ManagedOperationV1::PluginSource { source } = &mut plan.operation {
+            source.destination = std::env::current_dir().unwrap().join("qiongli-next");
+            plan.semantic_digest_sha256 = source.digest().unwrap();
+        }
+        plan.plan_digest_sha256 = plan.compute_digest().unwrap();
+        assert!(
+            plan.validate_for_version(1750000000, "2.0.0-alpha.1")
+                .is_ok()
+        );
+        plan.schema_version = 1;
+        plan.plan_digest_sha256 = plan.compute_digest().unwrap();
+        assert!(
+            plan.validate_for_version(1750000000, "2.0.0-alpha.1")
+                .is_err()
+        );
+        plan.operation = ManagedOperationV1::CliInstall {
+            control_sha256: "4".repeat(64),
+            native_plan_digest_sha256: "5".repeat(64),
+        };
+        plan.plan_digest_sha256 = plan.compute_digest().unwrap();
+        assert!(
+            plan.validate_for_version(1750000000, "2.0.0-alpha.1")
+                .is_ok()
+        );
+        plan.schema_version = 2;
+        plan.plan_digest_sha256 = plan.compute_digest().unwrap();
+        assert!(
+            plan.validate_for_version(1750000000, "2.0.0-alpha.1")
+                .is_err()
         );
     }
 }

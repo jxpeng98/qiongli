@@ -1,0 +1,319 @@
+#!/usr/bin/env python3
+"""Check npm, PyPI and Cargo installations in a disposable root through CLI/MCP."""
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import os
+import re
+from pathlib import Path
+import subprocess
+import sys
+import tarfile
+import tempfile
+import tomllib
+
+try:
+    from .native_registry_packages import ROOT, npm_command, requires_deepseek_npm
+except ImportError:
+    from native_registry_packages import ROOT, npm_command, requires_deepseek_npm
+
+
+def run(argv, *, root, env, input=None, check=True):
+    return subprocess.run([str(arg) for arg in argv], cwd=root, env=env, input=input,
+                          text=True, capture_output=True, check=check, timeout=120)
+
+
+def check_transition(command, *, version, env):
+    """Observe the retained patch interface without reading a real Host configuration."""
+    if version != '2.0.1':
+        return None
+    # Export targets reject shared /tmp ancestors. Use a disposable directory
+    # beneath the checkout, whose parent policy the CLI still validates itself.
+    with tempfile.TemporaryDirectory(prefix='.qiongli-transition-', dir=ROOT) as temporary:
+        root = Path(temporary).resolve()
+        if sys.platform == 'win32':
+            # Python 3.12 mkdir mode does not set Windows ACLs. Give this new
+            # probe parent the one explicit current-user ACE required by the CLI.
+            system = Path(os.environ['SYSTEMROOT']) / 'System32'
+            identity = subprocess.check_output([system / 'whoami.exe', '/user', '/fo', 'csv', '/nh'], text=True)
+            sid = next(csv.reader(identity.strip().splitlines()))[1]
+            subprocess.run([system / 'icacls.exe', root, '/inheritance:r', '/grant:r', f'*{sid}:F'],
+                           check=True, capture_output=True, text=True)
+        home = root / 'home'
+        home.mkdir(mode=0o700)
+        isolated = {key: value for key, value in env.items()
+                    if key.upper() in ('PATH', 'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP', 'TMPDIR')}
+        isolated.update(HOME=str(home), USERPROFILE=str(home),
+                        QIONGLI_CONFIG_HOME=str(home / 'config'), XDG_CONFIG_HOME=str(home / 'config'),
+                        APPDATA=str(home / 'AppData/Roaming'), LOCALAPPDATA=str(home / 'AppData/Local'))
+        observed = {}
+        for host in ('codex', 'claude'):
+            destination = root / 'qiongli-next'
+            status = json.loads(run(command + ['app', 'plugin-source-status', '--target', host,
+                                    '--destination', destination], root=root, env=isolated).stdout)
+            expected = {'schema_version': 1, 'command': 'plugin-source-status', 'target': 'claude-code' if host == 'claude' else host,
+                        'destination': str(destination), 'state': 'missing', 'source': None,
+                        'authority': 'user-local-source', 'host_state': 'not-verified',
+                        'plugin_id': 'qiongli-next@qiongli-cli-local'}
+            if status != expected:
+                raise ValueError('2.0.1 requires actual v1 Next Plugin source-status')
+            observed[host] = {key: value for key, value in status.items() if key != 'destination'}
+        require_transition(observed)
+        return observed
+
+
+def require_transition(observed):
+    expected = {host: {'schema_version': 1, 'command': 'plugin-source-status', 'target': 'claude-code' if host == 'claude' else host,
+                      'state': 'missing', 'source': None, 'authority': 'user-local-source',
+                      'host_state': 'not-verified', 'plugin_id': 'qiongli-next@qiongli-cli-local'}
+                for host in ('codex', 'claude')}
+    if (observed != expected or
+            any(type(value['schema_version']) is not int for value in observed.values())):
+        raise ValueError('missing or wrong 2.0.1 v1 Next transition evidence')
+
+
+def validate_tool_inventory(profile, names):
+    fulltext = 'qiongli_literature_read_fulltext' in names
+    saved_document = 'qiongli_project_document_read' in names
+    document_list = 'qiongli_project_document_list' in names
+    if saved_document and (profile != 'full' or not fulltext):
+        raise ValueError('unsupported saved-document MCP profile')
+    if document_list and (profile != 'full' or not saved_document):
+        raise ValueError('unsupported saved-document list MCP profile')
+    expected = {'lite': 14, 'full': 32}[profile] + fulltext + saved_document + document_list
+    if (any(type(name) is not str for name in names)
+            or len(names) != expected or len(set(names)) != expected):
+        raise ValueError('unsupported MCP tool inventory')
+    return expected
+
+
+def validate_tool_counts(counts):
+    if (counts not in ({'lite': 14, 'full': 32}, {'lite': 15, 'full': 33},
+                       {'lite': 15, 'full': 34}, {'lite': 15, 'full': 35})
+            or any(type(value) is not int for value in counts.values())):
+        raise ValueError('missing or incoherent MCP profile counts')
+    return counts
+
+
+def check_cli(executable, *, version, root, env):
+    command = executable if isinstance(executable, list) else [executable]
+    assert run(command + ['--version'], root=root, env=env).stdout.strip() == f'qiongli {version}'
+    help_text = run(command + ['--help'], root=root, env=env).stdout
+    assert 'Usage:' in help_text and 'project' in help_text
+    assert 'qiongli project' in run(command + ['project', '--help'], root=root, env=env).stdout
+    content = run(command + ['content', 'list'], root=root, env=env)
+    content = json.loads(content.stdout)
+    assert content['content_version'] == version
+    assert re.fullmatch(r'[a-f0-9]{64}', content['pack_sha256'])
+    invalid = run(command + ['not-a-command'], root=root, env=env, check=False)
+    assert invalid.returncode != 0 and not invalid.stdout and 'error:' in invalid.stderr
+    tools = {}
+    for profile in ('lite', 'full'):
+        local = json.loads(run(command + ['mcp', 'check', '--profile', profile, '--json'], root=root, env=env).stdout)
+        assert local['scope'] == 'local-in-process-protocol'
+        assert local['read_only_call'] == 'passed' and local['host_session'] == 'not-checked'
+        requests = [
+            {'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {}},
+            {'jsonrpc': '2.0', 'id': 2, 'method': 'tools/list', 'params': {}},
+            {'jsonrpc': '2.0', 'id': 3, 'method': 'tools/call', 'params': {
+                'name': 'qiongli_config_status', 'arguments': {}}},
+        ]
+        output = run(command + ['mcp', 'serve', '--profile', profile, '--transport', 'stdio'],
+                     root=root, env=env, input=''.join(json.dumps(r) + '\n' for r in requests))
+        assert not output.stderr, output.stderr
+        messages = {m['id']: m for m in map(json.loads, output.stdout.splitlines())}
+        assert len(messages) == 3
+        assert messages[1]['result']['serverInfo']['version'] == version
+        names = [t['name'] for t in messages[2]['result']['tools']]
+        expected_count = validate_tool_inventory(profile, names)
+        assert type(local['tool_count']) is int and local['tool_count'] == expected_count
+        assert 'error' not in messages[3] and not messages[3]['result'].get('isError', False)
+        tools[profile] = len(names)
+    validate_tool_counts(tools)
+    result = {'version': version, 'invalid_command_rejected': True, 'mcp_tools': tools,
+              'content_pack_sha256': content['pack_sha256']}
+    if version == '2.0.1':
+        result['plugin_source_transition'] = check_transition(command, version=version, env=env)
+    return result
+
+
+def install_cargo_archives(package_root, receipt, root, env, target_dir):
+    source = root / 'cargo-archives'
+    source.mkdir()
+    crates = {}
+    for artifact in receipt['artifacts']:
+        if not artifact['file'].endswith('.crate'):
+            continue
+        path = package_root / artifact['file']
+        with tarfile.open(path) as archive:
+            archive.extractall(source, filter='data')
+        crate = source / path.name.removesuffix('.crate')
+        package = tomllib.loads((crate / 'Cargo.toml').read_text())['package']
+        assert package['version'] == receipt['version']
+        name = package['name']
+        if name in crates or crate.name != f'{name}-{receipt["version"]}':
+            raise ValueError('duplicate or misnamed Cargo archive')
+        crates[name] = crate
+    if 'qiongli' not in crates:
+        raise ValueError('missing qiongli Cargo archive')
+    application = crates['qiongli']
+    lock_path = application / 'Cargo.lock'
+    # Cargo's packaged lockfile owns the dependency closure, including optional
+    # platform crates. Do not freeze the check to a historical workspace size.
+    locked = [package for package in tomllib.loads(lock_path.read_text())['package']
+              if package['name'] == 'qiongli' or package['name'].startswith('qiongli-')]
+    if ({package['name'] for package in locked} != set(crates)
+            or len(locked) != len(crates)
+            or any(package['version'] != receipt['version'] for package in locked)):
+        raise ValueError('Cargo archives do not match the application lockfile closure')
+    patches = [f'{json.dumps(name)} = {{ path = {json.dumps(str(crate))} }}'
+               for name, crate in sorted(crates.items()) if name != 'qiongli']
+    config = root / 'cargo-archive-patches.toml'
+    config.write_text('[patch.crates-io]\n' + '\n'.join(patches) + '\n')
+    sections = lock_path.read_text().split('[[package]]')
+    for index, section in enumerate(sections):
+        if re.search(r'^name = "qiongli-[^"]+"$', section, re.M):
+            sections[index] = re.sub(r'^(?:source|checksum) = .*\n', '', section, flags=re.M)
+    lock_path.write_text('[[package]]'.join(sections))
+    installed = root / 'cargo-installed'
+    command = ['cargo', 'install', '--path', str(application), '--bin', 'qiongli', '--bin', 'ql',
+               '--root', str(installed), '--no-default-features', '--locked', '--offline',
+               '--config', str(config), '--target-dir', str(target_dir)]
+    # The only patches point at checksum-checked archives from this same packet.
+    # This checks their source closure; it does not stand in for registry install.
+    with (root / 'cargo-install.log').open('w') as log:
+        subprocess.run(command, cwd=root, env=env, stdout=log, stderr=subprocess.STDOUT,
+                       check=True, timeout=1200)
+    return installed / ('bin/qiongli.exe' if os.name == 'nt' else 'bin/qiongli')
+
+
+def check_deepseek_npm(package, node, *, version, root, env):
+    """Load the installed provider and execute its selected native command."""
+    probe = r'''
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
+const root = pathToFileURL(process.argv[1] + '/');
+const metadata = JSON.parse(await readFile(new URL('package.json', root)));
+assert.equal(metadata.main, 'dsh/index.mjs');
+assert.deepEqual(metadata.dsh, {bundle:{patch:'./dsh/cordis.patch.yml'}});
+const { apply } = await import(new URL(metadata.main, root));
+let provider, command;
+const ctx = {skills:{registerProvider(factory) { provider = factory(); }},
+  provide(name, value) { assert.equal(name, 'qiongliBundle'); command = value.command; }};
+const translationsUrl = new URL('dsh/skills/qiongli-workflow/references/skill-descriptions.json', root);
+const translations = existsSync(translationsUrl) ? JSON.parse(await readFile(translationsUrl)) : null;
+const catalog = JSON.parse(await readFile(new URL('dsh/skills.json', root)));
+for (const language of translations ? ['auto', 'zh', 'en'] : [undefined]) {
+await apply(ctx, language ? {language} : {});
+const entries = await provider.list();
+assert.equal(entries.length, 22);
+assert.deepEqual(entries.map(e => e.name), catalog.map(e => e.name));
+for (const entry of entries) {
+  const skill = await provider.get(entry);
+  const original = await readFile(new URL('dsh/' + entry.locator, root), 'utf8');
+  if (translations) {
+    const expected = translations[entry.name];
+    assert.ok(['zh', 'en'].some(key => expected[key].description === entry.description));
+    if (language !== 'auto') assert.equal(entry.description, expected[language].description);
+    assert.equal(skill.content, original.replace(/^description: .*$/m, () => 'description: ' + JSON.stringify(entry.description)));
+  } else {
+    assert.equal(skill.content, original);
+  }
+  assert.deepEqual(skill.invocation, {modelInvocable:true,userInvocable:true});
+  assert.equal(skill.resourceBase.kind, 'directory');
+}
+await assert.rejects(provider.get({name:'../../private'}));
+}
+assert.ok(pathToFileURL(command).href.startsWith(new URL('native/', root).href));
+console.log(JSON.stringify({command, skills:catalog.length}));
+'''
+    observed = json.loads(run([node, '--input-type=module', '-e', probe, package], root=root, env=env).stdout)
+    checked = check_cli(observed['command'], version=version, root=root, env=env)
+    return {'skills': observed['skills'], 'mcp_tools': checked['mcp_tools']['full'],
+            'content_pack_sha256': checked['content_pack_sha256']}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--packages', type=Path)
+    parser.add_argument('--out-dir', type=Path, required=True)
+    parser.add_argument('--cargo-archives', action='store_true', help='build only from the checked .crate archives with local dependency patches')
+    parser.add_argument('--cargo-target-dir', type=Path, help='optional Cargo build cache to reuse')
+    parser.add_argument('--cargo-installed', type=Path, help='optional independently installed Cargo executable')
+    parser.add_argument('--cargo-only', action='store_true', help='check Cargo without npm/PyPI packages')
+    parser.add_argument('--version', help='verify the expected native version')
+    args = parser.parse_args()
+    if args.cargo_only and not (args.cargo_archives or args.cargo_installed):
+        parser.error('--cargo-only requires --cargo-archives or --cargo-installed')
+    if not args.packages and not (args.cargo_only and args.cargo_installed and args.version and not args.cargo_archives):
+        parser.error('--packages is required except for a versioned --cargo-only --cargo-installed check')
+    package_root = args.packages.resolve() if args.packages else None
+    root = args.out_dir.resolve()
+    root.mkdir(parents=True, exist_ok=False)
+    receipt = (json.loads((package_root / 'registry-packages.json').read_text()) if package_root
+               else {'version': args.version, 'artifacts': []})
+    if args.version:
+        assert receipt['version'] == args.version
+    paths = {}
+    for artifact in receipt['artifacts']:
+        path = package_root / artifact['file']
+        assert path.parent == package_root and not path.is_symlink()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == artifact['sha256']
+        paths[path.suffix] = path
+    env = os.environ.copy()
+    env.setdefault('CARGO_HOME', str(Path.home() / '.cargo'))
+    env.setdefault('RUSTUP_HOME', str(Path.home() / '.rustup'))
+    home = root / 'home'
+    home.mkdir(mode=0o700)
+    env.update(HOME=str(home), USERPROFILE=str(home), QIONGLI_CONFIG_HOME=str(home / 'config'),
+               PIP_DISABLE_PIP_VERSION_CHECK='1', MISE_SKIP_RESHIM='1')
+    if os.name == 'nt':
+        env.update(APPDATA=str(home / 'AppData/Roaming'), LOCALAPPDATA=str(home / 'AppData/Local'))
+    for key in ('CODEX_HOME', 'CLAUDE_CONFIG_DIR', 'PYTHONPATH', 'PYTHONHOME'):
+        env.pop(key, None)
+    checks = {}
+    if not args.cargo_only:
+        node = Path(subprocess.check_output(['node', '-p', 'process.execPath'], text=True).strip())
+        env['PATH'] = str(node.parent) + os.pathsep + env['PATH']
+        python_root = root / 'python'
+        run([sys.executable, '-m', 'venv', python_root], root=root, env=env)
+        python_bin = python_root / ('Scripts' if os.name == 'nt' else 'bin')
+        suffix = '.exe' if os.name == 'nt' else ''
+        run([python_bin / ('python' + suffix), '-m', 'pip', 'install', '--no-index', '--no-deps', paths['.whl']], root=root, env=env)
+        npm_root = root / 'npm'
+        run(npm_command('install', '--global', '--prefix', npm_root, '--cache', root / 'npm-cache',
+             '--ignore-scripts', '--no-audit', '--no-fund', '--offline', paths['.tgz']), root=root, env=env)
+        npm_executable = [node, npm_root / 'node_modules/qiongli/bin/qiongli.mjs'] if os.name == 'nt' else npm_root / 'bin/qiongli'
+        for name, executable in [('npm', npm_executable), ('pypi', python_bin / ('qiongli' + suffix))]:
+            checks[name] = check_cli(executable, version=receipt['version'], root=root, env=env)
+            if name == 'npm' and requires_deepseek_npm(receipt['version']):
+                checks[name]['deepseek_plugin'] = check_deepseek_npm(
+                    npm_root / 'node_modules/qiongli' if os.name == 'nt' else npm_root / 'lib/node_modules/qiongli',
+                    node, version=receipt['version'], root=root, env=env)
+            if name == 'npm' and os.name == 'nt':
+                for alias in ('qiongli', 'ql'):
+                    assert (npm_root / (alias + '.cmd')).is_file()
+            else:
+                assert run([executable.with_name('ql' + suffix), '--version'], root=root, env=env).stdout == f"qiongli {receipt['version']}\n"
+    if args.cargo_archives:
+        executable = install_cargo_archives(package_root, receipt, root, env,
+                                            args.cargo_target_dir or root / 'cargo-target')
+        checks['cargo_archives'] = check_cli(executable, version=receipt['version'], root=root, env=env)
+        checks['cargo_alias'] = check_cli(executable.with_name('ql.exe' if os.name == 'nt' else 'ql'), version=receipt['version'], root=root, env=env)
+    if args.cargo_installed:
+        executable = args.cargo_installed.resolve()
+        checks['cargo'] = check_cli(executable, version=receipt['version'], root=root, env=env)
+        checks['cargo_alias'] = check_cli(executable.with_name('ql.exe' if os.name == 'nt' else 'ql'), version=receipt['version'], root=root, env=env)
+    result = {'status': 'passed', 'scope': 'local install and CLI/MCP protocol smoke; not registry publication or complete feature acceptance',
+              'packages': receipt['artifacts'], 'checks': checks}
+    (root / 'install-check.json').write_text(json.dumps(result, indent=2) + '\n')
+    print(json.dumps(result, indent=2))
+
+
+if __name__ == '__main__':
+    main()

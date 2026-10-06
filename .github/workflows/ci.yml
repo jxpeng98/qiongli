@@ -2,11 +2,11 @@ name: Legacy Compatibility CI
 
 on:
   push:
-    branches: ["main", "master", "dev"]
+    branches: ["dev", "release/1.x-python"]
     paths-ignore:
       - "tooling/release/acceptance/**"
   pull_request:
-    branches: ["main", "master", "dev"]
+    branches: ["dev", "release/1.x-python"]
   workflow_dispatch:
 
 concurrency:

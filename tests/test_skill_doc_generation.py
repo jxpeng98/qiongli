@@ -7,7 +7,7 @@ import yaml
 
 from qiongli.source_layout import RepoLayout
 
-from qiongli.skill_docs import generate_skill_reference_docs
+from tooling.scripts.generate_skill_docs import generate_skill_reference_docs
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -19,7 +19,7 @@ class SkillDocGenerationTests(unittest.TestCase):
         en_doc = generated["docs/reference/skills.md"]
 
         self.assertIn(
-            "User-facing surfaces may read `display_name`, `when_to_use`, `summary_zh`, `display_name_zh`, and `when_to_use_zh` directly from that registry.",
+            "The descriptions and use cases below come from the same registry in both languages.",
             en_doc,
         )
         self.assertIn("| Skill | Display Name | When to use | Produces |", en_doc)
@@ -34,10 +34,13 @@ class SkillDocGenerationTests(unittest.TestCase):
             en_doc,
         )
         self.assertIn("| `academic-context-maintainer` | Academic Context Maintainer |", en_doc)
-        self.assertIn(
-            "stage-aware academic state summary that preserves research question scope, locked methodological choices, stable findings, unresolved disputes, and decision rationale",
-            en_doc,
+        registry = yaml.safe_load(
+            (RepoLayout(REPO_ROOT).skills / "registry.yaml").read_text(encoding="utf-8")
         )
+        continuity = next(
+            skill for skill in registry["skills"] if skill["id"] == "academic-context-maintainer"
+        )
+        self.assertIn(continuity["when_to_use"], en_doc)
 
     def test_generated_skill_docs_include_localized_registry_metadata(self) -> None:
         generated = generate_skill_reference_docs(REPO_ROOT)
@@ -52,7 +55,7 @@ class SkillDocGenerationTests(unittest.TestCase):
         en_doc = generated["docs/reference/skills.md"]
 
         self.assertIn("- `business-management`", en_doc)
-        self.assertIn("Auto-generated from `skills/registry.yaml`", en_doc)
+        self.assertIn("Auto-generated from `content/skills/registry.yaml`", en_doc)
 
     def test_generated_skill_docs_include_j_proofread_stage(self) -> None:
         generated = generate_skill_reference_docs(REPO_ROOT)
@@ -62,6 +65,15 @@ class SkillDocGenerationTests(unittest.TestCase):
         self.assertIn("| `J_proofread` | AI detection, humanization, similarity, final polish | 4 |", en_doc)
         self.assertIn("| `J_proofread` | AI 痕迹检查、人声化改写、相似度、终稿校对 | 4 |", zh_doc)
         self.assertNotIn("`J`-level proofread and polishing entrypoints live at the workflow layer today", en_doc)
+
+    def test_generated_docs_match_checkout_and_native_entry(self) -> None:
+        for path, content in generate_skill_reference_docs(REPO_ROOT).items():
+            with self.subTest(path=path):
+                self.assertEqual((REPO_ROOT / path).read_text(encoding="utf-8"), content)
+                self.assertIn("$qiongli-paper-read", content)
+                self.assertNotIn("task-plan` / `task-run", content)
+                self.assertNotIn("(/reference/cli)", content)
+                self.assertNotIn("(/zh/reference/cli)", content)
 
     def test_workflow_skill_overview_lists_current_stages_and_skills(self) -> None:
         workflow = RepoLayout(REPO_ROOT).workflow
@@ -75,16 +87,16 @@ class SkillDocGenerationTests(unittest.TestCase):
         self.assertIn(f"Qiongli version: {version}", content)
         self.assertIn(f"Installed Qiongli workflow version: `{version}`", content)
 
-        for token in (
-            "J_proofread/",
-            "academic-context-maintainer",
-            "context/",
-            "statement-generator",
-            "effect-size-calculator",
-            "qualitative-coding",
-            "discussion-writer",
-            "limitation-auditor",
-            "proofread/",
-            "tasks I1–I9",
-        ):
-            self.assertIn(token, content)
+        # Discovery must cover the actual registry, rather than a duplicated
+        # hand-picked list or a stale stage count in the entrypoint.
+        self.assertIn("skills-summary.md", content)
+        summary = (REPO_ROOT / "content" / "skills-summary.md").read_text(encoding="utf-8")
+        registry = yaml.safe_load((REPO_ROOT / "content" / "skills" / "registry.yaml").read_text())
+        discovered = [
+            line.split("|")[1].strip()
+            for line in summary.splitlines()
+            if line.startswith("| ") and not line.startswith("| Skill |")
+        ]
+        self.assertCountEqual([item["id"] for item in registry["skills"]], discovered)
+        for item in registry["skills"]:
+            self.assertTrue((REPO_ROOT / "content" / item["file"]).is_file(), item["id"])

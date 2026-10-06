@@ -1,72 +1,47 @@
 # 系统架构
 
-Qiongli 2 是一个自包含的 Rust 原生产品，桌面表现层采用 Tauri 2 / Svelte 5。
-打包后的 App 同时携带原生 CLI、内嵌 Skills、Lite/Full MCP、受管理的
-Codex/Claude 集成 payload 和 Zotero Companion；运行时不要求用户另装 Python
-或 Node。
+Qiongli 2 通过 Rust CLI、Plugin/Skills 和 Lite/Full MCP 提供研究指导与工具。
+模型、认证和会话由你使用的 Host 管理；穷理负责研究记录、来源关联、项目操作和安装收据。
+默认 CLI 构建不需要保留的桌面应用。
 
-## 决策边界
+## 多个入口，共用一套来源
 
-`docs/architecture/decisions/` 下已接受的 ADR 控制 2.x。ADR 0210 已用
-Tauri/Svelte 取代早期的 AccessKit/egui 表现层选择；ADR 0211 规定模型认证、
-对话和执行由受支持的 Host 持有，Qiongli 负责确定性内容、项目状态、工具、
-handoff、安装收据和发布身份。
+`content/` 保存共享 Skills、工作流、模板和公开 MCP 契约，`qiongli-content`
+将它们生成内嵌资源包。`packages/qiongli-native/` 下的原生服务读取这些资源，
+统一管理项目状态、修订号、预览、批准、Graph 和 MCP 调用。CLI 与 Host 适配层使用同一套服务。
 
-与已接受 ADR 冲突的改变必须先提交替代 ADR。生成 payload 和历史迁移计划不能
-覆盖当前决策。
+同一版本、同一平台的 GitHub、npm 和 PyPI 包携带相同的可执行文件，Cargo 则从源码构建。
+原生包构建器共用产品描述，各渠道提供自己的启动包装和安装说明。
+旧 Python/npm 产品源码保留用于兼容参考。
 
-## 可编辑源边界
+CLI 导出的 Plugin 包含共享 Skills 与 Full MCP，原生 Marketplace 平台 Plugin 包含 Lite MCP。
+Host 读取 Plugin 缓存并启动 stdio 进程，通常无需另装 MCP 包或保持终端运行。
+详见 [Plugin 内容](advanced/plugin-first-architecture.md)。
 
-| 边界 | 可编辑源 | 职责 |
-|---|---|---|
-| 学术内容与合同 | `content/` | workflow、Skills、templates、roles、standards、Plugin metadata、MCP profiles 与 schemas |
-| 原生产品 | `packages/qiongli-native/` | App service、CLI、Lite/Full MCP、项目状态、内嵌资源、集成与发布 runtime |
-| App wire contract | `packages/qiongli-app-api/` | 原生 snapshot、intent 和 event 的版本化 TypeScript 解码 |
-| 桌面表现层 | `packages/qiongli-desktop/` | Svelte UI 与 typed transport adapter |
-| 分发组件 | `packages/qiongli-lite-mcp/`、`packages/qiongli-*-mcpb/`、`packages/qiongli-zotero-companion/` | 独立打包的 MCP 与 Zotero 交付面 |
-| 旧版 1.x | `packages/python-qiongli/`、`packages/npm-qiongli/` | 维护中的 1.x 兼容与迁移证据，不是 2.x runtime fallback |
-| 维护工具 | `tooling/`；稳定 wrapper 位于 `scripts/` | materialization、validation、packaging、acceptance 与 release automation |
-| 证据 | `tests/`、`evals/`、`docs/superpowers/acceptance/` | 聚焦回归、评测资产和已接受收据 |
+## 研究修改与证据
 
-根目录 `scripts/` 保持稳定入口，具体实现改 `tooling/scripts/`。Plugin 与 Skill
-应编辑 `content/` 中的 canonical 输入，再生成 payload；不要把 `dist/`、已安装
-客户端目录或生成 plugin tree 当成源文件编辑。
+CLI、Full MCP 和保留的 App 使用相同的项目服务与修订规则。
+Graph 根据已保存的研究记录展示关系，保留论点 ID、citekey 和来源位置，
+不会把总结或审稿意见变成新的原始证据。可以查看 [Graph 示例](examples/research-graph.md)。
 
-## 产品主链
+Lite 提供有范围限制的文献与 Zotero 工具，Full MCP 在此基础上增加项目操作。
+写入工具 `qiongli_project_capture_apply` 会重新检查预览，要求计划摘要匹配，
+且 `approve_filesystem_write=true`。进程内 ToolHost 仍只读，并拒绝这项写入。
+一次操作获准不代表可以任意修改。直接访问 Zotero 使用本地 Companion；
+无法连接时仍可生成导入文件内容。
 
-1. `content/` 定义学术行为、公开 MCP 合同和分发 metadata；
-2. `qiongli-content` 生成由原生 executable 消费的确定性 resource pack；
-3. 原生 service 统一负责配置、项目状态、preview、approval、mutation、CLI、
-   MCP dispatch 和 Host integration；
-4. App API 校验原生 wire shape，Svelte 通过 Tauri 展示并发送 typed intent；
-5. Plugin/Skills 与 MCP package 向 Codex、Claude Code 暴露同一份内嵌合同；
-6. Zotero Companion 只能通过受限 loopback client 访问，import-file export 是
-   安全 fallback。
+子代理通过 Host 的实际工具运行。跨 Host 交接包将限定来源和候选稿交回一个协调代理，
+不会转交正式项目的写入权限。现有交接方式和暂不提供的自动化能力，见
+[协作指南](advanced/agent-skill-collaboration.md)。
 
-App、CLI、Full MCP 和 Host handoff 必须共用相同的项目 service 与 revision
-语义。前端不能自行构造原生 plan、路径、provider model 或 readiness claim。
+## 决策与维护
 
-## MCP 与写入边界
+架构由 `docs/architecture/decisions/` 下已接受的 ADR 管理。
+ADR 0218 明确 CLI 优先、由 Host 执行模型的方向；ADRs 0219–0223 定义原生分发，
+ADR 0224 定义确认后的 Host 注册，ADR 0227 将整合后的 `main` 作为正式版来源，
+`2.x` 继续用于预发布。合并本身不代表发布或 Host 实际使用已经通过验收。
 
-Lite MCP 负责有边界的 provider、literature、planning 和 Zotero 工具；Full MCP
-增加已注册项目与 Academic Graph 操作。公开 Full MCP 含一个明确的项目写入工具
-`qiongli_project_capture_apply`：它会重新 preview，并要求匹配的 plan digest 和
-`approve_filesystem_write=true`。
-
-进程内 ToolHost 仍然只读并拒绝这个写入。因此发布说明必须区分“一个受审批约束的
-capture 写入”和“不受限的 Full MCP/ToolHost mutation”。
-
-## 依赖方向
-
-默认采用单向依赖：
-
-1. canonical standards、Skills、MCP schemas 与 Plugin metadata；
-2. 原生 domain/project/runtime services；
-3. App API 与 CLI/MCP adapters；
-4. Svelte 与 Host presentation；
-5. materialized packages 与 release evidence。
-
-入口之间出现漂移时，应修复最高层的共同 owner，再重新生成或适配下游；不要新增
-第二套项目格式、provider registry、release ledger 或 product backend。
-
-精确目录职责见 [仓库结构](/zh/development/repository-structure)。
+Tauri/Svelte、App API 和此前的 ACP/All Chat 工作按已接受决策保留维护或推迟处理，
+不是使用 CLI 的前提。入口行为不一致时，应修复共享实现，再重新生成受影响的输出。
+详见[仓库结构](development/repository-structure.md)与[编辑约定](conventions.md)，
+不要改写已接受的决策历史。

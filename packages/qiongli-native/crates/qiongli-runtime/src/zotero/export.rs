@@ -1,4 +1,5 @@
-use std::collections::BTreeMap;
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{self, Write as _};
 use std::io;
 
@@ -100,6 +101,8 @@ pub enum ZoteroExportError {
     OutputTooLarge,
     #[error("generated Zotero files could not be serialized")]
     Serialization,
+    #[error("invalid or conflicting bibliography metadata")]
+    InvalidBibliography,
 }
 
 pub struct ZoteroExportRequest {
@@ -145,10 +148,40 @@ impl ZoteroExportRequest {
     }
 
     fn validated(
-        records: Vec<LiteratureResult>,
+        mut records: Vec<LiteratureResult>,
         formats: Vec<ZoteroFormat>,
     ) -> Result<Self, ZoteroExportError> {
         validate_records(&records)?;
+        records = crate::providers::search::deduplicate_results(records);
+        let mut keys = BTreeSet::new();
+        for record in &mut records {
+            let generated = if record.citekey.is_none() {
+                let identity = crate::providers::search::dedupe_key(record).unwrap_or_else(|| {
+                    format!(
+                        "{}:{:?}:{:?}",
+                        record.title.to_lowercase(),
+                        record.year,
+                        record.authors
+                    )
+                });
+                Some(format!("qiongli{:x}", Sha256::digest(identity.as_bytes()))[..23].to_owned())
+            } else {
+                None
+            };
+            if let Some(generated) = generated {
+                record.citekey = Some(generated);
+            }
+            let key = record.citekey.as_ref().expect("assigned citekey");
+            if key.is_empty()
+                || key.len() > 256
+                || !key
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || ":._+-".contains(c))
+                || !keys.insert(key.clone())
+            {
+                return Err(ZoteroExportError::InvalidBibliography);
+            }
+        }
         ensure_json_within_limit(&records, MAX_RECORD_INPUT_BYTES)?;
         Ok(Self { records, formats })
     }
@@ -223,6 +256,50 @@ fn validate_records(records: &[LiteratureResult]) -> Result<(), ZoteroExportErro
         {
             return Err(ZoteroExportError::DoiTooLong);
         }
+        if record
+            .doi
+            .as_deref()
+            .is_some_and(|doi| crate::providers::search::normalize_doi(doi).is_none())
+        {
+            return Err(ZoteroExportError::InvalidBibliography);
+        }
+        for value in [
+            &record.source_id,
+            &record.url,
+            &record.record_type,
+            &record.published_date,
+            &record.volume,
+            &record.issue,
+            &record.pages,
+            &record.publisher,
+            &record.citekey,
+        ] {
+            if value
+                .as_ref()
+                .is_some_and(|v| v.len() > MAX_TEXT_FIELD_BYTES)
+            {
+                return Err(ZoteroExportError::TextFieldTooLong);
+            }
+        }
+        if record.authors.len() > 1_000
+            || record.metadata_conflicts.len() > 100
+            || record
+                .metadata_conflicts
+                .iter()
+                .any(|v| v.len() > MAX_TEXT_FIELD_BYTES)
+        {
+            return Err(ZoteroExportError::InputTooComplex);
+        }
+        for author in &record.authors {
+            if author.display_name().trim().is_empty()
+                || (author.literal.is_some() && (author.family.is_some() || author.given.is_some()))
+                || [&author.family, &author.given, &author.literal]
+                    .into_iter()
+                    .any(|v| v.as_ref().is_some_and(|v| v.len() > MAX_TEXT_FIELD_BYTES))
+            {
+                return Err(ZoteroExportError::InvalidBibliography);
+            }
+        }
         if record.provider.trim().is_empty() {
             return Err(ZoteroExportError::EmptyProvider);
         }
@@ -243,11 +320,20 @@ fn to_csl_json(records: &[LiteratureResult], limit: usize) -> Result<String, Zot
         .iter()
         .map(|record| {
             json!({
-                "type": "article-journal",
+                "type": types(record).0,
+                "id": record.citekey,
+                "author": record.authors,
+                "URL": record.url,
+                "volume": record.volume,
+                "issue": record.issue,
+                "page": record.pages,
+                "publisher": record.publisher,
                 "title": record.title,
                 "DOI": record.doi,
                 "container-title": record.venue,
-                "issued": record.year.map(|year| json!({"date-parts": [[year]]})),
+                "issued": record.published_date.as_ref().map(|date| json!({"literal": date})).or_else(|| record.year.map(|year| json!({"date-parts": [[year]]}))),
+                "qiongli_source_id": record.source_id,
+                "qiongli_metadata_conflicts": record.metadata_conflicts,
                 "source": "qiongli-runtime",
                 "qiongli_provider": record.provider,
                 "qiongli_providers": record.providers
@@ -265,7 +351,28 @@ fn to_csl_json(records: &[LiteratureResult], limit: usize) -> Result<String, Zot
 fn to_ris(records: &[LiteratureResult], limit: usize) -> Result<String, ZoteroExportError> {
     let mut output = LimitedText::new(limit);
     for (index, record) in records.iter().enumerate() {
-        writeln!(output, "TY  - JOUR").map_err(|_| ZoteroExportError::OutputTooLarge)?;
+        writeln!(output, "TY  - {}", types(record).2)
+            .map_err(|_| ZoteroExportError::OutputTooLarge)?;
+        write_ris_field(
+            &mut output,
+            "ID",
+            record.citekey.as_deref().unwrap_or_default(),
+        )?;
+        for author in &record.authors {
+            write_ris_field(&mut output, "AU", &author.display_name())?;
+        }
+        for (name, value) in [
+            ("UR", &record.url),
+            ("VL", &record.volume),
+            ("IS", &record.issue),
+            ("SP", &record.pages),
+            ("DA", &record.published_date),
+            ("PB", &record.publisher),
+        ] {
+            if let Some(value) = value {
+                write_ris_field(&mut output, name, value)?;
+            }
+        }
         write_ris_field(&mut output, "TI", &record.title)?;
         write_ris_field(
             &mut output,
@@ -295,30 +402,73 @@ fn write_ris_field(
     writeln!(output, "{name}  - {value}").map_err(|_| ZoteroExportError::OutputTooLarge)
 }
 
+fn types(record: &LiteratureResult) -> (&'static str, &'static str, &'static str) {
+    match record.record_type.as_deref() {
+        Some("article-journal" | "journal-article") => ("article-journal", "article", "JOUR"),
+        Some("paper-conference" | "proceedings-article") => {
+            ("paper-conference", "inproceedings", "CPAPER")
+        }
+        Some("book") => ("book", "book", "BOOK"),
+        Some("chapter" | "book-chapter") => ("chapter", "incollection", "CHAP"),
+        Some("report") => ("report", "techreport", "RPRT"),
+        Some("thesis" | "dissertation") => ("thesis", "misc", "THES"),
+        _ => ("article", "misc", "GEN"),
+    }
+}
+
 fn to_bibtex(records: &[LiteratureResult], limit: usize) -> Result<String, ZoteroExportError> {
     let mut output = LimitedText::new(limit);
-    for (index, record) in records.iter().enumerate() {
-        writeln!(output, "@article{{qiongli{},", index + 1)
-            .map_err(|_| ZoteroExportError::OutputTooLarge)?;
+    for record in records {
+        let (_, entry_type, _) = types(record);
+        writeln!(
+            output,
+            "@{}{{{},",
+            entry_type,
+            record.citekey.as_deref().unwrap_or_default()
+        )
+        .map_err(|_| ZoteroExportError::OutputTooLarge)?;
         write_bibtex_field(&mut output, "title", &record.title)?;
+        if !record.authors.is_empty() {
+            let names = record
+                .authors
+                .iter()
+                .map(|author| {
+                    let name = escape_bibtex(&author.display_name(), limit)?;
+                    Ok(if author.literal.is_some() {
+                        format!("{{{name}}}")
+                    } else {
+                        name
+                    })
+                })
+                .collect::<Result<Vec<_>, ZoteroExportError>>()?;
+            writeln!(output, "  author = {{{}}},", names.join(" and "))
+                .map_err(|_| ZoteroExportError::OutputTooLarge)?;
+        }
         write_bibtex_field(
             &mut output,
             "year",
-            &record.year.map(|year| year.to_string()).unwrap_or_default(),
+            &record.year.map(|v| v.to_string()).unwrap_or_default(),
         )?;
-        write_bibtex_field(
-            &mut output,
-            "journal",
-            record.venue.as_deref().unwrap_or_default(),
-        )?;
-        write_bibtex_field(
-            &mut output,
-            "doi",
-            record.doi.as_deref().unwrap_or_default(),
-        )?;
-        writeln!(output, "}}")
-            .and_then(|()| writeln!(output))
-            .map_err(|_| ZoteroExportError::OutputTooLarge)?;
+        let venue_field = match entry_type {
+            "inproceedings" | "incollection" => "booktitle",
+            "article" => "journal",
+            _ => "howpublished",
+        };
+        for (name, value) in [
+            (venue_field, &record.venue),
+            ("doi", &record.doi),
+            ("url", &record.url),
+            ("date", &record.published_date),
+            ("volume", &record.volume),
+            ("number", &record.issue),
+            ("pages", &record.pages),
+            ("publisher", &record.publisher),
+        ] {
+            if let Some(value) = value {
+                write_bibtex_field(&mut output, name, value)?;
+            }
+        }
+        writeln!(output, "}}\n").map_err(|_| ZoteroExportError::OutputTooLarge)?;
     }
     Ok(output.into_string())
 }
@@ -328,18 +478,41 @@ fn write_bibtex_field(
     name: &str,
     value: &str,
 ) -> Result<(), ZoteroExportError> {
+    if value.is_empty() {
+        return Ok(());
+    }
     let value = escape_bibtex(value, output.remaining())?;
     writeln!(output, "  {name} = {{{value}}},").map_err(|_| ZoteroExportError::OutputTooLarge)
 }
 
 fn to_report(records: &[LiteratureResult], limit: usize) -> Result<String, ZoteroExportError> {
     let mut output = LimitedText::new(limit);
-    write!(
-        output,
-        "# Zotero Import Report\n\nRecords: {}\n\nGenerated by qiongli-runtime.\n",
-        records.len()
-    )
-    .map_err(|_| ZoteroExportError::OutputTooLarge)?;
+    writeln!(output, "# Zotero Import Report\n\nRecords: {}\n\nGenerated by qiongli-runtime.\n\nExport only; no Zotero items were imported. Metadata is supplied, not independently verified.\n", records.len())
+        .map_err(|_| ZoteroExportError::OutputTooLarge)?;
+    for record in records {
+        let mut missing = Vec::new();
+        if record.authors.is_empty() {
+            missing.push("authors");
+        }
+        if record.year.is_none() {
+            missing.push("year");
+        }
+        if types(record).1 == "misc" {
+            missing.push("specific publication type (generic export)");
+        }
+        if record.url.is_none() && record.doi.is_none() {
+            missing.push("source URL/DOI");
+        }
+        writeln!(
+            output,
+            "- {}: missing [{}]; conflicts [{}]; source {}",
+            record.citekey.as_deref().unwrap_or_default(),
+            missing.join(", "),
+            fold_single_line(&record.metadata_conflicts.join(", ")),
+            fold_single_line(&record.provider)
+        )
+        .map_err(|_| ZoteroExportError::OutputTooLarge)?;
+    }
     Ok(output.into_string())
 }
 
@@ -520,8 +693,10 @@ mod tests {
             doi: Some("10.1234/example".to_owned()),
             year: Some(2025),
             venue: Some("Journal of Tests".to_owned()),
+            record_type: Some("article-journal".to_owned()),
             provider: "openalex".to_owned(),
             providers: vec!["openalex".to_owned()],
+            ..Default::default()
         }
     }
 
@@ -531,7 +706,7 @@ mod tests {
         assert_eq!(files.len(), 4);
         assert!(files["references.json"].contains("qiongli-runtime"));
         assert!(files["references.ris"].contains("TY  - JOUR"));
-        assert!(files["bibliography.bib"].contains("@article{qiongli1"));
+        assert!(files["bibliography.bib"].contains("@article{qiongli"));
         assert!(files["zotero-import-report.md"].contains("Records: 1"));
     }
 
@@ -600,7 +775,13 @@ mod tests {
                 .unwrap();
         assert_eq!(long_title, ZoteroExportError::TextFieldTooLong);
 
-        let records = vec![record(&"\\".repeat(MAX_TEXT_FIELD_BYTES)); 50];
+        let records = (0..50)
+            .map(|i| {
+                let mut r = record(&"\\".repeat(MAX_TEXT_FIELD_BYTES));
+                r.doi = Some(format!("10.1234/{i}"));
+                r
+            })
+            .collect();
         let request = ZoteroExportRequest::validated(records, vec![ZoteroFormat::Bibtex]).unwrap();
         let error = export_selected_import_files(request).err().unwrap();
         assert_eq!(error, ZoteroExportError::OutputTooLarge);

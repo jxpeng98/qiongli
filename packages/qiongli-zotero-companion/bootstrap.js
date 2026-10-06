@@ -30,7 +30,7 @@ var QiongliZoteroCompanion = {
       sendJson(sendResponse, 200, {
         status: "ok",
         companion: "qiongli-zotero-companion",
-        version: "0.3.0",
+        version: "0.3.1",
         endpoint_version: "2",
         zotero_version: Zotero.version ?? "",
         endpoints: this.endpoints
@@ -254,7 +254,7 @@ async function ensureCollectionPath(Zotero, collectionPath) {
 async function listPlainCollections(Zotero) {
   const libraryID = Zotero.Libraries?.userLibraryID;
   const rawCollections = typeof Zotero.Collections?.getByLibrary === "function"
-    ? await Zotero.Collections.getByLibrary(libraryID)
+    ? await Zotero.Collections.getByLibrary(libraryID, true)
     : [];
   const plain = asArray(rawCollections).map((collection) => plainCollection(collection));
   const byID = new Map(plain.map((collection) => [collection.id, collection]).filter(([id]) => id !== null));
@@ -446,7 +446,7 @@ async function getAttachmentItem(Zotero, id) {
 
 function applyItemData(item, data) {
   for (const [field, value] of Object.entries(data)) {
-    if (["itemType", "creators", "tags", "collections"].includes(field)) {
+    if (["itemType", "creators", "tags", "collections", "qiongli_notes"].includes(field)) {
       continue;
     }
     if (value !== undefined && value !== null && typeof item.setField === "function") {
@@ -472,6 +472,9 @@ async function upsertRuntimeItems(payload, runtime) {
   const updatePolicy = payload.update_policy ?? "fill_blank";
   const collectionPath = normalizeCollectionPath(payload.collection_path);
   const incomingItems = Array.isArray(payload.items) ? payload.items : [];
+  if (incomingItems.some((item, index) => incomingItems.slice(0, index).some((previous) => findDuplicateItem(item, [previous])))) {
+    return { status: "error", error_code: "duplicate_items", dry_run: true, results: [] };
+  }
   const existingItems = await runtime.listItems();
   const plans = incomingItems.map((incoming) => {
     const existing = findDuplicateItem(incoming, existingItems);
@@ -807,19 +810,45 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
-function findDuplicateItem(incoming, existingItems) {
+function stableSourceUrl(item) {
+  // Only identifier URLs; a shared publisher or journal homepage is not an identity.
+  const value = String(item.url ?? item.URL ?? "").trim();
+  const pmid = value.match(/^https?:\/\/pubmed\.ncbi\.nlm\.nih\.gov\/(\d+)\/?$/i);
+  if (pmid) return `pmid:${pmid[1]}`;
+  const arxiv = value.match(/^https?:\/\/arxiv\.org\/abs\/([a-z.-]+\/\d+|\d{4}\.\d{4,5})(v\d+)?$/i);
+  return arxiv ? `arxiv:${arxiv[1].toLowerCase()}${arxiv[2] ?? ""}` : "";
+}
+
+function findDuplicateItem(incoming = {}, existingItems = []) {
+  const source = stableSourceUrl(incoming);
+  const sameVersion = (item) => {
+    const other = stableSourceUrl(item);
+    return !(incoming.itemType && item.itemType && incoming.itemType !== item.itemType)
+      && !((source.startsWith("arxiv:") || other.startsWith("arxiv:")) && source !== other);
+  };
   const incomingDoi = normalizeDoi(incoming.DOI ?? incoming.doi);
   if (incomingDoi) {
-    const doiMatch = existingItems.find((item) => normalizeDoi(item.DOI ?? item.doi) === incomingDoi);
-    if (doiMatch) {
-      return doiMatch;
-    }
+    const match = existingItems.find((item) => normalizeDoi(item.DOI ?? item.doi) === incomingDoi && sameVersion(item));
+    if (match) return match;
   }
-  const incomingTitle = comparableTitle(incoming.title);
-  if (!incomingTitle) {
-    return null;
+  if (source) {
+    const match = existingItems.find((item) => stableSourceUrl(item) === source && sameVersion(item)
+      && !(incomingDoi && normalizeDoi(item.DOI ?? item.doi) && normalizeDoi(item.DOI ?? item.doi) !== incomingDoi));
+    if (match) return match;
   }
-  return existingItems.find((item) => comparableTitle(item.title) === incomingTitle) ?? null;
+  const title = comparableTitle(incoming.title);
+  const year = parseYear(incoming.date ?? incoming.year);
+  if (!title || !year) return null;
+  const candidates = existingItems.filter((item) => {
+    const doi = normalizeDoi(item.DOI ?? item.doi);
+    const otherSource = stableSourceUrl(item);
+    return !(incomingDoi && doi && incomingDoi !== doi)
+      && !(source || otherSource)
+      && !(incoming.itemType && item.itemType && incoming.itemType !== item.itemType)
+      && comparableTitle(item.title) === title
+      && parseYear(item.date ?? item.year) === year;
+  });
+  return candidates.length === 1 ? candidates[0] : null;
 }
 
 function planUpsert(incoming, existing, updatePolicy) {
@@ -1113,7 +1142,7 @@ function comparableTitle(value) {
     .normalize("NFKD")
     .toLowerCase()
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim()
     .replace(/\s+/g, " ");
 }

@@ -1,3 +1,5 @@
+mod support;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -5,9 +7,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_platform::{
     DesktopApplicationMetadataV1, DesktopPackageBinaries, DesktopPackageError, DesktopPackageInput,
-    DesktopPackageKind, DesktopPackageStatus, ReleaseChannel, approve_native_artifact_target,
-    compose_desktop_package, compose_native_artifact, current_target_native_artifact_identity,
-    native_artifact_id, verify_desktop_package,
+    DesktopPackageKind, DesktopPackageStatus, approve_native_artifact_target,
+    compose_desktop_package, compose_native_artifact, native_artifact_id, verify_desktop_package,
 };
 
 static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
@@ -120,9 +121,7 @@ fn set_executable_mode(_path: &Path) {}
 fn desktop_package_is_deterministic_bound_and_tamper_evident() {
     let fixture = Fixture::new();
     let content = qiongli::embedded_content().expect("embedded content must load");
-    let artifact =
-        current_target_native_artifact_identity(env!("CARGO_PKG_VERSION"), ReleaseChannel::Alpha)
-            .expect("current artifact identity must resolve");
+    let artifact = support::current_native_artifact();
     let artifact_id = native_artifact_id(&artifact).expect("artifact ID must render");
     let target = approve_native_artifact_target(fixture.artifact_target(&artifact_id), &artifact)
         .expect("source artifact target must approve");
@@ -191,7 +190,10 @@ fn desktop_package_is_deterministic_bound_and_tamper_evident() {
         source.manifest().binary_sha256
     );
     assert_eq!(first.manifest().update_helper_sha256.len(), 64);
-    assert_eq!(first.manifest().zotero_companion.companion_version, "0.3.0");
+    assert_eq!(
+        first.manifest().zotero_companion.companion_version,
+        zotero_companion.manifest().companion_version
+    );
     assert_eq!(first.manifest().zotero_companion.endpoint_version, "2");
     assert_eq!(first.manifest().product_source_commit, source_commit);
     assert!(

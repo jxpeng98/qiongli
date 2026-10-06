@@ -27,7 +27,6 @@ NATIVE_MANIFEST_RELATIVE = "packages/qiongli-native/Cargo.toml"
 NATIVE_LOCK_RELATIVE = "packages/qiongli-native/Cargo.lock"
 VERSION_SOURCE = f"{NATIVE_MANIFEST_RELATIVE}#workspace.package.version"
 CHANNEL_SOURCE = f"{NATIVE_MANIFEST_RELATIVE}#workspace.metadata.qiongli.channel"
-SOURCE_BRANCH = "2.x"
 SCHEMA_VERSION = "1.0"
 RECORD_TYPE = "qiongli-native-release-dry-run-plan"
 CANONICALIZATION = "utf-8-json-sorted-keys-compact-excluding-integrity"
@@ -125,7 +124,7 @@ def _require_native_identity(raw_tag: str) -> ReleaseIdentity:
         raise DryRunError("dry run accepts only the native 2.x release line")
     if _identity_field(identity, "product") != "qiongli":
         raise DryRunError("release product is invalid")
-    if _identity_field(identity, "source_branch") != SOURCE_BRANCH:
+    if _identity_field(identity, "source_branch") not in {"main", "2.x"}:
         raise DryRunError("native release branch contract is invalid")
     if _identity_field(identity, "version_source") != NATIVE_MANIFEST_RELATIVE:
         raise DryRunError("native version source contract is invalid")
@@ -236,6 +235,7 @@ def _normalise_source_ref(raw: str | None) -> str | None:
 
 def _source_record(
     *,
+    required_branch: str,
     source_ref: str | None,
     source_ref_type: str,
     worktree_state: str,
@@ -259,14 +259,14 @@ def _source_record(
         raise DryRunError("a clean worktree assessment requires a source commit")
 
     return {
-        "required_branch": SOURCE_BRANCH,
+        "required_branch": required_branch,
         "required_ref_type": "branch",
         "observed_ref": observed_ref,
         "observed_ref_type": source_ref_type,
         "worktree_state": worktree_state,
         "source_commit": commit,
         "release_source_eligible": (
-            observed_ref == SOURCE_BRANCH
+            observed_ref == required_branch
             and source_ref_type == "branch"
             and worktree_state == "clean"
             and commit is not None
@@ -314,6 +314,7 @@ def validate_plan_semantics(plan: Mapping[str, Any]) -> None:
         if not isinstance(source_record, Mapping):
             raise DryRunError("release plan source is invalid")
         expected_source = _source_record(
+            required_branch=identity.source_branch,
             source_ref=source_record["observed_ref"],
             source_ref_type=str(source_record["observed_ref_type"]),
             worktree_state=str(source_record["worktree_state"]),
@@ -411,6 +412,7 @@ def build_plan(
     verify_native_source(root, identity)
     os_value, arch_value, target_source = resolve_target(target_os, target_arch)
     source = _source_record(
+        required_branch=identity.source_branch,
         source_ref=source_ref,
         source_ref_type=source_ref_type,
         worktree_state=worktree_state,

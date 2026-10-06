@@ -1,9 +1,16 @@
 use std::env;
-use std::io::{self, BufReader};
+use std::io::{self, BufReader, IsTerminal};
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let args = env::args_os().skip(1).collect::<Vec<_>>();
+    if let Some(exit) = qiongli_runtime::fulltext::run_worker_if_requested(&args) {
+        return exit;
+    }
+    // Hooks must not discover/launch Hosts or load project configuration.
+    if args == ["hooks", "context"] {
+        return render_output(qiongli::run_context_hook(io::stdin().lock()));
+    }
     #[cfg(feature = "desktop")]
     if args.is_empty() {
         return match qiongli::run_desktop_application() {
@@ -20,8 +27,26 @@ fn main() -> ExitCode {
         Ok(content) => content,
         Err(_) => return render_output(qiongli::failed_embedded_content_output()),
     };
-    match qiongli::prepare_action(args, &environment, &content) {
+    match qiongli::prepare_cli_action(args, &environment, &content, io::stdout().is_terminal()) {
         qiongli::ProductAction::Output(output) => render_output(output),
+        qiongli::ProductAction::ServeContextHook => {
+            render_output(qiongli::run_context_hook(io::stdin().lock()))
+        }
+        qiongli::ProductAction::ReviewBundledContent(review) => {
+            render_output(review.run(&environment, &content))
+        }
+        qiongli::ProductAction::GuideInstallation(guide) => {
+            render_output(guide.run(&environment, &content))
+        }
+        qiongli::ProductAction::ReviewCliInstallations => {
+            match qiongli::review_cli_installations(&environment) {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(error) => {
+                    eprintln!("error: {error}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
         qiongli::ProductAction::ServeLiteMcpStdio => {
             let stdin = io::stdin();
             let stdout = io::stdout();

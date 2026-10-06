@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use qiongli_runtime::evidence::{build_evidence_snapshot, EvidenceInput};
+use qiongli_runtime::fulltext::{FulltextError, FulltextReader, FulltextRequest};
 use qiongli_runtime::mcp::{prepare_zotero_upsert, validate_zotero_search};
 use qiongli_runtime::orchestration::dispatch_lite_orchestration;
 pub use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES as HANDLED_TOOL_NAMES;
@@ -59,6 +60,7 @@ pub struct McpServer {
     name: String,
     version: String,
     provider_runtime: Option<ProviderRuntime>,
+    fulltext: FulltextReader,
     wizard_session: Arc<Mutex<Option<crate::config::wizard::ConfigWizard>>>,
 }
 
@@ -68,6 +70,7 @@ impl McpServer {
             name: name.into(),
             version: version.into(),
             provider_runtime: None,
+            fulltext: FulltextReader::default(),
             wizard_session: Arc::new(Mutex::new(None)),
         }
     }
@@ -82,6 +85,7 @@ impl McpServer {
             name: name.into(),
             version: version.into(),
             provider_runtime: Some(provider_runtime),
+            fulltext: FulltextReader::default(),
             wizard_session: Arc::new(Mutex::new(None)),
         }
     }
@@ -161,6 +165,9 @@ impl McpServer {
             }
             LiteDispatchTarget::Literature(LiteLiteratureHandler::Search) => {
                 self.literature_search(id, &arguments)
+            }
+            LiteDispatchTarget::Literature(LiteLiteratureHandler::ReadFulltext) => {
+                self.literature_read_fulltext(id, &arguments)
             }
             LiteDispatchTarget::Literature(LiteLiteratureHandler::ExportEvidence) => {
                 self.export_evidence(id, &arguments)
@@ -343,9 +350,9 @@ impl McpServer {
             native_search_tools: Vec::new(),
             query_variants: Vec::new(),
             include_working_papers: None,
-            from_year: None,
-            to_year: None,
-            venue_filter: None,
+            from_year: request.from_year.map(|year| year as u16),
+            to_year: request.to_year.map(|year| year as u16),
+            venue_filter: request.venue_filter.clone(),
             document_types: Vec::new(),
             active_providers: PROVIDER_ORDER
                 .iter()
@@ -367,6 +374,37 @@ impl McpServer {
                 "results": output.results
             }),
         )
+    }
+
+    fn literature_read_fulltext(&self, id: Option<Value>, arguments: &Value) -> Value {
+        let request = match FulltextRequest::from_arguments(arguments) {
+            Ok(request) => request,
+            Err(error) if error.code == "invalid-input" => {
+                return self.error(id, -32602, error.message);
+            }
+            Err(error) => return self.fulltext_error(id, error),
+        };
+        let config = if request.requires_openalex_key() {
+            match &self.provider_runtime {
+                Some(runtime) => Some(runtime.config().clone()),
+                None => resolve_provider_config().ok(),
+            }
+        } else {
+            None
+        };
+        let key = config
+            .as_ref()
+            .and_then(|config| config.value("openalex", "api_key"));
+        match self.fulltext.read(&request, key) {
+            Ok(output) => self.tool_result(id, json!(output)),
+            Err(error) => self.fulltext_error(id, error),
+        }
+    }
+
+    fn fulltext_error(&self, id: Option<Value>, error: FulltextError) -> Value {
+        let mut result = self.tool_error(id, error.message.to_owned());
+        result["result"]["structuredContent"]["reason_code"] = json!(error.code);
+        result
     }
 
     fn active_provider_names(&self) -> Result<Vec<String>, ConfigError> {
@@ -623,6 +661,17 @@ fn allowed_arguments(tool_id: LiteToolId) -> &'static [&'static str] {
             "limit",
             "per_provider_limit",
             "total_limit",
+            "from_year",
+            "to_year",
+            "venue_filter",
+        ],
+        LiteToolId::LiteratureReadFulltext => &[
+            "url",
+            "offset",
+            "limit",
+            "refresh",
+            "expected_sha256",
+            "expected_doi",
         ],
         LiteToolId::LiteratureExportEvidence => &[
             "cwd",

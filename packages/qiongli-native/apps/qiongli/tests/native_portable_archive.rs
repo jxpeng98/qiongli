@@ -1,5 +1,7 @@
 #![allow(clippy::disallowed_methods)]
 
+mod support;
+
 use std::fs;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -18,10 +20,10 @@ use qiongli_platform::{
     TransactionError, TrustedPublicKey, TrustedReleasePublicKey, approve_install_plan,
     approve_managed_root, approve_native_artifact_target, approve_native_portable_archive_target,
     build_native_release_envelope, compose_native_artifact, compose_native_portable_archive,
-    current_target_native_artifact_identity, extract_native_portable_archive,
-    launch_grant_signing_bytes, native_artifact_id, native_payload_install_id,
-    native_portable_archive_file_name, native_release_envelope_signing_bytes,
-    preview_native_payload_install, verify_native_artifact, verify_native_portable_archive,
+    extract_native_portable_archive, launch_grant_signing_bytes, native_artifact_id,
+    native_payload_install_id, native_portable_archive_file_name,
+    native_release_envelope_signing_bytes, preview_native_payload_install, verify_native_artifact,
+    verify_native_portable_archive,
 };
 use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
 use serde_json::{Value, json};
@@ -267,9 +269,7 @@ fn resign_release(
 fn portable_archive_is_deterministic_safe_and_runtime_independent() {
     let fixture = Fixture::new("portable-archive");
     let content = qiongli::embedded_content().expect("embedded content must verify");
-    let artifact =
-        current_target_native_artifact_identity(env!("CARGO_PKG_VERSION"), ReleaseChannel::Alpha)
-            .expect("current target identity must resolve");
+    let artifact = support::current_native_artifact();
     let artifact_id = native_artifact_id(&artifact).expect("artifact ID must render");
     let archive_file_name =
         native_portable_archive_file_name(&artifact).expect("archive filename must render");
@@ -395,7 +395,7 @@ fn portable_archive_is_deterministic_safe_and_runtime_independent() {
         minimum_release_generation: 19,
         minimum_launch_grant_generation: 13,
         expected_artifact: &artifact,
-        expected_channel: ReleaseChannel::Alpha,
+        expected_channel: artifact.channel,
         requested_mode: GrantMode::LiteMcp,
         requested_scope: IntegrationScope::CodexLocal,
     };
@@ -667,6 +667,103 @@ fn portable_archive_is_deterministic_safe_and_runtime_independent() {
     );
     let installed_binary = installed_path.join(&first.payload().manifest().binary_path);
     assert_runtime(&fixture, &installed_binary, first.payload().manifest());
+
+    // Installed trust must not depend on either archive still being available.
+    let saved_first = first_path.with_extension("saved");
+    let saved_second = second_path.with_extension("saved");
+    fs::rename(&first_path, &saved_first).unwrap();
+    fs::rename(&second_path, &saved_second).unwrap();
+    let verify_extracted =
+        |release: &SignedNativeReleaseEnvelopeV1,
+         context: &NativeReleaseVerificationContext<'_>| {
+            release.verify_extracted_artifact(
+                std::slice::from_ref(&trusted_release),
+                std::slice::from_ref(&trusted),
+                context,
+                content.pack(),
+                &installed_target,
+            )
+        };
+    verify_extracted(&signed_release, &release_context)
+        .expect("installed signed payload must verify without its archive");
+    let mut expired_context = release_context;
+    expired_context.now_unix = NOW + 1_800;
+    let mut stale_launch_context = release_context;
+    stale_launch_context.minimum_launch_grant_generation = 14;
+    let mut wrong_scope_context = release_context;
+    wrong_scope_context.requested_scope = IntegrationScope::ClaudeCodeLocal;
+    let mut wrong_channel_context = release_context;
+    wrong_channel_context.expected_channel = if artifact.channel == ReleaseChannel::Stable {
+        ReleaseChannel::Alpha
+    } else {
+        ReleaseChannel::Stable
+    };
+    let mut wrong_artifact = artifact.clone();
+    let mut wrong_version = semver::Version::parse(&artifact.version).unwrap();
+    wrong_version.patch += 1;
+    wrong_artifact.version = wrong_version.to_string();
+    let mut wrong_artifact_context = release_context;
+    wrong_artifact_context.expected_artifact = &wrong_artifact;
+    for (context, expected) in [
+        (early_context, NativeReleaseError::ReleaseNotYetValid),
+        (expired_context, NativeReleaseError::ReleaseExpired),
+        (stale_context, NativeReleaseError::ReleaseReplayed),
+        (stale_launch_context, NativeReleaseError::LaunchGrantInvalid),
+        (wrong_scope_context, NativeReleaseError::LaunchGrantInvalid),
+        (
+            wrong_channel_context,
+            NativeReleaseError::ReleaseChannelMismatch,
+        ),
+        (
+            wrong_artifact_context,
+            NativeReleaseError::ReleaseArtifactMismatch,
+        ),
+    ] {
+        assert_eq!(
+            verify_extracted(&signed_release, &context).unwrap_err(),
+            expected
+        );
+    }
+    assert_eq!(
+        signed_release
+            .verify_extracted_artifact(
+                &[],
+                std::slice::from_ref(&trusted),
+                &release_context,
+                content.pack(),
+                &installed_target,
+            )
+            .unwrap_err(),
+        NativeReleaseError::ReleaseKeyUntrusted,
+    );
+    let mut changed_manifest = signed_release.clone();
+    changed_manifest.envelope.artifact_manifest_sha256 = "0".repeat(64);
+    assert_eq!(
+        verify_extracted(&changed_manifest, &release_context).unwrap_err(),
+        NativeReleaseError::ReleaseSignatureInvalid,
+    );
+    let changed_manifest = resign_release(changed_manifest, &release_signing_key);
+    assert_eq!(
+        verify_extracted(&changed_manifest, &release_context).unwrap_err(),
+        NativeReleaseError::ReleasePayloadMismatch,
+    );
+    assert_eq!(
+        verify_extracted(&invalid_launch, &release_context).unwrap_err(),
+        NativeReleaseError::LaunchGrantInvalid,
+    );
+    let original_binary = fs::read(&installed_binary).unwrap();
+    let mut tampered_binary = original_binary.clone();
+    tampered_binary[0] ^= 1;
+    fs::write(&installed_binary, &tampered_binary).unwrap();
+    assert_eq!(
+        verify_extracted(&signed_release, &release_context).unwrap_err(),
+        NativeReleaseError::ReleasePayloadMismatch,
+    );
+    fs::write(&installed_binary, &original_binary).unwrap();
+    verify_extracted(&signed_release, &release_context)
+        .expect("restored payload must verify with a fresh read");
+    fs::rename(saved_first, &first_path).unwrap();
+    fs::rename(saved_second, &second_path).unwrap();
 
     assert_eq!(
         compose_native_portable_archive(content.pack(), &source_target, &first_target),

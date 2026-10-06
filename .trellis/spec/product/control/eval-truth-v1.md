@@ -22,6 +22,7 @@ main(argv: list[str] | None = None) -> int
 run_evals(
     case_dir: Path,
     fixture_root: Path | None = None,
+    receipt_root: Path | None = None,
 ) -> EvalRunResult
 ```
 
@@ -30,11 +31,13 @@ python evals/runner/run_eval.py CASE [OUTPUT_DIR]
     [--json-receipt PATH] [--junit-receipt PATH]
 
 python evals/runner/run_suite.py [CASE_DIR] [--fixture-root PATH]
+    [--receipt-root PATH]
 ```
 
-The Python API remains boolean. The CLI exits `0` only for `True`, otherwise
-it exits non-zero. Receipt flags are independent and opt-in; without either
-flag, the Python and CLI paths remain read-only.
+The single-case Python API remains boolean; the suite returns `EvalRunResult`.
+The CLI exits `0` only on success. Receipts remain opt-in; without receipt
+arguments, the Python and CLI paths remain read-only. `receipt_root` writes one
+existing canonical JSON receipt per case, named `<case-file-stem>.json`.
 
 ## 3. Contracts
 
@@ -42,13 +45,15 @@ The suite result preserves `case_count`, `passed_cases`, `failed_cases`, and a
 derived `success`. With no arguments, the command resolves the repository's 12
 academic-quality cases and fixtures from its own file location, independent of
 the process working directory. Explicit case and fixture roots remain available
-for focused runs. Cases are sorted by filename and each delegates to `run_case`;
+for focused runs. Cases are sorted by filename and each delegates to `run_case`
+(or its CLI with `--json-receipt` when receipts are requested), evaluating once;
 the suite succeeds only when at least one case ran and every case passed.
 
 `tooling/scripts/run_academic_quality_evals.py` and the root `scripts/` entry
 remain compatibility shims over this owner; they must not retain a second batch
 loop or success predicate. `.github/workflows/evaluation-truth.yml` invokes the
-canonical command directly for `2.x` pushes and pull requests. Native CI remains
+canonical command directly for pull requests to `main` and `2.x`, and manual
+dispatches; it has no push trigger. Native CI remains
 free of Python and Node startup.
 
 The checked-in adversarial corpus has exactly six families under
@@ -71,10 +76,10 @@ Every expected output contains:
 |---|---|---|
 | `contains_all` | non-empty string `values` | every value occurs case-insensitively |
 | `contains_any` | non-empty string `values` | at least one value occurs case-insensitively |
-| `schema` | case-relative JSON `schema` path | JSON/YAML artifact satisfies the existing supported Schema subset |
+| `schema` | case-relative JSON `schema` path | JSON/YAML value or CSV row array satisfies the existing supported Schema subset |
 | `field_constraint` | CSV `field`, non-empty `allowed_values` | every non-empty row value belongs to the allowlist |
 | `count_conservation` | `total` label, non-empty `parts` labels | unique `Label: n = N` counts satisfy total = sum(parts) |
-| `cross_artifact_consistency` | CSV `field`, output-relative `other_artifact`, `other_field`, `relation` | value multisets are `equal` or primary is a `subset` |
+| `cross_artifact_consistency` | CSV `field`, output-relative `other_artifact`, `other_field`, `relation` | value/tuple multisets are `equal` or primary is a `subset` |
 | `locator_syntax` | CSV `field` | every present locator is `p. N`, `pp. N-N`, or `citekey:anchor` |
 | `citation_identity` | output-relative `bibliography` | every paper/theory source ID exists as a BibTeX citekey |
 | `file_digest` | 64-hex `sha256` | SHA-256 matches the artifact's exact bytes |
@@ -85,6 +90,76 @@ duplicate-free. `schema` uses the tested subset owned by
 JSON Schema Draft 2020-12 support. Citation identity reuses
 `tooling/scripts/audit_citation_risk.py` and remains separate from locator,
 availability, relevance, and claim-support semantics.
+
+Cross-artifact fields may be strings or nonempty, duplicate-free lists of equal
+length. Lists compare the selected cells as one tuple; row order is irrelevant
+but duplicate counts remain significant. Primary cells must be nonempty. For
+multi-column `subset` only, incomplete rows on the other side may remain unused:
+they cannot match a complete primary tuple. Scalar comparisons and `equal` keep
+their existing blank-value rejection. Missing columns, malformed rows and empty
+tables always block. CSV schema inputs reuse the same strict CSV parser; cells
+remain strings with surrounding whitespace stripped, without type inference.
+
+The bounded cases in `evals/research_journey/` verify both reading-to-writing and
+direct-source scopes with shared synthetic inputs. Requiredness follows each
+declared task; supported active claim links, requested claim IDs and source byte
+bindings remain constraints. These are test observations, not parsed production
+Markdown or scientific entailment. Free prose needs separate semantic review.
+The optional `evals/research_journey/observe.py` adapter binds a complete captured
+answer and reviewer-selected spans to these existing cases. It adds only a
+required `file_digest` binding artifact, not a second runner or new assertion
+type. Its separate observation summary identifies the reviewer and reports
+structural checks independently from semantic judgments. See the journey README
+for the capture/review contract and its provenance, not authentication, limit.
+Its optional C→F continuity lane preserves a fixed ordered checkpoint pair,
+injects the actual captured C summary into F and binds the current revision's
+state/handoff/source bytes. It reuses `file_digest` and `contains_all` for context
+and literal identity checks; semantic preservation and correction remain named
+reviewer judgments. The original observation manifest and default selection
+remain supported. A failed or replaced predecessor cannot become a valid F
+input by silently substituting a summary fixture.
+
+The optional `evals/research_journey/plugin_baseline.py` adapter consumes a frozen
+three-case installed-Host capture without launching a model or granting writes.
+It reuses `observe.project` for complete answer-span review and the V1 runner's
+`file_digest`/`field_constraint` assertions for bound observations and behavior.
+Matched actual MCP/command starts and completions remain separate from prose;
+failed or unattempted cases stay in the fixed denominator. Native source, content
+pack and installed-cache identities retain their distinct owners. Missing usage
+is unknown, and semantic review is separate from structural results. See the
+journey README for the capture contract and its provenance-only limits.
+New installed-Plugin catalogs can additionally declare package-relative guidance
+paths and a whole-answer length bound. These project into the same V1 behavior
+checks: actual read/injection evidence must contain the installed guidance bytes,
+and length uses the frozen counting convention, not a reviewer's estimated pass.
+Historical catalogs retain their declared scope. The adapter's optional exclusive
+input freeze/seal refuses changed inputs and never overwrites a prior manifest.
+Tool observations and Host/driver completion are separate: valid completed calls
+retain raw-event indexes and payload digests even on nonzero exit, timeout,
+denial, cancellation or an incomplete turn; none makes that case pass. Empty
+MCP payloads and conflicting error flags do not satisfy required native reads.
+Full returned bytes remain in the local bound trace; the summary stores references
+and metrics, not a model reconstruction or a new transport authentication claim.
+
+The bounded `antigravity_observation.py` status adapter consumes AGY's native
+stream events without translating them into invented Codex activity. Exact
+invocation/complete native output, Host completion, process/group cleanup and
+explicit fixture preservation become behavior rows for this same V1 runner.
+Host `SUCCESS` does not waive denied actions or missing MCP output. It uses the
+existing `qiongli_config_status` schema to check structured status data and requires
+matching MCP content/structuredContent before calling the envelope complete.
+The driver never edits Host trust/permissions, restores concurrent settings over
+new bytes, chooses a model or reuses credentials outside the normal Host process.
+Raw outputs and failures remain bound locally. Its single status scope, POSIX
+process-group limit and unavailable full-output capabilities stay explicit; a
+synthetic passing trace establishes no installed-Host or academic acceptance.
+
+`codex_preflight.py` checks sandbox execution and exact public guidance reads in
+a fresh credential-free read-only profile before a new observation batch. It
+reuses the bounded process/cleanup owner, stops on failure and preserves raw
+output. Its prerequisite receipt cannot replace actual model guidance evidence,
+effective Plugin-policy readback or the V1 answer review. It never changes Host
+permissions to make a failed sandbox work or authorizes another model call.
 
 The primary artifact, bibliography, and cross-artifact references remain under
 the output root. Schema references remain under the case directory. Absolute
@@ -226,7 +301,7 @@ temporary file, then atomically replaced; parent directories are created.
 Run:
 
 ```bash
-python -m unittest tests.test_eval_cases tests.test_academic_quality_evals -v
+python -m unittest tests.test_eval_cases tests.test_academic_quality_evals tests.test_research_journey_evals tests.test_research_journey_observations tests.test_skill_routing_probe -v
 python evals/runner/run_suite.py
 ```
 

@@ -3,6 +3,9 @@
 # Security boundaries
 /.github/ @jxpeng98
 /packages/qiongli-native/crates/qiongli-windows-security/ @jxpeng98
+/packages/qiongli-native/crates/qiongli-bounded-alloc/ @jxpeng98
+/packages/qiongli-native/crates/qiongli-runtime/src/fulltext/ @jxpeng98
+/packages/qiongli-native/crates/qiongli-runtime/src/fulltext.rs @jxpeng98
 /packages/qiongli-native/crates/qiongli-config/src/secret.rs @jxpeng98
 /packages/qiongli-native/crates/qiongli-config/src/redaction.rs @jxpeng98
 /packages/qiongli-native/crates/qiongli-execution/src/policy.rs @jxpeng98

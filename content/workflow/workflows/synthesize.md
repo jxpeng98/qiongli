@@ -1,77 +1,65 @@
 ---
-description: 基于已筛选/提取/质评结果执行证据综合（叙述/定性/定量 Meta-analysis）
+description: "Synthesize screened, extracted, and appraised evidence using narrative, qualitative, or meta-analytic methods."
 ---
 
 # Evidence Synthesis / Meta-analysis
 
-Synthesize included studies into PRISMA-ready results using narrative, qualitative, and/or quantitative meta-analysis methods.
+Use the **Synthesis decisions** in `references/stage-E-synthesis.md` to turn
+screened, extracted and appraised evidence into the requested synthesis.
 
-Canonical Task IDs (from the globally installed `qiongli-workflow` skill):
+Canonical Task IDs:
 - `E1` synthesis strategy
 - `E2` effect size table
 - `E3` meta-analysis results
-- `E4` certainty grading
+- `E3_5` missing-results bias
+- `E4` certainty assessment
 - `E5` integrated synthesis
 
 ## Target
 
 $ARGUMENTS
 
-## Workflow
+## Establish the decision and available evidence
 
-## Academic Boundary Review
+Reuse the authorized project, current research state, handoff, review question,
+selected outcomes and protocol. A supplied-evidence question can be answered in
+chat. Ask for a project destination only if a required write target is unknown;
+do not enumerate other research folders or create a new project automatically.
 
-Before drafting this stage's checkpoint outputs, use `boundary-interviewer` when `context/boundary_review.md` is missing, stale, or contradicted by the current task. Continue within the locked boundary when the artifact already answers the stage question. Narrowing is allowed; broadening requires a new boundary review entry with a revisit trigger.
+Inspect the relevant extraction, quality assessment and source notes. Missing
+files are missing evidence, not an instruction to create completed upstream work.
+Identify which decision the gap affects and what source/check could resolve it.
+Continue supported inventory, planning or bounded synthesis while that branch is
+unresolved. Use `boundary-interviewer` only for a consequential unresolved or
+changed boundary; reuse settled decisions.
 
-For synthesis work, lock pooling, heterogeneity, certainty, publication-bias, and generalizability boundaries before interpreting aggregate evidence.
+## Select and execute the supported synthesis
 
-### Step 0: Select Project Folder
+Use `skills/E_synthesis/evidence-synthesizer.md` and the Stage E decision table.
+Choose the method per outcome/theme from the question, compatibility, dependence
+and usable evidence. Reuse known time points, direction conventions and subgroup
+requirements instead of asking a fixed list of questions.
 
-Ask the user:
-> "Which `RESEARCH/[topic]/` folder should be synthesized?"
-> - Existing projects: [List folders under `RESEARCH/`]
-> - Create new: `RESEARCH/[new-topic]/`
+For selected formal tasks, retain Stage E's outputs and Q2/Q4:
+- E1 uses `templates/meta-analysis-plan.md`, including narrative/qualitative plans.
+- E2 uses `templates/effect-size-extraction-table.md` with source-bound inputs.
+- E3 uses `templates/meta-analysis-report.md` only for an actually executed analysis.
+- E3_5/E4 record the applicable missing-results/ certainty assessment and its limits.
+- E5 writes `synthesis.md` and `synthesis_matrix.md`; qualitative evidence also uses
+  the existing qualitative dictionary/codebook outputs.
 
-Set `[topic]` accordingly.
+Persist through the existing preview/approval/CAS owner. Preserve user material,
+claim/decision IDs, citekeys and source locators; a candidate is not a saved result.
 
-### Step 1: Prerequisite Check
+## Check the result and hand it forward
 
-Verify these exist (create if missing, or stop and ask to run upstream workflow):
-- `RESEARCH/[topic]/extraction_table.md`
-- `RESEARCH/[topic]/quality_table.md`
-- `RESEARCH/[topic]/notes/` (non-empty recommended)
+Reconcile each conclusion with the studies/sources that actually contribute,
+transformations, executed results, appraisal and counterevidence. State what can
+be concluded now and what remains conditional. A narrative result does not remove
+missing evidence or establish certainty. Do not claim a pooled result from a plan.
 
-Recommended (create if missing):
-- `RESEARCH/[topic]/synthesis_matrix.md`
-
-### Step 2: Clarify the Synthesis Request
-
-Ask the user:
-1. Which outcomes/themes should be synthesized? (all vs subset)
-2. Do you want quantitative pooling (meta-analysis) where feasible? (Y/N)
-3. Any required subgroups? (population/setting/design/timepoint)
-4. Preferred effect measures (OR/RR/SMD/MD/Fisher’s z) and “positive direction”
-
-### Step 3: Execute Evidence Synthesis
-
-Use the **evidence-synthesizer** skill to:
-1. Decide synthesis type per outcome (meta-analysis vs narrative vs qualitative) and justify
-2. Update synthesis matrix → `RESEARCH/[topic]/synthesis_matrix.md`
-3. If meta-analysis is performed:
-   - Draft plan → `RESEARCH/[topic]/meta_analysis_plan.md` (use **templates/meta-analysis-plan.md**)
-   - Build effect size table → `RESEARCH/[topic]/effect_size_table.md` (use **templates/effect-size-extraction-table.md**)
-   - Generate results → `RESEARCH/[topic]/meta_analysis_results.md` (use **templates/meta-analysis-report.md**)
-   - (Optional) Save code + plots under `RESEARCH/[topic]/analysis/` using `templates/code/statistics/`
-4. Write integrated synthesis → `RESEARCH/[topic]/synthesis.md`
-
-### Step 4: Reporting Checklist (Fast)
-
-Confirm `synthesis.md` covers:
-- What was synthesized (which studies per outcome)
-- Why pooling was or wasn’t done (rationale)
-- Heterogeneity exploration (if applicable)
-- Sensitivity analyses (if applicable)
-- Missing-results bias assessment (if applicable)
-- Certainty/confidence (optional: GRADE SoF)
-
-Begin evidence synthesis now.
+For a formal transition, use `references/stage-handoff-contract.md`: carry the
+method decision, source/output revision, claim limits, outstanding check and
+next supported action into F. If an input changed, revisit affected decisions
+before reusing old results or prose. Finish at the requested deliverable with its
+specific evidence gaps; do not restart completed upstream stages automatically.

@@ -4,6 +4,7 @@ pub mod loader;
 pub mod manifest;
 pub mod materializer;
 pub mod pack_lock;
+pub mod skill_language;
 pub mod workflow_overrides;
 pub mod writer;
 
@@ -24,14 +25,18 @@ pub use manifest::{
 pub use materializer::{
     MATERIALIZATION_RECEIPT_FILE, MATERIALIZATION_RECEIPT_VERSION, MaterializationAuthorization,
     MaterializationError, MaterializationReceiptV1, MaterializationTarget, MaterializedEntry,
-    approve_materialization_target, materialize_profile, materialize_profile_with_overrides,
-    remove_materialization, temporary_materialization_target, verify_materialization,
+    approve_materialization_target, materialize_profile, materialize_profile_with_language,
+    materialize_profile_with_overrides, remove_materialization, temporary_materialization_target,
+    verify_materialization,
 };
 pub use pack_lock::{RESOURCE_PACK_LOCK_VERSION, ResourcePackLockError, ResourcePackLockV1};
+pub use skill_language::{
+    localize_skill_metadata, skill_language_for_locale, skill_language_valid,
+};
 pub use workflow_overrides::{
     MAX_WORKFLOW_OVERRIDE_BYTES, MAX_WORKFLOW_OVERRIDE_TOTAL_BYTES, ProjectedResource,
     WorkflowOverrideEntry, WorkflowOverrideError, WorkflowOverrides, project_profile,
-    workflow_resource_is_editable,
+    project_profile_with_language, workflow_resource_is_editable,
 };
 pub use writer::{
     BuiltResourcePack, RESOURCE_PACK_CONTENT_ROOT_DOMAIN_V1, RESOURCE_PACK_HEADER_LEN,

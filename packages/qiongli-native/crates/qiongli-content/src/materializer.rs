@@ -16,9 +16,7 @@ use unicode_normalization::UnicodeNormalization;
 use crate::collector::expected_resource_kind;
 use crate::loader::{LoadedResourcePack, ResourcePackLoaderError};
 use crate::manifest::{LogicalMode, ProfileId, ResourceKind};
-use crate::workflow_overrides::{
-    ProjectedResource, WorkflowOverrideError, WorkflowOverrides, project_profile,
-};
+use crate::workflow_overrides::{ProjectedResource, WorkflowOverrideError, WorkflowOverrides};
 
 pub const MATERIALIZATION_RECEIPT_VERSION: u32 = 2;
 pub const MATERIALIZATION_RECEIPT_FILE: &str = ".qiongli-materialization.json";
@@ -78,6 +76,8 @@ pub struct MaterializationReceiptV1 {
     pub content_root_sha256: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub workflow_variant_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skill_language: Option<String>,
     pub entries: Vec<MaterializedEntry>,
 }
 
@@ -411,16 +411,27 @@ pub fn materialize_profile_with_overrides(
     target: &MaterializationTarget,
     overrides: Option<&WorkflowOverrides>,
 ) -> Result<MaterializationReceiptV1, MaterializationError> {
+    materialize_profile_with_language(pack, profile, target, overrides, None)
+}
+
+pub fn materialize_profile_with_language(
+    pack: &LoadedResourcePack<'_>,
+    profile: &str,
+    target: &MaterializationTarget,
+    overrides: Option<&WorkflowOverrides>,
+    language: Option<&str>,
+) -> Result<MaterializationReceiptV1, MaterializationError> {
     let profile_id = pack.manifest().resolve_profile(profile).map_err(|error| {
         MaterializationError::Profile(ResourcePackLoaderError::InvalidProfile(error))
     })?;
-    let resources = project_profile(pack, profile, overrides)
+    let resources = crate::project_profile_with_language(pack, profile, overrides, language)
         .map_err(MaterializationError::WorkflowOverride)?;
     let receipt = build_receipt(
         pack,
         profile_id,
         target.authorization,
         overrides,
+        language,
         &resources,
     );
     let receipt_bytes =
@@ -589,6 +600,7 @@ fn build_receipt(
     profile: ProfileId,
     authorization: MaterializationAuthorization,
     overrides: Option<&WorkflowOverrides>,
+    language: Option<&str>,
     resources: &[ProjectedResource],
 ) -> MaterializationReceiptV1 {
     MaterializationReceiptV1 {
@@ -601,6 +613,7 @@ fn build_receipt(
         pack_sha256: pack.pack_sha256().to_string(),
         content_root_sha256: pack.manifest().content_root_sha256.clone(),
         workflow_variant_sha256: overrides.map(|value| value.variant_sha256().to_owned()),
+        skill_language: language.map(str::to_owned),
         entries: resources
             .iter()
             .map(|resource| MaterializedEntry {
@@ -1098,8 +1111,13 @@ fn validate_receipt(
     receipt: &MaterializationReceiptV1,
     receipt_path: &Path,
 ) -> Result<(), MaterializationError> {
-    if !matches!(receipt.receipt_version, 1 | MATERIALIZATION_RECEIPT_VERSION)
-        || (receipt.receipt_version == 1 && receipt.workflow_variant_sha256.is_some())
+    if receipt
+        .skill_language
+        .as_deref()
+        .is_some_and(|s| !crate::skill_language_valid(s))
+        || !matches!(receipt.receipt_version, 1 | MATERIALIZATION_RECEIPT_VERSION)
+        || (receipt.receipt_version == 1
+            && (receipt.workflow_variant_sha256.is_some() || receipt.skill_language.is_some()))
     {
         return Err(MaterializationError::invalid_receipt(
             receipt_path,

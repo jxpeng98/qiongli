@@ -23,6 +23,20 @@ This stage turns a topic into a *defensible* research plan: what you will claim,
 - `Q1` (question-to-method alignment) applies to all A-tasks.
 - `Q2` (claim-evidence traceability) starts in `A2` (contribution) and is enforced later in `F4/G3`.
 
+## Choose the contribution and evidence boundary
+
+Use `references/discipline-guidance.md` when the field changes the question or
+evidence. State whether the intended contribution is descriptive, causal,
+predictive, interpretive, theoretical, methodological, a replication or a resource.
+Define the population/corpus, unit, period and evidence that could support or
+challenge it. Keep demonstrated findings separate from a proposal's intended work.
+
+A literature gap is bounded by the sources actually searched/read; an unfamiliar
+topic is not proof of novelty. Compare the closest relevant work and explain the
+unresolved question. If access, sample or time makes the original claim infeasible,
+offer a narrower supported question without silently replacing the user's aim.
+Carry that boundary and the next evidence need into Stage B/C.
+
 ## Academic Idea Funnel / Academic Grill Loop For Idea-Discovery
 
 Before drafting `A1`, `A2`, `A4`, or `A5` from a vague topic, use `boundary-interviewer` to run the Academic Idea Funnel. This is an academic idea-discovery pass, not a generic brainstorming questionnaire.
@@ -52,7 +66,7 @@ Use Stage A grill questions such as:
 
 **Definition of done**
 
-- 1 **main RQ** + 2–5 **sub-RQs** (non-overlapping)
+- A clear **main RQ**, with non-overlapping sub-RQs only when needed
 - Clear **unit of analysis** (individual/team/org/document/system)
 - Defined **constructs** (what you mean by each key term) and plausible **operationalizations**
 - Scope boundaries (what is *out of scope*, and why)
@@ -111,11 +125,11 @@ Use when the paper needs *testable* or *arguable* statements (empirical / qualit
 
 **Definition of done**
 
-- Map each RQ to 1–3 hypotheses, propositions, or sensitizing concepts
+- Map each relevant RQ to hypotheses, propositions, or sensitizing concepts as the design requires
 - Each item has **mechanism intuition** and **boundary conditions**
-- If confirmatory, include **direction**
+- If confirmatory, specify the predicted relation and whether the test is directional, with a rationale
 - If qualitative and exploratory, articulate the focal process, meaning, or contrast to investigate
-- Include at least 2 types of alternatives:
+- Include consequential alternatives where supported:
   - measurement/construct alternative (operationalization could flip result)
   - theory-based rival explanation or rival interpretation (addressed in `C1_5`)
 
@@ -161,7 +175,7 @@ Write *what changes in the literature* if your paper is accepted.
 
 **Definition of done**
 
-- 3–5 contributions, each with:
+- A supported primary contribution and any distinct secondary contributions, each with:
   - **Prior state** (what was known/assumed)
   - **Your delta** (what changes)
   - **Evidence plan** (what will support it)
@@ -182,7 +196,7 @@ Write *what changes in the literature* if your paper is accepted.
 - Who cares / why now:
 - Evidence required:
 
-## Secondary contributions (3–5 bullets)
+## Secondary contributions (if supported)
 1. ...
 
 ## Non-goals (to prevent scope creep)
@@ -197,11 +211,11 @@ Choose, justify, and operationalize the theory lens; do not just list citations.
 
 **Definition of done**
 
-- 1–3 anchor theories/frameworks with:
+- Relevant anchor theories/frameworks with:
   - core constructs + relationships
   - mechanism narrative (why the relation holds)
   - boundary conditions
-- A conceptual model diagram (Mermaid acceptable)
+- A conceptual model diagram when it clarifies the argument (Mermaid acceptable)
 - A mapping from constructs → measures (if empirical) or → propositions (if theory)
 
 **Recommended structure: `theoretical_framework.md`**
@@ -240,9 +254,9 @@ Gap ≠ “no one has studied this exact combination”. Gap must be *meaningful
 
 **Definition of done**
 
-- 3–7 candidate gaps, each with:
+- Supported candidate gaps, each with:
   - category (theoretical / empirical / methodological / population / data)
-  - supporting citations (2–6 each, mix of seminal + recent)
+  - supporting source locations and coverage limits
   - why existing work cannot answer your RQ
   - how your approach closes it
 - Prioritize gaps by feasibility + impact (short rubric)
@@ -252,7 +266,7 @@ Gap ≠ “no one has studied this exact combination”. Gap must be *meaningful
 ```markdown
 # Gap Analysis
 
-## Landscape summary (5–10 bullets)
+## Landscape summary
 - ...
 
 ## Candidate gaps
@@ -268,26 +282,20 @@ Gap ≠ “no one has studied this exact combination”. Gap must be *meaningful
 
 ## A5 — Venue Analysis
 
-Venue choice determines *what reviewers reward* (novelty vs rigor vs artifact quality).
+For early venue exploration or adaptation to a chosen journal/conference, use
+`skills/A_framing/venue-analyzer.md`. Follow `references/stage-H-submission.md`
+for shared evidence, fit and modification boundaries. For recommendations driven
+by an existing draft without a chosen target, use H5 instead.
 
 **Definition of done**
 
-- 2–5 candidate venues, with:
-  - fit statement (topic + method + contribution)
-  - formatting + length constraints
-  - typical paper structure expectations
-  - “desk reject” risk factors for your paper type
+- The target or candidate set reflects the research question and author constraints.
+- Decision-relevant requirements have sources, checked dates and applicable
+  article type/stage; local profiles and inferred practices are labeled as such.
+- Fit and conflicts are explained using the actual contribution and evidence.
+- Proposed adaptations connect requirements to manuscript locations and distinguish
+  presentation/reporting changes from new research or author decisions.
+- Missing evidence limits conclusions; no arbitrary candidate quota or promised outcome.
 
-**Recommended structure: `framing/venue_analysis.md`**
-
-```markdown
-# Venue Analysis
-
-| Venue | Fit | Key expectations | Word/page limits | Evidence expectations | Notes |
-|---|---|---|---|---|---|
-
-## Chosen target (current)
-- Venue:
-- Why:
-- Must-not-fail items:
-```
+Formal output: `framing/venue_analysis.md`. Include the requirement and adaptation
+tables from the shared Stage H reference, chosen direction and unresolved checks.

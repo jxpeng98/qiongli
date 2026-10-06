@@ -8,7 +8,7 @@ use crate::{RuntimeError, RuntimeErrorCode};
 
 pub const LITE_TOOL_CONTRACT_RESOURCE_PATH: &str = "mcp-contracts/lite-tools.json";
 pub const FULL_PROJECT_TOOL_CONTRACT_RESOURCE_PATH: &str = "mcp-contracts/full-project-tools.json";
-pub const LITE_PUBLIC_TOOL_NAMES: [&str; 14] = [
+pub const LITE_PUBLIC_TOOL_NAMES: [&str; 15] = [
     "qiongli_config_status",
     "qiongli_save_provider_config",
     "qiongli_configure_provider",
@@ -23,8 +23,9 @@ pub const LITE_PUBLIC_TOOL_NAMES: [&str; 14] = [
     "qiongli_zotero_export_import_files",
     "qiongli_orchestrator_route",
     "qiongli_task_plan",
+    "qiongli_literature_read_fulltext",
 ];
-pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 9] = [
+pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 11] = [
     "qiongli_project_list",
     "qiongli_project_read",
     "qiongli_project_graph_snapshot",
@@ -34,6 +35,8 @@ pub const FULL_PROJECT_PUBLIC_TOOL_NAMES: [&str; 9] = [
     "qiongli_project_capture_coverage",
     "qiongli_project_capture_preview",
     "qiongli_project_capture_apply",
+    "qiongli_project_document_read",
+    "qiongli_project_document_list",
 ];
 
 const LITE_CONTRACT_SCHEMA_VERSION: &str = "1.0";
@@ -52,6 +55,7 @@ pub enum LiteToolId {
     LiteratureStatus,
     SearchPlan,
     LiteratureSearch,
+    LiteratureReadFulltext,
     LiteratureExportEvidence,
     ZoteroStatus,
     ZoteroSearch,
@@ -72,6 +76,8 @@ pub enum FullProjectToolId {
     CaptureCoverage,
     CapturePreview,
     CaptureApply,
+    DocumentRead,
+    DocumentList,
 }
 
 impl FullProjectToolId {
@@ -87,6 +93,8 @@ impl FullProjectToolId {
             Self::CaptureCoverage => "qiongli_project_capture_coverage",
             Self::CapturePreview => "qiongli_project_capture_preview",
             Self::CaptureApply => "qiongli_project_capture_apply",
+            Self::DocumentRead => "qiongli_project_document_read",
+            Self::DocumentList => "qiongli_project_document_list",
         }
     }
 
@@ -107,6 +115,8 @@ impl FullProjectToolId {
             "qiongli_project_capture_coverage" => Some(Self::CaptureCoverage),
             "qiongli_project_capture_preview" => Some(Self::CapturePreview),
             "qiongli_project_capture_apply" => Some(Self::CaptureApply),
+            "qiongli_project_document_read" => Some(Self::DocumentRead),
+            "qiongli_project_document_list" => Some(Self::DocumentList),
             _ => None,
         }
     }
@@ -124,6 +134,7 @@ pub enum LiteLiteratureHandler {
     Status,
     SearchPlan,
     Search,
+    ReadFulltext,
     ExportEvidence,
 }
 
@@ -161,6 +172,7 @@ impl LiteToolId {
             "qiongli_literature_status" => Some(Self::LiteratureStatus),
             "qiongli_search_plan" => Some(Self::SearchPlan),
             "qiongli_literature_search" => Some(Self::LiteratureSearch),
+            "qiongli_literature_read_fulltext" => Some(Self::LiteratureReadFulltext),
             "qiongli_literature_export_evidence" => Some(Self::LiteratureExportEvidence),
             "qiongli_zotero_status" => Some(Self::ZoteroStatus),
             "qiongli_zotero_search" => Some(Self::ZoteroSearch),
@@ -181,6 +193,7 @@ impl LiteToolId {
             Self::LiteratureStatus => "qiongli_literature_status",
             Self::SearchPlan => "qiongli_search_plan",
             Self::LiteratureSearch => "qiongli_literature_search",
+            Self::LiteratureReadFulltext => "qiongli_literature_read_fulltext",
             Self::LiteratureExportEvidence => "qiongli_literature_export_evidence",
             Self::ZoteroStatus => "qiongli_zotero_status",
             Self::ZoteroSearch => "qiongli_zotero_search",
@@ -202,6 +215,9 @@ impl LiteToolId {
             Self::LiteratureStatus => LiteDispatchTarget::Literature(LiteLiteratureHandler::Status),
             Self::SearchPlan => LiteDispatchTarget::Literature(LiteLiteratureHandler::SearchPlan),
             Self::LiteratureSearch => LiteDispatchTarget::Literature(LiteLiteratureHandler::Search),
+            Self::LiteratureReadFulltext => {
+                LiteDispatchTarget::Literature(LiteLiteratureHandler::ReadFulltext)
+            }
             Self::LiteratureExportEvidence => {
                 LiteDispatchTarget::Literature(LiteLiteratureHandler::ExportEvidence)
             }
@@ -228,6 +244,17 @@ pub struct ToolDefinition {
     pub description: String,
     #[serde(rename = "inputSchema")]
     pub input_schema: Value,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub annotations: Option<ToolAnnotations>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ToolAnnotations {
+    pub read_only_hint: bool,
+    pub destructive_hint: bool,
+    pub idempotent_hint: bool,
+    pub open_world_hint: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -422,6 +449,10 @@ mod tests {
             (
                 LiteToolId::LiteratureSearch,
                 LiteDispatchTarget::Literature(LiteLiteratureHandler::Search),
+            ),
+            (
+                LiteToolId::LiteratureReadFulltext,
+                LiteDispatchTarget::Literature(LiteLiteratureHandler::ReadFulltext),
             ),
             (
                 LiteToolId::LiteratureExportEvidence,

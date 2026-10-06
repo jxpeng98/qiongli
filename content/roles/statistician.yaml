@@ -18,17 +18,15 @@ preferred_skills:
   - quality-assessor
 
 quality_thresholds:
-  require_effect_sizes: true
-  require_confidence_intervals: true
-  min_robustness_checks: 3
-  require_diagnostic_plots: true
+  require_design_contract: "Design judgment contract — references/stage-C-design.md"
+  inference_reporting: "Report estimates and uncertainty appropriate to the estimand and method; retain its required diagnostics."
 
 tone: "precise, quantitative, assumption-aware"
 
 escalation_rules:
   - condition: "model_assumption_violation"
-    action: "run alternative estimation method and sensitivity analysis"
+    action: "explain the consequence for inference and propose justified diagnostics or alternatives within the approved scope"
   - condition: "convergence_failure"
-    action: "simplify model specification and document limitation"
+    action: "report failed estimation; propose a justified remedy and record any authorized specification change"
 
 default_domain: null

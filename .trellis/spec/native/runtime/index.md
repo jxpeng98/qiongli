@@ -1,11 +1,394 @@
 # Native Runtime
 
+The optional `qiongli hooks context` native entry reads at most 64 KiB of event
+JSON and emits bounded context only for SessionStart resume/compact and
+SubagentStart. It runs before Host discovery/content/config loading, never reads
+transcripts or research files, invokes models, approves, writes or blocks a
+completed turn. Other events are inert; invalid input exits 1 without echo.
+The reminder respects an active conversational reply-only choice and does not
+authorize resource reads or resume execution. It neither detects nor stores that
+choice and cannot stop the Host from launching an already configured Hook.
+Local Plugin installation may include the fixed context Hook configuration after
+preview and confirmation. Host trust and live event delivery remain Host-owned. Both
+native adapters require actual independent results when independent review is
+requested; sequential self-review cannot satisfy it. Portable cross-Host review
+packets do not transfer Host-bound checkpoints or authenticated evidence authority.
+
 The Qiongli 2 executable, CLI, Desktop service, Full MCP, project state, and
 embedded resources live under `packages/qiongli-native/`.
 
+`project document list` and Full-only `qiongli_project_document_list` share
+`ProjectStateService::list_saved_documents`. The strict request requires registered
+`project_id` and `expected_project_revision`; `offset` defaults to 0 and `limit`
+to 32 (1–64). Continuation requires `expected_bindings_sha256`. The existing
+storage owner enumerates at most 1,024 consolidation IDs, with no scan of notes or
+sources and no new index. Existing receipt parsing validates schema, paths and
+acknowledgement. Each receipt must match its capture bytes, identity, project,
+base revision and stage; foreign/future, orphaned, corrupt, unsafe and duplicate
+revision histories refuse. The latest receipt by destination revision owns each
+allowed path; timestamps and current file hashes never choose saved authority.
+
+The stable path-sorted list contains only note, source-packet and retrieval-history
+bindings. Each includes saved SHA-256, capture ID, receipt SHA-256 and saved
+revision. Only safely readable current UTF-8 bytes produce `readArguments` for the
+existing reader, using the current project revision and saved digest. Missing,
+changed or unavailable files have explicit state/reason and no read arguments;
+other usable files remain visible. Current replacement hashes and bodies are not
+returned. Existing 4 MiB source limits and link/ownership checks remain active.
+
+`bindingsSha256` includes project/revision and the entire raw receipt/capture digest
+set, including non-displayed history. It binds pagination to saved history, not
+all current research-file bytes. Each page rechecks its sources, complete history,
+registration and manifest; later body reads still recheck their expected digests.
+Invalid offsets or changed history refuse. No lock, metadata refresh, receipt or
+project/config write occurs. This is a local integrity snapshot, not authenticated
+provenance or a lock against external editors. Full now has 35 tools; previous
+tools, Lite, Graph and write approval/CAS behavior remain unchanged.
+
+`project document read` and Full-only `qiongli_project_document_read` share
+`ProjectStateService::read_saved_document`. Strict snake-case requests require
+`project_id`, `expected_project_revision`, `relative_path` and `expected_sha256`;
+optional `offset_bytes` defaults to 0 and `max_bytes` to 16 KiB (4–65,536 bytes).
+Only canonical `notes/<citekey>.md`, `sources/<citekey>/<sha256>.json` and
+`retrieval_manifest.csv` paths are allowed. Existing citekey/path validators and
+the 4 MiB regular-file source reader retain ownership, link, ancestor and recovery
+checks. Packet filenames must agree with the actual complete-file hash. No
+arbitrary project file, PDF, receipt or private runtime directory is exposed.
+
+The reader checks registered identity, project revision and semantic freshness,
+then rechecks the source hash, registration and manifest before returning.
+Missing/drifted sources and stale revisions refuse. It writes no lock, file,
+receipt or derived state. These are bounded snapshots, not locks against external
+editors or remote verification. UTF-8 offsets must be character boundaries; output
+ends on a boundary, with explicit byte sizes, next offset and before/after
+truncation. `sha256` always identifies the entire file, including on later pages.
+Continuation requires the same revision/hash. Callers obtain bindings from
+authorized prior preview/receipt/file evidence or current receipt-backed list
+entries; the body reader adds no discovery or
+automatic trust in a newly observed hash. Academic coverage remains a review duty.
+
+Schema-1 `qiongli-saved-document-view` is identical through CLI and MCP and exposes
+no absolute filesystem path. Debug/error output omits research content. The new
+Full descriptor declares read-only, non-destructive, idempotent, closed-world
+hints; Host approval remains separate. Native Full gains one tool; Lite and old
+project/Graph reads remain unchanged. Both in-process execution and Host
+orchestration bind document arguments to the run's project and revision.
+The read does not extend Graph's registered
+artifact set or certify that arbitrary externally edited allowed files were saved
+through a reviewed transaction. Capability-gated guidance preserves older Hosts.
+
+The shared canonical Lite tool descriptors declare read-only, non-destructive
+and idempotent hints for `qiongli_literature_status`, `qiongli_search_plan` and
+`qiongli_literature_read_fulltext`. Status and planning are closed-world metadata
+operations; the fulltext reader is open-world because it can fetch public HTTPS
+sources. Its session cache does not persist project data. Full reuses the same
+annotations through its Lite registry. These are MCP behavior hints, not trust,
+Host approval, source verification or permission to persist returned content.
+Existing URL/network policy, validation, tool inventories and write approvals
+remain authoritative; no other tool is reclassified by this increment.
+
+Native Lite and Full expose `qiongli_literature_read_fulltext` from the shared
+`qiongli-runtime::fulltext` owner. Search records preserve optional abstracts,
+reported fulltext candidates and external IDs; none establishes retrieved text.
+The reader accepts one public HTTPS PDF/TEI/JATS source, rejects credentials,
+private destinations and unsafe redirects, pins DNS results per hop and limits
+downloads/decoded gzip to 12 MiB. OpenAlex keys go only to its exact supported
+content endpoint. Public sources do not require provider configuration.
+Error messages distinguish input URL policy, blocked redirect targets and DNS
+failures without exposing locator/query values or resolved addresses. Signed or
+credential-bearing query parameters remain unsupported, including publisher
+redirects. Empty DNS answers, resolver failures and worker timeout/disconnection
+use `fulltext-network-error`; any nonpublic answer, including mixed answers,
+retains `fulltext-url-blocked` before contacting that destination. These local
+transport/policy outcomes do not establish a paywall or absent article body.
+
+Provider status describes configured metadata, not successful credential access
+or a live query. If the bounded shared credential load cannot finish, combined
+searches retain usable selected channels without caching incomplete access.
+Unresolved credentials are never sent. The result preserves partial/failed status
+and names unsearched providers in warnings with `provider_credentials_unavailable`
+as the diagnostic reason; omitted provider counts do not mean zero hits. A solely
+blocked selection retains the existing tool error. No secret-store permissions,
+configuration writes, network guards or loader concurrency limits are changed.
+
+Segments carry the decoded source SHA-256 and page/section anchors; continuation
+requires the same digest. The eight-document session cache is not a project store.
+Emitted text is capped at 2 MiB, 10,000 segments and 300 PDF pages. PDF/XML parsing
+runs in a fresh same-executable child before config/Host discovery, with a cleared
+environment, byte-only stdin, 30-second deadline and 16 MiB protocol output cap.
+The shared supervisor kills and waits for timed-out, failed or overflowing work
+before joining its pipe threads. A child watchdog also exits after 30 seconds if
+the parent is terminated and cannot run cleanup. CLI, Desktop's canonical runtime and standalone
+Lite use this entrypoint; embedding executables must dispatch it too. No extra
+packaged executable or inline fallback exists. The isolated stdlib-only
+`qiongli-bounded-alloc` unsafe boundary tracks Rust allocations and activates a
+512 MiB heap ceiling only in the child; the parent stays unlimited. This is not
+an OS RSS/stack/native-mapping limit or a security sandbox. Parser abort/OOM is
+contained in the child and reported without replacing cached source identity.
+HTML/OCR, private attachments and authenticated publisher browsing stay
+with available authorized Host tools. Structured DOI conflicts, multi-paper XML,
+abstract-only responses and heading-only bodies cannot report readable fulltext.
+Reading passages does not authorize manifest, Graph or canonical writes; Skills
+retain the existing identity/version, evidence and preview/approval/CAS owners.
+The native extension has standalone schemas; frozen Python v2 inventory is unchanged.
+Its advertised input is a plain object so Host parameter projection retains URL;
+cross-field continuation digest requirements remain enforced by the runtime.
+
+Full MCP capture preview also accepts a connected capture with `capture_id`
+omitted; its envelope version/kind and binding remain required. The existing
+`ResearchCaptureDraftV1` owner validates and computes the identity, and preview
+returns the normalized `capture` alongside
+the existing plan fields. A supplied or partial identity is never repaired.
+Apply still requires the exact normalized capture, preview digest and explicit
+filesystem approval; project revision checks and pending-history semantics stay
+unchanged. Draft normalization grants no academic consolidation authority.
+
+Native CLI `project capture consolidate preview/apply` optionally accepts
+`--stage-handoff-file <absolute-draft.md>` and uses the existing consolidation
+owner to append `context/stage_handoff.md`. Preview emits exact resulting UTF-8
+Markdown as `stageHandoffContent`; the plan digest binds those bytes and the
+prior file digest. Apply rereads the draft and retains dual approval, library
+revision, capture/manifest checks, transaction CAS and receipt recovery. Both
+preview and apply reject unrefreshed registered semantic drift, including inputs
+that are not write targets. Arbitrary attachments are outside that digest.
+Prior handoff bytes remain intact. Academic completeness stays with review;
+there is no automatic stage advance, summary creation or Graph rebuild.
+Without the option, the original API/output/receipt shape remains unchanged.
+V1 receipts accept the additional closed `stage-handoff` artifact in current
+readers; old two-artifact receipts still read. Older binaries reject receipts
+containing the new artifact, so these projects require the updated reader.
+The bound regular-file reader is shared with portable capture intake, rejects
+final symlinks/non-UTF-8/oversize handoffs, and never treats file text as authority.
+No MCP endpoint, new store, Host model setting or installed profile changes.
+
+The same CLI owner accepts optional `--stage-summary-file <absolute-draft.json>`:
+strict `StageSummaryDraftV1` names a new uppercase `STG-` ID, document status,
+predecessor path/digest, 1–64 project-local source fingerprints and reviewed
+Markdown. Sources and predecessor are bounded regular files, rechecked at preview
+and apply, and included in the plan digest. Reads are snapshots, not locks against
+external editors; omitted/external sources are not implicitly covered. Preview
+returns exact summary, research-state/history and handoff bytes. The transaction
+creates `context/stage_summaries/<ID>.md`, preserves prior history and adds its
+handoff link alongside ordinary capture artifacts. Existing summary paths refuse;
+publication uses a non-replacing filesystem operation, and rollback preserves a
+competing file when that create fails. A six-file transaction retains the current
+approval, revision, recovery and receipt owners. Summary documents remain outside
+the registered semantic/Graph artifact set. Readers accept the additional closed
+`stage-summary` receipt artifact; older binaries do not. Without the option,
+existing APIs, plan digest serialization and output/receipt fields stay unchanged.
+History uses the existing six columns and review time in Unix UTC seconds;
+ambiguous tables or a predecessor different from the last row refuse. Supplied
+Markdown is retained with generated save-basis metadata; scholarly coverage,
+humanization, claim continuity and status remain review obligations. No summary
+read/save MCP endpoint or automatic stage/Graph transition is added.
+
+The same consolidation owner accepts `--paper-note-file <absolute-draft.json>`.
+`PaperNoteDraftV1` strictly binds schema version 1, citekey, optional
+`previousSha256`, 1–64 local source path/SHA-256 pairs and reviewed Markdown.
+It creates `notes/<citekey>.md` only when the prior hash is absent and the target
+is absent; append requires the exact old note hash and preserves every prior
+byte. Citekeys are 1–128 ASCII alphanumeric/underscore/hyphen characters, begin
+alphanumerically and exclude Windows device names; unsupported keys are refused,
+never normalized. Source checks reuse the summary reader's bounded-file and
+16 MiB aggregate limits. Drafts reject duplicate/unknown JSON fields, unsafe paths,
+NULs, empty/oversize text and generated lineage-marker injection. Source files
+remain snapshots, not locks against external editors or remote-body verification.
+
+Preview returns exact `paperNoteContent`. Apply rechecks source/prior-note hashes
+and the existing dual approval, plan, library/project revision and semantic-drift
+boundaries. It uses the shared transaction (up to seven files with summary and
+handoff), receipt and recovery owner. New note publication never replaces a
+competing file, and collision rollback preserves that file. Existing-note updates
+retain the shared transaction CAS boundary; arbitrary external writes after that
+check are not serialized by Qiongli's lock. Receipts add the closed `paper-note`
+artifact; old receipts and no-option output/plan serialization remain unchanged,
+while older binaries reject new-artifact receipts. Notes remain outside the
+registered semantic/Graph set. Academic review retains citekeys, claim IDs,
+anchors and coverage/identity limits; no content parser, new MCP writer, source
+packet store, automatic bibliography or Graph update is introduced by the note option.
+
+Optional `--source-packet-file <absolute-draft.json>` uses that same consolidation
+owner to save raw retrieval results. Strict `SourcePacketDraftV1` has
+`schemaVersion: 1`, the same portable citekey rules, and `content`, a string
+containing a nonempty JSON object or array. Both the regular UTF-8 draft file and
+decoded content are bounded to 4 MiB; duplicate JSON keys (including nested
+content), unknown envelope fields, invalid JSON and unsafe citekeys refuse.
+Content syntax is validated without a provider-specific schema or provenance
+claim. Review preserves actual URLs, body digests, anchors, coverage and identity
+limits; the source text has no instruction or approval authority.
+
+Preview exposes exact `sourcePacketContent` and the resulting path/hash delta.
+Apply preserves its bytes, including whitespace, at
+`sources/<citekey>/<sha256(content)>.json`. Paths are closed and content-addressed;
+existing files refuse even when identical. Changed retrieval bytes create a new
+packet instead of overwriting prior material. Transaction and receipt validation
+bind the packet filename to its digest. New packet publication uses the existing
+non-replacing write and collision rollback; the shared directory owner creates
+missing ancestors under the project with each component's existing safety checks.
+Composing packet, note, summary and handoff uses up to eight transaction files
+(nine with the retrieval manifest below), within the existing 4 MiB/file and
+16 MiB aggregate write limits. Dual approvals,
+plan/library/project revision checks and recovery remain unchanged.
+
+`CaptureConsolidationDrafts` groups optional documents; prior API wrappers and
+no-option plan/output serialization stay compatible. Receipts add the closed
+`source-packet` artifact, which older binaries reject. Save a new packet before
+binding it in a later current-revision note/summary capture: those source checks
+require files already present, not an in-transaction proposed source. Packets
+remain outside the registered semantic/Graph set; manual edits still require
+fresh source fingerprints. No automatic retrieval, identity verification,
+complete-reading status, new MCP endpoint or separate write store is introduced.
+
+Optional `--retrieval-manifest-file <absolute-draft.json>` extends the same
+owner with `RetrievalManifestDraftV1`: schema version 1, optional `previousSha256`
+and 1–64 reviewed attempts. Attempts use Stage B's eleven columns in camelCase,
+plus optional `sourcePacket` (same-citekey saved packet path/hash) and
+`fulltextSha256`. Unknown optional metadata stays empty and unknown version is
+`unknown`; save time never supplies retrieval time. Controlled status/version
+values follow `fulltext-fetcher`; storage does not establish report identity,
+license, reading coverage or academic truth. Raw JSON drafts reject duplicate or
+unknown fields and retain the existing 4 MiB regular-file boundary.
+
+Preview returns exact `retrievalManifestContent`. Apply creates or appends only
+project-root `retrieval_manifest.csv`, preserving the previous byte prefix and
+requiring its exact hash for append. The eleven-column CSV reader reuses the
+bounded parser extracted from the existing Graph owner, with identical Graph
+behavior; unknown headers, malformed rows, more than 2,048 attempt rows and fields
+above 8 KiB refuse. Repeated record IDs/citekeys represent separate attempts.
+The writer quotes commas/quotes/newlines and retains failed attempts. Packet
+path/local hash and any local fulltext hash are recorded in the existing notes
+column, with packet hashes explicitly distinct from PDF digests.
+
+Nonempty fulltext paths require a safe existing project-local file and hash;
+source-packet JSON and the manifest itself cannot stand in for fulltext. All
+newly bound sources must already exist, and their bytes are rechecked at preview
+and apply through the 4 MiB/file, 16 MiB aggregate source owner. Earlier rows are
+history, not a claim that their old sources remain current. The manifest remains
+outside the registered semantic/Graph set, so later source-bound work must inspect
+its current hash. External editors are not serialized by the Qiongli lock.
+
+The closed `retrieval-manifest` receipt artifact uses the existing exact plan,
+dual approval, revision/CAS and recovery checks. New-file publication refuses
+replacement and preserves competing files during collision rollback. Composing
+all optional artifacts permits nine transaction files, still within 4 MiB/file
+and 16 MiB aggregate write limits. No-option plan/output bytes and old receipt
+readers remain compatible; older binaries refuse new-artifact receipts. No new
+MCP writer, schema migration, automatic retrieval or scientific acceptance is
+introduced. A later capture can bind a note to the saved manifest after restart.
+
+Academic Graph v1 remains a rebuildable projection over registered canonical
+artifacts. `academic_graph_extract.rs` permits one claim ID/text/type across
+multiple evidence rows, diagnoses conflicting records, and requires source
+locations before projecting support. Paper evidence joins the existing global
+citekey identity through `derived-from`; citations alone do not establish support.
+Support anchors bind claim/source/location/artifact rather than CSV line order;
+the shared artifact reader resolves them against the current revision. Legacy
+claim/source anchors are also resolved. Host Skills normalize authorized prose
+into reviewed records; no new graph store, raw-PDF scanner or write owner exists.
+
+Support edges expose the ledger's actual limitations. Decision-log Markdown/CSV
+may add optional `Related Claims` / `related_claims`, reusing claim IDs. Explicit
+links project Decision → `informs` → Claim, never support: `locked` is reviewed;
+tentative/blocked/revisit statuses remain proposed. Duplicate decision IDs,
+invalid statuses/references and missing targets cannot create reviewed links.
+The shared reader resolves `decision:<id>` to a unique parsed record line.
+
+`project graph source` aliases the existing revision/projection-bound artifact
+reader; it adds no arbitrary file access. `project graph view` emits a bounded
+neighborhood interface as self-contained HTML on stdout, using the same full
+snapshot/readiness data. Inline data is HTML-safe, DOM text is escaped, and CSP
+blocks network access. By default there is no file write or application launch.
+Explicit `--save` creates a unique HTML file under the validated private state
+root; `--open` also requests opening with the system's default HTML handler.
+Reuse `GlobalSettingsStore::prepare_store` and the existing no-clobber private
+writer (including the Windows owner-only file API). No canonical project write,
+overwrite or cleanup occurs. The already-locked `open` crate is linked into the
+CLI without insecure features, custom application arguments or an extra runtime;
+only the newly generated absolute file path is passed to it. A dispatch failure
+retains the export for manual use; successful dispatch does not prove rendering.
+No server or index write is introduced. Its explicit JSON download saves a frozen projection, not project
+history or source contents. Record search/type filters page 100 rows; relation
+type/status filters page eight incident edges and their neighbors together,
+preserving direction and all recorded statuses. Back navigation is page-local.
+Source issues can filter available records; absence of projection diagnostics
+does not hide missing or stale source state. Copying retains identifier validation
+and falls back to manual selection; a late clipboard response cannot label a
+different selected command. Filtered views never trim the downloaded snapshot.
+`graph snapshot` retains machine JSON and gains a
+compact terminal summary; HTML view rejects text/JSON output flags.
+
+Full MCP orchestration routing discloses that subagent availability is unchecked,
+actual execution belongs to visible Host tools, and automatic cross-Host dispatch
+is unavailable. Completion needs the returned task identity, actual result and
+matching sources/candidate; the originating Host retains checkpoint authority.
+
 ## Local Pattern
 
-- `apps/qiongli/src/command.rs` owns public CLI parsing and help.
+- `external_agent_cli.rs` prepares/collects explicitly selected Codex, Claude Code,
+  DeepSeek Harness and Antigravity CLI proposals. The Host executes the returned
+  argv/stdin and child-only environment, supervises deadlines and supplies observed
+  process outcomes. Shared handoff/packet binding and `HostDelegationResultV1`
+  validation remain in `qiongli-execution`; each adapter validates its actual
+  terminal protocol and session identity. Old Codex commands and serialized
+  dispatches remain compatible. DeepSeek requires machine-readable headless
+  support (absent in observed npm 0.1.5-rc.3); no text-only fallback exists.
+  `native_marketplace_plugins.py --platform deepseek` opt-in projects canonical
+  Skills, a Cordis bundle and native Full MCP through the existing export/receipt
+  verifier. Standalone release Plugin archives remain Codex/Claude; from 2.1 the
+  existing `qiongli` npm package includes this same DSH bundle with 22 entries and
+  native Full MCP. `install plugin --target deepseek` and terminal choice 4 use the
+  terminal-only `plugin_host/deepseek.rs` adapter. After profile selection, exact command preview,
+  trust confirmation and executable/profile digest revalidation, the official DSH
+  manager installs the pinned npm version from the official registry. New CLI
+  profiles use the official web template; existing profiles are retained. Bundle
+  registration, package version and content receipt are checked afterward. DSH_HOME
+  is captured and propagated only to the child process. Public managed App target
+  enums and file-plan schemas remain Codex/Claude; this adds no App write bypass.
+  DeepSeek uses the current
+  `unknown` route / `other-local` descriptor, not a fabricated Codex identity.
+  See [external Host usage](../../../../docs/advanced/external-host-coordination.md).
+
+- `apps/qiongli/src/command.rs` owns public CLI parsing; `cli_help.rs` provides
+  short entry pages and selects detailed syntax from the command owners.
+  `cli_presentation.rs` formats their results for terminal users without owning
+  project writes, Host configuration or MCP dispatch.
+- `cli_content.rs` exposes interactive `install/upgrade/update plugin|skills`.
+  The exact file preview goes through the existing managed apply validation;
+  redirected input cannot approve it. `--dry-run` retains the file-plan schema.
+  `plugin_host.rs` adds a separate confirmation over a fixed official Host plan,
+  using the existing bounded process runner. It rechecks executable/source/cache
+  hashes and official inventories before executing, stops on the first failure,
+  and verifies enabled registration plus matching cached files afterward.
+  A confirmed Codex cross-source migration uses the bounded stdio configuration
+  client in `plugin_host/codex_config.rs`: user-layer/version checks precede an
+  official batch write of only the listed Qiongli enabled flags. Existing caches
+  remain intact. Cancellation, stale configuration, unsupported protocols and
+  incomplete final registration cannot report success. No model session starts.
+  Live session tools remain a separate check. See ADRs 0224 and 0226.
+  After verification, `cli_presentation.rs` renders one compact installation
+  summary with exact source/cache locations, included components, pending session
+  and Hook checks, and next commands. Command arrays remain in the approval
+  preview rather than repeating during execution; JSON plans/receipts are unchanged.
+  `doctor` and `install inventory` reuse this registration owner for configured
+  `qiongli-cli-local` sources. Bounded official inventories and verified source/
+  cache receipts distinguish current, refresh-required and unavailable states;
+  cache versions must match their receipts. Unconfigured Hosts are not probed.
+  These observations confer no write authority or live-session readiness.
+  `install --interactive` guides Plugin, Skills-export, manual MCP configuration
+  and version-review choices through these same owners. Menu choices do not
+  approve writes. Bare install/upgrade open the guide only in a terminal without
+  output flags;
+  redirected/explicit-format queries and setup retain their existing behavior.
+  Plugin install/upgrade/update share one upsert path, discover the registered
+  source through the official Host inventory and validate its receipt before
+  updating. A shared Host table/parser accepts comma/space selections, deduplicates
+  in order, keeps 3/both as Codex+Claude and expands all to Codex/Claude/DeepSeek/Antigravity. Each Host
+  retains its existing installer and separate approval. This selection flow
+  stops on cancellation/failure. Foreign enabled Plugins refuse before export
+  with their exact names and manual disable guidance. See ADR 0225.
+  `mcp check` exercises the existing stdio handlers in-process (initialize, tools
+  and config status); its result explicitly excludes Host sessions and online
+  provider connectivity. It adds no daemon, registration or persisted readiness.
 - `apps/qiongli/src/desktop.rs` owns the shared App service; Tauri commands in
   `desktop/tauri_adapter.rs` adapt it instead of duplicating product logic.
 - `crates/qiongli-runtime/src/contract.rs` and `apps/qiongli/src/mcp.rs` own the
@@ -14,8 +397,22 @@ embedded resources live under `packages/qiongli-native/`.
   reuse Lite validation without returning a Lite profile result.
 - `crates/qiongli-project/src/service.rs` owns project mutations and revision
   checks; App, CLI, and Full MCP route through that service.
+- Literature search retains ordered authors, type, date, source identity/link and
+  bibliography fields through the shared runtime. `title`/`doi` modes and year/
+  venue filters select bounded candidates before the total limit; diagnostics
+  disclose missing metadata and coverage limits. Ranking is not verification.
+  Export accepts record objects, preserves explicit citekeys and generates stable
+  keys from identity when absent. Unknown types remain generic; missing/conflicting
+  fields are reported. Preprint versions remain distinct from formal publication.
+  Companion dedup applies version guards before DOI/source/title-year matching;
+  within-batch duplicates refuse before preview. Returned ordered item keys and
+  select URIs support the existing import-report mapping, not a new write owner.
 - `crates/qiongli-runtime/src/zotero/companion.rs` owns the loopback Companion
   boundary. Only loopback endpoints may be contacted.
+- Companion `0.3.1` retains endpoint contract `2` and supports Zotero 8 through
+  10.0.x. XPI/update manifests, native artifact validation and installation
+  eligibility must agree on that range. `qiongli_notes` uses the child-note
+  writer, never ordinary item fields; collection reads include nested paths.
 - [All Chat State v1](./all-chat-state-v1.md) is the bounded, provider-neutral
   ACP collaboration projection; existing orchestration and project services
   retain scheduling and mutation authority.
@@ -23,9 +420,42 @@ embedded resources live under `packages/qiongli-native/`.
   presets, stable-v1 negotiation, event normalization, and fail-closed
   permission/cancellation behavior. It is not packaged provider support.
 
+Native reconciliation uses atomic no-replace renames on macOS and Linux for
+activation, compensation and rollback. A concurrently created target, including a
+symlink, must not be overwritten; losing source files remain intact. Unsupported
+kernel/filesystem operations fail closed. Public native activation/recovery on
+Linux use these moves and the process checks below.
+
+Linux native reconciliation inspects current-user executables through the visible
+`/proc` PID namespace, anchoring status/executable reads to one process directory.
+Deleted executable paths still count as running. Ambiguous executable access,
+malformed identity, ptrace-only visibility and exceeded scan bounds fail closed.
+An absent executable is ignored only after a descriptor-bound status re-read
+proves the process has disappeared or is a zombie with exactly one remaining
+thread. A zombie main thread with live sibling threads remains ambiguous and
+blocks replacement; an unreadable executable is not evidence of process exit.
+The scan is a snapshot: it neither prevents later launches nor inspects processes
+outside the visible namespace. It does not stop processes or confer write approval.
+
 Public writes use preview, digest-bound approval, revalidation, and fail-closed
 errors. `qiongli_project_capture_apply` is a real Full MCP project write and
 must never be described as read-only. ToolHost remains read-only in-process.
+
+Host handoff instructions classify project data, PDF excerpts, web pages, repository
+content, dataset documentation, imported notes, tool results and prior candidate
+hashes as untrusted evidence. Embedded approval or tool instructions confer no
+permission. The server-owned handoff, project scope and evidence ledger remain the
+authority for orchestration reads; capture writes still require their separate
+preview/digest/approval checks. Candidate acceptance is not human approval. These
+server checks do not attest that a Host-supplied approval boolean came from a human;
+CLI-404 must separately verify that Host interaction. Both packaged native Host
+adapters carry the same untrusted-source rule before the first handoff, including
+refusal to interpret source-embedded system messages or approval claims as control.
+Host evidence authentication is local to the MCP process that performed the read.
+A second process cannot submit the first process's references merely by loading the
+same checkpoint; it must perform its own authorized reads. Rejected replay must not
+advance the checkpoint or consume the original process's references. Authentication
+binds an observed result, not a claim that source bytes remain current forever.
 
 Local Workflow/Skill customization is owned by `WorkflowVariantStore`. It may
 override only canonical Markdown instruction resources, and installed
@@ -60,12 +490,451 @@ Desktop-enabled empty arguments retain the App launch behavior.
 Shared App services, DTO/schema generators, CLI inspection, MCP dispatch and
 preview/approval/CAS remain available without the renderer. `ui` fails without
 the desktop feature; `ui --startup-check` reports shared service readiness only.
+CLI-only empty arguments show help on both terminals and redirected streams.
+`setup` and `install review` open the existing read-only installation review;
+`install migrate --interactive` remains supported. All reject non-terminal
+input/output. npm's optional terminal-only installation hook retains its route.
+
+Bare `project`, `config`, `content` and `update` select their read-only
+list/show/inventory/status operations. `project ls`, `project show <id>` and
+`install list` reuse existing parsers and services. `mcp serve` still requires an
+explicit profile and defaults its only supported transport to stdio. `help <topic>`
+and `<topic> -h|--help` display scoped help; `help all` retains the full reference.
+Bare config backend, project graph/capture/portfolio and app plan show the existing
+scoped help in a terminal without output flags. Redirected/explicit-format calls
+retain their usage errors. Incomplete mutations and MCP serve remain explicit.
+Usage failures remain exit 2 without echoing private arguments or a full reference.
+
+The executable formats terminal queries as readable summaries. Redirected output,
+`run_cli`/`prepare_action`, and existing JSON schemas retain their machine contracts.
+One leading or trailing `--json` or `--text` explicitly selects presentation;
+valid option values must never be stripped as output flags. Conflicts fail before
+execution. Explicit output flags are rejected for interactive/streaming commands;
+MCP stdout never includes human presentation. Error exit status and path redaction
+are preserved. Text escapes terminal controls, retains complete mutation preview
+fields and digest values, and summarizes only designated read-only overviews.
 Embedded resource, release authority and Companion checks always run in the
 build script. CLI-only compilation is not standalone package qualification.
+
+`SignedNativeReleaseEnvelopeV1::verify_extracted_artifact` verifies an approved
+native artifact directory against the signed release and launch grant without
+requiring the original archive. It reuses release-key/generation/time policy and
+the artifact owner's full file-tree validation, binding the manifest, binary and
+resource digests to the expected artifact and requested launch scope. Its result
+is a scoped launch grant, not running-process identity, candidate source provenance
+or approval to write.
+
+Candidate installation atomically persists the exact signed candidate beside the
+native payload directories using the existing private-file and no-replace rename
+owners. Conflicting metadata is refused before payload changes. Identical metadata
+replays; legacy installs acquire it only through a freshly verified candidate apply.
+The record is retained with lifecycle receipts after uninstall. It is not itself
+authority: `verify_installed_native_candidate_product` requires an active payload
+receipt, a freshly verified candidate/source/Host grant, and the matching executable
+at the fixed managed path. Recovery journals, changed bytes, linked records, expired
+signatures and removed payloads refuse authority. Temporary or orphan records do not
+restore authority; successful replay can complete an interrupted metadata commit.
+The app boundary supplies current_exe(), embedded identity, trust roots and time.
+`verify_running_packaged_product` selects the native verifier for executables under
+the fixed managed payload root; other executables retain the desktop/managed-shim
+verification path. A path match only selects verification and never grants authority.
+`VerifiedPackagedProduct` stores verified artifact/source/resource facts and scoped
+Host capabilities, not a fabricated desktop manifest. Shared install, migration
+and reconciliation owners consume those facts. Native plans bind the signed
+candidate digest; desktop plans retain their existing control-document digest.
+Each prepare/apply still re-verifies product authority and existing approvals/CAS.
+Source builds without embedded authority remain read-only.
+
+The existing CLI install/remove/PATH owners also support the native payload as
+their source. The installed command copy uses the unchanged v3 receipt: its fixed
+command path, version and binary digest must match the fixed versioned native
+payload. This resolver is only a hint; every product operation still revalidates
+the source's signed candidate, active receipt and embedded identity. Arbitrary
+copies, changed command/payload bytes, absent receipts and legacy receipts cannot
+establish native product authority. Desktop authority-bearing receipts retain their
+existing route. Native source discovery no longer invents a sibling `qiongli-cli`.
+Shell profile updates keep their existing preview/digest/approval rules. This does
+not qualify Windows PATH handling, update/rollback, human approval across Hosts or
+a release.
+
+`stage_native_release_candidate_local` reuses the same payload preparation and
+signature-record persistence as complete candidate installation, without changing
+Host sources, registrations or the installed command. Its trusted caller must
+obtain exact-candidate filesystem-write approval. Versioned payloads can coexist;
+the existing payload executor can roll back a staged install while preserving the
+prior integration. Modified staged bytes are refused, not deleted. Full candidate
+apply retains its original source/registration compensation and metadata commit
+ordering. Staging alone does not switch the active command/integration or qualify
+live-process update and rollback; public update command wiring remains pending.
+
+`ManagedNativePayloadExecutor::verify_receipt_owned` verifies an active predecessor
+payload without requiring the successor's embedded resource pack. It reuses strict
+artifact tree, canonical manifest, binary and receipt checks, and refuses pending
+recovery. Its result proves receipt-owned integrity only; it never supplies signed
+candidate, launch or write authority. Install, repair, removal and running-product
+verification retain their existing pack-bound and signature checks. Activation must
+also bind this predecessor evidence to the selected Host and managed CLI receipts.
+
+`install candidate activate-preview` verifies the signed release inputs and the
+current process at the fixed staged payload path, then binds the selected older
+payload, Host source/registration and installed CLI receipts. It requires
+`--previous-install-id`, the same artifact stream/platform, and an increasing
+version. The existing CLI plan owner binds command bytes, receipt bytes and retained
+backups; its preconditions are rechecked after predecessor verification. The output
+is a read-only identity snapshot with `preflight_digest_sha256`, never an approval
+or transaction reservation. It does not include managed Skills/settings changes;
+activation preparation must bind those separately and revalidate all observed state.
+The public contract is Rust-generated `candidate-activation-preview-v1`; existing
+candidate preview/stage/apply wire formats remain unchanged.
+
+`install candidate activate-prepare` accepts the same release and predecessor inputs,
+`--expected-preflight-digest`, and filesystem-write approval. It creates the state
+root through `GlobalSettingsStore`, rechecks identities under the replacement lock,
+and uses the existing reconciliation owner to stage registered Skills, the selected
+Host, and the CLI binary/receipt pair. Active update transactions and non-increasing
+release generations refuse. It leaves active destinations and update state unchanged.
+The output lists staged surfaces and binds the candidate, preflight, journal, update
+revision and workflow revision/variant into a separate activation approval digest.
+Workflow/update state is rechecked after staging. An existing transaction refuses
+without overwriting its journal. Fresh failed preparation uses existing guarded
+cleanup. The Rust-generated public contract is `candidate-activation-prepared-v1`;
+reconciliation v2 wire semantics remain unchanged. The macOS activation and recovery commands are described below.
+
+`install candidate activate-discard` cancels an unactivated v2 preparation using
+`--transaction-id`, `--expected-journal-digest` and filesystem-write approval. It
+needs no new candidate authority because it cannot activate or adopt a product.
+Under the replacement lock it rejects any active transaction, activation record,
+backup or unknown transaction-root entry. Cleanup uses the exact checked journal
+and the existing whole-set ownership checks, allowing already-removed staged files.
+The journal digest is checked again before removing the journal and empty transaction
+root. Missing journals refuse rather than claiming a successful replay. The shared
+journal reader rejects linked or insecure state/update/staging/transaction directories.
+The Rust-generated output contract is `candidate-activation-discarded-v1`. Started
+activations still require recovery; discard never rolls back active destinations.
+
+Native candidate preparation now emits reconciliation journal v3. Its required
+`native_release` binding includes the verified candidate digest, prior update
+revision/accepted generation/known-good identity, and the next signed release's
+version/channel/generation/archive/resource digests. The existing journal hash and
+activation outcome bind these fields together. v1/v2 omit this field and retain
+canonical bytes and behavior; v3 requires the CLI pair and release binding, while
+unknown versions and mixed version/field shapes refuse.
+
+Activation checks the prepared update revision and prior release state before
+reserving the transaction through CAS. Successful health first records a durable
+committed outcome; cleanup then advances accepted generation and known-good state
+while clearing the reservation in one state CAS. Failure or undecided recovery
+preserves prior release metadata. Recovery can finish a committed cleanup without
+rerunning health, and completed replay does not increase the revision. Unexpected
+release-state changes refuse before cleanup. Preparation transaction IDs now include
+update/workflow revisions so a rolled-back attempt can be prepared again without
+overwriting historical records. The caller still owns fresh candidate/approval verification. The macOS public native activation/recovery commands enforce these boundaries;
+shared write exclusion is described below.
+
+Native activation, recovery, discard and candidate preparation now acquire a fixed
+private `HOME/.qiongli/native/.installation.lock` before the config-root replacement
+lock. Activation copies its existing journal-bound start record to
+`active-installation.json` in that Home directory before live changes. Recovery
+requires the matching marker; successful cleanup/state completion removes it.
+Interrupted activation therefore excludes participating writers using a different
+config root even after the process lock is released. No new journal or public wire
+schema is introduced.
+
+The shared Unix managed-write guard covers managed-operation apply, candidate
+stage/apply/remove, and Desktop confirmed Skills, workflow-variant, CLI and packaged
+Host mutations. It rejects active update state and any Home activation marker, then
+rechecks state under the config lock. Read-only plans remain available for installed
+CLI health. Non-Unix managed writes retain their existing behavior. Public native
+activation supports macOS and Linux; legacy interrupted-update recovery uses the
+approved CLI entry described below. This lock coordinates participating processes;
+it is not an operating-system access boundary against unrelated writers.
+
+Engineering `install native apply/remove` also takes the Home/config guard using
+the command environment; preview/verify remain read-only. Apply validates release
+authority, plan digest and approval before acquiring it. Legacy migration apply,
+continue (including cleanup/finalize), and recover use the same guard in their shared
+CLI/Desktop owner. Apply acquires it after product/approval validation and before
+provider or Host writes; recovery loads its receipt before acquiring it and never
+bypasses pending native activation. Engineering roots resolving to `HOME/.qiongli/native/payloads` use that actual Home
+for coordination, even when the invoking Home differs; other engineering roots
+retain the invoking Home scope. Existing managed-root approval rejects unsafe links.
+
+The old macOS replacement executor takes the same Home-then-config locks after
+parent exit, refusing a native activation marker before switching files. Handoff
+failure restoration also takes both locks before altering state. Health retains its
+existing independent completion path. Legacy recovery uses the approved CLI entry described below.
+
+The shared update guard acquires Home then config locks without rejecting an
+existing update transaction; each update stage still validates its own state/CAS.
+CLI and Desktop channel/cancel, signed verify/stage and staged reconciliation use it.
+Downloads acquire it only after manifest verification, across reservation and private
+staging setup, and release it before archive transport so concurrent cancellation
+remains available. The reservation/CAS owner protects subsequent private download
+writes. Installation waits for its guarded staged child before acquiring its own
+guard, then rechecks the exact state revision before advancing or creating handoff
+files. Status/check remain read-only; token-bound legacy health completion remains
+available while the replacement helper holds locks. Authority-free signed paths
+retain their existing refusal before any mutation.
+
+Initial candidate-directory creation tolerates a concurrent `AlreadyExists` only
+by revalidating the resulting directory's type, ownership and private permissions.
+It never adopts a link or relaxes the security check.
+
+Update-state reads that encounter transaction artifacts wait on an existing
+writer lock before classifying them as recovery evidence. Reads do not create
+the lock or state root, and retained artifacts still require recovery after the
+lock is released. The existing timeout, private-file checks, inode binding and
+no-follow lock open apply; readers never clean up another writer's files.
+
+Legacy Desktop rollback now restores the old application without clearing the active
+transaction or deleting its evidence. A shared completion step first finishes Host
+reconciliation cleanup, removes the failed application, syncs the transaction directory,
+and only then clears the failed transaction through CAS. Cleanup failure preserves the
+active transaction and retained journal/health contract; files and links substituted at
+the failed-application path refuse. Completed rollback keeps the journal and health
+contract as evidence rather than recursively deleting the transaction root. The approved legacy recovery CLI reuses these owners.
+
+The legacy macOS executor now writes its serialized replacement journal to the shared
+private Home activation marker before replacing application files. Shared marker
+binding and clearing compare exact bytes under the Home lock; a different native or
+legacy transaction cannot clear it. Successful commit, complete rollback and verified
+pre-activation restoration clear their own marker. Panics and incomplete cleanup keep
+it, excluding participating writers across config roots after process-lock release.
+The marker reuses the existing replacement-journal format; it adds no public schema.
+Pre-activation restoration now reports errors and requires the destination/staged
+layout, absent backup and successful state CAS before releasing protection. Recovery through these owners and the CLI dispatcher is tested; real
+process-kill qualification remains pending.
+
+`recover_legacy_health_interruption` is a callable library owner for an interrupted
+legacy HealthWindow (or its RecoveryRequired reservation). It requires the exact
+Home marker digest, validates the marker's replacement journal against the configured
+store, checks the canonical reconciliation journal/digest, backup ownership and the
+installed new canonical binary hash. It reserves RecoveryRequired through state CAS
+before rollback so late legacy health cannot commit, then reuses Host/application
+rollback, cleanup and exact marker clearing. It does not rerun health. The public CLI enforces caller-owned filesystem approval; real process-kill
+qualification remains pending. Unsupported layouts/states refuse rather than guessing a completed recovery.
+
+Legacy rollback persists private `legacy-rollback-v1.json` before moving the application.
+Its strict version-1 shape binds the Home marker digest, a hash of the prior accepted
+release metadata, and the old canonical binary digest. Normal rollback also reserves
+RecoveryRequired through CAS before moving files, excluding late health commitment.
+Recovery validates the record and old binary before continuing a parked-new-application,
+restored-old-application, or state-cleared/marker-retained layout. A retained failed
+application must still match the new canonical binary before deletion. Successful
+rollback keeps the record and journal as evidence. Unknown versions, changed marker/
+release bindings, substituted paths and binary drift refuse. Tested checkpoints are
+between filesystem operations; deletion interrupted inside a failed application tree
+can still require manual recovery if its identity cannot be verified. The public CLI is described below; full process qualification remains pending.
+
+`recover_legacy_committed_cleanup` is the library entry for an already accepted legacy
+update. It validates the exact marker, configured journal, canonical Host journal and
+matching version/pack, complete last-known-good identity (including channel), installed
+new binary and any remaining old backup against retained identity evidence. It only
+finishes cleanup and clears its own marker; it never runs health or changes accepted
+state. Old identity is now recorded before activation so this evidence exists on both
+commit and rollback paths. Verified pre-activation restoration removes that snapshot
+with its old handoff contract to allow a fresh attempt.
+
+Committed cleanup retains transaction evidence/downloads and supports an already
+removed backup. Cleanup stopped inside a backup tree still refuses if identity can no
+longer be established. Bounded garbage collection remains separate work; retaining evidence does not claim complete package qualification.
+
+Both legacy recovery owners inspect the current user's mapped application files under
+the installation locks before changing state/files. A fixed `/usr/sbin/lsof` invocation
+uses the existing bounded child collector with a 30-second deadline and separate 8 MiB
+stdout/stderr limits; existing Host probes retain 512 KiB. Nonzero exit, stderr,
+malformed/empty output, invalid encoding or an exceeded bound refuses recovery. Matching
+covers destination, backup, staged and failed-application directories by path components.
+C-locale hexadecimal encoding of non-ASCII path bytes is accounted for; target control
+characters refuse because reliable matching is unavailable. No processes are killed.
+This is a current-user snapshot, not prevention of launches after inspection or a claim
+of visibility into other users' processes. Full process qualification remains pending.
+
+`qiongli update recovery-preview` reads the private Home marker and configured update
+state without creating directories or acquiring write locks. It identifies a legacy
+transaction, exact marker SHA-256 and `rollback` or `committed-cleanup` mode. This is a
+recovery description, not proof that process, application or Host evidence will pass.
+`qiongli update recover --expected-marker-digest <sha256> --approve-filesystem-write`
+requires explicit approval and the exact marker, then delegates to the existing recovery
+owner, which rechecks locks, state, process and filesystem identities before mutation.
+Missing/duplicate options and malformed digests refuse. Source builds can recover owned
+legacy evidence without obtaining new release authority. Run recovery from a separate
+CLI outside the affected application paths; a running binary inside them is refused.
+Native payload activation markers remain unsupported by these legacy commands.
+
+Both outputs use the Rust-owned additive `update-recovery-v1` public JSON contract,
+with generated Draft 2020-12 schema and preview/recovered golden fixtures. Recovery
+retains the prior cleanup and partial-tree limitations; it does not grant package or
+program acceptance.
+
+On macOS, native activation and recovery also reuse the bounded installation-process
+inspector while holding Home/config locks. They check every journal CLI binary's
+destination, staged and backup path. A mapped executable refuses before activation
+records or recovery mutations; an inspection error also refuses. Receipt files and
+Host content are still governed by their existing ownership checks. This guard does
+not stop processes, prevent subsequent launches or claim Host reload completion.
+Linux uses the `/proc` guard described above under the same locks. Other platforms
+retain their coordinator behavior and must not claim these process-inspection results.
+
+On macOS and Linux, `install candidate activate` accepts the same signed candidate/archive/notes,
+Host target and predecessor as preparation, plus its `--transaction-id`,
+`--expected-journal-digest`, `--expected-approval-digest` and all three approvals:
+`--approve-filesystem-write`, `--approve-client-config-change`, `--approve-host-trust`.
+Run it from the verified staged candidate binary. It freshly verifies candidate and
+running product authority, then rechecks candidate/Home/release identity, preflight,
+workflow and update revisions under the installation locks. It uses the unchanged
+preparation approval hash and starts no activation records on mismatch. The coordinator
+requires installed CLI health using the candidate identity; the public command cannot
+supply a substitute health callback. Failed health rolls back through the existing owner.
+
+`install candidate activate-recover --transaction-id <id> --expected-journal-digest
+<sha256> --approve-filesystem-write` replays the exact existing native journal/outcome.
+It requires no fresh release adoption authority and never reruns health. Use a separate
+CLI outside affected executable paths. Public activate/recover refuse platforms other
+than macOS and Linux. Earlier preparation, discard and lower-level platform behavior
+remains unchanged.
+
+Both successful commands use additive Rust-generated `candidate-activation-completed-v1`
+JSON with exact transaction/journal identity and committed/rolled-back outcome. A returned
+outcome describes local transaction completion, not a live Host reload or named-candidate
+acceptance. Successful real packaged activation and process-kill qualification remain
+separate evidence requirements.
+
+The nonpublishing `native_candidate_acceptance` example accepts optional
+`--predecessor-manifest <absolute-Cargo.toml>`. It builds that source with the same
+in-memory test authority, reads its actual CLI version and requires it to precede the
+current candidate. Both packages use existing artifact/archive/signature owners;
+the temporary authority supports predecessor generation 1 and successor generation 2.
+The journey installs the real predecessor CLI, stages the successor, then runs public
+activation preview/prepare/activate, installed version/health/MCP and recovery replay.
+Omitting the manifest records this journey as not run. A caller-derived predecessor
+build proves runtime switching only; it does not attest to historical published source,
+production signing, resource-pack migration or live Host reload. Private keys are never
+persisted, and the receipt retains `publication_allowed=false`.
+
+Installed CLI health validates a plan against the explicitly verified candidate version,
+including a restored predecessor. The same plan validator still requires the running
+process version for every managed write. Schema, TTL, digest, operation and approval
+checks are unchanged; observing an older healthy CLI does not authorize an old write plan.
+
+The macOS/Linux two-version runner also exercises an independent interrupted Home. It creates
+a new process group for the public activation command, observes the installed CLI inode
+change while the Home marker exists and no durable outcome exists, then sends SIGKILL
+to that test-owned group. It requires an actual signal exit and verifies the new binary
+was present with the old accepted release still pending. Public recovery must restore
+the exact old binary/version/known-good identity, remove the Home marker and pass real
+installed health plus MCP. Already-reaped children are never signaled; a missed window
+fails the run. This is process interruption evidence, not arbitrary kill-point coverage,
+power-loss durability or deletion interrupted inside every application tree.
 
 ## Quality Check
 
 - Run the closest crate or integration test first.
 - For contract changes, verify tool registry, dispatch, schemas, and docs agree.
-- Before exact-head CI, run Rust format and the affected workspace tests.
+- Run affected tests once locally; reuse unchanged results for integration.
+  Remote CI is optional for local integration; named candidates own full
+  cross-platform qualification.
 - Confirm public CLI examples exist in the parser and `--help` output.
+
+## User-approved Plugin source lifecycle
+
+Antigravity's terminal adapter (`plugin_host/antigravity.rs`, choice 5, targets
+`antigravity`/`agy`) reuses the existing bundle transaction with the separate
+`user-local-antigravity-full-mcp` kind and receipt filename. It projects the same
+canonical Skills/variant/language, a native binary, root `plugin.json` and
+`mcp_config.json`. The root guidance uses `other-local` for Full Host descriptors;
+it never invents an Antigravity enum in the shared schema. Signed kinds and
+Codex/Claude public App target schemas remain unchanged.
+
+Two terminal confirmations bind source, executable and prior receipt hashes,
+variant, language, AGY cache receipt and profile-file digests. Both expire after
+ten minutes and recheck under the managed-write guard. The existing staging,
+target lock, no-replace moves, whole-tree verification and CAS own file changes.
+Only official `agy plugin install` / `enable` write the Host profile; unknown or
+changed caches and duplicate standalone MCP definitions refuse. The installer
+checks native cache equality, import registration and enablement independently.
+The read-only AGY cache verifier accepts owner-owned `0700` or canonical `0755`
+directories; source and signed readers still require canonical modes. All readers
+retain file-mode, link, receipt and whole-tree byte checks. Cache permissions are
+never rewritten to satisfy verification.
+It makes no live-session claim. `--hooks`, scripted App plans and signed AGY
+activation are not provided. The AGY manager currently uses `.gemini/config`.
+The source directory remains required: its absolute bundled binary command
+avoids unverified Plugin-root expansion. Context, model and credentials remain
+Host-owned. The existing Codex receipt wire bytes retain their previous form.
+
+`plugin_source.rs` owns the bounded local source export, routed through
+`app plan plugin-source-install|plugin-source-update|plugin-source-remove` and the
+existing `app apply` owner. `app plugin-source-status` is read-only. Both require
+`--target codex|claude --destination <absolute-path>` ending in `qiongli` or
+`qiongli-next`, under an existing secure parent. Host roots and `.qiongli` paths are reserved for their existing
+owners. Plans bind source binary, content, workflow variant, path, receipt and
+the optional `context_hooks` choice (omitted false preserves legacy digest bytes);
+apply retains expiry, exact digest, filesystem approval, Home/config exclusion
+and target transaction locks. Unknown/drifted/signed exports refuse adoption.
+
+`--language auto|zh|en` selects install-time Skill metadata. The terminal guide
+asks once for the selected Hosts; standalone Skills have the same choice. Auto
+uses captured locale environment/system preferences and falls back to English.
+Plans store a resolved `skill_language` (`en`/`zh`), bind it to their digest and
+retain existing expiry, approval and receipt comparisons. Local receipts record
+it separately from the workflow-variant digest; omission on source updates or
+managed Skills updates preserves the saved language. Display names/prompts on the
+main Codex Skill use the same canonical translation catalog as the descriptions.
+Workflow bodies and invocation IDs remain stable. There is no automatic rewrite
+when a client changes its UI language. Older optional-field-free plans/receipts
+keep their compatibility readers. DSH saves a Qiongli-owned profile preference
+under the confirmed official-manager plan; its provider uses public profileContext
+and requires restarting that profile/app to reload it.
+
+The local bundle receipt kind is separate from signed products (ADR 0222).
+ADR 0228 selects qiongli for stable and qiongli-next for Alpha/Beta. The
+version-2 source-status response reports the observed ID (or the selected ID
+when missing); its v1 schema/fixture remain frozen. Verified old source paths
+are reused without renaming. `source-current` means the export identity and
+bytes match the running CLI; Host state remains
+`not-verified`. Export does not register a client or mutate private Host caches.
+Source removal preserves Host state, so unregister through the Host first.
+
+Plugin install/update accepts `--hooks context|off`. The terminal guide defaults
+new sources to off and preserves receipt-verified choices on updates; each Host
+is selected independently. Plans preview the fixed inline Hook configuration
+before filesystem confirmation. Both bundle projectors and verifiers bind exactly
+SessionStart resume/compact and SubagentStart to the bundled native `hooks context`
+command; no arbitrary commands, global Hook writes or trust grants are supported.
+Old APIs preserve this choice when updating a local source. False is omitted from
+receipts to retain predecessor canonical bytes; signed bundles remain Hook-free.
+Source status exposes `source.context_hooks` separately from unverified Host state.
+Codex embeds a HooksFile (`hooks.hooks` in the manifest) with command/commandWindows
+shell forms; Claude embeds the event map directly (`hooks.SessionStart`) with
+native exec args. Their inline schemas are not interchangeable.
+The terminal review and registration reject enabled context hooks on Claude
+versions before 2.1.139 or when the version is unknown; source-only export stays
+Host-independent. Disabling hooks remains available.
+Host configuration support and live delivery require separate qualification.
+
+Source plans emit managed-plan v2; legacy operations retain v1. The consumer
+accepts only each operation's own schema version, keeping old digest bytes and
+approvals intact. Schemars-derived plan/result/status schemas and goldens are
+regenerated by the `plugin_source_contract` example and checked by its Rust
+consumer test. Source-status/result outputs retain their named v1 shapes.
+
+## Cross-channel installation review
+
+`cli_inventory.rs` owns bounded PATH/known-prefix discovery, grouping and manual
+migration guidance; it reuses the CLI install owner's executable-file check.
+`install inventory [--paths exact]` adds a CLI inventory alongside the unchanged
+Host inventory; `doctor` includes the same redacted overview. Exact paths are
+opt-in. Package metadata does not establish binary identity. Shim forwarding,
+shell aliases/functions and unlisted environments are not fully resolved.
+Unknown candidates are not executed. Terminal output escapes filesystem strings.
+
+`install migrate --interactive` selects a preferred installation and per-entry
+keep/archive/uninstall guidance. Enter preserves the current setup; invalid input,
+EOF and non-terminal streams do not grant action authority. This owner performs
+no mutations, subprocess launches or automatic cleanup. Package-manager files stay
+in place; standalone archive guidance requires verified ownership and complete
+bundle checksums. Shared command paths, Host references and original package
+manager environments must be reviewed before user-operated removal. Research
+files, configuration and Plugin caches are excluded. Existing managed CLI write
+plans retain their separate authority.

@@ -38,23 +38,21 @@ use crate::update_cli::UpdateCliCommand;
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 const MAX_CLIENT_METADATA_BYTES: u64 = 256 * 1_024;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli app <snapshot|verify-integrations|verify-skills|plan|apply>\n  qiongli project <list|show|doctor|create|register|migrate|import|export|archive|restore|refresh|unregister>\n  qiongli content list\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config backend status\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n  qiongli migrate-1x <inspect|preview|apply|continue|status|recover> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite|full> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = crate::cli_help::HOME;
 
-const INSPECTION_USAGE: &str = "\nInspection:\n  qiongli paths             Show exact resolved paths\n  qiongli paths --json      Show the versioned exact-path JSON snapshot\n  qiongli doctor            Run redacted native Product Doctor checks\n  qiongli doctor --paths exact\n                            Include the exact-path snapshot explicitly\n";
+pub(crate) const APP_USAGE: &str = "Qiongli App control contract\n\nUsage:\n  qiongli app snapshot\n  qiongli app plugin-source-status --target <codex|claude> --destination <absolute-path>\n  qiongli app plan plugin-source-install --target <codex|claude> --destination <absolute-path>\n  qiongli app plan plugin-source-update --target <codex|claude> --destination <absolute-path>\n  qiongli app plan plugin-source-remove --target <codex|claude> --destination <absolute-path>\n  qiongli app read-project-artifact --project-id <prj_id> --expected-project-revision <revision> --expected-projection-id <grp_id> <--node-id <nod_id>|--edge-id <edg_id>>\n  qiongli app verify-integrations --target <codex|claude|all>\n  qiongli app verify-skills --preset <qiongli-managed|current-project>\n  qiongli app verify-skills --target-id <skills-target-sha256>\n  qiongli app plan cli-install\n  qiongli app plan cli-remove\n  qiongli app plan cli-path-configure\n  qiongli app plan skills-reconcile --preset <qiongli-managed|current-project> --profile <profile>\n  qiongli app plan skills-update --target-id <skills-target-sha256>\n  qiongli app plan skills-remove --target-id <skills-target-sha256>\n  qiongli app plan skills-detach --target-id <skills-target-sha256>\n  qiongli app plan integrations-install --target <codex|claude|all>\n  qiongli app plan integrations-reconcile --target <codex|claude|all>\n  qiongli app plan integrations-remove --target <codex|claude|all>\n  qiongli app apply --plan <absolute-plan.json> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change --approve-host-trust]\n  qiongli app --help\n\nPlugin source install/update accept --hooks <context|off>; omission preserves the existing choice (off for a new source). Hooks are included in the Plugin manifest, not global Host settings.\n\nPlugin source operations export a user-approved local Plugin with a bundled binary; they do not register a Host or confer signed release authority. The destination must end in qiongli or qiongli-next, and its parent must already exist and be secure.\n\nRead-only commands use the same native DesktopService and versioned App event contract as the GUI. Project artifact reads are revision-, projection-, and entity-bound and return only a bounded, path-redacted App event. CLI install, PATH configuration, remove or predecessor restoration, and integration repair are separate state-bound plans. Drifted Skills can be detached without changing their retained files. All mutations use a canonical, expiring, digest-bound plan and the same receipt-bound native transaction authority as the App.\n";
 
-const APP_USAGE: &str = "Qiongli App control contract\n\nUsage:\n  qiongli app snapshot\n  qiongli app read-project-artifact --project-id <prj_id> --expected-project-revision <revision> --expected-projection-id <grp_id> <--node-id <nod_id>|--edge-id <edg_id>>\n  qiongli app verify-integrations --target <codex|claude|all>\n  qiongli app verify-skills --preset <qiongli-managed|current-project>\n  qiongli app verify-skills --target-id <skills-target-sha256>\n  qiongli app plan cli-install\n  qiongli app plan cli-remove\n  qiongli app plan cli-path-configure\n  qiongli app plan skills-reconcile --preset <qiongli-managed|current-project> --profile <profile>\n  qiongli app plan skills-update --target-id <skills-target-sha256>\n  qiongli app plan skills-remove --target-id <skills-target-sha256>\n  qiongli app plan skills-detach --target-id <skills-target-sha256>\n  qiongli app plan integrations-install --target <codex|claude|all>\n  qiongli app plan integrations-reconcile --target <codex|claude|all>\n  qiongli app plan integrations-remove --target <codex|claude|all>\n  qiongli app apply --plan <absolute-plan.json> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change --approve-host-trust]\n  qiongli app --help\n\nRead-only commands use the same native DesktopService and versioned App event contract as the GUI. Project artifact reads are revision-, projection-, and entity-bound and return only a bounded, path-redacted App event. CLI install, PATH configuration, remove or predecessor restoration, and integration repair are separate state-bound plans. Drifted Skills can be detached without changing their retained files. All mutations use a canonical, expiring, digest-bound plan and the same receipt-bound native transaction authority as the App.\n";
+pub(crate) const CONTENT_USAGE: &str = "Qiongli embedded content (read only)\n\nUsage:\n  qiongli content list\n  qiongli content --help\n\nInstall or refresh standalone Skills with `qiongli install skills`. For Skills with automatic MCP connection, use `qiongli install plugin`. Advanced Skills plans use `qiongli app plan skills-reconcile|skills-update|skills-remove|skills-detach` followed by `qiongli app apply`. The CLI supports the declared presets; a custom destination is not currently a CLI option. The `app` namespace uses the native service without opening a GUI. The retired `content materialize` syntax returns `managed-skills-plan-required` without writing.\n";
 
-const CONTENT_USAGE: &str = "Qiongli embedded content (read only)\n\nUsage:\n  qiongli content list\n  qiongli content --help\n\nManaged Skills mutations use `qiongli app plan skills-reconcile|skills-update|skills-remove|skills-detach` followed by `qiongli app apply`. Choose a new custom destination in the Desktop App so its absolute path remains inside the native service. The retired `content materialize` syntax returns `managed-skills-plan-required` without writing.\n";
+pub(crate) const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config backend status\n  qiongli config --help\n\nModel execution is owned by Codex, Claude Code, or another supported host. Direct backend configuration and connection tests are not available in the default product.\n";
 
-const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config backend status\n  qiongli config --help\n\nModel execution is owned by Codex, Claude Code, or another supported host. Direct backend configuration and connection tests are not available in the default product.\n";
+pub(crate) const UPDATE_USAGE: &str = "Qiongli managed native update\n\nFor npm, PyPI, Cargo or GitHub archive upgrades: qiongli upgrade cli\nTo refresh bundled Plugin/Skills from the installed CLI: qiongli install\nThe commands below manage the signed native updater; they do not run package managers.\n\nUsage:\n  qiongli update status\n  qiongli update recovery-preview\n  qiongli update recover --expected-marker-digest <sha256> --approve-filesystem-write\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli update --help\n";
 
-const UPDATE_USAGE: &str = "Qiongli native update\n\nUsage:\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli update --help\n";
+pub(crate) const MCP_USAGE: &str = "Qiongli MCP connection\n\nUsage:\n  qiongli mcp check [--profile <lite|marketplace-lite|full>] [--json]\n  qiongli mcp serve --profile <lite|marketplace-lite|full> [--transport stdio]\n  qiongli install --interactive\n\nMCP is built into qiongli; there is no separate server package to install.\nRecommended: install a Plugin (Skills + native program + Full MCP, 35 tools).\nNative Marketplace platform Plugins start Lite MCP (15 tools). Skills exports\nalone do not connect MCP. A Host starts the configured stdio process automatically;\nyou normally do not keep a separate terminal running mcp serve.\n\ncheck defaults to Full and exercises initialization, tool discovery and one\nread-only call in this CLI process. It does not verify a Host session, Plugin\ncache or online provider connection. In a new Host session, list the Qiongli tools\nand call qiongli_config_status; use qiongli_literature_status for provider setup.\nModels remain owned by the Host. Project writes retain preview and approval.\n";
 
-const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite|full> --transport stdio\n  qiongli mcp --help\n\nFull profile adds redacted Research Library, capture, academic graph, and local checkpoint controls. The connected host owns model execution and returns revision-bound candidates through the host handoff contract.\n";
+pub(crate) const INSTALL_USAGE: &str = "Qiongli native payload inspection and release engineering\n\nUsage:\n\nRead-only observation:\n  qiongli install status\n  qiongli install inventory [--paths exact]\n  qiongli install migrate --interactive\n  qiongli install codex status\n  qiongli install claude status\n\nRelease-engineering payload commands:\n  qiongli install candidate activate --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --previous-install-id <native-payload-id> --transaction-id <update-id> --expected-journal-digest <sha256> --expected-approval-digest <sha256> --approve-filesystem-write --approve-client-config-change --approve-host-trust\n  qiongli install candidate activate-recover --transaction-id <update-id> --expected-journal-digest <sha256> --approve-filesystem-write\n  qiongli install candidate activate-discard --transaction-id <update-id> --expected-journal-digest <sha256> --approve-filesystem-write\n  qiongli install candidate activate-prepare --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --previous-install-id <native-payload-id> --expected-preflight-digest <preflight-sha256> --approve-filesystem-write\n  qiongli install candidate activate-preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --previous-install-id <native-payload-id>\n  qiongli install candidate stage-preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli install candidate stage --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --expected-approval-digest <sha256> --approve-filesystem-write\n  qiongli install candidate preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli install candidate apply --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --expected-approval-digest <sha256> --approve-filesystem-write --approve-client-config-change --approve-host-trust\n  qiongli install candidate verify --target <codex|claude> --install-id <native-payload-id>\n  qiongli install candidate remove --target <codex|claude> --install-id <native-payload-id> --approve-filesystem-write --approve-client-config-change\n  qiongli install native preview --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude>\n  qiongli install native apply --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli install native verify --managed-root <absolute-path> --install-id <native-payload-id>\n  qiongli install native remove --managed-root <absolute-path> --install-id <native-payload-id> --approve-filesystem-write\n  qiongli install --help\n\nCandidate activate-preview only checks installed identities; its preflight digest does not authorize activation.\n\nCross-channel migration is a read-only interactive review. Select a preferred CLI and request manual archive/uninstall guidance; no files, PATH or Host settings are changed. Unknown executables are never launched during discovery.\n\nNormal managed Qiongli CLI, Plugin, and standalone Skills lifecycle uses `qiongli app plan` followed by `qiongli app apply`. The candidate/native commands above are retained for signed payload release engineering and are not a second end-user integration installer.\n";
 
-const INSTALL_USAGE: &str = "Qiongli native payload inspection and release engineering\n\nUsage:\n\nRead-only observation:\n  qiongli install status\n  qiongli install inventory\n  qiongli install codex status\n  qiongli install claude status\n\nRelease-engineering payload commands:\n  qiongli install candidate preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli install candidate apply --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --expected-approval-digest <sha256> --approve-filesystem-write --approve-client-config-change --approve-host-trust\n  qiongli install candidate verify --target <codex|claude> --install-id <native-payload-id>\n  qiongli install candidate remove --target <codex|claude> --install-id <native-payload-id> --approve-filesystem-write --approve-client-config-change\n  qiongli install native preview --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude>\n  qiongli install native apply --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli install native verify --managed-root <absolute-path> --install-id <native-payload-id>\n  qiongli install native remove --managed-root <absolute-path> --install-id <native-payload-id> --approve-filesystem-write\n  qiongli install --help\n\nNormal Qiongli CLI, Plugin, and standalone Skills lifecycle uses `qiongli app plan` followed by `qiongli app apply`. The candidate/native commands above are retained for signed payload release engineering and are not a second end-user integration installer.\n";
-
-const MIGRATION_USAGE: &str = "Qiongli 1.x replacement migration\n\nUsage:\n  qiongli migrate-1x inspect\n  qiongli migrate-1x preview [--provider-resolution <provider>=<keep-v2|use-legacy|merge-compatible>]...\n  qiongli migrate-1x apply --migration-id <id> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change] [--approve-secret-store-write]\n  qiongli migrate-1x continue --migration-id <id> --confirm-host-activation\n  qiongli migrate-1x continue --migration-id <id> --approve-cleanup\n  qiongli migrate-1x continue --migration-id <id> --finalize\n  qiongli migrate-1x status --migration-id <id>\n  qiongli migrate-1x recover --migration-id <id>\n  qiongli migrate-1x --help\n";
+pub(crate) const MIGRATION_USAGE: &str = "Qiongli 1.x replacement migration\n\nUsage:\n  qiongli migrate-1x inspect\n  qiongli migrate-1x preview [--provider-resolution <provider>=<keep-v2|use-legacy|merge-compatible>]...\n  qiongli migrate-1x apply --migration-id <id> --expected-plan-digest <sha256> --approve-filesystem-write [--approve-client-config-change] [--approve-secret-store-write]\n  qiongli migrate-1x continue --migration-id <id> --confirm-host-activation\n  qiongli migrate-1x continue --migration-id <id> --approve-cleanup\n  qiongli migrate-1x continue --migration-id <id> --finalize\n  qiongli migrate-1x status --migration-id <id>\n  qiongli migrate-1x recover --migration-id <id>\n  qiongli migrate-1x --help\n";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct DetectedClientVersion {
@@ -69,8 +67,13 @@ pub struct CommandEnvironment {
     platform_home: Option<PathBuf>,
     codex_config_root: Option<PathBuf>,
     claude_config_root: Option<PathBuf>,
+    dsh_config_root: Option<PathBuf>,
+    skill_language: Option<String>,
     project_root: Option<PathBuf>,
     zotero_connector_url: Option<String>,
+    cli_search_path: Option<OsString>,
+    cli_executable: Option<PathBuf>,
+    cli_extra_bins: Vec<PathBuf>,
     codex_host_present: bool,
     claude_host_present: bool,
     codex_host_version: Option<DetectedClientVersion>,
@@ -87,8 +90,32 @@ impl CommandEnvironment {
             discover_client_host("codex", platform_home.as_deref(), true);
         let (claude_host_present, claude_host_version) =
             discover_client_host("claude", platform_home.as_deref(), false);
-        Self {
+        let mut result = Self {
             configured_root: env::var_os("QIONGLI_CONFIG_HOME"),
+            cli_search_path: env::var_os("PATH"),
+            cli_executable: env::current_exe().ok(),
+            cli_extra_bins: [
+                "CARGO_INSTALL_ROOT",
+                "CARGO_HOME",
+                "VIRTUAL_ENV",
+                "CONDA_PREFIX",
+                "NPM_CONFIG_PREFIX",
+            ]
+            .into_iter()
+            .filter_map(|key| {
+                let path = PathBuf::from(env::var_os(key)?);
+                if !path.is_absolute() {
+                    return None;
+                }
+                Some(if cfg!(windows) && key == "NPM_CONFIG_PREFIX" {
+                    path
+                } else if cfg!(windows) && ["VIRTUAL_ENV", "CONDA_PREFIX"].contains(&key) {
+                    path.join("Scripts")
+                } else {
+                    path.join("bin")
+                })
+            })
+            .collect(),
             codex_host_present,
             claude_host_present,
             codex_host_version,
@@ -98,11 +125,15 @@ impl CommandEnvironment {
             platform_home,
             codex_config_root: nonempty_environment_path("CODEX_HOME"),
             claude_config_root: nonempty_environment_path("CLAUDE_CONFIG_DIR"),
+            dsh_config_root: nonempty_environment_path("DSH_HOME"),
+            skill_language: None,
             project_root: env::current_dir().ok(),
             zotero_connector_url: env::var("QIONGLI_ZOTERO_CONNECTOR_URL")
                 .ok()
                 .filter(|value| !value.is_empty()),
-        }
+        };
+        result.skill_language = Some(crate::cli_content::system_skill_language(&result).into());
+        result
     }
 
     #[cfg(test)]
@@ -113,9 +144,14 @@ impl CommandEnvironment {
     ) -> Self {
         Self {
             configured_root,
+            cli_search_path: None,
+            cli_executable: None,
+            cli_extra_bins: vec![],
             platform_home,
             codex_config_root: None,
             claude_config_root,
+            dsh_config_root: None,
+            skill_language: None,
             project_root: None,
             zotero_connector_url: None,
             codex_host_present: false,
@@ -158,6 +194,27 @@ impl CommandEnvironment {
         self
     }
 
+    pub(crate) fn skill_language(&self) -> &str {
+        self.skill_language.as_deref().unwrap_or("en")
+    }
+
+    pub(crate) fn cli_search_path(&self) -> Option<&OsStr> {
+        self.cli_search_path.as_deref()
+    }
+    pub(crate) fn cli_executable(&self) -> Option<&Path> {
+        self.cli_executable.as_deref()
+    }
+    pub(crate) fn cli_extra_bins(&self) -> &[PathBuf] {
+        &self.cli_extra_bins
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_cli_paths(mut self, search_path: OsString, executable: PathBuf) -> Self {
+        self.cli_search_path = Some(search_path);
+        self.cli_executable = Some(executable);
+        self
+    }
+
     pub(crate) fn platform_home(&self) -> Option<&Path> {
         self.platform_home.as_deref()
     }
@@ -173,6 +230,10 @@ impl CommandEnvironment {
 
     pub(crate) fn codex_config_root(&self) -> Option<&Path> {
         self.codex_config_root.as_deref()
+    }
+
+    pub(crate) fn dsh_config_root(&self) -> Option<&Path> {
+        self.dsh_config_root.as_deref()
     }
 
     pub(crate) fn project_root(&self) -> Option<&Path> {
@@ -238,14 +299,35 @@ pub struct CliOutput {
 }
 
 pub enum ProductAction {
+    ReviewCliInstallations,
+    GuideInstallation(crate::cli_content::InstallationGuide),
+    ReviewBundledContent(crate::cli_content::BundledContentReview),
     Output(CliOutput),
     ServeLiteMcpStdio,
     ServeFullMcpStdio,
+    ServeContextHook,
     LaunchDesktop,
     LaunchDesktopWithCandidate(Box<crate::DesktopCandidateSession>),
 }
 
 impl CliOutput {
+    pub(crate) fn with_stdout(mut self, stdout: String) -> Self {
+        self.stdout = stdout;
+        self
+    }
+
+    pub(crate) fn with_stderr(mut self, stderr: String) -> Self {
+        self.stderr = stderr;
+        self
+    }
+
+    pub(crate) fn usage_text(message: &str) -> Self {
+        Self {
+            exit_code: 2,
+            stdout: String::new(),
+            stderr: format!("error: {message}\n\nRun `qiongli --help` for usage.\n"),
+        }
+    }
     #[must_use]
     pub const fn exit_code(&self) -> u8 {
         self.exit_code
@@ -281,7 +363,11 @@ impl CliOutput {
         Self {
             exit_code: 2,
             stdout: String::new(),
-            stderr: format!("error: {}\n\n{}", error.message, error.usage),
+            stderr: format!(
+                "error: {}\n\nRun `qiongli {}--help` for usage.\n",
+                error.message,
+                help_scope(error.usage)
+            ),
         }
     }
 }
@@ -298,10 +384,18 @@ pub fn run_cli(
 ) -> CliOutput {
     match prepare_action(args, environment, content) {
         ProductAction::Output(output) => output,
+        ProductAction::ReviewCliInstallations
+        | ProductAction::GuideInstallation(_)
+        | ProductAction::ReviewBundledContent(_) => {
+            CliOutput::operation_failure("interactive-command-requires-product-entrypoint")
+        }
         ProductAction::ServeLiteMcpStdio => {
             CliOutput::operation_failure("streaming-command-requires-product-entrypoint")
         }
         ProductAction::ServeFullMcpStdio => {
+            CliOutput::operation_failure("streaming-command-requires-product-entrypoint")
+        }
+        ProductAction::ServeContextHook => {
             CliOutput::operation_failure("streaming-command-requires-product-entrypoint")
         }
         ProductAction::LaunchDesktop => {
@@ -341,7 +435,10 @@ pub(crate) fn prepare_action_with_release_authority(
     };
 
     let output = match command {
-        Command::Help => CliOutput::success_text(format!("{USAGE}{INSPECTION_USAGE}")),
+        Command::ExternalAgent(command) => crate::external_agent_cli::run(&command),
+        Command::Help => CliOutput::success_text(USAGE),
+        Command::ContextHook => return ProductAction::ServeContextHook,
+        Command::TopicHelp(text) => CliOutput::success_text(text),
         Command::Version => {
             CliOutput::success_text(format!("qiongli {}\n", env!("CARGO_PKG_VERSION")))
         }
@@ -445,6 +542,18 @@ pub(crate) fn prepare_action_with_release_authority(
                 Err(reason_code) => CliOutput::operation_failure(reason_code),
             }
         }
+        Command::InstallContent {
+            plan_command,
+            dry_run,
+        } => match crate::cli_content::prepare_plan(&plan_command, environment, content) {
+            Ok(plan_json) if dry_run => CliOutput::success_text(plan_json),
+            Ok(plan_json) => {
+                return ProductAction::ReviewBundledContent(
+                    crate::cli_content::BundledContentReview { plan_json },
+                );
+            }
+            Err(code) => CliOutput::operation_failure(code),
+        },
         Command::AppManaged(command) => {
             match crate::managed_operation::execute(&command, environment, content) {
                 Ok(output) => CliOutput::success_text(output),
@@ -488,7 +597,11 @@ pub(crate) fn prepare_action_with_release_authority(
         }
         Command::InstallHelp => CliOutput::success_text(INSTALL_USAGE),
         Command::InstallStatus => install_status(authority),
-        Command::InstallInventory => install_inventory(environment),
+        Command::InstallInventory { exact_paths } => {
+            install_inventory(environment, content, exact_paths)
+        }
+        Command::InstallMigrateInteractive => return ProductAction::ReviewCliInstallations,
+        Command::InstallInteractive(options) => return ProductAction::GuideInstallation(options),
         Command::InstallCodexStatus => install_codex_status(environment),
         Command::InstallClaudeStatus => install_claude_status(environment),
         Command::InstallCandidate(command) => {
@@ -496,7 +609,7 @@ pub(crate) fn prepare_action_with_release_authority(
                 command,
                 authority,
                 crate::embedded_source_commit(),
-                environment.platform_home(),
+                environment,
                 content,
             ) {
                 Ok(output) => json_output(&output, 0),
@@ -504,7 +617,7 @@ pub(crate) fn prepare_action_with_release_authority(
             }
         }
         Command::InstallNative(command) => {
-            match crate::native_cli::execute(command, authority, content) {
+            match crate::native_cli::execute(command, authority, content, environment) {
                 Ok(output) => json_output(&output, 0),
                 Err(reason_code) => CliOutput::operation_failure(reason_code),
             }
@@ -517,6 +630,10 @@ pub(crate) fn prepare_action_with_release_authority(
             }
         }
         Command::McpHelp => CliOutput::success_text(MCP_USAGE),
+        Command::McpCheck { full } => match crate::mcp::check_local(environment, content, full) {
+            Ok(output) => CliOutput::success_text(output),
+            Err(code) => CliOutput::operation_failure(code),
+        },
         Command::McpServeLiteStdio => return ProductAction::ServeLiteMcpStdio,
         Command::McpServeFullStdio => return ProductAction::ServeFullMcpStdio,
         Command::Status => status(environment, content),
@@ -529,6 +646,8 @@ pub(crate) fn prepare_action_with_release_authority(
 #[derive(Debug, Eq, PartialEq)]
 enum Command {
     Help,
+    ContextHook,
+    TopicHelp(String),
     Version,
     Ui,
     UiCandidate(CandidateReleaseOptions),
@@ -552,7 +671,12 @@ enum Command {
         target_id: String,
     },
     AppManaged(ManagedOperationCliCommand),
+    InstallContent {
+        plan_command: ManagedOperationCliCommand,
+        dry_run: bool,
+    },
     Project(crate::project_cli::ProjectCliCommand),
+    ExternalAgent(crate::external_agent_cli::ExternalAgentCommand),
     ContentHelp,
     ContentList,
     ContentMaterialize {
@@ -570,7 +694,10 @@ enum Command {
     Update(UpdateCliCommand),
     InstallHelp,
     InstallStatus,
-    InstallInventory,
+    InstallInventory {
+        exact_paths: bool,
+    },
+    InstallMigrateInteractive,
     InstallCodexStatus,
     InstallClaudeStatus,
     InstallCandidate(CandidateCliCommand),
@@ -578,6 +705,10 @@ enum Command {
     MigrationHelp,
     Migrate1x(LegacyMigrationCliCommand),
     McpHelp,
+    McpCheck {
+        full: bool,
+    },
+    InstallInteractive(crate::cli_content::InstallationGuide),
     McpServeLiteStdio,
     McpServeFullStdio,
     Status,
@@ -621,15 +752,63 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         return Err(global_usage_error("command or option is not valid text"));
     };
 
+    if command == "help"
+        || (args.len() > 1
+            && matches!(
+                args.last().and_then(|arg| arg.to_str()),
+                Some("--help" | "-h")
+            ))
+    {
+        let topic = if command == "help" {
+            &args[1..]
+        } else {
+            &args[..args.len() - 1]
+        };
+        return crate::cli_help::topic(topic)
+            .map(Command::TopicHelp)
+            .ok_or_else(|| global_usage_error("unknown help topic"));
+    }
+    if args.len() == 1 {
+        match command {
+            "setup" => return Ok(Command::InstallMigrateInteractive),
+            "install" => return Ok(Command::InstallInventory { exact_paths: false }),
+            "config" => return Ok(Command::ConfigShow),
+            "content" => return Ok(Command::ContentList),
+            "project" => {
+                return Ok(Command::Project(
+                    crate::project_cli::ProjectCliCommand::List,
+                ));
+            }
+            "update" => return Ok(Command::Update(UpdateCliCommand::Status)),
+            "mcp" | "app" | "migrate-1x" | "upgrade" | "hooks" | "agent" => {
+                return Ok(Command::TopicHelp(crate::cli_help::topic(&args).unwrap()));
+            }
+            _ => {}
+        }
+    }
     match command {
         "-h" | "--help" if args.len() == 1 => Ok(Command::Help),
-        "--version" if args.len() == 1 => Ok(Command::Version),
+        "--version" | "-V" if args.len() == 1 => Ok(Command::Version),
         "content" => parse_content_args(&args[1..]),
         "config" => parse_config_args(&args[1..]),
         "update" => parse_update_args(&args[1..]),
+        "upgrade" => parse_content_install_args(&args[1..], true),
         "install" => parse_install_args(&args[1..]),
         "migrate-1x" => parse_migration_args(&args[1..]),
         "mcp" => parse_mcp_args(&args[1..]),
+        "agent" => crate::external_agent_cli::parse(&args[1..])
+            .map(Command::ExternalAgent)
+            .map_err(|message| UsageError {
+                message,
+                usage: crate::external_agent_cli::USAGE,
+            }),
+        "hooks" if args.len() == 2 && args[1] == OsStr::new("context") => Ok(Command::ContextHook),
+        "project"
+            if args.get(1).is_some_and(|arg| arg == "graph")
+                && args.get(2).is_some_and(|arg| arg == "source") =>
+        {
+            parse_app_project_artifact_args(&args[3..])
+        }
         "project" => crate::project_cli::parse(&args[1..])
             .map(Command::Project)
             .map_err(project_usage_error),
@@ -659,6 +838,25 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
             Err(global_usage_error("unexpected extra argument"))
         }
         _ => Err(global_usage_error("unknown command or option")),
+    }
+}
+
+pub(crate) fn accepts_arguments(args: &[OsString]) -> bool {
+    parse_args(args.iter().cloned()).is_ok()
+}
+
+fn help_scope(usage: &str) -> &'static str {
+    match usage {
+        APP_USAGE => "app ",
+        CONTENT_USAGE => "content ",
+        CONFIG_USAGE => "config ",
+        UPDATE_USAGE => "update ",
+        MCP_USAGE => "mcp ",
+        INSTALL_USAGE => "install ",
+        MIGRATION_USAGE => "migrate-1x ",
+        crate::project_cli::PROJECT_USAGE => "project ",
+        crate::external_agent_cli::USAGE => "agent ",
+        _ => "",
     }
 }
 
@@ -694,6 +892,15 @@ fn parse_app_args(args: &[OsString]) -> Result<Command, UsageError> {
                 .ok_or_else(|| app_usage_error("App managed Skills target is invalid"))?
                 .to_string();
             Ok(Command::AppVerifyManagedSkillsTarget { target_id })
+        }
+        "plugin-source-status" => {
+            let (target, destination, _, _) = parse_plugin_source_target(&args[1..], false)?;
+            Ok(Command::AppManaged(
+                ManagedOperationCliCommand::PluginSourceStatus {
+                    target,
+                    destination,
+                },
+            ))
         }
         "plan" => parse_app_plan_args(&args[1..]).map(Command::AppManaged),
         "apply" => parse_app_apply_args(&args[1..]).map(Command::AppManaged),
@@ -795,6 +1002,22 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
         return Err(app_usage_error("an App plan operation is required"));
     };
     match operation {
+        "plugin-source-install" | "plugin-source-update" | "plugin-source-remove" => {
+            let (target, destination, context_hooks, language) =
+                parse_plugin_source_target(&args[1..], operation != "plugin-source-remove")?;
+            let action = match operation {
+                "plugin-source-install" => crate::plugin_source::PluginSourceAction::Install,
+                "plugin-source-update" => crate::plugin_source::PluginSourceAction::Update,
+                _ => crate::plugin_source::PluginSourceAction::Remove,
+            };
+            Ok(ManagedOperationCliCommand::PlanPluginSource {
+                action,
+                target,
+                destination,
+                context_hooks,
+                language,
+            })
+        }
         "cli-install" if args.len() == 1 => Ok(ManagedOperationCliCommand::PlanCliInstall),
         "cli-install" => Err(app_usage_error("unexpected App CLI install argument")),
         "cli-remove" if args.len() == 1 => Ok(ManagedOperationCliCommand::PlanCliRemove),
@@ -806,6 +1029,7 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
         "skills-reconcile" => {
             let mut preset = None;
             let mut profile = None;
+            let mut language = None;
             let mut index = 1;
             while index < args.len() {
                 let option = args[index]
@@ -815,6 +1039,9 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
                     .get(index + 1)
                     .ok_or_else(|| app_usage_error("App plan option value is missing"))?;
                 match option {
+                    "--language" if language.is_none() => {
+                        language = Some(parse_skill_language(value)?);
+                    }
                     "--preset" if preset.is_none() => {
                         preset = Some(parse_managed_skills_preset(value)?);
                     }
@@ -832,6 +1059,7 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
                 index += 2;
             }
             Ok(ManagedOperationCliCommand::PlanSkillsReconcile {
+                language,
                 preset: preset.ok_or_else(|| app_usage_error("App Skills preset is required"))?,
                 profile: profile
                     .ok_or_else(|| app_usage_error("App Skills profile is required"))?,
@@ -876,6 +1104,82 @@ fn parse_app_plan_args(args: &[OsString]) -> Result<ManagedOperationCliCommand, 
             }
         }
         _ => Err(app_usage_error("unknown App plan operation")),
+    }
+}
+
+fn parse_plugin_source_target(
+    args: &[OsString],
+    allow_hooks: bool,
+) -> Result<
+    (
+        ManagedIntegrationTargetV1,
+        PathBuf,
+        Option<bool>,
+        Option<String>,
+    ),
+    UsageError,
+> {
+    let mut target = None;
+    let mut destination = None;
+    let mut context_hooks = None;
+    let mut language = None;
+    if args.len() != 4 && !(allow_hooks && matches!(args.len(), 6 | 8)) {
+        return Err(app_usage_error(
+            "Plugin source requires --target and --destination",
+        ));
+    }
+    for pair in args.chunks_exact(2) {
+        match pair[0].to_str() {
+            Some("--target") if target.is_none() => {
+                target = Some(match pair[1].to_str() {
+                    Some("codex") => ManagedIntegrationTargetV1::Codex,
+                    Some("claude") => ManagedIntegrationTargetV1::ClaudeCode,
+                    _ => return Err(app_usage_error("Plugin source target is invalid")),
+                })
+            }
+            Some("--destination") if destination.is_none() => {
+                destination = Some(PathBuf::from(&pair[1]))
+            }
+            Some("--language") if allow_hooks && language.is_none() => {
+                language = Some(parse_skill_language(&pair[1])?);
+            }
+            Some("--hooks") if allow_hooks && context_hooks.is_none() => {
+                context_hooks = Some(parse_context_hooks(&pair[1])?);
+            }
+            _ => {
+                return Err(app_usage_error(
+                    "Plugin source option is unexpected or duplicated",
+                ));
+            }
+        }
+    }
+    let destination =
+        destination.ok_or_else(|| app_usage_error("Plugin source destination is required"))?;
+    if !destination.is_absolute() {
+        return Err(app_usage_error(
+            "Plugin source destination must be absolute",
+        ));
+    }
+    Ok((
+        target.ok_or_else(|| app_usage_error("Plugin source target is required"))?,
+        destination,
+        context_hooks,
+        language,
+    ))
+}
+
+fn parse_skill_language(value: &OsStr) -> Result<String, UsageError> {
+    match value.to_str() {
+        Some(s @ ("auto" | "zh" | "en")) => Ok(s.into()),
+        _ => Err(install_usage_error("language must be auto, zh, or en")),
+    }
+}
+
+fn parse_context_hooks(value: &OsStr) -> Result<bool, UsageError> {
+    match value.to_str() {
+        Some("context") => Ok(true),
+        Some("off") => Ok(false),
+        _ => Err(app_usage_error("--hooks must be context or off")),
     }
 }
 
@@ -947,14 +1251,120 @@ fn parse_managed_skills_preset(value: &OsStr) -> Result<ManagedSkillsPresetV1, U
     }
 }
 
+fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Command, UsageError> {
+    if upgrade && args == [OsString::from("cli")] {
+        return Ok(Command::TopicHelp(crate::cli_help::CLI_UPGRADE.to_owned()));
+    }
+    let surface = args.first().and_then(|value| value.to_str());
+    let operation = match surface {
+        Some("plugin") if upgrade => "plugin-source-update",
+        Some("plugin") => "plugin-source-install",
+        Some("skills") => "skills-reconcile",
+        _ => {
+            return Err(install_usage_error(
+                "choose plugin or skills; see qiongli upgrade --help",
+            ));
+        }
+    };
+    if surface == Some("plugin") && !args.iter().any(|arg| arg == "--dry-run") {
+        let mut options = crate::cli_content::InstallationGuide {
+            plugin: true,
+            ..Default::default()
+        };
+        if !(args.len() - 1).is_multiple_of(2) {
+            return Err(install_usage_error("install option value is required"));
+        }
+        for pair in args[1..].chunks_exact(2) {
+            match pair[0].to_str() {
+                Some("--target") if options.targets.is_empty() => {
+                    options.targets = crate::cli_content::plugin_hosts(
+                        pair[1].to_str().unwrap_or_default(),
+                    )
+                    .map_err(|_| {
+                        install_usage_error(
+                            "choose codex, claude, deepseek, a comma-separated list, or all",
+                        )
+                    })?;
+                }
+                Some("--language") if options.language.is_none() => {
+                    options.language = Some(parse_skill_language(&pair[1])?);
+                }
+                Some("--hooks") if options.context_hooks.is_none() => {
+                    options.context_hooks = Some(parse_context_hooks(&pair[1])?);
+                }
+                Some("--destination") if options.destination.is_none() => {
+                    let path = PathBuf::from(&pair[1]);
+                    if !path.is_absolute() {
+                        return Err(install_usage_error(
+                            "Plugin source destination must be absolute",
+                        ));
+                    }
+                    options.destination = Some(path);
+                }
+                _ => {
+                    return Err(install_usage_error(
+                        "Plugin option is unexpected or duplicated",
+                    ));
+                }
+            }
+        }
+        crate::cli_content::validate_host_options(
+            &options.targets, options.destination.as_deref(), options.context_hooks,
+        ).map_err(|_| install_usage_error("--destination requires a single Codex/Claude/Antigravity Host; --hooks supports Codex/Claude only; DeepSeek accepts neither"))?;
+        return Ok(Command::InstallInteractive(options));
+    }
+    let mut plan_args = vec![OsString::from(operation)];
+    let mut dry_run = false;
+    let mut index = 1;
+    while index < args.len() {
+        if args[index] == "--dry-run" {
+            if dry_run {
+                return Err(install_usage_error("duplicate --dry-run option"));
+            }
+            dry_run = true;
+            index += 1;
+        } else {
+            let value = args
+                .get(index + 1)
+                .ok_or_else(|| install_usage_error("install option value is required"))?;
+            plan_args.extend([args[index].clone(), value.clone()]);
+            index += 2;
+        }
+    }
+    if surface == Some("skills") {
+        for (option, default) in [("--preset", "qiongli-managed"), ("--profile", "full")] {
+            if !plan_args[1..].chunks(2).any(|pair| pair[0] == option) {
+                plan_args.extend([option.into(), default.into()]);
+            }
+        }
+    }
+    let plan_command =
+        parse_app_plan_args(&plan_args).map_err(|error| install_usage_error(error.message))?;
+    Ok(Command::InstallContent {
+        plan_command,
+        dry_run,
+    })
+}
+
 fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
     let Some(subcommand) = args.first().and_then(|value| value.to_str()) else {
         return Err(install_usage_error("an install subcommand is required"));
     };
     match subcommand {
+        "plugin" | "skills" => parse_content_install_args(args, false),
+        "--interactive" if args.len() == 1 => Ok(Command::InstallInteractive(Default::default())),
         "--help" if args.len() == 1 => Ok(Command::InstallHelp),
         "status" if args.len() == 1 => Ok(Command::InstallStatus),
-        "inventory" if args.len() == 1 => Ok(Command::InstallInventory),
+        "list" | "inventory" if args.len() == 1 => {
+            Ok(Command::InstallInventory { exact_paths: false })
+        }
+        "list" | "inventory" if args.len() == 3 && args[1] == "--paths" && args[2] == "exact" => {
+            Ok(Command::InstallInventory { exact_paths: true })
+        }
+        "review" if args.len() == 1 => Ok(Command::InstallMigrateInteractive),
+        "migrate" if args.len() == 2 && args[1] == "--interactive" => {
+            Ok(Command::InstallMigrateInteractive)
+        }
         "codex"
             if args.get(1).and_then(|value| value.to_str()) == Some("status")
                 && args.len() == 2 =>
@@ -1185,6 +1595,190 @@ fn parse_candidate_install_args(args: &[OsString]) -> Result<CandidateCliCommand
         ));
     };
     match subcommand {
+        "activate-discard" | "activate-recover" => {
+            let mut transaction_id = None;
+            let mut digest = None;
+            let mut approved = false;
+            let mut args = args[1..].iter();
+            while let Some(option) = args.next() {
+                match option.to_str() {
+                    Some("--approve-filesystem-write") if !approved => approved = true,
+                    Some("--transaction-id") if transaction_id.is_none() => {
+                        transaction_id = Some(
+                            args.next()
+                                .and_then(|value| value.to_str())
+                                .filter(|value| {
+                                    crate::update_reconcile::validate_transaction_id(value).is_ok()
+                                })
+                                .ok_or_else(|| {
+                                    install_usage_error("activation transaction id is invalid")
+                                })?
+                                .to_string(),
+                        );
+                    }
+                    Some("--expected-journal-digest") if digest.is_none() => {
+                        digest = Some(
+                            args.next()
+                                .and_then(|value| parse_sha256(value))
+                                .ok_or_else(|| {
+                                    install_usage_error("activation journal digest is invalid")
+                                })?,
+                        );
+                    }
+                    _ => {
+                        return Err(install_usage_error(
+                            "unexpected or duplicate activation discard option",
+                        ));
+                    }
+                }
+            }
+            if !approved {
+                return Err(install_usage_error("filesystem-write approval is required"));
+            }
+            let transaction_id = transaction_id
+                .ok_or_else(|| install_usage_error("activation transaction id is required"))?;
+            let expected_journal_sha256 = digest
+                .ok_or_else(|| install_usage_error("activation journal digest is required"))?;
+            Ok(if subcommand == "activate-recover" {
+                CandidateCliCommand::ActivateRecover {
+                    transaction_id,
+                    expected_journal_sha256,
+                }
+            } else {
+                CandidateCliCommand::ActivateDiscard {
+                    transaction_id,
+                    expected_journal_sha256,
+                }
+            })
+        }
+        "activate-preview" | "activate-prepare" | "activate" => {
+            let prepare = subcommand == "activate-prepare";
+            let activate = subcommand == "activate";
+            let mut transaction_id = None;
+            let mut journal_digest = None;
+            let mut release_args = Vec::new();
+            let mut predecessor = None;
+            let mut remaining = &args[1..];
+            while !remaining.is_empty() {
+                let width = if [
+                    "--approve-filesystem-write",
+                    "--approve-client-config-change",
+                    "--approve-host-trust",
+                ]
+                .iter()
+                .any(|flag| remaining[0] == *flag)
+                {
+                    1
+                } else {
+                    2.min(remaining.len())
+                };
+                let (pair, rest) = remaining.split_at(width);
+                remaining = rest;
+                if activate && pair[0] == "--transaction-id" {
+                    if transaction_id.is_some() || pair.len() != 2 {
+                        return Err(install_usage_error(
+                            "activation transaction id is missing or duplicate",
+                        ));
+                    }
+                    transaction_id = Some(
+                        pair[1]
+                            .to_str()
+                            .filter(|id| {
+                                crate::update_reconcile::validate_transaction_id(id).is_ok()
+                            })
+                            .ok_or_else(|| {
+                                install_usage_error("activation transaction id is invalid")
+                            })?
+                            .to_owned(),
+                    );
+                } else if activate && pair[0] == "--expected-journal-digest" {
+                    if journal_digest.is_some() || pair.len() != 2 {
+                        return Err(install_usage_error(
+                            "activation journal digest is missing or duplicate",
+                        ));
+                    }
+                    journal_digest = Some(parse_sha256(&pair[1]).ok_or_else(|| {
+                        install_usage_error("activation journal digest is invalid")
+                    })?);
+                } else if pair[0] == "--previous-install-id" {
+                    if predecessor.is_some() || pair.len() != 2 {
+                        return Err(install_usage_error(
+                            "previous install id is missing or duplicate",
+                        ));
+                    }
+                    predecessor = pair[1]
+                        .to_str()
+                        .filter(|value| {
+                            value.strip_prefix("native-payload-").is_some_and(|digest| {
+                                digest.len() == 64
+                                    && digest.bytes().all(|byte| {
+                                        byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)
+                                    })
+                            })
+                        })
+                        .map(str::to_string);
+                    if predecessor.is_none() {
+                        return Err(install_usage_error("previous install id is invalid"));
+                    }
+                } else if prepare && pair[0] == "--expected-preflight-digest" {
+                    release_args.push("--expected-approval-digest".into());
+                    release_args.extend_from_slice(&pair[1..]);
+                } else if !activate && pair[0] == "--expected-approval-digest" {
+                    return Err(install_usage_error(
+                        "activation preparation requires a preflight digest",
+                    ));
+                } else {
+                    release_args.extend_from_slice(pair);
+                }
+            }
+            let parsed = parse_candidate_release_options_inner(
+                &release_args,
+                prepare || activate,
+                !activate,
+            )?;
+            let previous_install_id = predecessor
+                .ok_or_else(|| install_usage_error("previous install id is required"))?;
+            if activate {
+                Ok(CandidateCliCommand::Activate {
+                    options: parsed.options,
+                    previous_install_id,
+                    transaction_id: transaction_id.ok_or_else(|| {
+                        install_usage_error("activation transaction id is required")
+                    })?,
+                    expected_journal_sha256: journal_digest.ok_or_else(|| {
+                        install_usage_error("activation journal digest is required")
+                    })?,
+                    expected_approval_digest: parsed.expected_approval_digest.ok_or_else(|| {
+                        install_usage_error("expected activation approval digest is required")
+                    })?,
+                })
+            } else if prepare {
+                Ok(CandidateCliCommand::ActivatePrepare {
+                    options: parsed.options,
+                    previous_install_id,
+                    expected_preflight_digest: parsed.expected_approval_digest.ok_or_else(
+                        || install_usage_error("expected preflight digest is required"),
+                    )?,
+                })
+            } else {
+                Ok(CandidateCliCommand::ActivatePreview {
+                    options: parsed.options,
+                    previous_install_id,
+                })
+            }
+        }
+        "stage-preview" => parse_candidate_release_options_inner(&args[1..], false, true)
+            .map(|parsed| CandidateCliCommand::StagePreview(parsed.options)),
+        "stage" => {
+            parse_candidate_release_options_inner(&args[1..], true, true).and_then(|parsed| {
+                Ok(CandidateCliCommand::Stage {
+                    options: parsed.options,
+                    expected_approval_digest: parsed.expected_approval_digest.ok_or_else(|| {
+                        install_usage_error("expected candidate staging digest is required")
+                    })?,
+                })
+            })
+        }
         "preview" => parse_candidate_release_options(&args[1..], false)
             .map(|parsed| CandidateCliCommand::Preview(parsed.options)),
         "apply" => parse_candidate_release_options(&args[1..], true).and_then(|parsed| {
@@ -1217,6 +1811,14 @@ struct ParsedCandidateReleaseOptions {
 fn parse_candidate_release_options(
     args: &[OsString],
     apply: bool,
+) -> Result<ParsedCandidateReleaseOptions, UsageError> {
+    parse_candidate_release_options_inner(args, apply, false)
+}
+
+fn parse_candidate_release_options_inner(
+    args: &[OsString],
+    apply: bool,
+    stage: bool,
 ) -> Result<ParsedCandidateReleaseOptions, UsageError> {
     let mut candidate = None;
     let mut archive = None;
@@ -1282,7 +1884,12 @@ fn parse_candidate_release_options(
         }
         index += 2;
     }
-    if apply && !(filesystem_approved && config_approved && host_trust_approved) {
+    if stage && (config_approved || host_trust_approved) {
+        return Err(install_usage_error(
+            "candidate staging only accepts filesystem-write approval",
+        ));
+    }
+    if apply && !(filesystem_approved && (stage || (config_approved && host_trust_approved))) {
         return Err(install_usage_error(
             "all candidate install approvals are required",
         ));
@@ -1601,13 +2208,25 @@ fn parse_mcp_args(args: &[OsString]) -> Result<Command, UsageError> {
     };
     match subcommand {
         "--help" if args.len() == 1 => Ok(Command::McpHelp),
-        "serve"
+        "serve" | "check"
             if args.get(1).and_then(|value| value.to_str()) == Some("--help")
                 && args.len() == 2 =>
         {
             Ok(Command::McpHelp)
         }
         "serve" => parse_mcp_serve_options(&args[1..]),
+        "check" => {
+            let options = if args.len() == 1 {
+                vec!["--profile".into(), "full".into()]
+            } else {
+                args[1..].to_vec()
+            };
+            match parse_mcp_serve_options(&options)? {
+                Command::McpServeFullStdio => Ok(Command::McpCheck { full: true }),
+                Command::McpServeLiteStdio => Ok(Command::McpCheck { full: false }),
+                _ => unreachable!(),
+            }
+        }
         "--help" => Err(mcp_usage_error("unexpected extra argument")),
         _ => Err(mcp_usage_error("unknown MCP subcommand")),
     }
@@ -1648,9 +2267,6 @@ fn parse_mcp_serve_options(args: &[OsString]) -> Result<Command, UsageError> {
     }
     if profile.is_none() {
         return Err(mcp_usage_error("MCP profile is required"));
-    }
-    if transport.is_none() {
-        return Err(mcp_usage_error("MCP transport is required"));
     }
     Ok(if profile == Some("full") {
         Command::McpServeFullStdio
@@ -1723,6 +2339,7 @@ fn parse_config_backend_args(args: &[OsString]) -> Result<Command, UsageError> {
         return Err(config_usage_error("a backend subcommand is required"));
     };
     match subcommand {
+        "--help" if args.len() == 1 => Ok(Command::ConfigHelp),
         "status" if args.len() == 1 => Ok(Command::ConfigBackendStatus),
         "set" | "test" => Err(config_usage_error("host-driven execution required")),
         "status" => Err(config_usage_error("unexpected backend argument")),
@@ -1774,8 +2391,13 @@ fn parse_update_args(args: &[OsString]) -> Result<Command, UsageError> {
         return Err(update_usage_error("an update subcommand is required"));
     };
     match subcommand {
+        "plugin" | "skills" | "cli" => parse_content_install_args(args, true),
         "--help" if args.len() == 1 => Ok(Command::UpdateHelp),
         "status" if args.len() == 1 => Ok(Command::Update(UpdateCliCommand::Status)),
+        "recovery-preview" if args.len() == 1 => {
+            Ok(Command::Update(UpdateCliCommand::RecoveryPreview))
+        }
+        "recover" => parse_update_recovery_options(&args[1..]),
         "check" if args.len() == 1 => Ok(Command::Update(UpdateCliCommand::Check)),
         "channel" => parse_update_channel_options(&args[1..]),
         "download" => parse_update_expected_revision(&args[1..]).map(|expected_revision| {
@@ -1803,6 +2425,47 @@ fn parse_update_args(args: &[OsString]) -> Result<Command, UsageError> {
         "--help" | "status" | "check" => Err(update_usage_error("unexpected extra argument")),
         _ => Err(update_usage_error("unknown update subcommand")),
     }
+}
+
+fn parse_update_recovery_options(args: &[OsString]) -> Result<Command, UsageError> {
+    let mut digest = None;
+    let mut approved = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].to_str() {
+            Some("--expected-marker-digest") if digest.is_none() => {
+                index += 1;
+                let value = args
+                    .get(index)
+                    .and_then(|value| value.to_str())
+                    .filter(|value| {
+                        value.len() == 64
+                            && value
+                                .bytes()
+                                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+                    })
+                    .ok_or_else(|| {
+                        update_usage_error("a lowercase SHA-256 marker digest is required")
+                    })?;
+                digest = Some(value.to_owned());
+            }
+            Some("--approve-filesystem-write") if !approved => approved = true,
+            _ => {
+                return Err(update_usage_error(
+                    "unexpected or duplicate recovery option",
+                ));
+            }
+        }
+        index += 1;
+    }
+    if !approved {
+        return Err(update_usage_error("filesystem-write approval is required"));
+    }
+    Ok(Command::Update(UpdateCliCommand::Recover {
+        expected_marker_sha256: digest
+            .ok_or_else(|| update_usage_error("a marker digest is required"))?,
+        approve_filesystem_write: approved,
+    }))
 }
 
 fn parse_update_health_options(args: &[OsString]) -> Result<Command, UsageError> {
@@ -2154,7 +2817,11 @@ fn install_codex_status(environment: &CommandEnvironment) -> CliOutput {
     )
 }
 
-fn install_inventory(environment: &CommandEnvironment) -> CliOutput {
+fn install_inventory(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    exact_paths: bool,
+) -> CliOutput {
     let Some(inventory) = environment.client_inventory() else {
         return CliOutput::operation_failure("client-inventory-home-unavailable");
     };
@@ -2162,7 +2829,8 @@ fn install_inventory(environment: &CommandEnvironment) -> CliOutput {
         &InstallInventoryOutput {
             schema_version: OUTPUT_SCHEMA_VERSION,
             command: "install-inventory",
-            inventory: inventory.summary(),
+            inventory: &crate::plugin_host::inspect_inventory(environment, content, &inventory),
+            cli: cli_inventory(environment, exact_paths),
         },
         0,
     )
@@ -2254,6 +2922,18 @@ fn paths(environment: &CommandEnvironment, content: &EmbeddedContent, json: bool
     CliOutput::success_text(output)
 }
 
+fn cli_inventory(
+    environment: &CommandEnvironment,
+    exact_paths: bool,
+) -> crate::cli_inventory::CliInventory {
+    let inventory = crate::cli_inventory::discover(environment);
+    if exact_paths {
+        inventory
+    } else {
+        inventory.redact()
+    }
+}
+
 fn doctor(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
@@ -2263,13 +2943,15 @@ fn doctor(
     let inspection =
         crate::product_diagnostics::inspect_product(environment, content, secret_store.status());
     let blocking = inspection.blocking();
-    let attention = inspection.requires_attention();
+    let cli = cli_inventory(environment, exact_paths);
+    let attention = inspection.requires_attention() || cli.attention;
     json_output(
         &DoctorOutput {
             schema_version: inspection.schema_version,
             command: "doctor",
             overall: if attention { "attention" } else { "ready" },
             checks: &inspection.checks,
+            cli,
             paths: exact_paths.then_some(inspection.paths.as_slice()),
         },
         u8::from(blocking),
@@ -2428,6 +3110,7 @@ struct InstallInventoryOutput<'a> {
     schema_version: u32,
     command: &'static str,
     inventory: &'a ClientInventorySummaryV1,
+    cli: crate::cli_inventory::CliInventory,
 }
 
 #[derive(Serialize)]
@@ -2496,6 +3179,7 @@ struct DoctorOutput<'a> {
     command: &'static str,
     overall: &'static str,
     checks: &'a [crate::product_diagnostics::ProductDoctorCheckV1],
+    cli: crate::cli_inventory::CliInventory,
     #[serde(skip_serializing_if = "Option::is_none")]
     paths: Option<&'a [crate::product_diagnostics::ProductPathInspectionV1]>,
 }
@@ -2792,6 +3476,291 @@ fn windows_drive_home() -> Option<PathBuf> {
 mod tests {
     use super::*;
 
+    #[test]
+    fn installation_languages_share_validation_across_surfaces() {
+        for surface in ["plugin", "skills"] {
+            for language in ["auto", "zh", "en"] {
+                let args = [surface, "--language", language].map(OsString::from);
+                assert!(parse_content_install_args(&args, false).is_ok());
+            }
+            for options in [
+                vec![surface, "--language", "fr"],
+                vec![surface, "--language", "en", "--language", "zh"],
+                vec![surface, "--language"],
+            ] {
+                assert!(
+                    parse_content_install_args(
+                        &options.into_iter().map(OsString::from).collect::<Vec<_>>(),
+                        false
+                    )
+                    .is_err()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn plugin_targets_share_the_interactive_multi_selection_parser() {
+        for upgrade in [false, true] {
+            for selection in ["deepseek", "codex,deepseek", "all", "1 2 4", "3,4"] {
+                let args = ["plugin", "--target", selection].map(OsString::from);
+                let Ok(Command::InstallInteractive(options)) =
+                    parse_content_install_args(&args, upgrade)
+                else {
+                    panic!("expected interactive selection");
+                };
+                assert_eq!(
+                    options.targets,
+                    crate::cli_content::plugin_hosts(selection).unwrap()
+                );
+            }
+        }
+        for args in [
+            vec!["plugin", "--target", "deepseek", "--hooks", "off"],
+            vec!["plugin", "--target", "all", "--destination", "/source"],
+            vec!["plugin", "--target", "deepseek", "--dry-run"],
+            vec!["plugin", "--target", "codex,missing"],
+        ] {
+            assert!(
+                parse_content_install_args(
+                    &args.into_iter().map(OsString::from).collect::<Vec<_>>(),
+                    false
+                )
+                .is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn plugin_hook_options_are_explicit_and_scoped_to_install_update() {
+        for upgrade in [false, true] {
+            for (value, expected) in [("context", true), ("off", false)] {
+                let args: Vec<OsString> = ["plugin", "--target", "codex,claude", "--hooks", value]
+                    .map(Into::into)
+                    .to_vec();
+                assert!(matches!(parse_content_install_args(&args, upgrade),
+                    Ok(Command::InstallInteractive(crate::cli_content::InstallationGuide { context_hooks: Some(selected), .. })) if selected == expected));
+            }
+        }
+        for args in [
+            vec!["plugin", "--hooks", "bad"],
+            vec!["plugin", "--hooks", "context", "--hooks", "off"],
+            vec!["skills", "--hooks", "context", "--dry-run"],
+            vec!["plugin", "--hooks"],
+        ] {
+            let args: Vec<OsString> = args.into_iter().map(Into::into).collect();
+            assert!(parse_content_install_args(&args, false).is_err());
+        }
+        let path = std::env::current_dir().unwrap().join("qiongli-next");
+        for action in [
+            "plugin-source-install",
+            "plugin-source-update",
+            "plugin-source-remove",
+        ] {
+            let args = vec![
+                action.into(),
+                "--target".into(),
+                "codex".into(),
+                "--destination".into(),
+                path.clone().into_os_string(),
+                "--hooks".into(),
+                "context".into(),
+            ];
+            assert_eq!(
+                parse_app_plan_args(&args).is_ok(),
+                action != "plugin-source-remove"
+            );
+        }
+    }
+
+    #[test]
+    fn activation_discard_requires_exact_transaction_digest_and_approval() {
+        let mut args: Vec<OsString> = vec![
+            "activate-discard".into(),
+            "--transaction-id".into(),
+            format!("update-{}", "1".repeat(32)).into(),
+            "--expected-journal-digest".into(),
+            "2".repeat(64).into(),
+        ];
+        assert!(super::parse_candidate_install_args(&args).is_err());
+        args.push("--approve-filesystem-write".into());
+        assert!(matches!(
+            super::parse_candidate_install_args(&args),
+            Ok(super::CandidateCliCommand::ActivateDiscard { .. })
+        ));
+        for flag in [
+            "--approve-filesystem-write",
+            "--approve-host-trust",
+            "--approve-client-config-change",
+        ] {
+            let mut invalid = args.clone();
+            invalid.push(flag.into());
+            assert!(super::parse_candidate_install_args(&invalid).is_err());
+        }
+        let mut invalid = args.clone();
+        invalid[2] = "../foreign".into();
+        assert!(super::parse_candidate_install_args(&invalid).is_err());
+        invalid = args.clone();
+        invalid[4] = "invalid".into();
+        assert!(super::parse_candidate_install_args(&invalid).is_err());
+        args.extend([
+            "--transaction-id".into(),
+            format!("update-{}", "3".repeat(32)).into(),
+        ]);
+        assert!(super::parse_candidate_install_args(&args).is_err());
+    }
+
+    #[test]
+    fn activation_requires_transaction_and_all_approvals() {
+        let args: Vec<OsString> = vec![
+            "activate".into(),
+            "--candidate".into(),
+            "candidate.json".into(),
+            "--archive".into(),
+            "archive.zip".into(),
+            "--release-notes".into(),
+            "notes.md".into(),
+            "--target".into(),
+            "codex".into(),
+            "--previous-install-id".into(),
+            format!("native-payload-{}", "1".repeat(64)).into(),
+            "--transaction-id".into(),
+            format!("update-{}", "2".repeat(32)).into(),
+            "--expected-journal-digest".into(),
+            "3".repeat(64).into(),
+            "--expected-approval-digest".into(),
+            "4".repeat(64).into(),
+            "--approve-filesystem-write".into(),
+            "--approve-client-config-change".into(),
+            "--approve-host-trust".into(),
+        ];
+        assert!(matches!(
+            super::parse_candidate_install_args(&args),
+            Ok(super::CandidateCliCommand::Activate { .. })
+        ));
+        for start in [11, 13, 15, 17, 18, 19] {
+            let mut invalid = args.clone();
+            invalid.drain(start..start + if start < 17 { 2 } else { 1 });
+            assert!(super::parse_candidate_install_args(&invalid).is_err());
+            let mut invalid = args.clone();
+            invalid.extend_from_slice(&args[start..start + if start < 17 { 2 } else { 1 }]);
+            assert!(super::parse_candidate_install_args(&invalid).is_err());
+        }
+        let mut recovery = vec!["activate-recover".into()];
+        recovery.extend_from_slice(&args[11..15]);
+        recovery.push("--approve-filesystem-write".into());
+        assert!(matches!(
+            super::parse_candidate_install_args(&recovery),
+            Ok(super::CandidateCliCommand::ActivateRecover { .. })
+        ));
+        recovery.pop();
+        assert!(super::parse_candidate_install_args(&recovery).is_err());
+    }
+
+    #[test]
+    fn activation_preview_requires_one_predecessor_and_no_approval() {
+        let mut args: Vec<OsString> = [
+            "activate-preview",
+            "--candidate",
+            "candidate.json",
+            "--archive",
+            "archive.zip",
+            "--release-notes",
+            "notes.md",
+            "--target",
+            "codex",
+            "--previous-install-id",
+        ]
+        .into_iter()
+        .map(OsString::from)
+        .collect();
+        args.push(format!("native-payload-{}", "a".repeat(64)).into());
+        assert!(matches!(
+            super::parse_candidate_install_args(&args),
+            Ok(super::CandidateCliCommand::ActivatePreview { .. })
+        ));
+        assert!(super::parse_candidate_install_args(&args[..args.len() - 2]).is_err());
+        let mut invalid = args.clone();
+        invalid.push("--approve-filesystem-write".into());
+        assert!(super::parse_candidate_install_args(&invalid).is_err());
+        invalid = args.clone();
+        invalid.extend_from_slice(&args[args.len() - 2..]);
+        assert!(super::parse_candidate_install_args(&invalid).is_err());
+        let mut prepared = args.clone();
+        prepared[0] = "activate-prepare".into();
+        prepared.extend(["--expected-preflight-digest".into(), "a".repeat(64).into()]);
+        assert!(super::parse_candidate_install_args(&prepared).is_err());
+        prepared.insert(1, "--approve-filesystem-write".into());
+        assert!(matches!(
+            super::parse_candidate_install_args(&prepared),
+            Ok(super::CandidateCliCommand::ActivatePrepare { .. })
+        ));
+        for flag in [
+            "--approve-filesystem-write",
+            "--approve-host-trust",
+            "--approve-client-config-change",
+        ] {
+            let mut invalid = prepared.clone();
+            invalid.push(flag.into());
+            assert!(super::parse_candidate_install_args(&invalid).is_err());
+        }
+        *args.last_mut().unwrap() = "../foreign".into();
+        assert!(super::parse_candidate_install_args(&args).is_err());
+    }
+
+    #[test]
+    fn candidate_stage_requires_exact_filesystem_approval() {
+        use std::ffi::OsString;
+        let common: Vec<OsString> = [
+            "stage-preview",
+            "--candidate",
+            "candidate.json",
+            "--archive",
+            "archive",
+            "--release-notes",
+            "notes.md",
+            "--target",
+            "codex",
+        ]
+        .into_iter()
+        .map(OsString::from)
+        .collect();
+        assert!(matches!(
+            super::parse_candidate_install_args(&common),
+            Ok(super::CandidateCliCommand::StagePreview(_))
+        ));
+        let mut stage = common.clone();
+        stage[0] = "stage".into();
+        stage.extend([
+            OsString::from("--expected-approval-digest"),
+            "a".repeat(64).into(),
+        ]);
+        assert!(super::parse_candidate_install_args(&stage).is_err());
+        stage.push("--approve-filesystem-write".into());
+        assert!(matches!(
+            super::parse_candidate_install_args(&stage),
+            Ok(super::CandidateCliCommand::Stage { .. })
+        ));
+        for flag in [
+            "--approve-filesystem-write",
+            "--approve-client-config-change",
+            "--approve-host-trust",
+        ] {
+            let mut invalid = stage.clone();
+            invalid.push(flag.into());
+            assert!(super::parse_candidate_install_args(&invalid).is_err());
+            let mut preview = common.clone();
+            preview.push(flag.into());
+            assert!(super::parse_candidate_install_args(&preview).is_err());
+        }
+        let mut missing_digest = common;
+        missing_digest[0] = "stage".into();
+        missing_digest.push("--approve-filesystem-write".into());
+        assert!(super::parse_candidate_install_args(&missing_digest).is_err());
+        stage[0] = "apply".into();
+        assert!(super::parse_candidate_install_args(&stage).is_err());
+    }
+
     fn args(values: &[&str]) -> Vec<OsString> {
         values.iter().map(OsString::from).collect()
     }
@@ -2987,6 +3956,7 @@ mod tests {
             ])),
             Ok(Command::AppManaged(
                 ManagedOperationCliCommand::PlanSkillsReconcile {
+                    language: None,
                     preset: ManagedSkillsPresetV1::QiongliManaged,
                     profile: ProfileId::SkillOnly,
                 }
@@ -3212,7 +4182,7 @@ mod tests {
         );
         assert_eq!(
             parse_args(args(&["install", "inventory"])),
-            Ok(Command::InstallInventory)
+            Ok(Command::InstallInventory { exact_paths: false })
         );
         assert_eq!(
             parse_args(args(&["install", "claude", "status"])),
@@ -3381,6 +4351,19 @@ mod tests {
 
     #[test]
     fn parser_accepts_both_option_orders_and_the_lite_alias() {
+        assert_eq!(
+            parse_args(args(&["mcp", "serve", "--profile", "full"])),
+            Ok(Command::McpServeFullStdio)
+        );
+        assert_eq!(
+            parse_args(args(&["setup"])),
+            Ok(Command::InstallMigrateInteractive)
+        );
+        let id = "prj_00000000000000000000000000000001";
+        assert_eq!(
+            parse_args(args(&["project", "show", id])),
+            parse_args(args(&["project", "show", "--project-id", id]))
+        );
         let first = parse_args(args(&[
             "content",
             "materialize",
@@ -3718,7 +4701,6 @@ mod tests {
                 "--approve-filesystem-write",
                 "--approve-filesystem-write",
             ],
-            vec!["content"],
             vec!["content", "list", "extra"],
             vec!["content", "materialize", "--profile", "full"],
             vec![
@@ -3745,7 +4727,6 @@ mod tests {
                 "--enabled",
                 "maybe",
             ],
-            vec!["update"],
             vec!["update", "status", "extra"],
             vec!["update", "channel", "--expected-revision", "0"],
             vec!["update", "download"],
@@ -3761,8 +4742,6 @@ mod tests {
             ],
             vec!["update", "check", "--url", "https://private-canary"],
             vec!["status", "extra"],
-            vec!["mcp"],
-            vec!["mcp", "serve", "--profile", "lite"],
             vec!["mcp", "serve", "--transport", "stdio"],
             vec![
                 "install",

@@ -1,0 +1,44 @@
+{
+  "synthetic": true,
+  "cliVersion": "qiongli 2.0.0-beta.6",
+  "cliSha256": "5e04048369f8dbd18555c809e149dcf640091540539d32a05f2dc939f8a81216",
+  "projectId": "prj_8a7265e3ee65073c3b4981e75998e23e",
+  "projectRevision": 1,
+  "projectionId": "grp_adda74e210162ae61e38b175c96d70177ec2b0baf6c37714848960d0691f7b6d",
+  "inputSha256": {
+    "manuscript/claims_evidence_map.md": "4b52af887ef32ea3fd32d86f89c9f69696b661fe93c85717695840c773aa7630",
+    "context/research_state.md": "c61289f7051e860a4f556d7f6b11a7f00c5ac8cf75db58ed48fae842d31fef64",
+    "context/decision_log.md": "53f87b4d824d32cf5afa78b61b123f8534759cce2f2e88ca2c645c08dc6eb8fe",
+    "evidence/claim-evidence-ledger.csv": "fa6cb6a709fb155e134d03e1aa9820dd3758bc5bb066639d6c828e5a06fa8e8d",
+    "notes/synthetic-reading-notes.md": "b371fe59ea9e55c9f0a58d099acf765da4e8c95c2d3affaccc9a19dac4c1bd64"
+  },
+  "htmlSha256": "dd6fb368fcad2f9acd5c98c989decba9df4a78f129e4f9d359ebc4f2c30ef426",
+  "semanticRecords": 9,
+  "semanticRelations": 8,
+  "supportEdges": 2,
+  "decisionStatuses": [
+    "proposed",
+    "reviewed"
+  ],
+  "diagnostics": [
+    {
+      "code": "unsupported-relation",
+      "artifactPath": "evidence/claim-evidence-ledger.csv",
+      "sourceAnchor": "row:4",
+      "relatedId": "CLM-2"
+    }
+  ],
+  "revisionMismatch": "error: project-revision-conflict",
+  "checks": [
+    "real-cli-registration-preview-apply",
+    "evidence-limits-preserved",
+    "unsupported-claim-not-promoted",
+    "decisions-are-not-support",
+    "source-anchor-resolved",
+    "revision-mismatch-rejected",
+    "repeatable-projection",
+    "html-matches-snapshot",
+    "input-and-project-files-unchanged",
+    "empty-path-cli-execution"
+  ]
+}

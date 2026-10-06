@@ -2,7 +2,8 @@
 
 Python 主导的 1.x 已完成验收并冻结。本仓库使用 `2.x` 承接 Rust 原生开发，
 以 `release/1.x-python` 保存已验收的 1.x 兼容性 oracle 和 critical-fix
-维护线，以 `dev` 保存发布后的交接基线；`main` 继续作为旧稳定发布分支。
+维护线，以 `dev` 保存发布后的交接基线。`main` 现承载合并后的原生产品，
+作为 2.x 正式版的发布源（ADR 0227）。
 
 ## 分支职责
 
@@ -11,11 +12,11 @@ Python 主导的 1.x 已完成验收并冻结。本仓库使用 `2.x` 承接 Rus
 | `2.x` | Rust 原生活跃开发、集成和 2.x 预发布源 | 原生 Rust workspace 与产品功能、contract/resource loader、原生 CLI/UI/MCP/orchestrator、installer、测试、文档、CI 和 2.x 发布工具。Python 与 Node 只能作为冻结 oracle 或构建期测试输入，不能成为生产运行时依赖。 |
 | `dev` | 已验收的 1.x 交接和发布后基线集成端点 | A8 baseline 证据、分支治理、文档、测试和交接元数据。不再接收 1.x 产品功能，也不承载 Rust 原生产品实现。 |
 | `release/1.x-python` | 已验收的 1.x tag、兼容性 oracle 和 critical-fix-only 维护线 | 仅允许通过 PR 修复获批的严重安全问题或发布损坏，以及这些修复所需的最小测试、发布元数据和文档。不接受常规功能。 |
-| `main` | 旧稳定发布源 | 稳定发布证据和明确批准的紧急维护。不再进行常规 1.x 功能开发。 |
+| `main` | 集成后的原生产品和 2.x 正式版发布源 | 审阅后的 2.x 集成、必要修复、原生构建验证和正式版发布元数据。 |
 
 原生功能 PR 应合入 `2.x`。最终 1.x beta 之后，`dev` 只用于 A8 交接和
-跨版本治理。原生实现不得回合到 `dev`、`main` 或
-`release/1.x-python`。
+跨版本治理。收到主线收口或发布指令后，将审阅后的 `2.x` 合入 `main`；
+原生实现不得合入 `dev` 或 `release/1.x-python`。
 
 ## 1.x 维护治理
 
@@ -46,10 +47,17 @@ bypass actor。服务端 ruleset 是实际强制来源，本文记录评审政�
 
 ## 2.x 原生分支治理
 
-`2.x` 只能在 normalized 1.x baseline 冻结后，从精确且干净的 A8 交接
-commit 创建；此后的原生实现和 2.x 发布工作全部归属该分支。
+当前开发直接在本地完成：从本地 `2.x` 创建分支，修改、运行相关检查、审阅并
+提交，然后用 `git merge --ff-only` 合并到本地 `2.x`。不要求 pull request，
+也不等待 GitHub CI。维护者的开发指令已覆盖范围内的本地分支、提交和合并。
+推送和远端规则调整另属独立操作；下文 GitHub 规则只描述可选远端协作，
+不构成本地合并门禁。
 
-`Native CI` 仅对以 `2.x` 为目标的 pull request 自动运行；合入后的 push 不会
+`2.x` 只能在 normalized 1.x baseline 冻结后，从精确且干净的 A8 交接
+commit 创建。该分支继续承接原生开发和预发布；审阅后的集成进入 `main`，
+用于正式交付。
+
+`Native CI` 对以 `main` 或 `2.x` 为目标的 pull request 自动运行；合入后的 push 不会
 重复启动。明确创建 candidate 时仍可手动触发。必需检查为：
 
 - `Native 2.x change boundary`；
@@ -57,23 +65,21 @@ commit 创建；此后的原生实现和 2.x 发布工作全部归属该分支�
 - `Rust native foundation (macOS)`；
 - `Rust native foundation (Windows)`。
 
-对于 ready 且影响 source 的 PR，同一 commit 必须在 Linux、macOS 和 Windows
-通过 format、check、Clippy 和 workspace tests。可移植的 App
-API/Desktop/npm 检查只在 Linux 运行一次，三个平台仍各自构建静态 Desktop
-assets，Linux 还会运行有界的 Lite runtime compatibility。draft PR 不展开矩阵。
+ready source PR 在 Linux、macOS、Windows 上运行无 GUI 的 workspace 测试；
+format 和 CLI Clippy 只在 Linux 运行一次。共享 native 源码、构建或 Desktop
+改动增加 Linux 桌面消费者检查；专用 CLI/MCP 改动跳过前端。只有 Lite 或未知的
+工具输入、Lite 的共享 runtime 依赖改动运行独立 Lite compatibility。
+draft PR 暂缓 native 测试。
 
-对于 ready 的非运行时文档或仅证据 PR，四个 required context 名称仍会出现，
-但三个 foundation context 只运行轻量报告步骤；不会安装 Rust toolchain、设置
-frontend、构建或测试，同时跳过 Lite compatibility。immutable path 拒绝优先；
-其后 allowlist 包含 Trellis task/workspace/spec 记录与配置、两个仓库交付 Markdown
-文件、顶层仓库说明、`docs/**`，以及 `tooling/release/` 下的顶层 Markdown note
-或 receipt。运行时或打包内容、workflow、action、test、script、嵌套 release
-fixture、混合改动、未知路径和空 diff 都保守回退到完整矩阵。明确的
-`workflow_dispatch` 忽略该分类，完整运行 source、Lite、package 和 candidate
-检查。
+非运行时文档或仅证据 PR 保留轻量 native contexts；未知路径、workflow、fixture
+和空 diff 保守运行全部 PR 检查，删除源码仍按源码处理。`workflow_dispatch`
+才运行完整三平台桌面、Lite、package 和 candidate 检查。`Evaluation Truth V1`
+也只在 PR head 上运行一次；合入后的 push 不会重复启动这两个 workflow。
+日常步骤以 [CONTRIBUTING](https://github.com/jxpeng98/qiongli/blob/2.x/CONTRIBUTING.md)
+为准，不需要逐阶段人工确认。
 
 `Legacy Compatibility CI` 与
-`Legacy Checkout Install Check` 只对 `main`、`master`、`dev` 自动运行。
+`Legacy Checkout Install Check` 只对 `dev` 和 `release/1.x-python` 自动运行。
 需要核查某个明确的兼容性问题时，维护者仍可对指定的 `2.x` ref 手动触发
 它们；其结果是诊断证据，不是 2.x 原生开发的 required checks。
 
@@ -86,13 +92,18 @@ baseline 及其 schema，包括
 `capture --check` 仍可在明确的兼容性调查中手动运行；新的 conformance
 evidence 必须写入新的版本化路径。
 
-实际强制来源为 ruleset `18800504`。它要求 pull request 和以上四个
-required contexts，禁止删除与 non-fast-forward 更新，并且没有 bypass
+`2.x` 的远端强制来源为 ruleset `18800504`。它要求 pull request 和以上四个
+native required contexts 以及 `Evaluation Truth V1`，禁止删除与 non-fast-forward 更新，并且没有 bypass
 actor。只有当对应 workflow 是 required 时，immutable guard 才能在合入前
 阻止变更；没有服务端保护时，direct push 将不会被验证，因为合入后的 push
 不会启动 `Native CI`。
 
-`2.x` 的生产代码必须为 Rust 原生，并保证最终用户零语言运行时依赖。
+`main` 的 push 运行 Native CLI distribution 和 Cargo 源码安装验证，上传仍需
+明确的发布动作。旧 TestPyPI builder 仅允许在 `release/1.x-python` 运行；
+修改 main 上的 workflow 不会把它自动带到旧维护分支。2026 年 9 月 13 日检查时，
+main 没有分支保护；下次集成应重新核查远端规则。
+
+`main` 和 `2.x` 的生产代码必须为 Rust 原生，并保证最终用户零语言运行时依赖。
 冻结的 Python Full、Rust Lite 和 Node MCPB 结果只作为兼容性 oracle 与
 测试证据，不得变成隐藏的生产依赖。
 
@@ -107,10 +118,8 @@ actor。只有当对应 workflow 是 required 时，immutable guard 才能在合
    测试，并使用下面的第三方 `cargo-xwin` 命令提前获得 Windows x64 编译反馈。
    使用 `cargo-xwin` 即接受 Microsoft SDK 许可，因此首次使用前必须得到维护者
    明确授权。
-2. **Slice**：一个完整用户业务切片或小版本 checkpoint 冻结后，运行所有受影响
-   package/cross-contract 检查，以及上面四个 exact-head Native CI required
-   contexts。影响 source 的改动运行完整三平台矩阵；allowlist 内的非运行时文档
-   或仅证据收尾保留 context，但使用轻量路径。
+2. **Slice**：只用于明确请求的可选远端协作。日常走上述本地分支、相关检查、
+   提交和合并流程，不需要 PR 或等待 CI。
 3. **Acceptance**：仅在明确的 2.x cutover 或 release candidate 上运行三目标
    package、packaged-product 和 Lite candidate acceptance、当前 live Hosts、
    migration/rollback、trust/supply-chain 与所声明的 manual journeys。
@@ -137,6 +146,14 @@ Windows x64 硬件认证、签名、installer 或 release acceptance。
 
 ## 官方 Plugin 接入
 
+原生发布包含六个按平台区分的 Codex/Claude archive 和
+`marketplace-plugins.json`，每个包都携带同版本原生程序。正式版保留
+`qiongli-next-<target>` 安装标识，便于现有用户升级；正式版显示 Qiongli，
+预发布显示 Qiongli Next。这里的 `next` 是既有 Plugin 标识，不决定 npm 通道。
+`jxpeng98/skillsplace` 的目录更新需单独审阅，使用不可变的
+`<host>/<target>/v<version>` 分发引用。参见 ADR 0223、0227。
+下面的通用包名和分发流程仅描述保留的 **1.x 历史实现**。
+
 公开的官方 marketplace 条目现在由 `jxpeng98/skillsplace` 统一维护，并指向稳定的、生成后的 Qiongli plugin payload：
 
 - Marketplace repository: `https://github.com/jxpeng98/skillsplace`
@@ -153,7 +170,8 @@ payload。
 
 旧版 1.x beta tag 会发布 `qiongli-next` 测试通道，而不是完整的 stable
 marketplace matrix。原生 2.x alpha dry-run 不发布任何 dist ref；原生
-postflight 会保持阻断，直到 target/package identity 真实且通过验收。旧版
+发布由单独的 Actions owner 使用已验证的平台产物完成；旧 postflight 仍拒绝
+原生发布。旧版
 beta 生成的 next artifacts 是：
 
 - `qiongli-next-codex-plugin-<tag>.tar.gz`
@@ -170,8 +188,8 @@ subject-specific plugin variants。Claude plugin ZIP 与 Claude tarball 使用
 
 ## 开发流程
 
-1. A8 记录 branch point 后，所有原生功能与 packaging 工作都从 `2.x`
-   开始，并通过 PR 合回 `2.x`。
+1. 原生功能和 packaging 工作从本地 `2.x` 开始，通过本地提交和 fast-forward
+   合并完成集成。仅在需要远端协作时开 PR；合入 `main` 需明确的收口指令。
 2. 开发过程中运行 Focused 检查；切片仍在变化时保持 draft，draft 事件不展开
    原生矩阵。ready 后在 PR 的精确 commit 上运行 `Native CI`。影响 source 的
    改动必须通过 format、check、Clippy、workspace tests、Linux 可移植前端检查、
@@ -206,31 +224,20 @@ python3 -m unittest discover -s tests -v
    `Native CI`，统一运行三目标 package assembly、packaged acceptance、Lite
    candidate acceptance 和现有 exact promotion dispatch。自动 PR Slice 不得
    作为 candidate 或发布授权。
-7. B1 原生 preflight 只能作为写入外部 staging 目录的 dry-run。它现在会
-   校验 alpha syntax、Cargo version/channel source、独立 channel metadata、
-   planned target identity 以及 rollback/promotion 语义。在后续原生产物、
-   签名、target acceptance、updater 与公开发布 gates 移除明确的
-   `publication_allowed=false` 阻断之前，不得创建或发布 2.x tag。
+7. 保留的 B1 preflight 只生成只读计划，校验原生版本、通道、源码身份和回退语义，
+   始终保留 `publication_allowed=false`。CLI 验证和发布走 CONTRIBUTING 中的
+   原生流程；诊断计划不会授予发布权限。
 
 ## 稳定发布规则
 
-已验收的 `v1.19.0-beta.1` 是最后一个计划内、包含功能变更、由 Python
-主导的 1.x beta。`main` 继续作为旧稳定源，但不再接收常规 1.x 功能或
-release-candidate。任何例外 1.x 发布都必须满足上面的维护决策、PR 证据、
-forward-port/equivalence evidence 和 release gates；不得绕过现有 release
-automation 的 branch checks。
+原生正式版从冻结的 `main` head 发布，Beta/Alpha 开发继续在 `2.x`。
+本地安装包验证允许干净的这两个分支。发布必须在 Actions 中，使用版本与源码
+匹配的不可变 tag、已审阅的说明、通过三平台验证的产物。正式版还要求 tag
+等于触发发布时的远端 main；发布过程中保持主线冻结。GitHub 将正式版标为
+latest，npm 正式版用 `latest`，预发布用 `next`；PyPI wheel 和 Cargo crate
+使用同一个原生版本。合并或构建通过本身不代表发布完成，也不提升项目验收状态。
 
-现有 release automation 仍要求 stable publish mode 从 primary branch 运行，
-并在创建 tag 前等待必需的 branch checks；beta publish 则先等待 `dev` 上的
-CI/checks，再创建 beta tag 并等待 tag publish workflows。
-
-beta 不是每个 stable release 的必经步骤。只有当 release 改动发布自动化、
-package payload、installer、package metadata、CI 或 publish workflows 这类
-高风险面时，才需要先用 beta 验证。低风险文档、小修复和维护改动可以直接从
-`main` 发 stable。若 stable 没有对应的新 beta，npm `latest` 会前进，npm
-`next` 会有意停在上一个 beta；`next` 表示最新预发布验证版，不是必须始终
-比 stable 更新的通道。不要为了移动 `next` 而机械发 beta。
-
-2.x stable 与 prerelease 规则随原生发布工具在 `2.x` 上建立。统一
-Skillsplace 条目只有在对应原生 release gates 和 artifact acceptance 通过后
-才能推进。
+`v1.19.0-beta.1` 仍是已验收的 Python oracle。1.x 例外维护进入
+`release/1.x-python`，遵循其 PR 规则并保留 forward-port/equivalence evidence。
+旧发布工具需要修复时，另做范围明确的维护变更，不恢复从原生 main 发布 Python
+旧包。已有 Release、分发引用和已验收基线保持不可变。

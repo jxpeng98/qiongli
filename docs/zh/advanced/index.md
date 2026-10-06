@@ -1,22 +1,16 @@
-# 高级
+# 接入与配置
 
-这一部分面向已经跑通基础安装与 CLI 的用户，重点是接入、扩展、专精和发布。
+按任务需要配置服务，模型与账号仍由你选择。
 
-## 主题
+| 需要 | 页面 |
+|---|---|
+| 选择 Host、语言或安装参数 | [Plugin 配置](plugin-installation.md) |
+| 理解 Plugin 中的内容 | [Plugin 如何接入](plugin-first-architecture.md) |
+| 使用其他 MCP 客户端 | [MCP 接入](cross-platform-mcp.md) |
+| 启用文献服务 | [文献服务配置](mcp-providers-setup.md) |
+| 连接本地 Zotero 库 | [Zotero](mcp-zotero-integration.md) |
+| 使用代理协作、仅回复或 Hook | [协作与 Hook](agent-skill-collaboration.md) |
+| 使用 DeepSeek 或外部任务交接 | [外部 Agent 协作](external-host-coordination.md) |
+| 获取金融、经济学数据 | [数据来源](finance-econ-data-mcp.md) |
 
-- [扩展 Qiongli](/zh/advanced/extend-qiongli)
-- [Subject Packaging Model](/zh/advanced/subject-packaging-model)
-- [Agent + Skill 协同](/zh/advanced/agent-skill-collaboration)
-- [MCP Providers 接入](/zh/advanced/mcp-providers-setup)
-- [原生桌面 Alpha 安装包](/zh/advanced/native-desktop-alpha)
-- [严格 Academic Literature Search](/zh/advanced/rigorous-literature-search)
-- [Zotero 集成](/zh/advanced/mcp-zotero-integration)
-- [发布到 PyPI](/zh/advanced/publish-pypi)
-
-## 常见场景
-
-- 接入新的搜索、全文、统计或运行时 Provider
-- 为某个研究方向做领域专精
-- 理解 core、subject、focused coverage、composite 和 custom overlays 的使用边界
-- 调整 agent、profile、skill 之间的协作方式
-- 维护或发布 Python 包分发链路
+研究方法见[研究任务](../guide/task-recipes.md)、[严谨文献检索](rigorous-literature-search.md)。扩展和发布见[开发与维护](../development/index.md)。

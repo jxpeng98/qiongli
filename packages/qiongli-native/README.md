@@ -744,6 +744,29 @@ Claude Code source path. It then applies and immediately verifies payload,
 source, and registration receipts as one closed identity chain. A fresh later
 failure compensates only fresh earlier steps in reverse order.
 
+For release engineering, payload-only staging uses the same verified candidate
+and fixed payload owner without changing Host sources, registration or the
+installed command:
+
+```text
+qiongli install candidate stage-preview <same file and target options>
+qiongli install candidate stage <same file and target options> \
+  --expected-approval-digest <stage-preview-sha256> \
+  --approve-filesystem-write
+```
+
+Stage requires exactly filesystem-write approval; Host approval flags are rejected.
+Its digest binds the candidate and target under a separate staging domain, so
+neither a full-install digest nor a stage digest authorizes the other operation.
+Execution re-verifies the candidate before writing. Replay reports `already-staged`.
+Stage JSON version 1 is generated from the Rust type in `candidate_cli.rs`; the
+schema is `apps/qiongli/schemas/candidate-stage-v1.schema.json` and its three
+Rust-produced fixtures are under `apps/qiongli/tests/fixtures/candidate-stage-v1.*`.
+Regenerate with the `candidate_stage_contract` Cargo example, which emits a
+`schema` object and a `fixtures` array. Existing command JSON remains unchanged.
+Staging still requires the running build's exact source, version and content;
+it does not activate a different version or provide an end-user updater.
+
 Verify and remove require no candidate, authority, source-commit input, or
 unexpired release. They reopen only the fixed current-user paths and require
 the payload, PluginBundle, and registration receipts to agree on target,
@@ -1104,8 +1127,53 @@ The signed update manifest supplies target-specific PluginBundle launch grants
 for both clients. A canonical reconciliation journal binds every old/new
 version, pack, destination, receipt, content, and plan digest. The helper
 activates these operations with the application and compensates them in reverse
-order before app rollback. Config, secret references, research data, unmanaged
-host bytes, and 1.x content are outside this transaction.
+order before app rollback. Before the first rollback rename, the shared executor
+verifies every old backup and active/staged identity in the rollback set. Damaged
+content or dangling backup links fail without moving another surface. Recovery
+supports interruptions between either pair of renames and repeated rollback.
+Committed and rolled-back cleanup revalidates every retained surface and remaining
+owned cleanup target before deleting anything. Already removed targets support
+interrupted cleanup and replay. Staging containers may contain only the expected
+staged entry; extra files or links refuse cleanup, and the recovery journal remains
+until cleanup succeeds. Containers are removed only when empty.
+
+Config, secret references, research data, unmanaged host bytes, and 1.x content
+are outside this transaction.
+
+CLI-first reconciliation can additionally stage a managed CLI binary and its exact
+installation receipt in that same transaction. The existing CLI owner performs
+source/target/receipt CAS checks and generates the replacement receipt, retaining
+any unmanaged predecessor backup. The two operations bind matching old/new binary
+and receipt identities; an incomplete or mismatched pair is rejected before writes.
+Version 2 reconciliation journals require this pair. Existing version 1 journals
+and their operation digests retain their format and recovery behavior; unknown
+versions fail closed. Activation and rollback use the same executor as content and
+registration. This internal capability is not yet enabled by existing integration
+commands: a separately approved activation entry point, CLI-wide mutation exclusion
+and process/version checks remain necessary before standalone update qualification.
+
+The native reconciliation library exposes activation and recovery for an already
+approved v2 journal and its exact digest. Both hold the existing replacement lock,
+also used by the macOS helper, and reserve the existing update state. Canonical
+private `native-activation.json` and `native-activation-outcome.json` records bind
+the journal digest and retain the committed or rolled-back outcome. Recovery rolls
+back an undecided activation; a committed outcome only resumes cleanup. Completed
+recovery does not advance the state revision again. The journal/outcome remain for
+replay. This owner leaves release generation and last-known-good package metadata
+unchanged; signed-candidate validation, approval, process pinning and wiring the
+native health check remain command-level integration work.
+
+`check_native_cli_health` validates the managed executable's hash against a verified
+candidate, starts that executable with an empty PATH and explicit home/config root,
+and reads its existing `app plan cli-install` output. The existing managed-plan
+type checks the document/digest/time contract; health additionally requires the
+candidate's version, resource pack and product-control identity. The executable
+hash is checked again after the child exits. The shared process runner retains its
+30-second child timeout and 512 KiB output limits. Errors remain static reason codes;
+child output is not returned as diagnostic text. This proves native product startup
+and identity; real Host activation and research writes have separate evidence.
+
+
 
 R3O Batch 5 exposes that same updater through the Overview Update card. The
 typed desktop service owns Stable/Beta selection, signed metadata checks,

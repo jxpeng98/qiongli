@@ -10,11 +10,19 @@ Save to: RESEARCH/[topic]/submission/submission_checklist.md
 ## Manuscript: [Title]
 ## Target venue: [Journal/Conference]
 ## Date: [Date]
+## Article type / submission stage / track or edition: [Applicable context]
+
+Follow `references/stage-H-submission.md`. Record current applicable instructions;
+examples below are prompts, not universal requirements. Mark each item checked,
+pending or not applicable with a reason. A draft file is not an uploaded file.
+
+| Requirement | Applicable context | Source URL/title or supplied excerpt | Checked date / version | Status / manuscript location |
+|---|---|---|---|---|
 
 ---
 
 ## 1) Scope & Formatting
-- [ ] Fits scope (keywords match CFP/aims)
+- [ ] Question, contribution, evidence and article type fit the published scope
 - [ ] Word/page limits met
 - [ ] Reference style consistent
 - [ ] Figures/tables meet resolution + formatting rules
@@ -34,7 +42,7 @@ Save to: RESEARCH/[topic]/submission/submission_checklist.md
 
 ## 4) Reporting Guideline
 - [ ] Reporting checklist completed (`reporting_checklist.md`)
-- [ ] Any required checklist uploaded as supplement
+- [ ] Required checklist prepared; upload status recorded separately
 
 ## 5) Supplementary Materials
 - [ ] Appendix / additional analyses
@@ -43,7 +51,7 @@ Save to: RESEARCH/[topic]/submission/submission_checklist.md
 
 ## 6) Submission Artifacts
 - [ ] Manuscript PDF
-- [ ] Editable source (Word/LaTeX)
+- [ ] Editable source (Word/LaTeX), if required at this stage
 - [ ] Cover letter (`submission/cover_letter.md`)
 - [ ] Title page (if required) (`submission/title_page.md`)
 - [ ] Highlights (if required) (`submission/highlights.md`)

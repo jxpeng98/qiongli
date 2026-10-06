@@ -1,0 +1,11 @@
+{
+  "kind": "actual-host-execution-observation",
+  "actor_kind": "model",
+  "host": "Claude Code",
+  "host_version": "2.1.287",
+  "execution_id": "ff9bc908-9735-4bca-b8ae-7e162a391ff2",
+  "configured_model_reported": "deepseek-v4-pro[1m]",
+  "review_file": "quantitative-education/observations/claude-q1-review.md",
+  "review_sha256": "0dad5c1ece4c7bb4ba2b647440dfbc1db1fe65e157fb666cbad4ef8398416278",
+  "scope": "Actual prepared/collected review of Q1 public packet; successful transport does not establish research correctness or human review. The reviewer did not observe its dispatch receipt."
+}

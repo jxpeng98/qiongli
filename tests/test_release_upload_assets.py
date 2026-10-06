@@ -50,7 +50,7 @@ class ReleaseUploadAssetsTests(unittest.TestCase):
         self.assertIn("qiongli-claude-desktop-plugin-v1.6.0.zip", names)
         self.assertIn("qiongli-claude-desktop-skill-core-v1.6.0.zip", names)
         self.assertIn(literature_mcpb_asset_name(), names)
-        self.assertIn("qiongli-zotero-companion-0.3.0.xpi", names)
+        self.assertIn("qiongli-zotero-companion-0.3.1.xpi", names)
         self.assertIn("qiongli-zotero-companion-updates.json", names)
         self.assertIn("qiongli-downloads-v1.6.0.md", names)
         self.assertIn("qiongli-downloads-v1.6.0.json", names)

@@ -33,6 +33,16 @@ DESKTOP_MCPB_PROVIDER_BULLET = (
 
 
 class LiteratureContractTests(unittest.TestCase):
+    def routed_workflow_content(self, path: Path) -> str:
+        content = path.read_text(encoding="utf-8")
+        # Paper reading delegates provider details to this canonical owner.
+        if path.name == "paper-read.md":
+            self.assertIn("references/literature-provider-routing.md", content)
+            content += (
+                LAYOUT.workflow / "references" / "literature-provider-routing.md"
+            ).read_text(encoding="utf-8")
+        return content
+
     def test_research_workflow_contract_includes_shared_literature_bundle(self) -> None:
         content = (LAYOUT.standards / "research-workflow-contract.yaml").read_text(
             encoding="utf-8"
@@ -152,7 +162,7 @@ class LiteratureContractTests(unittest.TestCase):
 
         for path in workflow_paths:
             with self.subTest(workflow=str(path.relative_to(REPO_ROOT))):
-                content = path.read_text(encoding="utf-8")
+                content = self.routed_workflow_content(path)
                 for token in required_tokens:
                     self.assertIn(token, content)
                 for token in forbidden_tokens:
@@ -160,7 +170,7 @@ class LiteratureContractTests(unittest.TestCase):
 
     def test_literature_workflows_define_search_plan_execution_modes_and_provenance(self) -> None:
         workflow_paths = (
-            LAYOUT.workflow / "SKILL.md",
+            LAYOUT.workflow / "references" / "literature-provider-routing.md",
             LAYOUT.workflow / "workflows" / "lit-review.md",
             LAYOUT.workflow / "workflows" / "paper-read.md",
         )
@@ -186,7 +196,7 @@ class LiteratureContractTests(unittest.TestCase):
 
         for path in workflow_paths:
             with self.subTest(workflow=str(path.relative_to(REPO_ROOT))):
-                content = path.read_text(encoding="utf-8")
+                content = self.routed_workflow_content(path)
                 for token in required_tokens:
                     self.assertIn(token, content)
 
@@ -213,7 +223,7 @@ class LiteratureContractTests(unittest.TestCase):
             self.assertIn(token, content)
 
     def test_workflow_search_modes_do_not_downgrade_native_search_to_strategy_only(self) -> None:
-        content = (LAYOUT.workflow / "SKILL.md").read_text(encoding="utf-8")
+        content = (LAYOUT.workflow / "references" / "literature-provider-routing.md").read_text(encoding="utf-8")
 
         self.assertIn(
             "`strategy_only` only when neither provider MCP nor platform-native search is available",
@@ -287,14 +297,17 @@ class LiteratureContractTests(unittest.TestCase):
         )
 
     def test_workflow_guidance_rejects_collect_evidence_as_provider_status_source(self) -> None:
-        content = (REPO_ROOT / "content" / "workflow" / "SKILL.md").read_text(encoding="utf-8")
+        content = (LAYOUT.workflow / "references" / "literature-provider-routing.md").read_text(encoding="utf-8")
 
-        self.assertIn(COLLECT_EVIDENCE_BOUNDARY_BULLET, content)
+        self.assertIn(COLLECT_EVIDENCE_BOUNDARY_BULLET.replace(
+            "Use `qiongli_literature_status`, `qiongli_config_status`, `qiongli_test_provider`, "
+            "and `qiongli_literature_search`", "Use visible `qiongli_literature_status`, "
+            "`qiongli_config_status`, and `qiongli_literature_search` tools"), content)
         self.assertIn("`qiongli_literature_status`", content)
         self.assertIn("`qiongli_literature_search`", content)
 
     def test_workflow_guidance_uses_exact_desktop_mcpb_provider_bullet(self) -> None:
-        content = (REPO_ROOT / "content" / "workflow" / "SKILL.md").read_text(encoding="utf-8")
+        content = (LAYOUT.workflow / "references" / "literature-provider-routing.md").read_text(encoding="utf-8")
 
         self.assertIn(DESKTOP_MCPB_PROVIDER_BULLET, content)
 

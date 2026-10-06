@@ -1,5 +1,8 @@
 # Native Desktop Alpha Packages
 
+> This page covers retained Desktop maintenance. It is not a prerequisite for
+> the 2.x CLI. Start with the [native guide](/guide/cli-2x) for CLI, Plugin and MCP use.
+
 Qiongli 2 desktop packages are pre-release artifacts. Raw CI packages remain
 `assembled-unpublished` test evidence and must not be redistributed. The first
 planned public set uses the explicitly labelled, zero-cost `community-alpha`

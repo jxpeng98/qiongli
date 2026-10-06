@@ -31,8 +31,17 @@ decision must be recorded as a new superseding ADR.
 | `PKG-202C` | [ADR 0215](0215-community-alpha-distribution-boundary.md) | Accepted | Community Alpha distribution remains separate from platform-trusted production distribution |
 | `GOV-408` | [ADR 0216](0216-rust-owned-public-schema-authority.md) | Accepted | Rust owns changed public schemas; generated contracts and explicit compatibility classes govern consumers |
 | `ARC-217` | [ADR 0217](0217-app-owned-acp-and-all-chat-state.md) | Accepted | App-owned ACP v1 sessions and Qiongli-owned All Chat State supersede the external-Host-only default |
-
 | `ARC-218` | [ADR 0218](0218-cli-first-local-host-collaboration.md) | Accepted | CLI-first delivery and same-device Host collaboration supersede the App ACP default; retained GUI source and historical evidence remain |
+| `CLI-410` | [ADR 0219](0219-cli-github-release-distribution.md) | Accepted | Standalone CLI Alpha GitHub assets are independent of App/Community Alpha promotion; managed-product trust remains unchanged |
+| `CLI-410` | [ADR 0220](0220-three-platform-cli-registry-distribution.md) | Accepted | Three-platform native CLI installation with npm next and PEP 440 PyPI versions; Cargo deferred |
+| `CLI-410` | [ADR 0221](0221-cargo-cli-publication.md) | Accepted | Cargo source publication and three-platform install checks; supersedes Cargo deferral |
+| `CLI-403` / `CLI-405` | [ADR 0222](0222-user-approved-local-plugin-sources.md) | Accepted | User-approved local Plugin source lifecycle; signed product and Host authority remain separate |
+| `CLI-410` | [ADR 0223](0223-bundled-marketplace-native-mcp.md) | Accepted | Platform-specific Marketplace Plugins bundle the native executable; no Node/npm startup dependency |
+| `CLI-402` | [ADR 0224](0224-cli-local-plugin-registration.md) | Accepted | CLI exports bundled content and registers local Plugins through separately approved official Host commands |
+| `CLI-402` | [ADR 0226](0226-confirmed-codex-plugin-source-migration.md) | Accepted | Confirmed Codex source migration preserves old Plugin files and changes only their enabled flags through the official configuration API |
+| `CLI-410` | [ADR 0227](0227-native-main-cutover-and-stable-release-routing.md) | Accepted | Native main integration and stable release routing reuse the qualified CLI/registry pipeline; legacy maintenance stays separate |
+| `CLI-410` | [ADR 0232](0232-linux-arm64-registry-distribution.md) | Accepted | Linux ARM64 joins the native pip/npm matrix; new packets require four targets while historical three-target packets remain verifiable |
+| `CLI-409` | [ADR 0233](0233-antigravity-local-plugin-adapter.md) | Accepted | Native Antigravity Plugin projection and separately confirmed official registration; live Skill/MCP qualification remains explicit |
 
 ## Decision lifecycle
 

@@ -1,23 +1,16 @@
-# Advanced
+# Connections and setup
 
-Use this section when the default install and CLI path is already clear and you are integrating, extending, or specializing the system.
+Configure the services your task needs. You choose the models and accounts.
 
-## Topics
+| Need | Page |
+|---|---|
+| Choose Hosts, language or installation options | [Plugin setup](plugin-installation.md) |
+| Understand Plugin contents | [How the Plugin connects](plugin-first-architecture.md) |
+| Use another MCP client | [MCP connections](cross-platform-mcp.md) |
+| Enable literature services | [Provider setup](mcp-providers-setup.md) |
+| Connect a local Zotero library | [Zotero](mcp-zotero-integration.md) |
+| Use agent collaboration, reply-only or hooks | [Collaboration and hooks](agent-skill-collaboration.md) |
+| Use DeepSeek or external task handoffs | [External Agent coordination](external-host-coordination.md) |
+| Find finance and economics data | [Data sources](finance-econ-data-mcp.md) |
 
-- [Extend Qiongli](/advanced/extend-qiongli)
-- [Subject Packaging Model](/advanced/subject-packaging-model)
-- [Agent + Skill Collaboration](/advanced/agent-skill-collaboration)
-- [Cross-Platform MCP Server](/advanced/cross-platform-mcp)
-- [Native Desktop Alpha Packages](/advanced/native-desktop-alpha)
-- [MCP Providers Setup](/advanced/mcp-providers-setup)
-- [Rigorous Literature Search](/advanced/rigorous-literature-search)
-- [Zotero Integration](/advanced/mcp-zotero-integration)
-- [Publish to PyPI](/advanced/publish-pypi)
-
-## Typical Use Cases
-
-- connect an external search, full-text, stats, or runtime provider
-- specialize workflows for a domain or research direction
-- understand when to use core, subject, focused coverage, composites, or custom overlays
-- refine how agents, profiles, and skills collaborate
-- publish or maintain the Python package distribution
+For research methods, see [research tasks](../guide/task-recipes.md) and [rigorous literature search](rigorous-literature-search.md). For extension and publishing, see [development and maintenance](../development/index.md).

@@ -1,271 +1,48 @@
-# 严格 Academic Literature Search
+# 严谨文献检索
 
-当你希望 `qiongli` 的文献检索更接近可审计、可复现的 academic review 工作流，而不是单一引擎的便捷搜索时，使用这份指南。
+当你需要说明文献是怎样找到、筛选并用于研究的，可以采用这套流程。
+先明确研究问题和已经约定的综述协议，再据此选择来源、时间范围和检查方法。
 
-## 核心原则
+## Qiongli 提供什么
 
-把文献检索拆成四层证据能力，而不是让一个引擎包办一切：
+原生 MCP 可通过已配置的 OpenAlex、Semantic Scholar、Crossref、PubMed 和 arXiv
+进行有范围限制的检索。`qiongli_search_plan` 提出路径和查询建议，
+`qiongli_literature_search` 执行文献服务请求，返回规范化结果和诊断。
+配置方法见[文献服务接入](mcp-providers-setup.md)。
 
-1. `scholarly-search`：发现候选文献
-2. `metadata-registry`：标准化 DOI、作者、期刊、年份
-3. `citation-graph`：前向 / 后向引文扩展
-4. `fulltext-retrieval`：拿全文并保留来源链
+Host 可以结合自身可用的原生搜索和获准读取的本地材料。引用追踪、全文获取和筛选
+仍需要实际来源及相应工具。检索方案、网址或元数据条目都不等于已经拿到论文，
+旧 Python 版的适配器接口也不能当作已安装的原生工具。
 
-严格检索不应只依赖一个搜索源。
+## 保留检索记录
 
-## 当前仓库内置了什么
+正式综述按任务需要保留 `search_strategy.md`、`search_log.md`、`search_results.csv`、
+`dedup_log.csv`、`snowball_log.md`、`bibliography.bib`、`screening/full_text.md`
+和 `retrieval_manifest.csv`。记录服务、查询式、日期、筛选条件、排除理由与失败情况，
+并在提取和综合时沿用 citekey 与来源位置。保存仍使用项目原有的预览和批准流程。
 
-目前仓库内置的文献 provider 有：
+## 检查覆盖范围，避免夸大结果
 
-- `scholarly-search` → 内置 Semantic Scholar 适配器，已带 query variants、结果规范化和基础 dedup
-- `citation-graph` → 内置 Semantic Scholar 引文图适配器，能先从 `search_results.csv`、`bibliography.bib`、`notes/` 中抽 seed
-- `metadata-registry` → 内置本地 reference provider，用于 identifier 规范化、本地记录合并和 citekey 生成
-- `fulltext-retrieval` → 内置 retrieval-manifest stub，可根据本地文献产物草拟 `retrieval_manifest.csv` 和 `screening/full_text.md`
+任何服务都不能证明检索绝对完整。应按协议选择合适的检查：
 
-以下层仍然是外部 provider 插槽：
-
-- `screening-tracker` → 内置 checkpoint stub，可给 repo-local screening 产物生成 resume state；盲筛/多人筛选仍建议外部 tracker
-- `extraction-store`
-
-所以当前最现实的“严格 baseline”是：
-
-- 用内置 Semantic Scholar 做发现
-- 用内置 metadata-registry 做本地规范化，再用 OpenAlex MCP 做权威 enrichment
-- 用内置 citation graph 做 snowballing
-- 用内置全文 planning stub 打底，再用 Zotero / OA resolver 做真实全文获取；builtin 输出现在会携带稳定的 `resolution_bundle` 供 resolver 直接消费
-
-## 标准 Literature Bundle
-
-当 literature workflow 运转正常时，建议最终收敛到这组共享产物：
-
-- `search_strategy.md`
-- `search_log.md`
-- `search_results.csv`
-- `dedup_log.csv`
-- `snowball_log.md`
-- `bibliography.bib`
-- `screening/full_text.md`
-- `retrieval_manifest.csv`
-
-## 配置矩阵
-
-先用这张表判断你到底需不需要配置：
-
-| 层 | 零配置可否运行 | 是否建议 key | 是否需要 `RESEARCH_MCP_*_CMD` | 说明 |
-|---|---|---|---|---|
-| `scholarly-search` | 可以，走内置 Semantic Scholar | 建议 | 可选 | 零配置能跑，并能产出 query variants 和 dedup-ready 结果行，但没有 key 时更容易被限流 |
-| `citation-graph` | 可以，走内置 Semantic Scholar graph | 不强制 | 可选 | 即使不接外部 MCP，也能先做 snowballing；内置模式会优先从本地产物抽 seed |
-| `metadata-registry` | 可以，走内置本地 reference provider | 本地模式不需要 | 可选 | 内置模式可直接合并 BibTeX、RIS、CSL-JSON、notes 与 search results；要权威 enrichment 时再接 OpenAlex 等外部实现 |
-| `fulltext-retrieval` | 可以，走内置 retrieval-manifest stub | 内置模式不需要 | 可选，但真实下载强烈建议配置 | 内置模式会先草拟 retrieval status 和 provenance；要真正下载 PDF/全文时再接 Zotero 或其他解析器 |
-| `screening-tracker` | 可以，但仅限 checkpoint stub | builtin stub 不需要 | 真正的多人筛选仍建议配置 | builtin 模式会从本地 screening artifacts 推导 resume checkpoints |
-| `extraction-store` | 不可以 | 取决于 provider | 需要 | 主要用于 systematic review |
-
-## 常用配置总表
-
-如果你不确定“除了 search 之外还有哪些要配”，直接看这张表：
-
-| 功能层 | 是否必须 | 什么时候该配 | 对应环境变量 | 推荐实现 |
-|---|---|---|---|---|
-| 模型调用 | 必须，至少配你实际使用的一个 | 只要你直接跑 orchestrator / bridge / CLI agent | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | 按你实际使用的模型提供商填写 |
-| CLI 语言 | 可选 | 你希望 CLI 输出固定为中文或英文时 | `RESEARCH_CLI_LANG` | `zh-CN` 或 `en` |
-| 文献发现检索 | 非必须，但强烈建议 | 你要做 related work、gap analysis、literature review 时 | `SEMANTIC_SCHOLAR_API_KEY`；可选 `RESEARCH_MCP_SCHOLARLY_SEARCH_CMD` | 内置 Semantic Scholar；更严格时换成多源 scholarly MCP |
-| 引文扩展 | 可选 | 你要做 backward / forward snowballing 时 | 可选 `RESEARCH_MCP_CITATION_GRAPH_CMD` | 默认内置 graph；更严格时换成自定义 graph MCP |
-| 元数据标准化 | 严格检索时建议视为必须 | 你要统一 DOI、作者、venue、年份，或做可复现 bibliography 时 | 可选 `RESEARCH_MCP_METADATA_REGISTRY_CMD` | 内置本地 reference provider；权威 enrichment 时用 `python3 -m openalex_mcp` |
-| 全文获取 | 做系统综述或深度阅读时建议配置 | 你要批量拿 PDF、全文、版本来源链时 | `RESEARCH_MCP_FULLTEXT_RETRIEVAL_RESOLVE_CMD` | Zotero MCP / OA resolver |
-| 筛选跟踪 | systematic review 场景下建议配置 | 你需要记录纳入/排除决策、双人筛选流程时 | `RESEARCH_MCP_SCREENING_TRACKER_CMD` | Rayyan MCP 或本地 stub |
-| 结构化提取库 | systematic review 场景下建议配置 | 你要维护 extraction table、effect size、study attribute 时 | `RESEARCH_MCP_EXTRACTION_STORE_CMD` | Covidence 类 MCP 或 CSV/SQLite stub |
-| 统计分析引擎 | 做 meta-analysis、统计建模时建议配置 | 你希望把统计运行外包给 R/Python engine 时 | `RESEARCH_MCP_STATS_ENGINE_CMD` | R script MCP / Python stats MCP |
-| 代码运行时 | 做 research code 执行时建议配置 | 你希望实际执行生成代码而不只是写代码时 | `RESEARCH_MCP_CODE_RUNTIME_CMD` | Jupyter MCP / 其他 sandbox runtime |
-| 报告规范检查 | 投稿前建议配置 | 你要外部化 PRISMA、CONSORT、STROBE 等 guideline 检查时 | `RESEARCH_MCP_REPORTING_GUIDELINES_CMD` | EQUATOR 类 MCP 或本地 checklist stub |
-| 投稿包管理 | 非必须 | 你要管理投稿信、CRediT、supplement 清单时 | `RESEARCH_MCP_SUBMISSION_KIT_CMD` | OJS / Overleaf / submission MCP |
-
-### 三个最常见的配置层级
-
-| 使用目标 | 最少配置 |
+| 检查 | 能说明什么 |
 |---|---|
-| 先跑起来 | 一个模型 API key |
-| 论文写作 / related work 更稳 | 一个模型 API key + `SEMANTIC_SCHOLAR_API_KEY`；要更强 metadata enrichment 时再加 `RESEARCH_MCP_METADATA_REGISTRY_CMD` |
-| systematic review / review-grade | 上述配置 + `RESEARCH_MCP_FULLTEXT_RETRIEVAL_RESOLVE_CMD`，必要时再补 `RESEARCH_MCP_SCREENING_TRACKER_CMD` 和 `RESEARCH_MCP_EXTRACTION_STORE_CMD` |
+| 已知文献召回 | 检索策略是否找到了预期应纳入的论文 |
+| 概念与来源覆盖 | 要求的查询组合和数据库是否查过，零结果或不可用路径是否有说明 |
+| 重复结果趋于饱和 | 新增查询是否主要返回已有记录；这一点本身不能证明完整性 |
+| 引用追踪 | 是否完成并记录了协议要求的前向、后向追踪 |
+| 全文可得性 | 哪些待获取的报告已经实际拿到并能够阅读 |
 
-## 如果什么都不配置，会发生什么
+`native_fulltext_queries` 中的建议仍需 Host 执行，并保留候选网址和访问日期。
+核验 Zotero 附件时，也要检查实际文件：文献库中存在匹配条目，不代表有可读 PDF；
+拿到 PDF，也不代表它支持某个具体论点。
 
-如果你完全不配置：
+根据实际读到的材料，为提取的论点记录 `evidence_limit`：`full_text`、
+`abstract_only`、`metadata_only` 或 `unavailable`。
+预印本与正式发表版本不同时，还要保留所用版本的信息。
 
-- `scholarly-search` 仍会尝试使用内置 Semantic Scholar
-- `citation-graph` 仍会尝试使用内置 Semantic Scholar graph
-- `metadata-registry` 仍会尝试使用内置本地 reference provider
-- `fulltext-retrieval` 仍会先生成本地 retrieval manifest 和 screening 草稿
-- 即使没有外部 tracker，`screening-tracker` 也能基于这些产物推导 repo-local resume checkpoints
-- 只要你没有显式启用严格 MCP 校验，任务通常仍能继续运行
+## 将结果接入 Graph
 
-这足够做 exploratory search，但不适合作为严格 review-grade 检索的长期默认配置。
-
-需要注意：`bibliography.bib` 仍是这个仓库里的 canonical export，但它不是唯一支持的工作输入。即使用户平时不用 BibTeX，内置 metadata 层也可以直接吃 `references.json`、`references.ris`、`search_results.csv` 和 `notes/`。
-
-## 分步配置说明
-
-### 方案 A：零配置起步
-
-什么都不配，直接使用内置 provider。优点是最快，缺点是召回、metadata 质量和限流稳定性都有限。
-
-当前内置 `scholarly-search` baseline 仍会帮你产出：
-
-- 基于 topic / question / keywords 的多组 query variants
-- 规范化后的 `search_results` 结果行
-- 机器可读的 `dedup_log`
-- 按 query 记录的 `search_log` 执行条目
-
-### 方案 B：推荐的轻量增强版
-
-在项目根目录创建 `.env`：
-
-```env
-SEMANTIC_SCHOLAR_API_KEY="your-semantic-scholar-key"
-RESEARCH_MCP_METADATA_REGISTRY_ENRICH_CMD="python3 -m openalex_mcp"
-```
-
-这是一套对大多数用户最划算的默认增强方案，不需要自己做太多工程接入。
-
-如果你还没有接全文解析器，内置 `fulltext-retrieval` 也已经会先帮你准备：
-
-- `retrieval_manifest.csv` 草稿行
-- `screening/full_text.md` 草稿行
-- `not_retrieved:oa_candidate` / `not_retrieved:needs_provider` / `not_retrieved:missing_locator` 这类状态提示
-- `resolution_bundle.pending_records` 和聚合后的 `next_actions`，方便下一步接入 resolver
-
-### 方案 C：Review-Grade 多源方案
-
-把 discovery、metadata 和 full text 分成独立层来接：
-
-```env
-RESEARCH_MCP_SCHOLARLY_SEARCH_CMD="python3 /path/to/multi_source_search_mcp.py"
-RESEARCH_MCP_METADATA_REGISTRY_ENRICH_CMD="python3 -m openalex_mcp"
-RESEARCH_MCP_CITATION_GRAPH_CMD="python3 /path/to/graph_mcp.py"
-RESEARCH_MCP_FULLTEXT_RETRIEVAL_RESOLVE_CMD="npx -y @zcaceres/zotero-mcp-server"
-```
-
-适合需要稳定 search log、合并候选集、可追溯 provenance 的项目。
-
-### 方案 D：本地文献库受控方案
-
-如果 discovery 和全文都必须限定在你的本地精选库中：
-
-```env
-RESEARCH_MCP_SCHOLARLY_SEARCH_CMD="npx -y @zcaceres/zotero-mcp-server"
-RESEARCH_MCP_FULLTEXT_RETRIEVAL_RESOLVE_CMD="npx -y @zcaceres/zotero-mcp-server"
-RESEARCH_MCP_METADATA_REGISTRY_ENRICH_CMD="python3 -m openalex_mcp"
-```
-
-适合审稿前证据链要求更严、或者必须限定语料范围的项目。
-
-## 严格模式说明
-
-如果你用 `--mcp-strict` 跑任务，所有必需的外部 provider 都必须真的配置好。实际含义是：
-
-- 内置 `scholarly-search` 和 `citation-graph` 仍可满足这两层，前提是你没有把它们 override 掉
-- 内置 `metadata-registry` 可以先满足本地规范化这一层，不需要额外配置
-- 内置 `fulltext-retrieval` 可以先满足 retrieval planning 这一层，不需要额外配置
-- 当你想在 builtin reference 模式之上叠加外部权威 enrichment 时，设置 `RESEARCH_MCP_METADATA_REGISTRY_ENRICH_CMD`
-- 只有当你想完全改成外部 metadata provider 时，才需要设置 `RESEARCH_MCP_METADATA_REGISTRY_CMD`
-- 当你想在 builtin planning stub 之上叠加真实全文解析/下载时，设置 `RESEARCH_MCP_FULLTEXT_RETRIEVAL_RESOLVE_CMD`
-- 只有当你想完全替换 builtin provider 时，才设置 `RESEARCH_MCP_FULLTEXT_RETRIEVAL_CMD`
-
-## 推荐的检索栈
-
-### 1. 轻量增强版
-
-适合想提升 rigor，但不想自己做太多工程接入的情况：
-
-```env
-SEMANTIC_SCHOLAR_API_KEY="your-semantic-scholar-key"
-RESEARCH_MCP_METADATA_REGISTRY_ENRICH_CMD="python3 -m openalex_mcp"
-```
-
-这套组合意味着：
-
-- 保留内置 Semantic Scholar 检索
-- 有 API key 时更不容易频繁遇到 429
-- 用 OpenAlex 做 DOI、作者、期刊清洗
-
-### 2. Review-Grade 方案
-
-适合 systematic review、严谨的 related work、或任何强调可复现性的项目：
-
-```env
-RESEARCH_MCP_SCHOLARLY_SEARCH_CMD="python3 /path/to/multi_source_search_mcp.py"
-RESEARCH_MCP_METADATA_REGISTRY_ENRICH_CMD="python3 -m openalex_mcp"
-RESEARCH_MCP_CITATION_GRAPH_CMD="python3 /path/to/graph_mcp.py"
-RESEARCH_MCP_FULLTEXT_RETRIEVAL_RESOLVE_CMD="npx -y @zcaceres/zotero-mcp-server"
-```
-
-推荐职责分配：
-
-- `scholarly-search`：并行调用多个学术索引，返回合并候选集
-- `metadata-registry`：统一 DOI、作者、venue 元数据
-- `citation-graph`：结构化前向 / 后向引文扩展
-- `fulltext-retrieval`：获取全文并记录 provenance
-
-### 3. 本地文献库受控方案
-
-如果你的 review 必须严格限定在本地精选文献库内，可以这样做：
-
-```env
-RESEARCH_MCP_SCHOLARLY_SEARCH_CMD="npx -y @zcaceres/zotero-mcp-server"
-RESEARCH_MCP_FULLTEXT_RETRIEVAL_RESOLVE_CMD="npx -y @zcaceres/zotero-mcp-server"
-RESEARCH_MCP_METADATA_REGISTRY_ENRICH_CMD="python3 -m openalex_mcp"
-```
-
-它更窄，但通常更容易审计。
-
-## 推荐的查询流程
-
-1. 先写一个 canonical research question，再拆出 2-4 组 query 变体。
-2. 每组 query 至少跑两个 discovery source。
-3. 先标准化、去重，再进入 screening。
-4. 记录 source、日期、query string 和结果数。
-5. 从高价值 seed papers 做 citation snowballing。
-6. 完成全文解析后再进入 extraction 和 synthesis。
-
-建议在 `RESEARCH/[topic]/` 下保留这些产物：
-
-- `search_strategy.md`
-- `search_log.md`
-- `bibliography.bib`
-- `screening_decisions.csv`
-- `retrieval_manifest.csv`
-- `screening/title_abstract.md`
-- `screening/full_text.md`
-
-## 不同引擎分别适合什么
-
-按职责选引擎，不要默认某一个引擎能包办全部：
-
-| 引擎 | 更适合的用途 | 说明 |
-|---|---|---|
-| Semantic Scholar | 快速发现、相关性扫描、citation count | 仓库内置；无 API key 时可能更容易遇到限流 |
-| OpenAlex | 元数据标准化、实体图谱、作者 / 期刊清洗 | 很适合作 discovery 的补充层 |
-| Crossref | DOI 定位、规范化 metadata harvesting | 很适合作 verification / normalization 层 |
-| Europe PMC / PubMed | 生物医学与生命科学检索 | 适合提升特定领域召回率 |
-| arXiv | CS、physics、math 的 preprints | 适合 preprint 占比高的领域 |
-| CORE | open-access 全文发现 | 适合 OA retrieval |
-| Lens | 学术 + 专利全景 | 常见于机构级接入，先确认使用权限 |
-
-## 不建议作为主可复现层的引擎
-
-Google Scholar 仍可用于人工 spot check，但不建议作为这套系统里 review-grade 自动检索的主来源，因为其查询行为和复现性都更难控制。
-
-## 如何验证
-
-配置完成后运行：
-
-```bash
-python3 -m bridges.orchestrator doctor --cwd .
-```
-
-如果你想单独 smoke-test 内置 `Semantic Scholar` provider，可以运行：
-
-```bash
-printf '%s' '{"provider":"scholarly-search","task_packet":{"topic":"causal inference in management research"}}' | python3 scripts/mcp_scholarly_search.py
-```
-
-如果返回 `HTTP Error 429`，说明 provider 本身是可达的，但当前被限流了。这时应优先补 `SEMANTIC_SCHOLAR_API_KEY`，或者把 `scholarly-search` 切到你自己的多源 MCP。
+审阅提取结果后，再提出结构化论点和来源关联，保存时保留不确定性与未解决的冲突。
+[Research Graph](../guide/cli-2x.md#research-graph) 用来检查已经保存的关系，
+不能代替筛选决定，也不能证明检索召回率。

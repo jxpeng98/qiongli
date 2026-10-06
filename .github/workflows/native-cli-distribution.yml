@@ -1,0 +1,199 @@
+name: Native CLI distribution
+
+on:
+  push:
+    branches: ['main', '2.x', 'codex/cli-distribution-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-distribution-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and install (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: macos-14, target: aarch64-apple-darwin}
+          - {os: windows-2022, target: x86_64-pc-windows-msvc}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: dtolnay/rust-toolchain@1.97.0
+        with:
+          components: rustfmt, clippy
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            packages/qiongli-native/target
+          key: cli-${{ matrix.target }}-1.97-${{ hashFiles('packages/qiongli-native/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: cli-${{ matrix.target }}-1.97-${{ hashFiles('packages/qiongli-native/Cargo.lock') }}-
+      - name: Build, package and install on target
+        shell: bash
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('packages/qiongli-native/Cargo.toml','rb'))['workspace']['package']['version'])")
+          python tooling/scripts/native_cli_release.py --version "$version" --target '${{ matrix.target }}' --out-dir "$RUNNER_TEMP/cli-candidate"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: ${{ runner.temp }}/cli-candidate/assets
+          if-no-files-found: error
+
+  build-linux:
+    name: Build and install (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    # Keep the published glibc 2.35 baseline while moving the hosted runners to 24.04.
+    container: ubuntu:22.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-24.04, target: x86_64-unknown-linux-gnu}
+          - {os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu}
+    steps:
+      - name: Install build prerequisites
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates curl git build-essential pkg-config libssl-dev zstd
+      - uses: actions/checkout@v4
+      - name: Trust the container checkout
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: '0.12.22'
+          python-version: '3.12'
+          activate-environment: true
+          no-project: true
+          venv-path: ${{ runner.temp }}/release-python
+      - name: Install pip in release Python
+        run: uv pip install pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check Linux build baseline
+        run: |
+          test "$(getconf GNU_LIBC_VERSION)" = 'glibc 2.35'
+          python --version
+          python -m pip --version
+      - uses: dtolnay/rust-toolchain@1.97.0
+        with:
+          components: rustfmt, clippy
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            packages/qiongli-native/target
+          key: cli-${{ matrix.target }}-1.97-glibc235-${{ hashFiles('packages/qiongli-native/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: cli-${{ matrix.target }}-1.97-glibc235-${{ hashFiles('packages/qiongli-native/Cargo.lock') }}-
+      - name: Install Linux wheel audit tools
+        run: python -m pip install auditwheel patchelf
+      - name: Build, package and install on target
+        shell: bash
+        run: |
+          umask 022
+          version=$(python -c "import tomllib; print(tomllib.load(open('packages/qiongli-native/Cargo.toml','rb'))['workspace']['package']['version'])")
+          python tooling/scripts/native_cli_release.py --version "$version" --target '${{ matrix.target }}' --out-dir "$RUNNER_TEMP/cli-candidate"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: ${{ runner.temp }}/cli-candidate/assets
+          if-no-files-found: error
+
+  assemble:
+    needs: [build, build-linux]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/targets
+      - name: Check native distribution tooling
+        run: |
+          python -m pip install PyYAML
+          python -m unittest tests.test_native_registry_packages tests.test_native_marketplace_plugins tests.test_native_release_assets tests.test_native_cli_release -q
+      - name: Assemble registry packages and platform Plugins
+        shell: bash
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('packages/qiongli-native/Cargo.toml','rb'))['workspace']['package']['version'])")
+          python tooling/scripts/native_release_assets.py assemble --root "$RUNNER_TEMP/targets" --out "$RUNNER_TEMP/combined/assets" --version "$version" --commit "$GITHUB_SHA"
+          python tooling/scripts/native_release_assets.py verify --root "$RUNNER_TEMP/combined/assets" --version "$version" --commit "$GITHUB_SHA"
+          python -m pip install twine
+          python -m twine check "$RUNNER_TEMP/combined/assets/"*.whl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-release-assets
+          path: ${{ runner.temp }}/combined/assets
+          if-no-files-found: error
+
+  install:
+    name: Verify combined package (${{ matrix.os }})
+    needs: assemble
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, ubuntu-24.04, windows-2022, ubuntu-24.04-arm]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          name: cli-release-assets
+          path: ${{ runner.temp }}/assets
+      - name: Check bundled Plugins and install registry packages
+        shell: bash
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('packages/qiongli-native/Cargo.toml','rb'))['workspace']['package']['version'])")
+          python tooling/scripts/native_release_assets.py install-input --root "$RUNNER_TEMP/assets" --version "$version" --commit "$GITHUB_SHA"
+          python scripts/native_registry_install_check.py --packages "$RUNNER_TEMP/assets" --out-dir "$RUNNER_TEMP/install-check" --version "$version"
+      - name: Upgrade published packages and preserve prior data
+        shell: bash
+        run: python tooling/scripts/native_registry_upgrade_check.py --packages "$RUNNER_TEMP/assets" --out-dir "$RUNNER_TEMP/upgrade-check"
+      - name: Upgrade from the 2.3.0 native release
+        shell: bash
+        run: python tooling/scripts/native_registry_upgrade_check.py --packages "$RUNNER_TEMP/assets" --out-dir "$RUNNER_TEMP/upgrade-2.3.0-check" --predecessor-version 2.3.0
+      - name: Check Windows npm command shims
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & "$env:RUNNER_TEMP/install-check/npm/qiongli.cmd" --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$env:RUNNER_TEMP/install-check/npm/ql.cmd" --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: install-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/install-check/install-check.json
+            ${{ runner.temp }}/upgrade-check/registry-upgrade-check.json
+            ${{ runner.temp }}/upgrade-2.3.0-check/registry-upgrade-check.json
+            ${{ runner.temp }}/assets/marketplace-install-check.json

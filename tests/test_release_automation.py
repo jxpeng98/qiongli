@@ -103,13 +103,14 @@ class ReleaseAutomationTests(unittest.TestCase):
             )
         )
 
+        docs = " ".join(docs.split())
         self.assertIn("Beta releases are optional validation releases", docs)
         self.assertIn("Beta channel policy", docs)
         self.assertIn("Beta 通道策略", docs)
-        self.assertIn("beta 不是每个 stable release 的必经步骤", docs)
-        self.assertIn("npm `latest` advances", docs)
-        self.assertIn("npm `next` remains on the previous beta", docs)
-        self.assertIn("不要为了移动 `next` 而机械发 beta", docs)
+        self.assertIn("Beta 并非每次正式发布的必经步骤", docs)
+        self.assertIn("A stable release advances npm", docs)
+        self.assertIn("`next` may stay on the earlier beta", docs)
+        self.assertIn("不必只为移动 `next` 再发一个 Beta", docs)
         self.assertIn("before tag creation", docs)
         self.assertIn("创建 tag 前", docs)
         self.assertIn("--resume-after-ready", docs)
@@ -312,7 +313,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("push:", main_content)
         self.assertIn("pull_request:", main_content)
         self.assertIn("workflow_dispatch:", main_content)
-        self.assertIn('branches: ["main", "master", "dev"]', main_content)
+        self.assertIn('branches: ["dev", "release/1.x-python"]', main_content)
+        self.assertNotIn('"main"', main_content)
         self.assertNotIn('branches: ["2.x"]', main_content)
         self.assertIn("os: [ubuntu-latest, macos-latest]", main_content)
         self.assertIn("runs-on: windows-latest", main_content)
@@ -715,7 +717,7 @@ class ReleaseAutomationTests(unittest.TestCase):
             content = output.read_text(encoding="utf-8")
             for token in (
                 "Release Notes",
-                "Stage: Alpha",
+                f"Stage: {'Beta' if '-beta.' in native_tag else 'Alpha' if '-alpha.' in native_tag else 'Stable'}",
                 "Validation Evidence",
                 "Publish Steps",
                 "rollback.md",
@@ -743,7 +745,7 @@ class ReleaseAutomationTests(unittest.TestCase):
             self.assertEqual(rejected.returncode, 2)
             self.assertIn("reject legacy", rejected.stderr)
 
-    def test_release_workflow_is_diagnostic_wrapper_not_publish_entrypoint(self) -> None:
+    def test_release_workflow_separates_diagnostics_from_authorized_native_publication(self) -> None:
         content = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
         self.assertIn("workflow_dispatch:", content)
@@ -773,7 +775,12 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('--print-field package_version', content)
         self.assertIn("native-release-dry-run:", content)
         self.assertIn("legacy-release-automation:", content)
-        native_job, legacy_job = content.split("  legacy-release-automation:\n", 1)
+        native_jobs, legacy_job = content.split("  legacy-release-automation:\n", 1)
+        native_job, publication_job = native_jobs.split("  native-publish:\n", 1)
+        self.assertIn("inputs.mode == 'post' && inputs.create_release", publication_job)
+        self.assertIn("contents: write", publication_job)
+        self.assertIn("actions: write", publication_job)
+        self.assertIn('native_release_publish.py --tag "$RELEASE_TAG"', publication_job)
         self.assertIn("contents: read", native_job)
         self.assertIn("persist-credentials: false", native_job)
         self.assertIn("dtolnay/rust-toolchain@1.97.0", native_job)
@@ -790,8 +797,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         content = PUBLISH_TESTPYPI_WORKFLOW.read_text(encoding="utf-8")
 
         self.assertIn("github.ref_type == 'branch'", content)
-        self.assertIn("github.ref_name == 'main'", content)
-        self.assertIn("github.ref_name == 'dev'", content)
+        self.assertNotIn("github.ref_name == 'main'", content)
+        self.assertNotIn("github.ref_name == 'dev'", content)
         self.assertIn("github.ref_name == 'release/1.x-python'", content)
         self.assertIn('--print-field release_line', content)
         self.assertIn('if [[ "$release_line" != "legacy-1x" ]]; then', content)
@@ -804,19 +811,23 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('packages-dir: ${{ runner.temp }}/qiongli-dist/dist', content)
         self.assertNotIn('bash scripts/verify_release_tag_version.sh --tag "${GITHUB_REF_NAME}"', content)
 
-    def test_tag_publish_workflows_do_not_expose_manual_publish_dispatch(self) -> None:
+    def test_tag_publish_workflows_limit_manual_publication_to_native_tags(self) -> None:
         for workflow in (PUBLISH_PYPI_WORKFLOW, PUBLISH_NPM_WORKFLOW):
             with self.subTest(workflow=workflow.name):
                 content = workflow.read_text(encoding="utf-8")
 
-                self.assertNotIn("workflow_dispatch:", content)
+                self.assertIn("workflow_dispatch:", content)
+                self.assertIn("inputs.publish_release && github.ref_type == 'tag'", content)
+                self.assertIn("startsWith(github.ref_name, 'v2.')", content)
                 self.assertNotIn("inputs.tag", content)
                 self.assertIn("push:", content)
                 self.assertIn('tags:\n      - "v*"', content)
                 self.assertIn("ref: ${{ github.ref }}", content)
                 self.assertIn("RELEASE_TAG: ${{ github.ref_name }}", content)
                 self.assertIn('bash scripts/verify_release_tag_version.sh --root "$RUNNER_TEMP/qiongli-dist" --tag "${RELEASE_TAG}"', content)
-                self.assertIn("if: ${{ !startsWith(github.ref_name, 'v2.') }}", content)
+                self.assertIn("if: ${{ github.event_name == 'push' && !startsWith(github.ref_name, 'v2.') }}", content)
+                self.assertIn("types: [published]", content)
+                self.assertIn("--require-ci", content)
                 self.assertIn('release_line="$(python3 scripts/release_version.py "${RELEASE_TAG}" --print-field release_line)"', content)
                 self.assertIn('if [[ "$release_line" == "native-2x" ]]; then', content)
 
@@ -852,7 +863,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("--root <dir>", content)
         self.assertIn('ROOT_DIR="$(cd "$2" && pwd)"', content)
         self.assertIn('cd "$ROOT_DIR"', content)
-        self.assertIn('python3 scripts/release_version.py "$TAG" --print-field "$field"', content)
+        self.assertIn('"${QIONGLI_PYTHON:-python3}" scripts/release_version.py "$TAG" --print-field "$field"', content)
         self.assertIn('expected_package_version="$(release_field package_version)"', content)
         self.assertIn('expected_release_line="$(release_field release_line)"', content)
         self.assertIn('expected_channel="$(release_field channel)"', content)
@@ -888,7 +899,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('plugins/qiongli-next/skills/qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertNotIn('plugins/qiongli/gemini-extension.json', content)
-        self.assertIn('python3 scripts/audit_distribution_payloads.py --root "$ROOT_DIR"', content)
+        self.assertIn('"${QIONGLI_PYTHON:-python3}" scripts/audit_distribution_payloads.py --root "$ROOT_DIR"', content)
 
     def test_native_preflight_uses_external_plan_and_native_cargo_gates(self) -> None:
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")

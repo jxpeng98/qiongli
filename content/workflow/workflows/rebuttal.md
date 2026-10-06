@@ -1,5 +1,5 @@
 ---
-description: 把审稿意见转成可执行 revision 计划 + response matrix + response letter
+description: "Turn reviewer comments into a revision plan, response matrix, and response letter."
 ---
 
 # Rebuttal / Revision Response

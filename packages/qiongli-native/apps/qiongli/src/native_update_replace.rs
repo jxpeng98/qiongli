@@ -17,14 +17,13 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::update_reconcile::{
-    activate_prepared_reconciliation, cleanup_committed_reconciliation,
+    acquire_replacement_lock, activate_prepared_reconciliation, cleanup_committed_reconciliation,
     cleanup_rolled_back_reconciliation, load_reconciliation_journal, reconciliation_journal_sha256,
     rollback_active_reconciliation, verify_active_reconciliation, verify_prepared_reconciliation,
 };
 
 const JOURNAL_FILE: &str = "replacement-journal.json";
 const HEALTH_TOKEN_FILE: &str = "replacement-health-token";
-const REPLACEMENT_LOCK_FILE: &str = ".replacement.lock";
 const FAILED_APPLICATION_DIRECTORY: &str = "failed-application";
 const APPLICATION_NAME: &str = "Qiongli.app";
 const CANONICAL_BINARY_NAME: &str = "qiongli-cli";
@@ -52,6 +51,13 @@ enum ReplacementCheckpoint {
     AfterHealthWindow,
     BeforeHealthCommit,
     AfterHealthCommit,
+    AfterFailedApplicationPark,
+    AfterRecoveryApplicationRestore,
+    BeforeRollbackStateClear,
+    BeforeRecoveryMarkerClear,
+    BeforeCommittedBackupCleanup,
+    AfterCommittedBackupCleanup,
+    BeforeCommittedMarkerClear,
 }
 
 #[cfg(test)]
@@ -295,6 +301,8 @@ pub(crate) fn confirm_replacement_health(
         }
         let reconciliation = load_reconciliation_journal(store, transaction_id)?;
         if reconciliation_journal_sha256(&reconciliation)? != journal.reconciliation_journal_sha256
+            || reconciliation.target_version != journal.target_version
+            || reconciliation.target_pack_sha256 != journal.resource_pack_sha256
         {
             return Err("native-update-health-check-failed");
         }
@@ -337,7 +345,6 @@ fn run_macos_helper(transaction_id: &str) -> Result<(), &'static str> {
         return Err("native-update-reconciliation-invalid");
     }
     validate_running_helper(&journal)?;
-    let _lock = acquire_replacement_lock(&store)?;
     let handoff = (|| {
         let transaction_root = journal
             .staged_application
@@ -349,43 +356,624 @@ fn run_macos_helper(transaction_id: &str) -> Result<(), &'static str> {
         validate_replacement_filesystem(transaction_root, &journal.destination_application)?;
         Ok(())
     })();
+    let home = env::var_os("HOME")
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
+        .ok_or("native-update-home-unavailable")?;
     if let Err(error) = handoff {
-        restore_pre_activation_state(&store, &journal);
+        let _home_lock = crate::update_reconcile::acquire_native_home_write_lock(&home)?;
+        crate::update_reconcile::refuse_native_home_activation(&home)?;
+        let _lock = acquire_replacement_lock(&store)?;
+        restore_pre_activation_state(&store, &journal)?;
         return Err(error);
     }
-    continue_replacement_after_handoff(&store, &journal, &reconciliation, || {
+    continue_replacement_after_handoff(&home, &store, &journal, &reconciliation, || {
         run_health_process(&journal)
     })
 }
 
+const LEGACY_ROLLBACK_RECORD: &str = "legacy-rollback-v1.json";
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct LegacyRollbackRecord {
+    schema_version: u32,
+    marker_sha256: String,
+    prior_release_sha256: String,
+    old_binary_sha256: String,
+}
+
+#[cfg(target_os = "macos")]
+fn legacy_application_binary(application: &Path) -> Result<PathBuf, &'static str> {
+    let binary = application
+        .join("Contents/MacOS")
+        .join(CANONICAL_BINARY_NAME);
+    validate_current_application(application, &binary)?;
+    Ok(binary)
+}
+
+#[cfg(target_os = "macos")]
+fn legacy_rollback_record(
+    store: &UpdateStateStore,
+    journal: &ReplacementJournalV1,
+    original_application: &Path,
+) -> Result<LegacyRollbackRecord, &'static str> {
+    let loaded = store.load().map_err(|error| error.reason_code())?;
+    let prior_release_sha256 = sha256_hex(
+        &serde_json::to_vec(&(
+            loaded.state.last_accepted_generation,
+            &loaded.state.last_known_good,
+        ))
+        .map_err(|_| "native-update-journal-invalid")?,
+    );
+    let marker_sha256 =
+        sha256_hex(&serde_json::to_vec(journal).map_err(|_| "native-update-journal-invalid")?);
+    let root = store.staging_root().join(&journal.transaction_id);
+    validate_owned_private_directory(&root)?;
+    let path = root.join(LEGACY_ROLLBACK_RECORD);
+    if fs::symlink_metadata(&path).is_ok() {
+        let bytes = read_private_file(&path, MAX_JOURNAL_BYTES)?;
+        let record: LegacyRollbackRecord =
+            serde_json::from_slice(&bytes).map_err(|_| "native-update-recovery-record-invalid")?;
+        if record.schema_version != 1
+            || record.marker_sha256 != marker_sha256
+            || record.prior_release_sha256 != prior_release_sha256
+            || !valid_sha256(&record.old_binary_sha256)
+        {
+            return Err("native-update-recovery-record-invalid");
+        }
+        return Ok(record);
+    }
+    let old = legacy_application_binary(original_application)?;
+    let record = LegacyRollbackRecord {
+        schema_version: 1,
+        marker_sha256,
+        prior_release_sha256,
+        old_binary_sha256: sha256_file(&old, 512 * 1024 * 1024)?,
+    };
+    write_new_private_file(
+        &path,
+        &serde_json::to_vec(&record).map_err(|_| "native-update-recovery-record-invalid")?,
+    )?;
+    sync_directory(&root)?;
+    Ok(record)
+}
+
+#[cfg(target_os = "macos")]
+fn refuse_running_replacement_applications(
+    store: &UpdateStateStore,
+    journal: &ReplacementJournalV1,
+) -> Result<(), &'static str> {
+    let failed = store
+        .staging_root()
+        .join(&journal.transaction_id)
+        .join(FAILED_APPLICATION_DIRECTORY);
+    refuse_running_installation_paths(&[
+        &journal.destination_application,
+        &journal.backup_application,
+        &journal.staged_application,
+        &failed,
+    ])
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn refuse_running_installation_paths(paths: &[&Path]) -> Result<(), &'static str> {
+    let output = crate::desktop::installation_process_output()?;
+    refuse_mapped_application_paths(&output, paths)
+}
+
+#[cfg(target_os = "linux")]
+pub(crate) fn refuse_running_installation_paths(paths: &[&Path]) -> Result<(), &'static str> {
+    refuse_running_linux_paths(Path::new("/proc"), paths)
+}
+
+#[cfg(target_os = "linux")]
+fn refuse_running_linux_paths(proc_root: &Path, paths: &[&Path]) -> Result<(), &'static str> {
+    use rustix::fs::{Mode, OFlags};
+    use std::os::unix::ffi::{OsStrExt, OsStringExt};
+    const FAILED: &str = "native-update-process-inspection-failed";
+    if paths.iter().any(|path| {
+        !path.is_absolute()
+            || path
+                .components()
+                .any(|part| matches!(part, Component::ParentDir))
+            || path.as_os_str().as_bytes().iter().any(u8::is_ascii_control)
+    }) {
+        return Err(FAILED);
+    }
+    // hidepid=4 can hide even same-user processes that cannot be ptraced.
+    let mut mounts = Vec::new();
+    File::open(proc_root.join("self/mountinfo"))
+        .map_err(|_| FAILED)?
+        .take(1024 * 1024 + 1)
+        .read_to_end(&mut mounts)
+        .map_err(|_| FAILED)?;
+    if mounts.len() > 1024 * 1024 {
+        return Err(FAILED);
+    }
+    let mounts = std::str::from_utf8(&mounts).map_err(|_| FAILED)?;
+    let mut proc_mounts = mounts
+        .lines()
+        .filter(|line| line.split_whitespace().nth(4) == Some("/proc"));
+    let proc_mount = proc_mounts.next().ok_or(FAILED)?;
+    if proc_mounts.next().is_some() {
+        return Err(FAILED);
+    }
+    let (_, details) = proc_mount.split_once(" - ").ok_or(FAILED)?;
+    let fields: Vec<_> = details.split_whitespace().collect();
+    if fields.len() != 3
+        || fields[0] != "proc"
+        || fields[2].split(',').any(|option| {
+            option.starts_with("hidepid=")
+                && !matches!(
+                    option,
+                    "hidepid=0"
+                        | "hidepid=1"
+                        | "hidepid=2"
+                        | "hidepid=off"
+                        | "hidepid=noaccess"
+                        | "hidepid=invisible"
+                )
+        })
+    {
+        return Err(FAILED);
+    }
+    let started = Instant::now();
+    let uid = rustix::process::geteuid().as_raw();
+    for (index, entry) in fs::read_dir(proc_root).map_err(|_| FAILED)?.enumerate() {
+        if index >= 65_536 || started.elapsed() > Duration::from_secs(10) {
+            return Err(FAILED);
+        }
+        let entry = entry.map_err(|_| FAILED)?;
+        let name = entry.file_name();
+        if name.as_bytes().is_empty() || !name.as_bytes().iter().all(u8::is_ascii_digit) {
+            continue;
+        }
+        let directory = match rustix::fs::open(
+            entry.path(),
+            OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC | OFlags::NOFOLLOW,
+            Mode::empty(),
+        ) {
+            Ok(directory) => directory,
+            Err(rustix::io::Errno::NOENT) => continue,
+            Err(_) => return Err(FAILED),
+        };
+        // Anchor both reads to one proc directory, so PID reuse cannot retarget them.
+        let Some(bytes) = linux_process_status(&directory)? else {
+            continue;
+        };
+        let mut uid_lines = bytes
+            .split(|byte| *byte == b'\n')
+            .filter_map(|line| line.strip_prefix(b"Uid:"));
+        let values = std::str::from_utf8(uid_lines.next().ok_or(FAILED)?).map_err(|_| FAILED)?;
+        if uid_lines.next().is_some() {
+            return Err(FAILED);
+        }
+        let ids = values
+            .split_whitespace()
+            .map(str::parse::<u32>)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| FAILED)?;
+        if ids.len() != 4 {
+            return Err(FAILED);
+        }
+        if !ids.contains(&uid) {
+            continue;
+        }
+        if bytes
+            .split(|byte| *byte == b'\n')
+            .any(|line| line == b"Kthread:\t1")
+        {
+            continue;
+        }
+        let executable = match rustix::fs::readlinkat(&directory, "exe", Vec::new()) {
+            Ok(executable) => executable,
+            Err(rustix::io::Errno::NOENT) => {
+                // Re-read through the same descriptor: the process may have exited
+                // since the first status read. A zombie leader with other threads
+                // remains ambiguous and must still block replacement.
+                match linux_process_status(&directory)? {
+                    None => continue,
+                    Some(status) if linux_process_is_complete_zombie(&status) => continue,
+                    Some(_) => return Err(FAILED),
+                }
+            }
+            Err(_) => return Err(FAILED),
+        };
+        let raw = executable.as_bytes();
+        // A missing or unreadable exe is ambiguous (including an exited main thread).
+        // Keep both forms: a literal filename can itself end with " (deleted)".
+        for value in [raw, raw.strip_suffix(b" (deleted)").unwrap_or(raw)] {
+            let executable = PathBuf::from(OsString::from_vec(value.to_vec()));
+            if !executable.is_absolute() {
+                return Err(FAILED);
+            }
+            if paths.iter().any(|path| executable.starts_with(path)) {
+                return Err("native-update-application-running");
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn linux_process_status(directory: &rustix::fd::OwnedFd) -> Result<Option<Vec<u8>>, &'static str> {
+    use rustix::fs::{Mode, OFlags};
+    const FAILED: &str = "native-update-process-inspection-failed";
+    let status = match rustix::fs::openat(
+        directory,
+        "status",
+        OFlags::RDONLY | OFlags::CLOEXEC | OFlags::NOFOLLOW,
+        Mode::empty(),
+    ) {
+        Ok(status) => status,
+        Err(rustix::io::Errno::NOENT | rustix::io::Errno::SRCH) => return Ok(None),
+        Err(_) => return Err(FAILED),
+    };
+    let mut bytes = Vec::new();
+    if let Err(error) = File::from(status).take(65_537).read_to_end(&mut bytes) {
+        if error.raw_os_error() == Some(rustix::io::Errno::SRCH.raw_os_error()) {
+            return Ok(None);
+        }
+        return Err(FAILED);
+    }
+    if bytes.len() > 65_536 {
+        return Err(FAILED);
+    }
+    Ok(Some(bytes))
+}
+
+#[cfg(target_os = "linux")]
+fn linux_process_is_complete_zombie(status: &[u8]) -> bool {
+    let Ok(status) = std::str::from_utf8(status) else {
+        return false;
+    };
+    let mut states = status
+        .lines()
+        .filter_map(|line| line.strip_prefix("State:"));
+    let mut threads = status
+        .lines()
+        .filter_map(|line| line.strip_prefix("Threads:"));
+    states.next().map(str::trim) == Some("Z (zombie)")
+        && states.next().is_none()
+        && threads.next().map(str::trim) == Some("1")
+        && threads.next().is_none()
+}
+
+#[cfg(target_os = "macos")]
+fn refuse_mapped_application_paths(
+    output: &str,
+    applications: &[&Path],
+) -> Result<(), &'static str> {
+    use std::os::unix::ffi::OsStrExt;
+    let applications: Vec<PathBuf> = applications
+        .iter()
+        .map(|path| {
+            let mut encoded = String::new();
+            for byte in path.as_os_str().as_bytes() {
+                if byte.is_ascii_control() {
+                    return Err("native-update-process-inspection-failed");
+                }
+                if byte.is_ascii() {
+                    encoded.push(char::from(*byte));
+                } else {
+                    use std::fmt::Write;
+                    write!(&mut encoded, "\\x{byte:02x}")
+                        .map_err(|_| "native-update-process-inspection-failed")?;
+                }
+            }
+            Ok(PathBuf::from(encoded))
+        })
+        .collect::<Result<_, _>>()?;
+    let mut process_seen = false;
+    let mut path_seen = false;
+    if !output.ends_with('\n') {
+        return Err("native-update-process-inspection-failed");
+    }
+    for field in output.split('\0') {
+        let field = field.strip_prefix('\n').unwrap_or(field);
+        if field.is_empty() {
+            continue;
+        }
+        if let Some(pid) = field.strip_prefix('p') {
+            if pid.parse::<u32>().ok().is_none_or(|value| value == 0) {
+                return Err("native-update-process-inspection-failed");
+            }
+            process_seen = true;
+        } else if field == "ftxt" {
+            if !process_seen {
+                return Err("native-update-process-inspection-failed");
+            }
+        } else if let Some(name) = field.strip_prefix('n') {
+            if !process_seen || !Path::new(name).is_absolute() {
+                return Err("native-update-process-inspection-failed");
+            }
+            path_seen = true;
+            if applications
+                .iter()
+                .any(|application| Path::new(name).starts_with(application))
+            {
+                return Err("native-update-application-running");
+            }
+        } else {
+            return Err("native-update-process-inspection-failed");
+        }
+    }
+    if !process_seen || !path_seen {
+        return Err("native-update-process-inspection-failed");
+    }
+    Ok(())
+}
+
+pub(crate) struct LegacyRecoveryPlan {
+    pub(crate) transaction_id: String,
+    pub(crate) marker_sha256: String,
+    pub(crate) committed: bool,
+}
+
+/// Read-only selection of a supported recovery path; mutation revalidates all evidence.
+pub(crate) fn preview_legacy_recovery(
+    home: &Path,
+    store: &UpdateStateStore,
+) -> Result<LegacyRecoveryPlan, &'static str> {
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (home, store);
+        Err("native-update-target-unsupported")
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let marker = crate::update_reconcile::read_installation_marker(home)?;
+        let journal: ReplacementJournalV1 =
+            serde_json::from_slice(&marker).map_err(|_| "native-update-journal-invalid")?;
+        validate_journal(&journal, store, &journal.transaction_id)?;
+        let loaded = store.load().map_err(|error| error.reason_code())?;
+        let committed = confirm_committed_state(store, &journal).is_ok();
+        if !committed
+            && (loaded.state.last_accepted_generation >= journal.generation
+                || loaded
+                    .state
+                    .active_transaction
+                    .as_ref()
+                    .is_some_and(|transaction| {
+                        transaction.transaction_id != journal.transaction_id
+                            || transaction.target_version != journal.target_version
+                            || !matches!(
+                                transaction.phase,
+                                UpdateTransactionPhase::HealthWindow
+                                    | UpdateTransactionPhase::RecoveryRequired
+                            )
+                    }))
+        {
+            return Err("native-update-transaction-state-invalid");
+        }
+        Ok(LegacyRecoveryPlan {
+            transaction_id: journal.transaction_id,
+            marker_sha256: sha256_hex(&marker),
+            committed,
+        })
+    }
+}
+
+/// Finish only a durably committed legacy update; never rerun health or roll back.
+/// The caller owns filesystem-write approval and process checks.
+pub fn recover_legacy_committed_cleanup(
+    home: &Path,
+    store: &UpdateStateStore,
+    expected_marker_sha256: &str,
+) -> Result<(), &'static str> {
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (home, store, expected_marker_sha256);
+        Err("native-update-target-unsupported")
+    }
+    #[cfg(target_os = "macos")]
+    {
+        if !valid_sha256(expected_marker_sha256) {
+            return Err("native-update-journal-invalid");
+        }
+        let _home_lock = crate::update_reconcile::acquire_native_home_write_lock(home)?;
+        let _lock = acquire_replacement_lock(store)?;
+        let marker = crate::update_reconcile::read_installation_marker(home)?;
+        if sha256_hex(&marker) != expected_marker_sha256 {
+            return Err("native-activation-journal-mismatch");
+        }
+        let journal: ReplacementJournalV1 =
+            serde_json::from_slice(&marker).map_err(|_| "native-update-journal-invalid")?;
+        validate_journal(&journal, store, &journal.transaction_id)?;
+        refuse_running_replacement_applications(store, &journal)?;
+        let reconciliation = load_reconciliation_journal(store, &journal.transaction_id)?;
+        if reconciliation_journal_sha256(&reconciliation)? != journal.reconciliation_journal_sha256
+            || reconciliation.target_version != journal.target_version
+            || reconciliation.target_pack_sha256 != journal.resource_pack_sha256
+        {
+            return Err("native-update-reconciliation-invalid");
+        }
+        cleanup_committed_replacement(store, &journal, &reconciliation)?;
+        replacement_checkpoint(ReplacementCheckpoint::BeforeCommittedMarkerClear)?;
+        crate::update_reconcile::clear_installation_marker(home, &marker)
+    }
+}
+
+/// Roll back an interrupted legacy health window using the exact approved Home marker.
+/// The caller owns filesystem-write approval and must not be the running replacement.
+pub fn recover_legacy_health_interruption(
+    home: &Path,
+    store: &UpdateStateStore,
+    expected_marker_sha256: &str,
+) -> Result<(), &'static str> {
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (home, store, expected_marker_sha256);
+        Err("native-update-target-unsupported")
+    }
+    #[cfg(target_os = "macos")]
+    {
+        if !valid_sha256(expected_marker_sha256) {
+            return Err("native-update-journal-invalid");
+        }
+        let _home_lock = crate::update_reconcile::acquire_native_home_write_lock(home)?;
+        let _lock = acquire_replacement_lock(store)?;
+        let marker = crate::update_reconcile::read_installation_marker(home)?;
+        if sha256_hex(&marker) != expected_marker_sha256 {
+            return Err("native-activation-journal-mismatch");
+        }
+        let journal: ReplacementJournalV1 =
+            serde_json::from_slice(&marker).map_err(|_| "native-update-journal-invalid")?;
+        validate_journal(&journal, store, &journal.transaction_id)?;
+        refuse_running_replacement_applications(store, &journal)?;
+        let loaded = store.load().map_err(|error| error.reason_code())?;
+        if loaded
+            .state
+            .active_transaction
+            .as_ref()
+            .is_some_and(|transaction| {
+                transaction.transaction_id != journal.transaction_id
+                    || transaction.target_version != journal.target_version
+                    || !matches!(
+                        transaction.phase,
+                        UpdateTransactionPhase::HealthWindow
+                            | UpdateTransactionPhase::RecoveryRequired
+                    )
+            })
+            || loaded.state.last_accepted_generation >= journal.generation
+        {
+            return Err("native-update-transaction-state-invalid");
+        }
+        let reconciliation = load_reconciliation_journal(store, &journal.transaction_id)?;
+        if reconciliation_journal_sha256(&reconciliation)? != journal.reconciliation_journal_sha256
+            || reconciliation.target_version != journal.target_version
+            || reconciliation.target_pack_sha256 != journal.resource_pack_sha256
+        {
+            return Err("native-update-reconciliation-invalid");
+        }
+        let failed = store
+            .staging_root()
+            .join(&journal.transaction_id)
+            .join(FAILED_APPLICATION_DIRECTORY);
+        let backup_present = journal
+            .backup_application
+            .try_exists()
+            .map_err(|_| "native-update-recovery-required")?;
+        if !backup_present {
+            ensure_absent(&journal.backup_application)?;
+        }
+        let destination_present = journal
+            .destination_application
+            .try_exists()
+            .map_err(|_| "native-update-recovery-required")?;
+        let failed_present = failed
+            .try_exists()
+            .map_err(|_| "native-update-recovery-required")?;
+        if !failed_present {
+            ensure_absent(&failed)?;
+        }
+        if backup_present {
+            if loaded.state.active_transaction.is_none() || destination_present == failed_present {
+                return Err("native-update-recovery-required");
+            }
+            let new_application = if destination_present {
+                &journal.destination_application
+            } else {
+                &failed
+            };
+            validate_staged_executable(
+                &legacy_application_binary(new_application)?,
+                &journal.canonical_binary_sha256,
+            )?;
+        } else if !destination_present {
+            return Err("native-update-recovery-required");
+        } else if failed_present {
+            validate_staged_executable(
+                &legacy_application_binary(&failed)?,
+                &journal.canonical_binary_sha256,
+            )?;
+        }
+        let record = legacy_rollback_record(store, &journal, &journal.backup_application)?;
+        let old_application = if backup_present {
+            &journal.backup_application
+        } else {
+            &journal.destination_application
+        };
+        validate_staged_executable(
+            &legacy_application_binary(old_application)?,
+            &record.old_binary_sha256,
+        )?;
+        if loaded.state.active_transaction.is_some() {
+            let mut recovering = loaded.state;
+            recovering
+                .active_transaction
+                .as_mut()
+                .ok_or("native-update-transaction-missing")?
+                .phase = UpdateTransactionPhase::RecoveryRequired;
+            let reserved = store
+                .replace(loaded.revision, recovering)
+                .map_err(|error| error.reason_code())?;
+            if reserved.cleanup_required {
+                return Err("native-update-state-cleanup-required");
+            }
+        }
+        rollback_active_reconciliation(&reconciliation)?;
+        if backup_present {
+            if destination_present {
+                rollback_activated_application(store, &journal)?;
+            } else {
+                ensure_absent(&journal.destination_application)?;
+                rename_without_replacement(
+                    &journal.backup_application,
+                    &journal.destination_application,
+                )?;
+                sync_directory(
+                    journal
+                        .destination_application
+                        .parent()
+                        .ok_or("native-update-recovery-required")?,
+                )?;
+            }
+        }
+        replacement_checkpoint(ReplacementCheckpoint::AfterRecoveryApplicationRestore)?;
+        finish_rolled_back_replacement(store, &journal, &reconciliation)?;
+        replacement_checkpoint(ReplacementCheckpoint::BeforeRecoveryMarkerClear)?;
+        crate::update_reconcile::clear_installation_marker(home, &marker)
+    }
+}
+
 #[cfg(target_os = "macos")]
 fn continue_replacement_after_handoff(
+    home: &Path,
     store: &UpdateStateStore,
     journal: &ReplacementJournalV1,
     reconciliation: &crate::update_reconcile::ReconciliationJournalV1,
     run_health: impl FnOnce() -> Result<(), &'static str>,
 ) -> Result<(), &'static str> {
+    let _home_lock = crate::update_reconcile::acquire_native_home_write_lock(home)?;
+    crate::update_reconcile::refuse_native_home_activation(home)?;
+    let _lock = acquire_replacement_lock(store)?;
     if let Err(error) = transition_phase(
         store,
         &journal.transaction_id,
         UpdateTransactionPhase::AwaitingExit,
         UpdateTransactionPhase::Activating,
     ) {
-        restore_pre_activation_state(store, journal);
+        restore_pre_activation_state(store, journal)?;
         return Err(error);
     }
+    let marker = serde_json::to_vec(journal).map_err(|_| "native-update-journal-invalid")?;
+    crate::update_reconcile::bind_installation_marker(home, &marker)?;
+    legacy_rollback_record(store, journal, &journal.destination_application)?;
     if let Err(error) = activate_application(journal) {
         if error == "native-update-recovery-required" {
             mark_recovery_required(store, &journal.transaction_id);
             return Err(error);
         }
-        restore_pre_activation_state(store, journal);
+        restore_pre_activation_state(store, journal)?;
+        crate::update_reconcile::clear_installation_marker(home, &marker)?;
         return Err(error);
     }
     if let Err(error) = activate_prepared_reconciliation(reconciliation) {
         rollback_activated_application(store, journal)?;
-        cleanup_rolled_back_reconciliation(reconciliation)
-            .map_err(|_| "native-update-reconciliation-cleanup-required")?;
+        finish_rolled_back_replacement(store, journal, reconciliation)?;
+        crate::update_reconcile::clear_installation_marker(home, &marker)?;
         return Err(error);
     }
     if transition_phase(
@@ -399,23 +987,25 @@ fn continue_replacement_after_handoff(
         rollback_active_reconciliation(reconciliation)
             .map_err(|_| "native-update-recovery-required")?;
         rollback_activated_application(store, journal)?;
-        cleanup_rolled_back_reconciliation(reconciliation)
-            .map_err(|_| "native-update-reconciliation-cleanup-required")?;
+        finish_rolled_back_replacement(store, journal, reconciliation)?;
+        crate::update_reconcile::clear_installation_marker(home, &marker)?;
         return Err("native-update-recovery-required");
     }
     if let Err(error) = run_health() {
         if confirm_committed_state(store, journal).is_ok() {
-            return cleanup_committed_replacement(store, journal, reconciliation);
+            cleanup_committed_replacement(store, journal, reconciliation)?;
+            return crate::update_reconcile::clear_installation_marker(home, &marker);
         }
         rollback_active_reconciliation(reconciliation)
             .map_err(|_| "native-update-recovery-required")?;
         rollback_activated_application(store, journal)?;
-        cleanup_rolled_back_reconciliation(reconciliation)
-            .map_err(|_| "native-update-reconciliation-cleanup-required")?;
+        finish_rolled_back_replacement(store, journal, reconciliation)?;
+        crate::update_reconcile::clear_installation_marker(home, &marker)?;
         return Err(health_failure_reason(error));
     }
     confirm_committed_state(store, journal)?;
-    cleanup_committed_replacement(store, journal, reconciliation)
+    cleanup_committed_replacement(store, journal, reconciliation)?;
+    crate::update_reconcile::clear_installation_marker(home, &marker)
 }
 
 #[cfg(target_os = "macos")]
@@ -424,18 +1014,56 @@ fn cleanup_committed_replacement(
     journal: &ReplacementJournalV1,
     reconciliation: &crate::update_reconcile::ReconciliationJournalV1,
 ) -> Result<(), &'static str> {
-    cleanup_committed_reconciliation(reconciliation)?;
-    fs::remove_dir_all(&journal.backup_application)
+    confirm_committed_state(store, journal)?;
+    validate_staged_executable(
+        &legacy_application_binary(&journal.destination_application)?,
+        &journal.canonical_binary_sha256,
+    )?;
+    let record: LegacyRollbackRecord = serde_json::from_slice(&read_private_file(
+        &store
+            .staging_root()
+            .join(&journal.transaction_id)
+            .join(LEGACY_ROLLBACK_RECORD),
+        MAX_JOURNAL_BYTES,
+    )?)
+    .map_err(|_| "native-update-recovery-record-invalid")?;
+    if record.schema_version != 1
+        || !valid_sha256(&record.prior_release_sha256)
+        || !valid_sha256(&record.old_binary_sha256)
+        || record.marker_sha256
+            != sha256_hex(
+                &serde_json::to_vec(journal).map_err(|_| "native-update-journal-invalid")?,
+            )
+    {
+        return Err("native-update-recovery-record-invalid");
+    }
+    let backup_present = journal
+        .backup_application
+        .try_exists()
         .map_err(|_| "native-update-backup-cleanup-required")?;
+    if backup_present {
+        validate_staged_executable(
+            &legacy_application_binary(&journal.backup_application)?,
+            &record.old_binary_sha256,
+        )?;
+    } else {
+        ensure_absent(&journal.backup_application)?;
+    }
+    cleanup_committed_reconciliation(reconciliation)?;
+    replacement_checkpoint(ReplacementCheckpoint::BeforeCommittedBackupCleanup)?;
+    if backup_present {
+        fs::remove_dir_all(&journal.backup_application)
+            .map_err(|_| "native-update-backup-cleanup-required")?;
+    }
     sync_directory(
         journal
             .backup_application
             .parent()
             .ok_or("native-update-installation-layout-invalid")?,
     )?;
-    let transaction_root = store.staging_root().join(&journal.transaction_id);
-    fs::remove_dir_all(&transaction_root).map_err(|_| "native-update-staging-cleanup-required")?;
-    sync_directory(&store.staging_root())
+    replacement_checkpoint(ReplacementCheckpoint::AfterCommittedBackupCleanup)?;
+    // ponytail: retain transaction evidence and downloads; add bounded garbage collection separately.
+    sync_directory(&store.staging_root().join(&journal.transaction_id))
 }
 
 #[cfg(target_os = "macos")]
@@ -510,12 +1138,42 @@ fn rollback_activated_application(
     store: &UpdateStateStore,
     journal: &ReplacementJournalV1,
 ) -> Result<(), &'static str> {
+    let loaded = store.load().map_err(|error| error.reason_code())?;
+    let mut state = loaded.state;
+    let transaction = state
+        .active_transaction
+        .as_mut()
+        .filter(|transaction| {
+            transaction.transaction_id == journal.transaction_id
+                && transaction.target_version == journal.target_version
+        })
+        .ok_or("native-update-transaction-state-invalid")?;
+    if !matches!(
+        transaction.phase,
+        UpdateTransactionPhase::Activating
+            | UpdateTransactionPhase::HealthWindow
+            | UpdateTransactionPhase::RecoveryRequired
+    ) || state.last_accepted_generation >= journal.generation
+    {
+        return Err("native-update-transaction-state-invalid");
+    }
+    if transaction.phase != UpdateTransactionPhase::RecoveryRequired {
+        transaction.phase = UpdateTransactionPhase::RecoveryRequired;
+        let reserved = store
+            .replace(loaded.revision, state)
+            .map_err(|error| error.reason_code())?;
+        if reserved.cleanup_required {
+            return Err("native-update-state-cleanup-required");
+        }
+    }
+    legacy_rollback_record(store, journal, &journal.backup_application)?;
     let failed = store
         .staging_root()
         .join(&journal.transaction_id)
         .join(FAILED_APPLICATION_DIRECTORY);
     ensure_absent(&failed)?;
     rename_without_replacement(&journal.destination_application, &failed)?;
+    replacement_checkpoint(ReplacementCheckpoint::AfterFailedApplicationPark)?;
     if rename_without_replacement(
         &journal.backup_application,
         &journal.destination_application,
@@ -531,37 +1189,68 @@ fn rollback_activated_application(
             .parent()
             .ok_or("native-update-installation-layout-invalid")?,
     )?;
-    let _ = fs::remove_dir_all(&failed);
-    clear_failed_transaction(store, &journal.transaction_id)?;
-    let transaction_root = store.staging_root().join(&journal.transaction_id);
-    let _ = fs::remove_dir_all(&transaction_root);
-    let _ = sync_directory(&store.staging_root());
     Ok(())
 }
 
 #[cfg(target_os = "macos")]
-fn restore_pre_activation_state(store: &UpdateStateStore, journal: &ReplacementJournalV1) {
+fn finish_rolled_back_replacement(
+    store: &UpdateStateStore,
+    journal: &ReplacementJournalV1,
+    reconciliation: &crate::update_reconcile::ReconciliationJournalV1,
+) -> Result<(), &'static str> {
+    cleanup_rolled_back_reconciliation(reconciliation)
+        .map_err(|_| "native-update-reconciliation-cleanup-required")?;
+    let transaction_root = store.staging_root().join(&journal.transaction_id);
+    let failed = transaction_root.join(FAILED_APPLICATION_DIRECTORY);
+    match fs::symlink_metadata(&failed) {
+        Ok(metadata) if metadata.is_dir() && !metadata.file_type().is_symlink() => {
+            fs::remove_dir_all(&failed).map_err(|_| "native-update-staging-cleanup-required")?;
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        _ => return Err("native-update-staging-cleanup-required"),
+    }
+    sync_directory(&transaction_root)?;
+    // Keep the journal and health contract as recovery evidence across the state CAS.
+    replacement_checkpoint(ReplacementCheckpoint::BeforeRollbackStateClear)?;
+    clear_failed_transaction(store, &journal.transaction_id)
+}
+
+#[cfg(target_os = "macos")]
+fn restore_pre_activation_state(
+    store: &UpdateStateStore,
+    journal: &ReplacementJournalV1,
+) -> Result<(), &'static str> {
     if journal.backup_application.exists() && !journal.destination_application.exists() {
-        let _ = rename_without_replacement(
+        rename_without_replacement(
             &journal.backup_application,
             &journal.destination_application,
-        );
+        )?;
     }
-    let Ok(loaded) = store.load() else {
-        return;
-    };
+    ensure_absent(&journal.backup_application)?;
+    if !journal.destination_application.is_dir() || !journal.staged_application.is_dir() {
+        return Err("native-update-recovery-required");
+    }
+    let loaded = store.load().map_err(|error| error.reason_code())?;
     let mut state = loaded.state;
-    if let Some(transaction) = state.active_transaction.as_mut()
-        && transaction.transaction_id == journal.transaction_id
-    {
-        transaction.phase = UpdateTransactionPhase::ReconciliationPrepared;
-        if store.replace(loaded.revision, state).is_ok()
-            && let Some(transaction_root) =
-                journal.staged_application.parent().and_then(Path::parent)
-        {
-            remove_replacement_contract(transaction_root);
-        }
+    let transaction = state
+        .active_transaction
+        .as_mut()
+        .filter(|transaction| transaction.transaction_id == journal.transaction_id)
+        .ok_or("native-update-transaction-state-invalid")?;
+    transaction.phase = UpdateTransactionPhase::ReconciliationPrepared;
+    let outcome = store
+        .replace(loaded.revision, state)
+        .map_err(|error| error.reason_code())?;
+    if outcome.cleanup_required {
+        return Err("native-update-state-cleanup-required");
     }
+    let transaction_root = journal
+        .staged_application
+        .parent()
+        .and_then(Path::parent)
+        .ok_or("native-update-journal-invalid")?;
+    remove_replacement_contract(transaction_root);
+    Ok(())
 }
 
 #[cfg(target_os = "macos")]
@@ -712,6 +1401,7 @@ fn confirm_committed_state(
         .ok_or("native-update-health-state-invalid")?;
     if loaded.state.active_transaction.is_some()
         || loaded.state.last_accepted_generation != journal.generation
+        || last_known_good.channel != journal.target_channel
         || last_known_good.version != journal.target_version
         || last_known_good.generation != journal.generation
         || last_known_good.archive_sha256 != journal.archive_sha256
@@ -855,6 +1545,7 @@ fn validate_journal(
     store: &UpdateStateStore,
     transaction_id: &str,
 ) -> Result<(), &'static str> {
+    validate_transaction_id(transaction_id)?;
     let transaction_root = store.staging_root().join(transaction_id);
     let expected_staged = transaction_root.join("application").join(APPLICATION_NAME);
     let expected_backup = journal
@@ -1115,52 +1806,6 @@ fn run_bounded_child(command: &mut Command) -> Result<(), &'static str> {
 }
 
 #[cfg(target_os = "macos")]
-fn acquire_replacement_lock(store: &UpdateStateStore) -> Result<File, &'static str> {
-    use std::fs::TryLockError;
-    use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
-
-    let updates_root = store
-        .staging_root()
-        .parent()
-        .ok_or("native-update-staging-unavailable")?
-        .to_path_buf();
-    let lock_path = updates_root.join(REPLACEMENT_LOCK_FILE);
-    if let Ok(metadata) = fs::symlink_metadata(&lock_path)
-        && (metadata.file_type().is_symlink()
-            || !metadata.is_file()
-            || metadata.uid() != rustix::process::geteuid().as_raw()
-            || metadata.mode() & 0o077 != 0)
-    {
-        return Err("native-update-replacement-lock-unsafe");
-    }
-    let lock = OpenOptions::new()
-        .create(true)
-        .truncate(false)
-        .read(true)
-        .write(true)
-        .mode(0o600)
-        .open(&lock_path)
-        .map_err(|_| "native-update-replacement-lock-unavailable")?;
-    let opened = lock
-        .metadata()
-        .map_err(|_| "native-update-replacement-lock-unavailable")?;
-    let linked = fs::symlink_metadata(&lock_path)
-        .map_err(|_| "native-update-replacement-lock-unavailable")?;
-    if opened.uid() != rustix::process::geteuid().as_raw()
-        || opened.mode() & 0o077 != 0
-        || opened.dev() != linked.dev()
-        || opened.ino() != linked.ino()
-    {
-        return Err("native-update-replacement-lock-unsafe");
-    }
-    match lock.try_lock() {
-        Ok(()) => Ok(lock),
-        Err(TryLockError::WouldBlock) => Err("native-update-replacement-active"),
-        Err(TryLockError::Error(_)) => Err("native-update-replacement-lock-unavailable"),
-    }
-}
-
-#[cfg(target_os = "macos")]
 fn rename_without_replacement(source: &Path, destination: &Path) -> Result<(), &'static str> {
     rustix::fs::renameat_with(
         rustix::fs::CWD,
@@ -1282,6 +1927,7 @@ fn ensure_absent(path: &Path) -> Result<(), &'static str> {
 }
 
 fn remove_replacement_contract(transaction_root: &Path) {
+    let _ = fs::remove_file(transaction_root.join(LEGACY_ROLLBACK_RECORD));
     let _ = fs::remove_file(transaction_root.join(JOURNAL_FILE));
     let _ = fs::remove_file(transaction_root.join(HEALTH_TOKEN_FILE));
     let _ = sync_directory(transaction_root);
@@ -1383,6 +2029,135 @@ fn health_failure_reason(error: &'static str) -> &'static str {
 
 #[cfg(test)]
 mod tests {
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_process_guard_rejects_ambiguous_and_deleted_executables() {
+        use std::os::unix::fs::symlink;
+        let root =
+            std::env::temp_dir().join(format!("qiongli-linux-proc-fixture-{}", std::process::id()));
+        fs::create_dir(&root).unwrap();
+        fs::create_dir(root.join("self")).unwrap();
+        let mounts = root.join("self/mountinfo");
+        fs::write(&mounts, b"1 2 0:1 / /proc rw - proc proc rw\n").unwrap();
+        fs::create_dir(root.join("123")).unwrap();
+        let uid = rustix::process::geteuid().as_raw();
+        let status = format!("Uid:\t{uid}\t{uid}\t{uid}\t{uid}\n");
+        fs::write(root.join("123/status"), &status).unwrap();
+        let paths = [Path::new("/managed/qiongli")];
+        assert_eq!(
+            refuse_running_linux_paths(&root, &paths),
+            Err("native-update-process-inspection-failed")
+        );
+        for (state, threads, allowed) in [
+            ("Z (zombie)", "1", true),
+            ("Z (zombie)", "2", false),
+            ("S (sleeping)", "1", false),
+            ("Z (zombie)", "0", false),
+            ("Z (zombie)\nState:\tS (sleeping)", "1", false),
+            ("Z (zombie)", "1\nThreads:\t2", false),
+        ] {
+            fs::write(
+                root.join("123/status"),
+                format!("{status}State:\t{state}\nThreads:\t{threads}\n"),
+            )
+            .unwrap();
+            assert_eq!(refuse_running_linux_paths(&root, &paths).is_ok(), allowed);
+        }
+        fs::write(root.join("123/status"), &status).unwrap();
+        for (target, blocked) in [
+            ("/managed/qiongli", true),
+            ("/managed/qiongli (deleted)", true),
+            ("/managed/qiongli-extra", false),
+        ] {
+            symlink(target, root.join("123/exe")).unwrap();
+            let result = refuse_running_linux_paths(&root, &paths);
+            if blocked {
+                assert_eq!(result, Err("native-update-application-running"));
+            } else {
+                assert!(result.is_ok());
+            }
+            fs::remove_file(root.join("123/exe")).unwrap();
+        }
+        symlink("/managed/qiongli", root.join("123/exe")).unwrap();
+        fs::write(root.join("123/status"), format!("{status}{status}")).unwrap();
+        assert_eq!(
+            refuse_running_linux_paths(&root, &paths),
+            Err("native-update-process-inspection-failed")
+        );
+        let other = uid.wrapping_add(1);
+        fs::write(
+            root.join("123/status"),
+            format!("Uid:\t{other}\t{other}\t{other}\t{other}\n"),
+        )
+        .unwrap();
+        assert!(refuse_running_linux_paths(&root, &paths).is_ok());
+        fs::write(&mounts, b"1 2 0:1 / /proc rw - proc proc rw,hidepid=4\n").unwrap();
+        assert_eq!(
+            refuse_running_linux_paths(&root, &paths),
+            Err("native-update-process-inspection-failed")
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    #[allow(
+        clippy::disallowed_methods,
+        reason = "this test holds an exited OS child until after process inspection"
+    )]
+    fn linux_process_guard_allows_an_unreaped_exited_child() {
+        let mut child = Command::new("/bin/true").spawn().unwrap();
+        let status_path = PathBuf::from(format!("/proc/{}/status", child.id()));
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let exited = loop {
+            let status = fs::read(&status_path).unwrap();
+            if linux_process_is_complete_zombie(&status) {
+                break true;
+            }
+            if Instant::now() >= deadline {
+                break false;
+            }
+            thread::sleep(Duration::from_millis(10));
+        };
+        let result = refuse_running_installation_paths(&[Path::new("/unused/qiongli")]);
+        let _ = child.kill();
+        child.wait().unwrap();
+        assert!(exited);
+        assert_eq!(result, Ok(()));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    #[allow(
+        clippy::disallowed_methods,
+        reason = "this test launches a copied OS sleep executable to verify live and unlinked process detection"
+    )]
+    fn linux_process_guard_observes_a_live_and_unlinked_child() {
+        let root =
+            std::env::temp_dir().join(format!("qiongli-linux-live-proc-{}", std::process::id()));
+        fs::create_dir(&root).unwrap();
+        // /proc/exe resolves symlinked temp roots used by hosted runners.
+        let root = root.canonicalize().unwrap();
+        let executable = root.join("sleep-copy");
+        fs::copy("/bin/sleep", &executable).unwrap();
+        let mut child = Command::new(&executable)
+            .arg("30")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let live = refuse_running_installation_paths(&[&executable]);
+        fs::remove_file(&executable).unwrap();
+        let unlinked = refuse_running_installation_paths(&[&executable]);
+        let _ = child.kill();
+        child.wait().unwrap();
+        assert_eq!(live, Err("native-update-application-running"));
+        assert_eq!(unlinked, Err("native-update-application-running"));
+        assert!(refuse_running_installation_paths(&[&executable]).is_ok());
+        fs::remove_dir_all(root).unwrap();
+    }
     use super::*;
     #[cfg(target_os = "macos")]
     use crate::update_reconcile::empty_reconciliation_journal;
@@ -1451,6 +2226,7 @@ mod tests {
             let fixture = replacement_fixture(&format!("pre-health-{checkpoint:?}"), false);
             let result = with_replacement_interruption(checkpoint, || {
                 continue_replacement_after_handoff(
+                    &fixture.root,
                     &fixture.store,
                     &fixture.journal,
                     &fixture.reconciliation,
@@ -1465,6 +2241,376 @@ mod tests {
     }
 
     #[cfg(target_os = "macos")]
+    fn recover_through_cli(fixture: &ReplacementFixture, digest: &str, expected_mode: &str) {
+        use crate::update_cli::{UpdateCliCommand, execute};
+        let environment =
+            crate::command::CommandEnvironment::with_paths(None, Some(fixture.root.clone()), None);
+        let content = crate::embedded_content().unwrap();
+        let run = |command| execute(command, &fixture.store, None, None, &environment, &content);
+        let before = fixture.store.load().unwrap();
+        let preview =
+            serde_json::to_value(run(UpdateCliCommand::RecoveryPreview).unwrap()).unwrap();
+        assert_eq!(preview["command"], "update-recovery-preview");
+        assert_eq!(preview["marker_sha256"], digest);
+        assert_eq!(preview["mode"], expected_mode);
+        assert_eq!(fixture.store.load().unwrap(), before);
+        assert_eq!(
+            run(UpdateCliCommand::Recover {
+                expected_marker_sha256: digest.to_owned(),
+                approve_filesystem_write: false,
+            }),
+            Err("native-update-recovery-approval-required")
+        );
+        assert_eq!(
+            run(UpdateCliCommand::Recover {
+                expected_marker_sha256: "0".repeat(64),
+                approve_filesystem_write: true,
+            }),
+            Err("native-activation-journal-mismatch")
+        );
+        assert_eq!(fixture.store.load().unwrap(), before);
+        let recovered = serde_json::to_value(
+            run(UpdateCliCommand::Recover {
+                expected_marker_sha256: digest.to_owned(),
+                approve_filesystem_write: true,
+            })
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(recovered["command"], "update-recover");
+        assert_eq!(recovered["mode"], expected_mode);
+        assert_eq!(recovered["marker_sha256"], digest);
+        assert_eq!(recovered["transaction_id"], preview["transaction_id"]);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn interrupted_desktop_health_keeps_other_config_writers_excluded() {
+        for checkpoint in [
+            ReplacementCheckpoint::AfterFailedApplicationPark,
+            ReplacementCheckpoint::AfterRecoveryApplicationRestore,
+            ReplacementCheckpoint::BeforeRollbackStateClear,
+            ReplacementCheckpoint::BeforeRecoveryMarkerClear,
+        ] {
+            let mut fixture = replacement_fixture("durable-home-marker", false);
+            let macos = fixture.journal.staged_application.join("Contents/MacOS");
+            create_private_tree(&macos);
+            fs::write(macos.join(CANONICAL_BINARY_NAME), b"new-canonical").unwrap();
+            fixture.journal.canonical_binary_sha256 = sha256_hex(b"new-canonical");
+            fixture.journal.reconciliation_journal_sha256 =
+                reconciliation_journal_sha256(&fixture.reconciliation).unwrap();
+            let interrupted = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let _ = continue_replacement_after_handoff(
+                    &fixture.root,
+                    &fixture.store,
+                    &fixture.journal,
+                    &fixture.reconciliation,
+                    || panic!("interrupted health"),
+                );
+            }));
+            assert!(interrupted.is_err());
+            assert_eq!(
+                fixture
+                    .store
+                    .load()
+                    .unwrap()
+                    .state
+                    .active_transaction
+                    .unwrap()
+                    .phase,
+                UpdateTransactionPhase::HealthWindow
+            );
+            let config = resolve_config_root(
+                Some(fixture.root.join("another-config").as_os_str()),
+                &fixture.root,
+            )
+            .unwrap();
+            assert_eq!(
+                crate::update_reconcile::acquire_managed_write_guard(&fixture.root, config.clone())
+                    .unwrap_err(),
+                "native-activation-recovery-required"
+            );
+            let marker = serde_json::to_vec(&fixture.journal).unwrap();
+            assert_eq!(
+                recover_legacy_health_interruption(&fixture.root, &fixture.store, &"0".repeat(64)),
+                Err("native-activation-journal-mismatch")
+            );
+            let canonical = fixture
+                .journal
+                .destination_application
+                .join("Contents/MacOS")
+                .join(CANONICAL_BINARY_NAME);
+            fs::write(&canonical, b"drifted-canonical").unwrap();
+            assert_eq!(
+                recover_legacy_health_interruption(
+                    &fixture.root,
+                    &fixture.store,
+                    &sha256_hex(&marker)
+                ),
+                Err("native-update-staged-application-drift")
+            );
+            assert!(fixture.journal.backup_application.exists());
+            assert!(
+                fixture
+                    .store
+                    .load()
+                    .unwrap()
+                    .state
+                    .active_transaction
+                    .is_some()
+            );
+            fs::write(&canonical, b"new-canonical").unwrap();
+            assert_eq!(
+                with_replacement_interruption(checkpoint, || recover_legacy_health_interruption(
+                    &fixture.root,
+                    &fixture.store,
+                    &sha256_hex(&marker)
+                )),
+                Err(TEST_INTERRUPTION)
+            );
+            assert!(
+                fixture
+                    .root
+                    .join(".qiongli/native/active-installation.json")
+                    .exists()
+            );
+            let record_path = fixture.transaction_root.join(LEGACY_ROLLBACK_RECORD);
+            let original_record = fs::read(&record_path).unwrap();
+            for field in ["schema_version", "marker_sha256", "prior_release_sha256"] {
+                let mut changed: serde_json::Value =
+                    serde_json::from_slice(&original_record).unwrap();
+                changed[field] = if field == "schema_version" {
+                    serde_json::json!(2)
+                } else {
+                    serde_json::json!("0".repeat(64))
+                };
+                fs::write(&record_path, serde_json::to_vec(&changed).unwrap()).unwrap();
+                assert_eq!(
+                    recover_legacy_health_interruption(
+                        &fixture.root,
+                        &fixture.store,
+                        &sha256_hex(&marker)
+                    ),
+                    Err("native-update-recovery-record-invalid")
+                );
+            }
+            fs::write(&record_path, original_record).unwrap();
+            let old_application = if fixture.journal.backup_application.exists() {
+                &fixture.journal.backup_application
+            } else {
+                &fixture.journal.destination_application
+            };
+            let old_binary = legacy_application_binary(old_application).unwrap();
+            fs::write(&old_binary, b"drifted-old-binary").unwrap();
+            assert_eq!(
+                recover_legacy_health_interruption(
+                    &fixture.root,
+                    &fixture.store,
+                    &sha256_hex(&marker)
+                ),
+                Err("native-update-staged-application-drift")
+            );
+            fs::write(&old_binary, b"old-known-good").unwrap();
+            recover_through_cli(&fixture, &sha256_hex(&marker), "rollback");
+            drop(
+                crate::update_reconcile::acquire_managed_write_guard(&fixture.root, config)
+                    .unwrap(),
+            );
+            assert_rolled_back(&fixture);
+            fs::remove_dir_all(fixture.root).unwrap();
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn process_snapshot_requires_valid_fields_and_exact_application_components() {
+        let applications = [Path::new("/Applications/Qiongli.app")];
+        assert_eq!(
+            refuse_mapped_application_paths(
+                "p42\0\nftxt\0n/bin/test\0\n",
+                &[Path::new("/Applications/Qiongli\n.app")]
+            ),
+            Err("native-update-process-inspection-failed")
+        );
+        assert_eq!(
+            refuse_mapped_application_paths(
+                "p42\0\nftxt\0n/Applications/Qiongli.app/Contents/MacOS/qiongli-cli\0\n",
+                &applications
+            ),
+            Err("native-update-application-running")
+        );
+        assert!(
+            refuse_mapped_application_paths(
+                "p42\0\nn/Applications/Qiongli.app-copy/Contents/MacOS/qiongli-cli\0\n",
+                &applications
+            )
+            .is_ok()
+        );
+        for invalid in [
+            "",
+            "p0\0\nn/bin/test\0\n",
+            "n/bin/test\0\n",
+            "p42\0\nnrelative\0\n",
+            "p42\0\n",
+            "p42\0\nn/bin/test",
+        ] {
+            assert_eq!(
+                refuse_mapped_application_paths(invalid, &applications),
+                Err("native-update-process-inspection-failed")
+            );
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    #[allow(
+        clippy::disallowed_methods,
+        reason = "this test launches a copied OS sleep executable to verify live-process detection"
+    )]
+    fn process_inspection_detects_a_live_application_and_allows_it_after_exit() {
+        let root = test_root("live-process-inspection");
+        let application = root.join("Qiongli 测试.app");
+        let macos = application.join("Contents/MacOS");
+        create_private_tree(&macos);
+        let executable = macos.join("test-sleep");
+        fs::copy("/bin/sleep", &executable).unwrap();
+        let mut child = Command::new(&executable)
+            .arg("30")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let running = crate::desktop::installation_process_output()
+            .and_then(|output| refuse_mapped_application_paths(&output, &[&application]));
+        let _ = child.kill();
+        child.wait().unwrap();
+        assert_eq!(running, Err("native-update-application-running"));
+        let output = crate::desktop::installation_process_output().unwrap();
+        assert!(refuse_mapped_application_paths(&output, &[&application]).is_ok());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn committed_cleanup_recovers_without_rolling_back_or_advancing_state() {
+        let fixture = replacement_fixture("committed-cleanup-recovery", false);
+        assert_eq!(
+            with_replacement_interruption(
+                ReplacementCheckpoint::BeforeCommittedBackupCleanup,
+                || continue_replacement_after_handoff(
+                    &fixture.root,
+                    &fixture.store,
+                    &fixture.journal,
+                    &fixture.reconciliation,
+                    || commit_replacement_health(&fixture.store, &fixture.journal).map(|_| ())
+                )
+            ),
+            Err(TEST_INTERRUPTION)
+        );
+        let digest = sha256_hex(&serde_json::to_vec(&fixture.journal).unwrap());
+        assert_eq!(
+            recover_legacy_committed_cleanup(&fixture.root, &fixture.store, &"0".repeat(64)),
+            Err("native-activation-journal-mismatch")
+        );
+        let loaded = fixture.store.load().unwrap();
+        let mut changed = loaded.state.clone();
+        changed.last_known_good.as_mut().unwrap().archive_sha256 = "e".repeat(64);
+        let changed = fixture.store.replace(loaded.revision, changed).unwrap();
+        assert_eq!(
+            recover_legacy_committed_cleanup(&fixture.root, &fixture.store, &digest),
+            Err("native-update-health-state-invalid")
+        );
+        fixture
+            .store
+            .replace(changed.revision, loaded.state)
+            .unwrap();
+        let before = fixture.store.load().unwrap();
+        for (application, original) in [
+            (
+                &fixture.journal.destination_application,
+                b"new-known-good".as_slice(),
+            ),
+            (
+                &fixture.journal.backup_application,
+                b"old-known-good".as_slice(),
+            ),
+        ] {
+            let binary = legacy_application_binary(application).unwrap();
+            fs::write(&binary, b"foreign-bytes").unwrap();
+            assert_eq!(
+                recover_legacy_committed_cleanup(&fixture.root, &fixture.store, &digest),
+                Err("native-update-staged-application-drift")
+            );
+            assert!(fixture.journal.backup_application.exists());
+            fs::write(&binary, original).unwrap();
+        }
+        for checkpoint in [
+            ReplacementCheckpoint::AfterCommittedBackupCleanup,
+            ReplacementCheckpoint::BeforeCommittedMarkerClear,
+        ] {
+            assert_eq!(
+                with_replacement_interruption(checkpoint, || recover_legacy_committed_cleanup(
+                    &fixture.root,
+                    &fixture.store,
+                    &digest
+                )),
+                Err(TEST_INTERRUPTION)
+            );
+            assert!(!fixture.journal.backup_application.exists());
+            assert!(fixture.transaction_root.join(JOURNAL_FILE).exists());
+            assert_eq!(fixture.store.load().unwrap(), before);
+            assert!(
+                fixture
+                    .root
+                    .join(".qiongli/native/active-installation.json")
+                    .exists()
+            );
+        }
+        recover_through_cli(&fixture, &digest, "committed-cleanup");
+        assert_eq!(fixture.store.load().unwrap(), before);
+        assert_committed(&fixture);
+        fs::remove_dir_all(fixture.root).unwrap();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn desktop_replacement_refuses_native_activation_without_changing_state() {
+        let fixture = replacement_fixture("native-activation-exclusion", false);
+        let before = fixture.store.load().unwrap();
+        let held = crate::update_reconcile::acquire_native_home_write_lock(&fixture.root).unwrap();
+        assert_eq!(
+            continue_replacement_after_handoff(
+                &fixture.root,
+                &fixture.store,
+                &fixture.journal,
+                &fixture.reconciliation,
+                || panic!("health must not run")
+            ),
+            Err("native-update-replacement-active")
+        );
+        drop(held);
+        let marker = fixture
+            .root
+            .join(".qiongli/native/active-installation.json");
+        fs::write(&marker, b"pending-native-activation").unwrap();
+        assert_eq!(
+            continue_replacement_after_handoff(
+                &fixture.root,
+                &fixture.store,
+                &fixture.journal,
+                &fixture.reconciliation,
+                || panic!("health must not run")
+            ),
+            Err("native-activation-recovery-required")
+        );
+        assert_eq!(fixture.store.load().unwrap(), before);
+        assert!(fixture.journal.staged_application.exists());
+        assert!(!fixture.journal.backup_application.exists());
+        fs::remove_dir_all(&fixture.root).unwrap();
+    }
+
+    #[cfg(target_os = "macos")]
     #[test]
     fn rel_913_health_window_interruptions_roll_back_without_advancing_last_known_good() {
         for checkpoint in [
@@ -1475,6 +2621,7 @@ mod tests {
             let fixture = replacement_fixture(&format!("health-window-{checkpoint:?}"), false);
             let result = with_replacement_interruption(checkpoint, || {
                 continue_replacement_after_handoff(
+                    &fixture.root,
                     &fixture.store,
                     &fixture.journal,
                     &fixture.reconciliation,
@@ -1502,6 +2649,7 @@ mod tests {
         let result =
             with_replacement_interruption(ReplacementCheckpoint::AfterHealthCommit, || {
                 continue_replacement_after_handoff(
+                    &fixture.root,
                     &fixture.store,
                     &fixture.journal,
                     &fixture.reconciliation,
@@ -1555,6 +2703,10 @@ mod tests {
             created_at_unix: 1,
         };
         assert!(validate_journal(&journal, &store, transaction_id).is_ok());
+        assert_eq!(
+            validate_journal(&journal, &store, "invalid-id"),
+            Err("native-update-transaction-id-invalid")
+        );
         journal.staged_application = root.join("attacker-controlled.app");
         assert_eq!(
             validate_journal(&journal, &store, transaction_id),
@@ -1610,14 +2762,43 @@ mod tests {
             backup,
         );
 
+        write_new_private_file(&transaction_root.join(JOURNAL_FILE), b"rollback-evidence").unwrap();
         rollback_activated_application(&store, &journal).unwrap();
+        assert!(store.load().unwrap().state.active_transaction.is_some());
+        let reconciliation =
+            empty_reconciliation_journal(transaction_id, "2.0.0-alpha.2", &"2".repeat(64));
+        let failed = transaction_root.join(FAILED_APPLICATION_DIRECTORY);
+        let saved = transaction_root.join("saved-failed-application");
+        fs::rename(&failed, &saved).unwrap();
+        fs::write(&failed, b"foreign-file").unwrap();
+        assert_eq!(
+            finish_rolled_back_replacement(&store, &journal, &reconciliation),
+            Err("native-update-staging-cleanup-required")
+        );
+        assert!(store.load().unwrap().state.active_transaction.is_some());
+        assert_eq!(
+            fs::read(transaction_root.join(JOURNAL_FILE)).unwrap(),
+            b"rollback-evidence"
+        );
+        assert_eq!(fs::read(&failed).unwrap(), b"foreign-file");
+        fs::remove_file(&failed).unwrap();
+        std::os::unix::fs::symlink(transaction_root.join("missing-target"), &failed).unwrap();
+        assert_eq!(
+            finish_rolled_back_replacement(&store, &journal, &reconciliation),
+            Err("native-update-staging-cleanup-required")
+        );
+        assert!(store.load().unwrap().state.active_transaction.is_some());
+        fs::remove_file(&failed).unwrap();
+        fs::rename(&saved, &failed).unwrap();
+        finish_rolled_back_replacement(&store, &journal, &reconciliation).unwrap();
 
         assert_eq!(
             fs::read(destination.join("payload")).unwrap(),
             b"known-good"
         );
         assert!(store.load().unwrap().state.active_transaction.is_none());
-        assert!(!transaction_root.exists());
+        assert!(transaction_root.join(JOURNAL_FILE).exists());
+        assert!(!failed.exists());
         let _ = fs::remove_dir_all(root);
     }
 
@@ -1650,7 +2831,13 @@ mod tests {
             applications.join(format!(".Qiongli.app.qiongli-backup-{transaction_id}")),
         );
 
-        restore_pre_activation_state(&store, &journal);
+        assert_eq!(
+            restore_pre_activation_state(&store, &journal),
+            Err("native-update-recovery-required")
+        );
+        assert!(transaction_root.join(JOURNAL_FILE).exists());
+        create_directory_with_file(&journal.staged_application, b"staged-new");
+        restore_pre_activation_state(&store, &journal).unwrap();
 
         assert_eq!(
             store
@@ -1749,9 +2936,18 @@ mod tests {
         let destination = applications.join(APPLICATION_NAME);
         create_directory_with_file(&destination, b"old-known-good");
         let backup = applications.join(format!(".Qiongli.app.qiongli-backup-{transaction_id}"));
-        let journal = journal_fixture(destination, staged, backup);
+        let mut journal = journal_fixture(destination, staged, backup);
+        journal.canonical_binary_sha256 = sha256_hex(b"new-known-good");
+        journal.resource_pack_sha256 = "2".repeat(64);
         let reconciliation =
             empty_reconciliation_journal(transaction_id, "2.0.0-alpha.2", &"2".repeat(64));
+        journal.reconciliation_journal_sha256 =
+            reconciliation_journal_sha256(&reconciliation).unwrap();
+        write_new_private_file(
+            &transaction_root.join(crate::update_reconcile::RECONCILIATION_JOURNAL_FILE),
+            &serde_json_canonicalizer::to_vec(&reconciliation).unwrap(),
+        )
+        .unwrap();
         ReplacementFixture {
             root,
             store,
@@ -1778,6 +2974,18 @@ mod tests {
 
     #[cfg(target_os = "macos")]
     fn assert_retryable_staged(fixture: &ReplacementFixture) {
+        assert!(
+            !fixture
+                .transaction_root
+                .join(LEGACY_ROLLBACK_RECORD)
+                .exists()
+        );
+        assert!(
+            !fixture
+                .root
+                .join(".qiongli/native/active-installation.json")
+                .exists()
+        );
         let loaded = fixture.store.load().unwrap();
         assert_eq!(
             loaded.state.active_transaction.unwrap().phase,
@@ -1798,6 +3006,12 @@ mod tests {
 
     #[cfg(target_os = "macos")]
     fn assert_rolled_back(fixture: &ReplacementFixture) {
+        assert!(
+            !fixture
+                .root
+                .join(".qiongli/native/active-installation.json")
+                .exists()
+        );
         let loaded = fixture.store.load().unwrap();
         assert!(loaded.state.active_transaction.is_none());
         assert_eq!(loaded.state.last_accepted_generation, 1);
@@ -1807,11 +3021,23 @@ mod tests {
             b"old-known-good"
         );
         assert!(!fixture.journal.backup_application.exists());
-        assert!(!fixture.transaction_root.exists());
+        assert!(fixture.transaction_root.join(JOURNAL_FILE).exists());
+        assert!(
+            !fixture
+                .transaction_root
+                .join(FAILED_APPLICATION_DIRECTORY)
+                .exists()
+        );
     }
 
     #[cfg(target_os = "macos")]
     fn assert_committed(fixture: &ReplacementFixture) {
+        assert!(
+            !fixture
+                .root
+                .join(".qiongli/native/active-installation.json")
+                .exists()
+        );
         let loaded = fixture.store.load().unwrap();
         assert!(loaded.state.active_transaction.is_none());
         assert_eq!(loaded.state.last_accepted_generation, 2);
@@ -1823,7 +3049,7 @@ mod tests {
             b"new-known-good"
         );
         assert!(!fixture.journal.backup_application.exists());
-        assert!(!fixture.transaction_root.exists());
+        assert!(fixture.transaction_root.join(JOURNAL_FILE).exists());
     }
 
     #[cfg(target_os = "macos")]
@@ -1856,6 +3082,12 @@ mod tests {
 
     #[cfg(target_os = "macos")]
     fn create_directory_with_file(path: &Path, bytes: &[u8]) {
+        create_private_tree(&path.join("Contents/MacOS"));
+        fs::write(
+            path.join("Contents/MacOS").join(CANONICAL_BINARY_NAME),
+            bytes,
+        )
+        .unwrap();
         create_private_tree(path);
         fs::write(path.join("payload"), bytes).unwrap();
     }

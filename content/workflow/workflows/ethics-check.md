@@ -1,5 +1,5 @@
 ---
-description: 生成伦理/IRB 文档包（consent、recruitment、data security、statement）
+description: "Prepare research ethics documents, including consent, recruitment, data security, and ethics statements."
 ---
 
 # Ethics / IRB Pack

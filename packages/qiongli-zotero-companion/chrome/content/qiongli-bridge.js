@@ -1,6 +1,6 @@
 const ENDPOINTS = ["/qiongli/ping", "/qiongli/search", "/qiongli/upsertItems", "/qiongli/collections"];
 const DOI_PREFIX_RE = /^https?:\/\/(?:dx\.)?doi\.org\//i;
-const NON_ALNUM_RE = /[^a-z0-9]+/g;
+const NON_ALNUM_RE = /[^\p{L}\p{N}]+/gu;
 const WRITE_RECEIPT_PREFIX = "zwr1_";
 const WRITE_RECEIPT_TTL_MS = 5 * 60 * 1000;
 const MAX_WRITE_RECEIPTS = 64;
@@ -19,38 +19,52 @@ export function qiongliPingResponse({ zoteroVersion = "" } = {}) {
   return {
     status: "ok",
     companion: "qiongli-zotero-companion",
-    version: "0.3.0",
+    version: "0.3.1",
     endpoint_version: "2",
     zotero_version: zoteroVersion,
     endpoints: ENDPOINTS
   };
 }
 
+function stableSourceUrl(item) {
+  // Only identifier URLs; a shared publisher or journal homepage is not an identity.
+  const value = String(item.url ?? item.URL ?? "").trim();
+  const pmid = value.match(/^https?:\/\/pubmed\.ncbi\.nlm\.nih\.gov\/(\d+)\/?$/i);
+  if (pmid) return `pmid:${pmid[1]}`;
+  const arxiv = value.match(/^https?:\/\/arxiv\.org\/abs\/([a-z.-]+\/\d+|\d{4}\.\d{4,5})(v\d+)?$/i);
+  return arxiv ? `arxiv:${arxiv[1].toLowerCase()}${arxiv[2] ?? ""}` : "";
+}
+
 export function findDuplicateItem(incoming = {}, existingItems = []) {
+  const source = stableSourceUrl(incoming);
+  const sameVersion = (item) => {
+    const other = stableSourceUrl(item);
+    return !(incoming.itemType && item.itemType && incoming.itemType !== item.itemType)
+      && !((source.startsWith("arxiv:") || other.startsWith("arxiv:")) && source !== other);
+  };
   const incomingDoi = normalizeDoi(incoming.DOI ?? incoming.doi);
   if (incomingDoi) {
-    const doiMatch = existingItems.find((item) => normalizeDoi(item.DOI ?? item.doi) === incomingDoi);
-    if (doiMatch) {
-      return doiMatch;
-    }
+    const match = existingItems.find((item) => normalizeDoi(item.DOI ?? item.doi) === incomingDoi && sameVersion(item));
+    if (match) return match;
   }
-
-  const incomingTitle = comparableTitle(incoming.title);
-  const incomingYear = normalizeYear(incoming.date ?? incoming.year);
-  if (!incomingTitle) {
-    return null;
+  if (source) {
+    const match = existingItems.find((item) => stableSourceUrl(item) === source && sameVersion(item)
+      && !(incomingDoi && normalizeDoi(item.DOI ?? item.doi) && normalizeDoi(item.DOI ?? item.doi) !== incomingDoi));
+    if (match) return match;
   }
-
-  return existingItems.find((item) => {
-    const titleMatches = comparableTitle(item.title) === incomingTitle;
-    if (!titleMatches) {
-      return false;
-    }
-    if (!incomingYear) {
-      return true;
-    }
-    return normalizeYear(item.date ?? item.year) === incomingYear;
-  }) ?? null;
+  const title = comparableTitle(incoming.title);
+  const year = normalizeYear(incoming.date ?? incoming.year);
+  if (!title || !year) return null;
+  const candidates = existingItems.filter((item) => {
+    const doi = normalizeDoi(item.DOI ?? item.doi);
+    const otherSource = stableSourceUrl(item);
+    return !(incomingDoi && doi && incomingDoi !== doi)
+      && !(source || otherSource)
+      && !(incoming.itemType && item.itemType && incoming.itemType !== item.itemType)
+      && comparableTitle(item.title) === title
+      && normalizeYear(item.date ?? item.year) === year;
+  });
+  return candidates.length === 1 ? candidates[0] : null;
 }
 
 export async function searchLocalItems(query = {}, runtime = {}) {
@@ -80,6 +94,9 @@ export async function upsertItems(payload = {}, runtime = {}) {
   const updatePolicy = payload.update_policy ?? "fill_blank";
   const collectionPath = normalizeCollectionPath(payload.collection_path);
   const incomingItems = Array.isArray(payload.items) ? payload.items : [];
+  if (incomingItems.some((item, index) => incomingItems.slice(0, index).some((previous) => findDuplicateItem(item, [previous])))) {
+    return { status: "error", error_code: "duplicate_items", dry_run: true, results: [] };
+  }
   const existingItems = await listRuntimeItems(runtime);
   const plans = incomingItems.map((incoming) => {
     const existing = findDuplicateItem(incoming, existingItems);

@@ -194,6 +194,21 @@ impl ProviderAccess {
             .is_some_and(|entry| entry.configured_fields.contains(&field))
     }
 
+    pub(crate) fn without_unresolved_credentials(&self) -> Self {
+        let mut access = self.clone();
+        for entry in access.providers.values_mut() {
+            if entry.availability == ProviderAvailability::Ready
+                && entry
+                    .configured_fields
+                    .iter()
+                    .any(|field| !entry.values.contains_key(field))
+            {
+                entry.availability = ProviderAvailability::SecretStoreUnavailable;
+            }
+        }
+        access
+    }
+
     #[must_use]
     pub fn status(&self) -> Vec<ProviderStatus> {
         PROVIDER_ORDER

@@ -1,10 +1,8 @@
 name: Evaluation Truth
 
 on:
-  push:
-    branches: ["2.x"]
   pull_request:
-    branches: ["2.x"]
+    branches: ["main", "2.x"]
   workflow_dispatch:
 
 concurrency:
@@ -49,3 +47,6 @@ jobs:
 
       - name: Run canonical evaluation suite
         run: python evals/runner/run_suite.py
+
+      - name: Check scoped evidence journeys and broken links
+        run: python -m unittest tests.test_research_journey_evals tests.test_research_journey_observations -v

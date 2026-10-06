@@ -168,7 +168,7 @@
       "additionalProperties": false,
       "properties": {
         "required_branch": {
-          "const": "2.x"
+          "enum": ["2.x", "main"]
         },
         "required_ref_type": {
           "const": "branch"

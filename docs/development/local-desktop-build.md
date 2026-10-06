@@ -1,5 +1,8 @@
 # Local Desktop Development and Packaging
 
+> This page covers retained Desktop maintenance. It is not a prerequisite for
+> the 2.x CLI. Start with the [native guide](/guide/cli-2x) for CLI, Plugin and MCP use.
+
 This guide is the maintainer fast path for the Qiongli 2 Svelte/Tauri desktop
 application. It covers source development, native execution, local package
 assembly, and the difference between a source-built package and a releasable

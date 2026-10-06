@@ -265,7 +265,6 @@ def validate_current_record(repo_root: Path, record: dict[str, Any]) -> list[str
         if path.is_file()
     ]
     registered_paths: list[str] = []
-    seen_tasks: set[str] = set()
     seen_numbers: set[str] = set()
     seen_paths: set[str] = set()
     numbers: list[str] = []
@@ -283,10 +282,6 @@ def validate_current_record(repo_root: Path, record: dict[str, Any]) -> list[str
         task_id = entry.get("task_id")
         if not isinstance(task_id, str) or not task_id:
             errors.append(f"current decisions[{index}]: task_id must be a string")
-        elif task_id in seen_tasks:
-            errors.append(f"current decisions[{index}]: duplicate task ID {task_id}")
-        else:
-            seen_tasks.add(task_id)
 
         number = entry.get("adr_number")
         if not isinstance(number, str) or not re.fullmatch(r"\d{4}", number):
@@ -325,7 +320,10 @@ def validate_current_record(repo_root: Path, record: dict[str, Any]) -> list[str
             errors.append(f"{relative}: title must be {expected_title!r}")
         if f"- Status: {entry.get('status')}" not in content:
             errors.append(f"{relative}: status metadata does not match the registry")
-        if f"- Task ID: `{task_id}`" not in content:
+        # One task may own several decisions; ADR number/path remain unique.
+        # Accept the metadata spellings already used by immutable accepted ADRs.
+        tasks = re.findall(r"^- Task(?: ID)?: (.+)$", content, re.MULTILINE)
+        if len(tasks) != 1 or tasks[0].replace("`", "") != task_id:
             errors.append(f"{relative}: task metadata does not match the registry")
 
     if registered_paths != actual_paths:

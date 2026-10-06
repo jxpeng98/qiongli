@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+import yaml
 
 from qiongli.source_layout import RepoLayout
 
@@ -62,45 +65,117 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
 
         self.assertNotIn("Future trigger stages", boundary_text)
 
-    def test_direct_workflow_skill_and_agent_usage_declares_writing_harness(self) -> None:
+    def test_writing_consumers_resolve_the_shared_contract(self) -> None:
+        reference = "references/stage-F-writing.md"
+        self.assertTrue((LAYOUT.workflow / reference).is_file())
         paths = (
             REPO_ROOT / "content" / "skills-core.md",
             LAYOUT.workflow / "SKILL.md",
             LAYOUT.workflow / "workflows" / "paper-write.md",
             LAYOUT.workflow / "workflows" / "academic-write.md",
-            LAYOUT.workflow / "references" / "stage-F-writing.md",
             LAYOUT.skills / "F_writing" / "manuscript-architect.md",
-            LAYOUT.roles / "science-writer.yaml",
+            *(LAYOUT.roles / name for name in (
+                "science-writer.yaml", "research-orchestrator.yaml", "pi.yaml"
+            )),
         )
-        combined = "\n".join(read(path) for path in paths)
+        for path in paths:
+            with self.subTest(consumer=path):
+                self.assertIn(reference, read(path))
 
-        for phrase in (
-            "Writing Harness Contract",
-            "Story Spine",
-            "write -> review -> confirm",
+    def test_writing_consumers_do_not_restore_retired_process_requirements(self) -> None:
+        # These are the retired instructions, not desired prose to reproduce.
+        paths = (
+            REPO_ROOT / "content" / "skills-core.md",
+            LAYOUT.workflow / "SKILL.md",
+            LAYOUT.workflow / "references" / "stage-F-writing.md",
+            LAYOUT.workflow / "workflows" / "paper-write.md",
+            LAYOUT.workflow / "workflows" / "academic-write.md",
+            LAYOUT.skills / "F_writing" / "manuscript-architect.md",
+            LAYOUT.skills / "Z_cross_cutting" / "self-critique.md",
+            *(LAYOUT.roles / name for name in (
+                "science-writer.yaml", "research-orchestrator.yaml", "pi.yaml"
+            )),
+        )
+        retired = (
             "do not draft the whole artifact in one uninterrupted pass",
-            "mainline drift",
-            "generic or vague claims",
-            "next blocking boundary/grill question",
-        ):
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, combined)
+            "require_chunk_level_confirmation: true",
+            "every substantive paragraph must advance at least two",
+            "every substantive paragraph must move beyond description into at least two",
+            "standard runs require at least 2 review passes",
+            "standard 2 passes, deep 3",
+        )
+        for path in paths:
+            text = read(path).lower()
+            for instruction in retired:
+                with self.subTest(consumer=path, instruction=instruction):
+                    self.assertNotIn(instruction, text)
 
-        skills_core = read(REPO_ROOT / "content" / "skills-core.md")
-        for phrase in (
-            "Writing Harness Contract",
-            "Story Spine",
-            "write -> review -> confirm",
-            "mainline drift",
-        ):
-            with self.subTest(skills_core_phrase=phrase):
-                self.assertIn(phrase, skills_core)
+    def test_design_consumers_resolve_the_shared_contract(self) -> None:
+        reference = "references/stage-C-design.md"
+        self.assertTrue((LAYOUT.workflow / reference).is_file())
+        paths = (
+            REPO_ROOT / "content" / "skills-core.md",
+            LAYOUT.workflow / "workflows" / "study-design.md",
+            *(LAYOUT.skills / "C_design" / name for name in (
+                "study-designer.md", "rival-hypothesis-designer.md",
+                "robustness-planner.md", "prereg-writer.md",
+            )),
+            *(LAYOUT.roles / name for name in (
+                "pi.yaml", "methods-lead.yaml", "statistician.yaml",
+                "compliance-officer.yaml",
+            )),
+            *(LAYOUT.templates / name for name in (
+                "study-design.md", "preregistration-template.md",
+            )),
+        )
+        for path in paths:
+            with self.subTest(consumer=path):
+                self.assertIn(reference, read(path))
 
-        for role_name in ("science-writer.yaml", "research-orchestrator.yaml", "pi.yaml"):
-            role_text = read(LAYOUT.roles / role_name)
-            with self.subTest(role=role_name):
-                self.assertIn("Writing Harness Contract", role_text)
-                self.assertIn("write -> review -> confirm", role_text)
+    def test_venue_review_consumers_resolve_contract_and_keep_task_outputs(self) -> None:
+        reference = "references/stage-H-submission.md"
+        self.assertTrue((LAYOUT.workflow / reference).is_file())
+        contract = yaml.safe_load(read(LAYOUT.standards / "research-workflow-contract.yaml"))
+        cards = (
+            ("A5", "A_framing/venue-analyzer.md"),
+            ("H1", "H_submission/submission-packager.md"),
+            ("H3", "H_submission/peer-review-simulation.md"),
+            ("H4", "H_submission/fatal-flaw-detector.md"),
+            ("H5", "H_submission/journal-fit-recommender.md"),
+        )
+        for task, card in cards:
+            with self.subTest(card=card):
+                text = read(LAYOUT.skills / card)
+                self.assertIn(reference, text)
+                metadata = yaml.safe_load(text.split("---", 2)[1])
+                self.assertTrue({item["artifact"] for item in metadata["outputs"]}
+                                <= set(contract["task_catalog"][task]["outputs"]))
+
+    def test_preregistration_card_routes_to_its_contract_output(self) -> None:
+        card = read(LAYOUT.skills / "C_design" / "prereg-writer.md")
+        metadata = yaml.safe_load(card.split("---", 2)[1])
+        task_ids = re.findall(
+            r"`(C[0-9_]+)`",
+            card.split("## Related Task IDs", 1)[1].split("## ", 1)[0],
+        )
+        contract = yaml.safe_load(read(LAYOUT.standards / "research-workflow-contract.yaml"))
+        self.assertEqual(len(task_ids), 1)
+        self.assertEqual(
+            [output["artifact"] for output in metadata["outputs"]],
+            contract["task_catalog"][task_ids[0]]["outputs"],
+        )
+
+    def test_structured_writing_and_history_tables_resolve_canonical_templates(self) -> None:
+        for reference, template in (
+            ("stage-F-writing.md", "claim-evidence-map.md"),
+            ("stage-consolidation.md", "research-state.md"),
+        ):
+            with self.subTest(reference=reference):
+                self.assertIn(
+                    f"templates/{template}",
+                    read(LAYOUT.workflow / "references" / reference),
+                )
+                self.assertTrue((LAYOUT.templates / template).is_file())
 
     def test_writing_role_uses_academic_writer_name_with_legacy_alias(self) -> None:
         role_text = read(LAYOUT.roles / "science-writer.yaml")
@@ -166,12 +241,42 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
 
             plugin_skill = out / "plugins" / "qiongli" / "skills" / "qiongli-workflow"
             skill_text = read(plugin_skill / "SKILL.md")
+            self.assertEqual(skill_text, read(LAYOUT.workflow / "SKILL.md"))
+            self.assertIn("references/platform-routing.md", skill_text)
+            routing_text = read(plugin_skill / "references" / "platform-routing.md")
             boundary_text = read(plugin_skill / "skills" / "Z_cross_cutting" / "boundary-interviewer.md")
             paper_write_text = read(plugin_skill / "workflows" / "paper-write.md")
             manuscript_text = read(plugin_skill / "skills" / "F_writing" / "manuscript-architect.md")
             science_writer_text = read(plugin_skill / "roles" / "science-writer.yaml")
             orchestrator_role_text = read(plugin_skill / "roles" / "research-orchestrator.yaml")
             pi_role_text = read(plugin_skill / "roles" / "pi.yaml")
+            writing_contract = read(plugin_skill / "references" / "stage-F-writing.md")
+            self.assertEqual(
+                writing_contract,
+                read(LAYOUT.workflow / "references" / "stage-F-writing.md"),
+            )
+            for relative in (
+                "references/stage-H-submission.md",
+                "skills/A_framing/venue-analyzer.md",
+                *(f"skills/H_submission/{name}.md" for name in (
+                    "submission-packager", "peer-review-simulation",
+                    "fatal-flaw-detector", "journal-fit-recommender",
+                )),
+            ):
+                with self.subTest(venue_review_resource=relative):
+                    canonical = (LAYOUT.workflow if relative.startswith("references/")
+                                 else REPO_ROOT / "content") / relative
+                    self.assertEqual((plugin_skill / relative).read_bytes(), canonical.read_bytes())
+            for source in ("qiongli.md", "paper-read.md", "academic-write.md", "paper-write.md"):
+                with self.subTest(workflow=source):
+                    self.assertEqual(
+                        read(plugin_skill / "workflows" / source),
+                        read(LAYOUT.workflow / "workflows" / source),
+                    )
+            self.assertEqual(
+                read(plugin_skill / "references" / "codex-workflow-wrapper.md"),
+                read(LAYOUT.workflow / "references" / "codex-workflow-wrapper.md"),
+            )
 
         for phrase in (
             "Cross-Platform Trigger Contract",
@@ -179,7 +284,6 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
             "Stage-Aware Grill Contract",
             "Cross-Stage Grill Memory",
             "Writing Harness Contract",
-            "write -> review -> confirm",
             "mainline drift",
         ):
             with self.subTest(phrase=phrase):
@@ -188,12 +292,14 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
                     "\n".join(
                         [
                             skill_text,
+                            routing_text,
                             boundary_text,
                             paper_write_text,
                             manuscript_text,
                             science_writer_text,
                             orchestrator_role_text,
                             pi_role_text,
+                            writing_contract,
                         ]
                     ),
                 )

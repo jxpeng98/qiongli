@@ -1,5 +1,5 @@
 ---
-description: 构建研究的理论框架，梳理概念关系
+description: "Build a theoretical framework and explain the relationships between research concepts."
 ---
 
 # Theoretical Framework Building

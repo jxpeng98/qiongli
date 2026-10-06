@@ -1,0 +1,86 @@
+{
+  "schema": "qiongli-public-paper-addendum/v1",
+  "base_manifest_sha256": "fb9f1279115f22d41fca225642a16ad2cfcf66c882115b4fd8c8f814c28b5b0a",
+  "citekey": "Ritchie2013Retrieval",
+  "doi": "10.1371/journal.pone.0078976",
+  "retrieved_on": "2026-10-02",
+  "source_review_identity": {
+    "host": "Codex",
+    "adapter": "native-subagent",
+    "actual_task_identity": "/root/table_source_review",
+    "parent_task_identity": "/root",
+    "dispatch_tool": "collaboration.spawn_agent (parent dispatch not observed directly by this child)",
+    "dispatch_identity_returned": "unknown",
+    "model": "unknown",
+    "reasoning_effort": "unknown",
+    "usage": "unknown",
+    "session_id": "unknown",
+    "handoff_sha256": "unknown"
+  },
+  "sources": [
+    {
+      "requested_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0078976",
+      "bytes": 177371,
+      "sha256": "af753271e18a6bd3d193245a05762c9c48b4d83dc1be21c81a3c2a2da81e846d"
+    },
+    {
+      "requested_url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0078976&type=manuscript",
+      "bytes": 75599,
+      "sha256": "18acae39e5cfbb8832a6ab616f49de795af8130ef9b1be52e03028febb202cb2"
+    },
+    {
+      "requested_url": "https://journals.plos.org/plosone/article/figure/image?size=large&id=10.1371/journal.pone.0078976.t001",
+      "bytes": 20180,
+      "sha256": "c534f20b91d0c2cecd7a2b9a965dc646f8498b9b95847918634918d785fc69cd"
+    },
+    {
+      "requested_url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0078976.s001&type=supplementary",
+      "bytes": 28160,
+      "sha256": "dbc848c0f622fad3df1455936c6b4abda312f04d40c9e7fe404db98187f70c85"
+    },
+    {
+      "requested_url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0078976.s002&type=supplementary",
+      "bytes": 37888,
+      "sha256": "ba3ad08a8294046295005ed8aeb8e676654a4b27d56903a8ab7b9ea599a66460"
+    },
+    {
+      "requested_url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0078976.s003&type=supplementary",
+      "bytes": 34304,
+      "sha256": "62b7e8de523fd01f4e369b18bcfa6694cb47e1a0abc77d320c6e87221548e7f8"
+    },
+    {
+      "requested_url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0078976.s004&type=supplementary",
+      "bytes": 41472,
+      "sha256": "5f3497749584fb0ad203d84e9d720f7917f0945427e104d6f3a43fbc13df51e6"
+    },
+    {
+      "requested_url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0078976.s005&type=supplementary",
+      "bytes": 35840,
+      "sha256": "83b1507521c4fe8483a2edcb1aae82c752015084588c14366bfd538fc0e7a2f3"
+    },
+    {
+      "requested_url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0078976.s007&type=supplementary",
+      "bytes": 51712,
+      "sha256": "7f14c68753b26437ce6409cf473cc57a693fc93730444908a5c0a09f67fd8283"
+    }
+  ],
+  "files": [
+    {
+      "file": "quantitative-education/tables-source.md",
+      "sha256": "3eca31d16e9ddf2803697236fe9f904c3a86f4743756f8b0bb930c92d4b7ac34"
+    },
+    {
+      "file": "quantitative-education/tables-task.md",
+      "sha256": "4cbdf5587a5aafeae248b103e901a38e2c96185a7fcdb5ee351531888fd44d93"
+    },
+    {
+      "file": "quantitative-education/observations/r1-answer.md",
+      "sha256": "05730f1badaaed42a6f104f57021eb97a0bd2adbae9ac8c41e8b9a15f69c9ff8"
+    },
+    {
+      "file": "quantitative-education/observations/r2-answer.md",
+      "sha256": "bbca19307461c20bb0db97675af677810dbd1ac80412b760dcb153163a39d703"
+    }
+  ],
+  "limits": "Additive source packet and unchanged actual prior answers. No rescoring, new run or acceptance is established. Raw publisher downloads retained externally; signed redirect URLs omitted."
+}

@@ -122,7 +122,7 @@ struct GrantFixture {
 
 fn grant_fixture(binary: &Path, pack_sha256: &str, target: ClientActivationTarget) -> GrantFixture {
     let binary_sha256 = sha256_file(binary);
-    let artifact = ArtifactIdentityV1 {
+    let mut artifact = ArtifactIdentityV1 {
         product: ProductId::Qiongli,
         version: env!("CARGO_PKG_VERSION").to_owned(),
         channel: ReleaseChannel::Alpha,
@@ -131,6 +131,21 @@ fn grant_fixture(binary: &Path, pack_sha256: &str, target: ClientActivationTarge
         arch: Architecture::current().expect("test architecture must be supported"),
         installer_kind: InstallerKind::PluginBundle,
     };
+    artifact.channel = [
+        ReleaseChannel::Alpha,
+        ReleaseChannel::Beta,
+        ReleaseChannel::Stable,
+    ]
+    .into_iter()
+    .find(|channel| {
+        ArtifactIdentityV1 {
+            channel: *channel,
+            ..artifact.clone()
+        }
+        .validate()
+        .is_ok()
+    })
+    .expect("test artifact version must match a supported release channel");
     let scope = target.integration_scope();
     let grant = LaunchGrantV1 {
         schema_version: 1,

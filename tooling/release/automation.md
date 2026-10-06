@@ -1,5 +1,70 @@
 # Release Automation Runbook
 
+## Current native CLI candidate: 2.0.1
+
+Use the compatible native `main` candidate for this release. Development already
+contains the deferred v2/channel-identity migration; do not relabel that runtime
+as 2.0.1 or merge it into the patch candidate. The retained instructions below describe
+the early native dry-run and legacy Python automation, not the current CLI publisher.
+`packages/qiongli-native/Cargo.toml` owns the version; synchronize it with
+`python3 scripts/sync_versions.py 2.0.1`, regenerate the Skills docs, and review
+`tooling/release/v2.0.1.md`. Commit the versioned canonical content first, then
+regenerate its embedded lock with the existing owner:
+
+```sh
+QIONGLI_NATIVE_SOURCE_COMMIT="$(git rev-parse HEAD)" \
+  cargo run --manifest-path packages/qiongli-native/Cargo.toml \
+  -p qiongli-content --example update_qiongli_core_lock --locked --offline
+```
+
+Review and commit the lock, notes and remaining preparation. Qualify clean main with:
+
+```sh
+bash scripts/release_ready.sh --version 2.0.1 --cli-github \
+  --staging-dir /tmp/qiongli-2.0.1-qualified
+```
+
+The staging directory must be new and outside the checkout. After the authorized
+source/tag push, keep remote main frozen at that immutable tag and dispatch:
+
+```sh
+gh workflow run release-automation.yml --ref v2.0.1 \
+  -f mode=post -f tag=v2.0.1 -f create_release=true
+```
+
+The publisher qualifies the tag on macOS ARM64, Windows x64 and Linux x64,
+verifies the combined assets, creates the stable GitHub Release and verifies
+public downloads before dispatching npm, PyPI and Cargo. Stable uses GitHub
+latest and npm latest; npm next can remain on the Beta. Dispatch acceptance does
+not establish publication success. No legacy Python, App promotion, local Cargo
+upload or external Marketplace catalog change is part of this lane. See
+[ADR 0227](../../docs/architecture/decisions/0227-native-main-cutover-and-stable-release-routing.md).
+
+2.0.1 retains actual `plugin-source-status` v1 and the existing local
+`qiongli-next@qiongli-cli-local` / public `qiongli-next-<platform>` identities.
+This is a stable compatibility patch on npm `latest`. Version 2.1 is the planned
+v1-output removal and stable Qiongli identity boundary; consumer migration and
+stable/Next target-native upgrade, retry, cancellation and recovery evidence
+remain prerequisites. Historical receipt readers and published assets stay intact.
+
+The release owner probes both Hosts through the extracted CLI, installed npm/wheel
+and bundled Plugin executables. Probes use disposable secure checkout directories
+and isolated configuration, because shared `/tmp` parents are deliberately refused
+for Plugin exports. No real Host Plugin is registered. The target receipt retains
+these observations; the final packet requires all three targets, v1/Next evidence,
+six matching Plugin archives, and the existing source/hash/channel checks.
+Historical packets are not required to contain the new 2.0.1 observations.
+
+For 2.0.0 upgrades and recovery, follow the review/update sequence in
+[v2.0.1 notes](v2.0.1.md#upgrade-and-recovery--升级与恢复). Retain prior executable,
+source receipt and user settings. A failed probe is a failed qualification;
+do not change the runtime security policy, skip the probe, or infer Host trust
+from source-current. A local macOS ARM64 receipt qualifies only that target;
+Windows x64, Linux x64, combined installs and public downloads remain external
+gates until their exact-candidate evidence exists.
+
+## Retained earlier workflows
+
 This repository standardizes release with four scripts:
 
 - `scripts/release_ready.sh`

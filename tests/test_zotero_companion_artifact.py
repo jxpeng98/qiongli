@@ -103,18 +103,18 @@ class ZoteroCompanionArtifactTests(unittest.TestCase):
         self.assertNotIn("browser_specific_settings", manifest)
         self.assertEqual(manifest["manifest_version"], 2)
         self.assertEqual(manifest["name"], COMPANION_DISPLAY_NAME)
-        self.assertIn("Zotero 9.0.4", manifest["description"])
-        self.assertEqual(manifest["version"], "0.3.0")
+        self.assertIn("Zotero 8 through 10", manifest["description"])
+        self.assertEqual(manifest["version"], "0.3.1")
         self.assertEqual(manifest["applications"]["zotero"]["update_url"], ZOTERO_UPDATE_URL)
         self.assertEqual(manifest["applications"]["zotero"]["strict_min_version"], "8.0")
-        self.assertEqual(manifest["applications"]["zotero"]["strict_max_version"], "9.0.*")
+        self.assertEqual(manifest["applications"]["zotero"]["strict_max_version"], "10.0.*")
         self.assertEqual(artifact_manifest["schema_version"], 1)
         self.assertEqual(
             artifact_manifest["record_type"],
             "qiongli-zotero-companion-artifact",
         )
         self.assertEqual(artifact_manifest["status"], "assembled-unpublished")
-        self.assertEqual(artifact_manifest["companion_version"], "0.3.0")
+        self.assertEqual(artifact_manifest["companion_version"], "0.3.1")
         self.assertEqual(artifact_manifest["endpoint_version"], "2")
         self.assertEqual(artifact_manifest["artifact_file"], artifact_name)
         self.assertEqual(artifact_manifest["artifact_size_bytes"], artifact_size)
@@ -135,11 +135,11 @@ class ZoteroCompanionArtifactTests(unittest.TestCase):
             "qiongli-zotero-companion@qiongli.local"
         ]["updates"]
         self.assertEqual(len(update), 1)
-        self.assertEqual(update[0]["version"], "0.3.0")
+        self.assertEqual(update[0]["version"], "0.3.1")
         self.assertEqual(
             update[0]["update_link"],
             "https://github.com/jxpeng98/qiongli/releases/download/"
-            "v2.0.0-alpha.1/qiongli-zotero-companion-0.3.0.xpi",
+            "v2.0.0-alpha.1/qiongli-zotero-companion-0.3.1.xpi",
         )
         self.assertEqual(
             update[0]["update_hash"],
@@ -149,7 +149,7 @@ class ZoteroCompanionArtifactTests(unittest.TestCase):
             update[0]["applications"]["zotero"],
             {
                 "strict_min_version": "8.0",
-                "strict_max_version": "9.0.*",
+                "strict_max_version": "10.0.*",
             },
         )
         self.assertEqual(
@@ -216,16 +216,16 @@ class ZoteroCompanionArtifactTests(unittest.TestCase):
                     repo_slug="jxpeng98/qiongli?download=1",
                 )
 
-    def test_manifest_validation_requires_zotero_8_9_update_metadata(self) -> None:
+    def test_manifest_validation_requires_zotero_8_to_10_update_metadata(self) -> None:
         manifest = {
             "name": COMPANION_DISPLAY_NAME,
-            "version": "0.3.0",
+            "version": "0.3.1",
             "description": "Tested with Zotero 9.0.4.",
             "applications": {
                 "zotero": {
                     "id": "qiongli-zotero-companion@qiongli.local",
                     "strict_min_version": "8.0",
-                    "strict_max_version": "9.0.*",
+                    "strict_max_version": "10.0.*",
                 }
             },
         }
@@ -233,10 +233,19 @@ class ZoteroCompanionArtifactTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "applications.zotero.update_url"):
             zotero_builder.validate_manifest(manifest)
 
+    def test_compatibility_range_rejects_stale_or_unbounded_maximum(self) -> None:
+        manifest = zotero_builder.read_manifest(PACKAGE_ROOT)
+        zotero_builder.validate_manifest(manifest)
+        for maximum in ("9.0.*", "*", "11.0.*"):
+            with self.subTest(maximum=maximum):
+                manifest["applications"]["zotero"]["strict_max_version"] = maximum
+                with self.assertRaisesRegex(ValueError, "strict_max_version"):
+                    zotero_builder.validate_manifest(manifest)
+
     def test_manifest_validation_rejects_version_path_traversal(self) -> None:
         manifest = {
             "name": COMPANION_DISPLAY_NAME,
-            "version": "../../0.3.0",
+            "version": "../../0.3.1",
             "description": "Tested with Zotero 9.0.4.",
         }
 

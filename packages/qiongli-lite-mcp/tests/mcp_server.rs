@@ -29,7 +29,45 @@ fn initialize_and_tools_list_return_json_rpc_results() {
         .map(|tool| tool["name"].as_str().unwrap())
         .collect();
     assert!(names.contains(&"qiongli_literature_status"));
+    assert!(names.contains(&"qiongli_literature_read_fulltext"));
     assert!(names.iter().all(|name| has_tool_handler(name)));
+}
+
+#[test]
+fn fulltext_rejects_missing_input_and_blocked_urls_before_network_or_config() {
+    let server = McpServer::new("qiongli-literature-provider", "0.1.0");
+    let call = |arguments| {
+        server.handle(McpRequest {
+            jsonrpc: "2.0".to_owned(),
+            id: Some(json!(1)),
+            method: "tools/call".to_owned(),
+            params: Some(
+                json!({"name": "qiongli_literature_read_fulltext", "arguments": arguments}),
+            ),
+        })
+    };
+    assert_eq!(call(json!({}))["error"]["code"], -32602);
+    assert_eq!(
+        call(json!({"url": "https://example.org/paper.pdf", "offset": 1}))["error"]["code"],
+        -32602
+    );
+    for url in [
+        "https://127.0.0.1/paper.pdf",
+        "file:///private/fulltext-secret-canary.pdf",
+        "https://content.openalex.org/works/W1.pdf?api_key=fulltext-secret-canary",
+    ] {
+        let response = call(json!({"url": url}));
+        assert_eq!(response["result"]["isError"], true);
+        assert_eq!(
+            response["result"]["structuredContent"]["reason_code"],
+            "fulltext-url-blocked"
+        );
+        assert_eq!(
+            response["result"]["structuredContent"]["error_kind"],
+            "tool_error"
+        );
+        assert!(!response.to_string().contains("fulltext-secret-canary"));
+    }
 }
 
 #[test]
@@ -132,7 +170,7 @@ fn search_rejects_unsupported_or_out_of_range_arguments_before_network() {
             "providers must not be empty",
         ),
         (
-            json!({"query": "governance", "search_mode": "title"}),
+            json!({"query": "governance", "search_mode": "unsupported"}),
             "unsupported search_mode",
         ),
     ] {

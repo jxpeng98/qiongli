@@ -62,6 +62,11 @@ const PARTIAL_SIGNING_RECEIPT_FILE: &str = ".signing-receipt.partial";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum UpdateCliCommand {
+    RecoveryPreview,
+    Recover {
+        expected_marker_sha256: String,
+        approve_filesystem_write: bool,
+    },
     Status,
     Channel {
         expected_revision: u64,
@@ -94,6 +99,7 @@ pub(crate) enum UpdateCliCommand {
 #[derive(Debug, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub(crate) enum UpdateCliOutput {
+    Recovery(UpdateRecoveryOutput),
     Status(UpdateStatusOutput),
     Channel(UpdateChannelOutput),
     Check(UpdateCheckOutput),
@@ -104,6 +110,124 @@ pub(crate) enum UpdateCliOutput {
     Reconcile(UpdateReconcileOutput),
     Health(UpdateHealthOutput),
     Cancel(UpdateCancelOutput),
+}
+
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, Serialize, serde::Deserialize, schemars::JsonSchema,
+)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum LegacyRecoveryMode {
+    Rollback,
+    CommittedCleanup,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(tag = "command", deny_unknown_fields)]
+pub(crate) enum UpdateRecoveryOutput {
+    #[serde(rename = "update-recovery-preview")]
+    Preview {
+        #[schemars(range(min = 1, max = 1))]
+        schema_version: u32,
+        #[schemars(regex(pattern = "^update-[0-9a-fA-F]{32}$"))]
+        transaction_id: String,
+        #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+        marker_sha256: String,
+        mode: LegacyRecoveryMode,
+    },
+    #[serde(rename = "update-recover")]
+    Recovered {
+        #[schemars(range(min = 1, max = 1))]
+        schema_version: u32,
+        #[schemars(regex(pattern = "^update-[0-9a-fA-F]{32}$"))]
+        transaction_id: String,
+        #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+        marker_sha256: String,
+        mode: LegacyRecoveryMode,
+    },
+}
+
+pub fn update_recovery_contract_json() -> Result<String, serde_json::Error> {
+    let schema = schemars::generate::SchemaSettings::draft2020_12()
+        .into_generator()
+        .into_root_schema_for::<UpdateRecoveryOutput>();
+    let fixtures = [
+        UpdateRecoveryOutput::Preview {
+            schema_version: 1,
+            transaction_id: format!("update-{}", "1".repeat(32)),
+            marker_sha256: "2".repeat(64),
+            mode: LegacyRecoveryMode::Rollback,
+        },
+        UpdateRecoveryOutput::Recovered {
+            schema_version: 1,
+            transaction_id: format!("update-{}", "1".repeat(32)),
+            marker_sha256: "2".repeat(64),
+            mode: LegacyRecoveryMode::CommittedCleanup,
+        },
+    ];
+    serde_json::to_string_pretty(&serde_json::json!({"schema":schema, "fixtures":fixtures}))
+}
+
+fn execute_recovery(
+    command: UpdateCliCommand,
+    store: &UpdateStateStore,
+    environment: &CommandEnvironment,
+) -> Result<UpdateCliOutput, &'static str> {
+    if matches!(
+        &command,
+        UpdateCliCommand::Recover {
+            approve_filesystem_write: false,
+            ..
+        }
+    ) {
+        return Err("native-update-recovery-approval-required");
+    }
+    let home = environment
+        .platform_home()
+        .ok_or("native-update-home-unavailable")?;
+    let plan = crate::native_update_replace::preview_legacy_recovery(home, store)?;
+    let mode = if plan.committed {
+        LegacyRecoveryMode::CommittedCleanup
+    } else {
+        LegacyRecoveryMode::Rollback
+    };
+    match command {
+        UpdateCliCommand::RecoveryPreview => {
+            Ok(UpdateCliOutput::Recovery(UpdateRecoveryOutput::Preview {
+                schema_version: 1,
+                transaction_id: plan.transaction_id,
+                marker_sha256: plan.marker_sha256,
+                mode,
+            }))
+        }
+        UpdateCliCommand::Recover {
+            expected_marker_sha256,
+            ..
+        } => {
+            if expected_marker_sha256 != plan.marker_sha256 {
+                return Err("native-activation-journal-mismatch");
+            }
+            if plan.committed {
+                crate::native_update_replace::recover_legacy_committed_cleanup(
+                    home,
+                    store,
+                    &expected_marker_sha256,
+                )?;
+            } else {
+                crate::native_update_replace::recover_legacy_health_interruption(
+                    home,
+                    store,
+                    &expected_marker_sha256,
+                )?;
+            }
+            Ok(UpdateCliOutput::Recovery(UpdateRecoveryOutput::Recovered {
+                schema_version: 1,
+                transaction_id: plan.transaction_id,
+                marker_sha256: plan.marker_sha256,
+                mode,
+            }))
+        }
+        _ => Err("native-update-recovery-command-invalid"),
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
@@ -284,6 +408,12 @@ pub(crate) fn execute(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
 ) -> Result<UpdateCliOutput, &'static str> {
+    if matches!(
+        &command,
+        UpdateCliCommand::RecoveryPreview | UpdateCliCommand::Recover { .. }
+    ) {
+        return execute_recovery(command, store, environment);
+    }
     let now_unix = if matches!(
         &command,
         UpdateCliCommand::Check
@@ -523,6 +653,15 @@ pub(crate) fn desktop_cancel(
 }
 
 #[cfg(all(test, unix))]
+fn test_update_environment(store: &UpdateStateStore) -> CommandEnvironment {
+    use std::os::unix::fs::PermissionsExt;
+    let home = store.state_root().parent().unwrap().with_extension("home");
+    std::fs::create_dir_all(&home).unwrap();
+    std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
+    CommandEnvironment::with_paths(None::<std::ffi::OsString>, Some(home), None)
+}
+
+#[cfg(all(test, unix))]
 fn execute_with_fetchers(
     command: UpdateCliCommand,
     store: &UpdateStateStore,
@@ -539,7 +678,7 @@ fn execute_with_fetchers(
         manifest_fetcher,
         archive_fetcher,
         &StagedEvidenceVerifier,
-        &CommandEnvironment::from_process(),
+        &test_update_environment(store),
     )
 }
 
@@ -557,8 +696,30 @@ fn execute_with_services(
     evidence_verifier: &impl EvidenceVerifier,
     environment: &CommandEnvironment,
 ) -> Result<UpdateCliOutput, &'static str> {
+    // Authority-free signed update paths refuse before mutation in their owners.
+    // Health uses the existing token-bound completion path while its helper holds locks.
+    let _write_guard = if matches!(
+        &command,
+        UpdateCliCommand::Channel { .. } | UpdateCliCommand::Cancel { .. }
+    ) || (authority.is_some()
+        && matches!(
+            &command,
+            UpdateCliCommand::Verify { .. } | UpdateCliCommand::Stage { .. }
+        )) {
+        crate::update_reconcile::acquire_update_write_guard(
+            environment
+                .platform_home()
+                .ok_or("native-update-home-unavailable")?,
+            store,
+        )?
+    } else {
+        None
+    };
     let loaded = store.load().map_err(|error| error.reason_code())?;
     match command {
+        UpdateCliCommand::RecoveryPreview | UpdateCliCommand::Recover { .. } => {
+            execute_recovery(command, store, environment)
+        }
         UpdateCliCommand::Status => Ok(UpdateCliOutput::Status(UpdateStatusOutput {
             schema_version: 1,
             command: "update-status",
@@ -646,6 +807,9 @@ fn execute_with_services(
                 return Err("native-update-not-available");
             }
             download_verified_update(
+                environment
+                    .platform_home()
+                    .ok_or("native-update-home-unavailable")?,
                 store,
                 loaded.state,
                 expected_revision,
@@ -784,12 +948,14 @@ fn update_install_status(state: &UpdateState) -> &'static str {
 }
 
 fn download_verified_update(
+    home: &Path,
     store: &UpdateStateStore,
     mut state: UpdateState,
     expected_revision: u64,
     verified: VerifiedNativeUpdateManifest,
     archive_fetcher: &impl ArchiveFetcher,
 ) -> Result<UpdateDownloadOutput, &'static str> {
+    let reservation_guard = crate::update_reconcile::acquire_update_write_guard(home, store)?;
     let transaction_id = new_transaction_id()?;
     let manifest = verified.manifest();
     let target_version = manifest.artifact.version.clone();
@@ -825,6 +991,9 @@ fn download_verified_update(
             );
         }
     };
+    // The reserved transaction and state CAS protect private download staging;
+    // release installation locks so cancellation remains available during transport.
+    drop(reservation_guard);
     if let Err(error) = archive_fetcher.fetch(&verified, &staging) {
         return cleanup_failed_download(store, state, reservation.revision, &transaction_id, error);
     }
@@ -1052,37 +1221,55 @@ fn install_staged_update(
     let evidence = verified
         .verify_evidence(&desktop_manifest_bytes, &signing_receipt_bytes)
         .map_err(|error| error.reason_code())?;
-    let (reconciled, reconciliation_revision) =
-        if transaction_phase == UpdateTransactionPhase::Staged {
-            let reconciled = run_staged_reconciliation(store, &transaction_id, environment)?;
-            state
-                .active_transaction
-                .as_mut()
-                .ok_or("native-update-transaction-missing")?
-                .phase = UpdateTransactionPhase::ReconciliationPrepared;
-            let reconciliation_state = store
-                .replace(expected_revision, state.clone())
-                .map_err(|error| error.reason_code())?;
-            if reconciliation_state.cleanup_required {
-                return Err("native-update-state-cleanup-required");
-            }
-            (reconciled, reconciliation_state.revision)
-        } else {
-            let journal = load_reconciliation_journal(store, &transaction_id)?;
-            verify_prepared_reconciliation(&journal)?;
-            if journal.target_version != manifest.artifact.version
-                || journal.target_pack_sha256 != manifest.resource_pack_sha256
-            {
-                return Err("native-update-reconciliation-identity-mismatch");
-            }
-            (
-                PreparedReconciliation {
-                    operation_count: journal.operations.len(),
-                    journal_sha256: reconciliation_journal_sha256(&journal)?,
-                },
-                expected_revision,
-            )
-        };
+    // The staged child owns its own write guard; never hold ours while waiting for it.
+    let staged_reconciliation = if transaction_phase == UpdateTransactionPhase::Staged {
+        Some(run_staged_reconciliation(
+            store,
+            &transaction_id,
+            environment,
+        )?)
+    } else {
+        None
+    };
+    let _write_guard = crate::update_reconcile::acquire_update_write_guard(
+        environment
+            .platform_home()
+            .ok_or("native-update-home-unavailable")?,
+        store,
+    )?;
+    let current = store.load().map_err(|error| error.reason_code())?;
+    if current.revision != expected_revision || current.state != state {
+        return Err("revision-conflict");
+    }
+    let (reconciled, reconciliation_revision) = if let Some(reconciled) = staged_reconciliation {
+        state
+            .active_transaction
+            .as_mut()
+            .ok_or("native-update-transaction-missing")?
+            .phase = UpdateTransactionPhase::ReconciliationPrepared;
+        let reconciliation_state = store
+            .replace(expected_revision, state.clone())
+            .map_err(|error| error.reason_code())?;
+        if reconciliation_state.cleanup_required {
+            return Err("native-update-state-cleanup-required");
+        }
+        (reconciled, reconciliation_state.revision)
+    } else {
+        let journal = load_reconciliation_journal(store, &transaction_id)?;
+        verify_prepared_reconciliation(&journal)?;
+        if journal.target_version != manifest.artifact.version
+            || journal.target_pack_sha256 != manifest.resource_pack_sha256
+        {
+            return Err("native-update-reconciliation-identity-mismatch");
+        }
+        (
+            PreparedReconciliation {
+                operation_count: journal.operations.len(),
+                journal_sha256: reconciliation_journal_sha256(&journal)?,
+            },
+            expected_revision,
+        )
+    };
     let preparation = ReplacementPreparation {
         transaction_id: &transaction_id,
         target_version: &manifest.artifact.version,
@@ -1123,6 +1310,16 @@ fn reconcile_staged_update(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
 ) -> Result<UpdateReconcileOutput, &'static str> {
+    let _write_guard = if authority.is_some() {
+        crate::update_reconcile::acquire_update_write_guard(
+            environment
+                .platform_home()
+                .ok_or("native-update-home-unavailable")?,
+            store,
+        )?
+    } else {
+        None
+    };
     let loaded = store.load().map_err(|error| error.reason_code())?;
     let transaction = loaded
         .state
@@ -1179,6 +1376,8 @@ fn reconcile_staged_update(
     let source_binary =
         std::env::current_exe().map_err(|_| "native-update-reconciliation-binary-unavailable")?;
     let prepared = prepare_update_reconciliation(&ReconciliationPreparation {
+        cli_update: None,
+        native_release: None,
         store,
         transaction_id,
         target_version: &manifest.artifact.version,
@@ -2125,6 +2324,34 @@ mod tests {
 
     use super::*;
 
+    #[test]
+    fn recovery_contract_matches_generated_and_consumer() {
+        let generated: serde_json::Value =
+            serde_json::from_str(&update_recovery_contract_json().unwrap()).unwrap();
+        let schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/update-recovery-v1.schema.json"))
+                .unwrap();
+        assert_eq!(generated["schema"], schema);
+        for (index, source) in [
+            include_str!("../tests/fixtures/update-recovery-v1.preview.json"),
+            include_str!("../tests/fixtures/update-recovery-v1.recovered.json"),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let fixture: serde_json::Value = serde_json::from_str(source).unwrap();
+            assert_eq!(generated["fixtures"][index], fixture);
+            let decoded: UpdateRecoveryOutput = serde_json::from_value(fixture.clone()).unwrap();
+            assert_eq!(serde_json::to_value(decoded).unwrap(), fixture);
+            let mut invalid = fixture.clone();
+            invalid["unapproved"] = json!(true);
+            assert!(serde_json::from_value::<UpdateRecoveryOutput>(invalid).is_err());
+            let mut invalid = fixture;
+            invalid["mode"] = json!("install");
+            assert!(serde_json::from_value::<UpdateRecoveryOutput>(invalid).is_err());
+        }
+    }
+
     const NOW: u64 = 1_750_000_000;
     const TEAM_ID: &str = "ABC123DEFG";
     const ARCHIVE_BYTES: &[u8] = b"qiongli-signed-archive-fixture";
@@ -2377,6 +2604,62 @@ mod tests {
         assert_eq!(json["selected_stream"], "beta");
         assert_eq!(json["release_authority"], "unavailable");
         assert!(!root.exists());
+
+        let environment = test_update_environment(&store);
+        let home = environment.platform_home().unwrap();
+        let held = crate::update_reconcile::acquire_native_home_write_lock(home).unwrap();
+        assert_eq!(
+            execute_with_fetchers(
+                UpdateCliCommand::Channel {
+                    expected_revision: 0,
+                    stream: UpdateStreamPreference::Stable
+                },
+                &store,
+                None,
+                &runtime,
+                &FixedFetcher(Vec::new()),
+                &NoopArchiveFetcher,
+            ),
+            Err("native-update-replacement-active")
+        );
+        assert!(
+            execute_with_fetchers(
+                UpdateCliCommand::Status,
+                &store,
+                None,
+                &runtime,
+                &FixedFetcher(Vec::new()),
+                &NoopArchiveFetcher
+            )
+            .is_ok()
+        );
+        drop(held);
+        let marker = home.join(".qiongli/native/active-installation.json");
+        std::fs::write(&marker, b"pending-native-recovery").unwrap();
+        for command in [
+            UpdateCliCommand::Channel {
+                expected_revision: 0,
+                stream: UpdateStreamPreference::Stable,
+            },
+            UpdateCliCommand::Cancel {
+                expected_revision: 0,
+            },
+        ] {
+            assert_eq!(
+                execute_with_fetchers(
+                    command,
+                    &store,
+                    None,
+                    &runtime,
+                    &FixedFetcher(Vec::new()),
+                    &NoopArchiveFetcher
+                ),
+                Err("native-activation-recovery-required")
+            );
+        }
+        assert!(!root.exists());
+        assert_eq!(store.load().unwrap().revision, 0);
+        std::fs::remove_file(marker).unwrap();
 
         let changed = execute_with_fetchers(
             UpdateCliCommand::Channel {
@@ -2646,7 +2929,7 @@ mod tests {
             &ErrorManifestFetcher("network-must-not-run"),
             &NoopArchiveFetcher,
             &FixedEvidenceVerifier(None),
-            &CommandEnvironment::from_process(),
+            &test_update_environment(&store),
         )
         .unwrap();
         let json = serde_json::to_value(output).unwrap();
@@ -2676,7 +2959,7 @@ mod tests {
                 &ErrorManifestFetcher("network-must-not-run"),
                 &NoopArchiveFetcher,
                 &FixedEvidenceVerifier(None),
-                &CommandEnvironment::from_process(),
+                &test_update_environment(&store),
             ),
             Err("revision-conflict")
         );
@@ -2724,7 +3007,7 @@ mod tests {
             &ErrorManifestFetcher("network-must-not-run"),
             &NoopArchiveFetcher,
             &FixedEvidenceVerifier(None),
-            &CommandEnvironment::from_process(),
+            &test_update_environment(&store),
         )
         .unwrap();
         let loaded = store.load().unwrap();
@@ -3025,9 +3308,13 @@ mod tests {
         assert_eq!(
             results
                 .iter()
-                .filter(|result| matches!(result, Err("revision-conflict")))
+                .filter(|result| matches!(
+                    result,
+                    Err("revision-conflict" | "native-update-replacement-active")
+                ))
                 .count(),
-            1
+            1,
+            "{results:?}"
         );
         let loaded = store.load().unwrap();
         assert_eq!(loaded.revision, 2);

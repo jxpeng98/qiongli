@@ -1,7 +1,7 @@
 ---
 id: self-critique
 stage: Z_cross_cutting
-description: "Iterative red teaming and Socratic questioning to continuously critique and refine AI-generated outputs."
+description: "Review research artifacts for concrete claim, evidence and method defects; revise affected work and stop when the applicable checks are satisfied."
 inputs:
   - type: AnyArtifact
     description: "Any output requiring quality assurance"
@@ -9,8 +9,8 @@ outputs:
   - type: CritiqueLog
     artifact: "review/self_critique_log.md"
 constraints:
-  - "Must apply structured questioning protocol"
-  - "Must iterate until no new issues found or max rounds reached"
+  - "Must check the applicable evidence and output contract without inventing critique issues"
+  - "Must preserve unresolved blockers and stop when the applicable review contract is satisfied or progress needs unavailable evidence"
 failure_modes:
   - "Circular critique without convergence"
   - "Inability to identify own systematic biases"
@@ -21,37 +21,55 @@ domain_aware: false
 
 # Self-Critique Skill
 
-Iterative Critique Loop (Red Teaming) to pressure-test research outputs through multi-agent debate and Socratic questioning.
+Review the requested research output for substantive defects without expanding
+the assignment into an unrequested debate or full-stage audit.
 
 ## Purpose
 
-Prevent superficial research by forcing the AI to act as "Reviewer 2" or a "Socratic Questioner." This skill challenges the generator's output to ensure rigorous narrowing down, robust design, and claim-evidence alignment.
+Check claim-evidence alignment, methodological validity and the requested output
+contract. Use adversarial review when requested or required; routine quality
+checking does not require a reviewer persona or additional model.
 
 ## Inputs
 
 - `AnyArtifact`: Any output requiring quality assurance
-- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
+- If a required input is missing, report the affected check as incomplete. For project work, propose the gap for `context/gap_notes.md` through the existing write owner; a direct review can report it in chat.
 - Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
 
 ## Process
 
-1. **Self-Review Configuration:** Identify the current research stage (A-I).
-2. **Reviewer Persona:** Adopt a highly critical, adversarial, yet constructive persona.
-3. **Execution (Debate Loop):**
-   - **Draft Generation:** Generator provides the primary draft based on provided context and skills.
-   - **Dynamic Literature Critique:** The Reviewer first analyzes the provided MCP Evidence (literature abstracts, metadata, full texts) and formulates 2-3 highly specific questions based on the controversies or limitations identified in those exact reference texts.
-   - **Stage-Specific Critique:** The Reviewer then appends the rigorous, stage-specific questions (listed below).
-   - **Iterative Revision:** The Reviewer passes or blocks the draft. If blocked, the Generator revises targeted fixes until the Reviewer passes the output or reaches the maximum allowed rounds.
-4. **Persistent Issue Register:** Keep `review/self_critique_log.md` as the canonical loop memory across rounds. Do not restart critique from zero after each revision.
+1. Identify the requested artifact, relevant stage and applicable review contract.
+   Reuse the current draft and prior findings; do not generate a new draft just
+   to review an existing one.
+2. Check the source evidence and only the relevant stage questions below. They
+   are lenses, not a checklist to exhaust or a quota of questions to invent.
+   For a claim-to-source audit, use `references/evidence-verification.md` to
+   distinguish unsupported inference, contradictory evidence and unverified scope.
+3. For an ordinary check, review once. Fix concrete defects and verify the
+   affected claims or outputs. Stop when those checks pass; repeat a broader
+   review only for changed inputs, new evidence or the formal contract below.
+4. Preserve unresolved blockers. If a fix requires unavailable evidence or a
+   user decision, report the gap instead of continuing the same debate. A clean
+   review may report no findings; missing evidence is not a PASS.
+5. In formal runs, keep `review/self_critique_log.md` as the canonical issue
+   memory. A direct answer can report its check in chat without creating a log.
 
 ## Multi-Round Self-Loop Contract
 
-When this skill is active inside orchestrated research runs, treat critique as a stateful loop rather than isolated review comments.
+Review depth follows the requested risk and evidence, not a fixed count attached
+to a label such as standard or deep. When a protocol, user instruction or saved
+run supplies minimum passes, consecutive passes, revision limits or independent
+review requirements, honor them. Do not silently reduce an existing run's limits.
 
-- Run a draft -> review -> targeted revision -> review loop until the reviewer passes after the minimum review count or the maximum revision count is reached.
-- Standard runs require at least 2 review passes before convergence when revision rounds are available; deep runs require at least 3 review passes.
-- A `BLOCK` verdict always remains blocking, even with high confidence. Confidence records certainty; it does not convert a blocker into a pass.
-- A `PASS` before the minimum review count triggers a stability review of the same current draft, not immediate termination.
+- Review the current artifact against its applicable checks. Revise concrete
+  defects, then verify the affected work; do not manufacture a revision to
+  justify another round.
+- If an explicit minimum remains after a `PASS`, complete the required stability
+  review of the same draft. Report only reviews actually performed.
+- A required independent review cannot be replaced by role-play or another pass
+  in the same conversation. Report unavailable reviewers as an unmet requirement.
+- A `BLOCK` verdict remains blocking regardless of confidence. Reaching a review
+  or resource limit with unresolved issues means blocked or incomplete.
 - Carry unresolved issues forward into the next round.
 - Mark each issue as `open`, `partial`, `resolved`, or `superseded`.
 - Reuse existing issue IDs when the same problem persists.
@@ -82,8 +100,8 @@ light automatic grill and deep grill distinction as `boundary-interviewer`.
 
 ## Cross-Stage Grill Memory
 
-Self-critique issues are part of the cross-stage grill memory. Before starting a
-new critique loop, inspect:
+Self-critique issues are part of the cross-stage grill memory. For a project review, inspect the relevant existing records before starting a
+new critique loop:
 
 - `context/boundary_review.md`
 - `context/decision_log.md`
@@ -91,108 +109,47 @@ new critique loop, inspect:
 - `review/self_critique_log.md`
 
 If a prior issue affects the current artifact, keep the same issue ID and update
-its status instead of creating a duplicate. Open issues that cannot be resolved in
-the current stage must be copied into `context/stage_handoff.md` under `Open
+its status instead of creating a duplicate. At a formal handoff, open issues that cannot be resolved in
+the current stage must be carried through the approved write owner into `context/stage_handoff.md` under `Open
 Grill Issues` with a concrete `Revisit Trigger`.
 
-## Stage-Specific Critique Questions
+## Stage-specific checks
 
-### Stage A: Framing & Positioning
-- **Focus:** Funnel narrowing and gap validation.
-- *Q1:* "Can the current RQ be answered in a single sentence? If not, is it overlapping and too massive? How can we constrain the boundaries (population, context, time) to cut the scope in half?"
-- *Q2:* "Is this Gap simply because no one has done it (likely too difficult or meaningless), or involves a new data/method/theoretical dividend?"
-- *Q3:* "Who cares? If this research is completely successful, which specific scholars or domains will cite it? Why?"
-- *Q4:* "Does the framing rely on buzzwords without clear definitions? Which core concepts are assumed but actually contested in the literature?"
-- *Q5:* "Are the proposed boundaries (e.g., geographic, temporal) justified theoretically, or merely chosen for convenience? What bias does this introduce?"
+Use the relevant stage's existing decision and evidence checks; do not maintain
+another question bank here or load every stage. Apply the selected subject's
+`references/discipline-guidance.md` overlay when it changes the methodological
+judgment. These checks do not impose a fixed rival-hypothesis count, numeric
+quality score, universal power analysis or one qualitative validity criterion.
 
-### Stage B: Literature Review
-- **Focus:** Critical synthesis vs. passive summary.
-- *Q1:* "Are we synthesizing or just summarizing? Have we identified the contradictions and conflicts in existing literature, rather than just agreeing with them?"
-- *Q2:* "Have we been too lenient towards the highly-cited classic papers? What are their fundamental, unacknowledged limitations?"
-- *Q3:* "Does the current literature review naturally and irrefutably logically lead to the proposed RQ (A1) as the only logical next step?"
-- *Q4 (Confirmation Bias Check):* "Are the search keywords structurally biased towards confirming our hypotheses? What opposing search terms (null hypothesis literature) must be added?"
-- *Q5:* "Are we overly reliant on WEIRD (Western, Educated, Industrialized, Rich, Democratic) samples masquerading as universal findings?"
+| Current artifact | Existing check owner |
+|---|---|
+| Question, gap, concepts | `references/stage-A-framing.md` |
+| Search, screening, paper reading | `references/stage-B-literature.md` |
+| Design, estimand, measurement, sample | `references/stage-C-design.md` |
+| Consent, participant risk, data access | `references/stage-D-ethics.md` |
+| Synthesis, dependence, contradictory findings | `references/stage-E-synthesis.md` |
+| Manuscript claims and evidence | `references/stage-F-writing.md` |
+| Reporting requirements and integrity | `references/stage-G-compliance.md` |
+| Submission and reviewer responses | `references/stage-H-submission.md` |
+| Analysis code and reproducibility | `references/stage-I-code.md` |
+| Meaning-preserving language edits | `references/stage-J-proofread.md` |
+| Talk claims, figures and caveats | `references/stage-K-presentation.md` |
+| Coursework against supplied requirements | `references/stage-L-coursework.md` |
+| Dissertation chapters and supervisor decisions | `references/stage-M-dissertation.md` |
 
-### Stage C: Study Design
-- **Focus:** Red teaming internal and external validity threats.
-- *Q1 (Red Team Challenge):* "Assume this research ultimately fails or yields the exact opposite conclusion. What is the most likely fatal design/methodological flaw that caused it?"
-- *Q2:* "Are we claiming causality or correlation? Do we have critical omitted confounding variables that account for the observed effect?"
-- *Q3:* "Do our measurement instruments (proxies) accurately represent the abstract constructs defined in A3? Score this out of 10 and justify."
-- *Q4 (Rival Hypotheses):* "What are the top 3 competing hypotheses, and exactly which variables/methods rule them out?"
-- *Q5:* "Is the sample size justified by a rigorous power analysis, or based on 'rule of thumb'? What is the Minimum Detectable Effect?"
-
-### Stage D: Ethics & IRB
-- **Focus:** Extreme edge cases and participant safety.
-- *Q1:* "Are there any edge cases (like de-anonymization attacks via joining multiple datasets over time) that could lead to participant data leakage? How do we defend against this mathematically or structurally?"
-- *Q2:* "Is the language in the informed consent form at an 8th-grade reading level, or is it filled with academic jargon?"
-- *Q3:* "Does the research involve vulnerable populations indirectly? Even if not the primary target, could they be disproportionately affected?"
-- *Q4:* "What is the potential dual-use nature of these findings? Can this methodology be weaponized?"
-
-### Stage E: Evidence Synthesis
-- **Focus:** Publication bias and heterogeneity.
-- *Q1 (Devil's Advocate):* "Argue that the massive aggregated effect size is 100% due to publication bias, file-drawer effect, and p-hacking. How does our data formally refute this?"
-- *Q2:* "Is the heterogeneity between studies so high that we are essentially comparing apples to oranges? Justify the decision to pool mathematically (e.g., $I^2$ threshold)."
-- *Q3:* "How sensitive is the overall conclusion to the removal of the specific single largest or most extreme study? (Leave-one-out sensitivity)."
-- *Q4:* "Are we trusting the reported standard errors of primary studies blindly, or detecting reporting anomalies?"
-
-### Stage F: Manuscript Writing
-- **Focus:** Claim-evidence causal integrity.
-- *Q1:* "Do the claims in the Discussion section drastically exceed the mathematical data support provided in the Results section?"
-- *Q2:* "Does each major analytical paragraph move beyond description to explain at least one of: mechanism, tension, alternative explanation, boundary condition, or implication?"
-- *Q3:* "Where are we merely restating results, themes, or citations instead of interpreting why the pattern matters?"
-- *Q4:* "Are alternative explanations, contradictory evidence, and null cases confronted explicitly rather than buried in vague caveats?"
-- *Q5:* "Comparing the promises made in the Introduction with the Conclusion, did we actually fulfill those promises without moving the goalposts?"
-- *Q6:* "Is the limitations section honest and specific about boundary conditions, or just boilerplate text apologizing for basic boundaries?"
-
-### Stage G: Polish & Compliance
-- **Focus:** Harsh copy-editing and logical flow.
-- *Q1 (Tone Check):* "Remove all unnecessary emphatic words (e.g., 'definitely', 'proves') and replace them with objective academic terms (e.g., 'suggests', 'indicates')."
-- *Q2 (Logic Jump Check):* "If we strip out all transitional conjunctions (e.g., 'Therefore', 'Thus'), is the logical connection between paragraphs still solid?"
-- *Q3:* "Are the active and passive voices mixed arbitrarily? Where the researchers acted, did they use active voice to take accountability?"
-- *Q4:* "Is the manuscript bloated? Is there any paragraph that does not directly serve to establish the gap, methods, results, or interpretation?"
-
-### Stage H: Submission & Revision
-- **Focus:** De-escalation and reviewer empathy.
-- *Q1 (Empathy Check):* "Roleplay as Reviewer 2. Would I feel this Response is brushing me off, or does it genuinely address my core concerns?"
-- *Q2:* "If the reviewer asks for supplemental experiments that are impossible to conduct, is our alternative argumentation sufficiently convincing and gracious?"
-- *Q3 (Tone Neutralization):* "Identify and eliminate any defensive, snarky, or argumentative tone in the rebuttal draft."
-- *Q4:* "Did the revisions requested introduce contradictory statements in different parts of the manuscript (e.g., fixing methods but forgetting to update the abstract)?"
-
-### Stage I: Code & Implementation
-- **Focus:** Robustness and reproducibility.
-- *Q1:* "Are there any hardcoded paths or magic numbers in the code? Is the random seed fixed globally for ALL stochastic operations?"
-- *Q2:* "If 10% of the input data turns out to be NaN, will this data pipeline fail gracefully or silently produce incorrect aggregated results?"
-- *Q3:* "Are the computational environment dependencies explicitly pinned (e.g., requirements.txt, Dockerfile) to prevent 'works on my machine' syndrome?"
-- *Q4:* "Is there an unacknowledged O(N^2) or worse operation that will cause the code to hang if the dataset size scales 10x?"
-
-### Stage K: Academic Presentation
-- **Focus:** Audience fit, visual evidence integrity, and claim compression.
-- *Q1:* "Which claim is likely to be oversimplified on slides, and what evidence or caveat must stay visible?"
-- *Q2:* "Does every figure or table support the spoken argument, or is it decorative complexity?"
-- *Q3:* "What would a skeptical audience member challenge first, and is the answer already on a backup slide or speaker note?"
-
-### Stage J: Proofread & De-AI
-- **Focus:** Human scholarly voice, originality, and final integrity.
-- *Q1:* "Which sentences sound polished but empty, and what concrete claim or evidence should replace them?"
-- *Q2:* "Does the humanized text preserve citations, hedging, and claim strength from the source draft?"
-- *Q3:* "Could any rewrite change the meaning of methods, results, limitations, or author responsibility?"
-
-## Usage
-
-This skill is injected into tasks by the `mcp-agent-capability-map.yaml` and should be called:
-- By the **Reviewer Agent** during the `review-agent-check` phase of orchestrator runs.
-- Via role-play instructions in `/paper-write`, `/study-design`, and other generative commands.
+A capability mapping or reviewer role is routing guidance, not proof that a
+review ran. Use the actual Host execution and the applicable review contract.
 
 ## Output Contract
 
-- `CritiqueLog`: write `RESEARCH/[topic]/review/self_critique_log.md`.
+- `CritiqueLog`: for formal persistence, update `RESEARCH/[topic]/review/self_critique_log.md` through preview/approval/CAS; a chat review need not create a file.
 - Separate finding, interpretation, and implication in the final artifact.
 - Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
 - Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
 
 ## Quality Bar
 
-- [ ] 至少执行两轮 critique 迭代
+- [ ] 已完成当前任务适用的检查；保留协议或已有运行明确配置的复核轮数和独立审查要求
 - [ ] 每个 critique 点附带具体修正建议
 - [ ] 每轮保留并更新 issue lineage，而不是把 critique 重置
 - [ ] Overclaiming 已被识别并降级表述
@@ -203,11 +160,11 @@ This skill is injected into tasks by the `mcp-agent-capability-map.yaml` and sho
 
 | Pitfall | Problem | Fix |
 |---------|---------|-----|
-| 走过场 | Critique 只说整体不错 | 每轮至少 3 个 specific 挑战 |
+| 走过场 | Critique 只说整体不错 | 说明检查了哪些主张与证据；只报告实际问题，不凑数量 |
 | 过度自我批评 | 导致不敢下结论 | 区分 fatal flaw vs. minor improvement |
 | 只关注表面 | 挑错别字不挑逻辑 | 按逻辑 → 证据 → 表述优先级 |
 | 无 action | 批判完但不修改 | 每条 critique 必须附带 action item |
-| Critique 同质化 | 每轮发现同一问题 | 每轮切换 lens（逻辑/证据/读者体验） |
+| Critique 同质化 | 相同输入反复发现同一问题 | 复用 issue ID；缺少新证据或可行修复时说明阻塞并停止 |
 
 ## When to Use
 

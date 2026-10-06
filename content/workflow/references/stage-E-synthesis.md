@@ -20,6 +20,50 @@ Supporting artifact (core for transparency):
 - `Q2` (claim-evidence traceability): synthesis statements must map back to extracted evidence.
 - `Q4` (reproducibility baseline): analytic choices and transformations are documented.
 
+## Synthesis decisions
+
+Use the three questions in `references/academic-output-rubric.md` for each
+outcome/theme with materially different evidence. Reuse extraction and appraisal;
+read the source when a discrepancy affects the decision.
+
+| What must be decided? | Evidence needed | What can proceed? |
+|---|---|---|
+| Which evidence belongs in this synthesis? | Review question, eligibility, study/report/cohort IDs, extracted findings and source locators | Build the eligible inventory. Resolve duplicate or overlapping reports before treating rows as independent; unreviewed candidates remain separate |
+| Can these findings answer one question together? | Construct/outcome, population, comparison, time point, effect scale or qualitative context | Justify pooling, separate compatible subsets, or choose narrative/qualitative synthesis. Neither a low I² nor a requested pooled answer supplies comparability |
+| Can the chosen analysis be executed? | Required estimates and uncertainty, transformations, dependency handling, method specification and available tool | Run and check the analysis only with sufficient inputs. Missing variance can block weighted pooling while a bounded synthesis of reported estimates proceeds; do not fill it from study size alone |
+| How strong is the conclusion? | Actual results, source appraisal, missing evidence, sensitivity findings and contradictory cases | State the finding and its limits. Missing appraisal leaves the affected certainty assessment unresolved; narrative synthesis retains the same evidence limits |
+| What can writing inherit? | Outcome-to-study mapping, executed output or source excerpt, decision rationale and unresolved gaps | Pass only verified results and supported interpretations to F. Preserve excluded/subset evidence and failed assumptions; a plan is not a result |
+
+Record selected outcomes, method choices and continuation conditions in
+`meta_analysis_plan.md` for E1; record actual evidence and limits in the selected
+E outputs. A narrow explanation needs no full review scaffold. Use the existing
+decision log for consequential changes and the handoff for downstream conditions.
+If a corrected source changes eligibility, scale or uncertainty, recheck the
+affected estimate and conclusion before reusing its table, claim or prose.
+
+## Check comparability before combining
+
+Preserve study/report/cohort identity, outcome definition, time point, effect
+direction and scale. Record transformations with their inputs and source anchors.
+Shared controls, repeated outcomes and overlapping samples require an explicit
+dependence strategy; extra rows are not extra independent studies.
+
+Choose pooling from the question and substantive/design compatibility, not an
+I² threshold alone. A random-effects model does not repair incomparable studies.
+Report uncertainty and heterogeneity at the level the data support; very few
+studies limit both estimation and diagnostic power. Narrative synthesis should
+compare magnitude, context, design and bias, not count significant p-values.
+
+Keep study-level risk of bias, reporting completeness and outcome-level certainty
+separate. Select appraisal/ certainty frameworks appropriate to the question;
+GRADE is not a mandatory score for every discipline or qualitative synthesis.
+For qualitative work, preserve the analytic tradition and source/interpretation
+trail. Mixed-method synthesis must explain integration and unresolved divergence.
+Carry exclusions, dependence, uncertainty and contradictory findings into Stage F.
+
+For quantitative synthesis, consult the applicable methods in
+[Cochrane Handbook Chapter 10](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-10).
+
 ---
 
 ## E1 — Synthesis Strategy / Meta-analysis Plan
@@ -100,8 +144,10 @@ Include:
 ## E3_5 — Publication Bias / Missing-Results Bias
 
 **Definition of done**
-- At least one bias check appropriate for the dataset (not always possible with small k)
-- Interpretation is cautious (bias checks are low power)
+- Missing-results risk is assessed with methods appropriate to the evidence;
+  explain when statistical checks are uninformative or inapplicable
+- Funnel asymmetry is not proof of publication bias; a nonsignificant test is
+  not proof of its absence, and trim-and-fill does not recover known truth
 
 Write into: `synthesis/publication_bias.md`.
 

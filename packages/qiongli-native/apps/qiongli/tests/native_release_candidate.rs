@@ -1,5 +1,7 @@
 #![allow(clippy::disallowed_methods)]
 
+mod support;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -22,19 +24,19 @@ use qiongli_platform::{
     apply_native_release_candidate_local, approve_native_artifact_target,
     approve_native_portable_archive_target, build_native_release_candidate,
     build_native_release_envelope, compose_native_artifact, compose_native_portable_archive,
-    current_target_native_artifact_identity, launch_grant_signing_bytes,
-    materialize_native_candidate_plugin_source, native_artifact_id,
+    launch_grant_signing_bytes, materialize_native_candidate_plugin_source, native_artifact_id,
     native_portable_archive_file_name, native_release_candidate_signing_bytes,
     native_release_envelope_signing_bytes, prepare_native_candidate_plugin_source_target,
     remove_native_candidate_plugin_source, remove_native_release_candidate_local,
-    verify_native_candidate_plugin_source, verify_native_release_candidate_local,
+    verify_installed_native_candidate_product, verify_native_candidate_plugin_source,
+    verify_native_release_candidate_local,
 };
 use serde_json::json;
 
 static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
 const NOW: u64 = 1_750_000_000;
 const SOURCE_COMMIT: &str = "89abcdef0123456789abcdef0123456789abcdef";
-const NOTES: &[u8] = b"# Qiongli 2.0.0-alpha.1\n\nLite local release candidate.\n";
+const NOTES: &[u8] = b"# Qiongli native candidate fixture\n\nLite local release candidate.\n";
 const CONTENT_ROOTS: [&str; 12] = [
     ".claude-plugin",
     ".codex-plugin",
@@ -213,8 +215,16 @@ fn authority_with_policy(
     NativeReleaseAuthority::from_json(&bytes).expect("test authority must be canonical")
 }
 
+fn current_channel_name() -> &'static str {
+    match support::current_native_artifact().channel {
+        ReleaseChannel::Alpha => "alpha",
+        ReleaseChannel::Beta => "beta",
+        ReleaseChannel::Stable => "stable",
+    }
+}
+
 fn authority(release_key: &SigningKey, launch_key: &SigningKey) -> NativeReleaseAuthority {
-    authority_with_policy(release_key, launch_key, "alpha", 29, 29, 30)
+    authority_with_policy(release_key, launch_key, current_channel_name(), 29, 29, 31)
 }
 
 fn resign_candidate(
@@ -282,9 +292,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     let built_pack = minimal_pack(&fixture.root);
     let content = load_resource_pack(built_pack.core_bytes(), built_pack.pack_sha256())
         .expect("minimal content must verify");
-    let artifact =
-        current_target_native_artifact_identity(env!("CARGO_PKG_VERSION"), ReleaseChannel::Alpha)
-            .expect("current target artifact must resolve");
+    let artifact = support::current_native_artifact();
     let artifact_id = native_artifact_id(&artifact).expect("artifact ID must render");
     let artifact_path = fixture.target("artifact", &artifact_id);
     let artifact_target = approve_native_artifact_target(&artifact_path, &artifact)
@@ -517,6 +525,115 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     )
     .unwrap();
     assert_eq!(codex_verified.source, codex_install.source.verification);
+    let installed_path = home.join(".qiongli/native/payloads").join(&artifact_id);
+    let installed_target = approve_native_artifact_target(&installed_path, &artifact).unwrap();
+    let installed_binary = installed_path.join(&assembled.manifest().binary_path);
+    let installed = signed_candidate
+        .verify_installed(
+            &authority,
+            &codex_context,
+            &content,
+            &installed_target,
+            &installed_binary,
+        )
+        .expect("installed candidate must bind the installed executable");
+    assert_eq!(
+        installed.current_executable(),
+        fs::canonicalize(&installed_binary).unwrap()
+    );
+    assert_eq!(installed.candidate().source_commit, SOURCE_COMMIT);
+    let record_path = home
+        .join(".qiongli/native/payloads")
+        .join(qiongli_platform::native_release_candidate_file_name(&artifact).unwrap());
+    let record_bytes = fs::read(&record_path).unwrap();
+    assert_eq!(record_bytes, signed_candidate.to_canonical_json().unwrap());
+    let verify_product = || {
+        verify_installed_native_candidate_product(
+            &content,
+            &authority,
+            &codex_context,
+            &home,
+            &installed_binary,
+        )
+    };
+    verify_product().expect("persisted candidate and active receipt must revalidate");
+    let product = qiongli_platform::verify_native_packaged_product(
+        &content,
+        &authority,
+        &home,
+        &installed_binary,
+        env!("CARGO_PKG_VERSION"),
+        SOURCE_COMMIT,
+        NOW + 3,
+    )
+    .expect("standalone candidate must establish shared product capabilities");
+    assert_eq!(product.artifact(), &artifact);
+    assert_eq!(product.product_source_commit(), SOURCE_COMMIT);
+    for target in [
+        ClientActivationTarget::Codex,
+        ClientActivationTarget::ClaudeCode,
+    ] {
+        assert_eq!(
+            product
+                .capability(target)
+                .unwrap()
+                .grant()
+                .authorized_scope(),
+            target.integration_scope()
+        );
+    }
+    let preview =
+        qiongli_platform::preview_packaged_product_install(&product, ClientActivationTarget::Codex)
+            .unwrap();
+    let mut wrong_preview = preview.clone();
+    wrong_preview.plan_digest_sha256 = "0".repeat(64);
+    assert!(
+        qiongli_platform::apply_packaged_product_install(
+            &content,
+            &product,
+            &wrong_preview,
+            NOW + 4
+        )
+        .is_err()
+    );
+    qiongli_platform::apply_packaged_product_install(&content, &product, &preview, NOW + 4)
+        .expect("existing operation owner must accept native product authority");
+
+    fs::remove_file(&record_path).unwrap();
+    assert!(
+        verify_product().is_err(),
+        "legacy receipts alone cannot authorize a product"
+    );
+    let upgraded = apply_native_release_candidate_local(&content, &codex, &home, NOW + 3).unwrap();
+    assert_eq!(
+        upgraded.payload.disposition,
+        InstallDisposition::AlreadyApplied
+    );
+    assert_eq!(fs::read(&record_path).unwrap(), record_bytes);
+    let record_link = fixture.root.join("candidate-record-hard-link");
+    fs::hard_link(&record_path, &record_link).unwrap();
+    assert!(
+        verify_product().is_err(),
+        "linked authority records must be refused"
+    );
+    fs::remove_file(record_link).unwrap();
+
+    fs::write(&record_path, b"untrusted candidate canary").unwrap();
+    assert!(verify_product().is_err());
+    assert!(apply_native_release_candidate_local(&content, &codex, &home, NOW + 3).is_err());
+    assert_eq!(
+        fs::read(&record_path).unwrap(),
+        b"untrusted candidate canary"
+    );
+    fs::write(&record_path, &record_bytes).unwrap();
+    verify_product().expect("restored signed candidate must revalidate freshly");
+
+    assert_eq!(
+        installed.plugin_grant().authorized_scope(),
+        IntegrationScope::CodexLocal
+    );
+    assert!(!format!("{installed:?}").contains(fixture.root.to_string_lossy().as_ref()));
+
     assert!(
         verify_native_release_candidate_local(
             &content,
@@ -526,10 +643,706 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
         )
         .is_err()
     );
+    // A newer payload is staged beside the active integration, never over it.
+    let mut next_artifact = artifact.clone();
+    let mut next_version = semver::Version::parse(&artifact.version).unwrap();
+    next_version.patch += 1;
+    next_artifact.version = next_version.to_string();
+    let next_id = native_artifact_id(&next_artifact).unwrap();
+    let next_artifact_target =
+        approve_native_artifact_target(fixture.target("next-artifact", &next_id), &next_artifact)
+            .unwrap();
+    compose_native_artifact(
+        &content,
+        &next_artifact,
+        &fixture.source_binary,
+        &next_artifact_target,
+    )
+    .unwrap();
+    let next_archive_target = approve_native_portable_archive_target(
+        fixture.target(
+            "next-archive",
+            &native_portable_archive_file_name(&next_artifact).unwrap(),
+        ),
+        &next_artifact,
+    )
+    .unwrap();
+    let next_archive =
+        compose_native_portable_archive(&content, &next_artifact_target, &next_archive_target)
+            .unwrap();
+    let mut next_grant = portable_grant.grant.clone();
+    next_grant.artifact = next_artifact.clone();
+    let next_grant = sign_grant(next_grant, &launch_key, "candidate-launch-test-key");
+    let mut next_release = signed_release.clone();
+    next_release.envelope =
+        build_native_release_envelope(30, &next_archive, &next_grant, NOW - 30, NOW + 1_800)
+            .unwrap();
+    next_release.signature.value_hex = encode_hex(
+        &release_key
+            .sign(&native_release_envelope_signing_bytes(&next_release.envelope).unwrap())
+            .to_bytes(),
+    );
+    let mut next_candidate = signed_candidate.clone();
+    next_candidate.candidate = build_native_release_candidate(
+        30,
+        SOURCE_COMMIT,
+        &next_release,
+        [
+            plugin_grant(
+                &next_artifact,
+                ClientActivationTarget::Codex,
+                &assembled.manifest().binary_sha256,
+                content.pack_sha256(),
+                &launch_key,
+            ),
+            plugin_grant(
+                &next_artifact,
+                ClientActivationTarget::ClaudeCode,
+                &assembled.manifest().binary_sha256,
+                content.pack_sha256(),
+                &launch_key,
+            ),
+        ],
+        NOTES,
+        NOW,
+        NOW + 1_200,
+    )
+    .unwrap();
+    let next_candidate = resign_candidate(next_candidate, &release_key);
+    let next_context = NativeReleaseCandidateVerificationContext {
+        expected_artifact: &next_artifact,
+        ..codex_context
+    };
+    let next_verified = next_candidate
+        .verify(
+            &authority,
+            &next_context,
+            &content,
+            &next_archive_target,
+            NOTES,
+        )
+        .unwrap();
+    assert!(
+        qiongli_platform::stage_native_release_candidate_local(
+            &content,
+            &next_verified,
+            &home,
+            NOW + 2_000
+        )
+        .is_err()
+    );
+    let staged = qiongli_platform::stage_native_release_candidate_local(
+        &content,
+        &next_verified,
+        &home,
+        NOW + 4,
+    )
+    .unwrap();
+    assert_eq!(staged.disposition, InstallDisposition::Applied);
+    let next_binary = home
+        .join(".qiongli/native/payloads")
+        .join(&next_id)
+        .join(qiongli_platform::native_artifact_binary_path(&next_artifact).unwrap());
+    verify_installed_native_candidate_product(
+        &content,
+        &authority,
+        &next_context,
+        &home,
+        &next_binary,
+    )
+    .unwrap();
+    assert_eq!(
+        verify_native_release_candidate_local(
+            &content,
+            &home,
+            ClientActivationTarget::Codex,
+            &codex_install.payload.receipt.install_id
+        )
+        .unwrap(),
+        codex_verified
+    );
+    assert_eq!(
+        qiongli_platform::stage_native_release_candidate_local(
+            &content,
+            &next_verified,
+            &home,
+            NOW + 5
+        )
+        .unwrap()
+        .disposition,
+        InstallDisposition::AlreadyApplied
+    );
+    let next_product = qiongli_platform::verify_native_packaged_product(
+        &content,
+        &authority,
+        &home,
+        &next_binary,
+        &next_artifact.version,
+        SOURCE_COMMIT,
+        NOW + 5,
+    )
+    .unwrap();
+    let previous_id = &codex_install.payload.receipt.install_id;
+    assert!(
+        qiongli::preview_native_candidate_activation(&next_product, &next_verified, previous_id)
+            .is_err()
+    );
+    let command = if cfg!(windows) {
+        home.join("AppData/Local/Qiongli/bin/qiongli.exe")
+    } else {
+        home.join(".local/bin/qiongli")
+    };
+    fs::create_dir_all(command.parent().unwrap()).unwrap();
+    fs::copy(&installed_binary, &command).unwrap();
+    let cli_receipt = home.join(".qiongli/v2/cli/install-receipt.json");
+    fs::create_dir_all(cli_receipt.parent().unwrap()).unwrap();
+    let receipt = json!({
+        "schema_version": 3, "product_version": artifact.version,
+        "installed_sha256": codex_install.payload.receipt.operation.binary_sha256,
+        "target_name": command.file_name().unwrap().to_str().unwrap(),
+        "retained_backup_name": null
+    });
+    let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+    fs::write(&cli_receipt, &receipt_bytes).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&cli_receipt, fs::Permissions::from_mode(0o600)).unwrap();
+    }
+    let activation =
+        || qiongli::preview_native_candidate_activation(&next_product, &next_verified, previous_id);
+    let first = serde_json::to_value(activation().unwrap()).unwrap();
+    assert_eq!(first["previous_version"], artifact.version);
+    assert_eq!(first["candidate_version"], next_artifact.version);
+    assert_eq!(first["mutation"], "none");
+    assert!(first.get("approval_digest_sha256").is_none());
+    assert_eq!(serde_json::to_value(activation().unwrap()).unwrap(), first);
+    assert_eq!(fs::read(&cli_receipt).unwrap(), receipt_bytes);
+    assert!(
+        qiongli::preview_native_candidate_activation(&product, &next_verified, previous_id)
+            .is_err()
+    );
+    assert!(
+        qiongli::preview_native_candidate_activation(
+            &next_product,
+            &next_verified,
+            &staged.receipt.install_id
+        )
+        .is_err()
+    );
+    assert!(qiongli::preview_native_candidate_activation(&product, &codex, previous_id).is_err());
+    let command_bytes = fs::read(&command).unwrap();
+    fs::write(&command, b"foreign command canary").unwrap();
+    assert!(activation().is_err());
+    assert_eq!(fs::read(&command).unwrap(), b"foreign command canary");
+    fs::write(&command, command_bytes).unwrap();
+    let mut wrong_receipt = receipt.clone();
+    wrong_receipt["product_version"] = json!(next_artifact.version);
+    fs::write(&cli_receipt, serde_json::to_vec(&wrong_receipt).unwrap()).unwrap();
+    assert!(activation().is_err());
+    fs::write(&cli_receipt, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
+    let changed = serde_json::to_value(activation().unwrap()).unwrap();
+    assert_ne!(
+        first["preflight_digest_sha256"],
+        changed["preflight_digest_sha256"]
+    );
+    fs::write(&cli_receipt, receipt_bytes).unwrap();
+
+    #[cfg(unix)]
+    {
+        let configured = fixture.root.join("activation-config");
+        let config =
+            qiongli_config::resolve_config_root(Some(configured.as_os_str()), &home).unwrap();
+        let embedded = qiongli_content::EmbeddedContent::load(
+            Box::leak(built_pack.core_bytes().to_vec().into_boxed_slice()),
+            built_pack.pack_sha256(),
+        )
+        .unwrap();
+        let digest = first["preflight_digest_sha256"].as_str().unwrap();
+        let prepare_activation = |expected: &str| {
+            qiongli::prepare_native_candidate_activation(
+                &next_product,
+                &next_verified,
+                previous_id,
+                expected,
+                &embedded,
+                config.clone(),
+                NOW + 5,
+            )
+        };
+        assert!(prepare_activation(&"0".repeat(64)).is_err());
+        assert!(!configured.exists());
+        let store = qiongli_config::UpdateStateStore::new(
+            config.clone(),
+            qiongli_config::UpdateStreamPreference::Beta,
+        );
+        let initial = store.load().unwrap();
+        let prepared = serde_json::to_value(prepare_activation(digest).unwrap()).unwrap();
+        assert_eq!(prepared["operation_count"], 4);
+        assert_eq!(
+            prepared["surfaces"],
+            json!([
+                "codex-plugin-bundle",
+                "codex-registration",
+                "cli-binary",
+                "cli-receipt"
+            ])
+        );
+        assert_ne!(
+            prepared["approval_digest_sha256"],
+            first["preflight_digest_sha256"]
+        );
+        assert_eq!(store.load().unwrap(), initial);
+        assert_eq!(
+            fs::read(&command).unwrap(),
+            fs::read(&installed_binary).unwrap()
+        );
+        assert_eq!(serde_json::to_value(activation().unwrap()).unwrap(), first);
+        let transaction_id = prepared["transaction_id"].as_str().unwrap();
+        let journal = store
+            .staging_root()
+            .join(transaction_id)
+            .join("reconciliation-journal.json");
+        let bytes = fs::read(&journal).unwrap();
+        assert!(prepare_activation(digest).is_err());
+        assert_eq!(fs::read(&journal).unwrap(), bytes);
+        let mut blocked = initial.state.clone();
+        blocked.active_transaction = Some(qiongli_config::UpdateActiveTransaction {
+            transaction_id: format!("update-{}", "f".repeat(32)),
+            target_version: next_artifact.version.clone(),
+            phase: qiongli_config::UpdateTransactionPhase::Activating,
+        });
+        store.replace(initial.revision, blocked).unwrap();
+        assert!(matches!(
+            prepare_activation(digest),
+            Err("native-update-replacement-active")
+        ));
+        assert!(
+            qiongli::discard_native_reconciliation(
+                &store,
+                transaction_id,
+                prepared["journal_sha256"].as_str().unwrap()
+            )
+            .is_err()
+        );
+        let current = store.load().unwrap();
+        let mut blocked = current.state.clone();
+        blocked.active_transaction = None;
+        blocked.last_accepted_generation = next_verified.candidate().generation;
+        store.replace(current.revision, blocked).unwrap();
+        assert!(matches!(
+            prepare_activation(digest),
+            Err("native-activation-generation-rejected")
+        ));
+        assert_eq!(fs::read(&journal).unwrap(), bytes);
+        let journal_digest = prepared["journal_sha256"].as_str().unwrap();
+        let cancel = |expected: &str| {
+            qiongli::discard_native_reconciliation(&store, transaction_id, expected)
+        };
+        assert!(cancel(&"0".repeat(64)).is_err());
+        let transaction_root = journal.parent().unwrap();
+        let canary = transaction_root.join("foreign-file");
+        fs::write(&canary, b"preserve foreign file").unwrap();
+        assert!(cancel(journal_digest).is_err());
+        assert_eq!(fs::read(&canary).unwrap(), b"preserve foreign file");
+        fs::remove_file(canary).unwrap();
+        let record = transaction_root.join("native-activation.json");
+        fs::write(&record, b"{}").unwrap();
+        assert!(matches!(
+            cancel(journal_digest),
+            Err("native-activation-recovery-required")
+        ));
+        fs::remove_file(record).unwrap();
+        let moved = store.staging_root().join("saved-transaction");
+        fs::rename(transaction_root, &moved).unwrap();
+        std::os::unix::fs::symlink(&moved, transaction_root).unwrap();
+        assert!(cancel(journal_digest).is_err());
+        assert_eq!(
+            fs::read(moved.join("reconciliation-journal.json")).unwrap(),
+            bytes
+        );
+        fs::remove_file(transaction_root).unwrap();
+        fs::rename(moved, transaction_root).unwrap();
+        let decoded: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        let backup = Path::new(decoded["operations"][0]["backup"].as_str().unwrap());
+        fs::write(backup, b"preserve unexpected backup").unwrap();
+        assert!(cancel(journal_digest).is_err());
+        assert_eq!(fs::read(backup).unwrap(), b"preserve unexpected backup");
+        fs::remove_file(backup).unwrap();
+        // Resume cancellation after a prior attempt removed one staged receipt.
+        let staged_receipt = decoded["operations"].as_array().unwrap().last().unwrap()["staged"]
+            .as_str()
+            .unwrap();
+        fs::remove_file(staged_receipt).unwrap();
+        let before_cancel = store.load().unwrap();
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_qiongli"))
+            .env_clear()
+            .env("HOME", &home)
+            .env("USERPROFILE", &home)
+            .env("QIONGLI_CONFIG_HOME", &configured)
+            .env("PATH", "")
+            .args([
+                "install",
+                "candidate",
+                "activate-discard",
+                "--transaction-id",
+                transaction_id,
+                "--expected-journal-digest",
+                journal_digest,
+                "--approve-filesystem-write",
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let output: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(output["command"], "install-candidate-activate-discard");
+        assert_eq!(output["journal_sha256"], journal_digest);
+        assert!(!transaction_root.exists());
+        assert_eq!(store.load().unwrap(), before_cancel);
+        assert_eq!(serde_json::to_value(activation().unwrap()).unwrap(), first);
+        assert!(cancel(journal_digest).is_err());
+
+        for mode in [
+            "failed",
+            "interrupted",
+            "committed-cleanup",
+            "committed",
+            "approved-health-failed",
+        ] {
+            if mode == "approved-health-failed" && !cfg!(target_os = "macos") {
+                continue;
+            }
+            use std::os::unix::fs::PermissionsExt;
+            let activation_home = fixture.root.join(format!("release-state-{mode}"));
+            create_private_directory(&activation_home);
+            let prior =
+                apply_native_release_candidate_local(&content, &codex, &activation_home, NOW + 2)
+                    .unwrap();
+            qiongli_platform::stage_native_release_candidate_local(
+                &content,
+                &next_verified,
+                &activation_home,
+                NOW + 3,
+            )
+            .unwrap();
+            let source = activation_home
+                .join(".qiongli/native/payloads")
+                .join(&next_id)
+                .join(qiongli_platform::native_artifact_binary_path(&next_artifact).unwrap());
+            let next_product = qiongli_platform::verify_native_packaged_product(
+                &content,
+                &authority,
+                &activation_home,
+                &source,
+                &next_artifact.version,
+                SOURCE_COMMIT,
+                NOW + 4,
+            )
+            .unwrap();
+            let command = activation_home.join(".local/bin/qiongli");
+            fs::create_dir_all(command.parent().unwrap()).unwrap();
+            fs::copy(&installed_binary, &command).unwrap();
+            let receipt_path = activation_home.join(".qiongli/v2/cli/install-receipt.json");
+            fs::create_dir_all(receipt_path.parent().unwrap()).unwrap();
+            fs::write(&receipt_path, serde_json::to_vec(&receipt).unwrap()).unwrap();
+            fs::set_permissions(&receipt_path, fs::Permissions::from_mode(0o600)).unwrap();
+            let config = qiongli_config::resolve_config_root(None, &activation_home).unwrap();
+            qiongli_config::GlobalSettingsStore::new(config.clone())
+                .prepare_store()
+                .unwrap();
+            let store = qiongli_config::UpdateStateStore::new(
+                config.clone(),
+                qiongli_config::UpdateStreamPreference::Beta,
+            );
+            let initial = store.load().unwrap();
+            let mut old = initial.state;
+            old.last_accepted_generation = codex.candidate().generation;
+            old.last_known_good = Some(qiongli_config::UpdateLastKnownGood {
+                version: artifact.version.clone(),
+                channel: match artifact.channel {
+                    ReleaseChannel::Alpha => qiongli_config::UpdateReleaseChannel::Alpha,
+                    ReleaseChannel::Beta => qiongli_config::UpdateReleaseChannel::Beta,
+                    ReleaseChannel::Stable => qiongli_config::UpdateReleaseChannel::Stable,
+                },
+                generation: codex.candidate().generation,
+                archive_sha256: codex
+                    .candidate()
+                    .signed_portable_release
+                    .envelope
+                    .archive_sha256
+                    .clone(),
+                resource_pack_sha256: content.pack_sha256().to_string(),
+            });
+            store.replace(initial.revision, old.clone()).unwrap();
+            let preview = serde_json::to_value(
+                qiongli::preview_native_candidate_activation(
+                    &next_product,
+                    &next_verified,
+                    &prior.payload.receipt.install_id,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            let preflight = preview["preflight_digest_sha256"].as_str().unwrap();
+            let prepare = || {
+                qiongli::prepare_native_candidate_activation(
+                    &next_product,
+                    &next_verified,
+                    &prior.payload.receipt.install_id,
+                    preflight,
+                    &embedded,
+                    config.clone(),
+                    NOW + 5,
+                )
+            };
+            if mode == "failed" {
+                let stale = serde_json::to_value(prepare().unwrap()).unwrap();
+                let observed = store.load().unwrap();
+                let mut changed = observed.state;
+                changed.selected_stream = qiongli_config::UpdateStreamPreference::Stable;
+                store.replace(observed.revision, changed).unwrap();
+                assert!(matches!(
+                    qiongli::activate_native_reconciliation(
+                        &store,
+                        stale["transaction_id"].as_str().unwrap(),
+                        stale["journal_sha256"].as_str().unwrap(),
+                        || panic!("stale approval must not run health")
+                    ),
+                    Err("native-activation-state-changed")
+                ));
+                qiongli::discard_native_reconciliation(
+                    &store,
+                    stale["transaction_id"].as_str().unwrap(),
+                    stale["journal_sha256"].as_str().unwrap(),
+                )
+                .unwrap();
+                let observed = store.load().unwrap();
+                store.replace(observed.revision, old.clone()).unwrap();
+            }
+            let prepared = serde_json::to_value(prepare().unwrap()).unwrap();
+            let id = prepared["transaction_id"].as_str().unwrap();
+            let digest = prepared["journal_sha256"].as_str().unwrap();
+            let journal_path = store
+                .staging_root()
+                .join(id)
+                .join("reconciliation-journal.json");
+            let journal_bytes = fs::read(&journal_path).unwrap();
+            let journal: serde_json::Value = serde_json::from_slice(&journal_bytes).unwrap();
+            assert_eq!(journal["schema_version"], 3);
+            assert_eq!(journal["native_release"]["next"]["generation"], 30);
+            let canary = Path::new(
+                journal["operations"][0]["staging_container"]
+                    .as_str()
+                    .unwrap(),
+            )
+            .join("keep-me");
+            let attempt = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                if mode == "approved-health-failed" {
+                    let before = store.load().unwrap();
+                    let approved = |approval: &str| {
+                        qiongli::activate_native_candidate(
+                            &next_product,
+                            &next_verified,
+                            &prior.payload.receipt.install_id,
+                            id,
+                            digest,
+                            approval,
+                            &embedded,
+                            config.clone(),
+                        )
+                    };
+                    assert_eq!(
+                        approved(&"0".repeat(64)),
+                        Err("native-activation-approval-digest-mismatch")
+                    );
+                    assert_eq!(store.load().unwrap(), before);
+                    assert!(
+                        !store
+                            .staging_root()
+                            .join(id)
+                            .join("native-activation.json")
+                            .exists()
+                    );
+                    let mut substituted = journal.clone();
+                    substituted["native_release"]["next"]["archive_sha256"] = json!("f".repeat(64));
+                    let substituted_bytes = serde_json_canonicalizer::to_vec(&substituted).unwrap();
+                    let substituted_digest = format!(
+                        "{:x}",
+                        <sha2::Sha256 as sha2::Digest>::digest(&substituted_bytes)
+                    );
+                    fs::write(&journal_path, &substituted_bytes).unwrap();
+                    assert_eq!(
+                        qiongli::activate_native_candidate(
+                            &next_product,
+                            &next_verified,
+                            &prior.payload.receipt.install_id,
+                            id,
+                            &substituted_digest,
+                            prepared["approval_digest_sha256"].as_str().unwrap(),
+                            &embedded,
+                            config.clone(),
+                        ),
+                        Err("native-activation-release-invalid")
+                    );
+                    assert_eq!(store.load().unwrap(), before);
+                    fs::write(&journal_path, &journal_bytes).unwrap();
+                    // Fixture payload bytes are not a runnable Qiongli CLI: mandatory health must roll back.
+                    return approved(prepared["approval_digest_sha256"].as_str().unwrap());
+                }
+                qiongli::activate_native_reconciliation(&store, id, digest, || {
+                    assert_eq!(
+                        store.load().unwrap().state.last_known_good,
+                        old.last_known_good
+                    );
+                    if mode == "interrupted" {
+                        panic!("fixture activation interruption");
+                    }
+                    if mode == "failed" {
+                        return Err("fixture-health-failed");
+                    }
+                    if mode == "committed-cleanup" {
+                        fs::write(&canary, b"preserve foreign file").unwrap();
+                    }
+                    Ok(())
+                })
+            }));
+            match mode {
+                "interrupted" => assert!(attempt.is_err()),
+                "committed" => assert_eq!(
+                    attempt.unwrap().unwrap(),
+                    qiongli::NativeActivationOutcome::Committed
+                ),
+                _ => assert!(attempt.unwrap().is_err()),
+            }
+            if mode == "committed-cleanup" {
+                assert_eq!(
+                    store.load().unwrap().state.last_known_good,
+                    old.last_known_good
+                );
+                assert_eq!(fs::read(&canary).unwrap(), b"preserve foreign file");
+                let mut changed = journal.clone();
+                changed["native_release"]["candidate_digest_sha256"] = json!("f".repeat(64));
+                fs::write(
+                    &journal_path,
+                    serde_json_canonicalizer::to_vec(&changed).unwrap(),
+                )
+                .unwrap();
+                assert!(qiongli::recover_native_reconciliation(&store, id, digest).is_err());
+                fs::write(&journal_path, &journal_bytes).unwrap();
+                fs::remove_file(&canary).unwrap();
+            }
+            let outcome = if cfg!(target_os = "macos") {
+                let output = std::process::Command::new(env!("CARGO_BIN_EXE_qiongli"))
+                    .env("HOME", &activation_home)
+                    .env("QIONGLI_CONFIG_HOME", config.compatibility_root())
+                    .args([
+                        "install",
+                        "candidate",
+                        "activate-recover",
+                        "--transaction-id",
+                        id,
+                        "--expected-journal-digest",
+                        digest,
+                        "--approve-filesystem-write",
+                    ])
+                    .output()
+                    .unwrap();
+                assert!(
+                    output.status.success(),
+                    "{}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+                assert_eq!(value["command"], "install-candidate-activate-recover");
+                assert_eq!(value["transaction_id"], id);
+                assert_eq!(value["journal_sha256"], digest);
+                serde_json::from_value(value["outcome"].clone()).unwrap()
+            } else {
+                qiongli::recover_native_reconciliation(&store, id, digest).unwrap()
+            };
+            let recovered = store.load().unwrap();
+            assert!(recovered.state.active_transaction.is_none());
+            if mode.starts_with("committed") {
+                assert_eq!(outcome, qiongli::NativeActivationOutcome::Committed);
+                assert_eq!(recovered.state.last_accepted_generation, 30);
+                let known_good = recovered.state.last_known_good.as_ref().unwrap();
+                assert_eq!(known_good.version, next_artifact.version);
+                assert_eq!(
+                    known_good.archive_sha256,
+                    next_verified
+                        .candidate()
+                        .signed_portable_release
+                        .envelope
+                        .archive_sha256
+                );
+            } else {
+                assert_eq!(outcome, qiongli::NativeActivationOutcome::RolledBack);
+                assert_eq!(recovered.state, old);
+                let retry = serde_json::to_value(prepare().unwrap()).unwrap();
+                assert_ne!(retry["transaction_id"], prepared["transaction_id"]);
+                qiongli::discard_native_reconciliation(
+                    &store,
+                    retry["transaction_id"].as_str().unwrap(),
+                    retry["journal_sha256"].as_str().unwrap(),
+                )
+                .unwrap();
+            }
+            assert_eq!(
+                qiongli::recover_native_reconciliation(&store, id, digest).unwrap(),
+                outcome
+            );
+            assert_eq!(store.load().unwrap(), recovered);
+        }
+    }
+    let root = qiongli_platform::discover_native_candidate_managed_root(&home).unwrap();
+    let executor = qiongli_platform::ManagedNativePayloadExecutor::new(root);
+    let staged_binary_bytes = fs::read(&next_binary).unwrap();
+    fs::write(&next_binary, b"modified staged payload canary").unwrap();
+    assert!(
+        executor
+            .rollback(&staged.receipt.install_id, &content, NOW + 6)
+            .is_err()
+    );
+    assert_eq!(
+        fs::read(&next_binary).unwrap(),
+        b"modified staged payload canary"
+    );
+    fs::write(&next_binary, staged_binary_bytes).unwrap();
+    executor
+        .rollback(&staged.receipt.install_id, &content, NOW + 6)
+        .unwrap();
+    assert!(!next_binary.exists());
+    assert!(
+        verify_installed_native_candidate_product(
+            &content,
+            &authority,
+            &next_context,
+            &home,
+            &next_binary
+        )
+        .is_err()
+    );
+    assert_eq!(
+        verify_native_release_candidate_local(
+            &content,
+            &home,
+            ClientActivationTarget::Codex,
+            &codex_install.payload.receipt.install_id
+        )
+        .unwrap(),
+        codex_verified
+    );
+    verify_product().expect("prior product remains available after staged-version rollback");
+
     let recovery_marker = home
         .join(".qiongli/native/payloads")
         .join(".qiongli-native-payload-transaction.json");
     fs::write(&recovery_marker, b"recovery-canary").unwrap();
+    assert!(verify_product().is_err());
     assert_eq!(
         verify_native_release_candidate_local(
             &content,
@@ -549,6 +1362,15 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
         NOW + 4,
     )
     .unwrap();
+    assert!(
+        record_path.exists(),
+        "signed diagnostic metadata is retained like receipts"
+    );
+    assert!(
+        verify_product().is_err(),
+        "removed payload cannot regain authority from retained metadata"
+    );
+
     assert!(
         !home
             .join(".qiongli/native/payloads")
@@ -700,7 +1522,14 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
         NativeReleaseCandidateError::CandidateExpired
     );
 
-    let stale_authority = authority_with_policy(&release_key, &launch_key, "alpha", 30, 29, 31);
+    let stale_authority = authority_with_policy(
+        &release_key,
+        &launch_key,
+        current_channel_name(),
+        30,
+        29,
+        31,
+    );
     assert_eq!(
         signed_candidate
             .verify(
@@ -713,11 +1542,17 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
             .unwrap_err(),
         NativeReleaseCandidateError::CandidateReplayed
     );
-    let beta_authority = authority_with_policy(&release_key, &launch_key, "beta", 29, 29, 30);
+    let other_channel = if artifact.channel == ReleaseChannel::Beta {
+        "stable"
+    } else {
+        "beta"
+    };
+    let wrong_channel_authority =
+        authority_with_policy(&release_key, &launch_key, other_channel, 29, 29, 30);
     assert_eq!(
         signed_candidate
             .verify(
-                &beta_authority,
+                &wrong_channel_authority,
                 &codex_context,
                 &content,
                 &archive_target,
@@ -766,6 +1601,115 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
             .unwrap_err(),
         NativeReleaseCandidateError::PluginGrantInvalid
     );
+
+    // Runtime identity does not require the download or release-note bytes.
+    fs::remove_file(&archive_path).unwrap();
+    let executable = artifact_path.join(&assembled.manifest().binary_path);
+    for context in [codex_context, claude_context] {
+        let installed = signed_candidate
+            .verify_installed(
+                &authority,
+                &context,
+                &content,
+                &artifact_target,
+                &executable,
+            )
+            .unwrap();
+        assert_eq!(
+            installed.plugin_grant().authorized_scope(),
+            context.requested_target.integration_scope()
+        );
+    }
+    for (candidate, policy, context, expected) in [
+        (
+            &signed_candidate,
+            &authority,
+            &wrong_source,
+            NativeReleaseCandidateError::CandidateSourceMismatch,
+        ),
+        (
+            &bad_signature,
+            &authority,
+            &codex_context,
+            NativeReleaseCandidateError::SignatureInvalid,
+        ),
+        (
+            &signed_candidate,
+            &authority,
+            &not_yet_valid,
+            NativeReleaseCandidateError::CandidateNotYetValid,
+        ),
+        (
+            &signed_candidate,
+            &authority,
+            &expired,
+            NativeReleaseCandidateError::CandidateExpired,
+        ),
+        (
+            &signed_candidate,
+            &stale_authority,
+            &codex_context,
+            NativeReleaseCandidateError::CandidateReplayed,
+        ),
+        (
+            &signed_candidate,
+            &wrong_channel_authority,
+            &codex_context,
+            NativeReleaseCandidateError::CandidateChannelMismatch,
+        ),
+        (
+            &untrusted,
+            &authority,
+            &codex_context,
+            NativeReleaseCandidateError::ReleaseKeyUntrusted,
+        ),
+        (
+            &bad_portable,
+            &authority,
+            &codex_context,
+            NativeReleaseCandidateError::PortableReleaseInvalid,
+        ),
+        (
+            &bad_plugin,
+            &authority,
+            &codex_context,
+            NativeReleaseCandidateError::PluginGrantInvalid,
+        ),
+    ] {
+        assert_eq!(
+            candidate
+                .verify_installed(policy, context, &content, &artifact_target, &executable)
+                .unwrap_err(),
+            expected
+        );
+    }
+    assert_eq!(
+        signed_candidate
+            .verify_installed(
+                &authority,
+                &codex_context,
+                &content,
+                &artifact_target,
+                &fixture.source_binary,
+            )
+            .unwrap_err(),
+        NativeReleaseCandidateError::ExecutableInvalid
+    );
+    let original = fs::read(&executable).unwrap();
+    fs::write(&executable, b"tampered installed executable").unwrap();
+    assert_eq!(
+        signed_candidate
+            .verify_installed(
+                &authority,
+                &codex_context,
+                &content,
+                &artifact_target,
+                &executable,
+            )
+            .unwrap_err(),
+        NativeReleaseCandidateError::PortableReleaseInvalid
+    );
+    fs::write(&executable, original).unwrap();
 
     let debug = format!("{codex:?}");
     assert!(!debug.contains(fixture.root.to_string_lossy().as_ref()));

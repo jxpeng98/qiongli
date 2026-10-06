@@ -1,209 +1,60 @@
-# Zotero Integration: Local Reference Database
+# Use Zotero as your local reference library
 
-Qiongli treats Zotero as a local reference database, not as a replacement for
-OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv discovery. The normal workflow is
-to search and enrich references through Qiongli providers, then save selected
-records into Zotero Desktop through the Qiongli Zotero companion.
+Qiongli searches online literature services for candidate references, while Zotero
+keeps your local library. The Qiongli Zotero Companion connects the native MCP
+tools to a running Zotero Desktop over loopback. This local path needs neither a
+Zotero Web API key nor cloud sync.
 
-This local-first path does not require a Zotero Web API key or Zotero cloud sync.
-If local Zotero is unavailable, Qiongli still generates import files:
-`references.json`, `references.ris`, `bibliography.bib`, and
-`zotero-import-report.md`.
+## Install the Companion in Zotero
 
-## Runtime Profiles
+Install `qiongli-zotero-companion-*.xpi` from the matching
+[Qiongli release](https://github.com/jxpeng98/qiongli/releases) through Zotero's
+add-on manager, then restart Zotero. Companion 0.3.1 declares support for Zotero 8
+through 10.0.x, including 10.0.2. Installing a Qiongli Host Plugin does not install
+an extension inside Zotero.
 
-The Marketplace Rust Lite and Python Full profiles intentionally expose
-different Zotero capabilities:
+The Companion source is `packages/qiongli-zotero-companion/`. Maintainers can build
+its XPI with `python3 scripts/build_zotero_companion.py --dist-dir dist`; ordinary
+users can use the release asset without a source checkout.
 
-| Capability | Rust Lite | Python Full + Companion |
-|---|---:|---:|
-| Loopback Connector/Companion status probe | Yes | Yes |
-| Generate import files | Yes | Yes |
-| Search the local Zotero library | No | Yes |
-| Create collections, tags, notes, or references | No | Yes, with explicit write intent |
+## Check and search
 
-The Lite status probe never implies that Lite can search or write the local
-library. The search and write examples below require the Full runtime and the
-separately installed Qiongli Zotero Companion.
+Both native Lite and Full expose `qiongli_zotero_status`,
+`qiongli_zotero_search`, `qiongli_zotero_upsert_references` and
+`qiongli_zotero_export_import_files`. Search and direct writes need the Companion;
+exporting import-file contents does not.
 
-## Components
-
-| Component | Role |
-| --- | --- |
-| Qiongli literature MCPB | Normalizes records, maps metadata, deduplicates, exposes Zotero tools, and generates import files. |
-| Qiongli Zotero companion | A thin Zotero Desktop plugin that registers `/qiongli/*` local connector endpoints. |
-| Zotero Desktop | Stores the local reference library, collections, tags, and user-curated metadata. |
-
-The companion lives in `packages/qiongli-zotero-companion/`. It is a companion
-plugin, not a standalone MCP server.
-
-Direct local writes require this Qiongli companion plugin to be installed in
-Zotero Desktop. No third-party Zotero plugin is required. Without the companion,
-Qiongli still works in import-file mode.
-
-Build the installable extension from the repository root:
-
-```bash
-python3 scripts/build_zotero_companion.py --dist-dir dist
-```
-
-Install the generated `qiongli-zotero-companion-*.xpi` in Zotero Desktop's
-add-on manager, then restart Zotero.
-
-## Local Status Check
-
-Run:
+First ask the Host to call `qiongli_zotero_status`. If the Companion is unavailable,
+check that Zotero is open and the extension is enabled. A running Connector alone
+does not prove that the Companion is ready. Then search an authorized part of your
+library, for example:
 
 ```json
-{ "tool": "qiongli_zotero_status", "arguments": {} }
+{"tool":"qiongli_zotero_search","arguments":{"title":"platform governance","limit":10}}
 ```
 
-The tool checks:
+The native search accepts criteria such as `doi`, `title`, `year`, `citekey`,
+`creator`, `tag` or `collection_path`. At least one criterion is required.
+Use this tool for local references; the native literature-search API does not
+accept the old `include_zotero` switch.
 
-1. Zotero Desktop's connector server at `http://127.0.0.1:23119/connector/ping`.
-2. The Qiongli companion endpoint at `http://127.0.0.1:23119/qiongli/ping`.
-3. Import-file fallback availability.
+## Preview before saving
 
-Possible states:
+Pass the selected reference objects as `items` to
+`qiongli_zotero_upsert_references`. Its default `dry_run: true` previews the change;
+`update_policy: "fill_blank"` preserves existing populated fields. Review the
+specific items, collection and changes before authorizing a write.
 
-- `ok`: Zotero Desktop and the Qiongli Zotero companion are available.
-- `companion_missing`: Zotero Desktop is running, but the companion plugin is not installed or not loaded.
-- `fallback_only`: Zotero Desktop is not reachable; use generated import files.
-- `disabled`: local Zotero mode is disabled in config.
+To apply that exact preview, call the tool again with the same planned content,
+`dry_run: false`, `write_intent: "apply"` and the returned `dry_run_receipt`.
+A changed or expired plan needs a fresh preview. Do not substitute a fabricated
+receipt or treat a successful search as permission to save.
 
-## Full Runtime Only: Opt-In Local Source Search
+If direct access is unavailable, `qiongli_zotero_export_import_files` accepts
+`records` and returns import-file contents: `references.json`, `references.ris`,
+`bibliography.bib` and `zotero-import-report.md`. Returning those contents does not
+save them to disk or import them into Zotero; save approved files and import them
+through Zotero separately.
 
-`qiongli_literature_search` does not search Zotero by default. Add
-`include_zotero: true` when you want Zotero to act as an additional local
-reference source:
-
-```json
-{
-  "tool": "qiongli_literature_search",
-  "arguments": {
-    "query": "platform governance",
-    "include_zotero": true,
-    "zotero_tag": "project:platform-governance"
-  }
-}
-```
-
-Local-only Zotero records return `provider: "zotero"` and
-`source_type: "local_reference_database"`. External provider records can include
-`local_zotero_match` when the DOI or title/year already exists in Zotero.
-
-## Full Runtime Only: Saving Search Results
-
-Search first:
-
-```json
-{
-  "tool": "qiongli_literature_search",
-  "arguments": {
-    "query": "platform governance systematic review",
-    "search_mode": "review",
-    "per_provider_limit": 50
-  }
-}
-```
-
-Then dry-run a Zotero write:
-
-```json
-{
-  "tool": "qiongli_zotero_upsert_references",
-  "arguments": {
-    "records": [
-      {
-        "title": "Platform Governance in Practice",
-        "authors": ["Smith, Alex"],
-        "year": 2024,
-        "doi": "10.1000/platform-governance",
-        "venue": "Organization Science",
-        "provider": "openalex",
-        "source_id": "W123"
-      }
-    ],
-    "collection_path": "Qiongli/platform-governance/To Screen",
-    "tags": ["project:platform-governance", "status:to-screen"]
-  }
-}
-```
-
-Dry run is the default and returns `write_approval.receipt`. To write, resend
-the unchanged arguments within five minutes with `dry_run: false`,
-`write_intent: "apply"`, and that value as `dry_run_receipt`. The receipt is
-one-shot and bound to the exact item, collection, tag, note, and update plan; a
-changed or expired plan must be previewed again.
-
-The bridge matches existing Zotero items by DOI first, then title/year fallback.
-By default it fills blank Zotero fields, appends missing tags and collection
-membership, and avoids overwriting user-curated title, authors, date,
-publication title, abstract, collections, or matching child notes. Companion
-endpoint contract `2` is required; older live endpoints are reported as
-update-required and retain import-file fallback.
-
-DOI-bearing writes use Crossref registry metadata by default before the Zotero
-payload is sent. Crossref verification fills blank fields only; it does not
-replace human review. New or updated candidates receive `qiongli:imported` and
-`qiongli:needs-review`. Records verified through Crossref receive
-`qiongli:crossref-verified`; material title or year conflicts receive
-`qiongli:metadata-conflict` and expose details under
-`verification.crossref.conflicts`.
-
-## Import File Fallback
-
-When the companion is unavailable, generate files:
-
-```json
-{
-  "tool": "qiongli_zotero_export_import_files",
-  "arguments": {
-    "records": [
-      {
-        "title": "Fallback Paper",
-        "authors": ["Smith, Alex"],
-        "year": 2024,
-        "doi": "10.1000/fallback"
-      }
-    ]
-  }
-}
-```
-
-The output includes:
-
-- `references.json` for Zotero CSL-JSON import.
-- `references.ris` for Zotero, EndNote, and Mendeley.
-- `bibliography.bib` for BibTeX workflows.
-- `zotero-import-report.md` with the exported record count and fallback
-  instructions. Full-runtime enrichment may add separate verification evidence.
-
-## Configuration
-
-Local mode uses loopback-only connector URLs.
-
-```bash
-QIONGLI_ZOTERO_LOCAL_ENABLED=true
-QIONGLI_ZOTERO_CONNECTOR_URL=http://127.0.0.1:23119
-QIONGLI_ZOTERO_WRITE_POLICY=explicit
-QIONGLI_ZOTERO_UPDATE_POLICY=fill_blank
-QIONGLI_ZOTERO_DEFAULT_COLLECTION_PATH="Qiongli/[topic]/To Screen"
-QIONGLI_ZOTERO_DEFAULT_REVIEW_TAGS="qiongli:imported,qiongli:needs-review"
-QIONGLI_ZOTERO_CROSSREF_VERIFICATION_ENABLED=true
-```
-
-`QIONGLI_ZOTERO_CONNECTOR_URL` must point to `127.0.0.1`, `localhost`, or `::1`.
-Non-loopback URLs are rejected.
-
-Rust Lite consumes only `QIONGLI_ZOTERO_LOCAL_ENABLED` and
-`QIONGLI_ZOTERO_CONNECTOR_URL`. Collection, write, update, review-tag, and
-Crossref-verification settings are Full-runtime settings and are excluded from
-the Rust Lite MCPB overlay.
-
-## Full Runtime Only: Web API Mode
-
-Zotero Web API supports writes with an API key that has write access. That mode
-is useful for future cloud-sync workflows, but it is not the default Qiongli
-integration path. The default path is local Zotero Desktop plus the Qiongli
-Zotero companion, with import-file fallback when local write is unavailable.
+The native CLI accepts `QIONGLI_ZOTERO_CONNECTOR_URL` (normally `http://127.0.0.1:23119`). Remote Connector
+URLs are rejected. This guide does not promise a native Zotero Web API write path.

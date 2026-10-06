@@ -12,6 +12,27 @@ This stage produces ethics-ready materials and forces early clarity on privacy, 
 
 - `Q4` (reproducibility baseline): governance + availability statements should match the actual planned artifacts.
 
+## Match permission to the actual use
+
+Distinguish planning, recruitment, collection, secondary use, linkage, external
+processing and sharing. Reuse an existing decision only when it covers the
+population, data, use and destination now proposed. Record the deciding body,
+reference/date and status from supplied evidence; do not invent approval or
+self-award an exemption. Missing permission blocks the affected action while
+authorized planning can continue.
+
+Use the relevant discipline guide for minors, dependent relationships, patient
+records, politically sensitive participants, restricted archives or protected
+locations. Public availability is not blanket consent for reuse or disclosure.
+Check whether consent covers quotations, images, recordings and external AI
+processing. Explain feasible withdrawal limits once data are irreversibly
+anonymized or incorporated into shared outputs; do not promise impossible removal.
+
+Separate pseudonymization from anonymization. Keep linkage keys apart from
+analysis data, specify who can access each, and assess combinations of indirect
+identifiers. Carry approved sharing restrictions into reproducibility materials
+and the D2/H1 statements; synthetic data do not prove that real data are anonymous.
+
 ---
 
 ## D1 — Ethics / IRB Pack
@@ -61,7 +82,7 @@ Suggested structure: `ethics_irb.md`
 Write statements that match the venue’s required disclosure format.
 
 **Definition of done**
-- Ethics approval statement (or exemption rationale)
+- Evidenced ethics approval or exemption status (or a clearly unresolved decision)
 - Informed consent statement (or not applicable)
 - Data availability statement
 - Code availability statement

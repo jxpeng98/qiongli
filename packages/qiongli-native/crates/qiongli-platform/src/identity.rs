@@ -17,6 +17,21 @@ pub enum ReleaseChannel {
     Stable,
 }
 
+impl ReleaseChannel {
+    #[must_use]
+    pub const fn plugin_name(self) -> &'static str {
+        match self {
+            Self::Stable => "qiongli",
+            Self::Alpha | Self::Beta => "qiongli-next",
+        }
+    }
+}
+
+/// The executable's validated release version owns its Plugin channel.
+pub fn native_plugin_name(version: &str) -> Result<&'static str, PlatformError> {
+    Ok(local_plugin_identity(version)?.channel.plugin_name())
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum CapabilityProfile {
@@ -118,6 +133,29 @@ impl ArtifactIdentityV1 {
     }
 }
 
+// Local source identity describes bytes/platform only; it never verifies a release grant.
+pub(crate) fn local_plugin_identity(version: &str) -> Result<ArtifactIdentityV1, PlatformError> {
+    let parsed = Version::parse(version).map_err(|_| PlatformError::InvalidArtifactIdentity)?;
+    let channel = if parsed.pre.as_str().starts_with("alpha.") {
+        ReleaseChannel::Alpha
+    } else if parsed.pre.as_str().starts_with("beta.") {
+        ReleaseChannel::Beta
+    } else {
+        ReleaseChannel::Stable
+    };
+    let artifact = ArtifactIdentityV1 {
+        product: ProductId::Qiongli,
+        version: version.to_owned(),
+        channel,
+        profile: CapabilityProfile::Lite,
+        os: OperatingSystem::current().ok_or(PlatformError::InvalidArtifactIdentity)?,
+        arch: Architecture::current().ok_or(PlatformError::InvalidArtifactIdentity)?,
+        installer_kind: InstallerKind::PluginBundle,
+    };
+    artifact.validate()?;
+    Ok(artifact)
+}
+
 fn valid_numbered_prerelease(value: &str, channel: &str) -> bool {
     let Some(sequence) = value
         .strip_prefix(channel)
@@ -160,6 +198,11 @@ mod tests {
                 .is_ok()
         );
         assert!(identity("2.0.0", ReleaseChannel::Stable).validate().is_ok());
+        assert_eq!(native_plugin_name("2.0.0").unwrap(), "qiongli");
+        assert_eq!(native_plugin_name("2.1.0-beta.1").unwrap(), "qiongli-next");
+        assert_eq!(native_plugin_name("2.1.0-alpha.1").unwrap(), "qiongli-next");
+        assert!(native_plugin_name("2.0.0+local").is_err());
+        assert!(native_plugin_name("next").is_err());
 
         for (version, channel) in [
             ("2.0.0", ReleaseChannel::Alpha),

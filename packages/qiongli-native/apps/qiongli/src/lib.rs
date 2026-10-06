@@ -16,12 +16,24 @@ mod capture_cli;
 mod capture_consolidation_cli;
 mod capture_delivery_cli;
 mod capture_resolution_cli;
+mod cli_content;
+mod cli_help;
+pub use cli_content::{BundledContentReview, guide_installation};
+mod cli_presentation;
+mod plugin_host;
+pub use cli_presentation::prepare_cli_action;
 mod cli_install;
+mod cli_inventory;
+pub use cli_inventory::review_cli_installations;
 mod command;
+mod external_agent_cli;
+mod host_hooks;
+pub use host_hooks::run_context_hook;
 mod credential_store;
 mod desktop;
 mod desktop_api;
 mod desktop_contract;
+mod graph_view;
 mod legacy_migration_cli;
 mod macos_update_stage;
 mod managed_content;
@@ -32,10 +44,12 @@ mod native_update_replace;
 mod orchestration_control;
 #[cfg(test)]
 mod platform_capacity;
+mod plugin_source;
 mod portfolio_cli;
 mod product_diagnostics;
 mod project_cli;
 mod repository_capture_cli;
+mod saved_document_cli;
 mod update_cli;
 mod update_reconcile;
 
@@ -67,7 +81,9 @@ pub use desktop_contract::{
 #[doc(hidden)]
 pub use mcp::FULL_HOST_ORCHESTRATION_CONTROL_TOOL_NAMES;
 pub use mcp::{serve_full_mcp, serve_lite_mcp};
-pub use native_update_replace::run_native_update_helper;
+pub use native_update_replace::{
+    recover_legacy_committed_cleanup, recover_legacy_health_interruption, run_native_update_helper,
+};
 use qiongli_content::{EmbeddedContent, ResourcePackLoaderError};
 use qiongli_platform::{
     NativeReleaseAuthority, NativeReleaseAuthorityError, VerifiedZoteroCompanionArtifact,
@@ -141,3 +157,23 @@ pub const fn embedded_macos_team_id() -> Option<&'static str> {
         Some(EMBEDDED_MACOS_TEAM_ID)
     }
 }
+
+pub use candidate_cli::{
+    CandidateActivationPreparedOutput, CandidateActivationPreviewOutput,
+    candidate_activation_discarded_contract_json, candidate_activation_prepared_contract_json,
+    candidate_activation_preview_contract_json, candidate_stage_contract_json,
+    prepare_native_candidate_activation, preview_native_candidate_activation,
+};
+
+pub use update_reconcile::{
+    NativeActivationOutcome, activate_native_reconciliation, discard_native_reconciliation,
+    recover_native_reconciliation,
+};
+
+pub use candidate_cli::check_native_cli_health;
+
+pub use update_cli::update_recovery_contract_json;
+
+pub use candidate_cli::{activate_native_candidate, candidate_activation_completed_contract_json};
+
+pub use plugin_source::plugin_source_contract_json;

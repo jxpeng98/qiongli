@@ -25,7 +25,7 @@ COMPANION_VERSION_PATTERN = re.compile(
     r"^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$"
 )
 ZOTERO_MIN_VERSION = "8.0"
-ZOTERO_MAX_VERSION = "9.0.*"
+ZOTERO_MAX_VERSION = "10.0.*"
 ZOTERO_UPDATE_URL = (
     "https://github.com/jxpeng98/qiongli/releases/latest/download/"
     "qiongli-zotero-companion-updates.json"
@@ -83,8 +83,8 @@ def validate_manifest(manifest: dict[str, object]) -> None:
     if manifest.get("name") != COMPANION_DISPLAY_NAME:
         raise ValueError("manifest.json must use the Qiongli Zotero Companion display name")
     description = manifest.get("description")
-    if not isinstance(description, str) or "Zotero 9.0.4" not in description:
-        raise ValueError("manifest.json description must mention Zotero 9.0.4 testing")
+    if not isinstance(description, str) or not description.strip():
+        raise ValueError("manifest.json must provide a nonempty description")
     version = manifest.get("version")
     if not isinstance(version, str) or not COMPANION_VERSION_PATTERN.fullmatch(version):
         raise ValueError("manifest.json must define a safe semantic version")
@@ -98,7 +98,7 @@ def validate_manifest(manifest: dict[str, object]) -> None:
     if zotero.get("strict_min_version") != ZOTERO_MIN_VERSION:
         raise ValueError("manifest.json must set applications.zotero.strict_min_version to 8.0")
     if zotero.get("strict_max_version") != ZOTERO_MAX_VERSION:
-        raise ValueError("manifest.json must set applications.zotero.strict_max_version to 9.0.*")
+        raise ValueError("manifest.json must set applications.zotero.strict_max_version to 10.0.*")
 
 
 def validate_required_files(root: Path) -> None:

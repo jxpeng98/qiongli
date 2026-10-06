@@ -23,6 +23,7 @@ const MAX_EVIDENCE_REFERENCES: usize = 32;
 const MAX_KNOWN_FACT_DIGESTS: usize = 32;
 const MAX_DISCLOSURES: usize = 16;
 const MAX_DISCLOSURE_BYTES: usize = 1_024;
+const MAX_DELEGATION_RESULTS: usize = 8;
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
@@ -81,6 +82,8 @@ pub enum HostHandoffError {
     InvalidRuntime,
     InvalidHandoff,
     InvalidCandidate,
+    InvalidDelegation,
+    DelegationNotCompleted,
     BindingMismatch,
     SerializationFailed,
 }
@@ -95,6 +98,8 @@ impl HostHandoffError {
             Self::InvalidRuntime => "host-runtime-invalid",
             Self::InvalidHandoff => "host-handoff-invalid",
             Self::InvalidCandidate => "host-candidate-invalid",
+            Self::InvalidDelegation => "host-delegation-invalid",
+            Self::DelegationNotCompleted => "host-delegation-not-completed",
             Self::BindingMismatch => "host-candidate-binding-mismatch",
             Self::SerializationFailed => "host-handoff-serialization-failed",
         }
@@ -467,6 +472,82 @@ impl HostEvidenceReferenceV1 {
     }
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum HostDelegationAdapterV1 {
+    NativeSubagent,
+    ExternalAgent,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum HostDelegationStatusV1 {
+    Queued,
+    Running,
+    Completed,
+    Failed,
+    Cancelled,
+}
+
+/// Coordinator-reported observations, not authenticated execution or source evidence.
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct HostDelegationResultV1 {
+    pub adapter: HostDelegationAdapterV1,
+    pub execution_id: String,
+    pub dispatch_tool: String,
+    pub scope: String,
+    pub handoff_sha256: String,
+    pub status: HostDelegationStatusV1,
+    pub result_text: String,
+    pub result_sha256: String,
+}
+
+impl HostDelegationResultV1 {
+    pub(crate) fn validate_against(
+        &self,
+        handoff: &OrchestrationHandoffV1,
+    ) -> Result<(), HostHandoffError> {
+        if self.handoff_sha256 != handoff.digest()? {
+            return Err(HostHandoffError::BindingMismatch);
+        }
+        if self.status != HostDelegationStatusV1::Completed {
+            return Err(HostHandoffError::DelegationNotCompleted);
+        }
+        if !valid_execution_identity(&self.execution_id)
+            || !valid_execution_identity(&self.dispatch_tool)
+            || !valid_private_text(&self.scope, MAX_DISCLOSURE_BYTES)
+            || !valid_private_text(
+                &self.result_text,
+                handoff.limits.max_candidate_bytes as usize,
+            )
+            || self.result_sha256 != sha256(self.result_text.as_bytes())
+            || (self.adapter == HostDelegationAdapterV1::NativeSubagent
+                && !handoff
+                    .host
+                    .capabilities
+                    .contains(&HostCapabilityV1::NativeSubagents))
+        {
+            return Err(HostHandoffError::InvalidDelegation);
+        }
+        Ok(())
+    }
+}
+
+impl Debug for HostDelegationResultV1 {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("HostDelegationResultV1")
+            .field("adapter", &self.adapter)
+            .field("execution_id", &self.execution_id)
+            .field("dispatch_tool", &self.dispatch_tool)
+            .field("handoff_sha256", &self.handoff_sha256)
+            .field("status", &self.status)
+            .field("result_sha256", &self.result_sha256)
+            .finish_non_exhaustive()
+    }
+}
+
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct HostCandidateEnvelopeV1 {
@@ -485,6 +566,8 @@ pub struct HostCandidateEnvelopeV1 {
     pub review_result: HostReviewResultV1,
     pub conflicts: Vec<String>,
     pub evidence_gaps: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub delegation_results: Vec<HostDelegationResultV1>,
 }
 
 impl HostCandidateEnvelopeV1 {
@@ -514,6 +597,7 @@ impl HostCandidateEnvelopeV1 {
             review_result,
             conflicts,
             evidence_gaps,
+            delegation_results: Vec::new(),
         };
         candidate.validate_against(handoff)?;
         Ok(candidate)
@@ -563,6 +647,20 @@ impl HostCandidateEnvelopeV1 {
         }
         let content_limit = usize::try_from(handoff.limits.max_candidate_bytes)
             .map_err(|_| HostHandoffError::InvalidCandidate)?;
+        if self.delegation_results.len() > MAX_DELEGATION_RESULTS {
+            return Err(HostHandoffError::InvalidDelegation);
+        }
+        let mut execution_ids = BTreeSet::new();
+        let mut delegated_bytes = self.content.len();
+        for result in &self.delegation_results {
+            result.validate_against(handoff)?;
+            delegated_bytes += result.result_text.len();
+            if !execution_ids.insert((result.adapter, &result.execution_id))
+                || delegated_bytes > content_limit
+            {
+                return Err(HostHandoffError::InvalidDelegation);
+            }
+        }
         let evidence_calls = self
             .evidence
             .iter()
@@ -638,6 +736,7 @@ impl Debug for HostCandidateEnvelopeV1 {
             .field("review_result", &self.review_result)
             .field("conflict_count", &self.conflicts.len())
             .field("evidence_gap_count", &self.evidence_gaps.len())
+            .field("delegation_result_count", &self.delegation_results.len())
             .finish()
     }
 }
@@ -648,6 +747,14 @@ fn valid_version_token(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-' | b'+'))
+}
+
+fn valid_execution_identity(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 256
+        && value
+            .chars()
+            .all(|character| !character.is_whitespace() && !character.is_control())
 }
 
 fn valid_private_text(value: &str, maximum_bytes: usize) -> bool {
@@ -833,6 +940,155 @@ mod tests {
     }
 
     #[test]
+    fn delegation_results_bind_exact_completed_outputs_without_changing_legacy_candidates() {
+        let mut handoff = handoff();
+        let mut candidate = HostCandidateEnvelopeV1::try_new(
+            &handoff,
+            "Coordinator synthesis.",
+            vec![evidence()],
+            vec![digest('a')],
+            HostReviewResultV1::NotApplicable,
+            Vec::new(),
+            Vec::new(),
+        )
+        .unwrap();
+        let legacy_bytes = candidate.to_canonical_json(&handoff).unwrap();
+        assert!(!String::from_utf8_lossy(&legacy_bytes).contains("delegationResults"));
+        assert_eq!(
+            HostCandidateEnvelopeV1::from_canonical_json(&handoff, &legacy_bytes).unwrap(),
+            candidate
+        );
+        let result = HostDelegationResultV1 {
+            adapter: HostDelegationAdapterV1::NativeSubagent,
+            execution_id: "fixture/reviewer-1".to_owned(),
+            dispatch_tool: "host.spawn_agent".to_owned(),
+            scope: "private scope canary".to_owned(),
+            handoff_sha256: handoff.digest().unwrap(),
+            status: HostDelegationStatusV1::Completed,
+            result_text: "private result canary: 中文\n".to_owned(),
+            result_sha256: sha256("private result canary: 中文\n".as_bytes()),
+        };
+        candidate.delegation_results = vec![result.clone()];
+        let bytes = candidate.to_canonical_json(&handoff).unwrap();
+        assert_eq!(
+            HostCandidateEnvelopeV1::from_canonical_json(&handoff, &bytes).unwrap(),
+            candidate
+        );
+        assert_ne!(bytes, legacy_bytes);
+        assert!(!format!("{result:?} {candidate:?}").contains("private scope canary"));
+        assert!(!format!("{result:?} {candidate:?}").contains("private result canary"));
+
+        for status in [
+            HostDelegationStatusV1::Queued,
+            HostDelegationStatusV1::Running,
+            HostDelegationStatusV1::Failed,
+            HostDelegationStatusV1::Cancelled,
+        ] {
+            let mut invalid = candidate.clone();
+            invalid.delegation_results[0].status = status;
+            assert_eq!(
+                handoff.validate_candidate(&invalid),
+                Err(HostHandoffError::DelegationNotCompleted)
+            );
+        }
+        for (field, value, expected) in [
+            ("executionId", "", HostHandoffError::InvalidDelegation),
+            (
+                "executionId",
+                "unobserved id",
+                HostHandoffError::InvalidDelegation,
+            ),
+            ("dispatchTool", "", HostHandoffError::InvalidDelegation),
+            ("scope", "\t", HostHandoffError::InvalidDelegation),
+            (
+                "handoffSha256",
+                digest('b').as_str(),
+                HostHandoffError::BindingMismatch,
+            ),
+            (
+                "resultText",
+                "substituted output",
+                HostHandoffError::InvalidDelegation,
+            ),
+            (
+                "resultSha256",
+                digest('b').as_str(),
+                HostHandoffError::InvalidDelegation,
+            ),
+        ] {
+            let mut invalid = serde_json::to_value(&candidate).unwrap();
+            invalid["delegationResults"][0][field] = serde_json::json!(value);
+            let invalid = serde_json::from_value(invalid).unwrap();
+            assert_eq!(
+                handoff.validate_candidate(&invalid),
+                Err(expected),
+                "{field}"
+            );
+        }
+        let mut invalid = candidate.clone();
+        invalid.delegation_results.push(result.clone());
+        assert_eq!(
+            handoff.validate_candidate(&invalid),
+            Err(HostHandoffError::InvalidDelegation)
+        );
+        invalid.delegation_results = (0..9)
+            .map(|i| HostDelegationResultV1 {
+                execution_id: format!("fixture/{i}"),
+                ..result.clone()
+            })
+            .collect();
+        assert_eq!(
+            handoff.validate_candidate(&invalid),
+            Err(HostHandoffError::InvalidDelegation)
+        );
+        let large_text = "a".repeat(handoff.limits.max_candidate_bytes as usize / 2 + 1);
+        invalid.delegation_results = (0..2)
+            .map(|i| HostDelegationResultV1 {
+                execution_id: format!("fixture/{i}"),
+                result_text: large_text.clone(),
+                result_sha256: sha256(large_text.as_bytes()),
+                ..result.clone()
+            })
+            .collect();
+        assert_eq!(
+            handoff.validate_candidate(&invalid),
+            Err(HostHandoffError::InvalidDelegation)
+        );
+
+        let exact_text =
+            "a".repeat(handoff.limits.max_candidate_bytes as usize - candidate.content.len());
+        invalid.delegation_results = vec![HostDelegationResultV1 {
+            result_sha256: sha256(exact_text.as_bytes()),
+            result_text: exact_text,
+            ..result.clone()
+        }];
+        handoff.validate_candidate(&invalid).unwrap();
+        invalid.delegation_results[0].result_text.push('é');
+        invalid.delegation_results[0].result_sha256 =
+            sha256(invalid.delegation_results[0].result_text.as_bytes());
+        assert_eq!(
+            handoff.validate_candidate(&invalid),
+            Err(HostHandoffError::InvalidDelegation)
+        );
+
+        // External tools may return the same proposal format on a single-agent Host.
+        handoff.host.capabilities = vec![HostCapabilityV1::SingleAgent];
+        candidate.handoff_sha256 = handoff.digest().unwrap();
+        candidate.delegation_results[0].handoff_sha256 = candidate.handoff_sha256.clone();
+        assert_eq!(
+            handoff.validate_candidate(&candidate),
+            Err(HostHandoffError::InvalidDelegation)
+        );
+        candidate.delegation_results[0].adapter = HostDelegationAdapterV1::ExternalAgent;
+        handoff.validate_candidate(&candidate).unwrap();
+        candidate.evidence.clear();
+        assert_eq!(
+            handoff.validate_candidate(&candidate),
+            Err(HostHandoffError::InvalidCandidate)
+        );
+    }
+
+    #[test]
     fn canonical_decoding_rejects_unknown_fields_and_pretty_json() {
         let handoff = handoff();
         let mut value =
@@ -853,6 +1109,296 @@ mod tests {
             OrchestrationHandoffV1::from_canonical_json(&pretty),
             Err(HostHandoffError::NonCanonicalJson)
         );
+    }
+
+    #[test]
+    fn codex_transport_collects_only_bound_successful_turns() {
+        use crate::{
+            CodexExecOutcomeV1 as Outcome, CodexExecPacketV1, collect_codex_exec,
+            prepare_codex_exec,
+        };
+        let handoff = handoff();
+        let packet = CodexExecPacketV1 {
+            scope: "Review the supplied bibliography snapshot".into(),
+            source_text: "C-001; D-001; citekey Alpha2024; registry:alpha; synthetic R2.\nFull text unavailable.".into(),
+        };
+        let prepared = prepare_codex_exec(&handoff, &packet).unwrap();
+        assert_eq!(
+            prepared.argv,
+            vec![
+                "codex",
+                "exec",
+                "--json",
+                "--ephemeral",
+                "--sandbox",
+                "read-only",
+                "--color",
+                "never",
+                "--skip-git-repo-check",
+                "-"
+            ]
+        );
+        let reply = serde_json::json!({
+            "handoffSha256": prepared.handoff_sha256,
+            "packetSha256": prepared.packet_sha256,
+            "resultText": "C-001 / Alpha2024: 来源不充分; full text unavailable."
+        })
+        .to_string();
+        let events = vec![
+            serde_json::json!({"type":"thread.started", "thread_id":"fixture-codex-thread"}),
+            serde_json::json!({"type":"turn.started"}),
+            serde_json::json!({"type":"item.completed", "item":{"type":"reasoning","text":"private reasoning canary"}}),
+            serde_json::json!({"type":"item.completed", "item":{"type":"agent_message","text":reply}}),
+            serde_json::json!({"type":"turn.completed"}),
+        ];
+        let encode = |events: &[serde_json::Value]| {
+            events
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("\n")
+                + "\n"
+        };
+        let collected =
+            collect_codex_exec(&handoff, &packet, &encode(&events), Outcome::Completed, 0).unwrap();
+        assert_eq!(collected.execution_id, "fixture-codex-thread");
+        assert_eq!(collected.adapter, HostDelegationAdapterV1::ExternalAgent);
+        assert_eq!(collected.result_text, reply);
+        assert_eq!(collected.result_sha256, sha256(reply.as_bytes()));
+        assert!(
+            !serde_json::to_string(&collected)
+                .unwrap()
+                .contains("private reasoning canary")
+        );
+        let mut candidate = HostCandidateEnvelopeV1::try_new(
+            &handoff,
+            "Coordinator synthesis",
+            vec![evidence()],
+            vec![digest('a')],
+            HostReviewResultV1::NotApplicable,
+            vec![],
+            vec![],
+        )
+        .unwrap();
+        candidate.delegation_results.push(collected);
+        handoff.validate_candidate(&candidate).unwrap();
+
+        for (outcome, exit_code) in [
+            (Outcome::Cancelled, 0),
+            (Outcome::TimedOut, 0),
+            (Outcome::Failed, 0),
+            (Outcome::Completed, 1),
+        ] {
+            assert_eq!(
+                collect_codex_exec(&handoff, &packet, &encode(&events), outcome, exit_code)
+                    .unwrap_err(),
+                "codex-exec-not-completed"
+            );
+        }
+        // An interrupted transport must be re-observed, never promoted by its last message.
+        for end in 0..events.len() {
+            assert!(
+                collect_codex_exec(
+                    &handoff,
+                    &packet,
+                    &encode(&events[..end]),
+                    Outcome::Completed,
+                    0
+                )
+                .is_err()
+            );
+        }
+        for (index, replacement) in [
+            (
+                0,
+                serde_json::json!({"type":"thread.started","thread_id":""}),
+            ),
+            (1, events[0].clone()),
+            (
+                2,
+                serde_json::json!({"type":"error","message":"private provider error"}),
+            ),
+            (4, serde_json::json!({"type":"turn.failed"})),
+            (
+                3,
+                serde_json::json!({"type":"item.completed","item":{"type":"agent_message","text":"not bound JSON"}}),
+            ),
+        ] {
+            let mut invalid = events.clone();
+            invalid[index] = replacement;
+            assert!(
+                collect_codex_exec(&handoff, &packet, &encode(&invalid), Outcome::Completed, 0)
+                    .is_err()
+            );
+        }
+        let mut duplicate = events.clone();
+        duplicate.push(events.last().unwrap().clone());
+        assert!(
+            collect_codex_exec(
+                &handoff,
+                &packet,
+                &encode(&duplicate),
+                Outcome::Completed,
+                0
+            )
+            .is_err()
+        );
+        let mut changed_packet = packet.clone();
+        changed_packet.source_text.push_str(" changed R3");
+        assert_eq!(
+            collect_codex_exec(
+                &handoff,
+                &changed_packet,
+                &encode(&events),
+                Outcome::Completed,
+                0
+            )
+            .unwrap_err(),
+            "codex-exec-reply-binding-mismatch"
+        );
+        let mut changed_handoff = handoff.clone();
+        changed_handoff.checkpoint_generation += 1;
+        assert_eq!(
+            collect_codex_exec(
+                &changed_handoff,
+                &packet,
+                &encode(&events),
+                Outcome::Completed,
+                0
+            )
+            .unwrap_err(),
+            "codex-exec-reply-binding-mismatch"
+        );
+        assert!(collect_codex_exec(&handoff, &packet, "{", Outcome::Completed, 0).is_err());
+        assert_eq!(
+            collect_codex_exec(
+                &handoff,
+                &packet,
+                &" ".repeat(crate::CODEX_EXEC_MAX_INPUT_BYTES + 1),
+                Outcome::Completed,
+                0
+            )
+            .unwrap_err(),
+            "codex-exec-events-too-large"
+        );
+        changed_packet.scope.clear();
+        assert!(prepare_codex_exec(&handoff, &changed_packet).is_err());
+    }
+
+    #[test]
+    fn external_transports_reject_incomplete_failed_and_mismatched_runs() {
+        use crate::{
+            CodexExecOutcomeV1 as Outcome, CodexExecPacketV1, ExternalAgentV1 as Agent,
+            collect_external_exec, prepare_external_exec,
+        };
+        use serde_json::json;
+        let h = handoff();
+        let packet = CodexExecPacketV1 {
+            scope: "Review synthetic evidence".into(),
+            source_text: "C-001; full text unavailable".into(),
+        };
+        for agent in [Agent::ClaudeCode, Agent::DeepSeek, Agent::Antigravity] {
+            let prepared = prepare_external_exec(agent, &h, &packet).unwrap();
+            let reply = json!({"handoffSha256":prepared.handoff_sha256,"packetSha256":prepared.packet_sha256,"resultText":"C-001: evidence gap"}).to_string();
+            let rows = match agent {
+                Agent::ClaudeCode => vec![
+                    json!({"type":"result","subtype":"success","is_error":false,"session_id":"run-test","result":reply}),
+                ],
+                Agent::DeepSeek => vec![
+                    json!({"type":"session","sessionId":"run-test"}),
+                    json!({"type":"status","phase":"turn_start","turn":0}),
+                    json!({"type":"status","phase":"turn_end","turn":0,"reason":{"kind":"completed"}}),
+                    json!({"type":"final","text":reply}),
+                ],
+                Agent::Antigravity => vec![
+                    json!({"event":"init","conversation_id":"run-test"}),
+                    json!({"event":"result","result":{"conversation_id":"run-test","status":"SUCCESS","num_turns":1,"response":reply}}),
+                ],
+                _ => unreachable!(),
+            };
+            let encode = |rows: &[serde_json::Value]| {
+                rows.iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            };
+            let collect = |rows: &[serde_json::Value]| {
+                collect_external_exec(agent, &h, &packet, &encode(rows), Outcome::Completed, 0)
+            };
+            let result = collect(&rows).unwrap();
+            assert_eq!(result.result_text, reply);
+            assert_eq!(result.result_sha256, sha256(reply.as_bytes()));
+            for end in 0..rows.len() {
+                assert!(collect(&rows[..end]).is_err());
+            }
+            let mut duplicate = rows.clone();
+            duplicate.extend(rows.clone());
+            assert!(collect(&duplicate).is_err());
+            let mut changed = packet.clone();
+            changed.source_text.push_str(" R3");
+            assert!(
+                collect_external_exec(agent, &h, &changed, &encode(&rows), Outcome::Completed, 0)
+                    .is_err()
+            );
+            for outcome in [Outcome::Cancelled, Outcome::TimedOut, Outcome::Failed] {
+                assert_eq!(
+                    collect_external_exec(agent, &h, &packet, &encode(&rows), outcome, 0)
+                        .unwrap_err(),
+                    "external-exec-not-completed"
+                );
+            }
+            assert!(
+                collect_external_exec(agent, &h, &packet, &encode(&rows), Outcome::Completed, 1)
+                    .is_err()
+            );
+            assert!(collect_external_exec(agent, &h, &packet, "{", Outcome::Completed, 0).is_err());
+            assert!(
+                collect_external_exec(
+                    agent,
+                    &h,
+                    &packet,
+                    &" ".repeat(crate::CODEX_EXEC_MAX_INPUT_BYTES + 1),
+                    Outcome::Completed,
+                    0
+                )
+                .is_err()
+            );
+            let mut failed = rows.clone();
+            let mut wrong_id = rows.clone();
+            match agent {
+                Agent::ClaudeCode => {
+                    failed[0]["is_error"] = json!(true);
+                    wrong_id[0]["session_id"] = json!("");
+                    assert!(prepared.argv.contains(&"--strict-mcp-config"));
+                }
+                Agent::DeepSeek => {
+                    assert_eq!(prepared.env.get("DSH_PERMISSION_MODE"), Some(&"read-only"));
+                    failed[2]["reason"]["kind"] = json!("aborted");
+                    wrong_id[3]["sessionId"] = json!("another-run");
+                    let mut bad = rows.clone();
+                    bad[2]["turn"] = json!(1);
+                    assert!(collect(&bad).is_err());
+                    let mut bad = rows.clone();
+                    bad[0]["truncated"] = json!(true);
+                    assert!(collect(&bad).is_err());
+                    let mut bad = rows.clone();
+                    bad.remove(2);
+                    assert!(collect(&bad).is_err());
+                }
+                Agent::Antigravity => {
+                    failed[1]["result"]["status"] = json!("CANCELLED");
+                    wrong_id[1]["result"]["conversation_id"] = json!("another-run");
+                    let mut bad = rows.clone();
+                    bad[1]["result"]["num_turns"] = json!(2);
+                    assert!(collect(&bad).is_err());
+                    let prompt: serde_json::Value = serde_json::from_str(&prepared.stdin).unwrap();
+                    assert_eq!(prompt["event"], "user");
+                }
+                _ => unreachable!(),
+            }
+            assert!(collect(&failed).is_err());
+            assert!(collect(&wrong_id).is_err());
+        }
     }
 
     #[test]

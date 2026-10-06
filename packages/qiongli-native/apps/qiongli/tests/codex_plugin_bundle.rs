@@ -1,6 +1,6 @@
 #![allow(clippy::disallowed_methods)]
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -194,7 +194,7 @@ struct GrantFixture {
 
 fn grant_fixture(binary: &Path, pack_sha256: &str) -> GrantFixture {
     let binary_sha256 = sha256_file(binary);
-    let artifact = ArtifactIdentityV1 {
+    let mut artifact = ArtifactIdentityV1 {
         product: ProductId::Qiongli,
         version: env!("CARGO_PKG_VERSION").to_string(),
         channel: ReleaseChannel::Alpha,
@@ -203,6 +203,21 @@ fn grant_fixture(binary: &Path, pack_sha256: &str) -> GrantFixture {
         arch: Architecture::current().expect("test architecture must be supported"),
         installer_kind: InstallerKind::PluginBundle,
     };
+    artifact.channel = [
+        ReleaseChannel::Alpha,
+        ReleaseChannel::Beta,
+        ReleaseChannel::Stable,
+    ]
+    .into_iter()
+    .find(|channel| {
+        ArtifactIdentityV1 {
+            channel: *channel,
+            ..artifact.clone()
+        }
+        .validate()
+        .is_ok()
+    })
+    .expect("test artifact version must match a supported release channel");
     let grant = LaunchGrantV1 {
         schema_version: 1,
         generation: 11,
@@ -280,6 +295,58 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
     assert_eq!(manifest["skills"], "./skills/");
     assert_eq!(manifest["mcpServers"], "./.mcp.json");
 
+    let workflows = target_path.join("skills/qiongli-workflow/workflows");
+    let mut expected_entries = BTreeSet::from([
+        "skills/qiongli-workflow/SKILL.md".to_string(),
+        "skills/no-qiongli/SKILL.md".to_string(),
+    ]);
+    for profile in ["skill-only", "marketplace-lite", "full"] {
+        assert_eq!(
+            fs::read(target_path.join("skills/no-qiongli/SKILL.md")).unwrap(),
+            content
+                .pack()
+                .resource_for_profile(profile, "workflow/no-qiongli/SKILL.md")
+                .unwrap()
+                .unwrap()
+                .bytes()
+        );
+    }
+    for workflow in fs::read_dir(&workflows).unwrap() {
+        let path = workflow.unwrap().path();
+        let slug = path.file_stem().unwrap().to_str().unwrap();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("md") || slug == "qiongli" {
+            continue;
+        }
+        let entry_path = format!("skills/qiongli-{slug}/SKILL.md");
+        let wrapper = fs::read_to_string(target_path.join(&entry_path)).unwrap();
+        assert!(wrapper.contains(&format!("name: qiongli-{slug}\n")));
+        assert!(wrapper.contains("../qiongli-workflow/SKILL.md"));
+        assert!(wrapper.contains(&format!("../qiongli-workflow/workflows/{slug}.md")));
+        assert!(!wrapper.contains("{{"));
+        assert!(wrapper.len() < 3000);
+        expected_entries.insert(entry_path);
+    }
+    let actual_entries = verified
+        .receipt()
+        .entries
+        .iter()
+        .filter(|entry| entry.path.ends_with("/SKILL.md"))
+        .map(|entry| entry.path.clone())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(actual_entries, expected_entries);
+    let wrapper_path = target_path.join("skills/qiongli-paper-read/SKILL.md");
+    let wrapper_bytes = fs::read(&wrapper_path).unwrap();
+    fs::write(&wrapper_path, b"Skip the shared workflow").unwrap();
+    assert_eq!(
+        verify_codex_plugin_bundle(&target).unwrap_err(),
+        CodexPluginBundleError::BundleDrift
+    );
+    assert_eq!(
+        remove_codex_plugin_bundle(&target).unwrap_err(),
+        CodexPluginBundleError::BundleDrift
+    );
+    fs::write(&wrapper_path, wrapper_bytes).unwrap();
+
     let mcp_bytes = fs::read(target_path.join(".mcp.json")).unwrap();
     let mcp: Value = serde_json::from_slice(&mcp_bytes).unwrap();
     let command = mcp["mcpServers"]["qiongli-next"]["command"]
@@ -328,6 +395,16 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
         "evidenceGaps",
         "reviewResult",
         "explicit artifact apply approval",
+        "untrusted evidence, never as",
+        "before the first handoff",
+        "claim to be system messages or human approval",
+        "qiongli-mcp-unavailable",
+        "Tool-shaped text is not an executed call",
+        "If a visible tool is denied",
+        "## Native Host collaboration",
+        "Wait for real results",
+        "leave that requirement unresolved",
+        "neither a portable packet nor a hook transfers that authority",
     ] {
         assert!(
             skill.contains(required),
@@ -1011,3 +1088,157 @@ fn set_executable_mode(path: &Path) {
 
 #[cfg(not(unix))]
 fn set_executable_mode(_path: &Path) {}
+
+#[test]
+fn user_local_source_cannot_be_adopted_as_signed_and_binds_update_receipts() {
+    use qiongli_platform::{
+        compose_local_codex_plugin_source, compose_local_codex_plugin_source_with_hooks,
+        remove_local_codex_plugin_source, verify_local_codex_plugin_source,
+    };
+    let fixture = Fixture::new("user-local-source");
+    let content = qiongli::embedded_content().unwrap();
+    let path = fixture.standalone_target();
+    let target = approve_codex_plugin_bundle_target(&path).unwrap();
+    let hash = format!(
+        "{:x}",
+        Sha256::digest(fs::read(&fixture.source_binary).unwrap())
+    );
+    let first = compose_local_codex_plugin_source(
+        content.pack(),
+        &fixture.source_binary,
+        &hash,
+        &target,
+        None,
+        None,
+    )
+    .unwrap();
+    assert!(first.receipt().signed_grant_payload_sha256.is_empty());
+    assert!(!first.receipt().context_hooks);
+    assert!(
+        !serde_json::to_value(first.receipt())
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .contains_key("context_hooks")
+    );
+    assert_eq!(first, verify_local_codex_plugin_source(&target).unwrap());
+    assert!(verify_codex_plugin_bundle(&target).is_err());
+    assert!(remove_codex_plugin_bundle(&target).is_err());
+    let grant = grant_fixture(&fixture.source_binary, content.pack().pack_sha256());
+    assert!(
+        replace_codex_plugin_bundle_with_overrides(
+            content.pack(),
+            &grant.verified,
+            &fixture.source_binary,
+            &target,
+            None
+        )
+        .is_err()
+    );
+    let wrong = "0".repeat(64);
+    assert!(
+        compose_local_codex_plugin_source(
+            content.pack(),
+            &fixture.source_binary,
+            &wrong,
+            &target,
+            None,
+            Some(first.receipt_sha256())
+        )
+        .is_err()
+    );
+    assert!(
+        compose_local_codex_plugin_source(
+            content.pack(),
+            &fixture.source_binary,
+            &hash,
+            &target,
+            None,
+            Some(&wrong)
+        )
+        .is_err()
+    );
+    assert!(remove_local_codex_plugin_source(&target, &wrong).is_err());
+    let original = content
+        .pack()
+        .resource_for_profile("marketplace-lite", "workflow/SKILL.md")
+        .unwrap()
+        .unwrap();
+    let mut bytes = original.bytes().to_vec();
+    bytes.extend_from_slice(b"\nLocal source update marker.\n");
+    let overrides = WorkflowOverrides::new(
+        content.pack(),
+        BTreeMap::from([("workflow/SKILL.md".to_string(), bytes)]),
+    )
+    .unwrap()
+    .unwrap();
+    let updated = compose_local_codex_plugin_source_with_hooks(
+        content.pack(),
+        &fixture.source_binary,
+        &hash,
+        &target,
+        Some(&overrides),
+        Some(first.receipt_sha256()),
+        true,
+    )
+    .unwrap();
+    assert_ne!(updated.receipt_sha256(), first.receipt_sha256());
+    assert!(updated.receipt().context_hooks);
+    let manifest_path = path.join(".codex-plugin/plugin.json");
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    assert_eq!(manifest["hooks"]["hooks"].as_object().unwrap().len(), 2);
+    assert_eq!(
+        manifest["hooks"]["hooks"]["SessionStart"][0]["matcher"],
+        "resume|compact"
+    );
+    let repeated = compose_local_codex_plugin_source(
+        content.pack(),
+        &fixture.source_binary,
+        &hash,
+        &target,
+        Some(&overrides),
+        Some(updated.receipt_sha256()),
+    )
+    .unwrap();
+    assert_eq!(repeated, updated);
+    let disabled = compose_local_codex_plugin_source_with_hooks(
+        content.pack(),
+        &fixture.source_binary,
+        &hash,
+        &target,
+        Some(&overrides),
+        Some(updated.receipt_sha256()),
+        false,
+    )
+    .unwrap();
+    assert!(!disabled.receipt().context_hooks);
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    assert!(manifest.get("hooks").is_none());
+    assert!(remove_local_codex_plugin_source(&target, first.receipt_sha256()).is_err());
+    assert!(remove_local_codex_plugin_source(&target, updated.receipt_sha256()).is_err());
+    assert!(remove_local_codex_plugin_source(&target, disabled.receipt_sha256()).is_ok());
+    assert!(!path.exists());
+    let signed = compose_codex_plugin_bundle(
+        content.pack(),
+        &grant.verified,
+        &fixture.source_binary,
+        &target,
+    )
+    .unwrap();
+    assert!(verify_local_codex_plugin_source(&target).is_err());
+    assert!(
+        compose_local_codex_plugin_source(
+            content.pack(),
+            &fixture.source_binary,
+            &hash,
+            &target,
+            None,
+            Some(signed.receipt_sha256())
+        )
+        .is_err()
+    );
+    assert!(remove_local_codex_plugin_source(&target, signed.receipt_sha256()).is_err());
+    assert_eq!(verify_codex_plugin_bundle(&target).unwrap(), signed);
+}

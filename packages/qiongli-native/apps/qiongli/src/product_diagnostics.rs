@@ -500,7 +500,7 @@ pub(crate) fn inspect_product(
 }
 
 fn build_checks(
-    _environment: &CommandEnvironment,
+    environment: &CommandEnvironment,
     content: &EmbeddedContent,
     secret_store_status: SecretStoreStatus,
     inventory: Option<&ClientInventory>,
@@ -590,7 +590,9 @@ fn build_checks(
         },
     );
     let providers = provider_doctor_check(config_status.as_ref());
-    let [codex, claude] = client_doctor_checks(inventory);
+    let observed =
+        inventory.map(|i| crate::plugin_host::inspect_inventory(environment, content, i));
+    let [codex, claude] = client_doctor_checks(observed.as_ref());
     [
         ProductDoctorCheckV1 {
             id: ProductDoctorCheckId::EmbeddedContent,
@@ -784,14 +786,16 @@ fn provider_doctor_check(
     }
 }
 
-fn client_doctor_checks(inventory: Option<&ClientInventory>) -> [ProductDoctorCheckV1; 2] {
+fn client_doctor_checks(
+    inventory: Option<&qiongli_platform::ClientInventorySummaryV1>,
+) -> [ProductDoctorCheckV1; 2] {
     let Some(inventory) = inventory else {
         return [
             unavailable_client_check(ProductDoctorCheckId::CodexLocal, "codex-local"),
             unavailable_client_check(ProductDoctorCheckId::ClaudeCodeLocal, "claude-code-local"),
         ];
     };
-    let clients = &inventory.summary().clients;
+    let clients = &inventory.clients;
     [
         client_doctor_check(&clients[0]),
         client_doctor_check(&clients[1]),
@@ -828,6 +832,35 @@ fn client_doctor_check(client: &ClientInventoryEntryV1) -> ProductDoctorCheckV1 
             "claude-code",
         ),
     };
+    let local = match client.reason_code.as_str() {
+        "local-host-registered-session-unchecked" => Some((
+            ProductDoctorStatus::Ready,
+            "local-host-registered-session-unchecked",
+            "restart-host-to-check-live-tools",
+        )),
+        "local-host-refresh-required" => Some((
+            ProductDoctorStatus::Attention,
+            "local-host-refresh-required",
+            "upgrade-local-plugin",
+        )),
+        "local-host-observation-unavailable" => Some((
+            ProductDoctorStatus::Unavailable,
+            "local-host-observation-unavailable",
+            "inspect-host-plugin-inventory",
+        )),
+        _ => None,
+    };
+    if let Some((status, code, remediation)) = local {
+        return ProductDoctorCheckV1 {
+            id,
+            status,
+            blocking: false,
+            code,
+            remediation,
+            section,
+            path_id: Some(path_id),
+        };
+    }
     let (status, blocking, remediation) = match (client.discovery, client.readiness) {
         (ClientDiscoveryState::NotDetected, _) => (
             ProductDoctorStatus::Missing,

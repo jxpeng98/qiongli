@@ -125,7 +125,7 @@ class AcademicIdeaFunnelContractTests(unittest.TestCase):
             ("find-gap workflow", FIND_GAP_WORKFLOW),
             ("stage-A reference", STAGE_A_REFERENCE),
         ):
-            content = path.read_text(encoding="utf-8")
+            content = " ".join(path.read_text(encoding="utf-8").split())
             self.assertIn("Academic Idea Funnel", content, label)
             self.assertIn("context/idea_funnel.md", content, label)
             self.assertIn("context/boundary_review.md", content, label)

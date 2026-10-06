@@ -93,7 +93,12 @@ Select the right guideline in `G1/G2` (venue may require one explicitly):
 - Observational: **STROBE**
 - Qualitative interviews/focus groups: **COREQ**
 - Broader qualitative studies: **SRQR**
-- Prediction/diagnostic: **TRIPOD**
+- Diagnostic accuracy: **STARD**; clinical prediction models: **TRIPOD+AI** as applicable
+- Scoping review: **PRISMA-ScR**; do not require quantitative pooling
+
+Verify the applicable edition/extension through `references/stage-G-compliance.md`.
+For disciplinary differences, use `references/discipline-guidance.md`; coverage
+and templates do not impose an empirical structure on interpretive/theoretical work.
 
 ## Out of Scope by Default
 

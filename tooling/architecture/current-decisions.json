@@ -128,6 +128,111 @@
       "title": "CLI-First Delivery And Local Host Collaboration",
       "path": "docs/architecture/decisions/0218-cli-first-local-host-collaboration.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0219",
+      "title": "CLI GitHub Release Distribution",
+      "path": "docs/architecture/decisions/0219-cli-github-release-distribution.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0220",
+      "title": "Three-platform CLI Registry Distribution",
+      "path": "docs/architecture/decisions/0220-three-platform-cli-registry-distribution.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0221",
+      "title": "Cargo CLI publication",
+      "path": "docs/architecture/decisions/0221-cargo-cli-publication.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-403 / CLI-405",
+      "adr_number": "0222",
+      "title": "User-approved local Plugin sources",
+      "path": "docs/architecture/decisions/0222-user-approved-local-plugin-sources.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0223",
+      "title": "Platform-specific Marketplace Plugins with bundled native MCP",
+      "path": "docs/architecture/decisions/0223-bundled-marketplace-native-mcp.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-402",
+      "adr_number": "0224",
+      "title": "CLI local Plugin registration",
+      "path": "docs/architecture/decisions/0224-cli-local-plugin-registration.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-402",
+      "adr_number": "0225",
+      "title": "Discoverable CLI content upserts",
+      "path": "docs/architecture/decisions/0225-discoverable-cli-content-upserts.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-402",
+      "adr_number": "0226",
+      "title": "Confirmed Codex Plugin source migration",
+      "path": "docs/architecture/decisions/0226-confirmed-codex-plugin-source-migration.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0227",
+      "title": "Native main cutover and stable release routing",
+      "path": "docs/architecture/decisions/0227-native-main-cutover-and-stable-release-routing.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-403 / CLI-410",
+      "adr_number": "0228",
+      "title": "Channel-specific native Plugin identities",
+      "path": "docs/architecture/decisions/0228-channel-specific-native-plugin-identities.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-403 / CLI-410",
+      "adr_number": "0229",
+      "title": "Plugin v1 transition and 2.1 cutoff",
+      "path": "docs/architecture/decisions/0229-plugin-v1-transition-and-2-1-cutoff.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0230",
+      "title": "Manual local macOS verification",
+      "path": "docs/architecture/decisions/0230-local-macos-verification.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0231",
+      "title": "Hosted three-platform verification",
+      "path": "docs/architecture/decisions/0231-hosted-three-platform-verification.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0232",
+      "title": "Linux ARM64 registry distribution",
+      "path": "docs/architecture/decisions/0232-linux-arm64-registry-distribution.md",
+      "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-409",
+      "adr_number": "0233",
+      "title": "Antigravity local Plugin adapter",
+      "path": "docs/architecture/decisions/0233-antigravity-local-plugin-adapter.md",
+      "status": "Accepted"
     }
   ]
 }

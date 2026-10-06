@@ -1,0 +1,184 @@
+{
+  "qiongli": {
+    "en": {
+      "description": "Read papers, plan studies, write manuscripts, and prepare research outputs from the evidence you provide.",
+      "display_name": "Qiongli",
+      "short_description": "Read, plan, and write academic research",
+      "default_prompt": "Use $qiongli to help with my research task using the materials I provide."
+    },
+    "zh": {
+      "description": "依据你提供的证据，阅读论文、设计研究、撰写文稿并准备研究成果。",
+      "display_name": "Qiongli 问理",
+      "short_description": "阅读论文、设计研究与撰写学术文稿",
+      "default_prompt": "使用 $qiongli，根据我提供的材料协助完成当前研究任务。"
+    }
+  },
+  "no-qiongli": {
+    "en": {
+      "description": "Reply in chat without tools, file changes, or research workflow execution when you request reply only."
+    },
+    "zh": {
+      "description": "当你选择“仅回复”时，只在对话中回答，不调用工具、修改文件或执行研究流程。"
+    }
+  },
+  "qiongli-academic-present": {
+    "en": {
+      "description": "Prepare an academic talk: plan the content, design the slides, and choose the output format."
+    },
+    "zh": {
+      "description": "准备学术报告，规划内容、设计幻灯片并选择输出格式。"
+    }
+  },
+  "qiongli-academic-write": {
+    "en": {
+      "description": "Draft or revise a research paragraph, section, or proposal while preserving its evidence and claim limits."
+    },
+    "zh": {
+      "description": "撰写或修改学术段落、章节或研究提案，保留证据依据和主张边界。"
+    }
+  },
+  "qiongli-build-framework": {
+    "en": {
+      "description": "Build a theoretical framework and explain the relationships between research concepts."
+    },
+    "zh": {
+      "description": "构建研究的理论框架，梳理概念之间的关系。"
+    }
+  },
+  "qiongli-code-build": {
+    "en": {
+      "description": "Build research analysis code from a paper description or a named method."
+    },
+    "zh": {
+      "description": "根据论文中的方法描述或指定的方法，编写研究分析代码。"
+    }
+  },
+  "qiongli-compliance-check": {
+    "en": {
+      "description": "Check reporting requirements, research integrity, and writing style before submission."
+    },
+    "zh": {
+      "description": "投稿前检查报告规范、研究诚信和写作风格。"
+    }
+  },
+  "qiongli-coursework": {
+    "en": {
+      "description": "Prepare assignment briefs, rubrics, and drafts, then check readiness for submission."
+    },
+    "zh": {
+      "description": "准备课程作业说明、评分标准和草稿，并检查提交准备情况。"
+    }
+  },
+  "qiongli-dissertation": {
+    "en": {
+      "description": "Plan a dissertation, organize chapters, address supervisor feedback, and prepare for submission or defense."
+    },
+    "zh": {
+      "description": "规划学位论文、组织章节、处理导师反馈，并准备提交或答辩。"
+    }
+  },
+  "qiongli-ethics-check": {
+    "en": {
+      "description": "Prepare research ethics documents, including consent, recruitment, data security, and ethics statements."
+    },
+    "zh": {
+      "description": "准备研究伦理审查材料，包括知情同意、招募说明、数据安全方案和伦理声明。"
+    }
+  },
+  "qiongli-find-gap": {
+    "en": {
+      "description": "Identify research gaps and possible directions for further study."
+    },
+    "zh": {
+      "description": "识别现有研究的空白，提出可进一步探索的研究方向。"
+    }
+  },
+  "qiongli-lit-review": {
+    "en": {
+      "description": "Conduct a systematic literature review within the agreed protocol and report it using PRISMA 2020."
+    },
+    "zh": {
+      "description": "按既定方案开展系统性文献综述，并依据 PRISMA 2020 报告方法与结果。"
+    }
+  },
+  "qiongli-paper": {
+    "en": {
+      "description": "Choose a paper type and the stage or section you want to work on."
+    },
+    "zh": {
+      "description": "选择论文类型，以及当前要处理的阶段或部分。"
+    }
+  },
+  "qiongli-paper-lifecycle": {
+    "en": {
+      "description": "Work through a research paper from topic selection to journal fit and feedback."
+    },
+    "zh": {
+      "description": "推进研究论文的各个阶段，从选题到期刊匹配和反馈处理。"
+    }
+  },
+  "qiongli-paper-read": {
+    "en": {
+      "description": "Read a paper or excerpt, explain its findings, and create notes linked to the source."
+    },
+    "zh": {
+      "description": "阅读单篇论文或所给片段，解释研究发现并整理可追溯至原文的笔记。"
+    }
+  },
+  "qiongli-paper-write": {
+    "en": {
+      "description": "Write a full paper from existing research materials, linking claims to evidence and checking reporting requirements."
+    },
+    "zh": {
+      "description": "根据已有研究资料撰写完整论文，关联主张与证据，并检查适用的报告要求。"
+    }
+  },
+  "qiongli-proofread": {
+    "en": {
+      "description": "Proofread an academic manuscript for clear language, consistent terms, and accurate attribution without changing its claims."
+    },
+    "zh": {
+      "description": "校对学术文稿，改善语言表达、统一术语并核对归属表述，保留原有主张。"
+    }
+  },
+  "qiongli-rebuttal": {
+    "en": {
+      "description": "Turn reviewer comments into a revision plan, response matrix, and response letter."
+    },
+    "zh": {
+      "description": "将审稿意见整理为修订计划、逐条回复表和回复信。"
+    }
+  },
+  "qiongli-stage-close": {
+    "en": {
+      "description": "Summarize a completed research stage and review which files to keep; you decide what to delete."
+    },
+    "zh": {
+      "description": "整理已完成的研究阶段，并逐项检查文件保留需求；由你决定是否删除文件。"
+    }
+  },
+  "qiongli-study-design": {
+    "en": {
+      "description": "Plan or assess a study using the research question, available materials, and protocol requirements."
+    },
+    "zh": {
+      "description": "根据研究问题、可用材料和方案要求，制定或评估研究设计。"
+    }
+  },
+  "qiongli-submission-prep": {
+    "en": {
+      "description": "Prepare submission checklists, a cover letter, and the required statements."
+    },
+    "zh": {
+      "description": "准备投稿检查清单、投稿信和所需声明。"
+    }
+  },
+  "qiongli-synthesize": {
+    "en": {
+      "description": "Synthesize screened, extracted, and appraised evidence using narrative, qualitative, or meta-analytic methods."
+    },
+    "zh": {
+      "description": "基于已筛选、提取和质量评价的证据，开展叙述综合、定性综合或荟萃分析。"
+    }
+  }
+}

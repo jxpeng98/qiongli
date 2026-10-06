@@ -26,6 +26,54 @@ telling Codex or Claude to install the Full runtime it is already using.
 - Full output must not include Lite-only `preview_only`, `runtime_profile`,
   `recommended_runtime`, or `upgrade` fields.
 
+### Host candidate delegation observations
+
+`qiongli_orchestration_submit` advertises optional `candidate.delegationResults`
+through live `tools/list`. The shared `HostCandidateEnvelopeV1` owner validates
+up to eight native-subagent or configured external-agent observations: actual
+dispatch tool/execution ID, bounded scope, originating handoff SHA-256, completed
+status and exact returned UTF-8 text/SHA-256. Combined candidate and result text
+must fit the handoff's candidate byte limit. Duplicate adapter/execution IDs,
+stale bindings, non-completed states and tampered output fail before checkpoint
+CAS. Native observations also require the declared NativeSubagents capability.
+
+This is an additive candidate v2 field, omitted when empty to preserve existing
+canonical bytes/digests. Clients inspect the live schema before sending it;
+older servers use the existing collaboration trace. Only the accepted candidate
+digest is checkpointed, including these observations; raw delegated content is
+not persisted by submission. Debug output excludes result text and scope.
+
+Observations are coordinator-reported, not authenticated execution, independent
+review certification or source evidence. Full still requires its own process's
+authenticated reads and current run/revision/generation. Host tools own dispatch,
+wait/read/cancel and reconciliation of late/partial results. This adds no model
+launcher, external runtime adapter, cross-Host claim store or artifact approval.
+
+### Host-executed Codex adapter
+
+The native CLI now provides `agent codex prepare` and `agent codex collect`.
+They adapt the existing configured `codex exec --json --ephemeral` transport to
+the shared delegation result without changing Full MCP's execution boundary.
+The calling Host launches fixed argv, supplies stdin, supervises deadlines and
+cancellation, retains JSONL and reports its observed outcome/exit code. Qiongli
+does not launch or resume a process, alter model/auth configuration or create a
+parallel task store. Read-only sandbox does not imply isolated MCP/hooks.
+
+Prepare validates the supplied handoff and bounded `{scope, sourceText}` packet;
+its prompt requests exact handoff/packet digest acknowledgements. Collect accepts
+one coherent thread/turn, successful process exit and a completed final reply.
+It rejects failure, cancellation, timeout, malformed/truncated/oversized streams,
+duplicate terminal events, conflicting thread IDs and changed packet/handoff
+bindings. The result retains the exact final message text/hash and actual reported
+Codex thread ID; intermediate reasoning and error text are not returned. Only
+explicit regular-file paths are read. No output file or canonical state is written.
+
+An interrupted ephemeral run has no automatic reconnection or replay: the Host
+settles the original process, checks current sources and explicitly prepares a
+fresh bounded assignment. A portable adapter result remains a proposal; the
+coordinator rechecks current authenticated project evidence before submission.
+Protocol reference: [Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode).
+
 ## 4. Validation & Error Matrix
 
 | Condition | Required result |

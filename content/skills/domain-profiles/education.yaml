@@ -35,9 +35,9 @@ method_templates:
     tier: standard
     library: lme4 + lmerTest (R) / pymer4 (Python)
     checklist:
-      - "ICC: students within classrooms/schools (justify multilevel)"
+      - "Account for classroom/school assignment and sampling; report ICC without using it as an independence threshold"
       - "Build incrementally: null → L1 predictors → L2 predictors → cross-level"
-      - "Center L1 predictors (group-mean) and L2 predictors (grand-mean)"
+      - "Choose centering to distinguish within-group and between-group questions; report its interpretation"
       - "Report variance components at each level"
       - "Effect sizes: pseudo-R² at each level"
       - "Check residual normality at both levels"
@@ -46,7 +46,7 @@ method_templates:
     tier: standard
     library: lme4 / statsmodels
     checklist:
-      - "Use ANCOVA (post ~ pre + treatment) instead of gain scores"
+      - "Choose baseline adjustment, change or growth modeling from the estimand, assignment and measurement assumptions"
       - "Check pre-treatment equivalence"
       - "Report effect size (Cohen's d or Hedges' g)"
       - "Handle attrition and differential dropout"
@@ -57,8 +57,8 @@ method_templates:
     library: TAM / mirt (R)
     checklist:
       - "Model selection: Rasch, 2PL, or 3PL with justification"
-      - "Item fit statistics (infit/outfit MNSQ 0.5–1.5)"
-      - "Person separation reliability ≥ 0.80"
+      - "Report item fit and uncertainty using criteria justified for the model and assessment purpose"
+      - "Evaluate measurement precision/information at the ability ranges needed for the intended use"
       - "DIF analysis across key demographics"
       - "Wright map / variable map for construct validity"
       - "Test information function plotted"
@@ -83,11 +83,11 @@ method_templates:
       - "Joint display table (QUAN findings × QUAL themes)"
 
 stats_diagnostics:
-  - "ICC: justify multilevel model (ICC > 0.05 for student-in-class)"
+  - "Account for nested assignment/sampling and repeated observations even when the estimated ICC is small"
   - "Measurement invariance: across time, groups, or conditions"
   - "Ceiling/floor effects in assessment scores"
   - "Non-independence: clustered SE or multilevel model required"
-  - "Missing data: MCAR/MAR test → FIML or multiple imputation"
+  - "Justify missingness assumptions, likelihood or imputation choices and sensitivity; observed data cannot establish MAR versus MNAR"
   - "Effect sizes: always report; education expects Cohen's d or Hedges' g"
 
 reporting_guidelines:
@@ -100,8 +100,8 @@ reporting_guidelines:
 
 common_pitfalls:
   - "Ignoring nested structure (students in classrooms) → inflated Type I error"
-  - "Using gain scores instead of ANCOVA → regression to the mean"
-  - "Comparing group means without controlling for pre-test"
+  - "Choosing change-score or baseline-adjusted analysis without checking its estimand and assumptions"
+  - "Treating nonrandomized group differences as causal without a supported design"
   - "IRT model misfit: forcing Rasch when items have varying discrimination"
   - "Learning analytics with student leakage across folds"
   - "Not accounting for teacher/school effects in intervention studies"
@@ -110,7 +110,7 @@ common_pitfalls:
 visualization_templates:
   - "Interaction plot (treatment × time / treatment × moderator)"
   - "Wright map / variable map for IRT"
-  - "ICC plot (reliability across measurement points)"
+  - "Variance-component or clustering plot with the ICC definition stated"
   - "Growth curves (individual trajectories)"
   - "Joint display table (mixed methods integration)"
   - "CONSORT flow diagram (for intervention studies)"
@@ -132,7 +132,7 @@ default_databases:
 methodology_priors:
   identification: "Mixed methods valued; RCTs less common due to ethical constraints"
   robustness: "Sensitivity analysis for multilevel models; multiple comparison correction"
-  standard_hierarchy: [RCT, Quasi-experiment, Mixed_Methods, Case_Study, Action_Research]
+  standard_hierarchy: []  # Select by question and design, not a universal evidence ladder.
   estimation_norms: "Report ICC for multilevel; effect sizes with confidence intervals"
 
 venue_norms:
