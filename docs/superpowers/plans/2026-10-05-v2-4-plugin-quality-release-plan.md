@@ -137,8 +137,11 @@ One `gpt-6.1-sol / low` subagent performs bounded independent verification, as
 requested. Existing Host models remain configured; a verifier model is not a
 directive to replace AGY's model. No Astra extra-high verification is planned.
 Use offline tests before live calls, declare each live batch and its limits, and
-reuse evidence while its inputs remain unchanged. The earlier three-call Codex
-login-reuse grant is exhausted and does not authorize new credential reuse.
+reuse evidence while its inputs remain unchanged. The October 6 maintainer grant
+authorizes the planned public validation with the existing Codex login. Use an
+isolated profile and temporary link, remove the link in finally, and never inspect
+credential contents. Earlier exhausted grants remain historical; do not request
+the current authority again merely because a prerequisite or batch finishes.
 
 Report actual input/cached/output tokens, tool calls, failures and elapsed time
 when available. Compare identical tasks and model settings, keeping quality as a
@@ -720,3 +723,116 @@ record, matches the new receipt hash and passes seven roadmap tests, index
 consistency and whitespace checks. All 249 task IDs/states/dependencies and
 46 complete accepted records match `9dfad782`; only CLI-405 blocker/date changes.
 No preflight, native package or model check is repeated for this record.
+
+
+## October 6 — repaired sandbox and installed-Codex baseline
+
+After the maintainer repairs the system environment, Codex 0.160.1 passes the
+credential-free read-only prerequisite and complete public guidance reads.
+Its executable SHA-256 is
+`fbbaec80443919f86dd63648a0b62759cf6f1d0e09310602fde96885e0bceb3e`.
+This observes a working environment; it does not establish which administrator
+change or the simultaneous Host upgrade resolved the old 0.160.0 failure.
+No agent changes system security. The first fresh preflight is retained at
+`/home/hermes/qiongli-codex-repaired-preflight-h8hn_puw/result/preflight.json`.
+
+All three cohorts below use official isolated `qiongli@quality-24` installation,
+verified 468-entry native exports/caches, Lite 15 / Full 35, the same ten public
+source anchors and the same fixed catalog. Each task runs once per cohort with
+`gpt-6.1-sol / low`, at most 180 seconds. The effective TOML is read back before
+execution, including the model-bound configuration: only project read, document
+list and document read receive explicit approval, the named filesystem profile
+is read-only, and its command network is disabled. Each cohort independently
+passes credential-free command/guidance checks and a mocked capture/seal before
+its temporary authentication link is created. The link is removed in finally;
+the driver and verifier never inspect, copy or log credential contents. Every
+actual model process exits normally,
+its owned group is gone, complete guidance reads are bound to successful command
+output, and project/configuration bytes are preserved.
+
+| Cohort / external directory | Native source / content source | Structural / reviewed | Retained finding |
+| --- | --- | --- | --- |
+| B: `/home/hermes/qiongli-codex-24-public-039cxrz1` | `84bc1079` / `e4b05659` | 3/3 / 2/3 | Paragraph adds within-year standardization not specified by the source. Paper explanation honestly reports a failed optional read after guessing the assessor's directory. |
+| C: `/home/hermes/qiongli-codex-24-guidance-_pl2zzbr` | `b8bc6175` / `8889fe73` | 3/3 / 2/3 | Paragraph and Skill paths are corrected. The paper handoff incorrectly claims eleven unique source anchors instead of ten. |
+| D: `/home/hermes/qiongli-codex-24-coverage-n_qq8vl1` | `85758cac` / `f26ee4a5` | 3/3 / 3/3 | Complete answer review passes all declared checks; prior failures remain unchanged. |
+
+`8889fe73` gives paper reading the correct installed-root paths for extraction
+and critical appraisal. The shared writing contract now preserves the source's
+methodological resolution: a familiar transformation does not establish its
+unreported grouping, parameters or implementation. `f26ee4a5` changes the reading
+handoff default to identified read/unavailable scope; numerical coverage is only
+included when requested and derived from enumerated unique sources. Neither
+change embeds the regression answer. The first change passes 33 affected
+contract/resource checks, the capability validator and exact portable projection;
+the subsequent reading-only change passes seven affected checks and exact
+projection. Unchanged writing/capability checks are reused.
+
+The existing generator creates each 446-entry lock after its canonical content
+commit. The final local Host candidate is:
+
+| Identity | Value |
+| --- | --- |
+| Native source | `85758cac79dc1b5248099fe9194529fd789a75df` |
+| Content source | `f26ee4a591a7fc449b5352540ff226117ce2042e` |
+| CLI SHA-256 | `2aa5079d4b11464dc8e0df093642cc16707413f7f95090475eb050ec82dd3898` |
+| Content pack SHA-256 | `1d84ed12b46eb7153f3ff38b440950e524e4e6834e625cc173acc049cc814397` |
+| Plugin receipt SHA-256 | `cc3bfb8c36d66d2b73cd3e07bdcaf48c0621c47f5f7635c54dfb660c18245ee9` |
+| D frozen inputs SHA-256 | `ba8867e1efc6a299de19d402254012058d4c48bbd04d4a627beaf702ca4cdf58` |
+
+C and D use pinned Rust 1.97, locked/offline CLI-only `test` profile builds for
+Host observation. They do not inherit the earlier `84bc1079` glibc 2.35 release
+qualification. An initial C build command mistakenly requested a nonexistent
+`cli` feature and exited 101 before building; the corrected no-default-features
+command succeeds. The original command error remains in the build handoff.
+No unchanged release suite is rerun for these scoped content fixes.
+
+Each directory retains `captures/manifest.json`, `review-completed.json` and
+`offline-score/summary.json`, respectively bound by:
+
+| Cohort | Sealed manifest | Complete review | Score summary |
+| --- | --- | --- | --- |
+| B | `c21e587733e7ca424378efb3a627e1e588a1041d0eb349659a0c037d19498611` | `d5b8445c0e2912d350b733b13ddcd677341e337646934df409c7890ad6a1245c` | `6e14d41f1ff8ffa41907f3a0078333ed9ec630a6fa5ed921bf2f76ffb8c53a68` |
+| C | `2592f3c44a3c943d733096936e43ff97b9ac2fa50a2e3c17ce79faf83cb4d826` | `b0770092204e479c2eb79691a8eb74e6cf5701eae04b27cb617962dd073f233f` | `4bb35496421b076e06d00ed2b166d2bd86504bd0a8b34baa5baea8c5acfe65d3` |
+| D | `1267f28d39e6a922c5ed0b901cf2867c97205613ffd036f5c3fd2d02d9622d98` | `84046abfb0f1825fb76925ba23d3528811549e40d00e1edfcb64ab1224e9f656` | `b79465780b623026a1150b448c0da9070bc45d9e83d8c22d592abcc546acef71` |
+
+The same lightweight verifier reviews every substantive answer span against
+supplied sources. D's recommendation is 277 characters and direct paragraph
+266 under their declared rules. Its saved continuation makes four actual native
+calls, recovers revision 4 and reads the two current bodies (7,117 and 10,308
+bytes) exactly; the synthetic changed packet has no usable read arguments and
+is skipped. Preparation independently rejects changed bindings and stale revision
+reads without altering fixtures. This uses a prepared historical note, not a new
+model-note save/restart journey or complete B2 reading.
+
+| D task | Seconds | Input / cached / output tokens | Completed calls / failed |
+| --- | ---: | --- | --- |
+| Paper explanation | 72.646006 | 70,353 / 49,280 / 2,454 | 7 / 0 |
+| Source paragraph | 36.852149 | 112,830 / 81,664 / 1,267 | 2 / 0 |
+| Saved continuation | 57.455549 | 188,244 / 149,248 / 1,859 | 7 / 0 |
+
+Original B/C metrics remain in their score reports. B first permits pure
+in-memory paragraph counting; D generalizes this to checking supplied material
+and delivered text without additional file reads, writes or network. This is an
+operational prompt correction, not a demonstrated cause of C's counting error.
+The changed content, prompt, Host and candidate identities prevent a controlled
+performance comparison. Supplied installed guidance paths make this a bounded
+usage regression, not an automatic Skill-discovery qualification.
+
+Slice 2's fixed installed-Codex regression exit is now observed for D. Next use a
+newly reviewed actual answer for the separate native save/restart journey, then
+run the three fresh synthetic cases whose source/request/reviewer criteria are
+frozen at `/tmp/qiongli24-heldout-materials-7ji7r5dq` (material manifest SHA-256
+`651a95679468a0e0f9af0153a58346c56d6fd294f388f4397c364a8b257e0c77`).
+Their cases have not run or supplied guidance-tuning evidence. Final fixture,
+installation and prompt bindings must be frozen before those observations.
+AGY complete-output/clean-shutdown/read-recovery and final-source four-target
+package/Cargo qualification remain open. Release remains **Not ready**. No push,
+tag, publication, real profile/model change or acceptance promotion occurs.
+
+At integration, the same verifier matches all nine cohort manifest/review/score
+hashes and confirms each authentication link is absent. Seven roadmap tests,
+generated-index consistency and whitespace checks pass. All 249 task identities,
+states and dependencies, 46 complete accepted records and all existing evidence
+fields remain unchanged from `2.x`; only CLI-405/410 blocker text and CLI-410's
+date change. No unchanged native, package or model checks are rerun for this
+documentation integration.

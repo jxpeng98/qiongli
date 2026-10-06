@@ -67,16 +67,23 @@ a separate glibc 2.35 environment and actual public pip/npm 2.3.0 upgrades with
 synthetic fixture retention. Its archived CLI exports the AGY Plugin, verifies
 its bytes/modes and directly completes Full MCP discovery and a status call.
 Those native results do not qualify an AGY Host session or a later source.
-The current plan binds each receipt and the remaining package scope. Codex's
-latest live result remains 0/3 complete reviewed passes, with no complete
-guidance-use evidence and an actual MCP approval denial. On October 6 the
-maintainer authorizes using the existing system Codex login for validation.
-The fresh credential-free check still fails at sandbox startup before any model
-call; login authority is available and remains unused. Establish sandbox
-execution and effective read-tool policy, then continue the authorized public
-validation without requesting the same login authority again. AGY complete-result/clean-shutdown,
-save/restart, held-out and final four-target checks remain open. External gates
-do not block independent implementation, but they still gate readiness claims.
+The current plan binds each receipt and the remaining package scope. After the
+maintainer repairs the sandbox, Codex 0.160.1 passes credential-free execution and
+effective read-tool policy checks. Three new public cohorts retain their own
+fixed denominators: B and C each pass structure 3/3 and reviewed quality 2/3;
+corrected candidate `85758cac` / content `f26ee4a5` passes both 3/3. The shared
+writing contract preserves reported method detail, reading resources use correct
+paths, and handoffs avoid unrequested coverage totals. Exact installations,
+full-answer reviews, source hashes, metrics and previous failures remain in the
+2.4 plan. These local test-profile builds do not inherit the older release
+package qualification or establish automatic Skill discovery.
+
+The October 6 login authorization remains available for planned public
+validation, using isolated profiles and temporary links with cleanup. Next
+qualify a newly reviewed note through save/restart and run the frozen fresh
+synthetic cases. AGY complete-result/clean-shutdown/read-recovery and final-source
+four-target/Cargo checks remain open. External gates do not block independent
+implementation, but they still gate readiness claims.
 
 CLI-405/409/410 and the existing evaluation, installation and write owners retain
 responsibility. Task states/dependencies and accepted evidence remain unchanged.
