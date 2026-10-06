@@ -23,7 +23,7 @@ qualify a changed final release candidate.
 | Host | Development evidence | Remaining qualification |
 | --- | --- | --- |
 | Codex CLI | On `85758cac`, installed regression passes structure/review 3/3, actual new-note save/restart 1/1, and one frozen fresh synthetic cohort 3/3; guidance, read-tool policy and cleanup are verified | Bounded tasks with supplied guidance locations; no automatic discovery, full-paper or broad academic acceptance. Earlier failures remain in the plan. |
-| Antigravity CLI | Earlier 1.2.17 install/update, Skill reads and native return remain scoped observations; isolated 1.3.0 install/enable and source/cache verification also pass on `85758cac` | The fresh 1.3.0 profile requires login and makes no MCP call. Complete raw result, successful Host completion and research continuation remain open. |
+| Antigravity CLI | Earlier 1.2.17 observations remain scoped; isolated 1.3.0 install/enable and source/cache verification pass on `85758cac`. After user login, one status call returns schema-valid native data and exits normally with cleanup verified | The Host stream omits the MCP response envelope; the unchanged strict result gate fails. The first bounded recovery fails on invalid arguments; its policy also blocks Host schema reads. A corrected observation remains pending. |
 | Claude Code / DeepSeek | `c2cae736` Linux ARM64 qualification passes the Claude archive and npm DeepSeek projection | Other target qualification remains open; no new model journey is claimed. |
 
 Antigravity uses its CLI Plugin format and the normal Host trust/approval flow;
@@ -36,7 +36,7 @@ exports an Antigravity Plugin with 22 Skill entries and verified file bytes and
 modes; its bundled executable directly lists 35 Full MCP tools and returns a
 complete `qiongli_config_status` result over stdio. These are package/native
 transport checks. This archived-binary observation does not register a Plugin or
-run an AGY session; the separate 1.3.0 installation/authentication outcome is
+run an AGY session; the separate 1.3.0 installation/authenticated status outcome is
 listed above. Final-source four-target qualification remains open.
 
 ## Installation and runtime surfaces

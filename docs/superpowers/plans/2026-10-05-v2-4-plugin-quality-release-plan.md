@@ -1,8 +1,9 @@
 # Qiongli 2.4.0 — Plugin reliability and research task quality
 
 - Status: the maintainer authorizes continued development through release
-  readiness on October 5. Local candidate qualification is in scope; remote
-  synchronization and publication retain their separate authority.
+  readiness on October 5, then confirms isolated AGY login and remote source
+  synchronization, the required PR, Native CI and four-target CLI/Cargo
+  qualification on October 6. Publication and main cutover remain separate.
 - Candidate version: `2.4.0`, reflecting the additive Antigravity adapter and
   improvements to existing research workflows. Canonical version inputs are
   synchronized in `e4b05659`; this does not establish publication or readiness.
@@ -1052,3 +1053,147 @@ fields remain unchanged from `c2cae736`; only CLI-409 progress/date and CLI-410
 progress change. Final review distinguishes selected child environment from an
 actually observed child launch, which this authentication failure cannot prove.
 No unchanged model, native, package or content check is repeated for integration.
+
+## October 6 — authenticated AGY and authorized remote qualification
+
+The maintainer confirms normal login in the retained isolated AGY profile and
+authorizes remote synchronization, the PR required by existing branch rules,
+Native CI and four-target CLI/Cargo qualification. This grants no tag, release,
+publication, announcement, main cutover or remote-rule change. No credential
+file is inspected, copied, linked or hashed; configured models remain unchanged.
+
+### Authenticated status call and capture limitation
+
+On unchanged Host candidate `85758cac`, AGY 1.3.0 completes one fresh status call
+in **12.124649 seconds**, exit 0, one turn, no denial and one exact MCP call.
+The returned native status JSON passes its existing schema. Process reaping,
+group cleanup and workspace/Qiongli configuration/settings preservation pass.
+Reported usage is 20,955 input, 12,208 cached, 271 output, zero thinking and
+21,226 total tokens. The pre-login failure remains separate and unsuccessful.
+
+AGY exposes the native JSON body as a string in `tool_info.output`, without the
+MCP response envelope. The unchanged strict score therefore **fails**, solely
+on `full_native_result`. The exact public session transcript also retains only
+that body; it is not substituted for wire evidence. Official
+[headless](https://antigravity.google/docs/cli/headless/),
+[reference](https://antigravity.google/docs/cli/reference/) and
+[hook](https://antigravity.google/docs/hooks/) documentation supplies no verified
+safe full-envelope capture path:
+final-answer JSON schemas constrain model text, and PostToolUse hooks do not
+provide the tool result. No generic credential-sensitive logging, injected
+interception or scoring relaxation is used. A separately scoped projected-body
+recovery observation can establish read compatibility, but cannot close this
+strict gate or establish automatic Skill discovery.
+
+The retained root `/home/hermes/qiongli24-agy-next-nhow8box` binds the new
+`status-after-user-login` capture and separate score:
+
+| Record | SHA-256 |
+| --- | --- |
+| `status-after-user-login-evidence.json` | `6829a2cd631da0c81587a3b3687aee89436c1a4be02a4cd92ce37a957be2fcf6` |
+| `installation-after-user-login.json` | `0593d520db403bb5d689ecad08138ca4d2eece444bfacfa152fa936fc3a80e00` |
+| `status-after-user-login/manifest.json` | `99bcffd1ac786a8cc2bf90c2d7d5a30bc0b038b3c12577e320a54f41babd8caf` |
+| `status-after-user-login/capture.json` | `10e692cdaa82200e4a7ac389b84c6920a33e4ab30a2370a3554e39a2398f5883` |
+| `status-after-user-login/events.jsonl` | `60afc25d6bbb48ae6bbc0e3845deeff6b6a81586c2c6ac09d1d8316e8fec729c` |
+| `status-after-user-login-score/summary.json` | `722c720d5b5d3ef5e557240d9221554b1c9eef7a26eb475eb355adb6728677e9` |
+
+### Source synchronization and documentation repair
+
+Remote `2.x` at `c25fb2c1` is an ancestor of local `8a0403c4`, 351 commits behind;
+325 already belong to released `main` at `153cb15d`. The actual 2.4 increment
+contains 26 commits across 57 files. Independent scoped review finds no new
+source-synchronization blocker. The boundary guard passes, and the new 2.4 diff
+has no whitespace errors. The cumulative remote diff retains an existing
+trailing space in the published `tables-source.md:87` source fixture; immutable
+bound evidence is preserved.
+
+The authorized branch `sync/qiongli-2.4-qualification-20261006` and
+[PR 183](https://github.com/jxpeng98/qiongli/pull/183) use the existing protected
+PR route without force, administrator bypass or ruleset changes. Initial Native
+CI and Evaluation Truth runs bind `8a0403c4`, not a later revision. Final-source
+platform and archive qualification remains separate from PR checks.
+
+The initial local documentation build fails because the maintainer quality
+contract links outside VitePress's documentation root. Its existing research
+journey reference now uses the repository's public `2.x` URL. The subsequent
+build passes in 50.873783 seconds, without changing dead-link enforcement,
+dependencies or package content. Initial Cloudflare Pages reports only a build
+failure; its unavailable logs do not establish the same cause.
+
+### Preserved recovery failure and platform fixture repairs
+
+The frozen external helper at
+`/tmp/qiongli24-agy-recovery-preparation-r2` preserves the original preparation
+unchanged and adds atomic settings replacement, compare-before-restore cleanup,
+failed-inspection sealing and exact executable/imported-helper bindings. Eleven
+parser cases, a fake-process round trip and three cleanup/error cases pass before
+one actual 180-second-bounded observation. Its freeze SHA-256 is
+`698dc6418ed5e0e4224d375b1e43f13a2ec615e466dce7c0bcb471ac8ba1f3cc`.
+
+The actual observation **fails recovery**, despite exit 0 and Host `SUCCESS` in
+48.480980 seconds. Ten tool attempts comprise one successful project read, seven
+invalid document-list calls and two denied file reads. None of the list calls
+uses the required `expected_project_revision`; no document body is read and no
+requested paragraph is produced. Repeated parameter guesses also violate the
+stop-on-error instruction. Reported usage is 75,292 input, 137,982 cache-read,
+1,327 output and 76,619 total tokens; these Host fields are retained as reported,
+not treated as a controlled efficiency comparison. Process cleanup, public
+project/configuration preservation and exact settings restoration pass.
+
+The two denied paths are the Host's public project-read schema and the installed
+Skill entry. Inspection of the three specifically named generated schemas
+confirms correct native parameter contracts, including `expected_project_revision`.
+The observation policy denied every file read and therefore also denied Host
+tool-metadata access. This is a harness limitation to address in a separately
+frozen observation, not evidence of a native parser defect or permission to
+silently retry the failed case. Original raw events and the failed denominator
+remain in `r2/actual-capture`; no credential directory is scanned.
+The [CLI permission contract](https://antigravity.google/docs/permissions?tab=cli)
+places deny before ask/allow; an exact schema-read allowance cannot override the
+original blanket denial. Any corrected observation must freeze its explicit
+metadata-read permissions and retain direct research-file/write restrictions.
+
+Initial PR Native CI `37474974188` exposes a stale three-Host assertion after
+AGY adds the fourth selection, plus Windows fixture failures in AGY export and
+saved-document/retrieval-history tests. The bounded repairs assert the four
+actual Host identities, create AGY test roots/home through the existing Windows
+owner-only directory API, and canonicalize newly created temporary project bases
+before deriving registered paths. Production ownership, canonical-path, ACL,
+revision and refusal guards remain unchanged. The Windows project-registration
+log reports `UnsafeProjectRoot`; canonicalization is the targeted fixture repair,
+not a claim that the log alone proves its precise underlying Windows condition.
+Fresh platform execution must qualify these changed test sources.
+
+The same macOS run also reports the stale Host assertion and noncanonical
+project-fixture refusals, then reaches its 30-minute job deadline while still
+executing the portable archive tests. The preceding artifact and Desktop package
+tests pass; there is no portable-archive assertion failure in the retained tail.
+The PR native job budget becomes 60 minutes, with the manual budget unchanged at
+120 minutes. Required contexts, test selection and failure propagation stay
+unchanged. The initial run remains failed/incomplete, not a qualified platform.
+
+Local repair `843766f6` passes formatting, 21 completed affected Rust checks and
+strict app/project Clippy, plus 20 branch-policy checks. The initial hosted Linux
+run's four passing bundle cases remain applicable to the unchanged Linux path;
+the directory-creation change is Windows-only. New hosted execution remains
+required for that platform. The verifier retains an initial missing-import
+compile failure (corrected), new isolated fixture directories created as 0775
+under `umask 0002`, and an externally terminated bundle test process (exit 143,
+cause unestablished). Only newly owned test-directory modes are corrected.
+Changing the temporary parent alone does not fix the project refusal; a scoped
+private creation mask does. No production safety check is relaxed.
+The interrupted case separately completes in 162.64 seconds. Final local receipt
+`/tmp/qiongli24-ci-repair-final-verification.json` has SHA-256
+`cb45628353d925c990e70bb139beb8394681256861d70ff4e53cd1ab579c022d`,
+binding the earlier partial receipt and the completed last case without overwrite.
+
+The final documentation build before this evidence paragraph passes in
+78.688734 seconds; receipt
+`/tmp/qiongli24-docs-build-integration/receipt.json` has SHA-256
+`9b6c92b9051118a44f52b0a8aa6fceaa9fe75837cf4901337363f589a54e9cf6`.
+Seven roadmap checks, current generated index, whitespace and all six status
+capture hashes pass independent verification. All 249 task IDs/states/dependencies,
+46 complete accepted records and 76 nonempty evidence fields are unchanged;
+only CLI-409/410 progress text is extended. Final diff review finds no remaining
+local blocker. Release is still **Not ready** pending AGY qualification and
+fresh final-source platform/package evidence; local integration adds no acceptance.

@@ -70,7 +70,7 @@ Report these separately; passing one does not imply passing another:
 | Actual Host behavior | Isolated installed-Plugin captures | Observed routing, tool calls, completion and recovery for the exact Host, model, candidate and task. |
 | Answer quality | Complete answer/source review | Named judgments of source support, numeric accuracy, claim strength and requested scope. |
 
-Use the existing [research journey evaluation](../../evals/research_journey/README.md)
+Use the existing [research journey evaluation](https://github.com/jxpeng98/qiongli/blob/2.x/evals/research_journey/README.md)
 and its fixed three-flow Plugin baseline for public-paper explanation, a supplied-source
 paragraph and fresh-session saved-document continuation. The offline adapter reuses
 whole-answer span review and Evaluation Truth V1; it never installs a Plugin,

@@ -87,15 +87,18 @@ pass structure/review 3/3, covering abstract-only evidence, conflicting units an
 changed-source continuation. The plan binds full reviews, negative cases, metrics
 and cleanup; those observed materials now become regression cases. AGY 1.3.0
 isolated install/enable and source/cache checks pass on the unchanged Host-test
-candidate, but its fresh profile lacks login: zero model turns and MCP calls,
-with cleanup/preservation verified. User login is needed before a new actual
-complete-result/normal-completion and read/recovery observation. Final-source
-four-target/Cargo remote checks also remain open. These gates keep release
-readiness separate from completed local development.
+candidate. After user login, one actual status call returns schema-valid native
+data and exits normally with cleanup/preservation verified. Its stream omits
+the MCP response envelope, so the unchanged strict result gate still fails;
+the earlier authentication failure remains retained. The plan records separately
+scoped projected-body recovery and final-source platform qualification.
 
 CLI-405/409/410 and the existing evaluation, installation and write owners retain
 responsibility. Task states/dependencies and accepted evidence remain unchanged.
-Local preparation does not authorize remote synchronization or publication.
+The October 6 maintainer grant authorizes remote synchronization, the existing
+protected PR route, Native CI and four-target CLI/Cargo qualification. PR 183
+is open; changed-source checks must bind the new head. Publication, tags, main
+cutover, announcement and remote-rule changes remain outside this grant.
 
 ### Preceding local increment — Plugin baseline and AGY
 
