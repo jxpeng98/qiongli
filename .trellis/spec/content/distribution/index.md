@@ -90,6 +90,10 @@ changes, and explain affected, unchanged and unresolved claims. Existing matrix,
 summary, ledger, map and handoff fields carry these relationships; neither native
 Graph nor artifact-change reads provide automatic semantic invalidation. Template
 marks and paper counts do not establish certainty or independent replication.
+Paper reading owns claim-level access scope: the retained `full_text` label for
+body evidence must carry an explicit partial-body qualifier and inspected/missing
+locations when only excerpts exist. Packet provenance stays separate from the
+controlled labels and whole-paper retrieval/coverage claims; no new enum is added.
 
 Stage C design cards, workflows, role perspectives and the core digest share
 `content/workflow/references/stage-C-design.md`. They retain method/protocol

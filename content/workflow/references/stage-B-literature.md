@@ -247,6 +247,11 @@ Every project-level summary claim should carry:
 - `evidence_limit`: `full_text`, `abstract_only`, `metadata_only`, or `unavailable`
 - `inference_strength`: `direct_evidence`, `reasonable_inference`, or `unsupported_gap`
 
+Apply the claim-level scope in `workflows/paper-read.md` for body excerpts:
+`full_text` requires an explicit partial-body qualifier when only part is
+available. Retain actual inspected/missing locations and retrieval status;
+body-supported claims do not establish whole-paper access or reading coverage.
+
 ---
 
 ## B3 — Citation Snowballing

@@ -45,6 +45,11 @@ PDF is available, and a readable PDF does not by itself support a particular cla
 Record `evidence_limit` for each extracted claim: `full_text`, `abstract_only`,
 `metadata_only` or `unavailable`, as supported by the material actually read.
 Retain version details when a preprint differs from the published article.
+For a claim grounded in a supplied body excerpt, the reading templates retain
+`full_text` with an explicit `partial body excerpt` qualifier and inspected/missing
+locations in the anchor or limitations. This describes that claim's evidence;
+it does not mark the whole paper retrieved or read. Keep retrieval status and
+corpus coverage separate, and preserve the packet's original access description.
 
 ## Connect findings to the Graph
 

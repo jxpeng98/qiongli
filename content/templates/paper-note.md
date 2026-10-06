@@ -24,9 +24,13 @@ Save to: RESEARCH/[topic]/notes/[citekey].md
 
 ## Evidence Boundary
 
-Do not invent citations, page numbers, sample sizes, methods, results, effect sizes, datasets, author claims, or implications. If the paper is not available as full text, mark `evidence_limit: abstract_only` or `evidence_limit: metadata_only` and leave unavailable fields as gaps.
+Do not invent citations, page numbers, sample sizes, methods, results, effect sizes, datasets, author claims, or implications. If only an abstract or metadata is available, mark `evidence_limit: abstract_only` or `evidence_limit: metadata_only` and leave unavailable fields as gaps.
 
-Metadata search coverage and full-text access are separate. A paper found through OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv remains `abstract_only` or `metadata_only` until the retrieval manifest records a readable full-text version.
+Metadata discovery does not establish body access. Use the claim-level evidence
+scope in `workflows/paper-read.md`: inspected body excerpts can support the claims
+they contain, but require an explicit partial-body scope and missing sections in
+Notes/source anchors. Preserve the actual retrieval status separately; never
+report a complete paper merely because a passage was supplied or read.
 
 ### Source Anchors
 

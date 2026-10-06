@@ -24,6 +24,11 @@ exact inspected location; qualify note-local IDs by their note. A synthesis has
 its own claim ID and contributing claims/anchors, not a borrowed paper's ID.
 Keep access limits per source; one full-text paper does not upgrade the others.
 These are uses of existing fields, not new required columns or status labels.
+For body excerpts, follow the claim-level scope in `workflows/paper-read.md`:
+pair `full_text` with `partial body excerpt` and exact inspected/missing sections
+in `source_anchor`/Boundary. Do not count these as complete-paper retrievals in
+Corpus Overview. Keep a packet's free-form access description as provenance,
+not as another controlled label.
 
 ## Corpus Overview
 

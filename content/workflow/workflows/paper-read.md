@@ -44,6 +44,15 @@ Select `strategy_only` only when neither provider nor native search is available
 An abstract-only note must remain visibly limited; it cannot establish unseen
 methods, figures, results or systematic-review-grade coverage.
 
+For claim-level reading records, `full_text` identifies evidence inspected in
+the source body; it does not assert that the whole paper was obtained or read.
+When only body excerpts are supplied, pair that existing label with an explicit
+`partial body excerpt` scope and the inspected/missing sections in `source_anchor`
+and Notes/limitations. Retain the packet's original access description separately;
+do not copy free-form packet labels into a controlled template field. Do not count
+excerpt-only access as a complete full-text retrieval in the corpus overview or
+upgrade `retrieval_manifest.csv` status from this claim-level classification.
+
 ## Evidence and interpretation
 
 Use `skills/B_literature/paper-extractor.md` for structured extraction and

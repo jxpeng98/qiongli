@@ -25,6 +25,11 @@ Index; qualify note-local IDs by their note. Carry the same IDs into the summary
 and manuscript map. For a cross-source inference, give its own claim ID and name
 its contributing claims/anchors. Unknown access or missing text is not contrary
 evidence or proof that a paper did not address the question.
+For body excerpts, follow the claim-level scope in `workflows/paper-read.md`:
+`full_text` must be accompanied by `partial body excerpt`, inspected locations
+and missing sections in `source_anchor`/limitations. It is not a whole-paper
+access claim or a new retrieval status. Preserve free-form packet provenance
+outside the controlled `evidence_limit` field.
 
 ## Matrix
 
