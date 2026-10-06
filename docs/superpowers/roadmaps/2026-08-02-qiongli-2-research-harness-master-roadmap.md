@@ -54,7 +54,18 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 6, 2026
 
-The latest maintainer feedback selects a bounded writing-quality increment:
+The latest maintainer instruction makes traceable literature work and substantive
+writing the main 2.4.0 outcome. The existing 2.4 plan now orders five increments:
+exact source-passage readback, bounded passage discovery, claim-to-source
+traversal/review, synthesis with change tracking, then the installed journey and
+final-source qualification. Implementation starts from `3d83bbf7`; `6970da52`
+adds an optional observed JSON pointer to the existing saved-document reader,
+preserving raw compatibility, whole-file identity and current-revision checks.
+This first readback capability does not yet implement automatic claim traversal,
+cross-document search or PDF viewing. CLI-405/410 and existing evidence/write
+owners retain responsibility; no task acceptance or pending AGY decision changes.
+
+The preceding maintainer feedback selects a bounded writing-quality increment:
 natural prose, substantive literature comparisons tied to the paper, supported
 background and useful explanatory notes. On local baseline `16a9d7c4`, canonical
 content `b2d52413` connects these requirements to the existing Stage F, B4,

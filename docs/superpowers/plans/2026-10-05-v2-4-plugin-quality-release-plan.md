@@ -1,4 +1,4 @@
-# Qiongli 2.4.0 — Plugin reliability and research task quality
+# Qiongli 2.4.0 — traceable research, substantive writing and Plugin reliability
 
 - Status: the maintainer authorizes continued development through release
   readiness on October 5, then confirms isolated AGY login and remote source
@@ -6,6 +6,8 @@
   qualification on October 6. Publication and main cutover remain separate.
   Subsequent writing-quality feedback selects the bounded content increment
   recorded below; it does not approve the pending AGY scope proposal.
+  The latest instruction makes source-traceable literature work and writing the
+  main 2.4.0 outcome and authorizes planning plus local implementation.
 - Candidate version: `2.4.0`, reflecting the additive Antigravity adapter and
   improvements to existing research workflows. Canonical version inputs are
   synchronized in `e4b05659`; this does not establish publication or readiness.
@@ -16,16 +18,58 @@
 
 ## Release outcome
 
-A user can install the Plugin, explain supplied paper evidence, draft a bounded
-source-supported paragraph, and explicitly save/recover reviewed work in a fresh
-session. Each advertised result has evidence for the actual installed candidate.
+A user can retain how literature was found, summarize inspected evidence, write
+fluent and substantive source-supported prose, and trace a consequential claim
+back through its evidence records to the exact saved passage and source version.
+Reviewed work and its bindings survive a fresh session; missing, changed or
+uninspected evidence stays explicit. Each advertised result has evidence for the
+actual installed candidate, including background citations and explanatory notes.
 Codex remains the primary research Host; Antigravity receives a separately
 qualified local CLI adapter. Existing models and project-write authority remain
 with their current owners.
 
 The proposed release includes the already implemented AGY adapter (`ff62b06a`)
 and baseline evaluator (`bcec1b0f`). These are integration inputs, not new work
-to repeat. The principal new work closes observed quality and verification gaps.
+to repeat. Their remaining gates are retained alongside the main outcome below.
+
+## Current execution priority — source-traceable literature and writing
+
+Start from local `3d83bbf7`. The writing-guidance increment is implemented; its
+synthetic observations do not yet qualify a real manuscript. Existing search
+logs, notes, reading matrices, claim ledger, Graph, source packets and saved-file
+read/list services retain ownership. The Graph resolves registered records;
+that is not a native PDF viewer or proof of source support. No second evidence
+database, vector index, review-status vocabulary or automatic approval is added.
+
+| Order | Deliverable and existing owner | Exit evidence |
+| --- | --- | --- |
+| A — exact passage readback, first implementation | Extend the saved-document reader with an optional JSON pointer into a known saved source packet. Preserve file hash/revision bindings and raw reads; connect the locator to existing note and ledger guidance. | CLI and Full MCP return identical decoded UTF-8 passage windows. Escaped text, repeated passages and array packets retain distinct locations; invalid selectors, stale hashes/revisions and unsafe files refuse. |
+| B — bounded passage discovery | Search text within explicitly selected saved sources through the same project/read ownership. Return inspectable candidates, exact locators and surrounding context, distinguishing no match, multiple matches and incomplete access. | Find an actual phrase despite JSON encoding; preserve every relevant match within declared bounds and continuation. A translated/paraphrased query or absent match cannot manufacture a quotation or establish absence from an unread paper. |
+| C — claim-to-source traversal and review | Connect existing project-wide claim IDs and citekeys through ledger rows, notes and retained packets. Present each supporting or conflicting source separately, with manuscript location and original evidence limits. | Select a claim and recover its actual source passages; distinguish author's result, synthesis and inference. Missing bindings or ambiguous identities remain unresolved. A reviewer checks source support, not just locator validity. |
+| D — summaries, synthesis and change tracking | Reuse reading matrices/summaries and manuscript claim maps for cross-paper comparison and writing. Preserve source versions, search/retrieval failures and prior reviews; identify affected claims when material changes. | A summary and LR maintain the same identities through background, analysis and notes. Changed sources trigger bounded re-review; old evidence and unrelated verified work survive. |
+| E — installed journey and final candidate | Exercise search provenance → inspected passages → reviewed notes/synthesis → manuscript claims → reverse lookup → fresh-session recovery through existing installation and write owners. | Frozen public/synthetic inputs, complete actual outputs, exact candidate/source bindings and reviewed support judgments. Requalify final-source packages and retained upgrade/Host gates before readiness. |
+
+Implement A first, then B/C on the settled locator interface, followed by D/E.
+For A, `json_pointer` selects only an observed string field from a content-addressed
+source packet. Offsets refer to decoded UTF-8 text while SHA-256 still binds the
+whole saved JSON file. Preserve native page/section/segment metadata in that packet;
+do not label a JSON byte offset as a PDF page or fabricate printed page numbers.
+Unknown/malformed pointers and non-string values refuse without fallback.
+No-selector requests and old response fields retain their existing meaning.
+
+Use source-specific negative cases throughout: abstract-only access, conflicting
+outcomes/denominators, changed or missing packets, duplicate passages, absent
+supplements and unverified locations. Review each material claim in the selected
+scope, including claims absent from a supplied ledger. An exact text match does
+not itself establish semantic support, source authenticity or search completeness.
+
+The first local slice adds no live search, private-library access, project-data
+mutation, installed-Host update or model invocation. Subsequent live batches keep
+their declared public/synthetic scope and current authorization boundaries. One
+requested `gpt-6.1-sol / low` verifier handles focused checks and reviews; do not
+change configured user models. Record checks and remaining work once per integrated
+increment under CLI-405/410; preserve all task states and accepted evidence.
+The pending AGY scope decision and publication authority are unchanged.
 
 ## Starting evidence
 
@@ -40,7 +84,7 @@ Detailed hashes, candidates, approval scope and failures remain in the prior
 execution record. This draft does not relabel that evidence or monitor the
 previous release.
 
-## Ordered delivery slices
+## Retained foundation and release slices
 
 ### 1. Make observations repeatable — required
 
@@ -151,10 +195,11 @@ when available. Compare identical tasks and model settings, keeping quality as a
 condition of any efficiency claim. Do not promise a token reduction percentage
 or compare different Host/model runs as a controlled benchmark.
 
-Implement slices 1 and 2 first; content diagnosis can proceed alongside driver
-repairs. Their evidence enables slice 3. Prepare slice 4 documentation early and
-qualify its final artifacts only after the required behavior is stable. Keep
-routine independent development moving while an external evidence gate waits.
+Follow the current A–E priority above while retaining these foundation and
+release obligations and their original failed observations. Prepare release
+documentation alongside implementation; qualify final artifacts only after the
+required behavior is stable. Independent development can proceed while a separate
+external evidence gate waits.
 
 Defer additional Hosts, Desktop expansion, a new Graph or Agent orchestration
 layer, concurrent multi-Host writing, a broad 82-Skill rewrite, and new provider
@@ -1466,3 +1511,52 @@ content. No new search, credential use, Host installation, research-data write,
 remote action or publication occurs. CLI-405/410 retain ownership and their
 acceptance state; the strict AGY gates remain failed and the proposed experimental
 boundary remains unapproved.
+
+## October 6 — first source-traceability implementation
+
+The current A–E priority makes traceable literature summaries and writing the
+main 2.4.0 outcome. Slice A is implemented in `6970da52`, with the CLI test
+launcher and equivalent validation-style correction in `91a5d02d`. This adds
+the optional selector to the existing CLI/Full MCP reader, teaches exact saved
+passage readback and retains locations in existing note/ledger records. It does
+not add a new tool, evidence store, paper-page inference or project write.
+Raw wire behavior and Full 35 / Lite 15 remain unchanged. Bounded passage
+discovery (B) is the next implementation, followed by C/D/E under their named
+exit criteria; a local slice A result does not complete the main release outcome.
+
+Pack commit `5c81e14e` binds 446 resources to source
+`6970da527038a37d95136884a950a775cc8d4465`, root
+`a7dbb14b4f0d18e7a516d2af1f22fe6d1191f8b5add2b69337725ded0a8a2854`, and pack
+`ed5af23968a00122148a681a5f7975e9af3f2a109bed2e388446f9d50e5450ce`.
+The later fixes change no canonical content, so the pack is not regenerated.
+
+One `gpt-6.1-sol / low` verifier passes 14 focused tests on the corrected source:
+ten saved-document tests, three actual CLI/MCP tests and one embedded-pack test.
+They cover decoded/escaped text, arrays, repeated passages, UTF-8 continuation,
+legacy wire shape, invalid/ambiguous selectors and retained file/revision/security
+refusals. Capability validation, materialized resource reachability, formatting,
+seven roadmap checks and index consistency pass. The project-only strict Clippy
+check passes. Under Rust/Clippy 1.99.0, the combined project/app strict check fails
+four unchanged platform locations: one deprecated `fetch_update` and three
+`chunks_exact_to_as_chunks` diagnostics. The same focused check passes allowing
+only those two diagnostic categories; this filtered result is not a strict pass.
+
+Initial failures remain recorded: fixture registration under `umask 002`, a
+resource audit against the unmaterialized workflow layout, incorrect placement
+of the test launcher's terminal `--json`, the unavailable pytest runner, and the
+new nested-if lint repaired in `91a5d02d`. Tests use `umask 077` without shared
+permission changes; resource checks use the existing materializer, and roadmap
+checks use the existing stdlib unittest runner. No production guard is weakened.
+
+Final review finds no remaining actionable diff issue. All 249 tasks, 46 complete
+accepted records and 76 nonempty evidence fields are preserved; only CLI-405/410
+progress text changes. These results establish local native passage readback,
+not installed-Host, academic-support or final-source release qualification.
+
+Commands, source bindings and retained failures are recorded externally in
+`/tmp/qiongli-traceability-verifier-2026-10-06-r2.md`, SHA-256
+`311daf0af9fd1f59af653bc6116bdefb4a7054ec7da7f367576555990cf5cbc4`.
+The initial frozen report accidentally omitted the first two pack-digest digits;
+the correction is verified against committed lock `5c81e14e` and preserves the
+original report and its hash. No source/input change or test replay follows that
+transcription correction. Temporary local verification is not accepted evidence.
