@@ -4,6 +4,8 @@
   readiness on October 5, then confirms isolated AGY login and remote source
   synchronization, the required PR, Native CI and four-target CLI/Cargo
   qualification on October 6. Publication and main cutover remain separate.
+  Subsequent writing-quality feedback selects the bounded content increment
+  recorded below; it does not approve the pending AGY scope proposal.
 - Candidate version: `2.4.0`, reflecting the additive Antigravity adapter and
   improvements to existing research workflows. Canonical version inputs are
   synchronized in `e4b05659`; this does not establish publication or readiness.
@@ -1386,3 +1388,81 @@ result paragraph, the documentation build passes in 54.390599 seconds, including
 the new local ADR link. Receipt
 `/tmp/qiongli24-hosted-docs-build/receipt.json` has SHA-256
 `4fd0d15d8bcf869a211fef3c6b2aff7d78b655f2ce6b5f807ef6452925805695`.
+
+## October 6 — prose, literature synthesis, citations and explanatory notes
+
+The maintainer reports awkward prose, shallow literature reviews, incomplete
+background citations and weak explanatory-note use. The local baseline is
+`16a9d7c4`. Source inspection finds relevant English/Chinese expression guidance
+concentrated in J2 revision, a generic B4 completion rule, narrower citation
+coverage and no shared explanatory-note rule. These are instruction-coverage
+gaps; no supplied user manuscript reproduces the reported real-use defects.
+
+Canonical content `b2d52413` addresses the four outcomes through existing owners:
+
+- Stage F applies scholarly voice while drafting and asks for concrete, connected
+  explanation while preserving meaning, technical precision and source limits.
+- B4 and the manuscript-writing route compare inspected evidence, explain
+  consequential differences and connect the synthesis to the paper's question
+  or choices. A section request does not trigger a formal systematic review.
+- Citation-risk guidance covers source-dependent background, definitions and
+  note claims, with nearby matching support rather than citation-count targets.
+- Stage F and proofreading distinguish explanatory/bibliographic notes, preserve
+  identifiers and venue rules, and keep essential evidence and limits in the body.
+
+The separate synthetic `evals/research_journey/writing-quality/` packet provides
+three bounded requests and review criteria. One requested `gpt-6.1-sol / low`
+subagent first uses materialized guidance to produce complete A/B/C answers,
+freezes them, then reads the criteria for self-review. All three complete without
+a material defect identified in that review. Coordinator inspection corroborates
+the source comparisons, background coverage, numerical/edit fidelity and note
+boundaries. This is a forward trial followed by self-review, not an independent
+blind judge, controlled improvement measurement, expert or installed-Host pass.
+The synthetic English edit is especially narrow; it does not qualify an entire
+manuscript. No answer is rewritten or rerun, and no usage metrics are invented.
+
+The existing six-module content/route/resource suite passes all 81 tests;
+capability validation passes. The existing content materializer produces exact
+bytes for all eight changed canonical files, no symlinks and no missing resource
+links. Full original answers, commands, counts and reviews remain at
+`/tmp/qiongli-writing-verifier-mpnpi2wt/`; these temporary local observations are
+not accepted program evidence. `review.md` has SHA-256
+`5c67c9558eac3ed1e5a5cd938e06b07ca68fba98346ee91621bb557abe744d78`, and
+`hashes.json`, binding source/task/changed-guidance bytes, has SHA-256
+`2d315db694d666d38df8618f66f1ae0619502ac10d22c696cf57372fea50ddc9`.
+
+The existing `update_qiongli_core_lock` Cargo example regenerates the native
+446-resource lock in `7d779929`, bound to canonical source
+`b2d52413da3afd01ff44f82ec741bfdf03b656d6`, content root
+`b1504ec2a5472cd357f4310837d4086d1f277fb88aeee8ee6af02660854face2` and pack
+`be8128fcbb62e16bc40526e7be1655ba4838b6af0ac28606639af92d19e6ba37`.
+Regeneration succeeds offline without editing generated Plugin or installed files.
+
+Native checks retain an environment failure: seven of nine content unit tests
+pass in the checkout, while two lock cases reject its group-writable ancestors.
+An exact `7d779929` archive in a private owner-only directory initially reproduces
+mode failures (lock selection 2/4; atomic materialization 3/10). Correcting only
+that verifier-owned tree to `0700` and using `umask 077` resolves the setup:
+both focused lock cases and all 39 previously unreached integration tests pass.
+The 24 crate/workspace/lock inputs hash-match the committed source. No shared
+directory permissions, production guards or test sources change.
+The actual app's `embedded_pack` check is initially interrupted during compilation
+with exit 143 and unknown cause; one incremental retry passes 1/1. Neither the
+interruption nor the original permission failures are relabelled as passes.
+Commands, retained failures and successful results are in `native-review.md` in
+the same external evidence directory, SHA-256
+`9754c2843d0727020d4e7446c6b8196071275a55b723b87f81766bdb2e09a613`.
+
+Final canonical/documentation review finds no actionable issue; seven roadmap
+checks and generated-index consistency pass. All 249 task IDs/states/dependencies,
+46 complete accepted records and 76 nonempty evidence fields remain unchanged;
+only CLI-405/410 progress text changes. The plain-text documentation changes do
+not rerun or inherit the prior documentation build.
+
+Next qualify the regenerated candidate's installed guidance and, when supplied,
+review a representative real passage against its research question and source
+excerpts. The earlier `8fd774a0` four-target artifacts do not qualify this changed
+content. No new search, credential use, Host installation, research-data write,
+remote action or publication occurs. CLI-405/410 retain ownership and their
+acceptance state; the strict AGY gates remain failed and the proposed experimental
+boundary remains unapproved.

@@ -54,6 +54,18 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 6, 2026
 
+The latest maintainer feedback selects a bounded writing-quality increment:
+natural prose, substantive literature comparisons tied to the paper, supported
+background and useful explanatory notes. On local baseline `16a9d7c4`, canonical
+content `b2d52413` connects these requirements to the existing Stage F, B4,
+scholarly-voice and citation owners. One `gpt-6.1-sol / low` verifier checks
+materialized guidance and three supplied-source synthetic answers; the current
+2.4 plan records exact evidence and its limits. No original user manuscript was
+provided, so this does not reproduce or establish resolution of its defects.
+Earlier `8fd774a0` package and installed-Host observations retain their named
+sources; this changed content requires its own qualification before release.
+The pending AGY scope decision and publication authority are unchanged.
+
 The maintainer requests development through release readiness under the
 [2.4.0 Plugin-quality plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md).
 Canonical inputs now report 2.4.0; candidate notes keep publication and all
