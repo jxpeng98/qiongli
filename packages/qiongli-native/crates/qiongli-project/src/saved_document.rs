@@ -47,10 +47,10 @@ impl SavedDocumentReadRequest {
         {
             return Err(ProjectError::ProjectArtifactUnsupported);
         }
-        if let Some(pointer) = &self.json_pointer {
-            if !valid_packet_path(&self.relative_path) || !valid_json_pointer(pointer) {
-                return Err(ProjectError::InvalidProjectDocument);
-            }
+        if let Some(pointer) = &self.json_pointer
+            && (!valid_packet_path(&self.relative_path) || !valid_json_pointer(pointer))
+        {
+            return Err(ProjectError::InvalidProjectDocument);
         }
         Ok(())
     }

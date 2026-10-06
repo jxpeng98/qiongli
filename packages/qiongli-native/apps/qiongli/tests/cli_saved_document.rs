@@ -127,12 +127,11 @@ impl Fixture {
                 &r.offset_bytes.to_string(),
                 "--max-bytes",
                 &r.max_bytes.to_string(),
-                "--json",
             ]);
         if let Some(pointer) = &r.json_pointer {
             command.args(["--json-pointer", pointer]);
         }
-        command.output().unwrap()
+        command.arg("--json").output().unwrap()
     }
 }
 #[test]
@@ -179,7 +178,13 @@ fn full_mcp_matches_cli_and_lite_refuses_saved_reader() {
     let mut selected = f.request(&path, packet);
     selected.json_pointer = Some("/passages/1/a~1b~0c".into());
     selected.max_bytes = 4;
-    let first: serde_json::Value = serde_json::from_slice(&f.run(&selected).stdout).unwrap();
+    let output = f.run(&selected);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let first: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(first["content"], "abé");
     assert_eq!(first["sha256"], sha(packet));
     assert_eq!(first["sourceSizeBytes"], packet.len());
