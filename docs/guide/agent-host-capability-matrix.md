@@ -15,6 +15,13 @@ Status vocabulary:
 
 ## 2.4 development observations
 
+For 2.4.0 the maintainer has approved **experimental Antigravity CLI support**.
+Its failed strict capture/recovery checks below remain unchanged and required for
+later promotion; they are disclosed limitations of this experimental adapter.
+Codex remains the primary research Host, with its current-candidate and package
+checks retained. This release-scope decision does not modify the accepted August
+matrix or its historical publication field.
+
 The [2.4 candidate plan](../superpowers/plans/2026-10-05-v2-4-plugin-quality-release-plan.md)
 keeps newer observations separate from the accepted August receipts below.
 These results concern the named development sources in that plan and do not

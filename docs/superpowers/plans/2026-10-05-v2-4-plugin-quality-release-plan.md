@@ -2141,3 +2141,93 @@ denominators. Current-source local packaging and upgrade checks, followed by the
 immutable-tag four-target publication pipeline, retain their existing owners.
 Do not monitor after the requested publication-task dispatch or claim completed
 registry publication from a successful dispatch alone.
+
+### Installed completion and release preparation results
+
+Clean candidate `3fa02b17ddf30e37c7168375c15651b6bba18b2c` is independently
+snapshotted for installed and glibc 2.35 release checks. The corrected test-profile
+binary SHA-256 is `689a3a6da1c71e2db202b9c28b694e8e512c849435f43244e4d05f4563944edc`;
+official export/registration verifies 468 cache entries, Lite 15/Full 35, exact
+content identity, effective three-read-tool policy and credential-free preflight.
+The first test binary lacks the explicit source stamp and is refused before any
+model run; its installation and the preparation-order correction remain retained.
+No real profile, configured model or tested permission is changed.
+
+The `gpt-6.1-sol / low` verifier captures ten actual bounded installed episodes,
+each capped at 180 seconds. Original tasks, criteria and synthetic inputs freeze
+before execution; the two later review-driven corrections have separate frozen
+prompts and original records. Complete outputs are reviewed against actual saved
+sources, with source support, prose and claim structure judged separately:
+
+- Fixed baseline: structure and complete-answer review **3/3**; source paragraph
+  262 characters. A review-annotation correction preserves original answers.
+- Original new writing: **0/1 complete pass**. Its 650-character body, note and
+  source support pass, but five map rows combine separately checkable claims.
+  The original answer and failed review remain unchanged.
+- Explicit reviewed writing correction: **1/1**. Five retired IDs map to ten new
+  IDs; twelve unchanged rows, body and note are byte-identical. All 22 final map
+  rows receive independent support/atomicity review. The correction Host asks for
+  an ungranted project-list tool, is denied and does not retry; its disclosure
+  that it did not reread sources is preserved. A separate authorized native audit
+  fully rereads both exact packets before acceptance. No denied call is a pass.
+- Native saving retains the reviewed correction verbatim at revision 4; missing
+  approval, stale revision and missing/changed-source cases refuse without losing
+  original bytes. Summary SHA-256 is
+  `e08236ed148b8ab7803b1ada88e60b7afdef7704a17998f1383bf9f05928b630`.
+- Fresh installed recovery: **1/1**, 126.48 seconds, 28 tool calls including 13
+  native MCP calls, without a failed call. Starting with project ID and guidance
+  only, it recovers the complete
+  13,534-byte saved unit, revised IDs, partial status and source/history bindings.
+  Two literal searches and exact returned read arguments recover source context;
+  complete semantic review passes. This closes the previously missing summary
+  discovery path without exposing a project root or expanding tool permission.
+- New synthetic boundary cohort: original **2/3**, not a first-pass clean sweep.
+  Abstract-only access and changed-source continuation pass. The original unit-
+  conflict answer accurately reports the conflict but omits the required explicit
+  conversion. A separately frozen, single reviewed correction passes all its
+  criteria in 213 words, including derived unit/interval conversion and the
+  tenfold discrepancy, without selecting either reported estimate as correct.
+
+All required judgments close on the final reviewed units; this establishes the
+bounded review-and-correction workflow, not universally atomic first drafts,
+blind generalization or whole-manuscript/expert acceptance. Earlier failures keep
+their original denominators, including the previous E cohort. Review metadata
+errata remain separate from source judgments; no original is overwritten.
+Observations are under
+`/home/hermes/qiongli-final-installed-20261007-qebeee93/installed-r2/` and
+`/tmp/qiongli-summary-recovery-20261007/`. The reviewed-correction binding audit
+has SHA-256 `ff4bd0c0bd6996fd14bcfb594defff4482929a5dad27abb84cd347f2c699e649`;
+fresh recovery review is `d10e3a66784242e5d54486448a031b6cf4f63a0ded403a29f54034671ca653a8`;
+unit-correction review is `6de40a1638986cff1eacffa696125757af08a6cb64fcc926f7a0794185444040`.
+The consolidated `evidence-summary-current.json` in the temporary observation
+root has SHA-256 `c50fbdf9c6a68fab6229fc9c114caee91e2d728f5abb960003aab914f862fdae`.
+It binds all ten captures/reviews, the original failures and separate corrections,
+retained setup/review errata, native save/refusal records and artifact checks.
+All ten process groups terminate; temporary authentication links are removed,
+and original configuration/project snapshots are preserved outside approved
+synthetic native writes. Credentials are never read, copied or hashed.
+
+The independent same-source Linux ARM64 release owner passes strict pinned Clippy,
+46 CLI and nine MCP tests, packaging and extracted npm/wheel/Plugin checks. Five
+asset sizes and SHA-256 values match the manifest. Explicit public 2.3.0 pip/npm
+upgrades and archive-only installation from ten actual Cargo source archives
+pass, including `qiongli`/`ql`, inventory and pack checks. The independent artifact
+review at `release/independent-artifact-review.json` in the temporary observation
+root has SHA-256 `980d297d729436c38d6438ec5970dddcc64784e7a4dd3eea73dde213c54406be`.
+Test-profile Host and release-profile artifacts retain separate identities.
+
+Subsequent integration edits only clarify documentation and record these results.
+Their final tag must pass the existing four-target exact-source publication
+pipeline before assets are published; local ARM64 results do not substitute for
+the other targets. The authorized stopping point is a verified release-task
+dispatch, not a claim that registry uploads have already completed.
+
+The final seven roadmap tests, generated-index consistency, both retained fixture
+manifests, whitespace checks and documentation build pass; findings-only review
+has no remaining actionable issue. Documentation preserves the existing build
+warnings. Against baseline `bd1992ba`, all 249 task identities/states/dependencies,
+46 accepted records, 76 nonempty evidence fields and 198 populated evidence/
+commit/run fields remain unchanged; only CLI-405/409/410 blocker text changes.
+The check report, before this checks-only annotation, is
+`/tmp/qiongli-summary-recovery-20261007/final-integration-checks.json`, SHA-256
+`3203c0d706e26c90ada1d1e15e3306a92c0ab50a599b3388299a2eb1bbe78939`.

@@ -40,10 +40,10 @@ The preview shows commands. Host trust and actual event delivery need their own 
 
 `qiongli install plugin --target deepseek` selects a profile, previews official DSH commands and asks for trust before installing the npm version matching your CLI. It verifies registration and the content receipt. It does not select a model.
 
-To install without a global Qiongli CLI, use DeepSeek Desktop's **Add plugin → Official npm registry**, entering `qiongli@2.3.0`, or run:
+To install without a global Qiongli CLI, use DeepSeek Desktop's **Add plugin → Official npm registry**, entering `qiongli@2.4.0`, or run:
 
 ```sh
-dsh plugin --profile desktop add qiongli@2.3.0
+dsh plugin --profile desktop add qiongli@2.4.0
 ```
 
 Replace `desktop` with your profile. The bundle includes 22 Skill entries, Full MCP and the platform executable. Keep one Qiongli bundle per profile, reload it and check the actual tools.

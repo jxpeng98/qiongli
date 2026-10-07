@@ -40,10 +40,10 @@ qiongli install plugin --target codex --hooks off
 
 `qiongli install plugin --target deepseek` 选择 profile，预览官方 DSH 命令，确认信任后安装与 CLI 匹配的 npm 版本，并核对注册与内容收据。模型设置保留。
 
-不安装全局 CLI 也可以接入：在 DeepSeek Desktop 的 **Add plugin → Official npm registry** 中填 `qiongli@2.3.0`，或运行：
+不安装全局 CLI 也可以接入：在 DeepSeek Desktop 的 **Add plugin → Official npm registry** 中填 `qiongli@2.4.0`，或运行：
 
 ```sh
-dsh plugin --profile desktop add qiongli@2.3.0
+dsh plugin --profile desktop add qiongli@2.4.0
 ```
 
 把 `desktop` 换成自己的 profile。包内含 22 个 Skill 入口、Full MCP 和对应平台程序。每个 profile 保留一份穷理，重新加载后检查实际工具。
@@ -54,7 +54,10 @@ dsh plugin --profile desktop add qiongli@2.3.0
 
 ## Antigravity CLI {#antigravity}
 
-当前开发版 CLI 新增此入口；此前打标签的 2.3.0 程序尚未包含它。
+2.4.0 新增实验性 Antigravity CLI 适配；2.3.0 程序尚未包含此入口。Codex 仍是
+主要科研 Host。AGY 1.3.0 的限定观察覆盖安装、正常结束的状态调用，以及提供
+公开工具描述后的正文回读。自动发现、完整科研会话恢复和原始 MCP 响应捕获仍
+未通过验证。实验性标记保留这些失败供后续改进，不代表科研流程或 IDE 支持通过。
 
 ```sh
 qiongli install plugin --target antigravity --language zh

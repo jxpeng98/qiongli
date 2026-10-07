@@ -61,8 +61,18 @@ retain the failed strict Host checks for later promotion; Codex, package and
 upgrade gates remain required. Publication and reviewed main cutover are now
 authorized. Source `c9748636` adds receipt-backed stage-summary discovery to the
 existing document list and strict summary-path read/search support. The current
-plan records focused checks and the separately frozen installed continuation;
-the earlier failed writing/recovery observations remain unchanged.
+plan records focused checks and the separately frozen installed continuation.
+On `3fa02b17`, baseline review is 3/3, original writing is 0/1 and an explicit
+reviewed correction is 1/1; original prose is preserved while compound rows split
+with ID lineage. Native approved saving and project-ID-only fresh recovery pass,
+including exact summary, revised IDs and source readback. The new boundary cohort
+is initially 2/3, with its missing unit conversion resolved in a separately
+reviewed correction. Original failures and their denominators remain unchanged.
+Same-source local ARM64 packages, 2.3.0 upgrades and Cargo archive installs pass;
+final-tag four-target checks remain in the publication workflow. These results
+qualify the bounded reviewed workflow, not universally correct first drafts or
+program acceptance. The authorized endpoint is release-task dispatch without
+subsequent monitoring.
 
 The latest maintainer instruction makes traceable literature work and substantive
 writing the main 2.4.0 outcome. The existing 2.4 plan now orders five increments:

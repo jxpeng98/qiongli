@@ -54,7 +54,8 @@ Only canonical `notes/<citekey>.md`, `sources/<citekey>/<sha256>.json`,
 `retrieval_manifest.csv` and `context/stage_summaries/STG-*.md` paths are allowed.
 Summary paths reuse the existing strict summary-ID validator; no other context
 file or absolute project root is exposed. The list discovers summaries only from
-validated consolidation receipts, retaining previous versions as separate entries.
+validated consolidation receipts. Distinct summary paths remain separate entries;
+the latest receipt still owns each path.
 Read/search reuse explicit revision/hash bindings; an unreceipted file requires
 a separately obtained authorized binding and is never discovered by scanning.
 Saved status, source basis and prose remain unchanged. Existing citekey/path validators and
