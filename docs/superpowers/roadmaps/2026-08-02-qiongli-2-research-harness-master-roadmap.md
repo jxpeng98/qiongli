@@ -138,6 +138,16 @@ supported saved-writing discovery route and separately frozen installed
 continuation. Earlier artifacts do not qualify the new content; accepted records,
 strict AGY gates and publication authority remain unchanged.
 
+The latest clarification makes readable, concise language and explicit reasoning
+requirements for every manuscript section. Canonical `c6313177` strengthens the
+shared scholarly-voice and Stage F owners: retain necessary technical meaning,
+premises and qualifications, explain paragraph connections, and check continuity
+of the question, quantities and scope across the requested unit. Three original
+synthetic responses and focused content checks pass under `gpt-6.1-sol / low`;
+these short targeted observations do not establish whole-manuscript or installed
+Host quality. The current plan binds the outputs and regenerated pack. The next
+installed discovery/continuation and final-source gates remain unchanged.
+
 The preceding maintainer feedback selects a bounded writing-quality increment:
 natural prose, substantive literature comparisons tied to the paper, supported
 background and useful explanatory notes. On local baseline `16a9d7c4`, canonical

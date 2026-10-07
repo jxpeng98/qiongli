@@ -2017,3 +2017,72 @@ writing discovery path and qualify a separately frozen installed continuation;
 source verification of the real manuscript requires its actual cited materials.
 Final-source multi-platform and strict AGY gates remain open. Local observations
 do not change task acceptance or the pending AGY scope/publication decisions.
+
+## October 7 — readable prose and continuity across manuscript sections
+
+The maintainer emphasizes that depth and logical continuity must not be sacrificed
+for elevated vocabulary, throughout writing rather than only the literature
+review. On local baseline `bc79521f`, canonical source
+`c631317750718e3345b8349067bb32e850505fd2` strengthens the existing scholarly-voice,
+Stage F and academic-write owners. Use the clearest precise wording; retain and
+explain necessary technical terms. Concision removes empty framing, while keeping
+the evidence-to-conclusion step, comparison, qualifications and useful explanation.
+The final continuous read checks actual sentence and paragraph connections and
+consistent questions, constructs, populations, outcomes and time frames. An
+unsupported premise remains a gap; polished transitions cannot supply it. No
+sentence-length score, vocabulary blacklist or extra review process is introduced.
+
+The new `evals/research_journey/readable-manuscript/` fixture uses invented evidence
+about initial guided practice and a separate observational follow-up. It contains
+no private manuscript or real-paper citations. Manifest SHA-256 is
+`2b30ad15d530336cca384c4277c60b66c7f474b90cb98d78b658ed818a572e9b`.
+The requested `gpt-6.1-sol / low` verifier uses materialized guidance and produces
+each of three answers once, freezing originals before reading separate criteria:
+
+- A: Chinese Results and Discussion, 442 body characters under the fixture rule.
+- B: formal English Results and Discussion revision, 179 body words, preserving
+  headings, supported quantities and citations while simplifying the phrasing.
+- C: a concise explanation of the missing premises between initial assistance,
+  understanding and later independent completion, without inventing a mechanism.
+
+Complete source-support, expression and continuity reviews pass for all three
+originals. This is targeted model generation and self-review with supplied
+synthetic evidence, not a blind/held-out comparison, measured improvement,
+whole-manuscript judgment or installed-Host observation. No original is repaired
+or retried after review. Results and per-file bindings are retained in
+`/tmp/qiongli-readable-manuscript-20261007/review.json`, SHA-256
+`19b7fbfddfe608db39bab3213a91f5ace031d6adff6ba59b96bf1b091b13c57a`.
+
+Fourteen closest content-contract checks, capability validation, fixture bindings,
+resource reachability, exact bytes for the three materialized guidance resources
+and Skill quick validation pass. The first check selection accidentally invokes
+the broad command/workflow class and its costly distribution owner; it is stopped
+with exit 130 and retained as incomplete, separately from the successful scoped
+checks. No broad runtime suite, installed Host run, authentication reuse, real-source
+search or private-document edit is performed. Configured models and existing
+write/preview/approval/CAS owners are unchanged.
+
+The existing Cargo lock generator succeeds at source `c6313177`, retaining 446
+resources. Content root is
+`4d3ffbc6385e606bbc45a13dc08638283cfb0489aa481ee63a6ced3b68fab17c`; pack is
+`4e27832913048111fa7398105d6985945319769b9712e2ee101acb8c20337fa9`.
+The actual app embedded-pack test passes 1/1, with the existing unrelated
+`fetch_update` deprecation warning retained. The scoped report is
+`/tmp/qiongli-readable-manuscript-20261007/pack-check.json`, SHA-256
+`ffec4c5bf7e9f7ea1af2ebfb065a509faed541699934a3c2876900b3efad730c`.
+
+Seven roadmap tests, generated-index consistency, the four frozen fixture
+bindings and whitespace checks pass; final review has no actionable findings.
+Relative to `bc79521f`, all 249 task IDs/states/dependencies, 46 accepted records,
+76 nonempty evidence fields and 198 populated evidence/commit/run fields remain
+unchanged. Only CLI-405/410 blocker progress changes. The report, before final
+result annotations, is
+`/tmp/qiongli-readable-manuscript-20261007/final-integration-checks.json`, SHA-256
+`5c6fd8e03cfa7f900bc576f9b11cbe4ee24b6ab9c37b89b2be18e575b1c242c2`.
+
+Next establish the supported saved-writing discovery route and separately frozen
+installed continuation, with full delivered-unit support and readability review.
+Real-manuscript source verification still requires its cited materials. Earlier
+release artifacts retain their old source bindings; final-source packaging and
+strict AGY qualification remain open. This increment does not change acceptance,
+the pending AGY scope decision or publication authority.
