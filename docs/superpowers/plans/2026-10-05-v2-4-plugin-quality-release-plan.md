@@ -1927,3 +1927,93 @@ writing, final-source four-target packages/Cargo and strict AGY gates remain
 unqualified; prior candidates do not supply these results. The real failing user
 manuscript is still unavailable. Pending AGY scope and publication decisions are
 unchanged; no push, tag, publication or accepted-evidence promotion occurs.
+
+## October 7 — real manuscript diagnosis and literature-review positioning
+
+The maintainer now supplies an actual earlier-version literature-review section.
+This closes the missing-example gap for text diagnosis, not the missing-original-
+sources gap: its bibliography, cited full texts and surrounding paper are not
+supplied. The original attachment and selected-span review stay outside the
+repository; no manuscript text, subject-specific citation keys or claimed source
+verdicts are added to the public fixture. Only generalizable failure patterns
+inform this bounded increment on local baseline `45296eb4`.
+
+The requested `gpt-6.1-sol / low` verifier identifies premature movement from
+brief findings into contribution ranking, dense feasibility/reporting language,
+underexplained cross-study comparisons and unverified field-wide practice/data
+capability assertions. It also retains positive organization and inferential
+limits. Absence of an explanation in this section does not establish absence
+from the whole paper; no footnote quota or blanket claim of ungrammatical prose
+is imposed. Citekeys alone do not verify the reported papers or their findings.
+
+Canonical source `717653135e55c6f083c1e3c11ba2f69279ef651b` repairs the existing
+Stage F and citation-risk owners: readers must be able to understand the actual
+evidence and unresolved substantive question, rather than infer a contribution
+from a methods list or statements about what the paper cannot claim. Boundary
+reviews remain useful drafting inputs, with consequential limits preserved and
+operational detail placed where it serves the requested section. Comparisons
+state their compatible or different quantities; literature-wide and dataset
+capability judgments require matching inspected evidence. The existing claim-map
+template clarifies that independently checkable findings and inferences need
+separate claims even when they share a source passage. Qualifiers, stable IDs,
+headers and project preview/approval/CAS ownership remain unchanged.
+
+The frozen `evals/research_journey/lr-positioning/` exercise reuses the prior
+invented writing packet, without the private manuscript. Manifest SHA-256 is
+`9975f06acc64ba7f5943c211e3eef1e2623cc2c9b7b4368e203f09efac3cfa35`.
+One original 376-word answer is preserved before the verifier reads the separate
+criteria. Its complete source-support, comparative explanation, flow and useful
+sourced-note review passes. This is a targeted regression with diagnostic context
+and previously observed sources, not blind/held-out, controlled improvement or
+installed-Host evidence. It does not verify the real manuscript's citations or
+repair its complete argument. The changed claim-map guidance still needs its
+separately frozen installed continuation; the earlier compound row remains failed.
+
+Thirteen closest content-contract checks, capability validation, content-only
+materialization/resource reachability and Skill quick validation pass. The three
+changed canonical guidance files match their materialized bytes. No new test
+asserts research quality from a heading or keyword. The original diagnostic
+report's section-count slip and the initially assumed materialized directory path
+are retained with explicit correction; neither causes a model retry. Observations
+are under `/tmp/qiongli-real-lr-review-20261007/`; the private original diagnostic
+has SHA-256 `31936dd1f25b2543806fb7644b1a3e6f4a3992c1c808b24c61c46e2f0c103b59`,
+and its count correction is `erratum.zh.md`, SHA-256
+`5c54d1dc93465454f62a0d4e42302a8ac4fa296afbcf3b0b11aa5cb33f57f597`.
+The synthetic answer SHA-256 is
+`3f479153303b42531fb40162f96957dcaec34414f7275a173fd94a900bd50c6a`;
+`regression/review.json` has SHA-256
+`cef63ffcc6d042d86fe062ec98a520d43b3c159367e4b8718d6afc90ca12dcbd`.
+
+The existing Cargo example regenerates the 446-resource lock from source
+`71765313`: content root
+`e7331e78e141b87cc15ea617f4ed1bf4f5b5dc3aa93cf8d7b9587d0bc4171841`, pack
+`8314fbc1600b5390f0174c5c22699ebbafdbbca5e67fabbb20a8c375f1477dd1`.
+The actual app embedded-pack check passes 1/1, retaining the existing unrelated
+`fetch_update` deprecation warning. No unchanged broad native suite is rerun.
+`regression/pack-check.json` in the private observation root has SHA-256
+`fd92fb4925c8e0cd7966c0a2bffbfc52664d8ff631f4bd415214cea4f7e5e1dd`.
+The private selected-claim audit uses the existing eight columns, attachment-local
+IDs and explicit unverified source locations; it is not exhaustive manuscript
+coverage or a supported-claims ledger. A prompted v2 correction retains v1,
+clarifies contextual citation attribution and splits one compound interpretation
+using new local IDs. Its SHA-256 is
+`a08189bf1d5fd6bfdfd6b91fed41ebb0fd60bfffc404441bdc4544ccfc9d77a3`.
+No original paper or data documentation is silently substituted for the missing
+source, and the supplied manuscript is not rewritten.
+
+Seven roadmap tests, generated-index consistency, frozen-input bindings and
+whitespace checks pass; final review identifies no actionable finding. All 249
+task IDs/states/dependencies, 46 accepted records, 76 nonempty evidence fields and
+198 populated evidence/commit/run fields remain unchanged. Only CLI-405/410
+progress text changes. The scoped check record before this result annotation is
+`/tmp/qiongli-real-lr-review-20261007/final-integration-checks.json`, SHA-256
+`629d62a681bdfe91ad62ffeb21b6a01ca7190ca9e3c1bc001c8d8f4cc7a814ef`.
+
+No native runtime or write API changes; no new login reuse, live source search,
+installed-user-profile update or publication is performed. Prior `ff6ce4db`
+Linux ARM64 release/upgrade/Cargo results retain their original source identity
+and do not qualify this changed content. Next establish the supported saved-
+writing discovery path and qualify a separately frozen installed continuation;
+source verification of the real manuscript requires its actual cited materials.
+Final-source multi-platform and strict AGY gates remain open. Local observations
+do not change task acceptance or the pending AGY scope/publication decisions.

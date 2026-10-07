@@ -123,6 +123,21 @@ do not infer recovery from a successful source read. Final-source four-target
 qualification and strict AGY
 gates remain open. No accepted task, release-scope or publication decision changes.
 
+The maintainer subsequently supplies a real earlier-version review section.
+Private text diagnosis now has a representative example, while the original
+cited sources and surrounding manuscript remain unavailable. Canonical
+`71765313` addresses a demonstrated pattern: contribution ranking, feasibility
+and reporting rules must not displace explanation of the literature's evidence
+and unresolved question. Citation guidance covers broad practice and dataset
+capability assertions; the existing map separates independently checkable findings
+and inferences even at one source location. A synthetic targeted regression and
+focused checks pass under the requested low-effort verifier; this does not prove
+the real manuscript repaired or establish installed qualification. The current
+plan binds the exact source, private review and changed pack. Next remains a
+supported saved-writing discovery route and separately frozen installed
+continuation. Earlier artifacts do not qualify the new content; accepted records,
+strict AGY gates and publication authority remain unchanged.
+
 The preceding maintainer feedback selects a bounded writing-quality increment:
 natural prose, substantive literature comparisons tied to the paper, supported
 background and useful explanatory notes. On local baseline `16a9d7c4`, canonical
