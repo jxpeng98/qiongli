@@ -25,6 +25,7 @@ use crate::{
 // Antigravity reuses the receipt-bound transaction and projection owner. Signed
 // Codex packages retain their existing layout, receipts and grant scope.
 pub(crate) mod antigravity;
+pub(crate) mod pi;
 
 pub const CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION: u32 = 4;
 pub const CODEX_PLUGIN_BUNDLE_RECEIPT_FILE: &str = ".qiongli-codex-plugin-bundle.json";
@@ -100,10 +101,17 @@ const MAX_PATH_DEPTH: usize = 40;
 const CONTENT_ROOT_DOMAIN: &[u8] = b"qiongli-codex-plugin-bundle-content-root-v1\0";
 static NEXT_TRANSACTION_ID: AtomicU64 = AtomicU64::new(0);
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum LocalBundleHost {
+    Codex,
+    Antigravity,
+    Pi,
+}
+
 #[derive(Clone)]
 pub struct CodexPluginBundleTarget {
     inner: MaterializationTarget,
-    antigravity: bool,
+    host: LocalBundleHost,
 }
 
 impl CodexPluginBundleTarget {
@@ -135,37 +143,40 @@ pub enum CodexPluginBundleKind {
     NativeHostFullMcp,
     UserLocalHostFullMcp,
     UserLocalAntigravityFullMcp,
+    UserLocalPiFullMcp,
 }
 
 impl CodexPluginBundleKind {
     fn is_local(self) -> bool {
         matches!(
             self,
-            Self::UserLocalHostFullMcp | Self::UserLocalAntigravityFullMcp
+            Self::UserLocalHostFullMcp
+                | Self::UserLocalAntigravityFullMcp
+                | Self::UserLocalPiFullMcp
         )
     }
 
     fn receipt_file(self) -> &'static str {
-        if self == Self::UserLocalAntigravityFullMcp {
-            antigravity::RECEIPT_FILE
-        } else {
-            CODEX_PLUGIN_BUNDLE_RECEIPT_FILE
+        match self {
+            Self::UserLocalAntigravityFullMcp => antigravity::RECEIPT_FILE,
+            Self::UserLocalPiFullMcp => pi::RECEIPT_FILE,
+            _ => CODEX_PLUGIN_BUNDLE_RECEIPT_FILE,
         }
     }
 
     fn manifest_path(self) -> &'static str {
-        if self == Self::UserLocalAntigravityFullMcp {
-            "plugin.json"
-        } else {
-            PLUGIN_MANIFEST_PATH
+        match self {
+            Self::UserLocalAntigravityFullMcp => "plugin.json",
+            Self::UserLocalPiFullMcp => "package.json",
+            _ => PLUGIN_MANIFEST_PATH,
         }
     }
 
     fn mcp_path(self) -> &'static str {
-        if self == Self::UserLocalAntigravityFullMcp {
-            "mcp_config.json"
-        } else {
-            MCP_MANIFEST_PATH
+        match self {
+            Self::UserLocalAntigravityFullMcp => "mcp_config.json",
+            Self::UserLocalPiFullMcp => pi::EXTENSION_PATH,
+            _ => MCP_MANIFEST_PATH,
         }
     }
 }
@@ -343,7 +354,7 @@ pub fn approve_codex_plugin_bundle_target(
     validate_target_parent_security(inner.path())?;
     Ok(CodexPluginBundleTarget {
         inner,
-        antigravity: false,
+        host: LocalBundleHost::Codex,
     })
 }
 
@@ -508,7 +519,7 @@ fn compose_codex_plugin_bundle_internal(
     skill_language: Option<&str>,
 ) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
     let (artifact, kind, signed_digest) = if let Some(grant) = grant {
-        if target.antigravity {
+        if target.host != LocalBundleHost::Codex {
             return Err(CodexPluginBundleError::GrantMismatch);
         }
         validate_composition_identity(pack, grant)?;
@@ -520,10 +531,10 @@ fn compose_codex_plugin_bundle_internal(
     } else {
         let artifact = crate::identity::local_plugin_identity(&pack.manifest().content_version)
             .map_err(|_| CodexPluginBundleError::ResourcePackMismatch)?;
-        let kind = if target.antigravity {
-            CodexPluginBundleKind::UserLocalAntigravityFullMcp
-        } else {
-            CodexPluginBundleKind::UserLocalHostFullMcp
+        let kind = match target.host {
+            LocalBundleHost::Codex => CodexPluginBundleKind::UserLocalHostFullMcp,
+            LocalBundleHost::Antigravity => CodexPluginBundleKind::UserLocalAntigravityFullMcp,
+            LocalBundleHost::Pi => CodexPluginBundleKind::UserLocalPiFullMcp,
         };
         (artifact, kind, "")
     };
@@ -536,7 +547,8 @@ fn compose_codex_plugin_bundle_internal(
     // Keep verified source directories reusable when switching release channels.
     if leaf != Some(plugin_name)
         && !(kind.is_local() && matches!(leaf, Some("qiongli" | "qiongli-next")))
-        && !(target.antigravity && leaf == Some("qiongli-antigravity"))
+        && !(target.host == LocalBundleHost::Antigravity && leaf == Some("qiongli-antigravity"))
+        && !(target.host == LocalBundleHost::Pi && leaf == Some("qiongli-pi"))
     {
         return Err(CodexPluginBundleError::InvalidTarget);
     }
@@ -561,7 +573,7 @@ fn compose_codex_plugin_bundle_internal(
             .as_ref()
             .is_some_and(|bundle| bundle.receipt.context_hooks)
     });
-    if target.antigravity && context_hooks {
+    if target.host != LocalBundleHost::Codex && context_hooks {
         return Err(CodexPluginBundleError::ProjectionInvalid);
     }
     let skill_language = skill_language.map(str::to_owned).or_else(|| {
@@ -582,7 +594,15 @@ fn compose_codex_plugin_bundle_internal(
     }
 
     let binary_path = binary_relative_path(artifact.os).to_string();
-    let mut files = if target.antigravity {
+    let mut files = if target.host == LocalBundleHost::Pi {
+        pi::project(
+            pack,
+            &artifact,
+            &target.path().join(&binary_path),
+            overrides,
+            skill_language.as_deref(),
+        )?
+    } else if target.host == LocalBundleHost::Antigravity {
         antigravity::project(
             pack,
             &artifact,
@@ -1183,20 +1203,21 @@ enum BundleReadLayout {
     Codex,
     AntigravitySource,
     AntigravityCache,
+    Pi,
 }
 
 impl BundleReadLayout {
     fn receipt_file(self) -> &'static str {
-        if self == Self::Codex {
-            CODEX_PLUGIN_BUNDLE_RECEIPT_FILE
-        } else {
-            antigravity::RECEIPT_FILE
+        match self {
+            Self::Codex => CODEX_PLUGIN_BUNDLE_RECEIPT_FILE,
+            Self::Pi => pi::RECEIPT_FILE,
+            _ => antigravity::RECEIPT_FILE,
         }
     }
 }
 
 fn verify_bundle_tree(root: &Path) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
-    verify_bundle_tree_with_receipt(root, BundleReadLayout::Codex)
+    verify_bundle_tree_with_receipt(root, BundleReadLayout::Codex, root)
 }
 
 fn verify_bundle_tree_for_target(
@@ -1205,20 +1226,25 @@ fn verify_bundle_tree_for_target(
 ) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
     verify_bundle_tree_with_receipt(
         root,
-        if target.antigravity {
-            BundleReadLayout::AntigravitySource
-        } else {
-            BundleReadLayout::Codex
+        match target.host {
+            LocalBundleHost::Codex => BundleReadLayout::Codex,
+            LocalBundleHost::Antigravity => BundleReadLayout::AntigravitySource,
+            LocalBundleHost::Pi => BundleReadLayout::Pi,
         },
+        target.path(),
     )
 }
 
 fn verify_bundle_tree_with_receipt(
     root: &Path,
     layout: BundleReadLayout,
+    source_root: &Path,
 ) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
     verify_directory(root, layout)?;
-    let antigravity = layout != BundleReadLayout::Codex;
+    let antigravity = matches!(
+        layout,
+        BundleReadLayout::AntigravitySource | BundleReadLayout::AntigravityCache
+    );
     let receipt_file = layout.receipt_file();
     let receipt_path = root.join(receipt_file);
     let receipt_bytes = read_bounded_managed_file(
@@ -1229,7 +1255,10 @@ fn verify_bundle_tree_with_receipt(
     )?;
     let receipt: CodexPluginBundleReceiptV1 = serde_json::from_slice(&receipt_bytes)
         .map_err(|_| CodexPluginBundleError::ReceiptInvalid)?;
-    if (receipt.package_kind == CodexPluginBundleKind::UserLocalAntigravityFullMcp) != antigravity {
+    if (receipt.package_kind == CodexPluginBundleKind::UserLocalAntigravityFullMcp) != antigravity
+        || (receipt.package_kind == CodexPluginBundleKind::UserLocalPiFullMcp)
+            != (layout == BundleReadLayout::Pi)
+    {
         return Err(CodexPluginBundleError::ReceiptInvalid);
     }
     let canonical = canonical_json(&receipt)?;
@@ -1264,7 +1293,9 @@ fn verify_bundle_tree_with_receipt(
         return Err(CodexPluginBundleError::BundleDrift);
     }
 
-    if antigravity {
+    if layout == BundleReadLayout::Pi {
+        pi::verify_contract(root, &receipt, source_root)?;
+    } else if antigravity {
         antigravity::verify_contract(root, &receipt)?;
     } else {
         verify_manifest_contract(root, &receipt)?;
@@ -1313,9 +1344,13 @@ fn validate_receipt_shape(
             CodexPluginBundleKind::NativeHostFullMcp
                 | CodexPluginBundleKind::UserLocalHostFullMcp
                 | CodexPluginBundleKind::UserLocalAntigravityFullMcp
+                | CodexPluginBundleKind::UserLocalPiFullMcp
         )
-        || (receipt.package_kind == CodexPluginBundleKind::UserLocalAntigravityFullMcp
-            && receipt.schema_version != 4)
+        || (matches!(
+            receipt.package_kind,
+            CodexPluginBundleKind::UserLocalAntigravityFullMcp
+                | CodexPluginBundleKind::UserLocalPiFullMcp
+        ) && receipt.schema_version != 4)
         || receipt.artifact.product != ProductId::Qiongli
         || receipt.artifact.profile != CapabilityProfile::Lite
         || receipt.artifact.installer_kind != InstallerKind::PluginBundle
@@ -1329,7 +1364,8 @@ fn validate_receipt_shape(
         || !is_lower_hex(&receipt.source_commit, 40)
         || match receipt.package_kind {
             CodexPluginBundleKind::UserLocalHostFullMcp
-            | CodexPluginBundleKind::UserLocalAntigravityFullMcp => {
+            | CodexPluginBundleKind::UserLocalAntigravityFullMcp
+            | CodexPluginBundleKind::UserLocalPiFullMcp => {
                 !receipt.signed_grant_payload_sha256.is_empty()
             }
             _ => !is_lower_hex(&receipt.signed_grant_payload_sha256, 64),
@@ -1644,6 +1680,8 @@ fn validate_bundle_path(path: &str) -> Result<(), CodexPluginBundleError> {
     let allowed = path == LOCAL_MARKETPLACE_PATH
         || path == "plugin.json"
         || path == "mcp_config.json"
+        || path == "package.json"
+        || path == pi::EXTENSION_PATH
         || path == PLUGIN_MANIFEST_PATH
         || path == MCP_MANIFEST_PATH
         || path == "bin/qiongli"

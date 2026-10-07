@@ -12,7 +12,8 @@ qiongli mcp check
 未加入 PATH 时，用 `./qiongli`；PowerShell 用 `.\qiongli.exe`。选择 Plugin 和 Host，分别确认文件变更与注册。
 
 2.4.0 之后的下一次更新可选择 **5 — 全部安装**，或运行 `qiongli install all`，
-在一次流程中为所有检测到的受支持客户端 CLI 安装 Plugin。缺少的客户端会列出并
+在一次流程中为所有检测到的受支持客户端 CLI 安装 Plugin，包括
+[Pi coding agent](advanced/plugin-installation.md#pi)。缺少的客户端会列出并
 跳过；Plugin 已包含 Skills 和 MCP，每个选中的 Host 仍保留各自的预览与必要确认。
 
 ## 2. 开始一项研究任务

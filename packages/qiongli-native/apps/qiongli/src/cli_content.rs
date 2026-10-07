@@ -151,6 +151,7 @@ pub(crate) enum PluginInstallHost {
     Managed(crate::managed_operation::ManagedIntegrationTargetV1),
     DeepSeek,
     Antigravity,
+    Pi,
 }
 
 use crate::managed_operation::ManagedIntegrationTargetV1 as ManagedHost;
@@ -181,6 +182,7 @@ const PLUGIN_HOSTS: &[(&str, &str, &str, PluginInstallHost)] = &[
         "Antigravity",
         PluginInstallHost::Antigravity,
     ),
+    ("7", "pi", "Pi", PluginInstallHost::Pi),
 ];
 
 pub(crate) fn all_plugin_hosts_selection(selection: &str) -> bool {
@@ -235,6 +237,7 @@ fn installed_plugin_hosts(
             PluginInstallHost::Managed(ManagedHost::ClaudeCode) => "claude",
             PluginInstallHost::DeepSeek => "dsh",
             PluginInstallHost::Antigravity => "agy",
+            PluginInstallHost::Pi => "pi",
         };
         if detected(executable) {
             hosts.push(*host);
@@ -267,7 +270,10 @@ pub(crate) fn validate_host_options(
     if (targets.len() > 1 && destination.is_some())
         || (targets.contains(&PluginInstallHost::DeepSeek)
             && (destination.is_some() || context_hooks.is_some()))
-        || (targets.contains(&PluginInstallHost::Antigravity) && context_hooks.is_some())
+        || (targets
+            .iter()
+            .any(|host| matches!(host, PluginInstallHost::Antigravity | PluginInstallHost::Pi))
+            && context_hooks.is_some())
     {
         return Err("installation-host-options-invalid");
     }
@@ -445,6 +451,19 @@ fn install_plugins(
             .2;
         line(writer, &format!("\n{host} Plugin — install or update\n"))?;
         let target = match selected {
+            PluginInstallHost::Pi => {
+                if !crate::plugin_host::pi::install(
+                    environment,
+                    content,
+                    destination.as_deref(),
+                    &language,
+                    reader,
+                    writer,
+                )? {
+                    break;
+                }
+                continue;
+            }
             PluginInstallHost::Antigravity => {
                 if !crate::plugin_host::antigravity::install(
                     environment,
@@ -753,7 +772,7 @@ impl BundledContentReview {
 fn installation_failure(code: &'static str) -> CliOutput {
     let hint = match code {
         "installation-no-hosts-detected" => {
-            "No supported Host CLI was found. Install codex, claude, dsh or agy, or make its CLI available on PATH, then rerun qiongli install all. No Plugins were installed."
+            "No supported Host CLI was found. Install codex, claude, dsh, agy or pi, or make its CLI available on PATH, then rerun qiongli install all. No Plugins were installed."
         }
         "plugin-source-destination-invalid" => {
             "Choose an absolute directory ending in qiongli or qiongli-next with an existing parent, or omit --destination to reuse the registered source."
@@ -775,7 +794,22 @@ fn installation_failure(code: &'static str) -> CliOutput {
             "Context hooks need Claude Code 2.1.139 or newer. Update Claude Code, or rerun install plugin --hooks off."
         }
         "host-plugin-executable-unavailable" | "local-host-version-unsupported" => {
-            "Install or update the selected Host CLI (codex, claude, dsh or agy), then retry this command."
+            "Install or update the selected Host CLI (codex, claude, dsh, agy or pi), then retry this command."
+        }
+        "pi-version-unsupported" => {
+            "Update Pi coding agent to 0.99.0 or newer with built-in MCP enabled, then retry."
+        }
+        "pi-package-conflict" => {
+            "Another Qiongli package/source is configured in Pi. Review pi list and pi remove <source> before retrying; no conflicting package was replaced."
+        }
+        "pi-package-filtered" => {
+            "Pi has filtered or disabled this package's resources or built-in MCP. Review pi config and enable its Skills, extension and built-in MCP, then retry."
+        }
+        "pi-mcp-conflict" => {
+            "Pi already has a standalone Qiongli MCP entry which overrides the package. Review it before retrying; no existing server was changed."
+        }
+        "pi-profile-invalid" | "pi-profile-unsafe" => {
+            "Review Pi's settings.json, mcp.json and PI_CODING_AGENT_DIR. Use a safe absolute user configuration path and bounded JSON objects; existing linked or group/world-writable profiles must be reviewed before retrying."
         }
         "antigravity-version-unsupported" => {
             "Update Antigravity CLI to 1.2.17 or newer, then retry."
@@ -882,19 +916,22 @@ mod tests {
     fn plugin_selection_supports_multiple_hosts_without_duplicate_steps() {
         let all = PLUGIN_HOSTS.iter().map(|entry| entry.3).collect::<Vec<_>>();
         for selection in [
-            "1,2,4,5",
-            "1 2 4 5",
-            "codex,claude,deepseek,antigravity",
-            "3,4,5",
-            "both 4 agy",
+            "1,2,4,5,7",
+            "1 2 4 5 7",
+            "codex,claude,deepseek,antigravity,pi",
+            "3,4,5,7",
+            "both 4 agy pi",
             "all",
             "6",
-            "1,1,2,4,4,5",
+            "1,1,2,4,4,5,7,pi",
         ] {
             assert_eq!(plugin_hosts(selection).unwrap(), all);
         }
+        assert_eq!(plugin_hosts("pi 7").unwrap(), vec![PluginInstallHost::Pi]);
+        assert_eq!(plugin_hosts("3").unwrap(), all[..2]);
+        assert!(validate_host_options(&[PluginInstallHost::Pi], None, Some(false)).is_err());
         assert_eq!(plugin_hosts("4 1").unwrap(), vec![all[2], all[0]]);
-        for selection in ["", "0", "1,unknown", "1 all", "7"] {
+        for selection in ["", "0", "1,unknown", "1 all", "8"] {
             assert!(plugin_hosts(selection).is_err());
         }
         assert!(validate_host_options(&all, None, None).is_ok());
@@ -906,7 +943,7 @@ mod tests {
     fn all_detected_selection_preserves_explicit_list_strictness() {
         for selection in ["all", "6", " all ", " 6 "] {
             assert!(all_plugin_hosts_selection(selection));
-            assert_eq!(plugin_hosts(selection).unwrap().len(), 4);
+            assert_eq!(plugin_hosts(selection).unwrap().len(), 5);
         }
         for selection in [
             "1,2,4,5",
@@ -928,7 +965,8 @@ mod tests {
         for present in [
             vec!["codex", "agy"],
             vec!["claude", "dsh"],
-            vec!["codex", "claude", "dsh", "agy"],
+            vec!["codex", "claude", "dsh", "agy", "pi"],
+            vec!["pi"],
             vec![],
         ] {
             let mut checked = Vec::new();
@@ -940,7 +978,7 @@ mod tests {
                 },
                 &mut output,
             );
-            assert_eq!(checked, ["codex", "claude", "dsh", "agy"]);
+            assert_eq!(checked, ["codex", "claude", "dsh", "agy", "pi"]);
             let expected = PLUGIN_HOSTS
                 .iter()
                 .zip(&checked)

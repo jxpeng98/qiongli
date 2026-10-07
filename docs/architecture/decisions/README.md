@@ -44,6 +44,7 @@ decision must be recorded as a new superseding ADR.
 | `CLI-409` | [ADR 0233](0233-antigravity-local-plugin-adapter.md) | Accepted | Native Antigravity Plugin projection and separately confirmed official registration; live Skill/MCP qualification remains explicit |
 | `CLI-409` | [ADR 0234](0234-antigravity-compact-skill-entries.md) | Accepted | One AGY research entry with internal workflow routing and a separate reply-only entry; supersedes ADR 0233's public wrapper layout |
 | `CLI-402` | [ADR 0235](0235-install-plugins-for-detected-hosts.md) | Accepted | One install-all entry selects detected Host CLIs and reuses separate Plugin approvals; explicit Host lists remain strict |
+| `CLI-409` | [ADR 0236](0236-pi-local-package-adapter.md) | Accepted | Pi local package with compact Skills and native MCP, integrated into detected Host installation |
 
 ## Decision lifecycle
 

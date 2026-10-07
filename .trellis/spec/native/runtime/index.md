@@ -900,6 +900,24 @@ power-loss durability or deletion interrupted inside every application tree.
 
 ## User-approved Plugin source lifecycle
 
+Pi's terminal adapter (`plugin_host/pi.rs`, choice 7, target `pi`; ADR 0236)
+participates in detected install/update/upgrade all. Pi 0.99.0+ owns local package
+registration and built-in MCP. The shared bundle owner projects a distinct
+schema-4 local Pi receipt, explicit package manifest, two Skills and one
+JavaScript extension registering the absolute bundled Full MCP executable.
+The source is retained in place. `PI_CODING_AGENT_DIR` scopes official commands;
+relative settings declarations resolve against that directory. Confirm source
+changes and any needed official `pi install` registration separately; recheck
+hashes and preserve unrelated settings/model choices. The existing bounded process
+owner uses a fixed Unix shell exec with umask 077 for Pi, keeping argv separate
+and new profile files private; existing user permissions are not changed.
+Source drift, duplicate
+packages, target resource filters, disabled built-in MCP and standalone Qiongli
+MCP overrides refuse. Registration is verified independently from live sessions;
+`/mcp` loads extension servers whereas shell `pi mcp list` does not. No signed
+Host target, App plan, context Hook or child execution protocol is added.
+
+
 Antigravity's terminal adapter (`plugin_host/antigravity.rs`, choice 5, targets
 `antigravity`/`agy`) reuses the existing bundle transaction with the separate
 `user-local-antigravity-full-mcp` kind and receipt filename. It projects the same

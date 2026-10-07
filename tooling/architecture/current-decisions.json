@@ -247,6 +247,13 @@
       "title": "Install Plugins For Detected Hosts",
       "path": "docs/architecture/decisions/0235-install-plugins-for-detected-hosts.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-409",
+      "adr_number": "0236",
+      "title": "Pi Local Package Adapter",
+      "path": "docs/architecture/decisions/0236-pi-local-package-adapter.md",
+      "status": "Accepted"
     }
   ]
 }

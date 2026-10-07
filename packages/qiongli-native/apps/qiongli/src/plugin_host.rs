@@ -23,6 +23,7 @@ const MARKETPLACE: &str = "qiongli-cli-local";
 pub(crate) mod antigravity;
 mod codex_config;
 pub(crate) mod deepseek;
+pub(crate) mod pi;
 
 #[derive(Eq, PartialEq, Serialize)]
 struct HostPlan {

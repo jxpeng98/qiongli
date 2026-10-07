@@ -13,6 +13,7 @@ Use `./qiongli` if it is not on PATH, or `.\qiongli.exe` in PowerShell. Choose P
 
 In the next update after 2.4.0, choose **5 — Install all detected Hosts**, or run
 `qiongli install all`, to set up every detected supported Host CLI in one flow.
+Pi coding agent is included; see [Pi setup](advanced/plugin-installation.md#pi).
 Missing clients are listed and skipped. Each Plugin includes Skills and MCP;
 each selected Host still has its own preview and required confirmations.
 

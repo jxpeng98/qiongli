@@ -10,12 +10,13 @@ qiongli install plugin --target codex
 qiongli install plugin --target claude
 qiongli install plugin --target deepseek
 qiongli install plugin --target antigravity
+qiongli install plugin --target pi
 qiongli install plugin --target codex,deepseek
 ```
 
 **Next update after 2.4.0:** `qiongli install all`, main guide choice **5**, and
 Plugin Host choice **6 / all** install Plugins for every detected supported Host
-CLI (`codex`, `claude`, `dsh`, `agy`). Each Plugin includes Skills and Full MCP;
+CLI (`codex`, `claude`, `dsh`, `agy`, `pi`). Each Plugin includes Skills and Full MCP;
 there is no separate component install. The guide lists selected Hosts and missing
 CLIs it skips. If none are found, it stops without installing anything. It does
 not install the Host applications. `upgrade all` and `update all` refresh the
@@ -67,6 +68,46 @@ Replace `desktop` with your profile. The bundle includes 22 Skill entries, Full 
 The installer prefers an existing Desktop profile, otherwise `web`. New CLI profiles use the official `web` template; Desktop initializes its reserved profile itself. DSH uses its package manager and profile, so `--destination` and context `--hooks` require separate Codex/Claude selections.
 
 Use the installer or manager to update an exact version. In the Desktop dialog, follow its remove/add instructions while retaining your profile and model settings. For developer bundle exports and external proposals, see [external Agent coordination](external-host-coordination.md).
+
+## Pi coding agent {#pi}
+
+**Next update after 2.4.0:** experimental Pi support requires the official `pi`
+CLI 0.99.0 or newer with built-in MCP enabled. Use the resolved official executable
+on PATH; Pi's mise shim is not supported by this adapter. Select **7** in the Host menu,
+or run:
+
+```sh
+qiongli install plugin --target pi --language en
+qiongli update plugin --target pi
+```
+
+Pi is also detected by `qiongli install all`. The package exposes two Skills,
+`/skill:qiongli` and `/skill:no-qiongli`; all research workflows remain inside
+the shared library. A dependency-free package extension registers native Full
+MCP with Pi, using deferred tool discovery. No third-party MCP bridge is needed.
+
+The default source is `~/qiongli-pi`. A single-Host `--destination` can select a
+secure absolute path ending in `qiongli`, `qiongli-next` or `qiongli-pi`. Updates
+reuse the verified source in Pi's user settings, including relative declarations.
+The installer honors `PI_CODING_AGENT_DIR` (default `~/.pi/agent`), previews source
+changes and separately confirms the official `pi install <source>` command when
+registration is needed. Model settings and unrelated packages are preserved.
+On Unix, new profile files use private permissions. Existing linked or group/world
+writable profiles refuse; the installer does not change their permissions.
+Filtered package resources, disabled built-in MCP, duplicate Qiongli packages or
+standalone Qiongli MCP entries require review; they are not silently reset.
+
+Keep the source directory: Pi loads it directly. Start a new session or `/reload`,
+use `/mcp` to inspect the connection, then ask Pi to discover and call
+`qiongli_config_status`. **Shell `pi mcp list` does not load package extensions.**
+Project settings, disabled resources or a replacement MCP extension can affect
+session availability. Registration alone does not establish a working model
+session. Pi context hooks, signed Host integration and App `--dry-run` are outside
+this adapter. Remove the package with `pi remove <source>` before deleting its
+source; removal leaves source files available for recovery.
+
+See Pi's official [packages](https://pi.dev/docs/latest/packages) and
+[MCP](https://pi.dev/docs/latest/mcp) documentation.
 
 ## Antigravity CLI {#antigravity}
 

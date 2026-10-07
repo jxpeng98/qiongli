@@ -54,14 +54,16 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 7, 2026
 
-The current bounded increment adds the requested all-install entry for every
-detected supported Host CLI (ADR 0235), reusing each Plugin's Skills/MCP and
-separate approvals. The preceding AGY entry fix is locally integrated at
-`8566055f`: ADR 0234 selects one research entry plus the independent reply-only
-entry, with internal workflows and verified legacy-layout updates retained.
-The existing 2.4 plan records these post-release-task fixes and scoped checks.
-Local integration does not publish an update or change Host qualification. The prior
-2.4.0 release task was dispatched at `fa5d1537`; no follow-up monitoring is added.
+The current bounded increment adds the requested Pi coding-agent adapter from
+local `26cc94c4`. ADR 0236 extends detected install/update/upgrade all with Pi,
+using a compact two-Skill package and Pi's built-in Full MCP registration. Its
+receipt-bound source and official manager keep the existing confirmation and
+write boundaries. The current 2.4 plan records scoped native and isolated Pi
+observations; model-driven research journeys and other platforms remain separate.
+The preceding all-install entry (`26cc94c4`, ADR 0235) and compact AGY entry fix
+(`8566055f`, ADR 0234) are locally integrated. These increments do not publish an
+update or change program acceptance. The prior 2.4.0 release task was dispatched
+at `fa5d1537`; no follow-up monitoring is added.
 
 The preceding maintainer request selected completion of atomic claim mapping and
 saved-writing recovery, then 2.4.0 publication-task dispatch and no subsequent

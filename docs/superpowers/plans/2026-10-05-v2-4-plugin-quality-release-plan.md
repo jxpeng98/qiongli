@@ -2361,3 +2361,86 @@ dependencies, 46 accepted records, 76 nonempty evidence fields and 198 populated
 evidence/commit/run fields remain unchanged. Only CLI-402's blocker, date and one
 additional current-plan reference differ; all other task fields are identical.
 The focused native and terminal results are reused for local integration.
+
+
+## October 7 — Pi coding-agent package and MCP adapter
+
+The maintainer requests Pi support on baseline `26cc94c4`. ADR 0236 adds terminal
+`install/update/upgrade plugin --target pi`, Host choice 7 and Pi detection in
+all-install. Existing 3/both and 6/all retain their meanings. Require stable Pi
+0.99.0+, the first published native MCP/`registerMcpServer` API. A distinct local
+schema-4 receipt reuses the bundle transaction for two public Skills, complete
+internal resources, locale/variant projection, the native binary and one
+JavaScript MCP extension. Pi owns transport and models. The stable source path
+remains bound while staging/backup/quarantine trees are verified. No canonical
+content-pack bytes, signed target, App plan or child-agent protocol changes.
+
+The adapter honors `PI_CODING_AGENT_DIR`, resolves relative package declarations,
+reuses verified local sources and separately confirms source writes and any
+needed official `pi install` registration. Unknown/changed files, duplicate
+Qiongli packages/MCP entries, filtered resources and disabled built-in MCP
+refuse. Post-registration comparison preserves unrelated packages/model settings.
+New Unix profile files use a fixed-shell, separate-argv exec with umask 077;
+existing user permissions remain unchanged. This addresses observed official Pi
+creation of 0664 settings under umask 002, preserving unsafe-profile refusal.
+Removal uses `pi remove <source>` before separately handling retained source files.
+Bilingual installation help discloses experimental scope and the distinction
+between session `/mcp` and shell `pi mcp list`, which omits package extensions.
+
+The requested `gpt-6.1-sol / low` verifier passes six adapter cases, three bundle
+cases, seven CLI selection/parser/non-terminal cases and five retained AGY
+adapter cases. These exercise exact entry/resource projection, locale and variant
+preservation, comparison with Codex's 22-entry layout, relative source reuse,
+configuration/model preservation, explicit approvals, private file creation and
+literal argv handling. Negative cases retain receipt CAS/drift, foreign/unmanaged
+sources, symlinks/hardlinks, unsafe permissions, oversized/malformed profiles,
+unsupported versions, resource filters, duplicate declarations and standalone MCP
+overrides. Small synthetic binaries cover projection/receipt behavior; actual
+native execution is recorded separately below.
+
+Published 0.87.1/0.99.0 archives establish the API boundary. Official Pi 0.99.0
+and 1.1.0 loaders each observe the two package Skills and one deferred MCP
+registration without model execution. A real 1.1.0 terminal install using the
+new native binary exits successfully after two separate approvals under parent
+umask 002. The custom agent directory is honored, default Home/.pi is absent,
+and official settings are 0600. Declining the source confirmation creates no
+source, receipt or settings. A 1.1.0 SDK session connects the actual native Full
+MCP and returns a successful config-status result without an LLM or credentials;
+registration and tool invocation remain separate observations.
+
+Evidence is retained in `/tmp/qiongli-pi-20261007/`, with a new secure source and
+Host fixture under `/home/hermes/qiongli-pi-verification-20261007/`. Initial compile
+failures, disk exhaustion, a disallowed override fixture, omitted managed Pi
+paths and a missing fixture Node executable are retained alongside corrections.
+An initial SDK cwd discovers an unrelated ancestor Skill without executing it;
+a separate isolated-cwd observation resolves that fixture boundary. Two short
+AGY test filters selected zero cases and are not counted as passes. Local
+integration does not qualify a model-driven research journey, all operating
+systems, installed user profiles or publication. Only CLI-409 progress changes;
+task states/dependencies and accepted evidence retain their existing owners.
+The next increment is a separately scoped CLI delivery carrying Pi, install-all
+and compact AGY changes, followed by actual research-session qualification. No
+push, publication or previous-release monitoring belongs to this increment.
+
+Final Pi observations also pass: declining registration retains the verified
+source and creates no Pi settings; a separate SDK cwd loads exactly the two
+package Skills with zero diagnostics/errors, discovers 35 native MCP tools and
+keeps only the built-in tools plus `tool_search` active initially. Deferred
+config-status execution returns `status: ok`. Two exact retained AGY compact/
+legacy regressions and two shared Codex bundle owner cases pass. Strict Rust
+1.97 Clippy passes for the changed platform/App and Pi integration surface.
+`source-binding-final.json` records byte equality for all twelve changed native
+inputs between the workspace and the secure test copy. These results are reused
+for local integration; later documentation/index checks are recorded separately.
+The final native count is 25 passing tests; zero-match filters are excluded.
+Cancellation and successful terminal runs all complete within their bounds.
+Pi mise shims are not resolved by this adapter; use the official executable on
+PATH. Windows and macOS behavior and model-driven research remain unqualified.
+
+Final integration checks pass: seven roadmap tests, generated-index consistency,
+ADR validation, formatting, whitespace and scoped findings-only review. Against
+`26cc94c4`, all 249 task identities/states/dependencies, 46 accepted records,
+76 nonempty evidence fields and 198 populated evidence/commit/run fields remain
+unchanged; only CLI-409's blocker differs. The verifier records these invariants
+in `invariant-final.json` and retains exact commands in `verification-summary.md`.
+The frozen native and isolated Host results are reused for local integration.

@@ -13,6 +13,11 @@ pub use codex_bundle::antigravity::{
     compose_local_antigravity_plugin_source, remove_local_antigravity_plugin_source,
     verify_cached_antigravity_plugin_source, verify_local_antigravity_plugin_source,
 };
+pub use codex_bundle::pi::{
+    PiPluginBundleTarget, RECEIPT_FILE as PI_PLUGIN_BUNDLE_RECEIPT_FILE, VerifiedPiPluginBundle,
+    approve_pi_plugin_bundle_target, compose_local_pi_plugin_source, remove_local_pi_plugin_source,
+    verify_local_pi_plugin_source,
+};
 mod community_alpha;
 mod community_alpha_integrity;
 mod context_hooks;

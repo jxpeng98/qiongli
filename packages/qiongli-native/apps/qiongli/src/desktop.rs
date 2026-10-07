@@ -10907,6 +10907,34 @@ pub(crate) fn bounded_host_os_command_with_timeout(
     )
 }
 
+/// Pi's manager inherits umask when creating its profile. Keep new files private
+/// without changing the parent process or permissions on existing user files.
+pub(crate) fn bounded_private_host_os_command_with_timeout(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    arguments: &[OsString],
+    timeout: Duration,
+) -> Result<String, HostCommandFailure> {
+    #[cfg(unix)]
+    let command = {
+        // The script is fixed; every executable/path remains an argv element.
+        // exec replaces the shell, retaining the existing timeout/kill owner.
+        let mut args = vec![
+            OsString::from("-c"),
+            OsString::from("umask 077; exec \"$@\""),
+            OsString::from("qiongli-private-host"),
+            executable.as_os_str().to_owned(),
+        ];
+        args.extend_from_slice(arguments);
+        let mut command = official_host_command(environment, Path::new("/bin/sh"), &args)?;
+        command.env("PATH", host_command_search_path(environment, executable)?);
+        command
+    };
+    #[cfg(not(unix))]
+    let command = official_host_command(environment, executable, arguments)?;
+    run_bounded_command(command, timeout)
+}
+
 #[allow(
     clippy::disallowed_methods,
     reason = "resolved official Host executable and the existing isolated Host environment"
@@ -10939,6 +10967,9 @@ pub(crate) fn official_host_command(
     }
     if let Some(root) = environment.dsh_config_root() {
         command.env("DSH_HOME", root);
+    }
+    if let Some(root) = environment.pi_config_root() {
+        command.env("PI_CODING_AGENT_DIR", root);
     }
     Ok(command)
 }

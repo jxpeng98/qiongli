@@ -49,7 +49,7 @@ pub fn approve_antigravity_plugin_bundle_target(
     path: impl AsRef<Path>,
 ) -> Result<AntigravityPluginBundleTarget, CodexPluginBundleError> {
     let mut target = approve_codex_plugin_bundle_target(path)?;
-    target.antigravity = true;
+    target.host = LocalBundleHost::Antigravity;
     Ok(AntigravityPluginBundleTarget(target))
 }
 
@@ -90,8 +90,12 @@ pub fn verify_cached_antigravity_plugin_source(
     target: &AntigravityPluginBundleTarget,
 ) -> Result<VerifiedAntigravityPluginBundle, CodexPluginBundleError> {
     revalidate_target(&target.0)?;
-    verify_bundle_tree_with_receipt(target.path(), BundleReadLayout::AntigravityCache)
-        .map(VerifiedAntigravityPluginBundle)
+    verify_bundle_tree_with_receipt(
+        target.path(),
+        BundleReadLayout::AntigravityCache,
+        target.path(),
+    )
+    .map(VerifiedAntigravityPluginBundle)
 }
 
 pub fn remove_local_antigravity_plugin_source(

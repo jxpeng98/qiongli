@@ -10,12 +10,13 @@ qiongli install plugin --target codex
 qiongli install plugin --target claude
 qiongli install plugin --target deepseek
 qiongli install plugin --target antigravity
+qiongli install plugin --target pi
 qiongli install plugin --target codex,deepseek
 ```
 
 **2.4.0 之后的下一次更新：** 使用 `qiongli install all`，或在主安装菜单选
 **5（全部安装）**、Plugin 的 Host 菜单选 **6 / all**，即可依次为所有检测到的
-受支持客户端 CLI（`codex`、`claude`、`dsh`、`agy`）安装 Plugin。每个 Plugin
+受支持客户端 CLI（`codex`、`claude`、`dsh`、`agy`、`pi`）安装 Plugin。每个 Plugin
 已包含 Skills 和 Full MCP，无需分别安装。向导会列出选中的客户端和因缺少 CLI
 而跳过的客户端；一个也没找到时停止，不执行安装。此命令不安装客户端程序本身。
 `upgrade all`、`update all` 更新同一组检测到的客户端；可用
@@ -65,6 +66,41 @@ dsh plugin --profile desktop add qiongli@2.4.0
 向导优先使用已存在的 Desktop profile，否则使用 `web`。新 CLI profile 由官方 `web` 模板初始化；Desktop 的保留 profile 由 Desktop 自行初始化。DSH 使用自己的包管理器和 profile；`--destination`、上下文 `--hooks` 需要另选 Codex/Claude。
 
 更新时通过向导或管理器指定版本。Desktop 对话框按其说明移除后重新添加，保留 profile 与模型设置。开发者导出和外部任务见[外部 Agent 协作](../../advanced/external-host-coordination.md)。
+
+## Pi coding agent {#pi}
+
+**2.4.0 之后的下一次更新：** 新增实验性 Pi 适配，要求官方 `pi` CLI
+0.99.0 或更新版本，并启用内置 MCP。PATH 需能找到官方 Pi 的实际可执行文件；
+此适配暂不支持 Pi 的 mise shim。在 Host 菜单选择 **7**，或执行：
+
+```sh
+qiongli install plugin --target pi --language zh
+qiongli update plugin --target pi
+```
+
+`qiongli install all` 也会检测 Pi。包中只展示 `/skill:qiongli` 和
+`/skill:no-qiongli` 两个入口，科研子流程保留在内部资源库。随包扩展使用 Pi
+内置接口注册原生 Full MCP，按需发现工具，无需另装第三方 MCP 桥接器。
+
+默认源目录为 `~/qiongli-pi`。单独选择 Pi 时，可用 `--destination` 指定以
+`qiongli`、`qiongli-next` 或 `qiongli-pi` 结尾的安全绝对路径。更新会复用 Pi
+用户设置中已校验的源目录，也能识别相对路径声明。安装器遵循
+`PI_CODING_AGENT_DIR`（默认 `~/.pi/agent`），先确认文件变更；需要注册时，再
+确认官方 `pi install <source>` 命令。已有模型设置与其他包保留。Unix 上新建的
+配置文件采用私有权限；已有链接或组/其他用户可写的配置会被拒绝，安装器不会
+修改其权限。若包资源被
+筛选、内置 MCP 被禁用，或存在重复 Qiongli 包、独立 Qiongli MCP 配置，先报告
+冲突，由用户检查，不会自动覆盖这些选择。
+
+Pi 直接加载源目录，请保留该目录。开启新会话或运行 `/reload`，通过 `/mcp`
+查看连接，再让 Pi 发现并调用 `qiongli_config_status`。**终端的 `pi mcp list`
+不会加载包扩展。** 项目设置、资源禁用或替代 MCP 扩展仍可能影响会话中的可用性；
+注册成功不等于模型会话已验证。本适配暂不提供 Pi 上下文 Hook、签名 Host 集成
+或 App `--dry-run`。卸载先执行 `pi remove <source>`，再处理源目录；移除注册
+会保留源文件，便于恢复。
+
+接口依据 Pi 官方 [Packages 文档](https://pi.dev/docs/latest/packages)与
+[MCP 文档](https://pi.dev/docs/latest/mcp)。
 
 ## Antigravity CLI {#antigravity}
 

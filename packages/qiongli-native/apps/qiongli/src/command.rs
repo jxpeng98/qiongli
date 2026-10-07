@@ -68,6 +68,7 @@ pub struct CommandEnvironment {
     codex_config_root: Option<PathBuf>,
     claude_config_root: Option<PathBuf>,
     dsh_config_root: Option<PathBuf>,
+    pi_config_root: Option<PathBuf>,
     skill_language: Option<String>,
     project_root: Option<PathBuf>,
     zotero_connector_url: Option<String>,
@@ -126,6 +127,7 @@ impl CommandEnvironment {
             codex_config_root: nonempty_environment_path("CODEX_HOME"),
             claude_config_root: nonempty_environment_path("CLAUDE_CONFIG_DIR"),
             dsh_config_root: nonempty_environment_path("DSH_HOME"),
+            pi_config_root: nonempty_environment_path("PI_CODING_AGENT_DIR"),
             skill_language: None,
             project_root: env::current_dir().ok(),
             zotero_connector_url: env::var("QIONGLI_ZOTERO_CONNECTOR_URL")
@@ -151,6 +153,7 @@ impl CommandEnvironment {
             codex_config_root: None,
             claude_config_root,
             dsh_config_root: None,
+            pi_config_root: None,
             skill_language: None,
             project_root: None,
             zotero_connector_url: None,
@@ -234,6 +237,10 @@ impl CommandEnvironment {
 
     pub(crate) fn dsh_config_root(&self) -> Option<&Path> {
         self.dsh_config_root.as_deref()
+    }
+
+    pub(crate) fn pi_config_root(&self) -> Option<&Path> {
+        self.pi_config_root.as_deref()
     }
 
     pub(crate) fn project_root(&self) -> Option<&Path> {
@@ -1296,7 +1303,7 @@ fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Comman
                     )
                     .map_err(|_| {
                         install_usage_error(
-                            "choose codex, claude, deepseek, antigravity, a comma-separated list, or all",
+                            "choose codex, claude, deepseek, antigravity, pi, a comma-separated list, or all",
                         )
                     })?;
                 }
@@ -1324,7 +1331,7 @@ fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Comman
         }
         crate::cli_content::validate_host_options(
             &options.targets, options.destination.as_deref(), options.context_hooks,
-        ).map_err(|_| install_usage_error("--destination requires a single Codex/Claude/Antigravity Host; --hooks supports Codex/Claude only; DeepSeek accepts neither"))?;
+        ).map_err(|_| install_usage_error("--destination requires a single Codex/Claude/Antigravity/Pi Host; --hooks supports Codex/Claude only; DeepSeek accepts neither"))?;
         return Ok(Command::InstallInteractive(options));
     }
     let mut plan_args = vec![OsString::from(operation)];
@@ -3516,7 +3523,17 @@ mod tests {
     #[test]
     fn plugin_targets_share_the_interactive_multi_selection_parser() {
         for upgrade in [false, true] {
-            for selection in ["deepseek", "codex,deepseek", "all", "6", "1 2 4", "3,4"] {
+            for selection in [
+                "deepseek",
+                "pi",
+                "7",
+                "codex,pi",
+                "codex,deepseek",
+                "all",
+                "6",
+                "1 2 4",
+                "3,4",
+            ] {
                 let args = ["plugin", "--target", selection].map(OsString::from);
                 let Ok(Command::InstallInteractive(options)) =
                     parse_content_install_args(&args, upgrade)
@@ -3537,6 +3554,8 @@ mod tests {
             vec!["plugin", "--target", "deepseek", "--hooks", "off"],
             vec!["plugin", "--target", "all", "--destination", "/source"],
             vec!["plugin", "--target", "deepseek", "--dry-run"],
+            vec!["plugin", "--target", "pi", "--dry-run"],
+            vec!["plugin", "--target", "pi", "--hooks", "off"],
             vec!["plugin", "--target", "codex,missing"],
         ] {
             assert!(

@@ -425,3 +425,14 @@ It reuses the frozen registry reader and table renderer as build-time tooling,
 without changing the 1.x product. Update its prose or canonical registry metadata,
 then regenerate both reference pages. Keep channel package README generation in
 the existing native packaging owner.
+
+
+Pi's local package projection (ADR 0236) keeps the same two public Skills as the
+compact AGY projection and retains all internal research resources. Its explicit
+`pi.skills` paths and dependency-free `pi.extensions` entry are declared in
+`package.json`. The extension registers one native Full MCP server through Pi's
+built-in transport; its exact bytes and absolute source executable path are bound
+to a separate local receipt. Main-entry guidance uses `other-local`, explains
+Pi's deferred discovery and preserves research write approval. Existing Codex,
+Claude, DeepSeek and AGY projections, pack bytes and public App schemas stay
+unchanged. This adapter does not add a public npm/Git marketplace package.
