@@ -1792,3 +1792,138 @@ packages/upgrade paths. Real failing manuscript reproduction, automatic discover
 strict AGY gaps and final-source release qualification remain open. Earlier
 package results do not qualify the new content; the AGY scope decision and
 publication authority remain unchanged.
+
+## October 7 — installed traceability and bounded candidate qualification
+
+E starts from clean local `ff6ce4db63f6c46957df771aeb8db826e139ef7c`. Product
+and canonical content remain unchanged: content source `56ee4916`, 446 resources,
+content root `3f451128cfe5437c4932eae412941dc31a5dc142f517f5aece38d1f08646d7b8`,
+pack `d421f2ee33c31ac062d8b3bcce2aeb01dbf4e108b6820641bd8c1ef8ae62d090`.
+This increment adds the frozen `evals/research_journey/installed-trace/` exercise
+and corrects evaluation prerequisites, without a native API, content-pack or
+configured-user-model change. One requested `gpt-6.1-sol / low` verifier owns
+actual observations, complete output review and focused checks.
+
+The credential-free preflight initially sees the shared socket directory as
+mode `0000` inside the outer tool sandbox. A separate TMPDIR hypothesis fails.
+An authorized read-only host-context check instead sees the existing owner and
+mode `0700`; the same unmodified preflight succeeds there, retaining the inner
+read-only/no-network profile. No shared-directory chmod or tested-sandbox bypass
+is performed. Both views and the failed hypothesis remain in the evidence.
+Native exports also correctly refuse unsafe `/tmp` and group-writable repository
+ancestors. The successful installation uses a new private directory under the
+user home. Helper parsing/readback errors and an initial group-writable cache
+refusal remain retained; a fresh preparation uses `umask 077`. No failed frozen
+cohort is overwritten or quietly relabelled.
+
+The installed Host candidate is a separately extracted test-profile archive,
+SHA-256 `2058890304c5f965774ba861dd14cb854b28da17ce89eb03b29dce8906ff4a52`,
+with CLI `ccc69afe884cd8a0ea9a603b49c555866e78addd49ddf08eef8f755a1e01eab7`.
+Official native export and Codex registration retain 468 matching receipt entries;
+Lite/Full discovery remains 15/35. Codex 0.160.1 uses the requested model/effort,
+supported effective-policy readback, and exact granted read tools. Guidance
+locations are explicitly supplied; automatic Skill discovery is not established.
+Temporary login symlinks are removed after every actual run, without reading,
+copying or hashing credential contents. Processes complete normally and the
+original configuration/project snapshots are preserved.
+
+The fixed three-case regression passes structure **3/3** and complete-answer
+review **3/3**. The source paragraph has 256 characters under its established
+counting rule; fresh saved-note continuation recovers the actual 7,117-byte note
+and 10,308-byte packet, retaining the changed duplicate and historical count.
+This cohort has its own frozen manifest and denominator; earlier failures remain
+under their original candidates. No broad academic acceptance follows.
+
+The additional invented packets, tasks and separate criteria freeze at manifest
+SHA-256 `2feb19481fc1d87fb0717d24ba85a03e48da3b204627e97cc971b4e2ec2ebab8`.
+Their provenance explicitly states supplied synthetic excerpts, without a live
+search, publisher retrieval, real DOI or complete-paper claim. Native approved
+source saves precede the actual installed writing task; the task receives only
+project ID and installed guidance locations, not source bodies or review criteria.
+
+- Original writing check: **0/1 complete pass**. The 623-character body, sourced
+  note and source-support review pass; its 35-row map retains exact headers,
+  IDs, versions, packet hashes and six observed JSON pointers. However CLM-035
+  combines the directly reported multiple-operations fact with the inference
+  about apprentice-level proportions. The frozen independently-checkable-claim
+  criterion fails. One guessed optional guidance filename also fails before the
+  model finds the actual template. The original answer is preserved, not repaired
+  or rerun: `e55ec7e343fbb60266f210a36ab3964e706517c0b25b3e54906f1266ddbaae59`;
+  full review `e7ef27a1334d35575da159b45ba149475c1129c9c1bd2788c9077093330b521a`.
+- Persistence passes its bounded checks. The reviewed source-supported original
+  writing unit is saved verbatim through the native stage-summary/handoff owner
+  at revision 4, with a separate partial/unaccepted map review. Summary SHA-256
+  is `ba4afd2ba7ec15ee6bb820cc2177e689296a98df3a044b2bed928447fe82aba1`.
+  Missing academic approval, stale revision, and changed/missing-source reads
+  and previews refuse without altering retained records. Original source bytes
+  are restored before the final reviewed save. This is a saved writing unit,
+  not native consolidation of F2/F4 manuscript files or stage acceptance.
+- Original fresh-session recovery: **0/1 complete pass**. Both source packets,
+  literal `3 fewer errors` search, exact returned read arguments and broader
+  context inspection succeed. The saved body and original claim IDs are not
+  recovered. Of 12 native calls, 11 succeed; an unapproved artifact-changes call
+  is correctly denied and not retried. The model reports this limitation instead
+  of inventing recovered prose. Complete review SHA-256 is
+  `6959a69c5128ace6dd89f175d7e6074c3499705cec006feb8739ee335a4655c1`.
+
+Offline diagnosis corrects the initial assumption that a usable summary route
+had been provided. The pre-denial project read returns a redacted root label and
+revision, not an absolute root, state body or summary history; the document list
+contains the two source packets only. The shared preamble expressly permits
+command reads for guidance, while the task conditionally mentions Host document
+reads. Filesystem permission alone does not provide the missing observed binding.
+This is an incomplete/ambiguous driver-capability prerequisite, not evidence of a
+native defect or wrongdoing in respecting denial. The top-level journey README
+now requires a supported, authorized discovery route before freezing such a run.
+The frozen original fixture, prompt, denial and failure remain unchanged. There
+is no extra model retry, policy widening or replacement observation this turn.
+
+Separate release-profile qualification uses the same clean product source in
+an isolated glibc 2.35/Rust 1.97 Linux ARM64 environment. The existing release
+owner passes strict Clippy, 46 CLI integration tests, nine MCP stdio tests,
+format/version checks, empty-PATH archive smoke, Codex/Claude Plugin archives,
+DeepSeek projection and isolated npm/wheel installation. All five asset hashes
+and sizes match its manifest. Release binary SHA-256
+`a741603ddcdb0a5c1e15150f5054ea172d291faa2e12c09f8966b14acc5d17da` is kept
+separate from the test-profile installed Host binary. Release manifest SHA-256
+is `f68e1ee3f3ed98a631541c1b4df99e040a557b8f0c2eddf3d837bb91838acf5f`.
+Actual public pip/npm predecessor **2.3.0** upgrades pass through the existing
+explicit-predecessor owner; its exit result is checked separately from Cargo.
+Ten actual Cargo source archives also pass isolated archive-only installation,
+including `qiongli`/`ql`, version, invalid-command refusal, Lite 15/Full 35 and
+exact content-pack checks. Upgrade report SHA-256 is
+`d4b2a93e89e752b1e70556414bdc3b74f5ec318b7620309396ecf9d46b2997a2`;
+Cargo install report is
+`a2d71890aa2c81f2575d9997adbe093ce9a365a04a118dde223dde9e4171f611`.
+The upgrade proves package replacement and synthetic fixture byte retention,
+not a project-format migration or live Host update.
+
+The observation roots are
+`/home/hermes/qiongli-e-20261007-zftrb1ao/installed/cohort-r2/`,
+`/tmp/qiongli-installed-journey-2026-10-07/`, and
+`/tmp/qiongli-e-release-20261007-76dtw1lb/`. The consolidated report
+`/tmp/qiongli-installed-journey-2026-10-07/evidence-summary.json`, SHA-256
+`282737eeb1db3ece4f82703ac950aa2d0bb39e943d5fa858b70a08cc6853d696`, binds
+all five actual episodes, complete calls/answers/reviews, save/negative receipts,
+frozen checkpoints, policy, cleanup and separate artifact/install results.
+These local temporary observations are not accepted program evidence.
+
+The frozen fixture's seven file bindings, seven roadmap tests, generated-index
+consistency and whitespace checks pass. All 249 task identities/states/dependencies,
+46 complete accepted records, 76 nonempty evidence fields and 198 populated
+evidence/commit/run fields remain unchanged. Only CLI-405/410 blocker progress
+and update dates change. No runtime/content suite is replayed for these evaluation
+and documentation edits; the main Agent reviews the final diff before integration.
+The scoped verification record, before this result annotation, is
+`/tmp/qiongli-installed-journey-2026-10-07/final-checks.json`, SHA-256
+`aa8a5188dfc812712b825cc647ae476ac7321a05aa026395534bc19d75bc2198`.
+
+Readiness remains **Not ready**. Next resolve independently checkable map rows
+and establish a supported project-ID-to-saved-writing discovery route through
+existing read/Host owners, then freeze a separate observation with clear authority.
+Do not repair the old capture in place or widen permissions after denial. The
+first E writing/recovery pair is not a complete journey pass. Fresh representative
+writing, final-source four-target packages/Cargo and strict AGY gates remain
+unqualified; prior candidates do not supply these results. The real failing user
+manuscript is still unavailable. Pending AGY scope and publication decisions are
+unchanged; no push, tag, publication or accepted-evidence promotion occurs.

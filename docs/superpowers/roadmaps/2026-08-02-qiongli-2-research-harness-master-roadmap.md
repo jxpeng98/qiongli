@@ -52,7 +52,7 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — October 6, 2026
+## Current execution horizon — October 7, 2026
 
 The latest maintainer instruction makes traceable literature work and substantive
 writing the main 2.4.0 outcome. The existing 2.4 plan now orders five increments:
@@ -95,9 +95,33 @@ whole-paper retrieval. A frozen synthetic continuation exercises actual revised
 LR/body/abstract/notes and retained conclusions. Original claim atomization/binding
 omissions and separate prompted repairs remain recorded; these are same-agent
 observations, not blind acceptance or automatic semantic invalidation. The current
-plan owns exact checks and pack bindings. Next is E, installed continuity and
-final-source qualification; real-manuscript quality and strict AGY gates remain
-open, with all task states and accepted evidence unchanged.
+plan owns exact checks and pack bindings. E's bounded observations follow below;
+real-manuscript quality and strict AGY gates remain open, with all task states
+and accepted evidence unchanged.
+
+E starts from `ff6ce4db` with unchanged canonical content `56ee4916`. An isolated
+official Codex installation passes the three fixed cases in both structure and
+whole-answer review (3/3). A separate frozen two-source exercise produces actual
+source-supported prose, a useful note and exact source pointers, but its original
+claim map combines a reported finding and an inference in one row. The complete
+writing check therefore fails. Native summary/handoff saving preserves that
+original answer and its partial/unaccepted review, with approval, revision and
+source-drift refusals. Fresh-session source search and exact readback pass;
+saved-body/claim-ID recovery does not. Its summary-discovery route was not
+established by the driver's authorized capabilities: redacted project metadata
+and the saved-document list do not expose that summary. The denied tool is not
+retried, and this observation does not establish a native defect. The evaluation
+README now requires this capability/authority check before freezing a recovery
+run. The plan binds all captures and keeps both original failures visible.
+
+The same product source passes local Linux ARM64 release construction and
+isolated package checks, the explicit public 2.3.0 pip/npm upgrade and installation
+from ten actual Cargo archives. These artifacts retain their source identity
+separately from the test-profile Host binary. Next resolve atomic claim mapping
+and a supported summary-discovery route before a separately frozen continuation;
+do not infer recovery from a successful source read. Final-source four-target
+qualification and strict AGY
+gates remain open. No accepted task, release-scope or publication decision changes.
 
 The preceding maintainer feedback selects a bounded writing-quality increment:
 natural prose, substantive literature comparisons tied to the paper, supported
