@@ -73,6 +73,10 @@ Stage F distinguishes literature synthesis from internal positioning/protocol
 notes; source comparability and a substantive unresolved question must remain
 readable. Citation risk also covers field-wide priority/practice and dataset
 capability claims, bounded by the evidence actually inspected.
+The shared scholarly-voice owner prioritizes readable, concise expression with
+technical fidelity; Stage F checks that the requested unit retains its premises,
+stable meanings and paragraph-to-paragraph argument. These apply across sections,
+without a sentence-length score, word blacklist or required extra review process.
 
 Manuscript-first claim detection and reverse lookup are owned by the existing
 `evidence-verification.md` reference and consumed by Stage F during drafting and

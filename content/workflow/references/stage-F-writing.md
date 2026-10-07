@@ -113,9 +113,10 @@ to inspect indirect inferences and unmapped uses as well as recorded links.
 
 ### Readable, specific prose
 
-Build natural expression into the draft, not only a later J2 polish. Use the
-relevant language guidance in `references/scholarly-voice.md` for English or
-Chinese phrasing. Keep a recognizable subject, clear referents and an information
+Apply readability while composing every requested section, including methods,
+results and discussion, not only the literature review or a later J2 polish.
+Use `references/scholarly-voice.md` for the shared clarity decisions and English
+or Chinese phrasing. Keep a recognizable subject, clear referents and an information
 order that lets each sentence develop the preceding point. Explain the actual
 relation between ideas before adding a transition. Abstract nouns, stacked
 modifiers and translated clause order must not obscure who does what or what a
@@ -127,6 +128,10 @@ inferential step with inspected evidence. Removing repeated generalities is
 compatible with explaining the important point more fully. During revision,
 preserve quotations, numbers, citation attribution and the author's intended
 meaning; flag unresolved ambiguity rather than silently choosing a new claim.
+When shortening, preserve the evidence-to-conclusion step. A compact sequence of
+claims without their reasons remains shallow; replacing those reasons with an
+abstract label does not repair it. Explain the relevant relation directly, with
+the amount of detail the reader needs to assess it.
 
 When a paragraph is shallow, locate the missing step: what the evidence actually
 shows, how it bears on the paragraph's point, or what follows for this paper.
@@ -228,6 +233,14 @@ source comparisons and their specific connection to the paper. Check citation
 coverage in background as well as analysis, and note placement and references
 when notes are used. Revise the demonstrated defect; do not append these internal
 checks as boilerplate to a requested passage.
+
+Check the delivered unit against its opening question and carry the same
+constructs, populations, outcomes and time frames through its later conclusions.
+When the scope changes, explain that change. Check how each paragraph advances
+the preceding point; a set of individually fluent paragraphs may still fail as a
+section. Within the requested scope, repair a missing link or expose an unresolved
+premise before spending effort on stylistic polish. Do not infer whole-manuscript
+coherence from an isolated paragraph or silently reorganize an unrequested section.
 
 Keep two review conclusions distinct: whether the statements are supported, and
 whether the complete unit explains and connects them clearly. A source-accurate

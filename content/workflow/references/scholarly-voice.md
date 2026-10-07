@@ -2,8 +2,11 @@
 
 Use while drafting Stage F prose and with J2 for stiff, translated or generic
 scholarly prose. In revisions, resolve the specific expression problem; in new
-drafts, establish clear information order from the start. Sound academic by being
-precise, not ornate. This reference does not require starting a separate J2 task.
+drafts, establish clear information order from the start. Use readable, concise
+language throughout the manuscript. Preserve evidence and logical meaning, then
+choose the clearest wording appropriate to the reader. An academic register does
+not justify obscure vocabulary or a harder-to-follow argument. This reference
+does not require starting a separate J2 task.
 
 ## Shared editing decisions
 
@@ -15,9 +18,21 @@ precise, not ornate. This reference does not require starting a separate J2 task
 - Locate the point of each paragraph and the role of each sentence. Keep a
   stable topic and identifiable referents; use a paragraph break for a topic
   change when a supported transition cannot connect it naturally.
+- Prefer a familiar word or direct verb when it expresses the same meaning.
+  Retain necessary technical terms, define them where needed and use them
+  consistently. Do not replace a precise term with a vague everyday synonym,
+  or rotate synonyms merely to sound sophisticated.
+- Cut repetition and empty framing, while retaining the premises, comparison,
+  units and qualifications needed to understand the claim. A useful explanation
+  may make a passage longer; disconnected short statements are not a successful
+  simplification. Do not impose a sentence-length ceiling or readability score.
 - Distinguish a genuine contrast from simple addition, and an observed sequence
   from causation. Retain helpful transitions; do not manufacture a missing premise
   with “therefore” or “因此”. Flag the missing reasoning instead.
+- On the final continuous read, identify the actual claim, its reason and the
+  link to the following point. If a reader must infer an unspecified actor,
+  referent or premise, clarify it from inspected material or expose the gap.
+  Polished vocabulary cannot make that unresolved step complete.
 - Edit at the requested depth. A language pass preserves section order and
   fixed headings; structural editing needs a request that covers it. For coaching,
   show a few meaningful revisions and explain the decisions the author must make.

@@ -34,7 +34,9 @@ route in `references/evidence-verification.md`. Detect claims in the actual text
 including added explanations, background and notes; inspect matching original
 evidence and recheck the final wording. Check paragraph depth and continuity
 separately from source support. Existing citations or a completed note are not
-enough to certify the new prose.
+enough to certify the new prose. Apply the shared readability check to every
+section: the final text must explain its evidence and connections in clear,
+concise language, preserving necessary detail and technical precision.
 
 Select evidence checks for the section's purpose:
 

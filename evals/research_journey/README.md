@@ -24,6 +24,12 @@ setup needs a separate frozen observation, not replacement of the failed capture
 
 ## Writing depth and expression checks
 
+`readable-manuscript/` exercises Chinese results/discussion, formal English editing
+and explanation of an unsupported causal bridge. Its frozen invented excerpts
+test whether clear, concise prose retains the evidence, needed explanation and
+argument across the requested unit. Support, expression and continuity receive
+separate judgments; no sentence-length or vocabulary score establishes quality.
+
 `lr-positioning/` reuses the invented writing packet to test whether a manuscript
 review develops the evidence before using it to position the paper. It retains
 an earlier draft, a separate task and review criteria, and immutable input hashes.

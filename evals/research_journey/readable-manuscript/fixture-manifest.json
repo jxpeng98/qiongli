@@ -1,0 +1,10 @@
+{
+  "kind": "qiongli-invented-readable-manuscript-inputs/v1",
+  "scope": "targeted cross-section clarity and support regression; no real research",
+  "files": {
+    "README.md": "225d9626ba74c8d017982d98c72f9bb24f50fba415516832c04cb9547c625314",
+    "review-criteria.md": "321a6b1dfde862f0ed55938188213d7425ada13b98038874c44a422e079ba74e",
+    "sources.md": "f78e33e9fdedd57048e57818bf5615380a346656b6a8ef4442ca8288abae2748",
+    "tasks.md": "6a65ec27c3951d600ae90fae3241bcfc4458481e463d34b3086fe9481f7f3488"
+  }
+}
