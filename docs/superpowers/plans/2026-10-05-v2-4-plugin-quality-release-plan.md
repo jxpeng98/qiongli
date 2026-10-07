@@ -8,6 +8,13 @@
   recorded below; it does not approve the pending AGY scope proposal.
   The latest instruction makes source-traceable literature work and writing the
   main 2.4.0 outcome and authorizes planning plus local implementation.
+  On October 7 the maintainer explicitly requests completion of claim splitting
+  and saved-writing recovery, release preparation and publication-task dispatch,
+  then an end to the conversation without follow-up monitoring. This authorizes
+  the required remote synchronization, reviewed main cutover, tag and release
+  dispatch. The maintainer also explicitly approves the prepared experimental
+  Antigravity scope: retain its failed strict gates for later promotion while
+  keeping Codex, final-source package and upgrade checks mandatory.
 - Candidate version: `2.4.0`, reflecting the additive Antigravity adapter and
   improvements to existing research workflows. Canonical version inputs are
   synchronized in `e4b05659`; this does not establish publication or readiness.
@@ -2086,3 +2093,51 @@ Real-manuscript source verification still requires its cited materials. Earlier
 release artifacts retain their old source bindings; final-source packaging and
 strict AGY qualification remain open. This increment does not change acceptance,
 the pending AGY scope decision or publication authority.
+
+## October 7 — complete writing recovery and prepare publication
+
+The maintainer explicitly requests completion of the two remaining writing
+observations and release-task dispatch. The prepared experimental Antigravity
+boundary is separately approved: retain its original failed complete-result and
+recovery checks for later promotion, advertise the limitations in release and
+installation documentation, and keep Codex and package/upgrade gates mandatory.
+This supersedes the earlier pending-scope/publication restrictions for 2.4.0;
+it does not relabel old failures, promote program acceptance, change remote
+rules or authorize an external Marketplace release or announcement.
+
+The bounded diagnosis confirms that redacted project metadata plus the original
+three read-tool grants cannot discover saved summaries. The summary already has
+an immutable document and consolidation receipt, but list/read exclude its class.
+Source `c9748636f1ab8022c0e7d8a7f46a2a06a6f02c55` extends those existing owners:
+list includes validated stage-summary receipt bindings, and read/search accept
+only the existing strict `context/stage_summaries/STG-*.md` path contract. The
+same revision/digest, storage safety, pagination and no-write checks apply. No
+absolute root, arbitrary context access, new MCP tool or broader Host permission
+is introduced. Guidance uses actual returned bindings and retains partial reviews
+and source fingerprints. Atomic claim guidance from `71765313` remains in force.
+
+The requested `gpt-6.1-sol / low` verifier passes eight list tests and eighteen
+saved-document tests; after strengthening the search assertion, only its two
+summary cases rerun. Seven focused content checks and capability validation pass.
+The initial fixture run fails at directory safety under inherited umask 002;
+the corrected process uses umask 077 without changing production guards. An
+overbroad Python test-class selection is stopped at exit 130 and retained as
+incomplete. The prerequisite report is
+`/tmp/qiongli-summary-recovery-20261007/focused-prerequisites.json`, SHA-256
+`cebfef44ef21a5ada7bdb7680b50df43bab371aa40e86ba27c39456f40640c87`.
+
+Pack commit `54a2a3ee` retains 446 resources, content root
+`bf12a5d0eb557304d52327fa2e5bfed6c47f653e48c09ee5779b99fd841d475e` and pack
+`bc44f8b59ab0d687edbd75316c29937b98531dd15466140f25580da086a068f2`.
+Five actual CLI saved-document tests, including existing Full MCP parity, and
+the app embedded-pack test pass. The new summary CLI case compares exact output
+with the shared owner and refuses a packet-only selector on Markdown.
+
+Before dispatch, freeze a separate installed candidate and new writing/recovery
+cohort, retain complete original outputs and source-support/atomicity/readability
+reviews, and verify native approved persistence plus fresh-session recovery. The
+fixed regression and three newly frozen synthetic boundary cases remain separate
+denominators. Current-source local packaging and upgrade checks, followed by the
+immutable-tag four-target publication pipeline, retain their existing owners.
+Do not monitor after the requested publication-task dispatch or claim completed
+registry publication from a successful dispatch alone.

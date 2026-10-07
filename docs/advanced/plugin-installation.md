@@ -54,8 +54,13 @@ Use the installer or manager to update an exact version. In the Desktop dialog, 
 
 ## Antigravity CLI {#antigravity}
 
-The current development CLI adds Antigravity support; the previously tagged
-2.3.0 binary does not contain this installer.
+Qiongli 2.4.0 adds experimental Antigravity CLI support; the 2.3.0 binary does
+not contain this installer. Codex remains the primary research Host. Scoped
+AGY 1.3.0 observations cover installation, a normally completed status call and
+document-body recovery with supplied tool schemas. Automatic discovery, complete
+research-session recovery and original MCP response capture remain unqualified.
+The experimental label retains those failed checks for later promotion; it does
+not establish a passed academic workflow or IDE support.
 
 ```sh
 qiongli install plugin --target antigravity --language en

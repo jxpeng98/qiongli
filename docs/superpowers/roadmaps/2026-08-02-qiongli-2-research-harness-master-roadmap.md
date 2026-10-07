@@ -54,6 +54,16 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 7, 2026
 
+The latest maintainer request selects completion of atomic claim mapping and
+saved-writing recovery, then 2.4.0 publication-task dispatch and no subsequent
+monitoring. The maintainer explicitly approves experimental Antigravity support:
+retain the failed strict Host checks for later promotion; Codex, package and
+upgrade gates remain required. Publication and reviewed main cutover are now
+authorized. Source `c9748636` adds receipt-backed stage-summary discovery to the
+existing document list and strict summary-path read/search support. The current
+plan records focused checks and the separately frozen installed continuation;
+the earlier failed writing/recovery observations remain unchanged.
+
 The latest maintainer instruction makes traceable literature work and substantive
 writing the main 2.4.0 outcome. The existing 2.4 plan now orders five increments:
 exact source-passage readback, bounded passage discovery, claim-to-source
