@@ -1,5 +1,27 @@
 # Bounded research evidence journey
 
+## Installed manuscript continuity
+
+`installed-trace/` supplies a separate invented two-source writing/recovery task.
+It uses the installed candidate and existing native capture, stage-summary and
+handoff owners, with an actual saved writing unit and a fresh project-ID-only
+session. Keep its two observations separate from the fixed three-case baseline;
+the fixture README specifies source, guidance, persistence and review boundaries.
+Never substitute a prior answer or count a recovered file as verified prose.
+
+Before freezing a project-ID-only continuation, check that the authorized read
+surfaces can discover the requested artifact kind. `qiongli_project_read` returns
+redacted project metadata, not an absolute root or research-state body. The saved
+document list covers receipt-backed notes, source packets and retrieval history;
+it does not expose stage summaries. A summary read needs an independently
+authorized project context and an observed history/handoff binding through its
+existing owner. A readable filesystem subtree alone does not supply that binding.
+Keep the driver prompt consistent with this scope. Do not guess a root from
+`rootLabel`, scan private configuration, or work around a denied tool. Missing
+discovery/authority is an unqualified prerequisite; any diagnostic model run
+retains its incomplete result without establishing a native defect. A corrected
+setup needs a separate frozen observation, not replacement of the failed capture.
+
 ## Writing depth and expression checks
 
 `writing-quality/tasks.md` and `sources.md` provide three synthetic requests for
@@ -45,6 +67,13 @@ authorized read tools. Missing config readback or failed sandbox access blocks
 model invocation; do not substitute broader sandbox modes. Keep preflight and
 effective-policy evidence with the new frozen inputs. A preflight file read
 cannot fill a model observation's missing guidance-use evidence.
+
+When an outer tool sandbox masks runtime paths, its view of a socket directory's
+permissions may differ from the host's. Diagnose with a separately authorized,
+read-only host-context check before changing shared directories. An authorized
+host-context preflight must retain the same inner read-only/no-network profile;
+it is not permission to disable the tested sandbox. Preserve both observations
+and distinguish a nested-environment failure from an actual host-mode defect.
 
 Prepare a NEW external capture directory. Copy `plugin-baseline.json` to
 `catalog.json` before model calls; do not supply its review checks to the model.

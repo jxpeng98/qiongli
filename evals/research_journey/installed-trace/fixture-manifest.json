@@ -1,0 +1,27 @@
+{
+  "kind": "qiongli-invented-installed-trace-inputs/v1",
+  "provenance": "supplied synthetic excerpts; no live search",
+  "packets": [
+    {
+      "citekey": "Guide2026",
+      "path": "sources/0bd7aad700e1c330c9f3409d209aeed5b76323d18634e85115b151a1ea2e6105.json",
+      "sha256": "0bd7aad700e1c330c9f3409d209aeed5b76323d18634e85115b151a1ea2e6105",
+      "version": "synthetic report v1"
+    },
+    {
+      "citekey": "Follow2026",
+      "path": "sources/f5c27aeea724d9d3c6718c51123476b4af309d8ae4bf5b43ff3e6b3db02693f5.json",
+      "sha256": "f5c27aeea724d9d3c6718c51123476b4af309d8ae4bf5b43ff3e6b3db02693f5",
+      "version": "synthetic report v1"
+    }
+  ],
+  "files": {
+    "README.md": "a0ac46600b8d6679815f7cc48ba2dec56b2c576f9c3af206f1e7b0bea829235f",
+    "provenance.md": "cc378edb9744a22bfa8ba39d5b8afbfc822ecf0bceb8f73480c489a5b9af21c1",
+    "review-criteria.md": "f596c05fae46e5b2b683d728c1eaeb16c081a081e400461b823b85280b687014",
+    "sources/0bd7aad700e1c330c9f3409d209aeed5b76323d18634e85115b151a1ea2e6105.json": "0bd7aad700e1c330c9f3409d209aeed5b76323d18634e85115b151a1ea2e6105",
+    "sources/f5c27aeea724d9d3c6718c51123476b4af309d8ae4bf5b43ff3e6b3db02693f5.json": "f5c27aeea724d9d3c6718c51123476b4af309d8ae4bf5b43ff3e6b3db02693f5",
+    "task-resume.md": "70e0931c8c9fdcb6dbcdbffec8cecc3acdd3379259cea195d7c03124f3589a83",
+    "task-write.md": "e9e28b48ea2eb50ff23d3040123ffb0346f80accc601cf7b46439f25ea2133c4"
+  }
+}

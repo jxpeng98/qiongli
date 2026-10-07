@@ -1,0 +1,20 @@
+{
+  "citekey": "Guide2026",
+  "version": "synthetic report v1",
+  "study_id": "S-GUIDE-1",
+  "access_description": "supplied body excerpts only",
+  "segments": [
+    {
+      "section": "Methods",
+      "text": "Twelve apprentice-training groups were randomly assigned to use a guidance checklist or the usual instruction sheet. There were 96 apprentices in total. The outcome was the number of errors per 100 observed assembly operations during the first supervised session."
+    },
+    {
+      "section": "Results",
+      "text": "The group-adjusted estimate was 3 fewer errors per 100 observed assembly operations with the checklist (95% confidence interval: 1 to 5 fewer errors per 100 operations). Apprentices could contribute several observed operations."
+    },
+    {
+      "section": "Limitations",
+      "text": "No later independent assembly test or retention assessment was performed. Performance during the first supervised session was not a measure of later independent competence."
+    }
+  ]
+}

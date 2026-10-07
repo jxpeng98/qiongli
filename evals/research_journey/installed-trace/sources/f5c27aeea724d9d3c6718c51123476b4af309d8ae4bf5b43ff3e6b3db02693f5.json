@@ -1,0 +1,20 @@
+{
+  "citekey": "Follow2026",
+  "version": "synthetic report v1",
+  "study_id": "S-FOLLOW-1",
+  "access_description": "supplied body excerpts only",
+  "segments": [
+    {
+      "section": "Methods",
+      "text": "An observational study followed 62 technicians for 12 weeks using self-reported repair logs. Completed repair tasks could include help from colleagues. Checklist use was not recorded, and independent assembly competence was not tested."
+    },
+    {
+      "section": "Results",
+      "text": "Fewer reported procedural hesitations were associated with more completed repair tasks after adjustment for prior experience. The supplied excerpt contains no numerical estimate or confidence interval."
+    },
+    {
+      "section": "Scope",
+      "text": "The observation concerns completed repair tasks over twelve weeks, not error frequency during first-session assembly. It does not identify the effect of a guidance checklist."
+    }
+  ]
+}
