@@ -7,6 +7,7 @@ use qiongli_platform::{
 };
 use sha2::{Digest, Sha256};
 use std::{
+    collections::BTreeSet,
     fs,
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
@@ -276,4 +277,220 @@ fn antigravity_private_cache_preserves_strict_source_and_drift_checks() {
     )
     .unwrap();
     assert!(verify_cached_antigravity_plugin_source(&target).is_err());
+}
+
+fn top_level_skill_entries(
+    receipt: &qiongli_platform::CodexPluginBundleReceiptV1,
+) -> BTreeSet<String> {
+    receipt
+        .entries
+        .iter()
+        .filter_map(|entry| {
+            let parts: Vec<_> = entry.path.split('/').collect();
+            (parts.len() == 3 && parts[0] == "skills" && parts[2] == "SKILL.md")
+                .then(|| entry.path.clone())
+        })
+        .collect()
+}
+
+#[test]
+fn antigravity_compacts_entries_but_preserves_shared_resources_and_variants() {
+    use qiongli_content::WorkflowOverrides;
+    use qiongli_platform::compose_local_codex_plugin_source_with_language;
+    use std::collections::BTreeMap;
+    let f = Fixture::new();
+    // Projection/receipt evidence only; native execution is checked separately.
+    fs::write(&f.binary, b"synthetic projection verification binary").unwrap();
+    let content = qiongli::embedded_content().unwrap();
+    let resource = content
+        .pack()
+        .resource_for_profile("marketplace-lite", "workflow/SKILL.md")
+        .unwrap()
+        .unwrap();
+    let mut customized = resource.bytes().to_vec();
+    customized.extend_from_slice(b"\nCustom AGY variant marker.\n");
+    let overrides = WorkflowOverrides::new(
+        content.pack(),
+        BTreeMap::from([("workflow/SKILL.md".to_owned(), customized)]),
+    )
+    .unwrap()
+    .unwrap();
+    for language in ["en", "zh"] {
+        let locale_root = f.root.join(language);
+        fs::create_dir(&locale_root).unwrap();
+        let agy_path = locale_root.join("qiongli-antigravity");
+        let agy_target = approve_antigravity_plugin_bundle_target(&agy_path).unwrap();
+        let agy = compose_local_antigravity_plugin_source(
+            content.pack(),
+            &f.binary,
+            &f.digest(),
+            &agy_target,
+            Some(&overrides),
+            None,
+            Some(language),
+        )
+        .unwrap();
+        let codex_path = locale_root.join("qiongli");
+        let codex_target = approve_codex_plugin_bundle_target(&codex_path).unwrap();
+        let codex = compose_local_codex_plugin_source_with_language(
+            content.pack(),
+            &f.binary,
+            &f.digest(),
+            &codex_target,
+            Some(&overrides),
+            None,
+            false,
+            Some(language),
+        )
+        .unwrap();
+        assert_eq!(
+            top_level_skill_entries(agy.receipt()),
+            BTreeSet::from([
+                "skills/qiongli-workflow/SKILL.md".to_owned(),
+                "skills/no-qiongli/SKILL.md".to_owned()
+            ])
+        );
+        assert_eq!(top_level_skill_entries(codex.receipt()).len(), 22);
+        assert_eq!(
+            agy.receipt().workflow_variant_sha256.as_deref(),
+            Some(overrides.variant_sha256())
+        );
+        assert_eq!(agy.receipt().skill_language.as_deref(), Some(language));
+        let skill = fs::read_to_string(agy_path.join("skills/qiongli-workflow/SKILL.md")).unwrap();
+        assert!(skill.contains("name: qiongli\n"));
+        assert!(skill.contains("Custom AGY variant marker."));
+        assert!(skill.contains("## Antigravity workflow entry"));
+        assert!(skill.contains("load `workflows/<name>.md`"));
+        for entry in &codex.receipt().entries {
+            if entry.path.starts_with("skills/qiongli-workflow/")
+                && entry.path != "skills/qiongli-workflow/SKILL.md"
+                || entry.path == "skills/no-qiongli/SKILL.md"
+            {
+                assert_eq!(
+                    fs::read(agy_path.join(&entry.path)).unwrap(),
+                    fs::read(codex_path.join(&entry.path)).unwrap(),
+                    "{}",
+                    entry.path
+                );
+            }
+        }
+        let mcp: serde_json::Value =
+            serde_json::from_slice(&fs::read(agy_path.join("mcp_config.json")).unwrap()).unwrap();
+        assert_eq!(mcp["mcpServers"].as_object().unwrap().len(), 1);
+        assert_eq!(
+            verify_local_antigravity_plugin_source(&agy_target).unwrap(),
+            agy
+        );
+    }
+}
+
+#[test]
+fn antigravity_legacy_expanded_receipt_migrates_with_cas_and_drift_guards() {
+    use qiongli_platform::compose_local_codex_plugin_source_with_language;
+    let f = Fixture::new();
+    // Projection/receipt evidence only; native execution is checked separately.
+    fs::write(&f.binary, b"synthetic projection verification binary").unwrap();
+    let content = qiongli::embedded_content().unwrap();
+    let path = f.root.join("qiongli-antigravity");
+    let target = approve_antigravity_plugin_bundle_target(&path).unwrap();
+    let compact = compose_local_antigravity_plugin_source(
+        content.pack(),
+        &f.binary,
+        &f.digest(),
+        &target,
+        None,
+        None,
+        Some("zh"),
+    )
+    .unwrap();
+    let codex_path = f.root.join("qiongli");
+    let codex_target = approve_codex_plugin_bundle_target(&codex_path).unwrap();
+    let codex = compose_local_codex_plugin_source_with_language(
+        content.pack(),
+        &f.binary,
+        &f.digest(),
+        &codex_target,
+        None,
+        None,
+        false,
+        Some("zh"),
+    )
+    .unwrap();
+    // Synthetic legacy shape: copy exact shared projector wrappers and rebind the
+    // unchanged receipt schema with its public length-prefixed content-root format.
+    let mut legacy = compact.receipt().clone();
+    for entry in &codex.receipt().entries {
+        if top_level_skill_entries(codex.receipt()).contains(&entry.path)
+            && !top_level_skill_entries(compact.receipt()).contains(&entry.path)
+        {
+            fs::create_dir_all(path.join(&entry.path).parent().unwrap()).unwrap();
+            fs::copy(codex_path.join(&entry.path), path.join(&entry.path)).unwrap();
+            legacy.entries.push(entry.clone());
+        }
+    }
+    legacy.entries.sort_by(|a, b| a.path.cmp(&b.path));
+    let mut hash = Sha256::new();
+    hash.update(b"qiongli-codex-plugin-bundle-content-root-v1\0");
+    for entry in &legacy.entries {
+        let mode = serde_json::to_value(entry.mode).unwrap();
+        for field in [entry.path.as_bytes(), mode.as_str().unwrap().as_bytes()] {
+            hash.update(u64::try_from(field.len()).unwrap().to_be_bytes());
+            hash.update(field);
+        }
+        hash.update(entry.size_bytes.to_be_bytes());
+        hash.update(u64::try_from(entry.sha256.len()).unwrap().to_be_bytes());
+        hash.update(entry.sha256.as_bytes());
+    }
+    legacy.package_content_root_sha256 = format!("{:x}", hash.finalize());
+    fs::write(
+        path.join(".qiongli-antigravity-plugin-bundle.json"),
+        serde_json_canonicalizer::to_vec(&legacy).unwrap(),
+    )
+    .unwrap();
+    let verified = verify_local_antigravity_plugin_source(&target).unwrap();
+    assert_eq!(top_level_skill_entries(verified.receipt()).len(), 22);
+    assert!(
+        compose_local_antigravity_plugin_source(
+            content.pack(),
+            &f.binary,
+            &f.digest(),
+            &target,
+            None,
+            Some(compact.receipt_sha256()),
+            None
+        )
+        .is_err()
+    );
+    let wrapper = path.join("skills/qiongli-paper-read/SKILL.md");
+    let original = fs::read(&wrapper).unwrap();
+    fs::write(&wrapper, b"legacy wrapper drift").unwrap();
+    assert!(
+        compose_local_antigravity_plugin_source(
+            content.pack(),
+            &f.binary,
+            &f.digest(),
+            &target,
+            None,
+            Some(verified.receipt_sha256()),
+            None
+        )
+        .is_err()
+    );
+    assert!(remove_local_antigravity_plugin_source(&target, verified.receipt_sha256()).is_err());
+    assert_eq!(fs::read(&wrapper).unwrap(), b"legacy wrapper drift");
+    fs::write(&wrapper, original).unwrap();
+    let migrated = compose_local_antigravity_plugin_source(
+        content.pack(),
+        &f.binary,
+        &f.digest(),
+        &target,
+        None,
+        Some(verified.receipt_sha256()),
+        None,
+    )
+    .unwrap();
+    assert_eq!(top_level_skill_entries(migrated.receipt()).len(), 2);
+    assert_eq!(migrated.receipt().skill_language.as_deref(), Some("zh"));
+    assert!(!wrapper.exists());
+    remove_local_antigravity_plugin_source(&target, migrated.receipt_sha256()).unwrap();
 }

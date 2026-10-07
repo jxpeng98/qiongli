@@ -4,6 +4,20 @@ use super::*;
 
 pub const RECEIPT_FILE: &str = ".qiongli-antigravity-plugin-bundle.json";
 
+const ENTRY_GUIDANCE: &str = r#"
+
+## Antigravity workflow entry
+
+Use `qiongli` as the single research entry. Choose the relevant internal workflow
+from the route table above and read only the resources needed for this request.
+The separate `qiongli-<workflow>` shortcuts described for Codex are not installed
+in Antigravity. If the user names one of those workflows, treat it as task intent
+and load `workflows/<name>.md` from this package; do not look for another Skill or
+try to run the shortcut as a shell command. All internal workflow guidance remains
+available. The independent `no-qiongli` reply-only entry is also retained; honor
+an active reply-only choice before any resource read, routing or MCP call.
+"#;
+
 #[derive(Clone, Debug)]
 pub struct AntigravityPluginBundleTarget(CodexPluginBundleTarget);
 
@@ -119,6 +133,15 @@ pub(super) fn project(
     )?;
     files.remove(PLUGIN_MANIFEST_PATH);
     files.remove(MCP_MANIFEST_PATH);
+    // AGY discovers every wrapper as a public Skill. Keep the shared resource
+    // library and the self-contained reply-only entry, with one research router.
+    // Receipt readers still accept legacy wrappers for verified update/removal.
+    files.retain(|path, _| {
+        !path
+            .strip_prefix("skills/qiongli-")
+            .and_then(|path| path.strip_suffix("/SKILL.md"))
+            .is_some_and(workflow_slug_is_valid)
+    });
     let skill = files
         .get_mut(SKILL_MANIFEST_PATH)
         .ok_or(CodexPluginBundleError::ProjectionInvalid)?;
@@ -134,6 +157,7 @@ pub(super) fn project(
     skill.bytes = text
         .replace(CODEX_HOST_ADAPTER_GUIDANCE, &guidance)
         .into_bytes();
+    skill.bytes.extend_from_slice(ENTRY_GUIDANCE.as_bytes());
     let executable = executable
         .to_str()
         .filter(|s| !s.chars().any(char::is_control))

@@ -42,6 +42,7 @@ decision must be recorded as a new superseding ADR.
 | `CLI-410` | [ADR 0227](0227-native-main-cutover-and-stable-release-routing.md) | Accepted | Native main integration and stable release routing reuse the qualified CLI/registry pipeline; legacy maintenance stays separate |
 | `CLI-410` | [ADR 0232](0232-linux-arm64-registry-distribution.md) | Accepted | Linux ARM64 joins the native pip/npm matrix; new packets require four targets while historical three-target packets remain verifiable |
 | `CLI-409` | [ADR 0233](0233-antigravity-local-plugin-adapter.md) | Accepted | Native Antigravity Plugin projection and separately confirmed official registration; live Skill/MCP qualification remains explicit |
+| `CLI-409` | [ADR 0234](0234-antigravity-compact-skill-entries.md) | Accepted | One AGY research entry with internal workflow routing and a separate reply-only entry; supersedes ADR 0233's public wrapper layout |
 
 ## Decision lifecycle
 

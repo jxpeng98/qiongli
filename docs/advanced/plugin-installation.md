@@ -72,8 +72,17 @@ Install `agy` 1.2.17 or newer first. The terminal guide separately confirms the
 local export and `agy plugin install` / `enable`. Its default source directory is
 `~/qiongli-antigravity`; `--destination` can select an absolute secure directory
 ending in `qiongli`, `qiongli-next` or `qiongli-antigravity`. Reuse the same custom
-destination when updating. The export contains 22 Skill entries, the native
-binary and Full MCP. It uses Antigravity's root `plugin.json` and `mcp_config.json`.
+destination when updating. The export includes the native binary and Full MCP,
+using Antigravity's root `plugin.json` and `mcp_config.json`.
+
+**Next update after 2.4.0:** the AGY Skill list has one research entry, `qiongli`,
+plus the independent `no-qiongli` reply-only entry. Reading, literature review,
+writing and other workflows remain internal resources selected by your request;
+you can still name a workflow in the prompt. The 2.4.0 export has 22 public Skills.
+Once the CLI update is available, upgrade the CLI, then run the Plugin update
+above and reopen the AGY session. The verified update replaces the old wrapper
+entries through the official manager. Do not delete cached Skills manually;
+modified or unknown files block receipt verification and need separate review.
 
 **Keep the exported source directory.** MCP starts its binary by absolute path;
 no Plugin-root variable or working-directory expansion is assumed. In the

@@ -15,6 +15,9 @@
   dispatch. The maintainer also explicitly approves the prepared experimental
   Antigravity scope: retain its failed strict gates for later promotion while
   keeping Codex, final-source package and upgrade checks mandatory.
+  That release task was dispatched at `fa5d1537` without subsequent monitoring.
+  The next bounded request addresses AGY's crowded Skill list; its local fix and
+  checks are recorded below without a new publication or live-session claim.
 - Candidate version: `2.4.0`, reflecting the additive Antigravity adapter and
   improvements to existing research workflows. Canonical version inputs are
   synchronized in `e4b05659`; this does not establish publication or readiness.
@@ -2231,3 +2234,73 @@ commit/run fields remain unchanged; only CLI-405/409/410 blocker text changes.
 The check report, before this checks-only annotation, is
 `/tmp/qiongli-summary-recovery-20261007/final-integration-checks.json`, SHA-256
 `3203c0d706e26c90ada1d1e15e3306a92c0ab50a599b3388299a2eb1bbe78939`.
+
+## October 7 — compact AGY entries after the 2.4.0 release task
+
+The maintainer's screenshot shows the main Skill and every research shortcut in
+Antigravity's global Skill list. Starting from `fa5d1537`, the bounded fix changes
+only the native AGY projection: omit the twenty generated workflow wrappers,
+retain the `qiongli` research router and independent `no-qiongli` reply-only entry,
+and keep the internal workflows, cards, references, language and variant bytes.
+The main entry explains internal routing and legacy workflow-name intent. Both
+terminal export and completion messages describe the compact layout. The shared
+content pack, MCP inventory, other Host entry policies and receipt schema stay
+unchanged. ADR 0234 supersedes only ADR 0233's public wrapper layout; historical
+22-entry evidence and experimental Host gaps remain historical facts.
+
+The requested `gpt-6.1-sol / low` verifier runs focused checks against an isolated
+source copy with the changed native files bound to the working-tree bytes. The
+four existing AGY integration cases pass; two new cases independently pass after
+fixture corrections. They cover exactly two public entries against Codex's 22,
+English/Chinese metadata, a custom variant, every retained internal resource,
+one MCP server, and verified legacy-wrapper migration with stale-receipt and
+modified-wrapper refusals. The two new projection/receipt cases use explicit
+synthetic binary bytes; they do not claim native execution. Five terminal-adapter
+checks and two shared bundle-owner checks also pass. Strict pinned Rust 1.97
+Clippy passes for the affected production and integration-test targets.
+
+Initial runs retain their failures: group-writable workspace ancestors, then
+synthetic directories created under inherited umask 002, fail before projection.
+The secure copy and command-local umask 022 resolve that setup without changing
+real ancestor permissions or weakening validation. The new tests initially use
+invalid destination leaf names; corrected fixtures use the existing approved
+names. A mismatched new ADR title is corrected and ADR validation passes. No
+failed result is counted as a successful behavior check.
+
+The official AGY manager subsequently installs a verified legacy source with
+22 Skills and one MCP server into a new disposable profile. It validates the
+compact export as two Skills and one MCP server, then installs/enables/lists it.
+The cache now contains only `qiongli-workflow` and `no-qiongli`; old wrapper
+directories are gone and source/cache receipt bytes match exactly. This is an
+actual manager replacement observation, not a simulated cache copy. No model
+or authentication operation is performed. GUI display, model routing and complete
+research sessions remain unverified, and AGY retains its experimental scope.
+
+The initial full terminal flow times out at 240 seconds after legacy source
+export; an unnecessary interactive update retry is interrupted. Direct official
+manager commands reuse the verified source and establish the replacement result.
+Temporary export attempts also retain invalid-leaf and Cargo-binary hardlink
+refusals; a byte-identical single-link binary copy supplies the valid fixture.
+No refusal check or production ownership rule is relaxed. The full Codex
+integration command has no passing outcome and is not counted; the focused
+shared-owner checks and Codex entry/resource comparison supply compatibility
+coverage for this adapter-only change. Final formatting and whitespace checks
+pass; findings-only review has no actionable issue.
+
+Evidence is retained under `/tmp/qiongli-agy-entries-20261007/`, including final
+source bindings, real-binary bindings, manager summary and individual test logs.
+The secure source and disposable manager profile are under
+`/home/hermes/qiongli-agy-entries-20261007/`. The ledger records only CLI-409
+progress; no task state, dependency or accepted evidence is promoted. This is
+local development after the 2.4.0 release-task dispatch, not another publication
+or a change to the user's installed Plugin. The next delivery increment is a
+separately scoped CLI update carrying this fix, followed by actual GUI and fresh
+session routing checks. No prior release monitoring is resumed.
+
+Final integration checks pass: seven program-roadmap tests, generated-index
+consistency, formatting and whitespace. Against `fa5d1537`, all 249 task identities,
+states and dependencies, 46 accepted records, 76 nonempty evidence fields and
+198 populated evidence/commit/run fields remain unchanged. Only CLI-409's blocker
+and update date differ. A preliminary pytest invocation lacks that optional
+module; the existing unittest owner supplies the seven passing roadmap cases
+without installing dependencies. These checks are reused for local integration.

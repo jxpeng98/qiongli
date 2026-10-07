@@ -68,8 +68,15 @@ qiongli update plugin --target agy
 先安装 `agy` 1.2.17 或更新版本。向导分别确认源文件导出与官方 `agy plugin
 install`、`enable` 命令。默认源目录为 `~/qiongli-antigravity`；单独选择此 Host
 时可用 `--destination` 指定安全绝对路径，末级目录为 `qiongli`、`qiongli-next`
-或 `qiongli-antigravity`，更新时复用同一路径。包内含 22 个 Skill 入口、原生程序
-和 Full MCP，采用根目录 `plugin.json`、`mcp_config.json`。
+或 `qiongli-antigravity`，更新时复用同一路径。包内含原生程序和 Full MCP，采用
+根目录 `plugin.json`、`mcp_config.json`。
+
+**2.4.0 之后的下一次更新：** AGY 只公开 `qiongli` 这一个科研入口，并保留独立的
+`no-qiongli` 仅回复入口。阅读、文献综述、写作等工作流作为内部资源保留，由主入口
+根据请求选用；仍可在提示中指明工作流名称。2.4.0 导出仍有 22 个公开 Skill。
+新版 CLI 可用后，先升级 CLI，再执行上面的 Plugin 更新命令，并重新开启 AGY 会话。
+更新会经收据核验和官方管理器替换旧副入口。不要手动删除缓存中的 Skill；有修改
+或未知文件时，收据核验会停止并要求单独处理。
 
 **安装后保留源目录。** MCP 通过其中程序的绝对路径启动，不依赖未经验证的路径
 变量展开。实测 AGY 1.2.17 由官方管理器复制到 `~/.gemini/config/plugins/<name>`；

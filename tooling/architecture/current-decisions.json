@@ -233,6 +233,13 @@
       "title": "Antigravity local Plugin adapter",
       "path": "docs/architecture/decisions/0233-antigravity-local-plugin-adapter.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-409",
+      "adr_number": "0234",
+      "title": "Compact Antigravity Skill Entries",
+      "path": "docs/architecture/decisions/0234-antigravity-compact-skill-entries.md",
+      "status": "Accepted"
     }
   ]
 }

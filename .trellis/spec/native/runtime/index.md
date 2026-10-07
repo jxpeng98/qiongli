@@ -901,6 +901,16 @@ canonical Skills/variant/language, a native binary, root `plugin.json` and
 it never invents an Antigravity enum in the shared schema. Signed kinds and
 Codex/Claude public App target schemas remain unchanged.
 
+ADR 0234 limits new AGY projections to the `qiongli` research Skill and the
+self-contained `no-qiongli` reply-only Skill. The adapter omits only generated
+top-level workflow wrappers; the shared internal workflow library, variants and
+language projection remain intact. Its main entry uses the existing route table
+and resolves legacy workflow names as intent, not separate installed Skills.
+Codex projections keep their wrappers. Existing 22-entry AGY receipts
+remain valid for strict verification, confirmed update and removal; the normal
+source transaction and official manager replace that layout without manual
+cache edits or a receipt-schema change.
+
 Two terminal confirmations bind source, executable and prior receipt hashes,
 variant, language, AGY cache receipt and profile-file digests. Both expire after
 ten minutes and recheck under the managed-write guard. The existing staging,

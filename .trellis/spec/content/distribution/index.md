@@ -59,6 +59,12 @@ Local native and Marketplace projectors place its exact bytes at
 `workflow/no-qiongli/SKILL.md` source path. Allow only this extra Plugin file,
 not arbitrary siblings or scripts. Older packs without it keep their projection.
 
+The native AGY adapter (ADR 0234) exports the main research Skill and this
+reply-only entry, retaining workflows/cards/references as internal resources.
+It does not expose the generated Codex workflow wrappers as separate public
+Skills. The canonical pack, other Host entry policies and receipt readers for
+older AGY layouts remain unchanged.
+
 The root Skill selects the requested outcome and relevant resources. Stage F
 writing workflows, cards and roles reference
 `content/workflow/references/stage-F-writing.md` for their shared writing

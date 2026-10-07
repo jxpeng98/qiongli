@@ -65,7 +65,7 @@ pub(crate) fn install(
     preview(writer, "antigravity-plugin-files", &plan)?;
     line(
         writer,
-        "Export 22 Skills and the native Full MCP binary to this source. AGY will use its absolute binary path; retain this directory while installed.\n",
+        "Export the qiongli research entry, the no-qiongli reply-only entry, internal workflows and the native Full MCP binary to this source. AGY will use its absolute binary path; retain this directory while installed.\n",
     )?;
     let reviewed = Instant::now();
     if !confirm(
@@ -162,7 +162,7 @@ pub(crate) fn install(
         "cache": installed.cache, "receipt_sha256": installed.cache_receipt_sha256, "session_tools": "not-checked"}).to_string())?;
     line(
         writer,
-        "Antigravity: Plugin installed and enabled; 22 Skills and Full MCP. Start a new AGY session and call qiongli_config_status to verify actual tool use. Keep the source directory; uninstall with agy plugin uninstall before removing it.\n",
+        "Antigravity: Plugin installed and enabled; qiongli and no-qiongli entries, internal workflows and Full MCP. Start a new AGY session and call qiongli_config_status to verify actual tool use. Keep the source directory; uninstall with agy plugin uninstall before removing it.\n",
     )?;
     Ok(true)
 }

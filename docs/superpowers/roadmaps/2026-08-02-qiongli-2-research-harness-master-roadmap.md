@@ -54,14 +54,22 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 7, 2026
 
-The latest maintainer request selects completion of atomic claim mapping and
+The current bounded increment addresses the maintainer's overcrowded AGY Skill
+list. ADR 0234 selects one research entry plus the independent reply-only entry,
+with internal workflows retained and verified legacy-layout updates. The existing
+2.4 plan records this post-release fix and its scoped checks. Local integration
+does not publish an update or change AGY's experimental qualification. The prior
+2.4.0 release task was dispatched at `fa5d1537`; no follow-up monitoring is added.
+
+The preceding maintainer request selected completion of atomic claim mapping and
 saved-writing recovery, then 2.4.0 publication-task dispatch and no subsequent
 monitoring. The maintainer explicitly approves experimental Antigravity support:
 retain the failed strict Host checks for later promotion; Codex, package and
-upgrade gates remain required. Publication and reviewed main cutover are now
-authorized. Source `c9748636` adds receipt-backed stage-summary discovery to the
-existing document list and strict summary-path read/search support. The current
-plan records focused checks and the separately frozen installed continuation.
+upgrade gates remained required. Publication and reviewed main cutover were
+authorized for that release. Source `c9748636` adds receipt-backed stage-summary
+discovery to the existing document list and strict summary-path read/search
+support. The current plan records focused checks and the separately frozen
+installed continuation.
 On `3fa02b17`, baseline review is 3/3, original writing is 0/1 and an explicit
 reviewed correction is 1/1; original prose is preserved while compound rows split
 with ID lineage. Native approved saving and project-ID-only fresh recovery pass,
