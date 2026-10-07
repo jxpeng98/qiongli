@@ -865,3 +865,58 @@ fn saved_search_keeps_link_permission_and_size_refusals() {
     );
     assert_eq!(fs::read(outside).unwrap(), bytes);
 }
+
+#[test]
+fn stage_summary_reader_preserves_utf8_search_and_strict_identity() {
+    let f = Fixture::new();
+    let path = "context/stage_summaries/STG-F-001.md";
+    let bytes = "abé中 CLM-035 remains partial\n".as_bytes();
+    f.put(path, bytes);
+    let mut r = f.request(path, bytes);
+    r.max_bytes = 4;
+    let first = f.service.read_saved_document(&r).unwrap();
+    assert_eq!(first.content, "abé");
+    assert_eq!(first.sha256, sha(bytes));
+    r.offset_bytes = first.next_offset_bytes.unwrap();
+    assert_eq!(f.service.read_saved_document(&r).unwrap().content, "中 ");
+    let search = f.search(&f.search_request(path, bytes, "CLM-035"));
+    assert_eq!(search["totalMatches"], 1);
+    f.check_search_readback(&search);
+    let mut invalid = r.clone();
+    invalid.json_pointer = Some("/text".into());
+    assert!(invalid.validate().is_err());
+    for bad in [
+        "context/stage_summaries/../STG-F-001.md",
+        "context/research_state.md",
+        "context/stage_summaries/not-a-summary.md",
+    ] {
+        invalid = r.clone();
+        invalid.relative_path = bad.into();
+        assert!(invalid.validate().is_err());
+    }
+    invalid = r.clone();
+    invalid.expected_sha256 = "0".repeat(64);
+    assert!(f.service.read_saved_document(&invalid).is_err());
+    invalid = r.clone();
+    invalid.expected_project_revision = 2;
+    assert!(f.service.read_saved_document(&invalid).is_err());
+    f.put(path, b"changed");
+    assert!(f.service.read_saved_document(&r).is_err());
+    fs::remove_file(f.root.join(path)).unwrap();
+    assert!(f.service.read_saved_document(&r).is_err());
+}
+
+#[cfg(unix)]
+#[test]
+fn stage_summary_reader_refuses_symlinked_history_directory() {
+    use std::os::unix::fs::symlink;
+    let f = Fixture::new();
+    let outside = f.base.join("outside");
+    fs::create_dir(&outside).unwrap();
+    let bytes = b"private external text";
+    fs::write(outside.join("STG-F-001.md"), bytes).unwrap();
+    symlink(&outside, f.root.join("context/stage_summaries")).unwrap();
+    let r = f.request("context/stage_summaries/STG-F-001.md", bytes);
+    assert!(f.service.read_saved_document(&r).is_err());
+    assert_eq!(fs::read(outside.join("STG-F-001.md")).unwrap(), bytes);
+}

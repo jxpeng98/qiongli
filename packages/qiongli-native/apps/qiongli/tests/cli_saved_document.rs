@@ -630,3 +630,28 @@ fn saved_search_actual_cli_full_mcp_parity_pagination_and_mode_refusals() {
     f.put(&r.relative_path, br#"{"changed":"safe"}"#);
     assert!(!f.run_search(&r).status.success());
 }
+
+#[test]
+fn fresh_cli_stage_summary_read_matches_shared_owner_without_writes() {
+    let f = Fixture::new();
+    let path = "context/stage_summaries/STG-F-001.md";
+    let bytes = "# Reviewed writing\nCLM-035 remains partial. 中文\n".as_bytes();
+    f.put(path, bytes);
+    let r = f.request(path, bytes);
+    let output = f.run(&r);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let actual: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(
+        actual,
+        serde_json::to_value(f.service.read_saved_document(&r).unwrap()).unwrap()
+    );
+    assert_eq!(actual["content"], std::str::from_utf8(bytes).unwrap());
+    assert_eq!(fs::read(f.root.join(path)).unwrap(), bytes);
+    let mut invalid = r.clone();
+    invalid.json_pointer = Some("/text".into());
+    assert!(!f.run(&invalid).status.success());
+}

@@ -28,7 +28,8 @@ base revision and stage; foreign/future, orphaned, corrupt, unsafe and duplicate
 revision histories refuse. The latest receipt by destination revision owns each
 allowed path; timestamps and current file hashes never choose saved authority.
 
-The stable path-sorted list contains only note, source-packet and retrieval-history
+The stable path-sorted list contains only note, source-packet, retrieval-history
+and stage-summary
 bindings. Each includes saved SHA-256, capture ID, receipt SHA-256 and saved
 revision. Only safely readable current UTF-8 bytes produce `readArguments` for the
 existing reader, using the current project revision and saved digest. Missing,
@@ -49,8 +50,14 @@ tools, Lite, Graph and write approval/CAS behavior remain unchanged.
 `ProjectStateService::read_saved_document`. Strict snake-case requests require
 `project_id`, `expected_project_revision`, `relative_path` and `expected_sha256`;
 optional `offset_bytes` defaults to 0 and `max_bytes` to 16 KiB (4–65,536 bytes).
-Only canonical `notes/<citekey>.md`, `sources/<citekey>/<sha256>.json` and
-`retrieval_manifest.csv` paths are allowed. Existing citekey/path validators and
+Only canonical `notes/<citekey>.md`, `sources/<citekey>/<sha256>.json`,
+`retrieval_manifest.csv` and `context/stage_summaries/STG-*.md` paths are allowed.
+Summary paths reuse the existing strict summary-ID validator; no other context
+file or absolute project root is exposed. The list discovers summaries only from
+validated consolidation receipts, retaining previous versions as separate entries.
+Read/search reuse explicit revision/hash bindings; an unreceipted file requires
+a separately obtained authorized binding and is never discovered by scanning.
+Saved status, source basis and prose remain unchanged. Existing citekey/path validators and
 the 4 MiB regular-file source reader retain ownership, link, ancestor and recovery
 checks. Packet filenames must agree with the actual complete-file hash. No
 arbitrary project file, PDF, receipt or private runtime directory is exposed.
@@ -225,8 +232,9 @@ existing APIs, plan digest serialization and output/receipt fields stay unchange
 History uses the existing six columns and review time in Unix UTC seconds;
 ambiguous tables or a predecessor different from the last row refuse. Supplied
 Markdown is retained with generated save-basis metadata; scholarly coverage,
-humanization, claim continuity and status remain review obligations. No summary
-read/save MCP endpoint or automatic stage/Graph transition is added.
+humanization, claim continuity and status remain review obligations. No separate
+summary save MCP endpoint or automatic stage/Graph transition is added. Saved
+summaries use the existing saved-document list/read tools described above.
 
 The same consolidation owner accepts `--paper-note-file <absolute-draft.json>`.
 `PaperNoteDraftV1` strictly binds schema version 1, citekey, optional

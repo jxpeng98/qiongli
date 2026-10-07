@@ -549,7 +549,7 @@
     },
     {
       "name": "qiongli_project_document_read",
-      "description": "Read or search one explicitly selected saved paper note, source packet or retrieval_manifest.csv. Requires the expected project revision and whole-file SHA-256 from authorized binding evidence. Without search_text, read a bounded UTF-8 window; optional json_pointer selects an observed saved packet string and offsets address decoded text. With search_text, find literal, case-sensitive, non-overlapping matches within each decoded packet string value (including metadata), one selected string, or raw note/manifest text. No normalization, cross-field match or full-paper coverage is implied. Search returns bounded contexts and exact readArguments; continuation retains query/scope/page settings plus searchSha256. Read controls offset_bytes/max_bytes and search controls are mutually exclusive. Recheck source identity on every call. This local snapshot is not source-support verification, Graph authority or write permission.",
+      "description": "Read or search one explicitly selected saved paper note, source packet, retrieval_manifest.csv or context/stage_summaries/STG-*.md summary. Requires the expected project revision and whole-file SHA-256 from authorized binding evidence. Without search_text, read a bounded UTF-8 window; optional json_pointer selects an observed saved packet string and offsets address decoded text. With search_text, find literal, case-sensitive, non-overlapping matches within each decoded packet string value (including metadata), one selected string, or raw note/manifest/summary text. No normalization, cross-field match or full-paper coverage is implied. Search returns bounded contexts and exact readArguments; continuation retains query/scope/page settings plus searchSha256. Read controls offset_bytes/max_bytes and search controls are mutually exclusive. Recheck source identity on every call. This local snapshot is not source-support verification, Graph authority or write permission.",
       "inputSchema": {
         "type": "object",
         "required": [
@@ -638,7 +638,7 @@
     },
     {
       "name": "qiongli_project_document_list",
-      "description": "List saved paper-note, source-packet and retrieval-manifest bindings from validated consolidation receipts in one registered project. Read the current project revision first. Only current entries supply readArguments for qiongli_project_document_read; missing, changed or unavailable files require review, never a substituted hash. Pages are sorted by relative path; continuation requires the same revision and bindingsSha256. This is bounded local history, not remote verification, a file scan or write permission.",
+      "description": "List saved paper-note, source-packet, retrieval-manifest and stage-summary bindings from validated consolidation receipts in one registered project. Read the current project revision first. Only current entries supply readArguments for qiongli_project_document_read; missing, changed or unavailable files require review, never a substituted hash. Pages are sorted by relative path; continuation requires the same revision and bindingsSha256. This is bounded local history, not remote verification, a file scan or write permission.",
       "inputSchema": {
         "type": "object",
         "required": ["project_id", "expected_project_revision"],

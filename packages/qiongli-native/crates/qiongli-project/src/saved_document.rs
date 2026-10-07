@@ -7,6 +7,7 @@ use crate::json::parse_unique_json;
 use crate::model::valid_lower_hex;
 use crate::paper_note::valid_note_path;
 use crate::source_packet::valid_packet_path;
+use crate::stage_summary::valid_summary_path;
 use crate::storage::{read_manifest, read_project_source, semantic_digest};
 use crate::{ProjectError, ProjectId, ProjectStateService};
 
@@ -44,6 +45,7 @@ impl SavedDocumentReadRequest {
         if self.relative_path != "retrieval_manifest.csv"
             && !valid_note_path(&self.relative_path)
             && !valid_packet_path(&self.relative_path)
+            && !valid_summary_path(&self.relative_path)
         {
             return Err(ProjectError::ProjectArtifactUnsupported);
         }

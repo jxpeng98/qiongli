@@ -19,6 +19,11 @@ Native `full-project-tools.json` additionally exposes the bounded, read-only
 `qiongli_project_document_read` and receipt-backed `qiongli_project_document_list`
 contracts. Their canonical paper-reading guidance is
 capability-gated; the frozen Python Full inventory and native Lite are unchanged.
+The existing tools also discover receipt-backed stage summaries and read their
+strict `context/stage_summaries/STG-*.md` paths. Writing continuation uses this
+capability through the paper-reading owner, preserving IDs, partial reviews and
+source bindings. Older readers require an explicitly authorized fallback; a
+recovered document does not establish academic support or stage acceptance.
 Regenerate the embedded pack and Plugin projections through their existing owners.
 The saved-document reader's optional `json_pointer` is capability-gated. Its
 decoded passage offsets and original packet hash are retained in existing note

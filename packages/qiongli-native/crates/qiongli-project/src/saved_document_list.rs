@@ -230,6 +230,7 @@ fn saved_bindings(
                 ConsolidationArtifact::PaperNote
                     | ConsolidationArtifact::SourcePacket
                     | ConsolidationArtifact::RetrievalManifest
+                    | ConsolidationArtifact::StageSummary
             ) {
                 continue;
             }

@@ -18,6 +18,14 @@ Reuse the requested section, audience, word limit, citation style and available
 material. Ask only when missing information changes a central claim or prevents
 the requested result. A missing optional field does not start an interview.
 
+For a request to resume a saved writing unit from a project ID, use the native
+saved-document recovery procedure in `workflows/paper-read.md`: obtain the current
+revision, discover the receipt-backed stage summary, and read its complete bytes
+before continuing. Preserve original claim IDs and unresolved reviews; inspect
+the current source bindings separately. Check that the installed reader supports
+summaries. If it does not, disclose the recovery gap and use only an available,
+authorized Host read with an observed file binding, never a guessed project root.
+
 For coursework or dissertation requests, preserve the rubric, evidence and
 integrity boundaries. Read `/coursework` or `/dissertation` only for unresolved
 requirements or an explicitly requested L/M task. Use `/paper-write` for a full

@@ -179,10 +179,19 @@ or adopting a replacement hash. Files without consolidation receipts are not
 discovered. Local receipt integrity does not establish external authenticity,
 complete-paper reading or renewed write approval.
 
+When the current reader advertises stage-summary support, this same list includes
+saved `context/stage_summaries/STG-*.md` writing units. Use their actual receipt
+bindings and read arguments; do not guess a summary path or an absolute project
+root. Read the complete selected unit, retaining its claim IDs, review status,
+predecessor and source fingerprints. A saved summary may be partial or contain
+unresolved claims. Its recovery neither completes a manuscript nor verifies the
+claims; compare its source bindings with current packets before continuing.
+
 When Full
 MCP exposes `qiongli_project_document_read` (or CLI help exposes `project document
 read`), use it for an explicitly selected `notes/<citekey>.md`,
-`sources/<citekey>/<sha256>.json`, or `retrieval_manifest.csv`. Supply `project_id`,
+`sources/<citekey>/<sha256>.json`, `retrieval_manifest.csv`, or an advertised
+`context/stage_summaries/STG-*.md` summary. Supply `project_id`,
 `expected_project_revision`, `relative_path` and `expected_sha256` from actual
 authorized save/receipt/file evidence; never guess a digest or discover files by
 scanning private directories. Read current project state first. The response

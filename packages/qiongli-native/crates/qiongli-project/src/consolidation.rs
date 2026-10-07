@@ -3586,6 +3586,79 @@ Inspect the source table before dependent analysis.
     }
 
     #[test]
+    fn saved_document_list_recovers_receipted_stage_summary_and_refuses_drift() {
+        let fixture = fixture();
+        let summary = summary_draft(&fixture);
+        let capture = intake(
+            &fixture,
+            draft(fixture.project_id.clone(), CapturePolicy::ReviewRequired),
+        );
+        let plan = fixture
+            .service
+            .preview_capture_consolidation_with_summary(
+                &fixture.project_id,
+                &capture.capture_id,
+                120,
+                Some(HANDOFF),
+                Some(&summary),
+            )
+            .unwrap();
+        let expected = plan.stage_summary_content().unwrap().to_string();
+        fixture
+            .service
+            .apply_capture_consolidation(
+                &plan,
+                &ApprovedCaptureConsolidation::new(plan.preview.plan_digest.clone(), true, true),
+            )
+            .unwrap();
+        let path = fixture.project_root.join(summary.relative_path());
+        fs::write(
+            fixture
+                .project_root
+                .join("context/stage_summaries/STG-B-099.md"),
+            "unreceipted",
+        )
+        .unwrap();
+        let request = saved_list_request(&fixture, 2);
+        let before = saved_list_bytes(&fixture.base);
+        let view = fixture.service.list_saved_documents(&request).unwrap();
+        assert_eq!(view.total_documents, 1);
+        let entry = &view.documents[0];
+        assert_eq!(entry.artifact, ConsolidationArtifact::StageSummary);
+        assert_eq!(entry.saved_sha256, sha256_bytes(expected.as_bytes()));
+        let read = entry.read_arguments.clone().unwrap();
+        assert_eq!(
+            fixture.service.read_saved_document(&read).unwrap().content,
+            expected
+        );
+        assert_eq!(saved_list_bytes(&fixture.base), before);
+        let mut stale = read.clone();
+        stale.expected_project_revision = 1;
+        assert!(fixture.service.read_saved_document(&stale).is_err());
+        fs::write(&path, "changed outside owner").unwrap();
+        let changed = fixture.service.list_saved_documents(&request).unwrap();
+        assert_eq!(
+            changed.documents[0].state,
+            crate::SavedDocumentBindingState::Changed
+        );
+        assert!(changed.documents[0].read_arguments.is_none());
+        assert!(fixture.service.read_saved_document(&read).is_err());
+        fs::remove_file(&path).unwrap();
+        let missing = fixture.service.list_saved_documents(&request).unwrap();
+        assert_eq!(
+            missing.documents[0].state,
+            crate::SavedDocumentBindingState::Missing
+        );
+        assert!(missing.documents[0].read_arguments.is_none());
+        assert!(fixture.service.read_saved_document(&read).is_err());
+        fs::write(&path, expected.as_bytes()).unwrap();
+        assert_eq!(
+            fixture.service.read_saved_document(&read).unwrap().content,
+            expected
+        );
+    }
+
+    #[test]
     fn stage_summary_versions_preserve_history_and_resume_with_source_changes() {
         let fixture = fixture();
         let mut summary = summary_draft(&fixture);

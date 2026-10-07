@@ -5,7 +5,7 @@ use qiongli_project::{
 };
 use serde_json::{Map, Value};
 
-pub(crate) const USAGE: &str = "Saved research document:\n  qiongli project document read --project-id <prj_id> --expected-project-revision <revision> --relative-path <path> --expected-sha256 <sha256> [--offset-bytes <offset>] [--max-bytes <4..65536>] [--json-pointer <pointer>]\n\nReads only notes/<citekey>.md, sources/<citekey>/<sha256>.json, or retrieval_manifest.csv. The SHA-256 always binds the entire file; continue with nextOffsetBytes and the same revision/digest. With --json-pointer, select an observed string in a source packet; offsets, content and nextOffsetBytes address decoded UTF-8 text. Keep the same pointer on continuation; sourceSizeBytes and SHA-256 still identify the raw file. Missing or non-string targets refuse. This is a file snapshot, not academic verification or a Graph projection.";
+pub(crate) const USAGE: &str = "Saved research document:\n  qiongli project document read --project-id <prj_id> --expected-project-revision <revision> --relative-path <path> --expected-sha256 <sha256> [--offset-bytes <offset>] [--max-bytes <4..65536>] [--json-pointer <pointer>]\n\nReads only notes/<citekey>.md, sources/<citekey>/<sha256>.json, retrieval_manifest.csv, or context/stage_summaries/STG-*.md. The SHA-256 always binds the entire file; continue with nextOffsetBytes and the same revision/digest. With --json-pointer, select an observed string in a source packet; offsets, content and nextOffsetBytes address decoded UTF-8 text. Keep the same pointer on continuation; sourceSizeBytes and SHA-256 still identify the raw file. Missing or non-string targets refuse. This is a file snapshot, not academic verification or a Graph projection.";
 
 pub(crate) fn parse(args: &[OsString]) -> Result<SavedDocumentReadRequest, &'static str> {
     if args.first().and_then(|arg| arg.to_str()) != Some("read") {
@@ -20,7 +20,7 @@ pub(crate) fn parse(args: &[OsString]) -> Result<SavedDocumentReadRequest, &'sta
     Ok(request)
 }
 
-pub(crate) const LIST_USAGE: &str = "Saved document bindings:\n  qiongli project document list --project-id <prj_id> --expected-project-revision <revision> [--offset <offset>] [--limit <1..64>] [--expected-bindings-sha256 <sha256>]\n\nLists only receipt-backed saved documents. Only current entries provide readArguments. Continuation requires bindingsSha256; it identifies saved history, not current file bytes. Missing, changed or unavailable entries never authorize rebinding.";
+pub(crate) const LIST_USAGE: &str = "Saved document bindings:\n  qiongli project document list --project-id <prj_id> --expected-project-revision <revision> [--offset <offset>] [--limit <1..64>] [--expected-bindings-sha256 <sha256>]\n\nLists only receipt-backed paper notes, source packets, retrieval history and stage summaries. Only current entries provide readArguments. Continuation requires bindingsSha256; it identifies saved history, not current file bytes. Missing, changed or unavailable entries never authorize rebinding.";
 
 pub(crate) fn parse_list(args: &[OsString]) -> Result<SavedDocumentListRequest, &'static str> {
     if args.first().and_then(|arg| arg.to_str()) != Some("list") {
