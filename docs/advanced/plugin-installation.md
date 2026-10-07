@@ -5,6 +5,7 @@ For a first installation, run `qiongli install` and follow the [quickstart](../q
 ## Choose Hosts
 
 ```sh
+qiongli install all
 qiongli install plugin --target codex
 qiongli install plugin --target claude
 qiongli install plugin --target deepseek
@@ -12,7 +13,22 @@ qiongli install plugin --target antigravity
 qiongli install plugin --target codex,deepseek
 ```
 
-Omit `--target` for a menu; `--target all` processes each Host separately. Cancellation or failure stops later steps and keeps completed installations. Each Host needs its own approval. Codex/Claude use separate source directories; `--destination` selects one Host's directory with an existing parent.
+**Next update after 2.4.0:** `qiongli install all`, main guide choice **5**, and
+Plugin Host choice **6 / all** install Plugins for every detected supported Host
+CLI (`codex`, `claude`, `dsh`, `agy`). Each Plugin includes Skills and Full MCP;
+there is no separate component install. The guide lists selected Hosts and missing
+CLIs it skips. If none are found, it stops without installing anything. It does
+not install the Host applications. `upgrade all` and `update all` refresh the
+same detected set; `--language auto|zh|en` chooses descriptions once for the batch.
+
+Omit `--target` for a menu; `--target all` uses the same detected selection. An
+explicit list such as `--target codex,claude` still requires both clients. Each
+selected Host retains its own required file and registration approvals. Unsupported
+versions, conflicts, cancellation or failure stop later steps and keep completed
+installations. Codex/Claude use separate source directories; choose or reuse each
+Host's directory when prompted. `--destination` selects one Host's directory with
+an existing parent. The all-Host preset does not accept `--destination`, `--hooks`
+or `--dry-run`; use an explicit compatible Host selection for those options.
 
 File export and official Host registration have separate confirmations. Cancelling registration keeps exported files and leaves Host settings unchanged. Retry for the same Host after resolving a failure. Keep old sources and caches for recovery. Known Codex conflicts can be disabled through a confirmed migration; Claude conflicts need manual disabling.
 

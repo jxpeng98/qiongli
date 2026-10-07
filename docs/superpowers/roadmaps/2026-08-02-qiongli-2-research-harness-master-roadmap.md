@@ -54,11 +54,13 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 7, 2026
 
-The current bounded increment addresses the maintainer's overcrowded AGY Skill
-list. ADR 0234 selects one research entry plus the independent reply-only entry,
-with internal workflows retained and verified legacy-layout updates. The existing
-2.4 plan records this post-release fix and its scoped checks. Local integration
-does not publish an update or change AGY's experimental qualification. The prior
+The current bounded increment adds the requested all-install entry for every
+detected supported Host CLI (ADR 0235), reusing each Plugin's Skills/MCP and
+separate approvals. The preceding AGY entry fix is locally integrated at
+`8566055f`: ADR 0234 selects one research entry plus the independent reply-only
+entry, with internal workflows and verified legacy-layout updates retained.
+The existing 2.4 plan records these post-release-task fixes and scoped checks.
+Local integration does not publish an update or change Host qualification. The prior
 2.4.0 release task was dispatched at `fa5d1537`; no follow-up monitoring is added.
 
 The preceding maintainer request selected completion of atomic claim mapping and

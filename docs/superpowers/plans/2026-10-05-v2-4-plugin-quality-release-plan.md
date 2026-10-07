@@ -2304,3 +2304,60 @@ states and dependencies, 46 accepted records, 76 nonempty evidence fields and
 and update date differ. A preliminary pytest invocation lacks that optional
 module; the existing unittest owner supplies the seven passing roadmap cases
 without installing dependencies. These checks are reused for local integration.
+
+
+## October 7 — one install entry for all detected clients
+
+The maintainer requests an all-install entry and explicitly confirms its scope:
+every already-installed supported client gets its Plugin, including Skills and
+MCP. Starting from `8566055f`, the existing Plugin guide gains `install all`
+(and update/upgrade equivalents), main menu choice 5 and Host choice 6/all.
+`--target all` uses the same read-only CLI detection for Codex, Claude Code,
+DeepSeek Harness and Antigravity. It reports selected clients and skipped missing
+CLIs; an empty set returns an actionable error before any install. Explicit
+client lists remain strict. The full all-Host preset validates options before
+filtering, preventing a single detected client from accepting a shared destination
+or unsupported Hook option. No scripted all-install plan or auto-approval is added.
+
+The detected set enters the existing sequential Plugin owners with their current
+previews, confirmations, source selection, receipts and failure/cancellation
+behavior. Plugin delivery already includes Skills and MCP, so it creates no
+extra standalone copies or MCP registrations. The installer does not install
+client applications, change models or update the Qiongli executable. The menu
+also drops its stale hard-coded Full MCP count. ADR 0235 supersedes only the
+unconditional all-selection portion of ADR 0225; bilingual quickstart and
+installation instructions label the entry as the next update after 2.4.0.
+
+The requested `gpt-6.1-sol / low` verifier passes seven focused native tests:
+two detection/selection cases, the new argument matrix, two retained Plugin
+parser cases, the retained selection case and actual CLI non-terminal refusal.
+They cover deterministic detection/order, partial/all/no available clients,
+missing-client messages, strict explicit lists, incompatible/duplicate options,
+`--dry-run` refusal and no writes through redirected input. Strict Rust 1.97
+Clippy, formatting, ADR validation and findings-only review pass. Only the required
+help match-arm formatting was corrected; no semantic production fix was needed.
+
+Four isolated terminal observations additionally pass: direct `install all`,
+main menu 5 and Host menu 6 each select inert Codex/AGY fixtures, skip missing
+Claude/DSH and cancel at language selection. No fake client executes and no Home
+or configuration file is written. An empty-client invocation returns
+`installation-no-hosts-detected` before language selection or installation.
+Initial menu-driver attempts reused fixture directory names and failed before
+invocation; distinct fixtures correct that setup and the failures remain in the
+logs. No actual user profile, Host installation, model or authentication is used.
+This establishes entry wiring and refusal/cancellation, not a new complete
+four-Host installation or live-session qualification.
+
+Evidence is retained under `/tmp/qiongli-install-all-20261007/`. Only CLI-402
+progress and its link to this plan change in the ledger; accepted records and
+task states/dependencies remain unchanged. Integrate locally through the existing
+feature-branch flow. The next delivery increment combines this entry with the
+preceding AGY compact-entry fix in a separately scoped CLI update. No push,
+publication or previous-release monitoring belongs to this increment.
+
+Final integration checks pass: seven roadmap tests, generated-index consistency,
+ADR validation and whitespace. Against `8566055f`, all 249 task identities/states/
+dependencies, 46 accepted records, 76 nonempty evidence fields and 198 populated
+evidence/commit/run fields remain unchanged. Only CLI-402's blocker, date and one
+additional current-plan reference differ; all other task fields are identical.
+The focused native and terminal results are reused for local integration.

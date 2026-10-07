@@ -437,10 +437,17 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   Plugin install/upgrade/update share one upsert path, discover the registered
   source through the official Host inventory and validate its receipt before
   updating. A shared Host table/parser accepts comma/space selections, deduplicates
-  in order, keeps 3/both as Codex+Claude and expands all to Codex/Claude/DeepSeek/Antigravity. Each Host
-  retains its existing installer and separate approval. This selection flow
+  in order and keeps 3/both as Codex+Claude. `install all` (also upgrade/update),
+  main guide choice 5 and Host choice 6/all select the supported Host CLIs
+  currently discoverable through the existing read-only executable lookup.
+  Report selected/skipped clients before any install; an empty set is an error
+  with no writes. `--target all` shares this behavior, while explicit selections
+  retain missing-client failures. Validate the full all-Host preset before
+  filtering so a single detected client does not allow shared destination or
+  Host-specific Hook flags. All remains terminal-only; no batch App plan is added.
+  Each Host retains its existing installer and separate approval. This selection flow
   stops on cancellation/failure. Foreign enabled Plugins refuse before export
-  with their exact names and manual disable guidance. See ADR 0225.
+  with their exact names and manual disable guidance. See ADRs 0225 and 0235.
   `mcp check` exercises the existing stdio handlers in-process (initialize, tools
   and config status); its result explicitly excludes Host sessions and online
   provider connectivity. It adds no daemon, registration or persisted readiness.

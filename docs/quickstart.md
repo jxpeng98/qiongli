@@ -11,6 +11,11 @@ qiongli mcp check
 
 Use `./qiongli` if it is not on PATH, or `.\qiongli.exe` in PowerShell. Choose Plugin and your Host, then confirm the file changes and registration separately.
 
+In the next update after 2.4.0, choose **5 — Install all detected Hosts**, or run
+`qiongli install all`, to set up every detected supported Host CLI in one flow.
+Missing clients are listed and skipped. Each Plugin includes Skills and MCP;
+each selected Host still has its own preview and required confirmations.
+
 ## 2. Start a research task
 
 Open a new Host session. Ask it to list Qiongli tools and call `qiongli_config_status`, then try:

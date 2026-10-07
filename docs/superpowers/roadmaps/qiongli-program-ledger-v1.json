@@ -265,12 +265,13 @@
         "docs/superpowers/reviews/2026-09-11-qiongli-2x-coherence-review.md",
         "docs/superpowers/reviews/2026-09-11-outcome-guided-skills-review.md",
         "docs/superpowers/reviews/2026-09-11-outcome-guided-skills-trial.json",
-        "docs/architecture/decisions/0226-confirmed-codex-plugin-source-migration.md"
+        "docs/architecture/decisions/0226-confirmed-codex-plugin-source-migration.md",
+        "docs/superpowers/plans/2026-10-05-v2-4-plugin-quality-release-plan.md"
       ],
       "commit": "",
       "run": "",
-      "updated_at": "2026-09-14",
-      "blocker": "The September 14 post-2.0 review confirms native CLI separation and the released installation/content changes at 4f2107f7; historical beta-only descriptions are superseded for current planning. The existing plan records current three-target distribution evidence and preserves earlier observations. Installed-session/Hook behavior, actual Graph browser interaction, model-produced normalization and current release-target performance qualification remain separate; capacity profiles and incremental Portfolio owners already exist. No historical accepted record is promoted."
+      "updated_at": "2026-10-07",
+      "blocker": "The September 14 post-2.0 review confirms native CLI separation and the released installation/content changes at 4f2107f7; historical beta-only descriptions are superseded for current planning. The existing plan records current three-target distribution evidence and preserves earlier observations. Installed-session/Hook behavior, actual Graph browser interaction, model-produced normalization and current release-target performance qualification remain separate; capacity profiles and incremental Portfolio owners already exist. No historical accepted record is promoted. October 7 maintainer-confirmed all-installed-client increment: add install/upgrade/update all, main guide choice 5 and Host choice 6/all; --target all detects supported Host CLIs read-only, reports skips and errors on an empty set. Explicit lists stay strict. Full-preset option validation precedes filtering; each selected Plugin keeps existing approvals, receipts and fail-stop behavior, with Skills/MCP included and no duplicate component installs. ADR 0235 and the current 2.4 plan record seven focused native passes, four isolated terminal cancellation/no-client observations, strict Clippy, formatting and review. Fixture-driver setup failures are retained. No real Host installation/session, model/authentication call or publication is claimed; next deliver with the local AGY entry fix under a separately scoped CLI update. Task states, dependencies and accepted records remain unchanged."
     },
     {
       "id": "CLI-403",

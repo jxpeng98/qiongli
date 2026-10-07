@@ -356,6 +356,35 @@ fn deepseek_installation_requires_terminal_approval_without_writes() {
 }
 
 #[test]
+fn install_all_aliases_require_terminal_without_client_execution_or_writes() {
+    let fixture = Fixture::new("install-all-no-terminal");
+    for verb in ["install", "upgrade", "update"] {
+        for suffix in [
+            vec!["all"],
+            vec!["all", "--language", "en"],
+            vec!["plugin", "--target", "all"],
+            vec!["plugin", "--target", "6"],
+            vec!["plugin", "--target", "1,2,4,5"],
+        ] {
+            let result = fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), &fixture)
+                .env("PATH", "")
+                .arg(verb)
+                .args(suffix)
+                .output()
+                .unwrap();
+            assert_eq!(result.status.code(), Some(2), "{}", public_output(&result));
+            assert!(result.stdout.is_empty());
+            assert!(public_output(&result).contains("requires a terminal"));
+            assert!(!fixture.config_root.exists());
+            assert_eq!(fs::read_dir(&fixture.home).unwrap().count(), 0);
+        }
+        let help = run_configured(&fixture, &[verb, "--help"]);
+        assert!(help.status.success());
+        assert!(public_output(&help).contains("all"));
+    }
+}
+
+#[test]
 fn guided_installation_requires_a_terminal_and_local_mcp_checks_do_not_claim_host_readiness() {
     let fixture = Fixture::new("guided-install-mcp-check");
     for args in [

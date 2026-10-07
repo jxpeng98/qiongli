@@ -1257,18 +1257,29 @@ fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Comman
     }
     let surface = args.first().and_then(|value| value.to_str());
     let operation = match surface {
-        Some("plugin") if upgrade => "plugin-source-update",
-        Some("plugin") => "plugin-source-install",
+        Some("plugin" | "all") if upgrade => "plugin-source-update",
+        Some("plugin" | "all") => "plugin-source-install",
         Some("skills") => "skills-reconcile",
         _ => {
             return Err(install_usage_error(
-                "choose plugin or skills; see qiongli upgrade --help",
+                "choose all, plugin or skills; see qiongli upgrade --help",
             ));
         }
     };
-    if surface == Some("plugin") && !args.iter().any(|arg| arg == "--dry-run") {
+    if surface == Some("all") && args.iter().any(|arg| arg == "--dry-run") {
+        return Err(install_usage_error(
+            "install all requires a terminal; --dry-run requires a single explicit Plugin target and destination",
+        ));
+    }
+    if matches!(surface, Some("plugin" | "all")) && !args.iter().any(|arg| arg == "--dry-run") {
         let mut options = crate::cli_content::InstallationGuide {
             plugin: true,
+            all_detected: surface == Some("all"),
+            targets: if surface == Some("all") {
+                crate::cli_content::plugin_hosts("all").expect("all is a supported Host preset")
+            } else {
+                Vec::new()
+            },
             ..Default::default()
         };
         if !(args.len() - 1).is_multiple_of(2) {
@@ -1277,12 +1288,15 @@ fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Comman
         for pair in args[1..].chunks_exact(2) {
             match pair[0].to_str() {
                 Some("--target") if options.targets.is_empty() => {
+                    options.all_detected = crate::cli_content::all_plugin_hosts_selection(
+                        pair[1].to_str().unwrap_or_default(),
+                    );
                     options.targets = crate::cli_content::plugin_hosts(
                         pair[1].to_str().unwrap_or_default(),
                     )
                     .map_err(|_| {
                         install_usage_error(
-                            "choose codex, claude, deepseek, a comma-separated list, or all",
+                            "choose codex, claude, deepseek, antigravity, a comma-separated list, or all",
                         )
                     })?;
                 }
@@ -1351,7 +1365,7 @@ fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
         return Err(install_usage_error("an install subcommand is required"));
     };
     match subcommand {
-        "plugin" | "skills" => parse_content_install_args(args, false),
+        "all" | "plugin" | "skills" => parse_content_install_args(args, false),
         "--interactive" if args.len() == 1 => Ok(Command::InstallInteractive(Default::default())),
         "--help" if args.len() == 1 => Ok(Command::InstallHelp),
         "status" if args.len() == 1 => Ok(Command::InstallStatus),
@@ -2391,7 +2405,7 @@ fn parse_update_args(args: &[OsString]) -> Result<Command, UsageError> {
         return Err(update_usage_error("an update subcommand is required"));
     };
     match subcommand {
-        "plugin" | "skills" | "cli" => parse_content_install_args(args, true),
+        "all" | "plugin" | "skills" | "cli" => parse_content_install_args(args, true),
         "--help" if args.len() == 1 => Ok(Command::UpdateHelp),
         "status" if args.len() == 1 => Ok(Command::Update(UpdateCliCommand::Status)),
         "recovery-preview" if args.len() == 1 => {
@@ -3502,7 +3516,7 @@ mod tests {
     #[test]
     fn plugin_targets_share_the_interactive_multi_selection_parser() {
         for upgrade in [false, true] {
-            for selection in ["deepseek", "codex,deepseek", "all", "1 2 4", "3,4"] {
+            for selection in ["deepseek", "codex,deepseek", "all", "6", "1 2 4", "3,4"] {
                 let args = ["plugin", "--target", selection].map(OsString::from);
                 let Ok(Command::InstallInteractive(options)) =
                     parse_content_install_args(&args, upgrade)
@@ -3512,6 +3526,10 @@ mod tests {
                 assert_eq!(
                     options.targets,
                     crate::cli_content::plugin_hosts(selection).unwrap()
+                );
+                assert_eq!(
+                    options.all_detected,
+                    crate::cli_content::all_plugin_hosts_selection(selection)
                 );
             }
         }
@@ -3528,6 +3546,60 @@ mod tests {
                 )
                 .is_err()
             );
+        }
+    }
+
+    #[test]
+    fn install_all_parser_preserves_detection_and_rejects_ambiguous_options() {
+        for upgrade in [false, true] {
+            for args in [
+                vec!["all"],
+                vec!["all", "--language", "zh"],
+                vec!["plugin", "--target", "6"],
+                vec!["plugin", "--target", "all"],
+            ] {
+                let args = args.into_iter().map(OsString::from).collect::<Vec<_>>();
+                let Ok(Command::InstallInteractive(options)) =
+                    parse_content_install_args(&args, upgrade)
+                else {
+                    panic!("expected all detected guide");
+                };
+                assert!(options.plugin && options.all_detected);
+                assert_eq!(
+                    options.targets,
+                    crate::cli_content::plugin_hosts("all").unwrap()
+                );
+            }
+            for args in [
+                vec!["plugin", "--target", "1,2,4,5"],
+                vec!["plugin", "--target", "codex,claude,deepseek,agy"],
+            ] {
+                let args = args.into_iter().map(OsString::from).collect::<Vec<_>>();
+                assert!(
+                    matches!(parse_content_install_args(&args, upgrade), Ok(Command::InstallInteractive(options)) if !options.all_detected && options.targets.len() == 4)
+                );
+            }
+            for args in [
+                vec!["all", "--dry-run"],
+                vec!["all", "--target", "codex"],
+                vec!["all", "--destination", "/source"],
+                vec!["all", "--hooks", "off"],
+                vec!["all", "--language", "fr"],
+                vec!["all", "--language", "en", "--language", "zh"],
+                vec!["all", "--language"],
+                vec!["all", "--yes"],
+                vec!["all", "--profile", "full"],
+                vec!["plugin", "--target", "all", "--dry-run"],
+                vec!["plugin", "--target", "6", "--hooks", "off"],
+                vec!["plugin", "--target", "all", "--target", "codex"],
+                vec!["plugin", "--target", "all,claude"],
+            ] {
+                let args = args.into_iter().map(OsString::from).collect::<Vec<_>>();
+                assert!(
+                    parse_content_install_args(&args, upgrade).is_err(),
+                    "{args:?}"
+                );
+            }
         }
     }
 

@@ -139,6 +139,7 @@ pub struct BundledContentReview {
 #[derive(Default, Debug, Eq, PartialEq)]
 pub struct InstallationGuide {
     pub(crate) plugin: bool,
+    pub(crate) all_detected: bool,
     pub(crate) targets: Vec<PluginInstallHost>,
     pub(crate) destination: Option<std::path::PathBuf>,
     pub(crate) context_hooks: Option<bool>,
@@ -182,9 +183,13 @@ const PLUGIN_HOSTS: &[(&str, &str, &str, PluginInstallHost)] = &[
     ),
 ];
 
+pub(crate) fn all_plugin_hosts_selection(selection: &str) -> bool {
+    matches!(selection.trim(), "all" | "6")
+}
+
 pub(crate) fn plugin_hosts(selection: &str) -> Result<Vec<PluginInstallHost>, &'static str> {
     let selection = selection.trim();
-    if selection == "all" {
+    if all_plugin_hosts_selection(selection) {
         return Ok(PLUGIN_HOSTS.iter().map(|entry| entry.3).collect());
     }
     let mut hosts = Vec::new();
@@ -215,6 +220,42 @@ pub(crate) fn plugin_hosts(selection: &str) -> Result<Vec<PluginInstallHost>, &'
     if hosts.is_empty() {
         return Err("installation-selection-invalid");
     }
+    Ok(hosts)
+}
+
+fn installed_plugin_hosts(
+    mut detected: impl FnMut(&str) -> bool,
+    writer: &mut impl Write,
+) -> Result<Vec<PluginInstallHost>, &'static str> {
+    let mut hosts = Vec::new();
+    let mut names = Vec::new();
+    for (_, _, name, host) in PLUGIN_HOSTS {
+        let executable = match host {
+            PluginInstallHost::Managed(ManagedHost::Codex) => "codex",
+            PluginInstallHost::Managed(ManagedHost::ClaudeCode) => "claude",
+            PluginInstallHost::DeepSeek => "dsh",
+            PluginInstallHost::Antigravity => "agy",
+        };
+        if detected(executable) {
+            hosts.push(*host);
+            names.push(*name);
+        } else {
+            line(
+                writer,
+                &format!("Skipping {name}: {executable} CLI not found.\n"),
+            )?;
+        }
+    }
+    if hosts.is_empty() {
+        return Err("installation-no-hosts-detected");
+    }
+    line(
+        writer,
+        &format!(
+            "Install all detected Hosts: {}. Each Plugin includes Skills and Full MCP.\n",
+            names.join(", ")
+        ),
+    )?;
     Ok(hosts)
 }
 
@@ -250,16 +291,7 @@ impl InstallationGuide {
         let reader = &mut io::stdin().lock();
         let writer = &mut io::stdout().lock();
         let result = if self.plugin {
-            install_plugins(
-                environment,
-                content,
-                self.targets,
-                self.destination,
-                self.context_hooks,
-                self.language,
-                reader,
-                writer,
-            )
+            install_plugins(environment, content, self, reader, writer)
         } else {
             guide(environment, content, reader, writer)
         };
@@ -281,7 +313,7 @@ fn guide(
     line(
         writer,
         &format!(
-            "Qiongli {} — connect your research tools\nVisible CLI installations: {}. The running CLI supplies this installation.\n\n1. Plugin (recommended): Skills + native program + Full MCP (33 tools).\n2. Skills files only: export guidance; no MCP or automatic Host registration.\n3. MCP connection only: show configuration for your existing Host.\n4. Review CLI versions and manual cleanup guidance.\n0. Cancel.\n",
+            "Qiongli {} — connect your research tools\nVisible CLI installations: {}. The running CLI supplies this installation.\n\n1. Plugin (recommended): Skills + native program + Full MCP.\n2. Skills files only: export guidance; no MCP or automatic Host registration.\n3. MCP connection only: show configuration for your existing Host.\n4. Review CLI versions and manual cleanup guidance.\n5. Install all detected Hosts: each Plugin includes Skills + Full MCP.\n0. Cancel.\n",
             env!("CARGO_PKG_VERSION"),
             inventory.installations.len()
         ),
@@ -314,14 +346,15 @@ fn guide(
             preset: ManagedSkillsPresetV1::QiongliManaged,
             profile: qiongli_content::ProfileId::Full,
         },
-        "" | "1" => {
+        "" | "1" | "5" | "all" => {
             return install_plugins(
                 environment,
                 content,
-                Vec::new(),
-                None,
-                None,
-                None,
+                InstallationGuide {
+                    plugin: true,
+                    all_detected: matches!(select.as_str(), "5" | "all"),
+                    ..Default::default()
+                },
                 reader,
                 writer,
             );
@@ -341,18 +374,22 @@ fn guide(
     .map(|_| ())
 }
 
-#[allow(clippy::too_many_arguments)] // Shared terminal installer options, including the selected metadata language.
 fn install_plugins(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
-    mut targets: Vec<PluginInstallHost>,
-    destination: Option<std::path::PathBuf>,
-    context_hooks: Option<bool>,
-    language: Option<String>,
+    options: InstallationGuide,
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> Result<(), &'static str> {
-    if targets.is_empty() {
+    let InstallationGuide {
+        mut targets,
+        mut all_detected,
+        destination,
+        context_hooks,
+        language,
+        ..
+    } = options;
+    if targets.is_empty() && !all_detected {
         let default = if environment.client_executable("codex").is_none()
             && environment.client_executable("claude").is_some()
         {
@@ -369,7 +406,7 @@ fn install_plugins(
             reader,
             writer,
             &format!(
-                "Hosts (comma/space separated): {entries}, 3 Codex+Claude, all, 0 cancel [{default}]: "
+                "Hosts (comma/space separated): {entries}, 3 Codex+Claude, 6 All detected Hosts (all), 0 cancel [{default}]: "
             ),
         )
         .map_err(|_| "installation-input-failed")?;
@@ -381,6 +418,14 @@ fn install_plugins(
         } else {
             &selection
         })?;
+        all_detected = all_plugin_hosts_selection(&selection);
+    }
+    if all_detected {
+        // Validate the all-Host preset before discovery: finding only one Host
+        // does not make shared destinations or Host-specific flags meaningful.
+        validate_host_options(&plugin_hosts("all")?, destination.as_deref(), context_hooks)?;
+        targets =
+            installed_plugin_hosts(|name| environment.client_executable(name).is_some(), writer)?;
     }
     validate_host_options(&targets, destination.as_deref(), context_hooks)?;
     line(
@@ -707,6 +752,9 @@ impl BundledContentReview {
 
 fn installation_failure(code: &'static str) -> CliOutput {
     let hint = match code {
+        "installation-no-hosts-detected" => {
+            "No supported Host CLI was found. Install codex, claude, dsh or agy, or make its CLI available on PATH, then rerun qiongli install all. No Plugins were installed."
+        }
         "plugin-source-destination-invalid" => {
             "Choose an absolute directory ending in qiongli or qiongli-next with an existing parent, or omit --destination to reuse the registered source."
         }
@@ -840,17 +888,91 @@ mod tests {
             "3,4,5",
             "both 4 agy",
             "all",
+            "6",
             "1,1,2,4,4,5",
         ] {
             assert_eq!(plugin_hosts(selection).unwrap(), all);
         }
         assert_eq!(plugin_hosts("4 1").unwrap(), vec![all[2], all[0]]);
-        for selection in ["", "0", "1,unknown", "1 all", "6"] {
+        for selection in ["", "0", "1,unknown", "1 all", "7"] {
             assert!(plugin_hosts(selection).is_err());
         }
         assert!(validate_host_options(&all, None, None).is_ok());
         assert!(validate_host_options(&all, None, Some(false)).is_err());
         assert!(validate_host_options(&all, Some(std::path::Path::new("/source")), None).is_err());
+    }
+
+    #[test]
+    fn all_detected_selection_preserves_explicit_list_strictness() {
+        for selection in ["all", "6", " all ", " 6 "] {
+            assert!(all_plugin_hosts_selection(selection));
+            assert_eq!(plugin_hosts(selection).unwrap().len(), 4);
+        }
+        for selection in [
+            "1,2,4,5",
+            "codex,claude,deepseek,antigravity",
+            "both",
+            "5",
+            "agy",
+            "ALL",
+            "all,1",
+            "6 1",
+            "",
+        ] {
+            assert!(!all_plugin_hosts_selection(selection));
+        }
+    }
+
+    #[test]
+    fn all_detected_hosts_filter_in_order_without_executing_clients() {
+        for present in [
+            vec!["codex", "agy"],
+            vec!["claude", "dsh"],
+            vec!["codex", "claude", "dsh", "agy"],
+            vec![],
+        ] {
+            let mut checked = Vec::new();
+            let mut output = Vec::new();
+            let actual = installed_plugin_hosts(
+                |name| {
+                    checked.push(name.to_owned());
+                    present.contains(&name)
+                },
+                &mut output,
+            );
+            assert_eq!(checked, ["codex", "claude", "dsh", "agy"]);
+            let expected = PLUGIN_HOSTS
+                .iter()
+                .zip(&checked)
+                .filter(|(_, executable)| present.contains(&executable.as_str()))
+                .map(|(entry, _)| entry.3)
+                .collect::<Vec<_>>();
+            let text = String::from_utf8(output).unwrap();
+            for (entry, executable) in PLUGIN_HOSTS.iter().zip(&checked) {
+                assert_eq!(
+                    text.contains(&format!(
+                        "Skipping {}: {executable} CLI not found.",
+                        entry.2
+                    )),
+                    !present.contains(&executable.as_str())
+                );
+            }
+            if expected.is_empty() {
+                assert_eq!(actual.unwrap_err(), "installation-no-hosts-detected");
+                assert!(!text.contains("Install all detected Hosts:"));
+            } else {
+                assert_eq!(actual.unwrap(), expected);
+                let labels = PLUGIN_HOSTS
+                    .iter()
+                    .zip(&checked)
+                    .filter(|(_, executable)| present.contains(&executable.as_str()))
+                    .map(|(entry, _)| entry.2)
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                assert!(text.contains(&format!("Install all detected Hosts: {labels}.")));
+                assert!(text.contains("Each Plugin includes Skills and Full MCP."));
+            }
+        }
     }
 
     #[test]

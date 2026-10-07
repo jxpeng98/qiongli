@@ -5,6 +5,7 @@
 ## 选择 Host
 
 ```sh
+qiongli install all
 qiongli install plugin --target codex
 qiongli install plugin --target claude
 qiongli install plugin --target deepseek
@@ -12,7 +13,20 @@ qiongli install plugin --target antigravity
 qiongli install plugin --target codex,deepseek
 ```
 
-不填 `--target` 时显示菜单，`--target all` 逐个处理。取消或失败会停止后续步骤，保留已完成的安装；每个 Host 单独批准。Codex 与 Claude 使用各自的源目录，单个 Host 可用 `--destination` 指定父目录已存在的路径。
+**2.4.0 之后的下一次更新：** 使用 `qiongli install all`，或在主安装菜单选
+**5（全部安装）**、Plugin 的 Host 菜单选 **6 / all**，即可依次为所有检测到的
+受支持客户端 CLI（`codex`、`claude`、`dsh`、`agy`）安装 Plugin。每个 Plugin
+已包含 Skills 和 Full MCP，无需分别安装。向导会列出选中的客户端和因缺少 CLI
+而跳过的客户端；一个也没找到时停止，不执行安装。此命令不安装客户端程序本身。
+`upgrade all`、`update all` 更新同一组检测到的客户端；可用
+`--language auto|zh|en` 统一选择本轮描述语言。
+
+不填 `--target` 时显示菜单；`--target all` 使用同样的自动选择。
+显式指定 `--target codex,claude` 等列表时，仍要求这些客户端均可用。
+每个 Host 保留各自的文件变更与注册批准流程；版本不支持、冲突、取消或失败会停止后续步骤，
+保留已完成的安装。Codex 与 Claude 使用各自的源目录，请在向导中分别选择或复用。
+单个 Host 可用 `--destination` 指定父目录已存在的路径。全部安装不接受
+`--destination`、`--hooks` 或 `--dry-run`；这些选项需显式选择兼容的 Host。
 
 文件导出与官方 Host 注册分别确认。取消注册会保留导出文件，不改变 Host 设置；处理失败原因后对同一 Host 重试。保留旧源目录与缓存便于恢复。已知 Codex 冲突可确认迁移，Claude 冲突需手动停用。
 
