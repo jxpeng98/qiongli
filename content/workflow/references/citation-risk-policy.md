@@ -37,6 +37,14 @@ supports the particular claim, including scope and qualifications. Verified
 bibliographic metadata alone does not verify its findings or justify a full-text
 reading claim.
 
+Treat judgments about the literature's coverage, priority or usual practice as
+claims too: selected examples do not establish that a method is rare, a design
+is the only benchmark or a topic is exhausted. Bound such statements to the
+inspected corpus unless broader evidence supports them. Dataset-linkage and
+variable-availability claims need the relevant documentation, version or inspected
+data; a nearby substantive paper need not establish those capabilities. Cite the
+appropriate source or retain the specific verification gap.
+
 Use enough relevant sources to represent the evidence and consequential
 disagreement, without padding a reference count or attaching every available
 source to every sentence. The paper's stated aims, organizational signposts and

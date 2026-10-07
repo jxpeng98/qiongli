@@ -1,0 +1,20 @@
+{
+  "kind": "qiongli-invented-lr-positioning-inputs/v1",
+  "scope": "targeted regression using previously observed invented evidence; no private manuscript content",
+  "source": {
+    "path": "../writing-quality/sources.md",
+    "sha256": "fd428fee66d84c8e91c2bd02c4d55e41f5b20e7a5a6b33c44d00d7f5a13d72f7",
+    "selected_records": [
+      "S1",
+      "S2",
+      "S3",
+      "S4"
+    ]
+  },
+  "files": {
+    "README.md": "07984a4f4ccb9fb14b0ed4692c60ba353d47f37ded764d09c3bc14a38808ec86",
+    "draft.md": "59ae462f83010d3abba6f6d750cbfaaf7da4ebc3c4b4237df47fcd3789b84511",
+    "review-criteria.md": "11496d3cd487d204be02a746a78f04ad4611d217792ef40f7785b4b19e42c44c",
+    "task.md": "23494e6c2f2bb8d69ba47d6b563a4c2dfac83e5bfc3c0bb68ccc902653485b9c"
+  }
+}

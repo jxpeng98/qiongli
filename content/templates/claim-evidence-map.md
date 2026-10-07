@@ -21,7 +21,10 @@ citations: a citation link records
 attribution, not direct support.
 Build coverage from the current manuscript, including methods/results, captions
 and footnotes/endnotes, not only central introductory or discussion claims. Split
-compound assertions when their sources or limits differ. In Manuscript Location,
+compound assertions when their sources or limits differ. Separate an independently
+checkable reported finding from an inference drawn from it, even when both use
+the same source passage. Keep the finding's essential qualifiers attached; this
+does not require a new claim ID for every clause. In Manuscript Location,
 retain the section/paragraph or note ID and a short exact text span; reconcile it
 after edits and bind the draft identity in the existing review packet. Missing
 support stays an explicit gap. Signposts and stated aims need no invented source.

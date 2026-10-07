@@ -24,6 +24,12 @@ setup needs a separate frozen observation, not replacement of the failed capture
 
 ## Writing depth and expression checks
 
+`lr-positioning/` reuses the invented writing packet to test whether a manuscript
+review develops the evidence before using it to position the paper. It retains
+an earlier draft, a separate task and review criteria, and immutable input hashes.
+This targeted regression captures a diagnosed prose pattern without storing the
+private manuscript that motivated it or claiming a held-out quality result.
+
 `writing-quality/tasks.md` and `sources.md` provide three synthetic requests for
 an RQ-linked literature review, faithful English expression editing and cited
 background with explanatory notes. Keep `review-criteria.md` out of the drafting

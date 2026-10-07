@@ -165,11 +165,30 @@ abstract-only access into a claim of full-paper appraisal.
 Connect the resulting synthesis to a concrete choice in this paper: a construct
 definition, theoretical expectation, comparison, design decision or unresolved
 question. "This is relevant to our topic" is insufficient without that connection.
+Explain what remains unknown and what answering it would change. A list of
+estimators, datasets or robustness checks does not by itself explain a substantive
+contribution. Likewise, saying an estimate is not new or a dataset cannot identify
+a mechanism does not replace explaining what the cited evidence establishes.
 Keep competing explanations and limits that constrain the proposed contribution.
 An unmeasured outcome is a gap in the inspected corpus, not proof that no prior
 research exists. The evidence may support adopting or refining an existing account
 rather than claiming novelty. These are analytical decisions, not a fixed
 paragraph template, a study-count quota or a demand for a mechanism everywhere.
+
+Use boundary reviews, feasibility decisions and analysis plans as drafting inputs,
+not ready-made literature-review prose. Preserve consequential inferential limits
+and methodological debates, but keep detailed implementation/reporting rules in
+the section that needs them. The reader should understand the literature's actual
+findings and unresolved question without reconstructing them from statements about
+what this paper will not claim. A review may motivate a design; that motivation
+must not crowd out the evidence it is supposed to synthesize.
+
+When comparing estimates, explain whether their outcomes, populations, periods
+and estimands permit the proposed comparison. A numerical ordering alone cannot
+establish why studies differ. If the available sources do not support that
+comparison, distinguish their questions and preserve the uncertainty rather than
+inventing a reconciliation. For a supplied section, check available surrounding
+definitions before treating an unexplained term as absent from the whole paper.
 
 ### Citation coverage and explanatory notes
 

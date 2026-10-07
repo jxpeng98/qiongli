@@ -69,6 +69,10 @@ owner; a manuscript LR request is not automatically a formal B1 systematic revie
 `citation-risk-policy.md` covers source-dependent background and note claims.
 Neither citation/paragraph quotas nor explanatory notes replace inspected support
 or authorize a new search, project write or substantive change during proofreading.
+Stage F distinguishes literature synthesis from internal positioning/protocol
+notes; source comparability and a substantive unresolved question must remain
+readable. Citation risk also covers field-wide priority/practice and dataset
+capability claims, bounded by the evidence actually inspected.
 
 Manuscript-first claim detection and reverse lookup are owned by the existing
 `evidence-verification.md` reference and consumed by Stage F during drafting and
