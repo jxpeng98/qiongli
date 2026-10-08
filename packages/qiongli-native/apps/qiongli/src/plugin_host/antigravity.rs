@@ -140,8 +140,19 @@ pub(crate) fn install(
     {
         return Err("local-host-precondition-changed");
     }
-    for args in &plan.commands {
-        run(environment, &executable, args)?;
+    for (index, args) in plan.commands.iter().enumerate() {
+        line(
+            writer,
+            &format!("  Manager step {}/{}\n", index + 1, plan.commands.len()),
+        )?;
+        super::installation_command::run(
+            environment,
+            &executable,
+            args,
+            Duration::from_secs(30),
+            false,
+            writer,
+        )?;
     }
     let installed = prepare(environment, content, &executable, &source, language)?;
     if installed.cache_receipt_sha256 != installed.source_receipt_sha256

@@ -46,6 +46,7 @@ decision must be recorded as a new superseding ADR.
 | `CLI-402` | [ADR 0235](0235-install-plugins-for-detected-hosts.md) | Accepted | One install-all entry selects detected Host CLIs and reuses separate Plugin approvals; explicit Host lists remain strict |
 | `CLI-409` | [ADR 0236](0236-pi-local-package-adapter.md) | Accepted | Pi local package with compact Skills and native MCP, integrated into detected Host installation |
 | `CLI-402` | [ADR 0237](0237-automatic-plugin-source-selection.md) | Accepted | Detected-all defaults and verified per-Host source selection without platform/path prompts |
+| `CLI-402` | [ADR 0238](0238-resilient-plugin-installation.md) | Accepted | Per-Host progress, bounded diagnostics, continued batches and targeted recovery summaries |
 
 ## Decision lifecycle
 

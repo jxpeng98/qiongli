@@ -10915,6 +10915,17 @@ pub(crate) fn bounded_private_host_os_command_with_timeout(
     arguments: &[OsString],
     timeout: Duration,
 ) -> Result<String, HostCommandFailure> {
+    run_bounded_command(
+        private_host_command(environment, executable, arguments)?,
+        timeout,
+    )
+}
+
+fn private_host_command(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    arguments: &[OsString],
+) -> Result<Command, HostCommandFailure> {
     #[cfg(unix)]
     let command = {
         // The script is fixed; every executable/path remains an argv element.
@@ -10932,7 +10943,31 @@ pub(crate) fn bounded_private_host_os_command_with_timeout(
     };
     #[cfg(not(unix))]
     let command = official_host_command(environment, executable, arguments)?;
-    run_bounded_command(command, timeout)
+    Ok(command)
+}
+
+pub(crate) struct HostCommandOutput {
+    pub(crate) status: std::process::ExitStatus,
+    pub(crate) stdout: Vec<u8>,
+    pub(crate) stderr: Vec<u8>,
+}
+
+/// Terminal installation diagnostics use the same environment, limits and
+/// process owner as read-only Host commands. Raw output is never printed here.
+pub(crate) fn host_installation_command_with_progress(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    arguments: &[OsString],
+    timeout: Duration,
+    private_profile: bool,
+    progress: impl FnMut(Duration) -> bool,
+) -> Result<HostCommandOutput, HostCommandFailure> {
+    let command = if private_profile {
+        private_host_command(environment, executable, arguments)?
+    } else {
+        official_host_command(environment, executable, arguments)?
+    };
+    run_bounded_command_capture(command, timeout, 512 * 1024, progress)
 }
 
 #[allow(
@@ -11034,46 +11069,87 @@ fn run_bounded_command(command: Command, timeout: Duration) -> Result<String, Ho
 }
 
 fn run_bounded_command_output(
-    mut command: Command,
+    command: Command,
     timeout: Duration,
     maximum_output_bytes: usize,
 ) -> Result<(String, String), HostCommandFailure> {
+    let output = run_bounded_command_capture(command, timeout, maximum_output_bytes, |_| true)?;
+    if !output.status.success() {
+        return Err(HostCommandFailure::NonZeroExit);
+    }
+    let stdout = String::from_utf8(output.stdout).map_err(|_| HostCommandFailure::InvalidUtf8)?;
+    let stderr = String::from_utf8(output.stderr).map_err(|_| HostCommandFailure::InvalidUtf8)?;
+    Ok((stdout, stderr))
+}
+
+fn stop_host_child(child: &mut std::process::Child) {
+    // Retain the original process-group membership so terminal Ctrl-C reaches
+    // the manager too. A timeout stops the direct child; descendants may remain.
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
+fn run_bounded_command_capture(
+    mut command: Command,
+    timeout: Duration,
+    maximum_output_bytes: usize,
+    mut progress: impl FnMut(Duration) -> bool,
+) -> Result<HostCommandOutput, HostCommandFailure> {
     let mut child = command.spawn().map_err(|_| HostCommandFailure::Spawn)?;
     let stdout = child.stdout.take().ok_or(HostCommandFailure::OutputRead)?;
     let stderr = child.stderr.take().ok_or(HostCommandFailure::OutputRead)?;
-    let stdout_reader =
-        thread::spawn(move || read_bounded_host_output(stdout, maximum_output_bytes));
-    let stderr_reader =
-        thread::spawn(move || read_bounded_host_output(stderr, maximum_output_bytes));
-    let deadline = Instant::now() + timeout;
+    let (stdout_tx, stdout_rx) = std::sync::mpsc::channel();
+    let (stderr_tx, stderr_rx) = std::sync::mpsc::channel();
+    thread::spawn(move || {
+        let _ = stdout_tx.send(read_bounded_host_output(stdout, maximum_output_bytes));
+    });
+    thread::spawn(move || {
+        let _ = stderr_tx.send(read_bounded_host_output(stderr, maximum_output_bytes));
+    });
+    let start = Instant::now();
+    let deadline = start + timeout;
+    let mut next_progress = start + Duration::from_secs(5);
     let status = loop {
+        if Instant::now() >= next_progress {
+            if !progress(start.elapsed()) {
+                stop_host_child(&mut child);
+                return Err(HostCommandFailure::OutputRead);
+            }
+            next_progress = Instant::now() + Duration::from_secs(5);
+        }
         match child.try_wait() {
-            Ok(Some(status)) => break Ok(status),
+            Ok(Some(status)) => break status,
             Ok(None) if Instant::now() < deadline => thread::sleep(Duration::from_millis(20)),
             Ok(None) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                break Err(HostCommandFailure::Timeout);
+                stop_host_child(&mut child);
+                return Err(HostCommandFailure::Timeout);
             }
             Err(_) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                break Err(HostCommandFailure::Wait);
+                stop_host_child(&mut child);
+                return Err(HostCommandFailure::Wait);
             }
         }
     };
-    let stdout = stdout_reader
-        .join()
-        .map_err(|_| HostCommandFailure::OutputRead)??;
-    let stderr = stderr_reader
-        .join()
-        .map_err(|_| HostCommandFailure::OutputRead)??;
-    if !status?.success() {
-        return Err(HostCommandFailure::NonZeroExit);
+    // Descendants can keep pipes open after the parent exits. Their EOF must
+    // share the same deadline; joining reader threads must never wait forever.
+    let receive = |rx: std::sync::mpsc::Receiver<Result<Vec<u8>, HostCommandFailure>>| {
+        rx.recv_timeout(deadline.saturating_duration_since(Instant::now()))
+            .map_err(|error| match error {
+                std::sync::mpsc::RecvTimeoutError::Timeout => HostCommandFailure::Timeout,
+                std::sync::mpsc::RecvTimeoutError::Disconnected => HostCommandFailure::OutputRead,
+            })?
+    };
+    let output = receive(stdout_rx).and_then(|stdout| {
+        receive(stderr_rx).map(|stderr| HostCommandOutput {
+            status,
+            stdout,
+            stderr,
+        })
+    });
+    if output.is_err() {
+        stop_host_child(&mut child);
     }
-    let stdout = String::from_utf8(stdout).map_err(|_| HostCommandFailure::InvalidUtf8)?;
-    let stderr = String::from_utf8(stderr).map_err(|_| HostCommandFailure::InvalidUtf8)?;
-    Ok((stdout, stderr))
+    output
 }
 
 fn read_bounded_host_output(
@@ -12257,6 +12333,44 @@ mod tests {
         );
 
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn installation_capture_preserves_exit_diagnostics_and_bounds_descendant_pipes() {
+        let root = isolated_root("installation-command-capture");
+        fs::create_dir_all(&root).unwrap();
+        let environment = CommandEnvironment::with_paths(None, Some(root.clone()), None);
+        let output = host_installation_command_with_progress(
+            &environment,
+            Path::new("/bin/sh"),
+            &[
+                "-c",
+                "printf progress; printf 'ETARGET synthetic detail' >&2; exit 17",
+            ]
+            .map(OsString::from),
+            Duration::from_secs(2),
+            false,
+            |_| true,
+        )
+        .unwrap();
+        assert_eq!(output.status.code(), Some(17));
+        assert_eq!(output.stdout, b"progress");
+        assert_eq!(output.stderr, b"ETARGET synthetic detail");
+        let start = Instant::now();
+        assert!(matches!(
+            host_installation_command_with_progress(
+                &environment,
+                Path::new("/bin/sh"),
+                &["-c", "sleep 4 & exit 0"].map(OsString::from),
+                Duration::from_millis(100),
+                false,
+                |_| true,
+            ),
+            Err(HostCommandFailure::Timeout)
+        ));
+        assert!(start.elapsed() < Duration::from_secs(2));
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

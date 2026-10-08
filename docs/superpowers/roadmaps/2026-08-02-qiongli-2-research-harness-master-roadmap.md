@@ -54,7 +54,16 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 8, 2026
 
-The current bounded request removes repeated Host/path choices from installation
+The current bounded request adds visible installation progress, actionable DSH
+diagnostics and continued multi-Host installation after individual failures.
+The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--installation-progress-diagnostics-and-batch-recovery)
+owns this local increment after `d715fd35`; ADR 0238 supersedes only the batch
+stop policy. Existing approvals and source/receipt owners remain. The actual
+user-side DSH cause is unconfirmed until its diagnostics are available; synthetic
+reproduction establishes the lost-output defect. No publication or release
+monitoring is part of this request.
+
+The preceding bounded request removes repeated Host/path choices from installation
 and updates. Reuse the existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--automatic-host-and-source-selection): detected-all defaults, verified
 source reuse and separate fresh directories through the existing approval owners.
 This is local development after `60399ef5`, without renewed publication or

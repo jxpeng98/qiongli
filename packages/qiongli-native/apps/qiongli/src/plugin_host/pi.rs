@@ -115,8 +115,19 @@ pub(crate) fn install(
         let _guard = crate::update_reconcile::acquire_managed_write_guard(home, root)?;
         recheck(environment, content, &plan, reviewed)?;
         let before = read_json(&plan.agent_dir.join("settings.json"))?;
-        for args in &plan.commands {
-            run(environment, &executable, args)?;
+        for (index, args) in plan.commands.iter().enumerate() {
+            line(
+                writer,
+                &format!("  Manager step {}/{}\n", index + 1, plan.commands.len()),
+            )?;
+            super::installation_command::run(
+                environment,
+                &executable,
+                args,
+                Duration::from_secs(30),
+                true,
+                writer,
+            )?;
         }
         let after = read_json(&plan.agent_dir.join("settings.json"))?;
         verify_registration(&before, &after, &plan.agent_dir, home, &source)?;

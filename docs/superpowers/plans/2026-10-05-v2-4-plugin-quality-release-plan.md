@@ -2645,3 +2645,73 @@ qualification. Integrate through the normal local feature-branch fast-forward;
 next qualify these native changes for a separately selected delivery. The prior
 2.5.0 packages do not establish acceptance for the changed installer. No push,
 new release, real client-profile update or previous-release monitoring occurs.
+
+## October 8 — installation progress, diagnostics and batch recovery
+
+The maintainer reports DSH's generic `host-command-nonzero-exit` and requests
+visible progress, continued multi-client installation and a final recovery
+summary. Baseline is local `d715fd35bf353b7f52a9c164cf17355453a612c8`.
+Use the same bounded plan and CLI-402 owner; no release or real user-profile
+installation is authorized by this source-development increment.
+
+The gpt-6.1-sol / low verifier reproduces the missing-diagnostics defect with
+an isolated synthetic manager: stdout/stderr and exit 17 disappear behind a
+unit failure enum. The caller also discards successful command output, while
+`?` propagation stops the entire batch. This identifies Qiongli's reporting and
+batch-control defects; it does not establish why DSH failed on the user's
+machine. An optional OS/version/profile clarification remains separate.
+
+ADR 0238 records per-Host continuation, explicit declines as skips, input/output
+interruption as a stop and final nonzero partial-failure results. Existing source,
+receipt/CAS, official manager commands, file/registration approvals and model
+settings remain authoritative. The final summary carries targeted retries;
+manager diagnostics retain exit codes and known static categories plus the exact
+command/profile/version. Raw manager output is neither echoed nor saved, and
+unknown errors stay unknown. Per-Host/command counters and five-second elapsed
+messages expose progress without inventing download percentages.
+
+The shared process owner preserves its isolated environment, byte limits,
+legacy reason codes/UTF-8 interface and Pi's private umask. Pipe EOF now shares
+the command deadline. Normal terminal process-group membership is retained for
+Ctrl-C; timeouts still terminate the direct child only and may leave descendants.
+No automatic retry, process-tree termination or rollback is claimed. The native
+content pack, registry pin and platform support remain unchanged. Verification
+and integration evidence follows.
+
+Verification passes 39 focused Rust cases: nine content-guide, twenty Host
+installer/diagnostic, four installation-parser, four presentation and two bounded
+runner cases. The two runner cases are rechecked after preserving foreground
+process-group membership. Five isolated terminal cases pass: synthetic DSH
+ETARGET/exit 17 with five-second progress and no credential echo; a failed Codex
+step followed by a receipt-verified synthetic DSH installation; explicit decline
+followed by the next Host; EOF stopping later Hosts; and Ctrl-C terminating both
+the foreground CLI and its synthetic manager. These use private test profiles
+and fake managers; they do not establish a live DSH installation or session.
+
+Retained verification issue: the initial Ctrl-C fixture checked its child before
+Python processed the group signal. A bounded wait and fresh PID marker confirm
+both processes terminate; the initial observation remains in the evidence.
+Private stripped binaries reduce hashing cost without altering original build
+outputs. Final wording changes require only focused help/prompt/diagnostic checks;
+unchanged behavior tests retain their earlier source-bound results. No model,
+authentication or real profile data is used. Task-owned containers are removed,
+with unrelated containers preserved.
+
+Final rebuilt-CLI checks confirm the batch help and DSH skip prompt with no
+fixture-home writes; Hook skip and dependency-neutral diagnostic wording are
+present. Rust 1.97 formatting, CLI/library Clippy with denied warnings, ADR
+validation (seven frozen, 38 current), seven roadmap tests, generated-index
+consistency (249 tasks) and whitespace checks pass. Independent gpt-6.1-sol / low
+review reports no actionable findings. Compared with d715fd35, the ledger changes
+only CLI-402 progress text; states, dependencies, accepted evidence, commit/run
+fields and dates remain unchanged.
+
+Evidence: `/tmp/qiongli-install-resilience-20261008/verification-summary.json`,
+SHA-256 `1b7a1da2805e6f3c3291c73a7f3617edb5ae44a2facb7c263e7d862dd789d76c`.
+The summary binds current native source hashes and distinguishes fresh final
+wording checks from reused behavioral observations. This is local Linux ARM64
+verification, not package, cross-platform or live-Host acceptance. Integrate the
+reviewed feature branch locally after the frozen-source guard; next qualify the
+changed installer for a separately selected delivery. The user's DSH root cause
+still needs its actual diagnostics. No push, release, user-profile change or
+previous-release monitoring is included.

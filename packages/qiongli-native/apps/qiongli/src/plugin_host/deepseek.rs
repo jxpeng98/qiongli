@@ -55,7 +55,7 @@ pub(crate) fn install(
     let profile = crate::cli_inventory::choice(
         reader,
         writer,
-        &format!("DSH profile (0 cancels) [{default}]: "),
+        &format!("DSH profile (0 skips this Host) [{default}]: "),
     )
     .map_err(|_| "installation-input-failed")?;
     if profile == "0" {
@@ -114,9 +114,24 @@ fn review(
         return Err("local-host-precondition-changed");
     }
     line(writer, "Installing through the official DSH manager…\n")?;
-    for args in &plan.commands {
-        run(environment, &plan.executable, args)?;
+    for (index, args) in plan.commands.iter().enumerate() {
+        line(
+            writer,
+            &format!("  Manager step {}/{}\n", index + 1, plan.commands.len()),
+        )?;
+        super::installation_command::run(
+            environment,
+            &plan.executable,
+            args,
+            Duration::from_secs(120),
+            false,
+            writer,
+        )?;
     }
+    line(
+        writer,
+        "Verifying the installed package version and Plugin registration…\n",
+    )?;
     verify_installed(&plan.profile_directory, content)?;
     if let Some(language) = &plan.skill_language {
         write_language(&plan, language)?;
@@ -388,17 +403,19 @@ mod tests {
         fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
         for response in ["\n", "n\n", "y", ""] {
             let plan = prepare(&executable, &dsh_root, "probe").unwrap();
-            assert!(
-                !review(
-                    &environment,
-                    &content,
-                    &dsh_root,
-                    plan,
-                    &mut response.as_bytes(),
-                    &mut Vec::new()
-                )
-                .unwrap()
+            let result = review(
+                &environment,
+                &content,
+                &dsh_root,
+                plan,
+                &mut response.as_bytes(),
+                &mut Vec::new(),
             );
+            if response.ends_with('\n') {
+                assert!(!result.unwrap());
+            } else {
+                assert_eq!(result.unwrap_err(), "installation-input-failed");
+            }
             assert!(!home.join("calls").exists());
             assert!(!dsh_root.exists());
         }

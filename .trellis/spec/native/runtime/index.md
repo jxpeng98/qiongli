@@ -445,8 +445,16 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   retain missing-client failures. Validate the full all-Host preset before
   filtering so a single detected client does not allow shared destination or
   Host-specific Hook flags. All remains terminal-only; no batch App plan is added.
-  Each Host retains its existing installer and separate approval. This selection flow
-  stops on cancellation/failure. Foreign enabled Plugins refuse before export
+  Each Host retains its existing installer and separate approval. ADR 0238
+  continues after a Host failure or explicit decline, recording it in the final
+  summary with a targeted retry command; input/output interruption stops later
+  Hosts. Partial failures return nonzero and successful earlier installs remain.
+  Host/command counters and elapsed-time messages show actual progress. The
+  bounded process owner retains exit codes and captured bytes for allowlisted
+  installation diagnostics without printing raw manager output. Pipe EOF shares
+  its deadline; timeout stops the direct child, not necessarily its descendants.
+  Existing read-only callers retain their error and UTF-8 contracts.
+  Foreign enabled Plugins refuse before export
   with their exact names and manual disable guidance. See ADRs 0225 and 0235.
   ADR 0237 defaults the main guide to detected-all on Enter and makes unqualified
   Plugin commands auto-detect unless a destination/Hook override needs a Host

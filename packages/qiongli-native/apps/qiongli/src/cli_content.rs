@@ -436,131 +436,261 @@ fn install_plugins(
     validate_host_options(&targets, destination.as_deref(), context_hooks)?;
     line(
         writer,
-        "Each selected Host has its own preview and confirmation. Cancellation or failure stops here; completed Host steps remain installed.\n",
+        "Each Host keeps its own preview and confirmation. A failed or declined Host does not stop later Hosts. Closing input stops the batch; completed steps remain installed.\n",
     )?;
     let Some(language) = choose_skill_language(environment, language.as_deref(), reader, writer)?
     else {
         return line(writer, "Cancelled; no changes made.\n");
     };
-    let multiple = targets.len() > 1;
-    for selected in targets {
-        let host = PLUGIN_HOSTS
-            .iter()
-            .find(|entry| entry.3 == selected)
-            .ok_or("installation-selection-invalid")?
-            .2;
-        line(writer, &format!("\n{host} Plugin — install or update\n"))?;
-        let target = match selected {
-            PluginInstallHost::Pi => {
-                if !crate::plugin_host::pi::install(
-                    environment,
-                    content,
-                    destination.as_deref(),
-                    &language,
-                    reader,
-                    writer,
-                )? {
-                    break;
-                }
-                continue;
-            }
-            PluginInstallHost::Antigravity => {
-                if !crate::plugin_host::antigravity::install(
-                    environment,
-                    content,
-                    destination.as_deref(),
-                    &language,
-                    reader,
-                    writer,
-                )? {
-                    break;
-                }
-                continue;
-            }
-            PluginInstallHost::DeepSeek => {
-                if !crate::plugin_host::deepseek::install(
-                    environment,
-                    content,
-                    &language,
-                    reader,
-                    writer,
-                )? {
-                    break;
-                }
-                continue;
-            }
-            PluginInstallHost::Managed(target) => target,
-        };
-        let registered = crate::plugin_host::installation_source(
-            environment,
-            target,
-            destination.as_deref(),
+    let options = InstallationGuide {
+        plugin: true,
+        all_detected,
+        destination,
+        context_hooks,
+        language: Some(language),
+        ..Default::default()
+    };
+    install_batch(&targets, &options, writer, |host, writer| {
+        install_one_plugin(environment, content, host, &options, reader, writer)
+    })
+}
+
+fn install_one_plugin(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    selected: PluginInstallHost,
+    options: &InstallationGuide,
+    reader: &mut impl BufRead,
+    writer: &mut impl Write,
+) -> Result<bool, &'static str> {
+    let destination = &options.destination;
+    let language = options.language.as_ref().ok_or("skill-language-invalid")?;
+    let target = match selected {
+        PluginInstallHost::Pi => {
+            return crate::plugin_host::pi::install(
+                environment,
+                content,
+                destination.as_deref(),
+                language,
+                reader,
+                writer,
+            );
+        }
+        PluginInstallHost::Antigravity => {
+            return crate::plugin_host::antigravity::install(
+                environment,
+                content,
+                destination.as_deref(),
+                language,
+                reader,
+                writer,
+            );
+        }
+        PluginInstallHost::DeepSeek => {
+            return crate::plugin_host::deepseek::install(
+                environment,
+                content,
+                language,
+                reader,
+                writer,
+            );
+        }
+        PluginInstallHost::Managed(target) => target,
+    };
+    let registered = crate::plugin_host::installation_source(
+        environment,
+        target,
+        destination.as_deref(),
+        writer,
+    )?;
+    let path = if let Some(path) = &destination {
+        path.clone()
+    } else if let Some(path) = registered {
+        line(
             writer,
+            "Using the source directory registered with this Host.\n",
         )?;
-        let path = if let Some(path) = &destination {
-            path.clone()
-        } else if let Some(path) = registered {
-            line(
-                writer,
-                "Using the source directory registered with this Host.\n",
-            )?;
-            path
-        } else {
-            let default = automatic_source_directory(environment, content, target)?;
-            line(
-                writer,
-                "Plugin source files stay here. The Host loads its registered cache, including Skills and MCP; no copy to ~/.agents/skills is needed.\n",
-            )?;
-            show_json(
-                writer,
-                &serde_json::json!({"selected_source": default}).to_string(),
-            )?;
-            default
+        path
+    } else {
+        let default = automatic_source_directory(environment, content, target)?;
+        line(
+            writer,
+            "Plugin source files stay here. The Host loads its registered cache, including Skills and MCP; no copy to ~/.agents/skills is needed.\n",
+        )?;
+        show_json(
+            writer,
+            &serde_json::json!({"selected_source": default}).to_string(),
+        )?;
+        default
+    };
+    if !path.is_absolute() {
+        return Err("plugin-source-destination-invalid");
+    }
+    let mut command = ManagedOperationCliCommand::PlanPluginSource {
+        action: crate::plugin_source::PluginSourceAction::Install,
+        target,
+        destination: path,
+        context_hooks: options.context_hooks,
+        language: Some(language.clone()),
+    };
+    let mut plan_json = prepare_plan(&command, environment, content)?;
+    if options.context_hooks.is_none() && !options.all_detected {
+        let value: serde_json::Value =
+            serde_json::from_str(&plan_json).map_err(|_| "managed-operation-plan-invalid")?;
+        let current = value["operation"]["source"]["context_hooks"]
+            .as_bool()
+            .unwrap_or(false);
+        let Some(selected) = choose_context_hooks(current, reader, writer)? else {
+            return line(writer, "Skipped this Host; no source changes made.\n").map(|_| false);
         };
-        if !path.is_absolute() {
-            return Err("plugin-source-destination-invalid");
-        }
-        let mut command = ManagedOperationCliCommand::PlanPluginSource {
-            action: crate::plugin_source::PluginSourceAction::Install,
-            target,
-            destination: path,
-            context_hooks,
-            language: Some(language.clone()),
-        };
-        let mut plan_json = prepare_plan(&command, environment, content)?;
-        if context_hooks.is_none() && !all_detected {
-            let value: serde_json::Value =
-                serde_json::from_str(&plan_json).map_err(|_| "managed-operation-plan-invalid")?;
-            let current = value["operation"]["source"]["context_hooks"]
-                .as_bool()
-                .unwrap_or(false);
-            let Some(selected) = choose_context_hooks(current, reader, writer)? else {
-                return line(
-                    writer,
-                    "Cancelled this installation; no files changed for this Host.\n",
-                );
-            };
-            if selected != current {
-                if let ManagedOperationCliCommand::PlanPluginSource { context_hooks, .. } =
-                    &mut command
-                {
-                    *context_hooks = Some(selected);
-                }
-                plan_json = prepare_plan(&command, environment, content)?;
+        if selected != current {
+            if let ManagedOperationCliCommand::PlanPluginSource { context_hooks, .. } = &mut command
+            {
+                *context_hooks = Some(selected);
             }
+            plan_json = prepare_plan(&command, environment, content)?;
         }
-        let review = BundledContentReview { plan_json };
-        if !review.review(environment, content, reader, writer)? {
+    }
+    BundledContentReview { plan_json }.review(environment, content, reader, writer)
+}
+
+fn install_batch<W: Write>(
+    targets: &[PluginInstallHost],
+    options: &InstallationGuide,
+    writer: &mut W,
+    mut install: impl FnMut(PluginInstallHost, &mut W) -> Result<bool, &'static str>,
+) -> Result<(), &'static str> {
+    let mut results = Vec::new();
+    for (index, host) in targets.iter().enumerate() {
+        let name = plugin_host_label(*host);
+        line(
+            writer,
+            &format!(
+                "\n[{}/{}] {name} — checking and installing Plugin\n",
+                index + 1,
+                targets.len()
+            ),
+        )?;
+        writer.flush().map_err(|_| "installation-output-failed")?;
+        let result = install(*host, writer);
+        let state = match result {
+            Ok(true) => "installed",
+            Ok(false) => "skipped",
+            Err(_) => "failed",
+        };
+        line(
+            writer,
+            &format!("[{}/{}] {name}: {state}\n", index + 1, targets.len()),
+        )?;
+        let interrupted = matches!(
+            result,
+            Err("installation-input-failed" | "installation-output-failed")
+        );
+        results.push((*host, result));
+        if interrupted {
             break;
         }
-        if multiple {
+    }
+    line(
+        writer,
+        "\nInstallation summary (registration only; session tools not checked):\n",
+    )?;
+    for (host, result) in &results {
+        let name = plugin_host_label(*host);
+        match result {
+            Ok(true) => line(writer, &format!("  OK      {name}\n"))?,
+            Ok(false) => line(
+                writer,
+                &format!(
+                    "  SKIPPED {name}: not approved/completed; any exported files are retained.\n"
+                ),
+            )?,
+            Err(code) => line(
+                writer,
+                &format!(
+                    "  FAILED  {name}: {code}\n    {}\n",
+                    installation_hint(code)
+                ),
+            )?,
+        }
+        if !matches!(result, Ok(true)) {
             line(
                 writer,
-                &format!("{host} step finished. Each Host uses its own source and confirmation.\n"),
+                &format!("    Retry: {}\n", plugin_retry_command(*host, options)),
             )?;
         }
     }
-    Ok(())
+    for host in &targets[results.len()..] {
+        line(
+            writer,
+            &format!(
+                "  NOT RUN {}: input/output interrupted.\n    Retry: {}\n",
+                plugin_host_label(*host),
+                plugin_retry_command(*host, options)
+            ),
+        )?;
+    }
+    let installed = results
+        .iter()
+        .filter(|(_, r)| matches!(r, Ok(true)))
+        .count();
+    let failed = results.iter().filter(|(_, r)| r.is_err()).count();
+    let skipped = results.len() - installed - failed;
+    line(
+        writer,
+        &format!(
+            "Processed {}/{} Hosts: {installed} installed, {failed} failed, {skipped} skipped, {} not run.\n",
+            results.len(),
+            targets.len(),
+            targets.len() - results.len()
+        ),
+    )?;
+    if failed > 0 {
+        if targets.len() == 1 {
+            return results[0].1.map(|_| ());
+        }
+        Err("installation-batch-incomplete")
+    } else {
+        Ok(())
+    }
+}
+
+fn plugin_host_label(host: PluginInstallHost) -> &'static str {
+    PLUGIN_HOSTS
+        .iter()
+        .find(|entry| entry.3 == host)
+        .expect("known Plugin Host")
+        .2
+}
+
+fn plugin_retry_command(host: PluginInstallHost, options: &InstallationGuide) -> String {
+    let target = PLUGIN_HOSTS
+        .iter()
+        .find(|entry| entry.3 == host)
+        .expect("known Plugin Host")
+        .1;
+    let mut args = vec![
+        "install".to_owned(),
+        "plugin".to_owned(),
+        "--target".to_owned(),
+        target.to_owned(),
+    ];
+    if let Some(path) = &options.destination {
+        args.extend([
+            "--destination".to_owned(),
+            path.to_string_lossy().into_owned(),
+        ]);
+    }
+    if let Some(language) = &options.language {
+        args.extend(["--language".to_owned(), language.clone()]);
+    }
+    if let Some(hooks) = options.context_hooks {
+        args.extend([
+            "--hooks".to_owned(),
+            if hooks { "context" } else { "off" }.to_owned(),
+        ]);
+    }
+    crate::plugin_host::installation_command::display_command("qiongli", &args)
 }
 
 fn automatic_source_directory(
@@ -601,7 +731,7 @@ fn choose_context_hooks(
     let selected = crate::cli_inventory::choice(
         reader,
         writer,
-        &format!("Hooks: 1 context reminders, 2 off, 0 cancel [{default}]: "),
+        &format!("Hooks: 1 context reminders, 2 off, 0 skip this Host [{default}]: "),
     )
     .map_err(|_| "installation-input-failed")?;
     match if selected.is_empty() {
@@ -739,6 +869,11 @@ impl BundledContentReview {
             line(writer, "Cancelled; no changes made.\n")?;
             return Ok(false);
         }
+        line(
+            writer,
+            "Exporting source files and verifying their receipt…\n",
+        )?;
+        writer.flush().map_err(|_| "installation-output-failed")?;
         let result =
             crate::managed_operation::apply_reviewed_plan(environment, content, &self.plan_json)?;
         show_json(writer, &result)?;
@@ -768,8 +903,20 @@ impl BundledContentReview {
     }
 }
 
-fn installation_failure(code: &'static str) -> CliOutput {
-    let hint = match code {
+fn installation_hint(code: &str) -> &'static str {
+    match code {
+        "installation-batch-incomplete" => {
+            "Some Hosts did not finish. Review the per-Host results and run only their retry commands."
+        }
+        "installation-input-failed" => {
+            "Input closed or incomplete. Start a terminal and retry the unfinished Host."
+        }
+        "host-command-nonzero-exit" => {
+            "The official manager failed. Review its exit code, recognized error and command above; partial files may remain."
+        }
+        "host-command-timeout" => {
+            "The official manager exceeded its time limit. Review retained files and manager state before retrying."
+        }
         "installation-no-hosts-detected" => {
             "No supported Host CLI was found. Install codex, claude, dsh, agy or pi, or make its CLI available on PATH, then rerun qiongli install all. No Plugins were installed."
         }
@@ -835,7 +982,11 @@ fn installation_failure(code: &'static str) -> CliOutput {
         _ => {
             "Review the reported step and retained files before retrying. Use --help for the installation workflow."
         }
-    };
+    }
+}
+
+fn installation_failure(code: &'static str) -> CliOutput {
+    let hint = installation_hint(code);
     CliOutput::operation_failure(code).with_stderr(format!("error: {code}\n{hint}\n"))
 }
 
@@ -864,12 +1015,74 @@ pub(crate) fn confirm(
         .take(128)
         .read_line(&mut response)
         .map_err(|_| "installation-input-failed")?;
-    Ok(response.ends_with('\n') && matches!(response.trim(), "y" | "Y" | "yes" | "YES"))
+    if !response.ends_with('\n') {
+        return Err("installation-input-failed");
+    }
+    Ok(matches!(response.trim(), "y" | "Y" | "yes" | "YES"))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn batch_continues_after_failure_and_decline_and_reports_targeted_retries() {
+        let hosts = plugin_hosts("deepseek,agy,pi").unwrap();
+        let mut visited = Vec::new();
+        let mut output = Vec::new();
+        let result = install_batch(
+            &hosts,
+            &InstallationGuide::default(),
+            &mut output,
+            |host, _| {
+                visited.push(host);
+                match host {
+                    PluginInstallHost::DeepSeek => Err("host-command-nonzero-exit"),
+                    PluginInstallHost::Antigravity => Ok(false),
+                    _ => Ok(true),
+                }
+            },
+        );
+        assert_eq!(result.unwrap_err(), "installation-batch-incomplete");
+        assert_eq!(visited, hosts);
+        let output = String::from_utf8(output).unwrap();
+        assert!(output.contains("[3/3] Pi: installed"));
+        assert!(output.contains("FAILED  DeepSeek Harness"));
+        assert!(output.contains("SKIPPED Antigravity"));
+        assert!(output.contains("qiongli install plugin --target deepseek"));
+        assert!(output.contains("qiongli install plugin --target antigravity"));
+        assert!(!output.contains("qiongli install plugin --target pi"));
+        assert!(output.contains("1 installed, 1 failed, 1 skipped, 0 not run"));
+    }
+
+    #[test]
+    fn batch_input_failure_stops_later_hosts_and_never_claims_success() {
+        let hosts = plugin_hosts("deepseek,pi").unwrap();
+        let mut calls = 0;
+        let mut output = Vec::new();
+        assert!(
+            install_batch(
+                &hosts,
+                &InstallationGuide::default(),
+                &mut output,
+                |_, _| {
+                    calls += 1;
+                    Err("installation-input-failed")
+                }
+            )
+            .is_err()
+        );
+        assert_eq!(calls, 1);
+        let output = String::from_utf8(output).unwrap();
+        assert!(output.contains("NOT RUN Pi"));
+        assert!(output.contains("0 installed, 1 failed, 0 skipped, 1 not run"));
+        for input in ["", "yes", "y"] {
+            assert_eq!(
+                confirm(&mut input.as_bytes(), &mut Vec::new(), "Approve? ").unwrap_err(),
+                "installation-input-failed"
+            );
+        }
+    }
 
     #[test]
     fn skill_language_selection_supports_auto_explicit_and_cancel() {
@@ -1163,9 +1376,12 @@ mod tests {
         };
         let mut output = Vec::new();
         for answer in ["\n", "n\n", "yes", "", "not-approval\n"] {
-            review
-                .review(&environment, &content, &mut answer.as_bytes(), &mut output)
-                .unwrap();
+            let result = review.review(&environment, &content, &mut answer.as_bytes(), &mut output);
+            if answer.ends_with('\n') {
+                assert!(!result.unwrap());
+            } else {
+                assert_eq!(result.unwrap_err(), "installation-input-failed");
+            }
             assert!(!root.join(".qiongli-skills").exists());
         }
         review

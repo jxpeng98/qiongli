@@ -28,9 +28,9 @@ destination/Hook overrides without a target retain the Host menu. Detection uses
 PATH and existing common CLI installation directories; an application or config
 directory alone is insufficient. `--target all` uses the same selection. An
 explicit list such as `--target codex,claude` still requires both clients. Each
-selected Host retains its own required file and registration approvals. Unsupported
-versions, conflicts, cancellation or failure stop later steps and keep completed
-installations. Source directories are selected without a path prompt:
+selected Host retains its own required file and registration approvals. A failure
+or explicit decline is recorded and later Hosts continue; closed/incomplete input
+or output failure stops the batch. Completed installations remain. Source directories are selected without a path prompt:
 
 - Codex/Claude reuse registered paths or that Host's verified legacy home/qiongli
   export. Fresh installs use `~/qiongli-codex` and `~/qiongli-claude`; prereleases
@@ -52,6 +52,35 @@ accept `--destination`, `--hooks`
 or `--dry-run`; use an explicit compatible Host selection for those options.
 
 File export and official Host registration have separate confirmations. Cancelling registration keeps exported files and leaves Host settings unchanged. Retry for the same Host after resolving a failure. Keep old sources and caches for recovery. Known Codex conflicts can be disabled through a confirmed migration; Claude conflicts need manual disabling.
+
+## Progress and failed installations
+
+On the development branch, the installer shows `[1/5]` Host progress, official
+manager command steps and elapsed time every five seconds while a command runs.
+The final summary separates installed, failed, skipped and not-run Hosts. A
+batch containing a failure exits nonzero even when other Hosts succeed. Replying
+`n` skips that Host; each later Host still requires its own approval. Close input
+or interrupt the command to stop the batch. Exported files are retained when
+registration fails or is declined.
+
+Retry only the unfinished client using the command printed in the summary, for example:
+
+```sh
+qiongli install plugin --target deepseek
+```
+
+`host-command-nonzero-exit` means the official manager failed, not a specific
+network/version/permission diagnosis. New diagnostics include its exit code,
+recognized error category when present and the exact command. For DSH this
+preserves the selected profile, pinned package version, registry and flags.
+Check the reported issue and retained files first; choose the same profile when
+retrying. Run the printed DSH command directly if its unrecognized error needs
+full diagnosis. Raw manager output is neither echoed nor saved by Qiongli because
+it may include credentials or configuration. Do not post secrets from direct output.
+
+A timeout does not undo changes and may leave package-manager descendants running.
+Check their state before retrying. Unknown files, changed receipts and profile
+conflicts remain refusals for that Host; continuation does not bypass them.
 
 ## Description language {#language}
 

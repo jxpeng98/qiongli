@@ -23,6 +23,7 @@ const MARKETPLACE: &str = "qiongli-cli-local";
 pub(crate) mod antigravity;
 mod codex_config;
 pub(crate) mod deepseek;
+pub(crate) mod installation_command;
 pub(crate) mod pi;
 
 #[derive(Eq, PartialEq, Serialize)]
@@ -112,8 +113,23 @@ pub(crate) fn register(
             }
         }
         line(writer, "Registering Plugin…\n")?;
-        for arguments in &plan.commands {
-            run(environment, &plan.executable, arguments)?;
+        for (index, arguments) in plan.commands.iter().enumerate() {
+            line(
+                writer,
+                &format!(
+                    "  Registration step {}/{}\n",
+                    index + 1,
+                    plan.commands.len()
+                ),
+            )?;
+            installation_command::run(
+                environment,
+                &plan.executable,
+                arguments,
+                Duration::from_secs(30),
+                false,
+                writer,
+            )?;
         }
     }
     let verified = prepare(environment, content, source)?;
@@ -134,20 +150,6 @@ pub(crate) fn register(
         ),
     )
     .map(|_| true)
-}
-
-fn run(
-    environment: &CommandEnvironment,
-    executable: &Path,
-    args: &[String],
-) -> Result<String, &'static str> {
-    crate::desktop::bounded_host_os_command_with_timeout(
-        environment,
-        executable,
-        &args.iter().map(OsString::from).collect::<Vec<_>>(),
-        Duration::from_secs(30),
-    )
-    .map_err(|e| e.reason_code())
 }
 
 /// Observe the same local source/cache contract used during registration. Never apply its commands.
