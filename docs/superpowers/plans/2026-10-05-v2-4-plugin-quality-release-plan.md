@@ -1,5 +1,7 @@
 # Qiongli 2.4.0 — traceable research, substantive writing and Plugin reliability
 
+Current work continues in [the October 8 / 2.5.0 increment](#october-8--writing-contract-alignment-and-250-release). Earlier sections retain their historical candidate identities and decisions.
+
 - Status: the maintainer authorizes continued development through release
   readiness on October 5, then confirms isolated AGY login and remote source
   synchronization, the required PR, Native CI and four-target CLI/Cargo
@@ -2477,3 +2479,57 @@ final diff review. The existing immutable-tag workflow gates publication on all
 four target artifacts. Pi and AGY retain their disclosed experimental boundaries.
 Results and exact bindings are appended here once available; pending checks are
 not passes. Program task states, dependencies and accepted records are unchanged.
+
+
+### Writing checks and comparison
+
+Writing commit `e6737d74` and version/docs commit `8ffd3f83` integrate at
+`ebf6d4af6359514e8dd459a8742469e11189f88a` with the regenerated pack. The pack
+retains 446 entries, source `8ffd3f8377edae5889e7525c44dff0802f8f27d3`, content
+root `d81db0b1eb86dedaaaf35ac2892b4790750b39a900e709153039d064f839ce2a` and
+pack `f2f8b22426fc3a8eea0600de7268de76988b6abefbdbe0abc2d81c5712e8eec7`.
+Sixteen Rust 1.97 embedded/writer/loader tests and an independent actual-content
+binding check pass. Content and model guidance stay unchanged in subsequent
+release bookkeeping.
+
+Independent final review identifies and closes two remaining conditional-scope
+conflicts (direct-edit citation reports and mandatory F3 lenses). Fresh affected
+Python checks pass 19 tests, cross-platform routing/materialization passes all
+11, and unchanged downstream results are retained without adding overlapping
+counts. Strict B-literature and finance overlay audits pass. The original
+43-test attempt retains its one version-drift projection failure; the exact-input
+rerun resolves that failure. Seven roadmap tests, generated-index freshness,
+102 relative documentation targets, the documentation build and frozen-source
+boundary guard pass. Existing highlighting/chunk-size build warnings remain.
+
+The four initial model attempts fail at transport discovery before generation;
+they remain setup failures. A same-cohort transport retry uses the identical
+frozen synthetic prompts, nine guidance files per arm and `gpt-6.1-sol / low`,
+with 180-second limits, read-only sandbox and no enabled tools. All four retry
+answers complete; all processes are reaped and temporary login links/profiles
+are removed. Credentials are never read, copied or hashed. Actual user settings
+and research data are untouched.
+
+The reviewer receives anonymous answer files and the frozen criteria without
+arm mapping. Candidate arm 1 passes A/B **2/2**; baseline arm 2 passes A/B **2/2**
+across request scope, continuity, depth, readable language, factual/citation
+fidelity and inference fidelity. Candidate outputs are 844 English words and
+1,222 Chinese characters; baseline outputs are 854 and 1,237 under the documented
+count procedure. Twenty-four exact answer spans bind the six-dimension reviews.
+The candidate develops some comparison and magnitude details more explicitly;
+the baseline develops other distinctions more fully. No pass-count gain or
+universal writing improvement is inferred. This is supplied-guidance synthetic
+validation, not installed-Host discovery, private-manuscript repair, whole-field
+or expert/journal acceptance. The used cohort now becomes regression evidence.
+
+Evidence root: `/tmp/qiongli-writing-20261008/`. Retry frozen-input SHA-256 is
+`e6f24ee609a19cc418fcb3d0922b6b8b71c6dc050883d90ba65aac86200e66ae`;
+`argument-ab-transport-retry/execution-summary.json` is
+`e40bfa42f56b6e8eb21f0da1e073c907bfda9600b2e068cf56efa1cfaa4932a2`;
+`blind-review/review.json` is
+`557b1263d991de5a36355ddf8d7e6159cb2ed3408cffc2f0c3a030518f632762`.
+The isolated glibc2.35 package run initially refuses a missing `v` in the release
+note heading before building; that documentation correction passes the canonical
+version preflight. Current-source packaging is resumed on a new frozen snapshot,
+with the original failure retained. Ledger states, dependencies, all 46 accepted
+records and all prior evidence/commit/run fields remain unchanged.
