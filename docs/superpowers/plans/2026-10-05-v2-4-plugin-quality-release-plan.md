@@ -2974,3 +2974,61 @@ through the existing release owner. Reuse unchanged focused installer results as
 behavioral evidence only. Exact-tag four-target qualification remains inside the
 publication task. Checks, source bindings and remaining gaps are recorded below
 before dispatch; pending work is not a pass. Program acceptance remains intact.
+
+### Candidate checks and handoff
+
+Clean isolated candidate `575b74e2e8004a66990b768f0e41a8e501899732` passes the
+canonical CLI release owner under Linux ARM64/glibc2.35 and Rust1.97. Fresh
+checks include version preflight, **22 Python release contracts**, strict
+workspace CLI Clippy/format, **47 CLI and 9 MCP integration tests**, archive
+extraction, offline npm/wheel installations and Codex/Claude Plugin packages.
+Installed Lite/Full retain 15/35 tools; the npm DSH bundle loader retains 22
+Skills. These package checks do not establish a live DSH model/session result.
+The unchanged 31 focused installer tests remain prior behavioral evidence,
+separate from this fresh candidate qualification.
+
+The regenerated pack contains 446 canonical entries, source
+`6b4ded163d5d00b743b65ab53fb258bcfbff6966`, content root
+`2b6c96406ac9101fc7314853c0aa01a16c561a3170b71d3a12c7fcaa696c97e4` and
+pack digest `bc0d7245411a7aa346bdfacfa7e9bda05c42f0a4a56dc362836206499ac74187`.
+Independent archive inspection verifies all five artifact hashes/sizes and
+identical native payloads, embedded pack/source marker and Plugin receipt
+bindings. ELF requires at most glibc2.34; the qualified distribution retains its
+declared glibc2.35 baseline.
+
+Offline npm and pip upgrades from retained, previously qualified 2.5.0 packages
+at `cfbb897c40b90e300e15be99aafc630081cfb5ec` to this 2.5.1 candidate pass,
+preserving the synthetic research/source/model-setting canaries byte-for-byte.
+The temporary driver substitutes verified local predecessor copies for download
+only and keeps the canonical install/upgrade/canary checks. It does not establish
+current public-registry predecessor identity or research-format migration.
+
+Evidence root: `/tmp/qiongli-251-release-20261008/`:
+
+- `verification-summary.json`, SHA-256
+  `15341c3e2820359c30e7c1007b27d1b89f3c04b1e3518ef0d98c1456b0e0e07d`;
+- `linux-arm64-glibc235/assets/release-manifest.json`, SHA-256
+  `8f9780f58eb17c59a4075559425ad7789a4d213d54e292a83b2d7df00ccccb81`;
+- `artifact-audit.json`, SHA-256
+  `ddbfd8d794617f0141c80004e2a5db6f69ab915c9b5f24817313421b31c831c1`;
+- `retained250-upgrade-result.json`, SHA-256
+  `4d058251a98d68471cbdb2d479b3e0adae5c8443fc1a602717dc67c91a3584e4`;
+- `user-install-observation.json`, SHA-256
+  `41fb89523afa9040608151a312e8d28efa076c10871a8c7e0ba793d20ac733a7`.
+
+Initial driver setup mistakes are retained separately from product outcomes.
+The release owner completes without a product failure. Two unused compiler
+incremental-cache directories are removed with incremental compilation disabled,
+recovering about 1.8 GB while preserving source, binaries, artifacts and reports.
+The isolated source remains unchanged. Final bookkeeping changes only this plan,
+CLI-402 progress and its generated index; acceptance states and evidence remain
+unchanged, and unaffected native checks are reused.
+
+The requested next operation is reviewed local main fast-forward, source push,
+immutable v2.5.1 tag and `release-automation.yml` post dispatch. Final-tag
+four-target qualification and registry publication remain workflow-owned gates;
+the local Linux candidate and user-reported diagnostic Mac run do not replace
+them. Stop once dispatch is accepted, without release/registry monitoring. An
+accepted task request is not evidence of completed publication. AGY/Pi remain
+experimental, live DSH session use remains unchecked, and no program acceptance,
+announcement or external Marketplace promotion is implied.
