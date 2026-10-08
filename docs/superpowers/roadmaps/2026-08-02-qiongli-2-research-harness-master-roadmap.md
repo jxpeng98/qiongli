@@ -54,7 +54,15 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 8, 2026
 
-The current bounded request improves installation readability after the maintainer
+The current bounded request prepares and dispatches v2.5.2 from the integrated
+compact installation display. The maintainer authorizes source/tag publication
+and the existing release CI task, then asks to stop without monitoring. The
+[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--252-display-release-handoff)
+owns version/content synchronization, candidate checks and handoff. Target-native
+qualification and publication gates remain active; dispatch is not publication
+success and does not promote program acceptance or experimental Hosts.
+
+The preceding bounded request improves installation readability after the maintainer
 reports smooth released 2.5.1 installation but excessive scrolling. The existing
 [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--compact-installation-display)
 owns compact default output, one-line waiting, plain/verbose controls and focused

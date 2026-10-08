@@ -55,7 +55,7 @@ File export and official Host registration have separate confirmations. Cancelli
 
 ## Progress and failed installations
 
-Development builds following 2.5.1 group output by Host, approval preview,
+Version 2.5.2 groups output by Host, approval preview,
 execution and summary. Successful DSH steps leave one short result each;
 repeated launch contexts and completed export receipts are hidden by default.
 Full file/registration previews remain visible before approval. On supported
@@ -112,7 +112,7 @@ Version 2.5.1 reports twelve numbered DSH stages: executable, version,
 profile selection, plan validation, approval, precondition recheck, optional
 profile initialization, package installation, bundle registration, package
 metadata/version, content receipt and language preference. Each executed stage
-prints START and OK/FAILED with elapsed time (development builds show START only
+prints START and OK/FAILED with elapsed time (2.5.2 shows START only
 with `--verbose`); declined choices and unnecessary
 initialization are SKIPPED. A failure keeps its reason code and identifies the
 stage; later DSH stages do not run, while the batch can continue to another Host.
@@ -122,7 +122,7 @@ For example, `[DSH 8/12] FAILED` means the official manager command failed;
 checks completed. A package-manager exit of zero alone does not establish a
 verified Qiongli installation.
 
-The full DSH trace (verbose or failure diagnostics in development builds) shows
+The full DSH trace (verbose or failure diagnostics in 2.5.2) shows
 the actual command, working directory, reconstructed PATH,
 passed environment key names, closed stdin, captured streams and timeout. It
 prints no environment credential values. After bounded capture completes, it

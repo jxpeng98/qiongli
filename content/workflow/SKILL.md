@@ -1,6 +1,6 @@
 ---
 name: qiongli
-description: "Qiongli version: v2.5.1. Read papers, plan studies, write manuscripts, and prepare research outputs from the evidence you provide."
+description: "Qiongli version: v2.5.2. Read papers, plan studies, write manuscripts, and prepare research outputs from the evidence you provide."
 ---
 
 # Qiongli Academic Workflow
@@ -11,7 +11,7 @@ Qiongli supplies research contracts,
 references and project services. This is a self-contained skill package: all
 resource paths below are relative to this package, not the working directory.
 
-Installed Qiongli workflow version: `v2.5.1`
+Installed Qiongli workflow version: `v2.5.2`
 
 ## Start with the request
 

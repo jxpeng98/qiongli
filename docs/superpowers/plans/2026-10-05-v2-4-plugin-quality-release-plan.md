@@ -3116,3 +3116,32 @@ Integrate locally after final ledger/index and diff review. The next delivery
 increment should qualify these bytes on release targets and collect a real Mac
 terminal observation. No new release, remote push or preceding-release monitoring
 is part of this request; program states and accepted evidence stay unchanged.
+
+
+## October 8 — 2.5.2 display release handoff
+
+The maintainer authorizes committing and triggering the next release CI task,
+then ending the conversation without follow-up monitoring. Prepare stable 2.5.2
+from integrated `edf1864a`, using the existing CLI release and publishing owners.
+Synchronize canonical versions, generated Skills references and embedded resource
+pack, freeze release notes, then qualify a clean candidate through
+`./scripts/release_ready.sh --cli-github --version 2.5.2 --staging-dir <new-external-dir>`.
+Retain full release gates and separate new package qualification from the preceding
+43 focused Rust tests and 21 synthetic terminal cases. Use gpt-6.1-sol / low for
+verification, preserving initial setup failures and remaining runtime gaps.
+
+This release covers installation presentation, verbosity/plain options and the
+stale Full MCP count correction. Existing approval/CAS, official manager commands,
+source ownership, models, batch recovery and research schemas remain unchanged.
+AGY/Pi stay experimental, Mac terminal interaction and live DSH/session behavior
+remain separate observations, and Full/Lite retain 35/15 tools. Rollback retains
+the prior executable and Plugin sources/settings; it does not reverse research
+writes. The existing four-target release workflow owns final-tag qualification,
+public downloads and registry publication. Do not skip checks, retag a published
+version, promote program acceptance or modify external Marketplace catalogs.
+
+Record candidate results below once available; pending checks are not a pass.
+After reviewed local integration, fast-forward main, push the source and immutable
+v2.5.2 tag, dispatch `release-automation.yml` at that tag in post mode and stop as
+soon as the dispatch is accepted. No subsequent release/registry monitoring is
+requested, and accepted dispatch must not be reported as completed publication.
