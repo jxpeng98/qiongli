@@ -58,9 +58,7 @@ pub(crate) fn install(
     if version < semver::Version::new(1, 2, 17) {
         return Err("antigravity-version-unsupported");
     }
-    let source = destination
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| home.join("qiongli-antigravity"));
+    let source = select_source(environment, destination)?;
     let plan = prepare(environment, content, &executable, &source, language)?;
     preview(writer, "antigravity-plugin-files", &plan)?;
     line(
@@ -296,6 +294,52 @@ fn prepare(
             vec!["plugin".into(), "enable".into(), name.into()],
         ],
     })
+}
+
+fn select_source(
+    environment: &CommandEnvironment,
+    destination: Option<&Path>,
+) -> Result<PathBuf, &'static str> {
+    if let Some(destination) = destination {
+        return Ok(destination.to_path_buf());
+    }
+    let home = environment
+        .platform_home()
+        .ok_or("host-plugin-home-unavailable")?;
+    let cache = home
+        .join(".gemini/config/plugins")
+        .join(crate::plugin_source::plugin_name());
+    match fs::symlink_metadata(&cache) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(home.join("qiongli-antigravity"));
+        }
+        Err(_) => return Err("antigravity-plugin-conflict"),
+        Ok(_) => {}
+    }
+    // The verified cache binds the absolute source executable. Do not infer
+    // ownership from a directory name or adopt an unverified import record.
+    let target = approve_antigravity_plugin_bundle_target(&cache).map_err(|e| e.reason_code())?;
+    let verified = verify_cached_antigravity_plugin_source(&target)
+        .map_err(|_| "antigravity-plugin-conflict")?;
+    let bytes =
+        read_optional(&cache.join("mcp_config.json"))?.ok_or("antigravity-plugin-conflict")?;
+    if format!("{:x}", Sha256::digest(&bytes)) != verified.receipt().mcp_sha256 {
+        return Err("local-host-precondition-changed");
+    }
+    let mcp: Value = serde_json::from_slice(&bytes).map_err(|_| "antigravity-plugin-conflict")?;
+    let command = mcp["mcpServers"][verified.receipt().plugin_name()]["command"]
+        .as_str()
+        .ok_or("antigravity-plugin-conflict")?;
+    let executable = Path::new(command);
+    let relative = Path::new(&verified.receipt().binary_path);
+    if !executable.is_absolute() || !executable.ends_with(relative) {
+        return Err("antigravity-plugin-conflict");
+    }
+    executable
+        .ancestors()
+        .nth(relative.components().count())
+        .map(Path::to_path_buf)
+        .ok_or("antigravity-plugin-conflict")
 }
 
 fn approve_nearest(path: &Path) -> Result<(), &'static str> {

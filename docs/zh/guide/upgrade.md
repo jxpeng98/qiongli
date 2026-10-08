@@ -27,6 +27,12 @@ qiongli mcp check
 
 DeepSeek 使用自己的插件管理器；向导会安装与 CLI 匹配的 npm 版本。直接通过 DSH 安装时，见 [DeepSeek 配置](../advanced/plugin-installation.md#deepseek)。
 
+开发分支还支持自动选平台与路径：执行 `qiongli update all`；也可直接用
+`qiongli update plugin`。按[自动安装规则](../advanced/plugin-installation.md)复用旧路径
+或选择独立默认目录，再逐个确认。2.5.0 的 `update all` 已能检测客户端，
+但首次导出仍可能询问路径。新默认目录名需要支持它们的 CLI；回退时保留并复用
+旧版已验证的源目录，不要让旧 CLI 接管新目录。
+
 ## 从 1.x 迁移
 
 1. 备份项目、配置和旧版本，先用项目副本试用。

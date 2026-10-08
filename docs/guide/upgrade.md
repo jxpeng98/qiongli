@@ -27,6 +27,14 @@ Choose the Host, reuse its registered directory, and review and confirm the file
 
 DeepSeek uses its own plugin manager; the installer selects the npm version matching the CLI. For direct DSH installation, see [DeepSeek setup](../advanced/plugin-installation.md#deepseek).
 
+The development branch after 2.5.0 selects Hosts and paths automatically with
+`qiongli update all` or `qiongli update plugin`. It follows the
+[automatic installation rules](../advanced/plugin-installation.md), then asks for
+each approval. Version 2.5.0 detects clients with `update all` but may still ask
+for fresh source paths. New Host-scoped names require a supporting CLI; retain
+older verified sources when reverting rather than managing new names with an
+older CLI.
+
 ## Move from 1.x
 
 1. Back up projects, configuration and the old version. Try a project copy first.

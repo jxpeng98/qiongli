@@ -88,6 +88,48 @@ fn antigravity_plan_is_read_only_and_records_official_commands() {
 }
 
 #[test]
+fn antigravity_automatic_source_reuses_verified_cache_and_refuses_drift() {
+    let f = Fixture::new();
+    assert_eq!(
+        select_source(&f.environment, None).unwrap(),
+        f.home.join("qiongli-antigravity")
+    );
+    let parent = f.home.join("custom");
+    fs::create_dir(&parent).unwrap();
+    let source = parent.join("qiongli");
+    let target = approve_antigravity_plugin_bundle_target(&source).unwrap();
+    let binary = std::env::current_exe().unwrap();
+    compose_local_antigravity_plugin_source(
+        crate::embedded_content().unwrap().pack(),
+        &binary,
+        &crate::cli_install::regular_file_sha256(&binary).unwrap(),
+        &target,
+        None,
+        None,
+        Some("en"),
+    )
+    .unwrap();
+    let cache = f
+        .home
+        .join(".gemini/config/plugins")
+        .join(crate::plugin_source::plugin_name());
+    fs::create_dir_all(cache.parent().unwrap()).unwrap();
+    fs::rename(&source, &cache).unwrap();
+    assert_eq!(select_source(&f.environment, None).unwrap(), source);
+    assert!(!source.exists());
+    assert_eq!(
+        select_source(&f.environment, Some(&source)).unwrap(),
+        source
+    );
+    fs::write(cache.join("mcp_config.json"), b"{}").unwrap();
+    assert_eq!(
+        select_source(&f.environment, None).unwrap_err(),
+        "antigravity-plugin-conflict"
+    );
+    assert!(!source.exists());
+}
+
+#[test]
 fn antigravity_plan_refuses_reserved_unmanaged_and_mcp_conflicts() {
     let f = Fixture::new();
     assert_eq!(

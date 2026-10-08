@@ -319,12 +319,12 @@ fn guide(
     line(
         writer,
         &format!(
-            "Qiongli {} — connect your research tools\nVisible CLI installations: {}. The running CLI supplies this installation.\n\n1. Plugin (recommended): Skills + native program + Full MCP.\n2. Skills files only: export guidance; no MCP or automatic Host registration.\n3. MCP connection only: show configuration for your existing Host.\n4. Review CLI versions and manual cleanup guidance.\n5. Install all detected Hosts: each Plugin includes Skills + Full MCP.\n0. Cancel.\n",
+            "Qiongli {} — connect your research tools\nVisible CLI installations: {}. The running CLI supplies this installation.\n\n1. Plugin: choose specific Hosts; Skills + native program + Full MCP.\n2. Skills files only: export guidance; no MCP or automatic Host registration.\n3. MCP connection only: show configuration for your existing Host.\n4. Review CLI versions and manual cleanup guidance.\n5. Install all detected Hosts (recommended): each Plugin includes Skills + Full MCP.\n0. Cancel.\n",
             env!("CARGO_PKG_VERSION"),
             inventory.installations.len()
         ),
     )?;
-    let select = crate::cli_inventory::choice(reader, writer, "Choose [1]: ")
+    let select = crate::cli_inventory::choice(reader, writer, "Choose [5 — all detected Hosts]: ")
         .map_err(|_| "installation-input-failed")?;
     let command = match select.as_str() {
         "0" => return line(writer, "Cancelled; no changes made.\n"),
@@ -358,7 +358,7 @@ fn guide(
                 content,
                 InstallationGuide {
                     plugin: true,
-                    all_detected: matches!(select.as_str(), "5" | "all"),
+                    all_detected: matches!(select.as_str(), "" | "5" | "all"),
                     ..Default::default()
                 },
                 reader,
@@ -506,42 +506,16 @@ fn install_plugins(
             )?;
             path
         } else {
-            let default = environment
-                .platform_home()
-                .ok_or("plugin-source-home-unavailable")?
-                .join(crate::plugin_source::plugin_name());
+            let default = automatic_source_directory(environment, content, target)?;
             line(
                 writer,
                 "Plugin source files stay here. The Host loads its registered cache, including Skills and MCP; no copy to ~/.agents/skills is needed.\n",
             )?;
-            let usable_default =
-                crate::plugin_source::status(environment, content, target, &default).is_ok();
-            if !usable_default {
-                line(
-                    writer,
-                    "The default directory belongs to another Host or has unverified files. Enter a different path ending in qiongli or qiongli-next with an existing parent; Enter cancels.\n",
-                )?;
-            }
-            let selected = crate::cli_inventory::choice(
-                reader,
+            show_json(
                 writer,
-                &format!(
-                    "Source directory (absolute, existing parent; 0 cancels) [{}]: ",
-                    serde_json::to_string(&default).map_err(|_| "installation-preview-invalid")?
-                ),
-            )
-            .map_err(|_| "installation-input-failed")?;
-            if selected == "0" || (selected.is_empty() && !usable_default) {
-                return line(
-                    writer,
-                    "Cancelled this installation. Previously completed Host steps remain installed.\n",
-                );
-            }
-            if selected.is_empty() {
-                default
-            } else {
-                selected.into()
-            }
+                &serde_json::json!({"selected_source": default}).to_string(),
+            )?;
+            default
         };
         if !path.is_absolute() {
             return Err("plugin-source-destination-invalid");
@@ -554,7 +528,7 @@ fn install_plugins(
             language: Some(language.clone()),
         };
         let mut plan_json = prepare_plan(&command, environment, content)?;
-        if context_hooks.is_none() {
+        if context_hooks.is_none() && !all_detected {
             let value: serde_json::Value =
                 serde_json::from_str(&plan_json).map_err(|_| "managed-operation-plan-invalid")?;
             let current = value["operation"]["source"]["context_hooks"]
@@ -587,6 +561,31 @@ fn install_plugins(
         }
     }
     Ok(())
+}
+
+fn automatic_source_directory(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    target: ManagedHost,
+) -> Result<std::path::PathBuf, &'static str> {
+    let home = environment
+        .platform_home()
+        .ok_or("plugin-source-home-unavailable")?;
+    // Reuse a verified legacy export for this Host, including an export whose
+    // registration was cancelled. Unrelated home/qiongli files are never adopted.
+    let legacy = home.join(crate::plugin_source::plugin_name());
+    if let Ok(status) = crate::plugin_source::status(environment, content, target, &legacy) {
+        let status: serde_json::Value =
+            serde_json::from_str(&status).map_err(|_| "installation-preview-invalid")?;
+        if status["source"].is_object() {
+            return Ok(legacy);
+        }
+    }
+    let path = home.join(crate::plugin_source::default_directory_name(target));
+    // Unknown, changed, linked or unsafe default destinations refuse rather
+    // than silently choosing yet another directory and multiplying installs.
+    crate::plugin_source::status(environment, content, target, &path)?;
+    Ok(path)
 }
 
 fn choose_context_hooks(
@@ -775,7 +774,7 @@ fn installation_failure(code: &'static str) -> CliOutput {
             "No supported Host CLI was found. Install codex, claude, dsh, agy or pi, or make its CLI available on PATH, then rerun qiongli install all. No Plugins were installed."
         }
         "plugin-source-destination-invalid" => {
-            "Choose an absolute directory ending in qiongli or qiongli-next with an existing parent, or omit --destination to reuse the registered source."
+            "Use an absolute directory with an existing parent and a supported Qiongli name, or omit --destination for automatic source selection."
         }
         "plugin-source-destination-reserved" => {
             "Keep Plugin source files outside ~/.agents, Host configuration/cache directories and Qiongli's private state. The Host discovers Skills through Plugin registration."
@@ -1014,6 +1013,87 @@ mod tests {
     }
 
     #[test]
+    fn automatic_sources_separate_hosts_reuse_verified_legacy_and_refuse_conflicts() {
+        let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../target/automatic-source-tests");
+        std::fs::create_dir_all(&base).unwrap();
+        let root = base
+            .canonicalize()
+            .unwrap()
+            .join(std::process::id().to_string());
+        #[cfg(windows)]
+        qiongli_windows_security::create_owner_only_directory(&root).unwrap();
+        #[cfg(not(windows))]
+        std::fs::create_dir(&root).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o700)).unwrap();
+        }
+        let environment = CommandEnvironment::with_paths(
+            Some(root.join("config").into_os_string()),
+            Some(root.clone()),
+            None,
+        );
+        let content = crate::embedded_content().unwrap();
+        let codex = automatic_source_directory(&environment, &content, ManagedHost::Codex).unwrap();
+        let claude =
+            automatic_source_directory(&environment, &content, ManagedHost::ClaudeCode).unwrap();
+        assert_ne!(codex, claude);
+        assert!(!codex.exists() && !claude.exists());
+        let legacy = root.join(crate::plugin_source::plugin_name());
+        let plan = crate::plugin_source::plan(
+            &environment,
+            &content,
+            crate::plugin_source::PluginSourceAction::Install,
+            ManagedHost::Codex,
+            &legacy,
+            Some(true),
+            Some("zh"),
+        )
+        .unwrap();
+        crate::plugin_source::apply(&environment, &content, &plan).unwrap();
+        assert_eq!(
+            automatic_source_directory(&environment, &content, ManagedHost::Codex).unwrap(),
+            legacy
+        );
+        assert_eq!(
+            automatic_source_directory(&environment, &content, ManagedHost::ClaudeCode).unwrap(),
+            claude
+        );
+        let plan = crate::plugin_source::plan(
+            &environment,
+            &content,
+            crate::plugin_source::PluginSourceAction::Install,
+            ManagedHost::ClaudeCode,
+            &claude,
+            None,
+            Some("en"),
+        )
+        .unwrap();
+        plan.validate().unwrap();
+        std::fs::create_dir(&claude).unwrap();
+        std::fs::write(claude.join("canary"), b"keep").unwrap();
+        assert!(
+            automatic_source_directory(&environment, &content, ManagedHost::ClaudeCode).is_err()
+        );
+        assert_eq!(std::fs::read(claude.join("canary")).unwrap(), b"keep");
+        assert!(
+            crate::plugin_source::plan(
+                &environment,
+                &content,
+                crate::plugin_source::PluginSourceAction::Install,
+                ManagedHost::Codex,
+                &claude,
+                None,
+                None,
+            )
+            .is_err()
+        );
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
     fn context_hook_choice_preserves_defaults_and_requires_complete_input() {
         for (current, input, expected) in [
             (false, "\n", Some(false)),
@@ -1050,7 +1130,7 @@ mod tests {
         std::fs::create_dir(&root).unwrap();
         let environment = CommandEnvironment::with_paths(None, Some(root.clone()), None);
         let content = crate::embedded_content().unwrap();
-        for response in ["0\n", "2\n\nn\n", "3\n", "\n0\n"] {
+        for response in ["0\n", "2\n\nn\n", "3\n", "1\n0\n"] {
             let mut output = Vec::new();
             guide(
                 &environment,

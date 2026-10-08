@@ -22,11 +22,25 @@ qiongli install plugin --target codex,deepseek
 `upgrade all`、`update all` 更新同一组检测到的客户端；可用
 `--language auto|zh|en` 统一选择本轮描述语言。
 
-不填 `--target` 时显示菜单；`--target all` 使用同样的自动选择。
+**开发分支（2.5.0 之后的更新）：** 不填 `--target` 的 Plugin 命令默认自动检测，
+主安装菜单直接回车也选择全部检测到的客户端。显式指定目录或 Hook 而未指定
+Host 时仍显示 Host 菜单；`--target all` 使用同样的自动选择。
+检测覆盖 PATH 和已有的常见 CLI 安装目录；只有桌面应用或配置目录不算可用 CLI。
 显式指定 `--target codex,claude` 等列表时，仍要求这些客户端均可用。
 每个 Host 保留各自的文件变更与注册批准流程；版本不支持、冲突、取消或失败会停止后续步骤，
-保留已完成的安装。Codex 与 Claude 使用各自的源目录，请在向导中分别选择或复用。
-单个 Host 可用 `--destination` 指定父目录已存在的路径。全部安装不接受
+保留已完成的安装。源目录自动选择，无需逐个输入：
+
+- Codex / Claude 优先复用已登记目录，或该 Host 已验证的旧 `~/qiongli` 导出。
+  首次安装分别使用 `~/qiongli-codex`、`~/qiongli-claude`；预发布使用 `qiongli-next-*`。
+- AGY 从已验证的插件缓存恢复原源目录；首次安装用 `~/qiongli-antigravity`。
+- Pi 复用已登记的本地包路径；首次安装用 `~/qiongli-pi`。
+- DeepSeek 保留原有 profile 选择与官方包管理流程。
+
+全部检测模式保留已有 Hook 设置，新安装默认关闭；语言和文件／注册批准仍需确认。
+默认目录含未知文件、内容被修改或路径不安全时停止，不覆盖或另建编号目录。
+
+单个 Host 可用 `--destination` 指定父目录已存在的路径。Codex / Claude 支持原来的
+`qiongli`、`qiongli-next` 末级目录，也支持对应 Host 的新默认目录名。全部安装不接受
 `--destination`、`--hooks` 或 `--dry-run`；这些选项需显式选择兼容的 Host。
 
 文件导出与官方 Host 注册分别确认。取消注册会保留导出文件，不改变 Host 设置；处理失败原因后对同一 Host 重试。保留旧源目录与缓存便于恢复。已知 Codex 冲突可确认迁移，Claude 冲突需手动停用。
@@ -118,7 +132,8 @@ qiongli update plugin --target agy
 先安装 `agy` 1.2.17 或更新版本。向导分别确认源文件导出与官方 `agy plugin
 install`、`enable` 命令。默认源目录为 `~/qiongli-antigravity`；单独选择此 Host
 时可用 `--destination` 指定安全绝对路径，末级目录为 `qiongli`、`qiongli-next`
-或 `qiongli-antigravity`，更新时复用同一路径。包内含原生程序和 Full MCP，采用
+或 `qiongli-antigravity`。开发分支更新时可省略目录，从已验证的缓存复用原路径。
+包内含原生程序和 Full MCP，采用
 根目录 `plugin.json`、`mcp_config.json`。
 
 **Qiongli 2.5.0：** AGY 只公开 `qiongli` 这一个科研入口，并保留独立的

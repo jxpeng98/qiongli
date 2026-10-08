@@ -29,6 +29,27 @@ pub(crate) fn plugin_id() -> &'static str {
     }
 }
 
+pub(crate) fn default_directory_name(target: ManagedIntegrationTargetV1) -> String {
+    let host = match target {
+        ManagedIntegrationTargetV1::Codex => "codex",
+        ManagedIntegrationTargetV1::ClaudeCode => "claude",
+    };
+    format!("{}-{host}", plugin_name())
+}
+
+fn destination_name_valid(target: ManagedIntegrationTargetV1, destination: &Path) -> bool {
+    let name = destination.file_name().and_then(|s| s.to_str());
+    matches!(name, Some("qiongli" | "qiongli-next"))
+        || match target {
+            ManagedIntegrationTargetV1::Codex => {
+                matches!(name, Some("qiongli-codex" | "qiongli-next-codex"))
+            }
+            ManagedIntegrationTargetV1::ClaudeCode => {
+                matches!(name, Some("qiongli-claude" | "qiongli-next-claude"))
+            }
+        }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum PluginSourceAction {
@@ -61,10 +82,7 @@ impl PluginSourcePlan {
             .as_deref()
             .is_some_and(|s| !qiongli_content::skill_language_valid(s))
             || !self.destination.is_absolute()
-            || !matches!(
-                self.destination.file_name().and_then(|s| s.to_str()),
-                Some("qiongli" | "qiongli-next")
-            )
+            || !destination_name_valid(self.target, &self.destination)
             || !digest_valid(&self.binary_sha256)
             || (self.action == PluginSourceAction::Install)
                 != self.expected_receipt_sha256.is_none()
@@ -112,6 +130,7 @@ struct SourceObservation {
 
 fn validate_destination(
     environment: &CommandEnvironment,
+    target: ManagedIntegrationTargetV1,
     destination: &Path,
 ) -> Result<(), &'static str> {
     let home = environment
@@ -130,10 +149,7 @@ fn validate_destination(
     if reserved.iter().any(|root| destination.starts_with(root)) {
         return Err("plugin-source-destination-reserved");
     }
-    if !matches!(
-        destination.file_name().and_then(|s| s.to_str()),
-        Some("qiongli" | "qiongli-next")
-    ) {
+    if !destination_name_valid(target, destination) {
         return Err("plugin-source-destination-invalid");
     }
     // The existing target owner rejects traversal, links, non-directories and unsafe parents.
@@ -160,7 +176,7 @@ fn observe(
     target: ManagedIntegrationTargetV1,
     destination: &Path,
 ) -> Result<Option<SourceObservation>, &'static str> {
-    validate_destination(environment, destination)?;
+    validate_destination(environment, target, destination)?;
     match target {
         ManagedIntegrationTargetV1::Codex => {
             approve_codex_plugin_bundle_target(destination).map_err(|e| e.reason_code())?;

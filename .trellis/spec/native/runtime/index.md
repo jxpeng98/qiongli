@@ -448,6 +448,15 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   Each Host retains its existing installer and separate approval. This selection flow
   stops on cancellation/failure. Foreign enabled Plugins refuse before export
   with their exact names and manual disable guidance. See ADRs 0225 and 0235.
+  ADR 0237 defaults the main guide to detected-all on Enter and makes unqualified
+  Plugin commands auto-detect unless a destination/Hook override needs a Host
+  choice. Registered paths precede verified legacy exports and separate fresh
+  home/qiongli-codex or home/qiongli-claude defaults (qiongli-next-* for prereleases).
+  Source validation accepts only historical or matching Host-scoped basenames;
+  unknown/changed defaults refuse, with no directory creation during selection.
+  All-detected mode preserves Hook choices without a separate choice prompt.
+  AGY derives its source from the verified cache MCP command and rechecks its
+  receipt-bound manifest digest; normal source/cache checks and approvals remain.
   `mcp check` exercises the existing stdio handlers in-process (initialize, tools
   and config status); its result explicitly excludes Host sessions and online
   provider connectivity. It adds no daemon, registration or persisted readiness.

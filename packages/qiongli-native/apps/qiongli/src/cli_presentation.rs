@@ -637,6 +637,7 @@ mod tests {
                     PluginInstallHost::Managed(ManagedIntegrationTargetV1::ClaudeCode),
                     PluginInstallHost::DeepSeek,
                     PluginInstallHost::Antigravity,
+                    PluginInstallHost::Pi,
                 ]
             );
         }

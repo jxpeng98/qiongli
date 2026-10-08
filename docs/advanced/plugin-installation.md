@@ -22,13 +22,33 @@ CLIs it skips. If none are found, it stops without installing anything. It does
 not install the Host applications. `upgrade all` and `update all` refresh the
 same detected set; `--language auto|zh|en` chooses descriptions once for the batch.
 
-Omit `--target` for a menu; `--target all` uses the same detected selection. An
+**Development branch (after 2.5.0):** Plugin commands without `--target` select
+detected Hosts automatically; Enter in the main guide also selects all. Explicit
+destination/Hook overrides without a target retain the Host menu. Detection uses
+PATH and existing common CLI installation directories; an application or config
+directory alone is insufficient. `--target all` uses the same selection. An
 explicit list such as `--target codex,claude` still requires both clients. Each
 selected Host retains its own required file and registration approvals. Unsupported
 versions, conflicts, cancellation or failure stop later steps and keep completed
-installations. Codex/Claude use separate source directories; choose or reuse each
-Host's directory when prompted. `--destination` selects one Host's directory with
-an existing parent. The all-Host preset does not accept `--destination`, `--hooks`
+installations. Source directories are selected without a path prompt:
+
+- Codex/Claude reuse registered paths or that Host's verified legacy home/qiongli
+  export. Fresh installs use `~/qiongli-codex` and `~/qiongli-claude`; prereleases
+  use `qiongli-next-*`.
+- AGY recovers the original source from a verified cache, otherwise using
+  `~/qiongli-antigravity`.
+- Pi reuses its registered local package, otherwise using `~/qiongli-pi`.
+- DeepSeek retains its profile choice and official package-manager flow.
+
+All-detected mode preserves existing Hook settings (off for new sources).
+Language and file/registration approvals remain explicit. Unknown, changed or
+unsafe default paths refuse; they are not overwritten or replaced by numbered
+fallback directories.
+
+`--destination` selects one Host's directory with
+an existing parent. Codex/Claude accept historical `qiongli`/`qiongli-next`
+basenames and their matching Host-scoped defaults. The all-Host preset does not
+accept `--destination`, `--hooks`
 or `--dry-run`; use an explicit compatible Host selection for those options.
 
 File export and official Host registration have separate confirmations. Cancelling registration keeps exported files and leaves Host settings unchanged. Retry for the same Host after resolving a failure. Keep old sources and caches for recovery. Known Codex conflicts can be disabled through a confirmed migration; Claude conflicts need manual disabling.
@@ -128,8 +148,9 @@ qiongli update plugin --target agy
 Install `agy` 1.2.17 or newer first. The terminal guide separately confirms the
 local export and `agy plugin install` / `enable`. Its default source directory is
 `~/qiongli-antigravity`; `--destination` can select an absolute secure directory
-ending in `qiongli`, `qiongli-next` or `qiongli-antigravity`. Reuse the same custom
-destination when updating. The export includes the native binary and Full MCP,
+ending in `qiongli`, `qiongli-next` or `qiongli-antigravity`. On the development
+branch, updates can omit the destination to recover it from the verified cache.
+The export includes the native binary and Full MCP,
 using Antigravity's root `plugin.json` and `mcp_config.json`.
 
 **Qiongli 2.5.0:** the AGY Skill list has one research entry, `qiongli`,

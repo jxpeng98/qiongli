@@ -2578,3 +2578,70 @@ asserting that GitHub/registry publication has completed. No announcements,
 external Marketplace promotion or program acceptance are included. The next
 writing-quality increment needs a separately scoped real manuscript with its
 sources and target-venue review; the present synthetic cases are now regressions.
+
+## October 8 — automatic Host and source selection
+
+The maintainer requests automatic recognition of installed common clients and
+matching installation paths after the 2.5.0 release-task handoff. Baseline is
+`60399ef53772549af3c3ded66cfe174cbac9e48e`. This increment is local development;
+it does not restart release monitoring or authorize another publication.
+
+Reuse the existing executable discovery and sequential Plugin installers for
+Codex, Claude, DeepSeek, AGY and Pi. Default the main guide to all on Enter and
+unqualified Plugin commands to all unless a Host-specific option needs selection.
+Codex/Claude reuse registered or verified legacy sources; fresh exports use
+separate Host-scoped defaults. AGY recovers a custom path from its verified cache
+and receipt-bound MCP command. Pi's source resolution and DeepSeek's profile
+selection remain unchanged. All-detected mode preserves Hook settings (off on
+first install). Existing previews, separate file/registration confirmations,
+conflict checks, write guards and cancellation/failure boundaries retain authority.
+ADR 0237 records the limited default/path compatibility change. No canonical
+research content, generated pack, model configuration or installed user profile
+changes are included. Only development-branch documentation claims this behavior.
+
+The requested gpt-6.1-sol / low verifier owns focused native checks and independent
+review, using isolated files and fake Host commands for terminal observations.
+Results, retained failures and the next increment are recorded below at integration.
+
+Verification passes 33 focused Rust tests: seven content-guide cases, eighteen
+Host installer cases, four argument/parser cases and four presentation cases.
+Coverage includes distinct fresh paths, verified legacy reuse, foreign/unknown
+files and canary retention, receipt/cache drift, AGY custom-source recovery,
+Pi settings/model retention, explicit target compatibility, cancellation and
+stale approval checks. The unchanged expensive automatic-source case is reused;
+the six other guide cases are rerun after the cancellation fixture correction.
+
+Four isolated terminal cases pass with fake Codex/Claude managers: unqualified
+Plugin, explicit all and main-menu Enter reach the automatic source preview and
+decline without any Home writes; no clients returns the expected failure before
+installation. Only read-only fake manager commands execute. No Host/path/Hook
+selection menu appears on the automatic routes. These cancellation observations
+do not claim completed registration or a live five-Host research journey.
+
+Rust 1.97 formatting and CLI/library Clippy with denied warnings, ADR validation,
+seven roadmap tests, generated-index consistency and whitespace checks pass.
+Independent gpt-6.1-sol / low review reports no remaining actionable findings.
+The ledger changes only CLI-402 progress/date; all 249 task states/dependencies
+and all accepted evidence, commit and run fields retain their original values.
+
+Retained failures: initial workspace fixtures encounter group-writable ancestors;
+isolated private fixture mounts restore the existing safety preconditions without
+changing user/repository permissions. An initial container libc mismatch is
+resolved with a read-only compatible library mount. Two stale test expectations
+are repaired: the all-Host list omitted Pi, and the old empty-menu cancellation
+input now enters automatic detection. Initial terminal driver issues (Codex
+inventory fixture shape, PTY process-exit race and an overbroad Hook-menu
+assertion) are corrected independently of production behavior. The original
+logs remain. Private executable copies are stripped to reduce fixture hashing;
+original binaries remain unchanged. Only inactive debug incremental cache is
+removed after Cargo stops (3.3 GB), preserving source, binaries and evidence.
+Owned test containers are removed; unrelated existing containers are preserved.
+
+Evidence: `/tmp/qiongli-auto-install-20261008/verification-summary.json`, SHA-256
+`3ba046e0e577c48375aad6a074e61bdae4c1a2f696a00ffcb9e990faee784998`. It records final native source hashes,
+exact check counts, terminal outcomes, limitations and the ledger comparison.
+This is local Linux ARM64 source verification, not release/package or cross-platform
+qualification. Integrate through the normal local feature-branch fast-forward;
+next qualify these native changes for a separately selected delivery. The prior
+2.5.0 packages do not establish acceptance for the changed installer. No push,
+new release, real client-profile update or previous-release monitoring occurs.

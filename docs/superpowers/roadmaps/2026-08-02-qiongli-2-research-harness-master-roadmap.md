@@ -54,7 +54,14 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 8, 2026
 
-The current bounded request aligns writing Skills, evidence attribution and
+The current bounded request removes repeated Host/path choices from installation
+and updates. Reuse the existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--automatic-host-and-source-selection): detected-all defaults, verified
+source reuse and separate fresh directories through the existing approval owners.
+This is local development after `60399ef5`, without renewed publication or
+monitoring of the preceding release. ADR 0237 records the narrow compatibility
+change; task acceptance and experimental Host limits remain unchanged.
+
+The preceding bounded request aligns writing Skills, evidence attribution and
 quality criteria, verifies the resulting content and dispatches version 2.5.0.
 The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--writing-contract-alignment-and-250-release)
 owns this increment and its exact evidence. The maintainer authorizes the required

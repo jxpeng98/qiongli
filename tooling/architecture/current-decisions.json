@@ -254,6 +254,13 @@
       "title": "Pi Local Package Adapter",
       "path": "docs/architecture/decisions/0236-pi-local-package-adapter.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-402",
+      "adr_number": "0237",
+      "title": "Automatic Plugin Source Selection",
+      "path": "docs/architecture/decisions/0237-automatic-plugin-source-selection.md",
+      "status": "Accepted"
     }
   ]
 }
