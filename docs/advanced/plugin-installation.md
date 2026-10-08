@@ -14,7 +14,7 @@ qiongli install plugin --target pi
 qiongli install plugin --target codex,deepseek
 ```
 
-**Next update after 2.4.0:** `qiongli install all`, main guide choice **5**, and
+**Qiongli 2.5.0:** `qiongli install all`, main guide choice **5**, and
 Plugin Host choice **6 / all** install Plugins for every detected supported Host
 CLI (`codex`, `claude`, `dsh`, `agy`, `pi`). Each Plugin includes Skills and Full MCP;
 there is no separate component install. The guide lists selected Hosts and missing
@@ -57,10 +57,10 @@ The preview shows commands. Host trust and actual event delivery need their own 
 
 `qiongli install plugin --target deepseek` selects a profile, previews official DSH commands and asks for trust before installing the npm version matching your CLI. It verifies registration and the content receipt. It does not select a model.
 
-To install without a global Qiongli CLI, use DeepSeek Desktop's **Add plugin → Official npm registry**, entering `qiongli@2.4.0`, or run:
+To install without a global Qiongli CLI, use DeepSeek Desktop's **Add plugin → Official npm registry**, entering `qiongli@2.5.0`, or run:
 
 ```sh
-dsh plugin --profile desktop add qiongli@2.4.0
+dsh plugin --profile desktop add qiongli@2.5.0
 ```
 
 Replace `desktop` with your profile. The bundle includes 22 Skill entries, Full MCP and the platform executable. Keep one Qiongli bundle per profile, reload it and check the actual tools.
@@ -71,7 +71,7 @@ Use the installer or manager to update an exact version. In the Desktop dialog, 
 
 ## Pi coding agent {#pi}
 
-**Next update after 2.4.0:** experimental Pi support requires the official `pi`
+**Qiongli 2.5.0:** experimental Pi support requires the official `pi`
 CLI 0.99.0 or newer with built-in MCP enabled. Use the resolved official executable
 on PATH; Pi's mise shim is not supported by this adapter. Select **7** in the Host menu,
 or run:
@@ -132,7 +132,7 @@ ending in `qiongli`, `qiongli-next` or `qiongli-antigravity`. Reuse the same cus
 destination when updating. The export includes the native binary and Full MCP,
 using Antigravity's root `plugin.json` and `mcp_config.json`.
 
-**Next update after 2.4.0:** the AGY Skill list has one research entry, `qiongli`,
+**Qiongli 2.5.0:** the AGY Skill list has one research entry, `qiongli`,
 plus the independent `no-qiongli` reply-only entry. Reading, literature review,
 writing and other workflows remain internal resources selected by your request;
 you can still name a workflow in the prompt. The 2.4.0 export has 22 public Skills.

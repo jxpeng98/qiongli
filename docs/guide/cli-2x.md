@@ -1,6 +1,6 @@
 # CLI commands
 
-For Qiongli **2.3.0**. Start with [installation](install.md) or the [quickstart](../quickstart.md).
+For Qiongli **2.5.0**. Start with [installation](install.md) or the [quickstart](../quickstart.md).
 
 ## Everyday commands
 
@@ -40,8 +40,8 @@ Choose one channel; see [requirements](install.md#package-managers):
 
 ```sh
 npm install --global qiongli@latest
-python -m pip install --upgrade "qiongli==2.3.0"
-cargo install qiongli --version 2.3.0 --locked
+python -m pip install --upgrade "qiongli==2.5.0"
+cargo install qiongli --version 2.5.0 --locked
 ```
 
 ### Review existing CLI installations {#review-existing-cli-installations}
@@ -88,7 +88,7 @@ The CLI and each Plugin carry separate executables. Refresh the Plugin after upd
 
 Project writes require a preview, approval and current revision. Inspect `qiongli project --help` for create, capture, import, export and other operations. Use [data ownership and backup](data-lifecycle.md) before moving a project.
 
-Qiongli 2.3.0 can save retrieval history with `--retrieval-manifest-file`.
+Qiongli 2.5.0 can save retrieval history with `--retrieval-manifest-file`.
 On older installations, check `qiongli project capture consolidate --help` first.
 Preview an absolute JSON draft, review `retrievalManifestContent`, then apply the
 same draft with the returned timestamp/digest and both approvals. The draft uses
@@ -140,7 +140,7 @@ For a standalone MCP client, launch the absolute executable path with:
 qiongli mcp serve --profile full --transport stdio
 ```
 
-Qiongli 2.3.0 has 15 Lite tools and 35 Full tools, including projects, saved-document discovery and reading, Graph and handoffs. Models and execution remain owned by the Host.
+Qiongli 2.5.0 has 15 Lite tools and 35 Full tools, including projects, saved-document discovery and reading, Graph and handoffs. Models and execution remain owned by the Host.
 
 The `app` namespace retains lower-level installation plans. `app apply` requires the plan digest and explicit filesystem approval. Managed-product installation/update commands require their own package authority; registry-installed CLIs update through their package manager. `qiongli update` reports managed-update state.
 

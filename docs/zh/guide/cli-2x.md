@@ -1,6 +1,6 @@
 # CLI 命令
 
-面向穷理 **2.3.0**。初次使用见[安装](install.md)或[快速开始](../quickstart.md)。
+面向穷理 **2.5.0**。初次使用见[安装](install.md)或[快速开始](../quickstart.md)。
 
 ## 常用命令
 
@@ -40,8 +40,8 @@ qiongli doctor --text
 
 ```sh
 npm install --global qiongli@latest
-python -m pip install --upgrade "qiongli==2.3.0"
-cargo install qiongli --version 2.3.0 --locked
+python -m pip install --upgrade "qiongli==2.5.0"
+cargo install qiongli --version 2.5.0 --locked
 ```
 
 ### 检查和迁移已有 CLI {#review-existing-cli-installations}
@@ -88,7 +88,7 @@ CLI 与每个 Plugin 各自携带程序。更新 CLI 后刷新 Plugin，再核�
 
 项目修改需要预览（preview）、授权（approval）和当前修订号（revision）。用 `qiongli project --help` 查看创建、收集、导入、导出等操作，迁移前先读[数据与备份](data-lifecycle.md)。
 
-2.3.0 支持用 `--retrieval-manifest-file` 保存检索历史。旧版安装先通过
+2.5.0 支持用 `--retrieval-manifest-file` 保存检索历史。旧版安装先通过
 `qiongli project capture consolidate --help` 确认是否提供该选项。
 预览绝对路径的 JSON 草稿，核对 `retrievalManifestContent`，再用同一草稿、返回的
 时间与摘要，以及学术审阅和文件写入两项批准提交。草稿包含 `schemaVersion: 1`、
@@ -134,7 +134,7 @@ Full MCP 的对应工具为 `qiongli_project_document_read`。续读时将 `next
 qiongli mcp serve --profile full --transport stdio
 ```
 
-2.3.0 中，Lite 提供 15 个工具，Full 提供 35 个，包括项目、已保存文档的发现与读取、Graph 和交接。模型与执行仍由 Host 管理。
+2.5.0 中，Lite 提供 15 个工具，Full 提供 35 个，包括项目、已保存文档的发现与读取、Graph 和交接。模型与执行仍由 Host 管理。
 
 `app` 命名空间保留底层安装计划，`app apply` 需要计划摘要与明确的文件写入批准。托管产品的安装、更新命令有单独权限要求；包管理器安装的 CLI 通过原渠道升级。`qiongli update` 查看托管更新状态。
 

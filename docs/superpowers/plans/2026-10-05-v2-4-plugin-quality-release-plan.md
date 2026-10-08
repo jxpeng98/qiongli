@@ -2444,3 +2444,36 @@ ADR validation, formatting, whitespace and scoped findings-only review. Against
 unchanged; only CLI-409's blocker differs. The verifier records these invariants
 in `invariant-final.json` and retains exact commands in `verification-summary.md`.
 The frozen native and isolated Host results are reused for local integration.
+
+
+## October 8 — writing contract alignment and 2.5.0 release
+
+The maintainer requests the reviewed writing corrections, comparison and tests,
+scoped commits and a new release-task dispatch, then no follow-up monitoring.
+This authorizes source synchronization, reviewed main cutover, immutable tag and
+the existing release workflow. It does not authorize announcements, external
+Marketplace promotion, altered remote rules or a claim of completed publication.
+Reuse this bounded plan; historical 2.4.0 evidence and acceptance remain intact.
+
+Baseline is `c1a05c4d559a07a1362ad235a1563f689e7b1da8`. Candidate 2.5.0 includes
+its accumulated Pi/all-install/compact-AGY changes and the writing corrections.
+Canonical Stage F remains the shared owner; Discussion and F6 inherit its full
+scope rules, formal output paths remain compatible, literature maps use
+corpus-appropriate structure and the generic rubric judges consequential
+reasoning rather than mandatory mechanisms. Citation support follows the result
+producer and original inference binds premises; RFS advice carries its official
+source and does not impose empirical evidence on every theoretical paper.
+
+Independent `gpt-6.1-sol / low` work owns verification and review. A separately
+frozen invented two-task cohort exercises a complete English LR and connected
+Chinese manuscript sections, with reviewer criteria withheld from authors.
+Source support, argument depth/continuity and expression are separate verdicts;
+original failures and later corrections keep their own records. No real private
+manuscript, automatic scientific verification or journal acceptance is claimed.
+
+Before dispatch, retain focused contract/projection checks, reviewed model
+outputs, current-source Linux ARM64 release/install/upgrade/Cargo evidence and
+final diff review. The existing immutable-tag workflow gates publication on all
+four target artifacts. Pi and AGY retain their disclosed experimental boundaries.
+Results and exact bindings are appended here once available; pending checks are
+not passes. Program task states, dependencies and accepted records are unchanged.

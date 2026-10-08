@@ -14,7 +14,7 @@ qiongli install plugin --target pi
 qiongli install plugin --target codex,deepseek
 ```
 
-**2.4.0 之后的下一次更新：** 使用 `qiongli install all`，或在主安装菜单选
+**Qiongli 2.5.0：** 使用 `qiongli install all`，或在主安装菜单选
 **5（全部安装）**、Plugin 的 Host 菜单选 **6 / all**，即可依次为所有检测到的
 受支持客户端 CLI（`codex`、`claude`、`dsh`、`agy`、`pi`）安装 Plugin。每个 Plugin
 已包含 Skills 和 Full MCP，无需分别安装。向导会列出选中的客户端和因缺少 CLI
@@ -55,10 +55,10 @@ qiongli install plugin --target codex --hooks off
 
 `qiongli install plugin --target deepseek` 选择 profile，预览官方 DSH 命令，确认信任后安装与 CLI 匹配的 npm 版本，并核对注册与内容收据。模型设置保留。
 
-不安装全局 CLI 也可以接入：在 DeepSeek Desktop 的 **Add plugin → Official npm registry** 中填 `qiongli@2.4.0`，或运行：
+不安装全局 CLI 也可以接入：在 DeepSeek Desktop 的 **Add plugin → Official npm registry** 中填 `qiongli@2.5.0`，或运行：
 
 ```sh
-dsh plugin --profile desktop add qiongli@2.4.0
+dsh plugin --profile desktop add qiongli@2.5.0
 ```
 
 把 `desktop` 换成自己的 profile。包内含 22 个 Skill 入口、Full MCP 和对应平台程序。每个 profile 保留一份穷理，重新加载后检查实际工具。
@@ -69,7 +69,7 @@ dsh plugin --profile desktop add qiongli@2.4.0
 
 ## Pi coding agent {#pi}
 
-**2.4.0 之后的下一次更新：** 新增实验性 Pi 适配，要求官方 `pi` CLI
+**Qiongli 2.5.0：** 新增实验性 Pi 适配，要求官方 `pi` CLI
 0.99.0 或更新版本，并启用内置 MCP。PATH 需能找到官方 Pi 的实际可执行文件；
 此适配暂不支持 Pi 的 mise shim。在 Host 菜单选择 **7**，或执行：
 
@@ -121,7 +121,7 @@ install`、`enable` 命令。默认源目录为 `~/qiongli-antigravity`；单独
 或 `qiongli-antigravity`，更新时复用同一路径。包内含原生程序和 Full MCP，采用
 根目录 `plugin.json`、`mcp_config.json`。
 
-**2.4.0 之后的下一次更新：** AGY 只公开 `qiongli` 这一个科研入口，并保留独立的
+**Qiongli 2.5.0：** AGY 只公开 `qiongli` 这一个科研入口，并保留独立的
 `no-qiongli` 仅回复入口。阅读、文献综述、写作等工作流作为内部资源保留，由主入口
 根据请求选用；仍可在提示中指明工作流名称。2.4.0 导出仍有 22 个公开 Skill。
 新版 CLI 可用后，先升级 CLI，再执行上面的 Plugin 更新命令，并重新开启 AGY 会话。

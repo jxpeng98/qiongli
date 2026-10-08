@@ -52,9 +52,17 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — October 7, 2026
+## Current execution horizon — October 8, 2026
 
-The current bounded increment adds the requested Pi coding-agent adapter from
+The current bounded request aligns writing Skills, evidence attribution and
+quality criteria, verifies the resulting content and dispatches version 2.5.0.
+The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--writing-contract-alignment-and-250-release)
+owns this increment and its exact evidence. The maintainer authorizes the required
+source synchronization, main cutover, tag and release-task dispatch, then no
+follow-up monitoring. Pi/all-install/compact-AGY changes join this delivery;
+experimental Host limits and existing program acceptance remain unchanged.
+
+The preceding bounded increment adds the requested Pi coding-agent adapter from
 local `26cc94c4`. ADR 0236 extends detected install/update/upgrade all with Pi,
 using a compact two-Skill package and Pi's built-in Full MCP registration. Its
 receipt-bound source and official manager keep the existing confirmation and

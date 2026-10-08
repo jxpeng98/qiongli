@@ -6,12 +6,12 @@
     <a href="https://www.npmjs.com/package/qiongli"><img alt="npm 版本" src="https://img.shields.io/npm/v/qiongli/latest?style=flat-square&amp;logo=npm"></a>
     <a href="https://pypi.org/project/qiongli/"><img alt="PyPI 版本" src="https://img.shields.io/pypi/v/qiongli?style=flat-square&amp;logo=pypi"></a>
   </p>
-  <p><a href="README.md">English</a> · <a href="docs/zh/index.md">文档</a> · <a href="tooling/release/v2.3.0.md">2.3.0 发布说明</a></p>
+  <p><a href="README.md">English</a> · <a href="docs/zh/index.md">文档</a> · <a href="tooling/release/v2.5.0.md">2.5.0 发布说明</a></p>
 </div>
 
 ## 安装
 
-从 [Release v2.3.0](https://github.com/jxpeng98/qiongli/releases/tag/v2.3.0) 下载对应平台的 CLI，核对 `SHA256SUMS` 后解压。运行 `./qiongli --version`（PowerShell：`.\qiongli.exe --version`），无需另装 Python、Node.js 或 Rust。
+从 [Release v2.5.0](https://github.com/jxpeng98/qiongli/releases/tag/v2.5.0) 下载对应平台的 CLI，核对 `SHA256SUMS` 后解压。运行 `./qiongli --version`（PowerShell：`.\qiongli.exe --version`），无需另装 Python、Node.js 或 Rust。
 
 支持 macOS ARM64、Windows x64、Linux x64/ARM64（glibc 2.35+）。详见[下载与包管理器安装](docs/zh/guide/install.md)。
 
@@ -46,7 +46,7 @@ Codex 中也可以用 `$qiongli` 或 `$qiongli-paper-read`。只想讨论、不�
 qiongli install plugin
 ```
 
-随后新开 Host 会话。从 1.x 升级时，先备份项目和设置，再安装 2.3.0 并接入 Host。新版保存记录可能需要新版 CLI，换回旧程序不会自动降级项目数据。详见[升级与回退](docs/zh/guide/upgrade.md)、[2.x 版本变化](docs/zh/guide/whats-new-2.md)。
+随后新开 Host 会话。从 1.x 升级时，先备份项目和设置，再安装 2.5.0 并接入 Host。新版保存记录可能需要新版 CLI，换回旧程序不会自动降级项目数据。详见[升级与回退](docs/zh/guide/upgrade.md)、[2.x 版本变化](docs/zh/guide/whats-new-2.md)。
 
 ## 文档
 
