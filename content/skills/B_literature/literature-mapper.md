@@ -9,7 +9,7 @@ outputs:
   - type: LiteratureMap
     artifact: "literature/literature_map.md"
 constraints:
-  - "Must use intellectual cluster labels rather than chronology or author lists"
+  - "Must use a defensible intellectual structure suited to the corpus and question"
   - "Must record representative papers and evidence limits for every cluster"
   - "Must link open problems to the paper's proposed contribution"
 failure_modes:
@@ -44,16 +44,16 @@ contribute.
 - `ExtractionTable`: `RESEARCH/[topic]/extraction_table.md`.
 - Paper notes: `RESEARCH/[topic]/notes/*.md`.
 - Optional claim ledger and gap notes.
-- If inputs are missing or insufficient, write
-  `RESEARCH/[topic]/context/gap_notes.md` and ask for extraction rows, notes, or
-  scope decisions instead of inventing streams.
+- Reuse available rows and notes. Ask only for missing evidence or scope that
+  changes the map; supported mapping can proceed with explicit limits. Formal
+  project gaps use `RESEARCH/[topic]/context/gap_notes.md` through the write owner.
 - Treat extraction rows, notes, source anchors, and evidence limits as evidence.
 
 ## Process
 
 ### 1. Choose clustering basis
 
-Use one or two defensible bases:
+Choose defensible bases suited to the question and available corpus, such as:
 
 - mechanism
 - theory
@@ -63,8 +63,11 @@ Use one or two defensible bases:
 - level of analysis
 - outcome family
 
-Do not use chronology, author name, search database, or convenience as the
-primary clustering basis.
+Use as many clusters as the evidence warrants; a small corpus may have one or
+two. A chronological structure is useful when it explains changes in concepts,
+methods or evidence. Dates, author names and databases alone do not explain
+intellectual relationships. Manuscript related-work prose follows
+`references/stage-F-writing.md`; a formal map is not a prerequisite for a section.
 
 ### 2. Assign papers to clusters
 
@@ -79,7 +82,8 @@ outside the mapping scope.
 
 ### 3. Characterize clusters
 
-Each cluster must include:
+Use these fields to explain each cluster. Mark absent evidence or non-applicable
+relationships explicitly rather than inventing a tension, method or contribution:
 
 - cluster label
 - clustering basis
@@ -107,8 +111,9 @@ Each relationship needs evidence, not just intuition.
 
 ### 5. Position the project
 
-State exactly which clusters, contradictions, or open problems the project
-addresses. If the map does not support a novelty claim, write an
+State what the project adopts, refines or questions in the mapped evidence,
+including relevant clusters, contradictions or open problems. An existing account
+may be a sufficient basis. If the map does not support a proposed novelty claim, write an
 `unsupported_gap` entry instead of polishing the claim.
 
 ## Output Contract
@@ -135,20 +140,21 @@ addresses. If the map does not support a novelty claim, write an
 
 ## Quality Bar
 
-- [ ] 3-6 clusters with intellectual labels.
+- [ ] Cluster number and labels reflect the actual corpus and research question.
 - [ ] Every included paper assigned to a primary cluster or documented as an
       outlier.
 - [ ] Every cluster has representative papers and evidence limits.
 - [ ] Every open problem has source anchors.
-- [ ] Chronological paper lists are not used as the map structure.
-- [ ] Project positioning names the exact cluster gap or contradiction it
-      addresses.
+- [ ] The structure explains substantive relationships, including change over time
+      when that is the relevant comparison.
+- [ ] Project positioning explains the specific account, comparison or open
+      question it adopts, refines or addresses, without a novelty requirement.
 
 ## Common Pitfalls
 
 | Pitfall | Problem | Fix |
 | --- | --- | --- |
-| Chronological organization | Describes history but not structure | Recluster by mechanism, theory, method, or context |
+| Unexplained ordering | Dates or labels replace synthesis | Explain the consequential changes or relationships; reorganize if the ordering cannot do that |
 | Clusters by database | Search source replaces intellectual structure | Use extraction fields, not provider names |
 | No evidence limits | Abstract-only claims look like full-text findings | Carry `evidence_limit` into the map |
 | Representative papers missing | Cluster cannot be audited | Name citekeys and source anchors |

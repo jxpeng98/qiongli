@@ -2,10 +2,16 @@ id: review-of-financial-studies
 display_name: "Review of Financial Studies"
 discipline: finance
 quality_bar:
-  - "Design, model, and evidence must identify a finance mechanism."
-  - "Factor exposure, endogeneity, timing, and robustness threats must be handled directly."
-  - "The paper must show theoretical and empirical contribution."
+  - "Explain the research's quality and importance to financial economics."
+  - "Match the contribution and evidence to the article type; theoretical and empirical papers need not each provide both types of contribution."
 fit_notes:
-  - "Best fit for rigorous empirical or theoretical finance with strong mechanism."
-  - "Use transparent risk adjustment and inference diagnostics."
-  - "Avoid descriptive anomalies without mechanism or benchmark discipline."
+  - "Local advice: explain what the findings or argument change in the reader's understanding of a finance question."
+  - "Local advice: examine factor exposure, endogeneity, timing, benchmarks and robustness where material to the design; do not impose these on every paper."
+  - "Local advice: an untested mechanism remains a hypothesis; significance to the field does not require claiming a mechanism the evidence cannot establish."
+source_basis:
+  - url: "https://sfs.org/review-of-financial-studies/aims-and-scope/"
+    checked_on: "2026-10-08"
+    supports: "The journal balances theoretical and empirical contributions and prioritizes quality and importance to finance."
+usage_limits:
+  - "Discovery aid, not a complete current submission checklist. Verify the selected article type and requirements under stage-H-submission.md."
+  - "Fit notes are project advice, not mandatory journal rules or a prediction of acceptance."

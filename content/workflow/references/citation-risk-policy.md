@@ -56,8 +56,12 @@ do not silently substitute an adjacent citation or launch an out-of-scope search
 
 ## Rules
 
-- Cite primary empirical evidence for empirical claims.
-- Cite reviews or meta-analyses for field state, not as substitutes for primary results.
+- Trace a reported result to the work that produced it. Cite an inspected original
+  study for its specific result; a meta-analysis is the producing source for its
+  own pooled estimate, uncertainty and synthesis methods.
+- Reviews can support a bounded synthesis or field-state claim. Do not present
+  their account of an individual study as personal inspection of that study;
+  preserve secondary attribution and the actual access scope.
 - Cite theory sources for construct definitions and mechanism claims.
 - Cite method sources for estimators, diagnostics, and reporting standards.
 - Cite dataset and code sources when data or software provenance matters.

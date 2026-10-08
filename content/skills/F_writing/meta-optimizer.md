@@ -4,7 +4,7 @@ stage: F_writing
 description: "Optimize title, abstract, keywords, and metadata for discoverability, impact, and venue compliance."
 inputs:
   - type: Manuscript
-    description: "Finalized manuscript draft"
+    description: "Current manuscript or supplied passage"
   - type: VenueAnalysis
     description: "Venue requirements"
 outputs:
@@ -17,7 +17,7 @@ constraints:
 failure_modes:
   - "Title is catchy but does not reflect actual scope"
   - "Abstract omits key results to save words"
-  - "Keywords overlap with title words (wastes indexing opportunity)"
+  - "Generic or misleading keywords obscure the actual contribution"
 tools: [filesystem]
 tags: [writing, title, abstract, keywords, SEO, metadata, discoverability]
 domain_aware: true
@@ -25,179 +25,83 @@ domain_aware: true
 
 # Meta Optimizer Skill
 
-Optimize the title, abstract, keywords, and submission metadata for maximum discoverability while maintaining scientific accuracy.
+Optimize the requested title, abstract, keywords or metadata while preserving the
+paper's meaning, evidence strength and actual scope. This card serves F6; formal
+submission packaging remains H1.
 
-## Purpose
+## Inputs and scope
 
-Optimize title, abstract, keywords, and metadata for discoverability, impact, and venue compliance.
+Reuse the current manuscript, supplied findings and known venue requirements.
+Read `references/stage-F-writing.md` for the shared Writing Harness Contract,
+including prose, source support, review and completion. A title-only or abstract
+edit needs only the material needed to do that edit; missing author, funding or
+submission fields do not block it. Ask only for information that changes the
+requested result. A provisional abstract must retain provisional study status.
 
-## Related Task IDs
-
-- `F6` (abstract, title, keyword optimization)
-
-## Output (contract path)
-
-- `RESEARCH/[topic]/manuscript/meta_optimization.md`
-
-## When to Use
-
-- After manuscript draft is complete (F2/F3/F4)
-- Before submission (as part of submission packaging H1)
-- After revision (recheck that changes are reflected in abstract)
-
-## Inputs
-
-- `Manuscript`: Finalized manuscript draft
-- `VenueAnalysis`: Venue requirements
-- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
-- Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
-
-## Process
-
-### Step 1: Optimize the Title
-
-A good academic title must balance informativeness and discoverability:
-
-#### Title Formulas by Paper Type
-
-| Paper Type | Formula | Example |
-|-----------|---------|---------|
-| Empirical (effect) | [DV]: [Evidence type] of [IV] in [Context] | "Employee Productivity: A Natural Experiment of Remote Work Adoption in Tech Firms" |
-| Theoretical | [Theory/Framework]: [Novel contribution] | "Beyond Transaction Cost: A Relational View of Platform Governance" |
-| Review / Meta-analysis | [Topic]: A [Systematic Review / Meta-Analysis] of [Scope] | "AI in Healthcare: A Systematic Review and Meta-Analysis of Diagnostic Accuracy" |
-| Methods | [Method name]: A [Novel/Improved] Approach to [Problem] | "DeepCausal: A Deep Learning Approach to Heterogeneous Treatment Effect Estimation" |
-| Qualitative | [Process/Experience]: [Design] of [Context] | "Navigating Algorithmic Governance: A Multi-Case Study of Platform Policy Rollout" |
-
-#### Title Quality Checklist
-
-| Criterion | Check | Why It Matters |
-|-----------|-------|---------------|
-| **Accurate** | Does the title match the actual findings? | Overclaiming in title → rejection |
-| **Specific** | Are the key variables/concepts named? | Vague titles get fewer clicks and citations |
-| **Searchable** | Does it contain terms people would search for? | Google Scholar and database indexing |
-| **Concise** | Under 15 words (or venue maximum)? | Long titles are truncated in search results |
-| **No abbreviations** | Spell out acronyms (unless universally known: AI, DNA) | Ensures search match |
-| **No question form** (usually) | Statement or phrase, not a question | Conventions vary by field; questions common in some but not most venues |
-
-### Step 2: Optimize the Abstract
-
-#### Structured Abstract (when required)
-
-| Section | Function | Target Length | Key Content |
-|---------|----------|--------------|-------------|
-| **Background** | Why this matters | 1–2 sentences | Gap/problem statement |
-| **Purpose/Objective** | What you did | 1 sentence | RQ or aim |
-| **Methods** | How you did it | 2–3 sentences | Design, sample, key measures/procedures |
-| **Results** | What you found | 2–4 sentences | Key quantitative results with effect sizes, or core qualitative findings |
-| **Conclusions** | So what? | 1–2 sentences | Implications (not speculation) |
-
-#### Narrative Abstract (when structured is not required)
-
-Use the same flow but without explicit section headers. Check that every element above is present.
-
-#### Abstract Quality Checks
-
-| Check | What to Verify |
-|-------|---------------|
-| **Standalone** | Can someone understand the paper's contribution from abstract alone? |
-| **No undefined jargon** | All terms are defined or self-explanatory |
-| **Results reported** | Specific findings included, not just "results are discussed" |
-| **No claims beyond data** | Abstract claims ≤ what the results section supports |
-| **No references** | Abstracts typically should not cite other papers |
-| **Word limit** | Within venue requirement (typically 150–300 words) |
-| **Keywords echoed** | Key terms from the title appear in the abstract |
-| **First sentence impact** | Opens with the problem or significance, not "This paper..." |
-
-> **Anti-pattern**: "This paper examines..." as the first sentence. Instead: "[Topic/Problem] is [significance statement]. We [action verb]..."
-
-### Step 3: Select Keywords
-
-#### Keyword Strategy
-
-| Principle | Explanation | Example |
-|-----------|-------------|---------|
-| **Don't repeat title** | Keywords supplement, not duplicate | If title says "remote work", don't list "remote work" as keyword |
-| **Use broader + narrower** | One broader term for discoverability, one narrower for precision | "flexible work arrangements" (broad) + "telecommuting" (narrow) |
-| **Include method** | Helps method-seekers find you | "difference-in-differences", "grounded theory", "meta-analysis" |
-| **Include domain** | If interdisciplinary, signal your field | "information systems", "organizational behavior" |
-| **Check controlled vocabulary** | MeSH, JEL, ACM CCS terms improve indexing | JEL: M15, O33 |
-| **5–7 keywords typical** | More dilutes; fewer misses opportunities | Check venue requirement |
-
-### Step 4: Optimize Additional Metadata
-
-| Element | What to Check |
-|---------|---------------|
-| **Running title** | Short version (≤50 characters typically) that captures the essence |
-| **Author order** | Confirm CRediT alignment; check venue policy on equal contribution notation |
-| **Corresponding author** | Designate; ensure institutional email is current |
-| **ORCID** | All authors should link ORCID IDs |
-| **Data availability** | Statement matches actual data sharing plan (D1) |
-| **AI disclosure** | Matches actual AI tool usage |
-| **Conflict of interest** | All authors declared |
-| **Funding** | Grant numbers and funders listed |
-| **Acknowledgments** | People who helped but don't meet authorship criteria |
-
-## Output Contract
-
-- `MetadataOptimization`: write `RESEARCH/[topic]/manuscript/meta_optimization.md`.
-- Separate finding, interpretation, and implication in the final artifact.
-- Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
-- Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
-
-### Evidence Ledger and Source Integrity
-
-- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when producing, revising, or validating central scholarly claims.
-- Follow `references/evidence-ledger-contract.md`: supported claims need source pointers; unsupported central claims become `gap_note` rows and `RESEARCH/[topic]/context/gap_notes.md` entries.
-- For final writing, proofread, submission, rebuttal, citation, or presentation-facing outputs, apply `references/citation-risk-policy.md` and write or update `RESEARCH/[topic]/proofread/citation-risk-report.md` when citation risk is material.
-
-## Quality Bar
-
-The meta optimization is **ready** when:
-
-- [ ] Title passes all 6 quality checks
-- [ ] Abstract contains all required elements and is within word limit
-- [ ] Keywords supplement (not duplicate) the title
-- [ ] At least one controlled vocabulary term included in keywords
-- [ ] All submission metadata fields populated
-- [ ] Abstract accurately reflects the final Results section (not an earlier draft)
-- [ ] No overclaiming: abstract claims ≤ what data shows
-
-## Common Pitfalls
-
-| Pitfall | Problem | Fix |
-|---------|---------|-----|
-| Abstract written first, never updated | Reflects an earlier version of the paper | Rewrite abstract LAST, after results are finalized |
-| "This paper studies..." opening | Weak and generic | Lead with the problem, gap, or finding |
-| Keywords = title words | Wasted indexing opportunity | Use complementary terms |
-| Overclaiming in abstract | "We prove that..." when results are correlational | Match claim strength to method |
-| Ignoring venue word count | Administrative desk reject | Count words carefully; abstract ≠ introduction |
-
-## Minimal Output Format
-
-```markdown
-# Meta Optimization
+For venue-specific work, use `references/stage-H-submission.md` to distinguish
+verified requirements from local profile advice. Apply the actual article type,
+word limit and keyword rules. Unverified conventions are suggestions, not gates.
 
 ## Title
-- **Proposed**: "[optimized title]"
-- **Alternative**: "[backup title]"
-- **Checklist**: ✅ Accurate / ✅ Specific / ✅ Searchable / ✅ Concise / ✅ No abbreviations
+
+Represent the question or supported contribution with recognizable field terms.
+Include context or method when it changes what the reader should expect. Choose
+length, punctuation, question form and abbreviations for clarity and the actual
+venue; there is no universal fifteen-word ceiling or preferred title formula.
+Do not imply causality, novelty or broader applicability than the paper supports.
+A request for one title does not require alternatives or a visible checklist.
 
 ## Abstract
-[Full optimized abstract — structured or narrative per venue]
-- Word count: [n] / [limit]
 
-## Keywords
-1. [keyword] — rationale: [why chosen]
-2. ...
-3. ...
+Make the paper's question, approach, supported answer and significance clear to
+its intended reader. An empirical abstract usually needs the study design and
+specific findings; a theoretical paper needs its argument and contribution, and
+a proposal must distinguish plans from completed work. Select the details that
+let the reader understand and assess this paper. Do not force empirical methods
+or results into other article types.
 
-## Submission Metadata
-| Field | Value |
-|-------|-------|
-| Running title | ... |
-| Corresponding author | ... |
-| Data availability | ... |
-| AI disclosure | ... |
-| COI | ... |
-| Funding | ... |
-```
+Use structured headings only where requested or required. Choose an opening that
+communicates something specific; an accurate “This paper examines…” is acceptable.
+Avoid generic importance claims used only to make the opening sound impressive.
+Keep technical terms consistent and explain those the intended reader needs.
+Follow the venue's citation policy rather than assuming abstracts never cite.
+
+Compare the finished abstract with the current manuscript, not an earlier draft:
+question, constructs, sample, findings, numbers, uncertainty and inference strength
+must agree. Recheck affected claims when results change. An earlier abstract can
+be a working draft; its drafting order is not a completion criterion.
+
+## Keywords and optional metadata
+
+Choose accurate search terms, including title terms when useful. Broader, narrower,
+method and domain terms are options, not a required mixture. Use controlled
+vocabularies and counts when the target venue requires them or they aid discovery;
+do not invent a controlled term or exclude a key construct just to avoid overlap.
+
+Only include submission metadata when requested. Reuse verified author details,
+funding, data availability, conflicts, acknowledgments and AI-use information;
+unknown fields remain unknown. Do not assign authorship or infer disclosures.
+Completion of a title/abstract task is separate from submission readiness.
+
+## Output contract
+
+Return only the selected title, abstract, keywords or requested explanation for a
+direct edit. For formal F6, `MetadataOptimization` uses
+`RESEARCH/[topic]/manuscript/meta_optimization.md`, containing the selected
+components. Registered writes use preview/approval/CAS; proposed text is not a
+saved artifact. Do not create a second manuscript or silently alter its claims.
+
+Separate finding, interpretation and implication. Apply
+`references/academic-output-rubric.md` and `references/citation-risk-policy.md`.
+For formal project claims, reconcile stable claim IDs and inspected support under
+`references/evidence-ledger-contract.md`. A direct edit needs no new ledger or
+citation-risk report. Never invent data, citations, results or venue rules.
+
+## Quality bar
+
+- The selected components accurately represent the current manuscript and paper type.
+- Necessary reasoning and qualifications survive concise, readable expression.
+- Actual venue requirements and requested length/format are satisfied; unknown
+  requirements and evidence gaps remain explicit.
+- The response stays within the requested components and edit depth; unrelated
+  submission fields, backup titles and internal checklists are not default outputs.

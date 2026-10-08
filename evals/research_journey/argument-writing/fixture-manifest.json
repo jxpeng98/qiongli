@@ -1,0 +1,14 @@
+{
+  "kind": "qiongli-invented-argument-writing-inputs/v1",
+  "scope": "frozen two-task substantive writing cohort; synthetic evidence only; no model runs",
+  "task_ids": [
+    "A",
+    "B"
+  ],
+  "files": {
+    "README.md": "e674130479f9258e9076d364db56919745699c9247c3207c3e44824baf7f297f",
+    "review-criteria.md": "bbb235811277332527b79ad94d81d840ea681c91297d1d8e6aa93e299964f1ec",
+    "sources.md": "18e8cc8c9c6f5234f81b13bc88d69f7d919592c9dca70f68c324146bc7b02dc8",
+    "tasks.md": "39baf460766a80b13ee27f4d2a7429750d46e5be389e681279dcd97948df24cf"
+  }
+}

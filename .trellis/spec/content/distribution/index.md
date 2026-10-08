@@ -88,6 +88,14 @@ The shared scholarly-voice owner prioritizes readable, concise expression with
 technical fidelity; Stage F checks that the requested unit retains its premises,
 stable meanings and paragraph-to-paragraph argument. These apply across sections,
 without a sentence-length score, word blacklist or required extra review process.
+Writing cards inherit that contract in full: formal output paths do not require
+extra files for direct prose edits. Literature-map cluster counts, title forms
+and analytical lenses are conditional aids; actual task/venue requirements govern.
+The quality rubric judges the reasoning needed by the selected section, not a
+quota of mechanisms and implications. Source support follows the result's producer
+(including a meta-analysis's own pooled result); original author reasoning binds
+its premises without pretending a source states the same conclusion. Subject
+venue overlays distinguish sourced expectations from local advice.
 
 Manuscript-first claim detection and reverse lookup are owned by the existing
 `evidence-verification.md` reference and consumed by Stage F during drafting and

@@ -4,7 +4,7 @@
 # Applied by eval runner to assess skill output quality
 
 rubric_id: skill-output-quality
-version: "1.1.0"
+version: "1.2.0"
 
 dimensions:
   - name: completeness
@@ -60,20 +60,20 @@ dimensions:
 
   - name: analytical_depth
     weight: 0.20
-    description: "Output moves beyond surface description into mechanism, contrast, boundaries, and defensible implications"
+    description: "Output explains the consequential evidence-to-claim steps at the depth appropriate to the requested task and paper type"
     levels:
       - score: 1
         label: "Surface-only"
-        criteria: "Mostly paraphrases facts, themes, or results without interpretation"
+        criteria: "Omits explanation or comparison needed to fulfill the requested task; lists claims without the necessary basis"
       - score: 2
         label: "Shallow interpretation"
         criteria: "Adds some interpretation, but remains generic or unsupported"
       - score: 3
         label: "Analytical"
-        criteria: "Explains mechanisms, tensions, or boundary conditions with mostly defensible reasoning"
+        criteria: "Explains the relevant evidence, comparisons and inferential steps with defensible reasoning suited to the section"
       - score: 4
         label: "Deeply analytical"
-        criteria: "Integrates mechanism, rival explanations, limits, and implications without overclaiming"
+        criteria: "Fully develops the consequential reasoning and its relevance to the question, preserves limits, and connects the requested unit without unsupported bridges; mechanisms or alternatives are required only when material and supported"
 
   - name: actionability
     weight: 0.15

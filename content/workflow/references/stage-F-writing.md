@@ -81,6 +81,12 @@ to inspect indirect inferences and unmapped uses as well as recorded links.
 
 ### Evidence and quality
 
+Shared evidence, meaning-preservation and authorization rules apply to every
+writing card. Chapter structures, title formulas, clustering counts and analytical
+lenses are optional aids unless the user, paper type or verified venue requirement
+makes them necessary. Local venue profiles are discovery aids; distinguish sourced
+requirements from editorial advice before using either as a completion gate.
+
 - Check for mainline drift, unsupported claims, logic jumps, contradiction with
   settled decisions, and generic or vague claims. Preserve source meaning,
   numbers, citations, uncertainty and the distinction between findings,
@@ -147,6 +153,21 @@ builds on it; supply the missing reasoning or reorder within the authorized edit
 Do not manufacture continuity with “therefore”, “however” or a repeated topic label.
 Keep consistent terms and explicit referents so that the reader can follow the
 argument without consulting internal notes.
+
+For a connected section or manuscript, use the existing Story Spine to track the
+opening question, what prior work establishes, the paper's supported answer and
+what that answer changes. Compare the introduction's promises with the actual
+results and discussion; revise a promise or disclose an unanswered part when
+evidence falls short. A contribution may clarify an established account's scope
+or resolve a consequential comparison. Do not invent novelty to fill a gap slot.
+
+Trace different kinds of reasoning to their actual basis. Reported source facts
+need inspected source locations; this study's findings need its materials and
+analysis outputs. An original synthesis or interpretation needs inspectable
+premises and an explained inferential step, not an identical conclusion in a
+cited paper. Distinguish that reasoning from the source author's conclusion and
+from a hypothesis requiring new evidence. Reuse existing claim types and records;
+do not create a second argument register or display internal maps by default.
 
 ### Literature review tied to the paper
 
@@ -326,7 +347,8 @@ Write into: `manuscript/manuscript.md` (or a section placeholder within it).
 - Methods contain enough detail for replication or audit (given the artifact set), including sampling, access, data sources, analytic procedure, and reflexivity for qualitative work
 - Results are consistent with analysis plan and reported with uncertainty or transparent evidence structure
 - Findings in qualitative papers are analytic claims; quotes, vignettes, and episodes are evidence anchors rather than the finding itself
-- Related work and discussion interpret tensions, mechanisms, and alternative explanations instead of paraphrasing sources or results
+- Related work and discussion explain the evidence's significance to the question;
+  tensions, mechanisms and alternatives are developed when relevant and supported
 - Limitations discuss validity threats (not only “small sample”)
 - The narrative states where claims stop: boundary conditions, contradictory cases, and inferential limits are explicit
 - Discussion distinguishes participant attributions, author interpretation, and speculative implication
@@ -387,7 +409,8 @@ For qualitative papers, common `F5` outputs include:
 
 **Definition of done**
 - Title reflects: construct + setting + method + contribution (as appropriate)
-- Abstract includes: problem, gap, method, main result(s), implication
+- Abstract communicates the question, approach, supported answer and contribution
+  appropriate to the paper type; verified venue requirements govern its structure
 - Keywords reflect both author terms and common index terms (without stuffing)
 
 Write into: `manuscript/meta_optimization.md`.
