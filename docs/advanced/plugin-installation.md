@@ -82,6 +82,31 @@ A timeout does not undo changes and may leave package-manager descendants runnin
 Check their state before retrying. Unknown files, changed receipts and profile
 conflicts remain refusals for that Host; continuation does not bypass them.
 
+### Detailed DeepSeek steps
+
+Development builds report twelve numbered DSH stages: executable, version,
+profile selection, plan validation, approval, precondition recheck, optional
+profile initialization, package installation, bundle registration, package
+metadata/version, content receipt and language preference. Each executed stage
+prints START and OK/FAILED with elapsed time; declined choices and unnecessary
+initialization are SKIPPED. A failure keeps its reason code and identifies the
+stage; later DSH stages do not run, while the batch can continue to another Host.
+
+For example, `[DSH 8/12] FAILED` means the official manager command failed;
+`[DSH 11/12] FAILED` means the content receipt check failed after the earlier
+checks completed. A package-manager exit of zero alone does not establish a
+verified Qiongli installation.
+
+The DSH trace shows the actual command, working directory, reconstructed PATH,
+passed environment key names, closed stdin, captured streams and timeout. It
+prints no environment credential values. After bounded capture completes, it
+reports stdout/stderr byte counts and recognized pnpm resolution/download/
+completion messages as static observations. During the command, the existing
+five-second elapsed messages remain. These observations do not reveal every
+internal pnpm step; unknown output is not presented as a root-cause diagnosis.
+Raw manager output is not echoed or saved. The same launch rules, package
+arguments, approvals and installed-profile protections remain in force.
+
 ## Description language {#language}
 
 ```sh

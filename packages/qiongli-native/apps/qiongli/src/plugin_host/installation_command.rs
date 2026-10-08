@@ -150,8 +150,96 @@ pub(crate) fn run(
     private_profile: bool,
     writer: &mut impl Write,
 ) -> Result<(), &'static str> {
+    run_observed(
+        environment,
+        executable,
+        args,
+        timeout,
+        private_profile,
+        writer,
+        false,
+    )
+    .map(|_| ())
+}
+
+/// DSH exposes each command's actual launch context and bounded observations.
+pub(crate) fn run_detailed(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    args: &[String],
+    timeout: Duration,
+    writer: &mut impl Write,
+) -> Result<crate::desktop::HostCommandOutput, &'static str> {
+    run_observed(environment, executable, args, timeout, false, writer, true)
+}
+
+fn describe_launch(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    args: &[String],
+    timeout: Duration,
+    writer: &mut impl Write,
+) -> Result<(), &'static str> {
+    let command = crate::desktop::official_host_command(
+        environment,
+        executable,
+        &args.iter().map(OsString::from).collect::<Vec<_>>(),
+    )
+    .map_err(|error| error.reason_code())?;
+    let path = command
+        .get_envs()
+        .find_map(|(key, value)| (key == "PATH").then_some(value).flatten());
+    let paths = path
+        .map(|path| std::env::split_paths(path).collect::<Vec<_>>())
+        .unwrap_or_default();
+    crate::cli_content::show_json(writer, &serde_json::json!({
+        "working_directory": command.get_current_dir(),
+        "environment": "isolated; only the listed keys are passed; shell proxy/auth variables are not inherited",
+        "environment_keys": command.get_envs().map(|(key, _)| key.to_string_lossy().into_owned()).collect::<Vec<_>>(),
+        "search_path": paths,
+        "stdin": "closed", "stdout_stderr": "captured separately; 512 KiB limit per stream",
+        "timeout_seconds": timeout.as_secs(),
+    }).to_string())
+}
+
+fn reported_milestones(stdout: &[u8], stderr: &[u8]) -> Vec<&'static str> {
+    let stdout = String::from_utf8_lossy(stdout);
+    let stderr = String::from_utf8_lossy(stderr);
+    let lines = stdout.lines().chain(stderr.lines()).collect::<Vec<_>>();
+    let mut observed = Vec::new();
+    if lines
+        .iter()
+        .any(|line| line.starts_with("Progress: resolved "))
+    {
+        observed.push("pnpm reported dependency-resolution progress");
+    }
+    let package = format!("Downloading qiongli@{}:", env!("CARGO_PKG_VERSION"));
+    if lines.iter().any(|line| line.starts_with(&package)) {
+        observed.push("pnpm reported a Qiongli package download");
+    }
+    if lines
+        .iter()
+        .any(|line| line.starts_with("Done in ") && line.contains(" using pnpm v"))
+    {
+        observed.push("pnpm reported command completion; Qiongli verification still required");
+    }
+    observed
+}
+
+fn run_observed(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    args: &[String],
+    timeout: Duration,
+    private_profile: bool,
+    writer: &mut impl Write,
+    detailed: bool,
+) -> Result<crate::desktop::HostCommandOutput, &'static str> {
     let command = display_command(&executable.to_string_lossy(), args);
     line(writer, &format!("  Running: {command}\n"))?;
+    if detailed {
+        describe_launch(environment, executable, args, timeout, writer)?;
+    }
     writer.flush().map_err(|_| "installation-output-failed")?;
     let start = Instant::now();
     let mut output_failed = false;
@@ -192,20 +280,49 @@ pub(crate) fn run(
             return Err(error.reason_code());
         }
     };
-    if output.status.success() {
-        return line(
+    if detailed {
+        line(
             writer,
             &format!(
-                "  Command finished in {}s; verifying installation next.\n",
+                "  Captured output: stdout {} bytes; stderr {} bytes.\n",
+                output.stdout.len(),
+                output.stderr.len()
+            ),
+        )?;
+        if args.first().is_some_and(|arg| arg == "plugin") {
+            let milestones = reported_milestones(&output.stdout, &output.stderr);
+            if milestones.is_empty() {
+                line(
+                    writer,
+                    "  No recognized pnpm progress markers; no internal pnpm stage can be inferred.\n",
+                )?;
+            }
+            for milestone in milestones {
+                line(writer, &format!("  Manager observation: {milestone}.\n"))?;
+            }
+        }
+    }
+    if output.status.success() {
+        line(
+            writer,
+            &format!(
+                "  Command finished in {}s with exit 0.\n",
                 start.elapsed().as_secs()
             ),
-        );
+        )?;
+        return Ok(output);
     }
     let status = output.status.code().map_or_else(
         || "terminated by signal".to_owned(),
         |code| code.to_string(),
     );
-    line(writer, &format!("  Official manager exit: {status}.\n"))?;
+    line(
+        writer,
+        &format!(
+            "  Official manager exit: {status} ({}s elapsed).\n",
+            start.elapsed().as_secs()
+        ),
+    )?;
     if let Some((code, hint)) = diagnostic(&output.stderr).or_else(|| diagnostic(&output.stdout)) {
         line(writer, &format!("  Reported category: {code}. {hint}\n"))?;
     } else {
@@ -250,6 +367,27 @@ mod tests {
             diagnostic(b"unknown option --registry").unwrap().0,
             "unsupported-command"
         );
+    }
+
+    #[test]
+    fn manager_milestones_never_echo_raw_output_or_attest_installation() {
+        let stdout = format!(
+            "Progress: resolved 2, token=private\nDownloading qiongli@{}: secret\nDone in 5s using pnpm v11.7.0\n",
+            env!("CARGO_PKG_VERSION")
+        );
+        let observations =
+            reported_milestones(stdout.as_bytes(), b"Authorization: Bearer private\x1b[2J");
+        assert_eq!(observations.len(), 3);
+        assert!(observations.iter().all(|text| !text.contains("private")
+            && !text.contains("secret")
+            && !text.contains('\x1b')));
+        assert!(
+            observations
+                .last()
+                .unwrap()
+                .contains("verification still required")
+        );
+        assert!(reported_milestones(b"unrecognized progress", b"private error").is_empty());
     }
 
     #[test]

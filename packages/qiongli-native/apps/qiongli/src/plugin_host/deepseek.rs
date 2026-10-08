@@ -23,6 +23,90 @@ struct InstallPlan {
     skill_language: Option<String>,
 }
 
+#[derive(Clone, Copy)]
+enum InstallStep {
+    Executable,
+    Version,
+    Profile,
+    Plan,
+    Approval,
+    Recheck,
+    Initialize,
+    Package,
+    Registration,
+    Metadata,
+    Receipt,
+    Language,
+}
+
+impl InstallStep {
+    fn details(self) -> (u8, &'static str) {
+        match self {
+            Self::Executable => (1, "Locate the DSH executable"),
+            Self::Version => (2, "Check the DSH version"),
+            Self::Profile => (3, "Select the DSH profile"),
+            Self::Plan => (4, "Validate the profile and prepare commands"),
+            Self::Approval => (5, "Review the plan and confirm trust"),
+            Self::Recheck => (6, "Recheck the approved executable and profile"),
+            Self::Initialize => (7, "Initialize a new profile from the web template"),
+            Self::Package => (8, "Install the package through the DSH manager"),
+            Self::Registration => (9, "Verify the qiongli bundle registration"),
+            Self::Metadata => (10, "Verify the installed package version and entry points"),
+            Self::Receipt => (11, "Verify the installed content receipt"),
+            Self::Language => (12, "Save the Skill description language"),
+        }
+    }
+}
+
+fn step_with_status<T, W: Write>(
+    writer: &mut W,
+    step: InstallStep,
+    action: impl FnOnce(&mut W) -> Result<T, &'static str>,
+    status: impl FnOnce(&T) -> &'static str,
+) -> Result<T, &'static str> {
+    let (number, label) = step.details();
+    line(writer, &format!("[DSH {number}/12] START {label}\n"))?;
+    writer.flush().map_err(|_| "installation-output-failed")?;
+    let start = Instant::now();
+    let result = action(writer);
+    match &result {
+        Ok(value) => line(
+            writer,
+            &format!(
+                "[DSH {number}/12] {} {label} ({:.2}s)\n",
+                status(value),
+                start.elapsed().as_secs_f64()
+            ),
+        )?,
+        Err(code) => line(
+            writer,
+            &format!(
+                "[DSH {number}/12] FAILED {label} ({:.2}s): {code}\nDSH stopped at step {number}/12; subsequent DSH steps were not run. Completed changes, if any, remain.\n",
+                start.elapsed().as_secs_f64()
+            ),
+        )?,
+    }
+    writer.flush().map_err(|_| "installation-output-failed")?;
+    result
+}
+
+fn step<T, W: Write>(
+    writer: &mut W,
+    step: InstallStep,
+    action: impl FnOnce(&mut W) -> Result<T, &'static str>,
+) -> Result<T, &'static str> {
+    step_with_status(writer, step, action, |_| "OK")
+}
+
+fn skip_step(writer: &mut impl Write, step: InstallStep, reason: &str) -> Result<(), &'static str> {
+    let (number, label) = step.details();
+    line(
+        writer,
+        &format!("[DSH {number}/12] SKIPPED {label}: {reason}\n"),
+    )?;
+    writer.flush().map_err(|_| "installation-output-failed")
+}
+
 pub(crate) fn install(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
@@ -30,47 +114,86 @@ pub(crate) fn install(
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> Result<bool, &'static str> {
-    let home = environment
-        .platform_home()
-        .ok_or("host-plugin-home-unavailable")?;
-    let root = environment
-        .dsh_config_root()
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| home.join(".dsh"));
-    let discovered = environment
-        .client_executable("dsh")
-        .ok_or("host-plugin-executable-unavailable")?;
-    let executable = crate::desktop::resolve_host_plugin_executable(home, "dsh", &discovered)?;
-    let version = run(environment, &executable, &["--version".into()])?;
-    let version =
-        semver::Version::parse(version.trim()).map_err(|_| "deepseek-version-unsupported")?;
-    if version.major == 0 && version.minor < 2 {
-        return Err("deepseek-version-unsupported");
-    }
-    let default = if root.join("profiles/desktop/package.json").is_file() {
-        "desktop"
-    } else {
-        "web"
-    };
-    let profile = crate::cli_inventory::choice(
-        reader,
+    let (root, executable) = step(writer, InstallStep::Executable, |writer| {
+        let home = environment
+            .platform_home()
+            .ok_or("host-plugin-home-unavailable")?;
+        let root = environment
+            .dsh_config_root()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| home.join(".dsh"));
+        let discovered = environment
+            .client_executable("dsh")
+            .ok_or("host-plugin-executable-unavailable")?;
+        let executable = crate::desktop::resolve_host_plugin_executable(home, "dsh", &discovered)?;
+        show_json(
+            writer,
+            &serde_json::json!({"executable": executable, "dsh_home": root}).to_string(),
+        )?;
+        Ok((root, executable))
+    })?;
+    step(writer, InstallStep::Version, |writer| {
+        let output = super::installation_command::run_detailed(
+            environment,
+            &executable,
+            &["--version".into()],
+            Duration::from_secs(120),
+            writer,
+        )?;
+        let version =
+            std::str::from_utf8(&output.stdout).map_err(|_| "host-command-output-not-utf8")?;
+        // Preserve the bounded string runner's UTF-8 contract for version checks.
+        std::str::from_utf8(&output.stderr).map_err(|_| "host-command-output-not-utf8")?;
+        let version =
+            semver::Version::parse(version.trim()).map_err(|_| "deepseek-version-unsupported")?;
+        if version.major == 0 && version.minor < 2 {
+            return Err("deepseek-version-unsupported");
+        }
+        show_json(
+            writer,
+            &serde_json::json!({"dsh_version": version.to_string()}).to_string(),
+        )
+    })?;
+    let profile = step_with_status(
         writer,
-        &format!("DSH profile (0 skips this Host) [{default}]: "),
-    )
-    .map_err(|_| "installation-input-failed")?;
-    if profile == "0" {
-        return Ok(false);
-    }
-    let profile = if profile.is_empty() {
-        default
-    } else {
-        &profile
+        InstallStep::Profile,
+        |writer| {
+            let default = if root.join("profiles/desktop/package.json").is_file() {
+                "desktop"
+            } else {
+                "web"
+            };
+            let profile = crate::cli_inventory::choice(
+                reader,
+                writer,
+                &format!("DSH profile (0 skips this Host) [{default}]: "),
+            )
+            .map_err(|_| "installation-input-failed")?;
+            Ok(if profile == "0" {
+                None
+            } else if profile.is_empty() {
+                Some(default.to_owned())
+            } else {
+                Some(profile)
+            })
+        },
+        |profile| if profile.is_some() { "OK" } else { "SKIPPED" },
+    )?;
+    let Some(profile) = profile else {
+        return line(
+            writer,
+            "DSH skipped by user; no installation commands were run.\n",
+        )
+        .map(|_| false);
     };
-    let mut plan = prepare(&executable, &root, profile)?;
-    if !qiongli_content::skill_language_valid(language) {
-        return Err("skill-language-invalid");
-    }
-    plan.skill_language = Some(language.into());
+    let plan = step(writer, InstallStep::Plan, |_| {
+        let mut plan = prepare(&executable, &root, &profile)?;
+        if !qiongli_content::skill_language_valid(language) {
+            return Err("skill-language-invalid");
+        }
+        plan.skill_language = Some(language.into());
+        Ok(plan)
+    })?;
     review(environment, content, &root, plan, reader, writer)
 }
 
@@ -82,59 +205,91 @@ fn review(
     reader: &mut impl BufRead,
     writer: &mut impl Write,
 ) -> Result<bool, &'static str> {
-    show_json(writer, &serde_json::json!({
-        "host": "DeepSeek Harness", "profile": plan.profile, "profile_directory": plan.profile_directory,
-        "executable": plan.executable, "package": format!("qiongli@{}", env!("CARGO_PKG_VERSION")),
-        "commands": plan.commands.iter().map(|args| serde_json::json!({"arguments": serde_json::json!(args).to_string()})).collect::<Vec<_>>(),
-        "skill_language": plan.skill_language,
-        "language_preference_file": plan.profile_directory.join(".qiongli-skill-language.json"),
-        "components": "22 Skills and native Full MCP; loaded by DSH on a new session",
-        "approvals_required": ["client-config-change", "host-trust"],
-        "plan_digest_sha256": format!("{:x}", Sha256::digest(serde_json_canonicalizer::to_vec(&plan).map_err(|_| "installation-preview-invalid")?))
-    }).to_string())?;
-    line(
+    let (approved, reviewed_at) = step_with_status(
         writer,
-        "DSH will install/update this exact npm version and register its bundle in the selected profile. Existing sessions need a restart.\n",
+        InstallStep::Approval,
+        |writer| {
+            show_json(writer, &serde_json::json!({
+            "host": "DeepSeek Harness", "profile": plan.profile, "profile_directory": plan.profile_directory,
+            "executable": plan.executable, "package": format!("qiongli@{}", env!("CARGO_PKG_VERSION")),
+            "commands": plan.commands.iter().map(|args| serde_json::json!({"arguments": serde_json::json!(args).to_string()})).collect::<Vec<_>>(),
+            "skill_language": plan.skill_language,
+            "language_preference_file": plan.profile_directory.join(".qiongli-skill-language.json"),
+            "components": "22 Skills and native Full MCP; loaded by DSH on a new session",
+            "approvals_required": ["client-config-change", "host-trust"],
+            "plan_digest_sha256": format!("{:x}", Sha256::digest(serde_json_canonicalizer::to_vec(&plan).map_err(|_| "installation-preview-invalid")?))
+        }).to_string())?;
+            line(
+                writer,
+                "DSH will install/update this exact npm version and register its bundle in the selected profile. Existing sessions need a restart.\n",
+            )?;
+            if plan.profile == "desktop" {
+                line(
+                    writer,
+                    "For desktop, save your work and fully quit DeepSeek Desktop before approving this command.\n",
+                )?;
+            }
+            let reviewed_at = Instant::now();
+            let approved = confirm(
+                reader,
+                writer,
+                "Trust this Plugin and let the official DSH manager install it? [y/N] ",
+            )?;
+            Ok((approved, reviewed_at))
+        },
+        |(approved, _)| if *approved { "OK" } else { "SKIPPED" },
     )?;
-    let reviewed_at = Instant::now();
-    if !confirm(
-        reader,
-        writer,
-        "Trust this Plugin and let the official DSH manager install it? [y/N] ",
-    )? {
-        line(
+    if !approved {
+        return line(
             writer,
             "Cancelled; no DSH installation commands were run.\n",
-        )?;
-        return Ok(false);
+        )
+        .map(|_| false);
     }
-    let mut current = prepare(&plan.executable, root, &plan.profile)?;
-    current.skill_language.clone_from(&plan.skill_language);
-    if reviewed_at.elapsed() > Duration::from_secs(600) || current != plan {
-        return Err("local-host-precondition-changed");
-    }
+    step(writer, InstallStep::Recheck, |_| {
+        let mut current = prepare(&plan.executable, root, &plan.profile)?;
+        current.skill_language.clone_from(&plan.skill_language);
+        if reviewed_at.elapsed() > Duration::from_secs(600) || current != plan {
+            return Err("local-host-precondition-changed");
+        }
+        Ok(())
+    })?;
     line(writer, "Installing through the official DSH manager…\n")?;
-    for (index, args) in plan.commands.iter().enumerate() {
-        line(
-            writer,
-            &format!("  Manager step {}/{}\n", index + 1, plan.commands.len()),
-        )?;
-        super::installation_command::run(
-            environment,
-            &plan.executable,
-            args,
-            Duration::from_secs(120),
-            false,
-            writer,
-        )?;
+    if plan.commands.len() == 1 {
+        skip_step(writer, InstallStep::Initialize, "using an existing profile")?;
     }
-    line(
-        writer,
-        "Verifying the installed package version and Plugin registration…\n",
-    )?;
-    verify_installed(&plan.profile_directory, content)?;
+    for (index, args) in plan.commands.iter().enumerate() {
+        let phase = if args.first().is_some_and(|arg| arg == "plugin") {
+            InstallStep::Package
+        } else {
+            InstallStep::Initialize
+        };
+        step(writer, phase, |writer| {
+            line(
+                writer,
+                &format!("  Manager step {}/{}\n", index + 1, plan.commands.len()),
+            )?;
+            super::installation_command::run_detailed(
+                environment,
+                &plan.executable,
+                args,
+                Duration::from_secs(120),
+                writer,
+            )
+            .map(|_| ())
+        })?;
+    }
+    verify_installed(&plan.profile_directory, content, writer)?;
     if let Some(language) = &plan.skill_language {
-        write_language(&plan, language)?;
+        step(writer, InstallStep::Language, |_| {
+            write_language(&plan, language)
+        })?;
+    } else {
+        skip_step(
+            writer,
+            InstallStep::Language,
+            "no language change requested",
+        )?;
     }
     line(
         writer,
@@ -332,43 +487,40 @@ fn read_json(path: &Path) -> Result<Value, &'static str> {
         .map_err(|_| "deepseek-install-not-verified")
 }
 
-fn verify_installed(directory: &Path, content: &EmbeddedContent) -> Result<(), &'static str> {
-    let profile = read_json(&directory.join("package.json"))?;
-    if !profile["dsh"]["profile"]["bundles"]
-        .as_array()
-        .is_some_and(|bundles| bundles.iter().any(|name| name == "qiongli"))
-    {
-        return Err("deepseek-install-not-verified");
-    }
+fn verify_installed(
+    directory: &Path,
+    content: &EmbeddedContent,
+    writer: &mut impl Write,
+) -> Result<(), &'static str> {
+    step(writer, InstallStep::Registration, |_| {
+        let profile = read_json(&directory.join("package.json"))?;
+        if !profile["dsh"]["profile"]["bundles"]
+            .as_array()
+            .is_some_and(|bundles| bundles.iter().any(|name| name == "qiongli"))
+        {
+            return Err("deepseek-install-not-verified");
+        }
+        Ok(())
+    })?;
     let package = directory.join("node_modules/qiongli");
-    let metadata = read_json(&package.join("package.json"))?;
-    let receipt = read_json(&package.join("dsh/.qiongli-marketplace.json"))?;
-    if metadata["name"] != "qiongli"
-        || metadata["version"] != env!("CARGO_PKG_VERSION")
-        || metadata["main"] != "dsh/index.mjs"
-        || metadata["dsh"]["bundle"]["patch"] != "./dsh/cordis.patch.yml"
-        || receipt["source"]["pack_sha256"] != content.pack().pack_sha256()
-    {
-        return Err("deepseek-install-not-verified");
-    }
-    Ok(())
-}
-
-fn run(
-    environment: &CommandEnvironment,
-    executable: &Path,
-    args: &[String],
-) -> Result<String, &'static str> {
-    crate::desktop::bounded_host_os_command_with_timeout(
-        environment,
-        executable,
-        &args
-            .iter()
-            .map(std::ffi::OsString::from)
-            .collect::<Vec<_>>(),
-        Duration::from_secs(120),
-    )
-    .map_err(|error| error.reason_code())
+    step(writer, InstallStep::Metadata, |_| {
+        let metadata = read_json(&package.join("package.json"))?;
+        if metadata["name"] != "qiongli"
+            || metadata["version"] != env!("CARGO_PKG_VERSION")
+            || metadata["main"] != "dsh/index.mjs"
+            || metadata["dsh"]["bundle"]["patch"] != "./dsh/cordis.patch.yml"
+        {
+            return Err("deepseek-install-not-verified");
+        }
+        Ok(())
+    })?;
+    step(writer, InstallStep::Receipt, |_| {
+        let receipt = read_json(&package.join("dsh/.qiongli-marketplace.json"))?;
+        if receipt["source"]["pack_sha256"] != content.pack().pack_sha256() {
+            return Err("deepseek-install-not-verified");
+        }
+        Ok(())
+    })
 }
 
 #[cfg(all(test, unix))]
@@ -508,12 +660,35 @@ mod tests {
             Some("skill-language-invalid")
         );
         fs::remove_file(directory.join(".qiongli-skill-language.json")).unwrap();
+        // Different failed postconditions must identify their own stage, even
+        // after the official manager has completed successfully.
+        for (file, failed, later) in [
+            (directory.join("package.json"), 9, 10),
+            (package.join("package.json"), 10, 11),
+        ] {
+            let original = fs::read(&file).unwrap();
+            fs::write(&file, "{}").unwrap();
+            let mut output = Vec::new();
+            assert_eq!(
+                verify_installed(&directory, &content, &mut output).unwrap_err(),
+                "deepseek-install-not-verified"
+            );
+            let output = String::from_utf8(output).unwrap();
+            assert!(output.contains(&format!("[DSH {failed}/12] FAILED")));
+            assert!(!output.contains(&format!("[DSH {later}/12]")));
+            fs::write(file, original).unwrap();
+        }
         fs::write(package.join("dsh/.qiongli-marketplace.json"), "{}").unwrap();
+        let mut verification_output = Vec::new();
         assert_eq!(
-            verify_installed(&directory, &content).unwrap_err(),
+            verify_installed(&directory, &content, &mut verification_output).unwrap_err(),
             "deepseek-install-not-verified"
         );
+        let verification_output = String::from_utf8(verification_output).unwrap();
+        assert!(verification_output.contains("[DSH 10/12] OK"));
+        assert!(verification_output.contains("[DSH 11/12] FAILED"));
         fs::write(&executable, "#!/bin/sh\nexit 1\n").unwrap();
+        let mut failure_output = Vec::new();
         assert_eq!(
             review(
                 &environment,
@@ -521,11 +696,16 @@ mod tests {
                 &dsh_root,
                 prepare(&executable, &dsh_root, "probe").unwrap(),
                 &mut "y\n".as_bytes(),
-                &mut Vec::new()
+                &mut failure_output
             )
             .unwrap_err(),
             "host-command-nonzero-exit"
         );
+        let failure_output = String::from_utf8(failure_output).unwrap();
+        assert!(failure_output.contains("[DSH 7/12] SKIPPED"));
+        assert!(failure_output.contains("[DSH 8/12] FAILED"));
+        assert!(!failure_output.contains("[DSH 9/12]"));
+        assert!(failure_output.contains("Official manager exit: 1"));
         fs::remove_dir_all(home).unwrap();
     }
 }

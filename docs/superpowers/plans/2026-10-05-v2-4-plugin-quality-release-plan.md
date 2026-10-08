@@ -2754,3 +2754,64 @@ source hashes. Integrate by local fast-forward after the frozen-source guard.
 Next resolve the user's actual launcher path or original manager error; release
 qualification remains separately scoped. No publication or installed profile
 change is included.
+
+## October 8 — DeepSeek installation step reporting
+
+The maintainer requests complete flow printing because the failed installation
+stage remains invisible. Baseline is local fa7a87fb. Later user evidence resolves
+the earlier unknown launcher: macOS DeepSeek Desktop's bundled command was
+selected, Desktop was fully quit before both attempts, and the identical direct
+command installed qiongli 2.5.0 successfully. The earlier npm-entry/open-app
+hypotheses do not explain this case. The source audit confirms Qiongli's existing
+isolated environment, sorted reconstructed PATH, HOME working directory, null
+stdin, captured streams and 120-second limit; these are differences, not a
+confirmed root cause. No speculative environment change or reinstallation is
+part of this increment.
+
+Under ADR 0238, expose twelve numbered stages with started/completed/skipped/
+failed outcomes and elapsed time. Split actual postconditions into registration,
+package metadata/version, content receipt and language-write stages without
+weakening them or changing their error codes. Reuse the bounded command owner
+for version and manager calls; version probes retain both-stream UTF-8 checks.
+Show actual launcher context, environment key names (not credential values),
+captured byte counts and static recognized pnpm observations after capture.
+Retain command heartbeat, exact argv/retry guidance, declined/EOF handling and
+batch continuation. No raw output persistence, inferred internal failure stage,
+process/environment changes, new approval flow or live-session claim is added.
+The existing gpt-6.1-sol / low verifier owns focused checks and isolated terminal
+failure-stage cases; verification and local integration evidence follows below.
+
+Verification passes 31 focused Rust cases: 21 Host/diagnostic cases, nine guide
+cases and one bounded-capture/descendant-pipe case. Six isolated terminal
+scenarios pass: command failure at step 8 followed by the next Host, bad receipt
+at 11, language CAS conflict at 12, all twelve stages for a fresh successful
+profile, decline at 5 without manager execution and invalid version at 2 without
+installation commands. Existing profiles skip initialization at 7. Failure
+stages retain their reason, subsequent stages do not claim success, and fixture
+secrets are not echoed. Stage 9/10/11 postcondition negatives are retained in the
+native test. These are fake-manager Linux ARM64 observations, not live macOS,
+DSH package/session or user-machine root-cause acceptance.
+
+Formatting, CLI/library Clippy with denied warnings, seven roadmap tests,
+249-task generated-index consistency, ledger invariants and whitespace checks
+pass. Independent gpt-6.1-sol / low change review finds no actionable issue.
+The final help sentence is checked in a separately rebuilt CLI after the frozen
+runtime-owner checks; unchanged runtime tests are reused. Only CLI-402 progress
+text changes in the ledger; task states, dependencies, accepted evidence,
+commit/run fields and dates are unchanged.
+
+Retained setup/driver failures include rootless-container sandbox setup, a
+private fixture's initial writable mode, a reused test PID, human-text versus
+JSON expectations, help extraction/build timing and a fixed-index ledger lookup.
+Corrections affect only task fixtures/drivers; repository ancestor permissions,
+user data and original build artifacts remain unchanged. Private executable
+copies are stripped; task containers exit and the pre-existing container remains.
+
+Evidence: `/tmp/qiongli-dsh-step-trace-20261008/verification-summary.json`, SHA-256
+`74cabecdb805768f56fe7323165beb944363fb3027e9ba39efa0e79365b5336a`.
+It binds current runtime/help sources and distinguishes fresh/reused checks.
+Integrate through the authorized local feature-branch fast-forward after the
+frozen-source guard. Next qualify a separately selected CLI delivery and collect
+its stage output if the user's failure recurs. This CLI change requires a new
+build; reinstalling the existing 2.5.0 Plugin alone does not update its installer.
+No push, publication, real profile change or release monitoring occurs.

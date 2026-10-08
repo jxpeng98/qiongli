@@ -454,6 +454,13 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   installation diagnostics without printing raw manager output. Pipe EOF shares
   its deadline; timeout stops the direct child, not necessarily its descendants.
   Existing read-only callers retain their error and UTF-8 contracts.
+  DeepSeek exposes twelve numbered stages with START/OK/SKIPPED/FAILED and elapsed
+  results, separating registration, package metadata, receipt and language writes.
+  Stage errors retain their existing reason codes. Its command trace shows the
+  actual working directory, reconstructed PATH, passed environment key names,
+  stdio/timeout policy, output byte counts and allowlisted pnpm observations after
+  capture. It never prints environment credential values or raw manager text;
+  reported pnpm completion is not registration/receipt/session verification.
   Foreign enabled Plugins refuse before export
   with their exact names and manual disable guidance. See ADRs 0225 and 0235.
   ADR 0237 defaults the main guide to detected-all on Enter and makes unqualified
