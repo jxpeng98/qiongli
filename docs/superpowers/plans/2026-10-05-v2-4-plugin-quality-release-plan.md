@@ -2533,3 +2533,48 @@ note heading before building; that documentation correction passes the canonical
 version preflight. Current-source packaging is resumed on a new frozen snapshot,
 with the original failure retained. Ledger states, dependencies, all 46 accepted
 records and all prior evidence/commit/run fields remain unchanged.
+
+
+### Package qualification and publication handoff
+
+Clean isolated candidate `cfbb897c40b90e300e15be99aafc630081cfb5ec` passes the
+existing CLI release owner under Linux ARM64/glibc2.35 and Rust1.97: strict
+Clippy/format, **47 CLI and 9 MCP tests**, archive extraction, npm/wheel installs
+and generated Plugin checks. Separate current-pack regressions pass **6 AGY and
+3 Pi** integration tests; Pi's synthetic fixture is not a live SDK/model session.
+Actual published **2.4.0 → 2.5.0** npm and pip upgrades preserve the synthetic
+research/source/model settings. Installation from the checked Cargo archives and
+both `qiongli`/`ql` entrypoints passes. The snapshot's HEAD and clean status remain
+unchanged throughout the successful qualification.
+
+The independent artifact review passes 46 checks across all five assets: sizes,
+SHA-256 values, identical executable bytes, 446 canonical content resources,
+embedded pack and installed/extracted payloads match. The manifest's
+`registry_install` field refers to these local installs, not public publication.
+All scopes remain distinct from the supplied-guidance writing comparison.
+
+Retained failures include the release-note heading mismatch and an initial
+read-only fixture-directory mount that caused 42/47 CLI tests to fail before the
+corrected mount yielded 47/47. Production source and checks were unchanged by
+that mount repair. Inactive local debug incremental compiler cache was removed
+to recover 4,866,908,160 bytes; source, research and evidence files were preserved.
+Owned verification containers exited and the manual rootfs mount was released.
+
+Evidence under `/tmp/qiongli-writing-20261008/release-verification/`:
+- `final-cfbb897c-r2/verification-summary.json`, SHA-256
+  `c7c7ce39bc0c33c822a0b9c76cd89523dc8f9777fec0531843234ee3a4296c55`;
+- `final-cfbb897c-r2/upgrade-2.4.0/registry-upgrade-check.json`, SHA-256
+  `4790a32a86f8eea4c719c868df967842649d1b4c216ea5c8847fcea8050926f3`;
+- `final-cfbb897c-r2/cargo-install/install-check.json`, SHA-256
+  `0718903c5bb264a9efe7d666c5e6acb5ce5409d5f4594d8c67e0b241203d90e2`;
+- `independent-assets-review-cfbb897c.json`, SHA-256
+  `3a17fb33042ae4acbc20c1b6bb7503fd2b0bf4e7e290510f67ab2bb279b708ba`.
+
+Final integration changes only this evidence bookkeeping. Reuse unchanged local
+checks; the final immutable tag must pass its own four-target distribution before
+publication through `release-automation.yml` post mode. The maintainer requests
+ending after an accepted release-task dispatch, without monitoring jobs or
+asserting that GitHub/registry publication has completed. No announcements,
+external Marketplace promotion or program acceptance are included. The next
+writing-quality increment needs a separately scoped real manuscript with its
+sources and target-venue review; the present synthetic cases are now regressions.
