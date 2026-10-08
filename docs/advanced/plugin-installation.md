@@ -55,6 +55,30 @@ File export and official Host registration have separate confirmations. Cancelli
 
 ## Progress and failed installations
 
+Development builds following 2.5.1 group output by Host, approval preview,
+execution and summary. Successful DSH steps leave one short result each;
+repeated launch contexts and completed export receipts are hidden by default.
+Full file/registration previews remain visible before approval. On supported
+Unix terminals, waiting time updates in one short line without scrolling or
+clearing previous content. No download percentage is inferred.
+
+```sh
+qiongli install plugin --target deepseek            # compact display
+qiongli install plugin --target deepseek --verbose  # full safe diagnostics
+qiongli install all --plain                        # compact append-only output
+qiongli install --verbose                          # guide with diagnostics
+```
+
+`--verbose` and `--plain` also work with `upgrade plugin/all` and `update
+plugin/all`. Verbose mode is append-only and includes START lines and launch
+context. Failures automatically show the existing safe diagnostics, exact step
+and retry command without needing verbose mode. `--plain`, `NO_COLOR`, `CI`,
+absent/unsupported TERM, unknown widths, windows narrower than 32 columns and
+unsupported consoles (including Windows) disable refresh. Plain compact waiting
+messages appear at most every 30 seconds; verbose keeps five-second messages.
+Redirected installation still refuses before writes; use existing `--dry-run`
+workflows for scripts. These display flags do not approve changes.
+
 In 2.5.1, the installer shows `[1/5]` Host progress, official
 manager command steps and elapsed time every five seconds while a command runs.
 The final summary separates installed, failed, skipped and not-run Hosts. A
@@ -88,7 +112,8 @@ Version 2.5.1 reports twelve numbered DSH stages: executable, version,
 profile selection, plan validation, approval, precondition recheck, optional
 profile initialization, package installation, bundle registration, package
 metadata/version, content receipt and language preference. Each executed stage
-prints START and OK/FAILED with elapsed time; declined choices and unnecessary
+prints START and OK/FAILED with elapsed time (development builds show START only
+with `--verbose`); declined choices and unnecessary
 initialization are SKIPPED. A failure keeps its reason code and identifies the
 stage; later DSH stages do not run, while the batch can continue to another Host.
 
@@ -97,7 +122,8 @@ For example, `[DSH 8/12] FAILED` means the official manager command failed;
 checks completed. A package-manager exit of zero alone does not establish a
 verified Qiongli installation.
 
-The DSH trace shows the actual command, working directory, reconstructed PATH,
+The full DSH trace (verbose or failure diagnostics in development builds) shows
+the actual command, working directory, reconstructed PATH,
 passed environment key names, closed stdin, captured streams and timeout. It
 prints no environment credential values. After bounded capture completes, it
 reports stdout/stderr byte counts and recognized pnpm resolution/download/

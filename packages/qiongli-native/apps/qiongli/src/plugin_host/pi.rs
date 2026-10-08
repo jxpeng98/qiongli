@@ -15,6 +15,7 @@ use sha2::{Digest, Sha256};
 
 use crate::cli_content::{confirm, line, show_json};
 use crate::command::{CommandEnvironment, config_root};
+use crate::install_output::InstallWriter;
 
 #[cfg(test)]
 #[path = "pi_tests.rs"]
@@ -41,7 +42,7 @@ pub(crate) fn install(
     destination: Option<&Path>,
     language: &str,
     reader: &mut impl BufRead,
-    writer: &mut impl Write,
+    writer: &mut impl InstallWriter,
 ) -> Result<bool, &'static str> {
     let home = environment
         .platform_home()
@@ -469,6 +470,14 @@ fn verify_registration(
 fn preview(writer: &mut impl Write, operation: &str, plan: &Plan) -> Result<(), &'static str> {
     let bytes =
         serde_json_canonicalizer::to_vec(plan).map_err(|_| "installation-preview-invalid")?;
+    line(
+        writer,
+        if operation.ends_with("files") {
+            "\nFile changes to approve\n"
+        } else {
+            "\nHost registration to approve\n"
+        },
+    )?;
     show_json(writer, &serde_json::json!({"operation":operation, "plan":plan,
         "plan_digest_sha256":format!("{:x}", Sha256::digest(bytes)),
         "unix_creation_mask": if cfg!(unix) { Some("077") } else { None },

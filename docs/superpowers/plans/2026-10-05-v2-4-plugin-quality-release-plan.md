@@ -3032,3 +3032,87 @@ them. Stop once dispatch is accepted, without release/registry monitoring. An
 accepted task request is not evidence of completed publication. AGY/Pi remain
 experimental, live DSH session use remains unchecked, and no program acceptance,
 announcement or external Marketplace promotion is implied.
+
+## October 8 — compact installation display
+
+The maintainer reports that released 2.5.1 installs smoothly but its output is
+crowded and continuously scrolls. Baseline is local `1f2035494c7febe87e7c5f76c480b144b41d1c43`.
+Use the existing CLI-402 owner and ADR 0239 for this display-only increment;
+do not monitor the preceding release, publish another version or modify real
+Host profiles. Official managers, approval/CAS, receipts, error codes, model
+settings and batch continuation retain their existing behavior.
+
+Independent gpt-6.1-sol / low reproduces the old display with a safe fake DSH and
+the qualified 2.5.1 binary: success produces 93 lines/6,545 bytes, 12 START lines
+and three launch-context blocks. The longest line is 458 characters; the rough
+80-column row budget is 124. A failed manager plus later-Host attempt produces
+82 lines/5,890 bytes and two context blocks. No ANSI redraw is present: repeated
+append-only diagnostics, rather than cursor manipulation, explain this fixture's
+scrolling. These are synthetic measurements, not captures from the user's Mac.
+Evidence is retained under `/tmp/qiongli-install-ui-20261008/`.
+
+Implement a shared presentation writer over the existing command progress owner.
+Group Hosts and preview/progress/summary sections; keep full mutation previews,
+each DSH result and exact failures. Hide duplicate START, successful launch
+contexts and completed export receipts unless `--verbose` is selected. Failures
+automatically expand safe diagnostics and commands. Use one short ASCII waiting
+line only on supported, sufficiently wide Unix terminals. `--plain`, verbose,
+NO_COLOR, CI and unsupported/narrow consoles use append-only output. Installation
+remains terminal-only; flags never approve a write or alter structured dry-runs.
+Also correct the stale 33-tool presentation labels to the existing Full35 count.
+
+Design follows the primary-source examples linked in ADR 0239: pnpm terminal vs
+append-only reporters, Clack task/result separation and GitHub CLI verbosity/
+accessible progress controls. Keep native Rust ownership and use only a feature
+of the already-present rustix dependency for actual terminal width.
+
+Validate compact and verbose PTY journeys against the preserved baseline, actual
+width/resize and prompt behavior, long waits, failure attribution/privacy, later
+Hosts, decline/EOF/output errors and redirected refusal. Run affected parser,
+renderer and installation regressions; preserve fixture/setup failures instead
+of hiding them. Record results and remaining target-native/manual gaps below
+once at integration. Local output improvements do not establish live-Host or
+release acceptance; all task states and accepted evidence remain unchanged.
+
+### Implemented result and verification
+
+The shared display writer now keeps one short current-step/elapsed-time line on
+supported Unix terminals, clears it before prompts/results, and falls back to
+plain output when width, environment or user options require it. It never enters
+raw mode, hides the cursor or clears previous output. `--verbose` retains detailed
+diagnostics; `--plain` retains concise append-only output. Official-manager
+arguments, approval previews/digests and per-Host retry behavior remain unchanged.
+
+Independent gpt-6.1-sol / low reports **43 distinct affected Rust tests** passing,
+including shared Host compatibility and bounded command execution. Eight tests
+affected by the final current-step label change are rerun; unchanged checks are
+reused. **21 final terminal/refusal cases** pass, covering 80/40-column terminals,
+resize, plain/verbose modes, unsupported environments, long waits, staged
+failures, continuation, declined approval, EOF, narrow terminals and redirected
+input. A process-group SIGINT case exits without reporting success; this does not
+qualify actual keyboard/foreground-terminal signal routing. An additional fixed
+profile/executable comparison proves identical approval text and digest across
+all three display modes, with every preview declined and no manager invoked.
+
+The successful synthetic transcript falls from **93 to 54 persistent lines**;
+the longest line falls from 458 to 129 characters and the estimated 80-column
+row budget from 124 to 63. These counts interpret CR/erase-line sequences, not a
+full emulator or a screenshot. Formatter, strict all-target CLI Clippy, four
+frozen architecture tests and ADR validation pass. Source inspection and unit
+coverage support fallback behavior; no macOS/Windows runtime, real Host profile,
+authentication, model/session call or release artifact is qualified here.
+
+Frozen evidence: `/tmp/qiongli-install-ui-20261008/verification-summary.json`,
+SHA-256 `3b18827e62634d01fcf2fec7c6f12e16022ea5bcb47dd78275926e267a81fe0f`.
+It binds each changed native source to the tested debug binary and complete
+private stripped copy; this is a working-tree source binding, not a claim that a
+later bookkeeping commit was compiled. Retained setup failures include fixture
+reuse/timing/assertions and disk exhaustion. Earlier partial-copy terminal runs
+are excluded; all 21 final cases use the complete hash-bound binary. Scoped
+cleanup removes only inactive retained debug caches and the task's partial copy,
+preserving source, release artifacts, reports and the active build target.
+
+Integrate locally after final ledger/index and diff review. The next delivery
+increment should qualify these bytes on release targets and collect a real Mac
+terminal observation. No new release, remote push or preceding-release monitoring
+is part of this request; program states and accepted evidence stay unchanged.

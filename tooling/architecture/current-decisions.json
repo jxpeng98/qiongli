@@ -268,6 +268,13 @@
       "title": "Resilient Plugin Installation",
       "path": "docs/architecture/decisions/0238-resilient-plugin-installation.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-402",
+      "adr_number": "0239",
+      "title": "Compact Installation Display",
+      "path": "docs/architecture/decisions/0239-compact-installation-display.md",
+      "status": "Accepted"
     }
   ]
 }

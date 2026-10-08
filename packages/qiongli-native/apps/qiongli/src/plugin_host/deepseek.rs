@@ -1,6 +1,6 @@
 //! Confirmed DSH npm installation; the official manager owns profile/cache writes.
 use std::fs;
-use std::io::{BufRead, Read, Write};
+use std::io::{BufRead, Read};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 
 use crate::cli_content::{confirm, line, show_json};
 use crate::command::CommandEnvironment;
+use crate::install_output::InstallWriter;
 
 #[derive(Eq, PartialEq, Serialize)]
 struct InstallPlan {
@@ -42,33 +43,38 @@ enum InstallStep {
 impl InstallStep {
     fn details(self) -> (u8, &'static str) {
         match self {
-            Self::Executable => (1, "Locate the DSH executable"),
-            Self::Version => (2, "Check the DSH version"),
-            Self::Profile => (3, "Select the DSH profile"),
-            Self::Plan => (4, "Validate the profile and prepare commands"),
-            Self::Approval => (5, "Review the plan and confirm trust"),
-            Self::Recheck => (6, "Recheck the approved executable and profile"),
-            Self::Initialize => (7, "Initialize a new profile from the web template"),
-            Self::Package => (8, "Install the package through the DSH manager"),
-            Self::Registration => (9, "Verify the qiongli bundle registration"),
-            Self::Metadata => (10, "Verify the installed package version and entry points"),
-            Self::Receipt => (11, "Verify the installed content receipt"),
-            Self::Language => (12, "Save the Skill description language"),
+            Self::Executable => (1, "DSH executable"),
+            Self::Version => (2, "DSH version"),
+            Self::Profile => (3, "Profile selection"),
+            Self::Plan => (4, "Installation plan"),
+            Self::Approval => (5, "Trust confirmation"),
+            Self::Recheck => (6, "Approved state recheck"),
+            Self::Initialize => (7, "Profile initialization"),
+            Self::Package => (8, "Package installation"),
+            Self::Registration => (9, "Bundle registration"),
+            Self::Metadata => (10, "Package version and entry points"),
+            Self::Receipt => (11, "Content receipt"),
+            Self::Language => (12, "Skill language preference"),
         }
     }
 }
 
-fn step_with_status<T, W: Write>(
+fn step_with_status<T, W: InstallWriter>(
     writer: &mut W,
     step: InstallStep,
     action: impl FnOnce(&mut W) -> Result<T, &'static str>,
     status: impl FnOnce(&T) -> &'static str,
 ) -> Result<T, &'static str> {
     let (number, label) = step.details();
-    line(writer, &format!("[DSH {number}/12] START {label}\n"))?;
+    if writer.verbose() {
+        line(writer, &format!("[DSH {number}/12] START {label}\n"))?;
+    } else {
+        writer.progress(&format!("DSH {number}/12"))?;
+    }
     writer.flush().map_err(|_| "installation-output-failed")?;
     let start = Instant::now();
     let result = action(writer);
+    writer.finish_progress()?;
     match &result {
         Ok(value) => line(
             writer,
@@ -90,7 +96,7 @@ fn step_with_status<T, W: Write>(
     result
 }
 
-fn step<T, W: Write>(
+fn step<T, W: InstallWriter>(
     writer: &mut W,
     step: InstallStep,
     action: impl FnOnce(&mut W) -> Result<T, &'static str>,
@@ -98,7 +104,11 @@ fn step<T, W: Write>(
     step_with_status(writer, step, action, |_| "OK")
 }
 
-fn skip_step(writer: &mut impl Write, step: InstallStep, reason: &str) -> Result<(), &'static str> {
+fn skip_step(
+    writer: &mut impl InstallWriter,
+    step: InstallStep,
+    reason: &str,
+) -> Result<(), &'static str> {
     let (number, label) = step.details();
     line(
         writer,
@@ -112,7 +122,7 @@ pub(crate) fn install(
     content: &EmbeddedContent,
     language: &str,
     reader: &mut impl BufRead,
-    writer: &mut impl Write,
+    writer: &mut impl InstallWriter,
 ) -> Result<bool, &'static str> {
     let (root, executable) = step(writer, InstallStep::Executable, |writer| {
         let home = environment
@@ -126,10 +136,12 @@ pub(crate) fn install(
             .client_executable("dsh")
             .ok_or("host-plugin-executable-unavailable")?;
         let executable = crate::desktop::resolve_host_plugin_executable(home, "dsh", &discovered)?;
-        show_json(
-            writer,
-            &serde_json::json!({"executable": executable, "dsh_home": root}).to_string(),
-        )?;
+        if writer.verbose() {
+            show_json(
+                writer,
+                &serde_json::json!({"executable": executable, "dsh_home": root}).to_string(),
+            )?;
+        }
         Ok((root, executable))
     })?;
     step(writer, InstallStep::Version, |writer| {
@@ -149,10 +161,13 @@ pub(crate) fn install(
         if version.major == 0 && version.minor < 2 {
             return Err("deepseek-version-unsupported");
         }
-        show_json(
-            writer,
-            &serde_json::json!({"dsh_version": version.to_string()}).to_string(),
-        )
+        if writer.verbose() {
+            show_json(
+                writer,
+                &serde_json::json!({"dsh_version": version.to_string()}).to_string(),
+            )?;
+        }
+        Ok(())
     })?;
     let profile = step_with_status(
         writer,
@@ -203,12 +218,13 @@ fn review(
     root: &Path,
     plan: InstallPlan,
     reader: &mut impl BufRead,
-    writer: &mut impl Write,
+    writer: &mut impl InstallWriter,
 ) -> Result<bool, &'static str> {
     let (approved, reviewed_at) = step_with_status(
         writer,
         InstallStep::Approval,
         |writer| {
+            line(writer, "\nInstallation plan to approve\n")?;
             show_json(writer, &serde_json::json!({
             "host": "DeepSeek Harness", "profile": plan.profile, "profile_directory": plan.profile_directory,
             "executable": plan.executable, "package": format!("qiongli@{}", env!("CARGO_PKG_VERSION")),
@@ -254,21 +270,17 @@ fn review(
         }
         Ok(())
     })?;
-    line(writer, "Installing through the official DSH manager…\n")?;
+    line(writer, "\nInstallation progress\n")?;
     if plan.commands.len() == 1 {
         skip_step(writer, InstallStep::Initialize, "using an existing profile")?;
     }
-    for (index, args) in plan.commands.iter().enumerate() {
+    for args in &plan.commands {
         let phase = if args.first().is_some_and(|arg| arg == "plugin") {
             InstallStep::Package
         } else {
             InstallStep::Initialize
         };
         step(writer, phase, |writer| {
-            line(
-                writer,
-                &format!("  Manager step {}/{}\n", index + 1, plan.commands.len()),
-            )?;
             super::installation_command::run_detailed(
                 environment,
                 &plan.executable,
@@ -490,7 +502,7 @@ fn read_json(path: &Path) -> Result<Value, &'static str> {
 fn verify_installed(
     directory: &Path,
     content: &EmbeddedContent,
-    writer: &mut impl Write,
+    writer: &mut impl InstallWriter,
 ) -> Result<(), &'static str> {
     step(writer, InstallStep::Registration, |_| {
         let profile = read_json(&directory.join("package.json"))?;

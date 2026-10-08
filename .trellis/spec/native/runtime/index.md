@@ -454,13 +454,25 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   installation diagnostics without printing raw manager output. Pipe EOF shares
   its deadline; timeout stops the direct child, not necessarily its descendants.
   Existing read-only callers retain their error and UTF-8 contracts.
-  DeepSeek exposes twelve numbered stages with START/OK/SKIPPED/FAILED and elapsed
-  results, separating registration, package metadata, receipt and language writes.
+  ADR 0239 presents each Host, approval preview, progress and summary separately.
+  Default DeepSeek output retains twelve numbered OK/SKIPPED/FAILED results and
+  elapsed time, separating registration, package metadata, receipt and language writes.
   Stage errors retain their existing reason codes. Its command trace shows the
   actual working directory, reconstructed PATH, passed environment key names,
   stdio/timeout policy, output byte counts and allowlisted pnpm observations after
   capture. It never prints environment credential values or raw manager text;
   reported pnpm completion is not registration/receipt/session verification.
+  This full trace and START lines are opt-in through `--verbose`; command failures
+  automatically expose the same safe diagnostic context. `--plain` keeps compact
+  append-only progress. The shared installation writer refreshes only one short
+  ASCII line on recognized Unix TTYs with a known width of at least 32 columns,
+  clearing it before ordinary writes/prompts without changing cursor/input modes.
+  CI, NO_COLOR, absent/unsupported TERM, narrow or unsupported consoles fall back
+  to append-only output; compact waits log at most every 30 seconds, verbose at
+  the existing five-second callback. No download percentage is inferred.
+  Full mutation previews, terminal-only approvals, command argv/environment,
+  timeout/capture limits and Pi umask retain their owners. Completed export
+  receipts are printed in verbose mode; their verification and final result remain.
   Foreign enabled Plugins refuse before export
   with their exact names and manual disable guidance. See ADRs 0225 and 0235.
   ADR 0237 defaults the main guide to detected-all on Enter and makes unqualified

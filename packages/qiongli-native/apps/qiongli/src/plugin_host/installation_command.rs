@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 
 use crate::cli_content::line;
 use crate::command::CommandEnvironment;
+use crate::install_output::InstallWriter;
 
 pub(crate) fn display_command(executable: &str, args: &[String]) -> String {
     if std::iter::once(executable)
@@ -148,7 +149,7 @@ pub(crate) fn run(
     args: &[String],
     timeout: Duration,
     private_profile: bool,
-    writer: &mut impl Write,
+    writer: &mut impl InstallWriter,
 ) -> Result<(), &'static str> {
     run_observed(
         environment,
@@ -162,13 +163,13 @@ pub(crate) fn run(
     .map(|_| ())
 }
 
-/// DSH exposes each command's actual launch context and bounded observations.
+/// DSH retains actual launch context for verbose output and automatic failure diagnostics.
 pub(crate) fn run_detailed(
     environment: &CommandEnvironment,
     executable: &Path,
     args: &[String],
     timeout: Duration,
-    writer: &mut impl Write,
+    writer: &mut impl InstallWriter,
 ) -> Result<crate::desktop::HostCommandOutput, &'static str> {
     run_observed(environment, executable, args, timeout, false, writer, true)
 }
@@ -232,13 +233,27 @@ fn run_observed(
     args: &[String],
     timeout: Duration,
     private_profile: bool,
-    writer: &mut impl Write,
+    writer: &mut impl InstallWriter,
     detailed: bool,
 ) -> Result<crate::desktop::HostCommandOutput, &'static str> {
     let command = display_command(&executable.to_string_lossy(), args);
-    line(writer, &format!("  Running: {command}\n"))?;
-    if detailed {
-        describe_launch(environment, executable, args, timeout, writer)?;
+    let verbose = writer.verbose();
+    if verbose {
+        line(writer, &format!("  Running: {command}\n"))?;
+        if detailed {
+            describe_launch(environment, executable, args, timeout, writer)?;
+        }
+    } else if args.first().is_none_or(|arg| arg != "--version") {
+        line(
+            writer,
+            &format!(
+                "  Running official manager (limit {}s)…\n",
+                timeout.as_secs()
+            ),
+        )?;
+    }
+    if !detailed {
+        writer.progress("Manager")?;
     }
     writer.flush().map_err(|_| "installation-output-failed")?;
     let start = Instant::now();
@@ -250,15 +265,7 @@ fn run_observed(
         timeout,
         private_profile,
         |elapsed| {
-            let result = line(
-                writer,
-                &format!(
-                    "  Still running: {}s elapsed (limit {}s).\n",
-                    elapsed.as_secs(),
-                    timeout.as_secs()
-                ),
-            )
-            .and_then(|()| writer.flush().map_err(|_| "installation-output-failed"));
+            let result = writer.waiting(elapsed, timeout);
             output_failed = result.is_err();
             !output_failed
         },
@@ -266,9 +273,13 @@ fn run_observed(
     if output_failed {
         return Err("installation-output-failed");
     }
+    writer.finish_progress()?;
     let output = match result {
         Ok(output) => output,
         Err(error) => {
+            if detailed && !verbose {
+                describe_launch(environment, executable, args, timeout, writer)?;
+            }
             line(
                 writer,
                 &format!(
@@ -280,7 +291,10 @@ fn run_observed(
             return Err(error.reason_code());
         }
     };
-    if detailed {
+    if detailed && !verbose && !output.status.success() {
+        describe_launch(environment, executable, args, timeout, writer)?;
+    }
+    if detailed && (verbose || !output.status.success()) {
         line(
             writer,
             &format!(
@@ -303,13 +317,15 @@ fn run_observed(
         }
     }
     if output.status.success() {
-        line(
-            writer,
-            &format!(
-                "  Command finished in {}s with exit 0.\n",
-                start.elapsed().as_secs()
-            ),
-        )?;
+        if verbose || !detailed {
+            line(
+                writer,
+                &format!(
+                    "  Command finished in {}s with exit 0.\n",
+                    start.elapsed().as_secs()
+                ),
+            )?;
+        }
         return Ok(output);
     }
     let status = output.status.code().map_or_else(

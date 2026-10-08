@@ -15,6 +15,7 @@ use sha2::{Digest, Sha256};
 
 use crate::cli_content::{confirm, line, show_json};
 use crate::command::CommandEnvironment;
+use crate::install_output::InstallWriter;
 use crate::managed_operation::ManagedIntegrationTargetV1;
 use crate::plugin_source::{PluginSourcePlan, plugin_id, plugin_name};
 
@@ -45,7 +46,7 @@ pub(crate) fn register(
     content: &EmbeddedContent,
     source: &PluginSourcePlan,
     reader: &mut impl BufRead,
-    writer: &mut impl Write,
+    writer: &mut impl InstallWriter,
 ) -> Result<bool, &'static str> {
     line(
         writer,
@@ -69,6 +70,7 @@ pub(crate) fn register(
             "plan_digest_sha256": format!("{:x}", Sha256::digest(&bytes)),
             "approvals_required": ["client-config-change", "host-trust"],
         });
+        line(writer, "\nHost registration to approve\n")?;
         show_json(writer, &preview.to_string())?;
         line(
             writer,

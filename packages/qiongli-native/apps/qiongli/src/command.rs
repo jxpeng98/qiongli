@@ -1258,7 +1258,43 @@ fn parse_managed_skills_preset(value: &OsStr) -> Result<ManagedSkillsPresetV1, U
     }
 }
 
+fn take_install_display_flag(
+    arg: &OsString,
+    display: &mut crate::install_output::DisplayOptions,
+) -> Result<bool, UsageError> {
+    let field = match arg.to_str() {
+        Some("--verbose") => &mut display.verbose,
+        Some("--plain") => &mut display.plain,
+        _ => return Ok(false),
+    };
+    if *field {
+        return Err(install_usage_error("duplicate installation display option"));
+    }
+    *field = true;
+    Ok(true)
+}
+
+fn parse_install_guide_flags(args: &[OsString]) -> Result<Command, UsageError> {
+    let mut options = crate::cli_content::InstallationGuide::default();
+    let mut interactive = false;
+    for arg in args {
+        if arg == "--interactive" && !interactive {
+            interactive = true;
+        } else if !take_install_display_flag(arg, &mut options.display)? {
+            return Err(install_usage_error("unexpected installation guide option"));
+        }
+    }
+    Ok(Command::InstallInteractive(options))
+}
+
 fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Command, UsageError> {
+    if upgrade
+        && args
+            .first()
+            .is_some_and(|arg| arg == "--verbose" || arg == "--plain" || arg == "--interactive")
+    {
+        return parse_install_guide_flags(args);
+    }
     if upgrade && args == [OsString::from("cli")] {
         return Ok(Command::TopicHelp(crate::cli_help::CLI_UPGRADE.to_owned()));
     }
@@ -1289,10 +1325,15 @@ fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Comman
             },
             ..Default::default()
         };
-        if !(args.len() - 1).is_multiple_of(2) {
-            return Err(install_usage_error("install option value is required"));
-        }
-        for pair in args[1..].chunks_exact(2) {
+        let mut index = 1;
+        while index < args.len() {
+            if take_install_display_flag(&args[index], &mut options.display)? {
+                index += 1;
+                continue;
+            }
+            let pair = args
+                .get(index..index + 2)
+                .ok_or_else(|| install_usage_error("install option value is required"))?;
             match pair[0].to_str() {
                 Some("--target") if options.targets.is_empty() => {
                     options.all_detected = crate::cli_content::all_plugin_hosts_selection(
@@ -1328,6 +1369,7 @@ fn parse_content_install_args(args: &[OsString], upgrade: bool) -> Result<Comman
                     ));
                 }
             }
+            index += 2;
         }
         // With no Host-specific override, the ordinary Plugin entry follows
         // the detected all-Host path. Explicit lists and advanced menus stay strict.
@@ -1381,7 +1423,7 @@ fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
     };
     match subcommand {
         "all" | "plugin" | "skills" => parse_content_install_args(args, false),
-        "--interactive" if args.len() == 1 => Ok(Command::InstallInteractive(Default::default())),
+        "--interactive" | "--verbose" | "--plain" => parse_install_guide_flags(args),
         "--help" if args.len() == 1 => Ok(Command::InstallHelp),
         "status" if args.len() == 1 => Ok(Command::InstallStatus),
         "list" | "inventory" if args.len() == 1 => {
@@ -3636,6 +3678,67 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn installation_display_flags_preserve_scope_and_option_values() {
+        for upgrade in [false, true] {
+            for words in [
+                vec!["all", "--verbose", "--language", "en", "--plain"],
+                vec!["plugin", "--plain", "--target", "deepseek", "--verbose"],
+            ] {
+                let args = words.into_iter().map(OsString::from).collect::<Vec<_>>();
+                assert!(matches!(parse_content_install_args(&args, upgrade),
+                    Ok(Command::InstallInteractive(options)) if options.display.verbose && options.display.plain));
+            }
+            for words in [
+                vec!["plugin", "--verbose", "--verbose"],
+                vec!["all", "--plain", "--plain"],
+                vec!["plugin", "--verbose", "yes"],
+                vec!["plugin", "--language", "--verbose"],
+                vec![
+                    "plugin",
+                    "--target",
+                    "deepseek",
+                    "--verbose",
+                    "--hooks",
+                    "off",
+                ],
+                vec!["plugin", "--verbose", "--dry-run"],
+                vec!["skills", "--plain"],
+            ] {
+                let args = words.into_iter().map(OsString::from).collect::<Vec<_>>();
+                assert!(
+                    parse_content_install_args(&args, upgrade).is_err(),
+                    "{args:?}"
+                );
+            }
+        }
+        for words in [
+            vec!["--verbose"],
+            vec!["--interactive", "--plain", "--verbose"],
+        ] {
+            let args = words.into_iter().map(OsString::from).collect::<Vec<_>>();
+            assert!(
+                matches!(parse_install_args(&args), Ok(Command::InstallInteractive(options)) if options.display.verbose)
+            );
+            assert!(
+                matches!(parse_content_install_args(&args, true), Ok(Command::InstallInteractive(options)) if options.display.verbose)
+            );
+        }
+        assert!(parse_install_args(&["--interactive".into(), "--interactive".into()]).is_err());
+        // A positional value belongs to its existing option, not to display parsing.
+        let path = std::env::temp_dir().join("--verbose").join("qiongli");
+        let args = vec![
+            "plugin".into(),
+            "--target".into(),
+            "codex".into(),
+            "--destination".into(),
+            path.clone().into_os_string(),
+        ];
+        assert!(
+            matches!(parse_content_install_args(&args, false), Ok(Command::InstallInteractive(options)) if options.destination == Some(path) && !options.display.verbose)
+        );
     }
 
     #[test]

@@ -3,6 +3,7 @@ use std::io::{self, BufRead, IsTerminal, Read, Write};
 
 use qiongli_content::EmbeddedContent;
 
+use crate::install_output::{DisplayOptions, InstallOutput, InstallWriter};
 use crate::managed_operation::ManagedOperationCliCommand;
 use crate::{CliOutput, CommandEnvironment};
 
@@ -144,6 +145,7 @@ pub struct InstallationGuide {
     pub(crate) destination: Option<std::path::PathBuf>,
     pub(crate) context_hooks: Option<bool>,
     pub(crate) language: Option<String>,
+    pub(crate) display: DisplayOptions,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -295,7 +297,7 @@ impl InstallationGuide {
             );
         }
         let reader = &mut io::stdin().lock();
-        let writer = &mut io::stdout().lock();
+        let writer = &mut InstallOutput::terminal(io::stdout().lock(), self.display);
         let result = if self.plugin {
             install_plugins(environment, content, self, reader, writer)
         } else {
@@ -312,7 +314,7 @@ fn guide(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
     reader: &mut impl BufRead,
-    writer: &mut impl Write,
+    writer: &mut impl InstallWriter,
 ) -> Result<(), &'static str> {
     use crate::managed_operation::ManagedSkillsPresetV1;
     let inventory = crate::cli_inventory::discover(environment);
@@ -385,7 +387,7 @@ fn install_plugins(
     content: &EmbeddedContent,
     options: InstallationGuide,
     reader: &mut impl BufRead,
-    writer: &mut impl Write,
+    writer: &mut impl InstallWriter,
 ) -> Result<(), &'static str> {
     let InstallationGuide {
         mut targets,
@@ -436,7 +438,7 @@ fn install_plugins(
     validate_host_options(&targets, destination.as_deref(), context_hooks)?;
     line(
         writer,
-        "Each Host keeps its own preview and confirmation. A failed or declined Host does not stop later Hosts. Closing input stops the batch; completed steps remain installed.\n",
+        "\nQiongli Plugin installation\nEach Host asks for approval. Failed/skipped Hosts are reported at the end; later Hosts continue.\nUse --verbose for command diagnostics; --plain for append-only progress.\n\n",
     )?;
     let Some(language) = choose_skill_language(environment, language.as_deref(), reader, writer)?
     else {
@@ -461,7 +463,7 @@ fn install_one_plugin(
     selected: PluginInstallHost,
     options: &InstallationGuide,
     reader: &mut impl BufRead,
-    writer: &mut impl Write,
+    writer: &mut impl InstallWriter,
 ) -> Result<bool, &'static str> {
     let destination = &options.destination;
     let language = options.language.as_ref().ok_or("skill-language-invalid")?;
@@ -554,7 +556,7 @@ fn install_one_plugin(
     BundledContentReview { plan_json }.review(environment, content, reader, writer)
 }
 
-fn install_batch<W: Write>(
+fn install_batch<W: InstallWriter>(
     targets: &[PluginInstallHost],
     options: &InstallationGuide,
     writer: &mut W,
@@ -566,7 +568,7 @@ fn install_batch<W: Write>(
         line(
             writer,
             &format!(
-                "\n[{}/{}] {name} — checking and installing Plugin\n",
+                "\n----------------------------------------\n[{}/{}] {name} — install or update\n----------------------------------------\n",
                 index + 1,
                 targets.len()
             ),
@@ -757,7 +759,7 @@ impl BundledContentReview {
             environment,
             content,
             &mut io::stdin().lock(),
-            &mut io::stdout().lock(),
+            &mut InstallOutput::terminal(io::stdout().lock(), DisplayOptions::default()),
         ) {
             Ok(_) => CliOutput::success_text(""),
             Err(code) => installation_failure(code),
@@ -769,7 +771,7 @@ impl BundledContentReview {
         environment: &CommandEnvironment,
         content: &EmbeddedContent,
         reader: &mut impl BufRead,
-        writer: &mut impl Write,
+        writer: &mut impl InstallWriter,
     ) -> Result<bool, &'static str> {
         let value: serde_json::Value =
             serde_json::from_str(&self.plan_json).map_err(|_| "managed-operation-plan-invalid")?;
@@ -808,7 +810,7 @@ impl BundledContentReview {
                 "previous_export_version":previous["source"]["version"],"export_state":previous["state"],
                 "skill_language": source.skill_language,
                 "context_hooks": if source.context_hooks {"include context reminders; Host trust and execution not verified"} else {"off in this Plugin"},
-                "mcp":"Full, 33 tools; started by the Host from the bundled native program"}).to_string())?;
+                "mcp":"Full, 35 tools; started by the Host from the bundled native program"}).to_string())?;
             line(
                 writer,
                 "This also installs the research Skills. A separate Skills installation or MCP package is unnecessary.\nFile changes and Host registration are confirmed separately below.\n",
@@ -860,6 +862,7 @@ impl BundledContentReview {
                 &serde_json::json!({"destination": destination}).to_string(),
             )?;
         }
+        line(writer, "\nFile changes to approve\n")?;
         show_json(writer, &self.plan_json)?;
         if !confirm(
             reader,
@@ -876,7 +879,9 @@ impl BundledContentReview {
         writer.flush().map_err(|_| "installation-output-failed")?;
         let result =
             crate::managed_operation::apply_reviewed_plan(environment, content, &self.plan_json)?;
-        show_json(writer, &result)?;
+        if writer.verbose() {
+            show_json(writer, &result)?;
+        }
         line(writer, "Files: exported and receipt verified.\n")?;
         if value["operation"]["kind"] == "plugin-source" {
             let source: crate::plugin_source::PluginSourcePlan =

@@ -54,7 +54,15 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 8, 2026
 
-The current bounded request prepares and dispatches v2.5.1 after the maintainer
+The current bounded request improves installation readability after the maintainer
+reports smooth released 2.5.1 installation but excessive scrolling. The existing
+[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--compact-installation-display)
+owns compact default output, one-line waiting, plain/verbose controls and focused
+PTY checks under ADR 0239. Preserve complete approval previews and automatic
+failure diagnostics. This is local development; the preceding release task stays
+unmonitored, and program acceptance/Host support limits remain unchanged.
+
+The preceding bounded request prepares and dispatches v2.5.1 after the maintainer
 reports a successful Mac DSH installation. The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--251-installation-release-handoff)
 owns version/content synchronization, reviewed release notes, fresh candidate
 checks and source/tag handoff. The user authorizes publication through the
