@@ -54,7 +54,16 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 8, 2026
 
-The current bounded request completes DeepSeek installation step reporting after
+The current bounded request packages the CLI at `ce2c8d1e` and checks installation
+from actual local artifacts under the existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--local-diagnostic-cli-packaging).
+Qualify the host-local Linux ARM64 portable/npm packages and retain a staged
+source bundle for a separate Apple Silicon Mac build. Bind the runtime source,
+packaging recipe and artifact hashes; distinguish installed CLI/MCP checks from
+synthetic DSH flow checks. This local binary requires glibc 2.39, not the release
+baseline of 2.35. macOS compilation/runtime and the user's original DSH failure
+remain separate; no publication or real Host profile change is included.
+
+The preceding bounded request completes DeepSeek installation step reporting after
 local `fa7a87fb`, under the existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--deepseek-installation-step-reporting)
 and ADR 0238. Number and time each preflight, command and postcondition; identify
 the failed stage while preserving the original reason and retry flow. Show
@@ -66,7 +75,7 @@ The user's later log confirms the macOS Desktop-owned executable and an already
 quit Desktop. The same command succeeds directly in the terminal. Thus the
 npm-entry and open-Desktop hypotheses do not explain the supplied case; the
 original failure remains unproven. Environment/PATH/stdio differences are source
-observations, not a confirmed cause. The current work improves diagnosis without
+observations, not a confirmed cause. That increment improves diagnosis without
 changing the environment, launcher, profile or package arguments. No publication,
 real user installation or release monitoring is part of this increment.
 

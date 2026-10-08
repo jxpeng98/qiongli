@@ -2815,3 +2815,68 @@ frozen-source guard. Next qualify a separately selected CLI delivery and collect
 its stage output if the user's failure recurs. This CLI change requires a new
 build; reinstalling the existing 2.5.0 Plugin alone does not update its installer.
 No push, publication, real profile change or release monitoring occurs.
+
+## October 8 — local diagnostic CLI packaging
+
+The user requests a locally packaged CLI and installation verification. Freeze
+runtime/content input at `ce2c8d1ed48d5b57cf243f79a974cca9c4fb1aef`; retain version
+2.5.0 while labeling the output `local.ce2c8d1e`, explicitly distinct from the
+published 2.5.0 bytes. Build the native release CLI offline with Rust 1.97.0,
+locked dependencies, no default features and the embedded native source commit.
+Export embedded Plugin content through the existing example and package through
+the canonical portable/npm/Cargo staging owners. No native behavior changes.
+
+An actual ELF inspection finds GLIBC_2.39 requirements, so the first portable/npm
+READMEs' generic glibc 2.35 claim is invalid for this host-built diagnostic binary.
+Retain that failed packaging observation; regenerate both packages with accurate
+Linux ARM64/glibc 2.39 notes. The npm composer gains an optional README argument;
+its default published-package description and all validation owners are unchanged.
+The corrected local recipe supplies this argument instead of editing generated
+payloads. BUILD.json binds the runtime commit, native binary, content pack,
+packaging script/recipe and three artifact digests. A staged source archive with
+a pinned CLI-only build helper is available for a separate Apple Silicon Mac
+build; it is not a prebuilt or verified Mac executable.
+
+Fresh gpt-6.1-sol / low verification passes eleven registry packaging tests and
+clean offline installation from the corrected archives. Portable and npm CLI
+checks cover version, help, content, invalid commands, Lite 15/Full 35 local and
+stdio MCP tools. The npm ql alias and non-TTY postinstall pass without HOME
+changes. The installed DSH bundle loader exposes 22 Skills for auto/zh/en,
+rejects traversal and runs its selected Full MCP binary. Source helper shell
+syntax and staged offline/locked/no-deps Cargo metadata pass; no separate source
+compilation or macOS run is inferred from those checks.
+
+Six synthetic DSH terminal cases also pass through the actual installed npm
+launcher: manager failure at stage 8 followed by the next Host, receipt failure
+at 11, language CAS conflict at 12, all twelve stages succeeding, decline at 5
+and invalid version at 2. The existing 31 focused native tests are reused because
+runtime inputs are unchanged. The actual argv still selects public npm
+qiongli@2.5.0 with the same registry/ignore-scripts options; this local CLI package
+changes the installer diagnostics, not the Plugin selected by that command.
+
+Corrected assets reside in
+`/tmp/qiongli-local-cli-ce2c8d1e-20261008/corrected/assets/`:
+portable SHA-256 `faa4e142d63043e915046c1d448a99f7852c93fd7bde72033c31cb78ce19a7e7`,
+npm `9f8f938a585e969706796a38f0c417aec7c8e1a37d2641ecffc4471a4465df16`,
+source `57ad1f2010a698bd54111bf4e3df017ddfeda945847599daddb20a280016510a`.
+The runtime binary SHA-256 is
+`3494a27c7ddae3d4ffa58797d6b68cd98b88518ab67f5ed8b47907f8e2a101a2`.
+Evidence: `/tmp/qiongli-local-cli-install-check-20261008/verification-summary.json`,
+SHA-256 `0e4a006f292c41b33b72aa2667933c9c33186fec11a75c8a6f32bee42f7edb66`.
+It retains the initial README ABI mismatch and driver-only help-route failures,
+then binds corrected artifacts, drivers, recipe and reused native evidence.
+
+These are host-local installation/protocol and fake-manager checks. No real
+DSH install/session, macOS compilation/runtime, release qualification, registry
+publication or user-machine diagnosis is claimed. Existing installations,
+profiles, credentials, models and task acceptance remain unchanged. The next
+increment is a Mac-native build and the user's real DSH retry with stage output;
+no push, publication or release monitoring is part of this task.
+
+Final independent review finds no actionable issue. Seven roadmap tests,
+249-task generated-index consistency, whitespace and ledger invariants pass;
+only CLI-402 progress text changes, with all task states, dependencies, accepted
+evidence, commit/run fields and dates preserved. Frozen report, artifact, recipe,
+packager and runtime hashes match. Integrate the packaging-description option
+and evidence bookkeeping through the authorized local fast-forward after the
+boundary guard; unchanged runtime/package results are reused.

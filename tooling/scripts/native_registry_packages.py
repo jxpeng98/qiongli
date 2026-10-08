@@ -317,7 +317,9 @@ def requires_deepseek_npm(version: str) -> bool:
 
 
 def npm_package(out: Path, binaries: dict[str, Path], version: str,
-                *, plugin_content: tuple[dict, dict[str, bytes]] | None = None) -> Path:
+                *, plugin_content: tuple[dict, dict[str, bytes]] | None = None,
+                readme: str | None = None) -> Path:
+    """Package verified binaries; local builds may supply their own platform notes."""
     identity = parse_release_version(version)
     if requires_deepseek_npm(version) and plugin_content is None:
         raise ValueError('2.1+ npm packages require source-bound Plugin content')
@@ -333,7 +335,7 @@ def npm_package(out: Path, binaries: dict[str, Path], version: str,
         dest.parent.mkdir(parents=True)
         dest.write_bytes(data)
         dest.chmod(0o755)
-    (npm / 'README.md').write_text(package_readme(version, 'npm'))
+    (npm / 'README.md').write_text(package_readme(version, 'npm') if readme is None else readme)
     shutil.copyfile(ROOT / 'LICENSE', npm / 'LICENSE')
     # Bundle target binaries in one package; no postinstall executable downloads.
     manifest = {
