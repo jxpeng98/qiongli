@@ -2939,3 +2939,38 @@ tests, generated-index consistency, whitespace and all 249 ledger invariants
 pass; only CLI-402 progress changes. Retained artifacts, native binary, recipe
 and report hashes match. Integrate this evidence-only increment by authorized
 local fast-forward after the boundary guard, reusing unchanged verification.
+
+## October 8 — 2.5.1 installation release handoff
+
+The maintainer supplies a successful real Mac installation trace and requests a
+new release, ending once the release task is dispatched without follow-up
+monitoring. This authorizes reviewed source synchronization, main cutover, an
+immutable v2.5.1 tag and the existing release-automation post task. Announcements,
+external Marketplace promotion and remote-rule changes remain outside scope.
+Reuse this bounded plan and the existing four-target publication gates.
+
+Baseline is `1c8c1fbaae9183b9d06a412145fba62e584f1d26`. Version 2.5.1 delivers the
+automatic Host/source selection, resilient batch flow, bounded manager progress
+and twelve-stage DSH diagnostics developed after 2.5.0. Use canonical version
+synchronization and content-pack generation; writing guidance and research
+contracts otherwise retain their 2.5.0 behavior. Update current installation and
+upgrade instructions without rewriting previous release notes or ADR history.
+
+The attached trace reports CLI 2.5.0, DSH 0.2.0-rc.2 and the Desktop-owned launcher
+on the maintainer's Apple Silicon Mac. Stages 1–6 and 8–12 succeed; stage 7 is
+skipped for an existing desktop profile. The official manager exits zero in
+2.90s, followed by registration, package/entry, receipt and language checks;
+the final summary is one installed and zero failures. Record only a sanitized
+observation and raw-log hash, not the user's home paths or full trace in public
+documentation. This is user-reported real installation/registration success for
+a diagnostic CLI installing public 2.5.0. The log supplies no executable digest,
+and explicitly leaves new-session Skills/MCP unchecked. It does not qualify new
+2.5.1 bytes or establish the earlier intermittent failure's root cause.
+
+`/tmp/qiongli-251-release-20261008/user-install-observation.json` retains the
+bounded observation. Fresh gpt-6.1-sol / low work verifies version-sensitive
+contracts, generated content and the candidate's Linux ARM64/glibc2.35 packages
+through the existing release owner. Reuse unchanged focused installer results as
+behavioral evidence only. Exact-tag four-target qualification remains inside the
+publication task. Checks, source bindings and remaining gaps are recorded below
+before dispatch; pending work is not a pass. Program acceptance remains intact.

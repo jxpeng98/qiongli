@@ -9,15 +9,15 @@ qiongli install
 qiongli mcp check
 ```
 
-Use `./qiongli` if it is not on PATH, or `.\qiongli.exe` in PowerShell. Choose Plugin and your Host, then confirm the file changes and registration separately.
+Use `./qiongli` if it is not on PATH, or `.\qiongli.exe` in PowerShell. Choose Plugin, review the detected Hosts, then confirm the file changes and registration separately.
 
-In 2.5.0, choose **5 — Install all detected Hosts**, or run
+In 2.5.1, choose **5 — Install all detected Hosts**, or run
 `qiongli install all`, to set up every detected supported Host CLI in one flow.
 Pi coding agent is included; see [Pi setup](advanced/plugin-installation.md#pi).
 Missing clients are listed and skipped. Each Plugin includes Skills and MCP;
 each selected Host still has its own preview and required confirmations.
 
-On the development branch after 2.5.0, Enter in the main menu selects all detected
+In 2.5.1, Enter in the main menu selects all detected
 Hosts. Plugin commands without a target do the same, and sources are selected
 automatically: verified registered paths first, otherwise separate defaults.
 See [automatic source selection](advanced/plugin-installation.md).

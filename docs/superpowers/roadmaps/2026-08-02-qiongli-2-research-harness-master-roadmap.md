@@ -54,7 +54,16 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 8, 2026
 
-The current bounded request delivers an Apple Silicon Mac binary directly from
+The current bounded request prepares and dispatches v2.5.1 after the maintainer
+reports a successful Mac DSH installation. The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--251-installation-release-handoff)
+owns version/content synchronization, reviewed release notes, fresh candidate
+checks and source/tag handoff. The user authorizes publication through the
+existing four-target task, then no follow-up monitoring. The supplied trace
+confirms diagnostic-CLI installation/registration, not new-session tool calls or
+new 2.5.1 package qualification; the original failure cause remains unconfirmed.
+Program acceptance and experimental Host limits remain unchanged.
+
+The preceding bounded request delivers an Apple Silicon Mac binary directly from
 local `66252b29`, under the existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--apple-silicon-diagnostic-binary).
 Cross-compile the CLI on Linux and verify the actual Mach-O and packaged bytes.
 The resulting local diagnostic requires macOS 13+, despite the requested 11.0

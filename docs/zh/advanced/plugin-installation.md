@@ -22,7 +22,7 @@ qiongli install plugin --target codex,deepseek
 `upgrade all`、`update all` 更新同一组检测到的客户端；可用
 `--language auto|zh|en` 统一选择本轮描述语言。
 
-**开发分支（2.5.0 之后的更新）：** 不填 `--target` 的 Plugin 命令默认自动检测，
+**Qiongli 2.5.1：** 不填 `--target` 的 Plugin 命令默认自动检测，
 主安装菜单直接回车也选择全部检测到的客户端。显式指定目录或 Hook 而未指定
 Host 时仍显示 Host 菜单；`--target all` 使用同样的自动选择。
 检测覆盖 PATH 和已有的常见 CLI 安装目录；只有桌面应用或配置目录不算可用 CLI。
@@ -47,7 +47,7 @@ Host 时仍显示 Host 菜单；`--target all` 使用同样的自动选择。
 
 ## 安装进度与失败处理
 
-开发分支显示 `[1/5]` 客户端进度、官方管理器的命令步骤，以及命令运行期间每五秒
+2.5.1 显示 `[1/5]` 客户端进度、官方管理器的命令步骤，以及命令运行期间每五秒
 更新一次的等待时间。最后分别列出安装成功、失败、跳过和未执行的客户端，并给出
 处理提示和定向重试命令。只要有失败，整批就返回非零状态，不会误报全部成功。
 回答 `n` 只跳过当前客户端，后续客户端仍分别确认；关闭输入或中断命令可以停止
@@ -71,7 +71,7 @@ qiongli install plugin --target deepseek
 
 ### DeepSeek 分步诊断
 
-开发版本将 DSH 安装分为 12 步：定位命令、检查版本、选择 profile、验证安装计划、
+2.5.1 将 DSH 安装分为 12 步：定位命令、检查版本、选择 profile、验证安装计划、
 确认授权、复查已批准状态、按需初始化 profile、安装包、验证 bundle 注册、验证包
 版本与入口、核对内容收据、保存语言偏好。执行时先显示 START，结束后显示
 OK／FAILED 和耗时；明确拒绝或无需初始化时显示 SKIPPED。失败保留原错误码并
@@ -112,10 +112,10 @@ qiongli install plugin --target codex --hooks off
 
 `qiongli install plugin --target deepseek` 选择 profile，预览官方 DSH 命令，确认信任后安装与 CLI 匹配的 npm 版本，并核对注册与内容收据。模型设置保留。
 
-不安装全局 CLI 也可以接入：在 DeepSeek Desktop 的 **Add plugin → Official npm registry** 中填 `qiongli@2.5.0`，或运行：
+不安装全局 CLI 也可以接入：在 DeepSeek Desktop 的 **Add plugin → Official npm registry** 中填 `qiongli@2.5.1`，或运行：
 
 ```sh
-dsh plugin --profile desktop add qiongli@2.5.0
+dsh plugin --profile desktop add qiongli@2.5.1
 ```
 
 把 `desktop` 换成自己的 profile。包内含 22 个 Skill 入口、Full MCP 和对应平台程序。每个 profile 保留一份穷理，重新加载后检查实际工具。
@@ -184,7 +184,7 @@ qiongli update plugin --target agy
 先安装 `agy` 1.2.17 或更新版本。向导分别确认源文件导出与官方 `agy plugin
 install`、`enable` 命令。默认源目录为 `~/qiongli-antigravity`；单独选择此 Host
 时可用 `--destination` 指定安全绝对路径，末级目录为 `qiongli`、`qiongli-next`
-或 `qiongli-antigravity`。开发分支更新时可省略目录，从已验证的缓存复用原路径。
+或 `qiongli-antigravity`。2.5.1 更新时可省略目录，从已验证的缓存复用原路径。
 包内含原生程序和 Full MCP，采用
 根目录 `plugin.json`、`mcp_config.json`。
 

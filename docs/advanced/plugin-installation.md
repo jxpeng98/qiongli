@@ -22,7 +22,7 @@ CLIs it skips. If none are found, it stops without installing anything. It does
 not install the Host applications. `upgrade all` and `update all` refresh the
 same detected set; `--language auto|zh|en` chooses descriptions once for the batch.
 
-**Development branch (after 2.5.0):** Plugin commands without `--target` select
+**Qiongli 2.5.1:** Plugin commands without `--target` select
 detected Hosts automatically; Enter in the main guide also selects all. Explicit
 destination/Hook overrides without a target retain the Host menu. Detection uses
 PATH and existing common CLI installation directories; an application or config
@@ -55,7 +55,7 @@ File export and official Host registration have separate confirmations. Cancelli
 
 ## Progress and failed installations
 
-On the development branch, the installer shows `[1/5]` Host progress, official
+In 2.5.1, the installer shows `[1/5]` Host progress, official
 manager command steps and elapsed time every five seconds while a command runs.
 The final summary separates installed, failed, skipped and not-run Hosts. A
 batch containing a failure exits nonzero even when other Hosts succeed. Replying
@@ -84,7 +84,7 @@ conflicts remain refusals for that Host; continuation does not bypass them.
 
 ### Detailed DeepSeek steps
 
-Development builds report twelve numbered DSH stages: executable, version,
+Version 2.5.1 reports twelve numbered DSH stages: executable, version,
 profile selection, plan validation, approval, precondition recheck, optional
 profile initialization, package installation, bundle registration, package
 metadata/version, content receipt and language preference. Each executed stage
@@ -131,10 +131,10 @@ The preview shows commands. Host trust and actual event delivery need their own 
 
 `qiongli install plugin --target deepseek` selects a profile, previews official DSH commands and asks for trust before installing the npm version matching your CLI. It verifies registration and the content receipt. It does not select a model.
 
-To install without a global Qiongli CLI, use DeepSeek Desktop's **Add plugin → Official npm registry**, entering `qiongli@2.5.0`, or run:
+To install without a global Qiongli CLI, use DeepSeek Desktop's **Add plugin → Official npm registry**, entering `qiongli@2.5.1`, or run:
 
 ```sh
-dsh plugin --profile desktop add qiongli@2.5.0
+dsh plugin --profile desktop add qiongli@2.5.1
 ```
 
 Replace `desktop` with your profile. The bundle includes 22 Skill entries, Full MCP and the platform executable. Keep one Qiongli bundle per profile, reload it and check the actual tools.
@@ -211,8 +211,7 @@ qiongli update plugin --target agy
 Install `agy` 1.2.17 or newer first. The terminal guide separately confirms the
 local export and `agy plugin install` / `enable`. Its default source directory is
 `~/qiongli-antigravity`; `--destination` can select an absolute secure directory
-ending in `qiongli`, `qiongli-next` or `qiongli-antigravity`. On the development
-branch, updates can omit the destination to recover it from the verified cache.
+ending in `qiongli`, `qiongli-next` or `qiongli-antigravity`. In 2.5.1, updates can omit the destination to recover it from the verified cache.
 The export includes the native binary and Full MCP,
 using Antigravity's root `plugin.json` and `mcp_config.json`.
 
