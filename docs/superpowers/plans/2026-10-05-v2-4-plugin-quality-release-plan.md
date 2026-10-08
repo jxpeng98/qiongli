@@ -2880,3 +2880,62 @@ evidence, commit/run fields and dates preserved. Frozen report, artifact, recipe
 packager and runtime hashes match. Integrate the packaging-description option
 and evidence bookkeeping through the authorized local fast-forward after the
 boundary guard; unchanged runtime/package results are reused.
+
+## October 8 — Apple Silicon diagnostic binary
+
+The user asks for a directly usable macOS binary and confirms Apple Silicon.
+Freeze source at `66252b29f1d36f7ce8f374bb38a53571dcaa5a16`. Cross-compile the
+CLI on Linux ARM64 using Rust 1.97.0, hash-pinned cargo-zigbuild 0.23.4/Zig 0.16.0
+and the SDK 11.3 archive referenced by the upstream adapter's Dockerfile. Retain
+headers/framework link stubs, excluding unnecessary Swift modules. The locked,
+offline, release/no-default-features build succeeds in 6m59s; a disk-space guard
+never fires. Product sources are unchanged. The existing Linux content exporter
+is reused only after checking that native/content input is identical across
+ce2c8d1e and 66252b29; verify the actual Mac binary's embedded pack separately.
+
+The first static check rejects the assumed macOS 11.0 package requirement:
+LC_BUILD_VERSION actually declares minimum 13.0.0 and SDK 26.4.0, despite the
+configured deployment target 11.0 and extracted framework SDK 11.3. Retain this
+mismatch and the initial artifacts. Regenerate portable/npm descriptions and
+BUILD.json for a **macOS 13+ local diagnostic** without relinking or changing the
+published release baseline. Record configured values separately from observed
+load commands. The user's system version is not yet established; ARM64
+confirmation alone does not prove that this minimum is met.
+
+Independent gpt-6.1-sol / low static verification passes ARM64_ALL/MH_EXECUTE,
+bounded load commands, dyld/entrypoint, system-only dylibs and no rpaths. The
+embedded ad-hoc SHA-256 CodeDirectory verifies all 5,675 code-page hashes and
+present special slots; this proves byte integrity, not Developer ID trust or
+Apple notarization. Parser fixtures reject page tampering, foreign architecture
+and truncated signatures. The exact 2,169,621-byte resource pack occurs once,
+with SHA-256 f2f8b22426fc3a8eea0600de7268de76988b6abefbdbe0abc2d81c5712e8eec7;
+the expected native source marker is present. Actual streamed archive contents
+match the native bytes, with correct executable mode, darwin/arm64 npm metadata,
+qiongli/ql aliases, 22 Skill files and receipt source/content hashes. No SDK is
+bundled. These are static checks, not a Mac npm install or loader execution.
+
+Corrected assets: `/tmp/qiongli-macos-cli-66252b29-20261008/corrected-assets/`.
+Portable SHA-256: `f7656d0c3e0b200b5a99ba42372d7b8061a1e85846e224d844bf24719a5bd8e3`.
+Npm SHA-256: `76b00a172a3101eba4f4f61b3d6eac29935f4ceddd0023a0d8ca07ceed33b9b9`.
+Native SHA-256: `c329fa09b6cf6267a28a1b1e6cba8ab94e426f35a79f75ad1968bd7898d5ba01`.
+Frozen report:
+`/tmp/qiongli-macos-cli-66252b29-20261008/verification/verification-summary.json`,
+SHA-256 `40f25513baeb326c4fa84125388a1fe1a286530f9c5aba6696cb6038f20bbe0f`.
+The packet retains build/export commands, results, tool/SDK provenance, initial
+minimum-version mismatch, corrected recipes, artifacts and verification drivers.
+Task-owned tool/SDK extraction, Zig caches and unpacked npm staging are removed
+after checks to restore disk space; archives, source SDK archive, metadata,
+native binary and all evidence remain. No unrelated build cache is deleted.
+
+Ready for a user-run macOS 13+ diagnostic trial only. Mac execution, installation,
+Gatekeeper, Keychain and real DSH session outcomes remain unrun; the preceding
+Linux tests are baseline evidence, not Mac acceptance. The installer still
+requests public qiongli@2.5.0. Next run the binary on the Mac and capture the real
+DSH stage outcome with Desktop fully quit. No native behavior change, real
+profile/credential/model change, publication or release monitoring is included.
+
+Final independent documentation review finds no actionable issue. Seven roadmap
+tests, generated-index consistency, whitespace and all 249 ledger invariants
+pass; only CLI-402 progress changes. Retained artifacts, native binary, recipe
+and report hashes match. Integrate this evidence-only increment by authorized
+local fast-forward after the boundary guard, reusing unchanged verification.

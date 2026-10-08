@@ -54,7 +54,16 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 8, 2026
 
-The current bounded request packages the CLI at `ce2c8d1e` and checks installation
+The current bounded request delivers an Apple Silicon Mac binary directly from
+local `66252b29`, under the existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--apple-silicon-diagnostic-binary).
+Cross-compile the CLI on Linux and verify the actual Mach-O and packaged bytes.
+The resulting local diagnostic requires macOS 13+, despite the requested 11.0
+build setting; corrected descriptions follow the file's load commands. This does
+not change the published release baseline. Static checks do not establish Mac
+execution, Gatekeeper/Keychain behavior or real DSH installation. No publication
+or real Host profile change is included; the next evidence is a Mac-native run.
+
+The preceding bounded request packages the CLI at `ce2c8d1e` and checks installation
 from actual local artifacts under the existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--local-diagnostic-cli-packaging).
 Qualify the host-local Linux ARM64 portable/npm packages and retain a staged
 source bundle for a separate Apple Silicon Mac build. Bind the runtime source,
