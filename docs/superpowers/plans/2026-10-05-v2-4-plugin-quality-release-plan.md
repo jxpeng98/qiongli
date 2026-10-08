@@ -3145,3 +3145,56 @@ After reviewed local integration, fast-forward main, push the source and immutab
 v2.5.2 tag, dispatch `release-automation.yml` at that tag in post mode and stop as
 soon as the dispatch is accepted. No subsequent release/registry monitoring is
 requested, and accepted dispatch must not be reported as completed publication.
+
+
+### Candidate checks and handoff
+
+Clean candidate `f6c823bfa77eb38e32bec2861f43a33335501b0f` passes the canonical
+release owner under actual Linux ARM64/glibc 2.35 and Rust 1.97. Independent
+gpt-6.1-sol / low verifies version preflight, **22 Python release contracts**,
+formatter/strict workspace CLI Clippy, **47 CLI and 9 MCP integration tests**,
+archive extraction, isolated npm/wheel installations and Codex/Claude Plugin
+packages. Installed Lite/Full retain 15/35 tools; the npm DSH bundle loader retains
+22 Skills. The unchanged 43 focused native tests and 21 synthetic terminal cases
+remain prior behavior evidence, separate from this fresh package qualification.
+
+All five actual artifacts have verified sizes/hashes and identical native payloads
+(`41ce49e4b9c0cbb68d760f3c6c2c1f7c230fd50f6492c7ec535c52c1b9caf898`).
+Independent inspection verifies Plugin receipts and embedded source/resource
+bindings. The pack contains 446 entries, source
+`5b7c297103c71d9da37728cf9993b9cf4166dc1d`, content root
+`e6af690492e1dfb1e5680376d4373f5bd841243b4507805a8a895fa6690e3397` and
+pack digest `1cc804ed9f4f3ee151c9d51a4cb8066bc91fe4ecb4d170d6af2dfc69f407e270`.
+ELF requires at most glibc 2.34; qualification and wheel metadata retain the
+published glibc 2.35 baseline.
+
+Offline npm/pip upgrades from retained, locally qualified 2.5.1 packages at
+`575b74e2e8004a66990b768f0e41a8e501899732` pass and preserve all three synthetic
+research/source/model-setting canaries. Only the download step uses verified
+retained bytes; the canonical upgrade/install/canary checks remain intact. This
+is not verification of the current public predecessor or research-format migration.
+
+Frozen evidence root: `/tmp/qiongli-252-release-20261008/`:
+
+- `verification-summary.json`, SHA-256
+  `eccb570c406cf3241e02a3f11e6536ab5c922d1f408ed5f34e93b142f90de15b`;
+- `linux-arm64-glibc235/assets/release-manifest.json`, SHA-256
+  `60ff185333eca0c2a6c68c4fffe1f2e2b5473cec3105939cf910d7162c0613e7`;
+- `artifact-audit.json`, SHA-256
+  `06fe607cc541605e4a748039f2f1e35fe62f4231bc02fad0f64be3603c12c4c7`;
+- `retained251-upgrade-result.json`, SHA-256
+  `a6a873864620d5fde40a8b4893331ac5f024756c61bb16e9a767e8d3e69cafee`.
+
+Initial checks racing content-lock generation, an incorrect preflight entry and
+a detached snapshot refused by the release owner are retained as setup failures;
+the final clean branch runs pass without bypassing checks. Scoped cleanup removes
+216 inactive product compiler cache files (4,071,638,994 bytes), preserving all
+executables, source, release caches/artifacts, reports, registry and user data.
+Final bookkeeping changes only this plan, CLI-402 progress and its generated index;
+program states, dependencies, accepted evidence and commit/run fields stay intact.
+
+The next authorized action is local main fast-forward, source/tag push and the
+existing v2.5.2 release task. Its final-tag four-target, public-download and registry
+gates remain mandatory; local Linux qualification does not establish native Mac
+terminal behavior, Windows/Linux x64 acceptance or live Host/session use. Stop on
+accepted dispatch and report that handoff only, without follow-up monitoring.
