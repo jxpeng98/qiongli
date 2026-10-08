@@ -256,7 +256,7 @@ to remove this package. Run `qiongli setup` after installation to review other C
 In Desktop's Add plugin dialog, select Official npm registry and enter
 `qiongli@{identity.npm_version}`. The same package includes 22 Skill entries and
 Full MCP; a separate global CLI installation or install script is not required.
-The official local CLI can install it into the Desktop profile:
+The launcher installed by DeepSeek Desktop can install it into that profile:
 
 ```sh
 dsh plugin --profile desktop add qiongli@{identity.npm_version}
@@ -264,6 +264,9 @@ dsh plugin --profile desktop add qiongli@{identity.npm_version}
 
 Replace `desktop` with your own profile name when needed. For a local install,
 replace the package specification with the absolute path to this `.tgz` archive.
+The ordinary npm-installed `dsh` cannot manage the reserved `desktop` profile,
+even if its version matches the Desktop-installed launcher. Use Desktop's Plugin
+manager or its launcher for that profile; installing into `web` is separate.
 DSH 0.2 upgrades require removing the installed `qiongli` Plugin, then installing
 the new version. Start a fresh session and check the Skill catalog and MCP tools.
 """

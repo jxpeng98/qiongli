@@ -47,6 +47,12 @@ pub(crate) fn display_command(executable: &str, args: &[String]) -> String {
 // echo credentials, URLs, config or terminal escapes in their raw output.
 fn diagnostic(output: &[u8]) -> Option<(&'static str, &'static str)> {
     let text = String::from_utf8_lossy(output);
+    if text.contains("profile \"desktop\" is managed exclusively by the Electron application") {
+        return Some((
+            "desktop-profile-manager-required",
+            "Use DeepSeek Desktop's Plugin manager or its Desktop-installed dsh command for this profile. The npm-installed dsh cannot manage the reserved desktop profile; the version number alone does not identify the correct launcher.",
+        ));
+    }
     let tokens = text
         .split(|c: char| !c.is_ascii_alphanumeric() && c != '_')
         .collect::<Vec<_>>();
@@ -231,6 +237,15 @@ mod tests {
         );
         assert!(diagnostic(b"private-config-and-unrecognized-error").is_none());
         assert!(diagnostic(b"prefixETARGETsuffix").is_none());
+        assert_eq!(
+            diagnostic(
+                b"error: profile \"desktop\" is managed exclusively by the Electron application"
+            )
+            .unwrap()
+            .0,
+            "desktop-profile-manager-required"
+        );
+        assert!(diagnostic(b"profile desktop: unknown failure").is_none());
         assert_eq!(
             diagnostic(b"unknown option --registry").unwrap().0,
             "unsupported-command"

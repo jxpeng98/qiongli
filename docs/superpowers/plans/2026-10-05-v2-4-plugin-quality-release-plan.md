@@ -2715,3 +2715,42 @@ reviewed feature branch locally after the frozen-source guard; next qualify the
 changed installer for a separately selected delivery. The user's DSH root cause
 still needs its actual diagnostics. No push, release, user-profile change or
 previous-release monitoring is included.
+
+### DSH 0.2.0-rc.2 Desktop launcher clarification
+
+The user supplies Qiongli 2.5.0, DSH 0.2.0-rc.2 and `desktop file`, treated as
+selection of the desktop profile pending launcher/OS confirmation. After local
+14b0ec33, the gpt-6.1-sol / low verifier downloads only public npm metadata,
+integrity-verified DSH rc.2 and Commander 15 packages into a private test area.
+It executes the exact published argument parser without invoking the manager or
+installing dependencies/profiles. Default npm mode rejects the requested argv
+with `profile "desktop" is managed exclusively by the Electron application`;
+Desktop opt-in accepts and forwards the same package/version/registry/flags.
+Public npm metadata confirms qiongli 2.5.0 exists. This establishes a reproducible
+launcher restriction, not the cause on a machine whose executable path is still
+unknown. `type -a dsh` and OS information are requested separately.
+
+Extend the existing static diagnostic allowlist with that exact restriction and
+clarify the launcher distinction in both installation guides and the canonical
+npm README generator. Use Desktop's manager or its installed launcher for the
+reserved profile; changing to `web` would target another profile. No automatic
+launcher/profile switch, authorization bypass, registry change or real user
+installation is introduced. ADR 0238 retains ownership without a new decision.
+Focused follow-up verification and integration evidence follows below.
+
+Follow-up checks pass: two Rust diagnostic/command-quoting tests, two existing
+README/channel and npm archive tests, generated npm 2.5.0 text inspection,
+formatting, CLI/library Clippy with denied warnings, seven roadmap tests,
+249-task index consistency and whitespace. Independent gpt-6.1-sol / low review
+finds no actionable issue. Relative to 14b0ec33, the ledger changes only CLI-402
+progress; all states, dependencies, acceptance, commit/run fields and dates stay
+unchanged. The prior 39-case and five-terminal behavioral results remain valid
+for unchanged installer control flow; no live Desktop-manager acceptance is added.
+
+Evidence: `/tmp/qiongli-dsh-rc2-diagnostic-20261008/followup-verification-summary.json`,
+SHA-256 `1d0083fdd30a84f43b9c805771d9fa34d6d88d3624641d7509a4c99c8b452679`.
+It preserves separate original parser evidence, package integrity checks and
+source hashes. Integrate by local fast-forward after the frozen-source guard.
+Next resolve the user's actual launcher path or original manager error; release
+qualification remains separately scoped. No publication or installed profile
+change is included.

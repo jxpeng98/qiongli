@@ -101,6 +101,15 @@ dsh plugin --profile desktop add qiongli@2.5.0
 
 把 `desktop` 换成自己的 profile。包内含 22 个 Skill 入口、Full MCP 和对应平台程序。每个 profile 保留一份穷理，重新加载后检查实际工具。
 
+对 `desktop`，上面的命令必须使用 DeepSeek Desktop 安装的启动入口。
+普通 npm 安装的 `dsh` 会拒绝管理这个保留 profile，即使两者的 `dsh --version`
+显示相同版本。DSH 0.2.0-rc.2 的
+`profile "desktop" is managed exclusively by the Electron application`
+表示触发了这一限制。请使用 Desktop 的插件管理器或其安装的命令入口；
+可用 `type -a dsh`（Bash/Zsh）或 `Get-Command dsh -All`（PowerShell）
+检查是否存在多个命令。改装到 `web` 会进入另一个 profile，不会装入 Desktop。
+参见 [DSH 官方说明](https://www.npmjs.com/package/%40deepseek-ai/dsh?activeTab=readme)。
+
 向导优先使用已存在的 Desktop profile，否则使用 `web`。新 CLI profile 由官方 `web` 模板初始化；Desktop 的保留 profile 由 Desktop 自行初始化。DSH 使用自己的包管理器和 profile；`--destination`、上下文 `--hooks` 需要另选 Codex/Claude。
 
 更新时通过向导或管理器指定版本。Desktop 对话框按其说明移除后重新添加，保留 profile 与模型设置。开发者导出和外部任务见[外部 Agent 协作](../../advanced/external-host-coordination.md)。

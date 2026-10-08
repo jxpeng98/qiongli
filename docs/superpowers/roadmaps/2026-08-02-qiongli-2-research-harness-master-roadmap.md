@@ -60,8 +60,11 @@ The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-pl
 owns this local increment after `d715fd35`; ADR 0238 supersedes only the batch
 stop policy. Existing approvals and source/receipt owners remain. The actual
 user-side DSH cause is unconfirmed until its diagnostics are available; synthetic
-reproduction establishes the lost-output defect. No publication or release
-monitoring is part of this request.
+reproduction establishes the lost-output defect. The follow-up reports DSH
+0.2.0-rc.2 with `desktop`: its published npm launcher refuses that reserved
+profile, but the user launcher path remains unconfirmed. Add that exact
+diagnostic and clarify the documented Desktop-owned entry under ADR 0238.
+No publication or release monitoring is part of this request.
 
 The preceding bounded request removes repeated Host/path choices from installation
 and updates. Reuse the existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--automatic-host-and-source-selection): detected-all defaults, verified

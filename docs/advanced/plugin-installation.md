@@ -114,6 +114,15 @@ dsh plugin --profile desktop add qiongli@2.5.0
 
 Replace `desktop` with your profile. The bundle includes 22 Skill entries, Full MCP and the platform executable. Keep one Qiongli bundle per profile, reload it and check the actual tools.
 
+For `desktop`, that command must be the launcher installed by DeepSeek Desktop.
+The ordinary npm-installed `dsh` rejects Plugin operations on this reserved
+profile, even when `dsh --version` prints the same version. In DSH 0.2.0-rc.2,
+`profile "desktop" is managed exclusively by the Electron application` identifies
+this restriction. Use the Desktop Plugin manager or its installed launcher;
+`type -a dsh` (Bash/Zsh) or `Get-Command dsh -All` (PowerShell) helps identify
+competing commands. Installing into `web` targets a different profile and does
+not install into Desktop. See the [official DSH documentation](https://www.npmjs.com/package/%40deepseek-ai/dsh?activeTab=readme).
+
 The installer prefers an existing Desktop profile, otherwise `web`. New CLI profiles use the official `web` template; Desktop initializes its reserved profile itself. DSH uses its package manager and profile, so `--destination` and context `--hooks` require separate Codex/Claude selections.
 
 Use the installer or manager to update an exact version. In the Desktop dialog, follow its remove/add instructions while retaining your profile and model settings. For developer bundle exports and external proposals, see [external Agent coordination](external-host-coordination.md).
