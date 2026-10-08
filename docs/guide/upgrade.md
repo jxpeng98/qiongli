@@ -23,7 +23,7 @@ qiongli install plugin
 qiongli mcp check
 ```
 
-Choose the Host, reuse its registered directory, and review and confirm the file and registration changes. `qiongli upgrade plugin` uses the same flow. Open a new Host session, check the tools and call `qiongli_config_status`.
+Review the detected Hosts and selected source directories, then confirm each Host's file and registration changes. `qiongli upgrade plugin` uses the same flow. Open a new Host session, check the tools and call `qiongli_config_status`.
 
 DeepSeek uses its own plugin manager; the installer selects the npm version matching the CLI. For direct DSH installation, see [DeepSeek setup](../advanced/plugin-installation.md#deepseek).
 

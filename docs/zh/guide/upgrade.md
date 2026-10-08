@@ -23,7 +23,7 @@ qiongli install plugin
 qiongli mcp check
 ```
 
-选择 Host，复用已登记的目录，审阅并确认文件与注册变更。`qiongli upgrade plugin` 是同一流程。随后新开 Host 会话，检查工具并调用 `qiongli_config_status`。
+查看已检测到的 Host 和自动选择的源目录，逐个审阅并确认文件与注册变更。`qiongli upgrade plugin` 是同一流程。随后新开 Host 会话，检查工具并调用 `qiongli_config_status`。
 
 DeepSeek 使用自己的插件管理器；向导会安装与 CLI 匹配的 npm 版本。直接通过 DSH 安装时，见 [DeepSeek 配置](../advanced/plugin-installation.md#deepseek)。
 
