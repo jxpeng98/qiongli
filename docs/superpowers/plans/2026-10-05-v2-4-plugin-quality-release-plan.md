@@ -3288,3 +3288,55 @@ main, atomically push main and immutable v2.5.3, then dispatch
 four-target qualification, public-download and registry gates remain mandatory.
 Stop on accepted dispatch without polling runs, releases or package publication.
 Program task states, accepted evidence and commit/run fields remain unchanged.
+
+
+### Candidate qualification and final handoff
+
+Independent gpt-6.1-sol / low qualification passes against clean candidate
+`cd76e8c1739871bc9ad7b874673feb5cc07352cc` with the canonical
+`release_ready.sh --cli-github --version 2.5.3` owner on Linux ARM64/glibc 2.35.
+The run passes 22 Python release contracts, formatting, strict workspace CLI
+Clippy, 47 release-profile CLI tests and nine MCP tests. Actual archive, npm,
+wheel and Codex/Claude Plugin installation checks pass, including empty-PATH
+archive execution, DSH bundle-loader isolation (22 Skills/35 Full MCP) and
+receipt/projection checks. The five native payloads share SHA-256
+`100fd77ec27c806b5859a5b584afaa74f2c5d12454b1314a3846afc201ee0c07`.
+Independent artifact/source/pack/ELF checks pass; the observed highest required
+GLIBC symbol version is 2.34 and the declared release baseline remains 2.35.
+
+The 446-entry 2.5.3 pack binds content source
+`8184d476de021aa577e3d19a0b44d3e1b0246da4`, content root
+`b1187a17633a1e5d5258d85965b83abade6029e8431b2f61c1baeb4d43684ae0`
+and pack SHA-256
+`817a4767f8e9ebbe11c935cbf0a1aab885db429fbd9343bbbb0afb654cce3d86`.
+Retained locally qualified 2.5.2-to-2.5.3 npm/pip upgrades pass using the existing
+upgrade owner and hash-verified local download bytes. Three synthetic
+research/source/model-settings canaries remain intact. This does not assert the
+identity of a current public predecessor download.
+
+Initial setup failures remain recorded: an incorrect unittest module/preflight
+argument was corrected before the canonical run. The first clone inherited 775
+directory permissions and correctly hit three security refusals (44/47 CLI tests
+passed). Correcting 519 task-clone directories, without changing repository/user
+ancestors, product source or gates, allowed the complete owner to pass again in a
+new staging directory. No failed run is counted as a pass or hidden by a skip.
+
+Frozen evidence: `/tmp/qiongli-253-release-20261009/verification-summary.json`,
+SHA-256 `9ccc822aec2590d6996cb888aa3aeeef85b29f4e93b243780d0d90372d10b496`.
+Its source bindings and individual logs retain the setup observations. Under the
+same evidence root, `artifact-audit.json` has SHA-256
+`9fd127ab4d762be159c2858b28aa2884d36ac42670b40e3574c1c5f5c5e0ebf1`
+and `retained252-upgrade-result.json` has SHA-256
+`6ca6d300061aa099dd636a54d02c2eeeaabbad3114bbbe53ae551230a4c88956`.
+The qualified `linux-arm64-glibc235-secure/assets/release-manifest.json` has
+SHA-256 `bde19af0bd14348157d1a2a0ff0ad6568a4179827768691d4ba6a8d5d3ea825d`.
+
+This establishes local Linux ARM64 qualification only. Real macOS/DSH sessions,
+authentication/model calls, public downloads and registry publication remain
+unverified. The preceding 23 focused behavior checks are reused separately.
+Final bookkeeping changes only this plan, CLI-402 progress and its generated
+index; program states, dependencies, accepted evidence and commit/run fields stay
+intact. The authorized next action is reviewed local fast-forward integration,
+atomic main/v2.5.3 push and the existing post-mode release automation dispatch.
+Exact-tag four-target/public-download/registry gates remain mandatory. Stop on
+accepted dispatch without following the run or claiming publication completion.
