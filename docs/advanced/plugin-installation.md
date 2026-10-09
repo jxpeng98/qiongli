@@ -55,7 +55,7 @@ File export and official Host registration have separate confirmations. Cancelli
 
 ## Progress and failed installations
 
-The current development installer keeps a short Host heading, approval summary
+Version 2.5.3 keeps a short Host heading, approval summary
 and final result. DeepSeek's twelve checks still run, but successful checks are
 hidden by default. `--verbose` shows stage results, durations and the full plan.
 Failures always identify the exact stage and retry command.
@@ -105,7 +105,7 @@ alone does not establish a verified installation or working session tools.
 
 Version 2.5.1 printed every stage; 2.5.2 hid START by default but still printed
 successful results. Those released versions also captured package output and used
-a timeout. The development behavior above replaces that DSH-specific flow.
+a timeout. The 2.5.3 behavior above replaces that DSH-specific flow.
 
 ## Description language {#language}
 

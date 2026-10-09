@@ -3258,3 +3258,33 @@ The next independent observation is the updated installer on the maintainer's
 Mac; package/release qualification belongs to a separately authorized release.
 This increment ends after reviewed local integration into 2.x. Program states,
 accepted evidence, dependency and commit/run fields remain unchanged.
+
+
+## October 9 — 2.5.3 release handoff
+
+The maintainer authorizes the next patch release from integrated `02b37c2c`,
+source/tag push and execution of release automation, then ending without following
+its progress. Prepare stable 2.5.3 through canonical version synchronization,
+resource-pack binding and frozen release notes. A gpt-6.1-sol / low verifier runs
+fresh candidate checks with the existing `release_ready.sh --cli-github` owner
+under Linux ARM64/glibc 2.35, reusing its verified environment/cache. Retain
+mandatory package, install, receipt, version and upgrade gates. Prior 23 focused
+behavior checks remain separately identified; no unrun native Mac/DSH session
+check or registry-origin attestation becomes a pass.
+
+The release changes DSH package installation to approved exact latest-version
+argv and native terminal interaction, reduces routine output, reuses saved language
+and removes the running-CLI version/pack binding. Version/profile probes retain
+their existing safety checks; initialization output stays captured. Research
+schemas, model choices and other Host execution contracts remain unchanged.
+Full/Lite retain 35/15 tools, AGY/Pi stay experimental, and the target set remains
+macOS ARM64, Windows x64 and Linux x64/ARM64 (glibc 2.35+). Preserve previous
+executables, Plugin sources and research/settings backups for rollback; changing
+executables does not undo research writes.
+
+After reviewed local integration and candidate qualification, fast-forward local
+main, atomically push main and immutable v2.5.3, then dispatch
+`release-automation.yml` at that tag in post mode with create_release=true. Its
+four-target qualification, public-download and registry gates remain mandatory.
+Stop on accepted dispatch without polling runs, releases or package publication.
+Program task states, accepted evidence and commit/run fields remain unchanged.

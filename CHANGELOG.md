@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+## [2.5.3]
+
+详细说明见 [2.5.3 发布说明](tooling/release/v2.5.3.md)。
+
 - DeepSeek 安装先查询 npm 最新稳定版并锁定版本，再执行 `dsh plugin --profile <profile> add qiongli@<version>`，不再强制附加 registry/scripts 参数或要求 Plugin 与启动安装的 CLI 同版本。
 - DSH 安装时使用正常终端交互和环境，由官方管理器负责下载进度与缓存；默认收起成功检查，保留审批摘要、具体失败步骤和批量结果，`--verbose` 展开诊断。
 - 单独安装 DeepSeek 时复用 profile 中的语言偏好，首次按系统语言选择，`--language` 可覆盖；profile 默认 desktop，未初始化时明确提示，不自动改装 web。
