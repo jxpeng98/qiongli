@@ -3198,3 +3198,63 @@ existing v2.5.2 release task. Its final-tag four-target, public-download and reg
 gates remain mandatory; local Linux qualification does not establish native Mac
 terminal behavior, Windows/Linux x64 acceptance or live Host/session use. Stop on
 accepted dispatch and report that handoff only, without follow-up monitoring.
+
+
+## October 9 — DeepSeek latest terminal installation
+
+The maintainer requests the normal `dsh plugin --profile desktop add
+qiongli@<latest exact version>` installation and fewer scrolling messages/inputs.
+Use the current installation owners under ADR 0240: bounded public npm latest
+lookup before approval, frozen stable version, existing executable/profile CAS,
+no appended registry/scripts flags, and native DSH terminal/environment handoff.
+Default to the initialized Desktop profile, allowing explicit web/custom choices;
+reuse valid stored language or locale for a DSH-only install, with explicit
+language overrides. Ordinary failures continue the batch; interruptions stop it.
+
+Keep Qiongli output to the approval summary, failures and final result, with full
+stage details in verbose mode. Clear its progress before DSH owns the terminal;
+DSH/pnpm controls its own rendering, prompts and download cache. No latest-version
+cache may silently cause a stale installation. Verify the approved package version
+and source pack independently of the old CLI's embedded pack. This is source
+consistency, not registry origin/generated-executable attestation; official DSH
+owns package download integrity and the release owner retains full projection
+qualification. Preserve real profiles and model settings during isolated checks.
+
+Public latest metadata read for this request reports 2.5.1. That observation is
+not monitoring or a diagnosis of the preceding release task. The latest user Mac
+failure has no new error trace and remains unreproduced. Use gpt-6.1-sol / low for
+focused tests and review, recording actual results and remaining gaps below once
+available. Integrate scoped local commits into 2.x; no push, version bump or new
+publication is requested, and all existing program acceptance states remain intact.
+
+
+### Focused checks and integration
+
+Independent gpt-6.1-sol / low verification passes **23 focused checks**: six DSH
+lookup/approval/content tests, one explicitly run retained real npm bundle test,
+one explicitly run prompt-driven PTY test, nine installation-guide tests, three
+manager-diagnostic tests and three renderer tests. The package check uses the
+retained locally qualified 2.5.2 artifact, not an asserted public download. The
+PTY confirms inherited terminal input/output, progress cleared before the native
+prompt, a reply sent only after that prompt, and no competing Qiongli timer.
+Eight unaffected guide results are reused; the updated duplicate-output assertion
+passes separately against a refreshed test binary. Strict CLI-library Clippy,
+final formatter/diff checks and architecture validation (7 frozen/40 current ADRs)
+pass. Review finds no remaining actionable issue in the scoped behavior.
+
+Initial fixture/implementation checks expose a canonical mapping error for
+non-workflow resource paths; both now follow the packaging owner's optional
+prefix removal, and the retained real package passes. The old per-Host duplicate
+success assertion and missing ADR registry entry are also repaired. These initial
+failures remain in the report rather than being counted as successful runs.
+
+Evidence: `/tmp/qiongli-dsh-latest-20261009/verification-summary.json`, SHA-256
+`1843982a83899b27565ac3b3bd27b261a3723e5ca5ecd22c74e8f524943fcea1`;
+`source-bindings.json` in the same directory, SHA-256
+`42cd7aeb0a187131086e03d5db6e124be75b6de433c5e8e0cb3d52479ad47062`.
+The report binds individual logs and source files. No live DSH/Mac installation,
+new-session tools, registry-origin attestation or release qualification is claimed.
+The next independent observation is the updated installer on the maintainer's
+Mac; package/release qualification belongs to a separately authorized release.
+This increment ends after reviewed local integration into 2.x. Program states,
+accepted evidence, dependency and commit/run fields remain unchanged.

@@ -48,6 +48,7 @@ decision must be recorded as a new superseding ADR.
 | `CLI-402` | [ADR 0237](0237-automatic-plugin-source-selection.md) | Accepted | Detected-all defaults and verified per-Host source selection without platform/path prompts |
 | `CLI-402` | [ADR 0238](0238-resilient-plugin-installation.md) | Accepted | Per-Host progress, bounded diagnostics, continued batches and targeted recovery summaries |
 | `CLI-402` | [ADR 0239](0239-compact-installation-display.md) | Accepted | Compact default installation output, one-line waiting and explicit plain/verbose fallbacks |
+| `CLI-402` | [ADR 0240](0240-deepseek-latest-terminal-installation.md) | Accepted | Latest stable DSH package, frozen approval, native terminal handoff and compact profile reuse |
 
 ## Decision lifecycle
 

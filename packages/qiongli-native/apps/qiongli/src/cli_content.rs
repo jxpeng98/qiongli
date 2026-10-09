@@ -436,20 +436,30 @@ fn install_plugins(
             installed_plugin_hosts(|name| environment.client_executable(name).is_some(), writer)?;
     }
     validate_host_options(&targets, destination.as_deref(), context_hooks)?;
-    line(
-        writer,
-        "\nQiongli Plugin installation\nEach Host asks for approval. Failed/skipped Hosts are reported at the end; later Hosts continue.\nUse --verbose for command diagnostics; --plain for append-only progress.\n\n",
-    )?;
-    let Some(language) = choose_skill_language(environment, language.as_deref(), reader, writer)?
-    else {
-        return line(writer, "Cancelled; no changes made.\n");
+    if writer.verbose() {
+        line(
+            writer,
+            "\nQiongli Plugin installation\nEach Host asks for approval. Failed/skipped Hosts are reported at the end; later Hosts continue.\n\n",
+        )?;
+    }
+    // A DSH-only install can reuse the selected profile's saved preference.
+    // Explicit --language still overrides it; other Hosts keep their guide.
+    let language = if targets == [PluginInstallHost::DeepSeek] && language.is_none() {
+        None
+    } else {
+        let Some(language) =
+            choose_skill_language(environment, language.as_deref(), reader, writer)?
+        else {
+            return line(writer, "Cancelled; no changes made.\n");
+        };
+        Some(language)
     };
     let options = InstallationGuide {
         plugin: true,
         all_detected,
         destination,
         context_hooks,
-        language: Some(language),
+        language,
         ..Default::default()
     };
     install_batch(&targets, &options, writer, |host, writer| {
@@ -466,14 +476,16 @@ fn install_one_plugin(
     writer: &mut impl InstallWriter,
 ) -> Result<bool, &'static str> {
     let destination = &options.destination;
-    let language = options.language.as_ref().ok_or("skill-language-invalid")?;
     let target = match selected {
         PluginInstallHost::Pi => {
             return crate::plugin_host::pi::install(
                 environment,
                 content,
                 destination.as_deref(),
-                language,
+                options
+                    .language
+                    .as_deref()
+                    .ok_or("skill-language-invalid")?,
                 reader,
                 writer,
             );
@@ -483,7 +495,10 @@ fn install_one_plugin(
                 environment,
                 content,
                 destination.as_deref(),
-                language,
+                options
+                    .language
+                    .as_deref()
+                    .ok_or("skill-language-invalid")?,
                 reader,
                 writer,
             );
@@ -492,13 +507,14 @@ fn install_one_plugin(
             return crate::plugin_host::deepseek::install(
                 environment,
                 content,
-                language,
+                options.language.as_deref(),
                 reader,
                 writer,
             );
         }
         PluginInstallHost::Managed(target) => target,
     };
+    let language = options.language.as_ref().ok_or("skill-language-invalid")?;
     let registered = crate::plugin_host::installation_source(
         environment,
         target,
@@ -568,7 +584,7 @@ fn install_batch<W: InstallWriter>(
         line(
             writer,
             &format!(
-                "\n----------------------------------------\n[{}/{}] {name} — install or update\n----------------------------------------\n",
+                "\n[{}/{}] {name} — install or update\n",
                 index + 1,
                 targets.len()
             ),
@@ -580,10 +596,12 @@ fn install_batch<W: InstallWriter>(
             Ok(false) => "skipped",
             Err(_) => "failed",
         };
-        line(
-            writer,
-            &format!("[{}/{}] {name}: {state}\n", index + 1, targets.len()),
-        )?;
+        if writer.verbose() {
+            line(
+                writer,
+                &format!("[{}/{}] {name}: {state}\n", index + 1, targets.len()),
+            )?;
+        }
         let interrupted = matches!(
             result,
             Err("installation-input-failed" | "installation-output-failed")
@@ -972,6 +990,12 @@ fn installation_hint(code: &str) -> &'static str {
             "An existing standalone Qiongli MCP entry would duplicate the Plugin. Review it in AGY before retrying."
         }
         "deepseek-version-unsupported" => "Update DeepSeek Harness to 0.2 or newer, then retry.",
+        "deepseek-latest-version-unavailable" => {
+            "Could not resolve a stable Qiongli release from registry.npmjs.org. Check network access and retry; no cached version was installed."
+        }
+        "deepseek-install-not-verified" => {
+            "DSH returned, but the installed registration/version/content did not verify. Review the failed step and selected profile before retrying; existing files were retained."
+        }
         "deepseek-desktop-profile-unavailable" => {
             "Open DeepSeek Desktop once to initialize its profile, or choose a CLI profile."
         }
@@ -1051,7 +1075,8 @@ mod tests {
         assert_eq!(result.unwrap_err(), "installation-batch-incomplete");
         assert_eq!(visited, hosts);
         let output = String::from_utf8(output).unwrap();
-        assert!(output.contains("[3/3] Pi: installed"));
+        assert!(output.contains("  OK      Pi\n"));
+        assert!(!output.contains("[3/3] Pi: installed"));
         assert!(output.contains("FAILED  DeepSeek Harness"));
         assert!(output.contains("SKIPPED Antigravity"));
         assert!(output.contains("qiongli install plugin --target deepseek"));

@@ -52,9 +52,19 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — October 8, 2026
+## Current execution horizon — October 9, 2026
 
-The current bounded request prepares and dispatches v2.5.2 from the integrated
+The current bounded request installs DeepSeek's latest stable npm Plugin through
+normal `dsh plugin --profile <profile> add qiongli@<resolved-version>` arguments,
+with less scrolling and fewer repeated inputs. The existing
+[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-9--deepseek-latest-terminal-installation)
+owns bounded lookup, frozen approval, DSH terminal handoff, source-content checks
+independent of the launching CLI and compact output under ADR 0240. Validation uses
+gpt-6.1-sol / low and isolated fixtures; the user's latest Mac failure remains
+unreproduced. This is local development/integration, with no new publication or
+monitoring of the preceding release task and no program acceptance promotion.
+
+The preceding bounded request prepares and dispatches v2.5.2 from the integrated
 compact installation display. The maintainer authorizes source/tag publication
 and the existing release CI task, then asks to stop without monitoring. The
 [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-8--252-display-release-handoff)

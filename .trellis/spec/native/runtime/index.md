@@ -394,7 +394,18 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   native Full MCP. `install plugin --target deepseek` and terminal choice 4 use the
   terminal-only `plugin_host/deepseek.rs` adapter. After profile selection, exact command preview,
   trust confirmation and executable/profile digest revalidation, the official DSH
-  manager installs the pinned npm version from the official registry. New CLI
+  manager installs a stable npm version resolved from public latest metadata and
+  frozen before approval (ADR 0240), independently of the running CLI version.
+  Its literal `plugin --profile <profile> add qiongli@<version>` has no appended
+  registry/scripts flags. Default profile is desktop with explicit alternatives;
+  an uninitialized desktop never silently becomes web. Package commands inherit
+  the terminal/environment/cwd and have no Qiongli capture/deadline; the
+  version probe and profile initialization retain bounded capture. DSH owns prompts, rendering and cache.
+  Compact output hides successful stages; verbose expands the plan and stages.
+  Single-Host DSH reuses valid profile language or locale; explicit language wins.
+  Source-pack postchecks reconstruct the approved version rather than compare
+  to the CLI's embedded pack. They attest source consistency, not registry origin
+  or generated executable equivalence; DSH/pnpm owns download integrity. New CLI
   profiles use the official web template; existing profiles are retained. Bundle
   registration, package version and content receipt are checked afterward. DSH_HOME
   is captured and propagated only to the child process. Public managed App target
@@ -455,9 +466,13 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   its deadline; timeout stops the direct child, not necessarily its descendants.
   Existing read-only callers retain their error and UTF-8 contracts.
   ADR 0239 presents each Host, approval preview, progress and summary separately.
-  Default DeepSeek output retains twelve numbered OK/SKIPPED/FAILED results and
-  elapsed time, separating registration, package metadata, receipt and language writes.
-  Stage errors retain their existing reason codes. Its command trace shows the
+  ADR 0240 supersedes DeepSeek's default numbered success output: twelve checks
+  remain, with detailed success/skips only in verbose mode and failures always
+  visible. Its exact version, command, profile, language and executable form the
+  compact approval summary. DSH package commands own terminal output without
+  Qiongli capture, heartbeat or deadline; the progress line is cleared first.
+  Stage errors retain their existing reason codes. For bounded captured commands,
+  the diagnostic trace shows the
   actual working directory, reconstructed PATH, passed environment key names,
   stdio/timeout policy, output byte counts and allowlisted pnpm observations after
   capture. It never prints environment credential values or raw manager text;
@@ -470,8 +485,8 @@ matching sources/candidate; the originating Host retains checkpoint authority.
   CI, NO_COLOR, absent/unsupported TERM, narrow or unsupported consoles fall back
   to append-only output; compact waits log at most every 30 seconds, verbose at
   the existing five-second callback. No download percentage is inferred.
-  Full mutation previews, terminal-only approvals, command argv/environment,
-  timeout/capture limits and Pi umask retain their owners. Completed export
+  Mutation approvals remain terminal-only. Other Host previews, command
+  argv/environment, timeout/capture limits and Pi umask retain their owners. Completed export
   receipts are printed in verbose mode; their verification and final result remain.
   Foreign enabled Plugins refuse before export
   with their exact names and manual disable guidance. See ADRs 0225 and 0235.

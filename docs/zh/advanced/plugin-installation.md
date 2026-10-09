@@ -47,66 +47,50 @@ Host 时仍显示 Host 菜单；`--target all` 使用同样的自动选择。
 
 ## 安装进度与失败处理
 
-2.5.2 按客户端、批准预览、执行和最终汇总分段显示。成功的 DSH
-步骤只保留一行简短结果，默认收起重复的启动环境与完成后的导出收据；批准前的
-文件变更和注册预览仍完整显示。在支持的 Unix 终端中，等待时间在同一短行内更新，
-不靠不断追加日志显示进度，也不清除之前的内容；不推测下载百分比。
+当前开发版默认只保留客户端标题、审批摘要和最终结果。DeepSeek 的十二项检查
+仍会执行，成功时不逐行打印；`--verbose` 展开阶段、耗时和完整计划。失败始终
+显示确切步骤和重试命令。
 
 ```sh
-qiongli install plugin --target deepseek            # 简洁显示
-qiongli install plugin --target deepseek --verbose  # 完整安全诊断
-qiongli install all --plain                        # 简洁追加输出
-qiongli install --verbose                          # 向导中启用诊断
+qiongli install plugin --target deepseek
+qiongli install plugin --target deepseek --verbose
+qiongli install all --plain
 ```
 
-`--verbose`、`--plain` 同样适用于 `upgrade plugin/all` 和 `update plugin/all`。
-详细模式追加显示 START、启动环境等诊断；默认模式失败时也会自动展开原有安全诊断、
-确切步骤和重试命令。`--plain`、`NO_COLOR`、`CI`、TERM 缺失／不支持、宽度未知、
-小于 32 列或不支持的控制台（包括 Windows）使用追加输出。简洁追加模式的等待提示
-最多每 30 秒一条，详细模式保留五秒提示。重定向安装仍在写入前拒绝，脚本使用既有
-`--dry-run` 工作流；显示选项不会批准任何修改。
+支持的终端在同一短行内更新 Qiongli 状态，不清除历史内容。`--plain`、
+`--verbose`、`NO_COLOR`、`CI`、不支持的终端，以及宽度未知或过窄时停用原地
+刷新。重定向安装仍在写入前拒绝；显示选项不会批准修改。
 
-2.5.1 显示 `[1/5]` 客户端进度、官方管理器的命令步骤，以及命令运行期间每五秒
-更新一次的等待时间。最后分别列出安装成功、失败、跳过和未执行的客户端，并给出
-处理提示和定向重试命令。只要有失败，整批就返回非零状态，不会误报全部成功。
-回答 `n` 只跳过当前客户端，后续客户端仍分别确认；关闭输入或中断命令可以停止
-整批。文件已导出但注册失败／被拒绝时，导出文件保留。
+执行 DSH 安装命令时，把终端交给官方管理器，由它显示 pnpm 的进度、缓存计数、
+交互和错误。Qiongli 先清除自己的状态行，不叠加计时提示，也不捕获或重放这段
+输出。Qiongli 的 `--plain`／`--verbose` 不改变 DSH 自己的显示方式。安装命令
+使用正常环境与当前工作目录，并传入已核对的 HOME／DSH_HOME 根目录；等待用户
+输入时没有 Qiongli 设置的安装超时。Ctrl-C 中断前台命令。其他客户端和 DSH
+只读版本检查、profile 初始化仍使用有界捕获与安全诊断摘要，不把初始化生成的
+整份配置打印出来。
 
-按最终汇总中的命令只重试未完成的客户端，例如：
+最终汇总分别列出成功、失败、跳过和未执行的客户端，并提供定向重试命令。
+普通失败或拒绝确认会继续后续客户端；关闭输入或中断则停止整批。已完成的修改
+保留；只要有失败，整批返回非零状态。只重试未完成的客户端，并选择相同 profile：
 
 ```sh
 qiongli install plugin --target deepseek
 ```
 
-`host-command-nonzero-exit` 只表示官方管理器失败，不能单凭它判断是网络、版本
-还是权限问题。新提示会显示退出码、可识别的错误类别和实际执行命令；DSH 命令
-包含当时选择的 profile、确切 npm 版本、registry 和参数。先按提示处理问题并检查
-保留文件，重试时选择同一 profile。错误无法识别时，可直接执行显示的 DSH 命令
-查看完整诊断。Qiongli 不回显或保存可能包含凭据、配置的原始输出；直接运行后
-也不要把其中的凭据贴到公开日志中。
-
-超时不会撤销已有修改，包管理器的子进程也可能仍在运行，重试前应检查其状态。
-未知文件、收据变化或 profile 冲突仍会拒绝该客户端安装，继续下一项不会绕过检查。
+`host-command-nonzero-exit` 本身不能说明网络、版本或权限根因。DSH 的实际错误
+现在直接显示在退出状态与重试命令之前，先查看它和保留文件再重试。Qiongli 不保存
+DSH 的原始输出。
 
 ### DeepSeek 分步诊断
 
-2.5.1 将 DSH 安装分为 12 步：定位命令、检查版本、选择 profile、验证安装计划、
-确认授权、复查已批准状态、按需初始化 profile、安装包、验证 bundle 注册、验证包
-版本与入口、核对内容收据、保存语言偏好。2.5.1 执行时先显示 START，2.5.2 仅在
-`--verbose` 下显示 START，结束后显示
-OK／FAILED 和耗时；明确拒绝或无需初始化时显示 SKIPPED。失败保留原错误码并
-标明步骤，后续 DSH 步骤不执行，批量安装仍可继续处理其他客户端。
+十二项依次为：定位命令、检查版本、选择 profile、计划与最新版本查询、确认授权、
+复查批准状态、按需初始化 profile、安装包、检查 bundle 注册、包版本与入口声明、
+来源内容收据、语言偏好。`--verbose` 显示 START、结果和耗时，默认仅显示失败。
+例如 `[DSH 8/12] FAILED` 表示管理器执行失败；`[DSH 11/12] FAILED` 表示安装后
+内容检查失败。管理器返回 0 不直接证明安装验证通过，更不能证明新会话工具可用。
 
-例如 `[DSH 8/12] FAILED` 表示官方管理器命令失败；`[DSH 11/12] FAILED`
-表示前面检查已完成，但内容收据核对失败。包管理器返回 0 并不直接代表穷理安装
-已经通过验证。
-
-完整 DSH 诊断（2.5.2 的详细模式或失败诊断）还会显示实际命令、工作目录、重建的 PATH、传入环境变量的名称、关闭的
-标准输入、输出捕获规则和超时，不显示凭据变量的值。有界输出捕获完成后，列出
-stdout／stderr 字节数，以及识别到的 pnpm 解析、下载、完成等静态观察；命令运行
-期间保留每五秒的等待提示。这些信息不能揭示 pnpm 的所有内部步骤，也不会把
-未知输出当成已查明的根因。原始输出不回显或保存。原有运行环境、安装参数、授权
-和 profile 保护机制继续生效。
+已发布的 2.5.1 每步都打印；2.5.2 默认隐藏 START，但仍打印成功结果。这两版还会
+捕获安装输出并设置超时。上面的当前开发版行为替代了这一 DSH 专属流程。
 
 ## 描述语言 {#language}
 
@@ -130,7 +114,22 @@ qiongli install plugin --target codex --hooks off
 
 ## DeepSeek Harness {#deepseek}
 
-`qiongli install plugin --target deepseek` 选择 profile，预览官方 DSH 命令，确认信任后安装与 CLI 匹配的 npm 版本，并核对注册与内容收据。模型设置保留。
+`qiongli install plugin --target deepseek` 先查询 npm 最新稳定版，再把确切版本锁定
+到等待批准的命令中：
+
+```sh
+dsh plugin --profile desktop add qiongli@<查询到的版本>
+```
+
+不再附加 registry／scripts 参数，包管理策略和相关提示由 DSH 负责。批准后即使
+npm 的 `latest` 变化，也不会改变命令；查询失败则停止当前客户端，不静默使用
+缓存版本。下载继续复用 DSH／pnpm 缓存。Plugin 可以比启动安装的 CLI 更新，这
+不会升级该 CLI 本身。安装后核验注册、选定包版本和重构的来源内容，不再要求与
+旧 CLI 内嵌资源相同；下载完整性仍由官方管理器负责。
+
+单独安装 DSH 时，直接复用所选 profile 保存的语言；首次使用系统语言，省去
+单独询问。`--language zh`、`en` 或 `auto` 可以覆盖。损坏的偏好文件会在修改前
+拒绝。模型设置保留。
 
 不安装全局 CLI 也可以接入：在 DeepSeek Desktop 的 **Add plugin → Official npm registry** 中填 `qiongli@2.5.1`，或运行：
 
@@ -149,7 +148,7 @@ dsh plugin --profile desktop add qiongli@2.5.1
 检查是否存在多个命令。改装到 `web` 会进入另一个 profile，不会装入 Desktop。
 参见 [DSH 官方说明](https://www.npmjs.com/package/%40deepseek-ai/dsh?activeTab=readme)。
 
-向导优先使用已存在的 Desktop profile，否则使用 `web`。新 CLI profile 由官方 `web` 模板初始化；Desktop 的保留 profile 由 Desktop 自行初始化。DSH 使用自己的包管理器和 profile；`--destination`、上下文 `--hooks` 需要另选 Codex/Claude。
+profile 提示默认 `desktop`，要求 Desktop 已初始化，不自动回退到 web。如果你使用网页或其他 profile，可显式输入 `web` 或对应名称。新 CLI profile 由官方 `web` 模板初始化；Desktop 的保留 profile 由 Desktop 自行初始化。DSH 使用自己的包管理器和 profile；`--destination`、上下文 `--hooks` 需要另选 Codex/Claude。
 
 更新时通过向导或管理器指定版本。Desktop 对话框按其说明移除后重新添加，保留 profile 与模型设置。开发者导出和外部任务见[外部 Agent 协作](../../advanced/external-host-coordination.md)。
 

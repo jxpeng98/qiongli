@@ -356,6 +356,45 @@ fn run_observed(
     Err("host-command-nonzero-exit")
 }
 
+pub(super) fn run_deepseek_terminal(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    args: &[String],
+    writer: &mut impl InstallWriter,
+) -> Result<(), &'static str> {
+    writer.finish_progress()?;
+    if writer.verbose() {
+        line(
+            writer,
+            &format!(
+                "  Running: {}\n",
+                display_command(&executable.to_string_lossy(), args)
+            ),
+        )?;
+    }
+    writer.flush().map_err(|_| "installation-output-failed")?;
+    let status = crate::desktop::deepseek_terminal_command(environment, executable, args)
+        .map_err(|error| error.reason_code())?;
+    if status.success() {
+        return Ok(());
+    }
+    let code = status.code().map_or_else(
+        || "terminated by signal".to_owned(),
+        |code| code.to_string(),
+    );
+    line(
+        writer,
+        &format!(
+            "Official manager exit: {code}\nRetry after reviewing the DSH error above: {}\n",
+            display_command(&executable.to_string_lossy(), args)
+        ),
+    )?;
+    if status.code().is_none() || status.code() == Some(130) {
+        return Err("installation-input-failed");
+    }
+    Err("host-command-nonzero-exit")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

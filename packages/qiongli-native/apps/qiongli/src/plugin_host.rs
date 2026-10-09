@@ -24,6 +24,7 @@ const MARKETPLACE: &str = "qiongli-cli-local";
 pub(crate) mod antigravity;
 mod codex_config;
 pub(crate) mod deepseek;
+mod deepseek_package;
 pub(crate) mod installation_command;
 pub(crate) mod pi;
 

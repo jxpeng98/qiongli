@@ -10952,6 +10952,37 @@ pub(crate) struct HostCommandOutput {
     pub(crate) stderr: Vec<u8>,
 }
 
+/// Approved DSH package commands hand the terminal to the official manager.
+/// Keep normal shell environment and working directory; never capture or persist
+/// its output. Explicit environment roots preserve the reviewed profile identity.
+#[allow(
+    clippy::disallowed_methods,
+    reason = "ADR 0240: approved digest-locked DSH executable with literal argv"
+)]
+pub(crate) fn deepseek_terminal_command(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    arguments: &[String],
+) -> Result<std::process::ExitStatus, HostCommandFailure> {
+    let mut command = Command::new(executable);
+    command
+        .args(arguments)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+    if let Some(home) = environment.platform_home() {
+        command.env("HOME", home);
+        #[cfg(windows)]
+        command.env("USERPROFILE", home);
+    }
+    if let Some(root) = environment.dsh_config_root() {
+        command.env("DSH_HOME", root);
+    }
+    // As with a directly invoked dsh, the user can answer its prompts and Ctrl-C;
+    // there is no hidden capture limit or timeout while waiting for that input.
+    command.status().map_err(|_| HostCommandFailure::Spawn)
+}
+
 /// Terminal installation diagnostics use the same environment, limits and
 /// process owner as read-only Host commands. Raw output is never printed here.
 pub(crate) fn host_installation_command_with_progress(

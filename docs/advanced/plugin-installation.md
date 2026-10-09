@@ -55,83 +55,57 @@ File export and official Host registration have separate confirmations. Cancelli
 
 ## Progress and failed installations
 
-Version 2.5.2 groups output by Host, approval preview,
-execution and summary. Successful DSH steps leave one short result each;
-repeated launch contexts and completed export receipts are hidden by default.
-Full file/registration previews remain visible before approval. On supported
-Unix terminals, waiting time updates in one short line without scrolling or
-clearing previous content. No download percentage is inferred.
+The current development installer keeps a short Host heading, approval summary
+and final result. DeepSeek's twelve checks still run, but successful checks are
+hidden by default. `--verbose` shows stage results, durations and the full plan.
+Failures always identify the exact stage and retry command.
 
 ```sh
-qiongli install plugin --target deepseek            # compact display
-qiongli install plugin --target deepseek --verbose  # full safe diagnostics
-qiongli install all --plain                        # compact append-only output
-qiongli install --verbose                          # guide with diagnostics
+qiongli install plugin --target deepseek
+qiongli install plugin --target deepseek --verbose
+qiongli install all --plain
 ```
 
-`--verbose` and `--plain` also work with `upgrade plugin/all` and `update
-plugin/all`. Verbose mode is append-only and includes START lines and launch
-context. Failures automatically show the existing safe diagnostics, exact step
-and retry command without needing verbose mode. `--plain`, `NO_COLOR`, `CI`,
-absent/unsupported TERM, unknown widths, windows narrower than 32 columns and
-unsupported consoles (including Windows) disable refresh. Plain compact waiting
-messages appear at most every 30 seconds; verbose keeps five-second messages.
-Redirected installation still refuses before writes; use existing `--dry-run`
-workflows for scripts. These display flags do not approve changes.
+On supported terminals, Qiongli updates one short status line without clearing
+scrollback. `--plain`, `--verbose`, `NO_COLOR`, `CI`, unsupported TERM/consoles and
+narrow/unknown widths disable Qiongli's refresh. Redirected installation still
+refuses before writes; display options never approve changes.
 
-In 2.5.1, the installer shows `[1/5]` Host progress, official
-manager command steps and elapsed time every five seconds while a command runs.
-The final summary separates installed, failed, skipped and not-run Hosts. A
-batch containing a failure exits nonzero even when other Hosts succeed. Replying
-`n` skips that Host; each later Host still requires its own approval. Close input
-or interrupt the command to stop the batch. Exported files are retained when
-registration fails or is declined.
+DSH package commands take over the terminal: their own pnpm progress, cache
+counts, prompts and errors display directly. Qiongli clears its progress before
+handoff and does not add competing timers, capture or replay that output. Its
+`--plain`/`--verbose` options do not change DSH's native renderer. Package commands
+use the normal environment and working directory, with the reviewed HOME/DSH_HOME
+roots, and have no Qiongli timeout while waiting for user input. Ctrl-C stops the
+foreground command. Other Hosts, the DSH version probe and profile initialization retain bounded capture
+and safe diagnostic summaries.
 
-Retry only the unfinished client using the command printed in the summary, for example:
+The final summary lists installed, failed, skipped and not-run Hosts, with targeted
+retries. Ordinary failures or declined approvals continue to later Hosts; closing
+input or interrupting stops the batch. Partial files remain and any failed batch
+exits nonzero. Retry only the unfinished Host, selecting the same profile:
 
 ```sh
 qiongli install plugin --target deepseek
 ```
 
-`host-command-nonzero-exit` means the official manager failed, not a specific
-network/version/permission diagnosis. New diagnostics include its exit code,
-recognized error category when present and the exact command. For DSH this
-preserves the selected profile, pinned package version, registry and flags.
-Check the reported issue and retained files first; choose the same profile when
-retrying. Run the printed DSH command directly if its unrecognized error needs
-full diagnosis. Raw manager output is neither echoed nor saved by Qiongli because
-it may include credentials or configuration. Do not post secrets from direct output.
-
-A timeout does not undo changes and may leave package-manager descendants running.
-Check their state before retrying. Unknown files, changed receipts and profile
-conflicts remain refusals for that Host; continuation does not bypass them.
+`host-command-nonzero-exit` alone does not identify a network, version or permission
+cause. DSH's error is now visible above its exit status and exact retry command.
+Review it and retained files before retrying. Qiongli does not save DSH output.
 
 ### Detailed DeepSeek steps
 
-Version 2.5.1 reports twelve numbered DSH stages: executable, version,
-profile selection, plan validation, approval, precondition recheck, optional
-profile initialization, package installation, bundle registration, package
-metadata/version, content receipt and language preference. Each executed stage
-prints START and OK/FAILED with elapsed time (2.5.2 shows START only
-with `--verbose`); declined choices and unnecessary
-initialization are SKIPPED. A failure keeps its reason code and identifies the
-stage; later DSH stages do not run, while the batch can continue to another Host.
+The twelve stages are executable, version, profile, plan/latest lookup, approval,
+precondition recheck, optional profile initialization, package installation,
+bundle registration, package metadata/version, source-content receipt and language
+preference. `--verbose` prints START/results and elapsed times; default output
+reports only failures. `[DSH 8/12] FAILED` identifies the manager step;
+`[DSH 11/12] FAILED` identifies the content check after installation. Exit zero
+alone does not establish a verified installation or working session tools.
 
-For example, `[DSH 8/12] FAILED` means the official manager command failed;
-`[DSH 11/12] FAILED` means the content receipt check failed after the earlier
-checks completed. A package-manager exit of zero alone does not establish a
-verified Qiongli installation.
-
-The full DSH trace (verbose or failure diagnostics in 2.5.2) shows
-the actual command, working directory, reconstructed PATH,
-passed environment key names, closed stdin, captured streams and timeout. It
-prints no environment credential values. After bounded capture completes, it
-reports stdout/stderr byte counts and recognized pnpm resolution/download/
-completion messages as static observations. During the command, the existing
-five-second elapsed messages remain. These observations do not reveal every
-internal pnpm step; unknown output is not presented as a root-cause diagnosis.
-Raw manager output is not echoed or saved. The same launch rules, package
-arguments, approvals and installed-profile protections remain in force.
+Version 2.5.1 printed every stage; 2.5.2 hid START by default but still printed
+successful results. Those released versions also captured package output and used
+a timeout. The development behavior above replaces that DSH-specific flow.
 
 ## Description language {#language}
 
@@ -155,7 +129,24 @@ The preview shows commands. Host trust and actual event delivery need their own 
 
 ## DeepSeek Harness {#deepseek}
 
-`qiongli install plugin --target deepseek` selects a profile, previews official DSH commands and asks for trust before installing the npm version matching your CLI. It verifies registration and the content receipt. It does not select a model.
+`qiongli install plugin --target deepseek` queries npm's latest stable Qiongli
+release, then freezes that exact version in the command you approve:
+
+```sh
+dsh plugin --profile desktop add qiongli@<resolved-version>
+```
+
+No registry/scripts flags are appended; DSH owns its package policies and prompts.
+A later change to npm's `latest` tag does not change an approved command. Failed
+lookups stop this Host instead of silently installing a cached version. Downloads
+reuse DSH/pnpm's cache. The Plugin may be newer than the CLI launching installation;
+this does not update that CLI. Postchecks verify registration, the selected package
+version and reconstructed source content rather than the CLI's embedded pack.
+Registry download integrity remains the official manager's responsibility.
+
+A DSH-only install reuses the selected profile's saved language or the system
+locale without asking separately. Use `--language zh`, `en` or `auto` to override.
+Corrupt saved preferences refuse before changes. Model settings stay configured.
 
 To install without a global Qiongli CLI, use DeepSeek Desktop's **Add plugin → Official npm registry**, entering `qiongli@2.5.1`, or run:
 
@@ -174,7 +165,7 @@ this restriction. Use the Desktop Plugin manager or its installed launcher;
 competing commands. Installing into `web` targets a different profile and does
 not install into Desktop. See the [official DSH documentation](https://www.npmjs.com/package/%40deepseek-ai/dsh?activeTab=readme).
 
-The installer prefers an existing Desktop profile, otherwise `web`. New CLI profiles use the official `web` template; Desktop initializes its reserved profile itself. DSH uses its package manager and profile, so `--destination` and context `--hooks` require separate Codex/Claude selections.
+The profile prompt defaults to `desktop` and requires an initialized Desktop profile; it never silently falls back to web. Type `web` or another profile explicitly if that is where you use DSH. New CLI profiles use the official `web` template; Desktop initializes its reserved profile itself. DSH uses its package manager and profile, so `--destination` and context `--hooks` require separate Codex/Claude selections.
 
 Use the installer or manager to update an exact version. In the Desktop dialog, follow its remove/add instructions while retaining your profile and model settings. For developer bundle exports and external proposals, see [external Agent coordination](external-host-coordination.md).
 
