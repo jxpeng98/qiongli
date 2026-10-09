@@ -1,5 +1,27 @@
 # Native Runtime
 
+Native CLI `provider setup [provider] [--no-open]` and CLI-hosted Lite/Full MCP
+`qiongli_configure_provider`/`qiongli_open_config_wizard` share a one-save, ten-minute
+tokenized IPv4 loopback page (ADR 0241). GET is read-only; POST requires displayed
+settings revision and explicit page approval. Host/Origin/fetch-site, duplicate
+fields/headers, provider binding, body/header limits and a total request deadline
+refuse before writes. Raw-value Save redirects to this page without writing.
+Password values never enter command argv, results, logs or ordinary settings.
+
+The page reuses the existing provider transaction owner and updates only its
+selected provider. Blank fields keep values; key removal disables that provider.
+Fresh key references and read-back verification precede settings CAS; failed
+commits compensate only the new entry. Old-entry cleanup follows commit and can
+report cleanup-required. macOS Keychain is the current secret adapter; other
+platforms refuse secret writes and can configure public settings. No model keys,
+plaintext fallback or new secret-store backend is included. Offline status/doctor
+shows configuration, not credential access or connectivity. Explicitly approved
+`provider test` uses one bounded provider query and returns no papers. Native MCP
+refreshes metadata and credential-loader caches on settings revision changes;
+status/discovery still avoids secret resolution. Full/Lite stay 35/15 tools.
+The separate standalone Lite package keeps its existing unavailable setup
+response; shared Skill guidance checks actual runtime support before promising it.
+
 The optional `qiongli hooks context` native entry reads at most 64 KiB of event
 JSON and emits bounded context only for SessionStart resume/compact and
 SubagentStart. It runs before Host discovery/content/config loading, never reads

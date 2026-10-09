@@ -28,6 +28,9 @@ fn main() -> ExitCode {
         Err(_) => return render_output(qiongli::failed_embedded_content_output()),
     };
     match qiongli::prepare_cli_action(args, &environment, &content, io::stdout().is_terminal()) {
+        qiongli::ProductAction::ConfigureProvider(options) => {
+            render_output(options.run(&environment, &content))
+        }
         qiongli::ProductAction::Output(output) => render_output(output),
         qiongli::ProductAction::ServeContextHook => {
             render_output(qiongli::run_context_hook(io::stdin().lock()))

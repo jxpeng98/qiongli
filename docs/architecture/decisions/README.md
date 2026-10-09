@@ -49,6 +49,7 @@ decision must be recorded as a new superseding ADR.
 | `CLI-402` | [ADR 0238](0238-resilient-plugin-installation.md) | Accepted | Per-Host progress, bounded diagnostics, continued batches and targeted recovery summaries |
 | `CLI-402` | [ADR 0239](0239-compact-installation-display.md) | Accepted | Compact default installation output, one-line waiting and explicit plain/verbose fallbacks |
 | `CLI-402` | [ADR 0240](0240-deepseek-latest-terminal-installation.md) | Accepted | Latest stable DSH package, frozen approval, native terminal handoff and compact profile reuse |
+| `CLI-402` | [ADR 0241](0241-unified-native-provider-setup.md) | Accepted | One approved loopback setup page for native CLI/MCP with shared settings CAS and OS credentials |
 
 ## Decision lifecycle
 

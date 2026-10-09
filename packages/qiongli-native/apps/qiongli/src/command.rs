@@ -44,7 +44,7 @@ pub(crate) const APP_USAGE: &str = "Qiongli App control contract\n\nUsage:\n  qi
 
 pub(crate) const CONTENT_USAGE: &str = "Qiongli embedded content (read only)\n\nUsage:\n  qiongli content list\n  qiongli content --help\n\nInstall or refresh standalone Skills with `qiongli install skills`. For Skills with automatic MCP connection, use `qiongli install plugin`. Advanced Skills plans use `qiongli app plan skills-reconcile|skills-update|skills-remove|skills-detach` followed by `qiongli app apply`. The CLI supports the declared presets; a custom destination is not currently a CLI option. The `app` namespace uses the native service without opening a GUI. The retired `content materialize` syntax returns `managed-skills-plan-required` without writing.\n";
 
-pub(crate) const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config backend status\n  qiongli config --help\n\nModel execution is owned by Codex, Claude Code, or another supported host. Direct backend configuration and connection tests are not available in the default product.\n";
+pub(crate) const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config show\n  qiongli provider setup [provider]\n  qiongli provider status\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config backend status\n  qiongli config --help\n\nModel execution is owned by Codex, Claude Code, or another supported host. Direct backend configuration and connection tests are not available in the default product.\n";
 
 pub(crate) const UPDATE_USAGE: &str = "Qiongli managed native update\n\nFor npm, PyPI, Cargo or GitHub archive upgrades: qiongli upgrade cli\nTo refresh bundled Plugin/Skills from the installed CLI: qiongli install\nThe commands below manage the signed native updater; they do not run package managers.\n\nUsage:\n  qiongli update status\n  qiongli update recovery-preview\n  qiongli update recover --expected-marker-digest <sha256> --approve-filesystem-write\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update verify --expected-revision <revision>\n  qiongli update stage --expected-revision <revision>\n  qiongli update install --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli update --help\n";
 
@@ -306,6 +306,7 @@ pub struct CliOutput {
 }
 
 pub enum ProductAction {
+    ConfigureProvider(crate::provider_setup::ProviderSetupOptions),
     ReviewCliInstallations,
     GuideInstallation(crate::cli_content::InstallationGuide),
     ReviewBundledContent(crate::cli_content::BundledContentReview),
@@ -318,6 +319,10 @@ pub enum ProductAction {
 }
 
 impl CliOutput {
+    pub(crate) fn with_exit_code(mut self, exit_code: u8) -> Self {
+        self.exit_code = exit_code;
+        self
+    }
     pub(crate) fn with_stdout(mut self, stdout: String) -> Self {
         self.stdout = stdout;
         self
@@ -392,6 +397,7 @@ pub fn run_cli(
     match prepare_action(args, environment, content) {
         ProductAction::Output(output) => output,
         ProductAction::ReviewCliInstallations
+        | ProductAction::ConfigureProvider(_)
         | ProductAction::GuideInstallation(_)
         | ProductAction::ReviewBundledContent(_) => {
             CliOutput::operation_failure("interactive-command-requires-product-entrypoint")
@@ -568,6 +574,20 @@ pub(crate) fn prepare_action_with_release_authority(
             }
         }
         Command::Project(command) => crate::project_cli::execute(command, environment),
+        Command::Provider(command) => match command {
+            crate::provider_setup::ProviderCommand::Help => {
+                CliOutput::success_text(crate::provider_setup::USAGE)
+            }
+            crate::provider_setup::ProviderCommand::Status => {
+                crate::provider_setup::status(environment)
+            }
+            crate::provider_setup::ProviderCommand::Test(provider) => {
+                crate::provider_setup::test(environment, provider)
+            }
+            crate::provider_setup::ProviderCommand::Setup(options) => {
+                return ProductAction::ConfigureProvider(options);
+            }
+        },
         Command::ContentHelp => CliOutput::success_text(CONTENT_USAGE),
         Command::ContentList => content_list(content),
         Command::ContentMaterialize { .. } => {
@@ -652,6 +672,7 @@ pub(crate) fn prepare_action_with_release_authority(
 
 #[derive(Debug, Eq, PartialEq)]
 enum Command {
+    Provider(crate::provider_setup::ProviderCommand),
     Help,
     ContextHook,
     TopicHelp(String),
@@ -798,6 +819,12 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "--version" | "-V" if args.len() == 1 => Ok(Command::Version),
         "content" => parse_content_args(&args[1..]),
         "config" => parse_config_args(&args[1..]),
+        "provider" => crate::provider_setup::parse(&args[1..])
+            .map(Command::Provider)
+            .map_err(|message| UsageError {
+                message,
+                usage: crate::provider_setup::USAGE,
+            }),
         "update" => parse_update_args(&args[1..]),
         "upgrade" => parse_content_install_args(&args[1..], true),
         "install" => parse_install_args(&args[1..]),

@@ -445,7 +445,7 @@ fn copied_binary_serves_initialize_list_and_bounded_calls_without_path_runtime()
     );
     assert_eq!(
         by_id(11)["result"]["structuredContent"]["reason_code"],
-        "capability-unavailable"
+        "provider-setup-required"
     );
     assert_eq!(by_id(12)["error"]["code"], -32602);
 }

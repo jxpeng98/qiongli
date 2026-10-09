@@ -47,6 +47,24 @@ const MAX_ZOTERO_UPSERT_ITEMS: usize = 100;
 
 pub type ProviderAccessLoader = dyn Fn() -> ProviderAccess + Send + Sync;
 
+/// Native entrypoints supply configuration without giving the protocol layer
+/// filesystem or credential-write authority. Snapshots contain metadata only.
+pub struct ProviderConfigurationSnapshot {
+    pub revision: u64,
+    pub metadata: ProviderAccess,
+    pub loader: Arc<ProviderAccessLoader>,
+}
+
+pub trait ProviderConfiguration: Send + Sync {
+    fn snapshot(&self) -> Result<ProviderConfigurationSnapshot, &'static str>;
+    fn configure(&self, provider: Option<ProviderId>, port: u16) -> Result<Value, &'static str>;
+}
+
+struct LiveProviderConfiguration {
+    backend: Arc<dyn ProviderConfiguration>,
+    cached: Mutex<Option<(u64, ProviderState)>>,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct McpRequest {
@@ -168,6 +186,7 @@ pub struct LiteMcpServer {
     providers: ProviderState,
     zotero: Option<CompanionClient>,
     fulltext: FulltextReader,
+    configuration: Option<Arc<LiveProviderConfiguration>>,
 }
 
 impl LiteMcpServer {
@@ -186,6 +205,7 @@ impl LiteMcpServer {
             providers: ProviderState::Available(Box::new(ProviderServices { access, runtime })),
             zotero: default_zotero_client(),
             fulltext: FulltextReader::default(),
+            configuration: None,
         }
     }
 
@@ -234,6 +254,7 @@ impl LiteMcpServer {
             })),
             zotero: default_zotero_client(),
             fulltext: FulltextReader::default(),
+            configuration: None,
         }
     }
 
@@ -250,6 +271,7 @@ impl LiteMcpServer {
             providers: ProviderState::ConfigUnavailable,
             zotero: default_zotero_client(),
             fulltext: FulltextReader::default(),
+            configuration: None,
         }
     }
 
@@ -272,6 +294,7 @@ impl LiteMcpServer {
             })),
             zotero: default_zotero_client(),
             fulltext: FulltextReader::default(),
+            configuration: None,
         }
     }
 
@@ -280,6 +303,15 @@ impl LiteMcpServer {
     #[must_use]
     pub fn with_zotero_client(mut self, client: CompanionClient) -> Self {
         self.zotero = Some(client);
+        self
+    }
+
+    #[must_use]
+    pub fn with_provider_configuration(mut self, backend: Arc<dyn ProviderConfiguration>) -> Self {
+        self.configuration = Some(Arc::new(LiveProviderConfiguration {
+            backend,
+            cached: Mutex::new(None),
+        }));
         self
     }
 
@@ -364,10 +396,69 @@ impl LiteMcpServer {
         if params.as_ref().is_some_and(|params| !params.is_object()) {
             return json_rpc_error(Some(id), -32602, "Invalid tools/list params");
         }
-        json_rpc_result(id, json!({"tools": self.registry.tools()}))
+        let mut tools = self
+            .registry
+            .tools()
+            .iter()
+            .map(|tool| json!(tool))
+            .collect::<Vec<_>>();
+        if self.configuration.is_some() {
+            for tool in &mut tools {
+                match tool["name"].as_str() {
+                    Some("qiongli_save_provider_config") => {
+                        tool["description"] = json!(
+                            "Compatibility entry: native Qiongli returns setup-required without saving values. Use qiongli_configure_provider and enter credentials only on its local page; never ask for API keys in chat."
+                        );
+                    }
+                    Some("qiongli_configure_provider") => {
+                        tool["description"] = json!(
+                            "Open a short-lived local provider setup page. Return the URL for the user to open and confirm changes; never collect API keys in chat. Saved settings do not verify online connectivity."
+                        );
+                    }
+                    _ => {}
+                }
+            }
+        }
+        json_rpc_result(id, json!({"tools": tools}))
     }
 
     fn handle_tool_call(&self, id: Value, params: Option<Value>) -> Value {
+        let Some(configuration) = &self.configuration else {
+            return self.handle_current_tool_call(id, params);
+        };
+        let providers = match configuration.backend.snapshot() {
+            Ok(snapshot) => {
+                let Ok(mut cache) = configuration.cached.lock() else {
+                    return tool_error(id, "native-config-unavailable", CONFIG_UNAVAILABLE);
+                };
+                if cache
+                    .as_ref()
+                    .is_none_or(|(revision, _)| *revision != snapshot.revision)
+                {
+                    *cache = Some((
+                        snapshot.revision,
+                        ProviderState::Deferred(Box::new(DeferredProviderServices {
+                            preview: snapshot.metadata,
+                            loader: snapshot.loader,
+                            cached: Arc::new(Mutex::new(None)),
+                            loading: Arc::new(AtomicBool::new(false)),
+                            timeout: PROVIDER_ACCESS_LOAD_TIMEOUT,
+                        })),
+                    ));
+                }
+                cache
+                    .as_ref()
+                    .map(|(_, state)| state.clone())
+                    .unwrap_or(ProviderState::ConfigUnavailable)
+            }
+            Err(_) => ProviderState::ConfigUnavailable,
+        };
+        let mut current = self.clone();
+        current.providers = providers;
+        current.handle_current_tool_call(id, params)
+    }
+
+    fn handle_current_tool_call(&self, id: Value, params: Option<Value>) -> Value {
         let Some(params) = params.and_then(|params| params.as_object().cloned()) else {
             return json_rpc_error(Some(id), -32602, "Missing tool call params");
         };
@@ -437,13 +528,36 @@ impl LiteMcpServer {
                 if let Err(message) = validate_save_provider(arguments) {
                     return json_rpc_error(Some(id), -32602, message);
                 }
-                tool_error(id, "capability-unavailable", CONFIG_MUTATION_UNAVAILABLE)
+                if self.configuration.is_some() {
+                    tool_error(
+                        id,
+                        "provider-setup-required",
+                        "Use qiongli_configure_provider and enter the value on its local setup page.",
+                    )
+                } else {
+                    tool_error(id, "capability-unavailable", CONFIG_MUTATION_UNAVAILABLE)
+                }
             }
             LiteConfigHandler::ConfigureProvider => {
                 if let Err(message) = validate_configure_provider(arguments) {
                     return json_rpc_error(Some(id), -32602, message);
                 }
-                tool_error(id, "capability-unavailable", CONFIG_WIZARD_UNAVAILABLE)
+                let Some(configuration) = &self.configuration else {
+                    return tool_error(id, "capability-unavailable", CONFIG_WIZARD_UNAVAILABLE);
+                };
+                let provider = arguments
+                    .get("provider")
+                    .and_then(Value::as_str)
+                    .and_then(|name| ProviderId::parse(name).ok());
+                let port = arguments.get("port").and_then(Value::as_u64).unwrap_or(0) as u16;
+                match configuration.backend.configure(provider, port) {
+                    Ok(result) => tool_result(id, result),
+                    Err(code) => tool_error(
+                        id,
+                        code,
+                        "Local provider setup could not start; use qiongli provider status for configuration diagnostics.",
+                    ),
+                }
             }
         }
     }

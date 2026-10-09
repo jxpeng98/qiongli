@@ -38,6 +38,8 @@ serde.workspace = true
 serde_json.workspace = true
 serde_json_canonicalizer.workspace = true
 sha2.workspace = true
+url.workspace = true
+zeroize.workspace = true
 # Keep mock IPC support behind desktop too; an unconditional dev dependency
 # would bring the GUI into CLI-only tests.
 tauri = { workspace = true, optional = true, features = ["test"] }
@@ -65,7 +67,6 @@ tauri-build = { workspace = true, optional = true }
 [dev-dependencies]
 ed25519-dalek.workspace = true
 serde_json_canonicalizer.workspace = true
-zeroize.workspace = true
 
 [lints]
 workspace = true

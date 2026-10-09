@@ -3340,3 +3340,88 @@ intact. The authorized next action is reviewed local fast-forward integration,
 atomic main/v2.5.3 push and the existing post-mode release automation dispatch.
 Exact-tag four-target/public-download/registry gates remain mandatory. Stop on
 accepted dispatch without following the run or claiming publication completion.
+
+
+## October 9 — Unified provider configuration entry
+
+The maintainer authorizes filling the native CLI/Plugin provider setup gap. The
+current native ConfigureProvider/SaveProvider paths refuse despite documentation
+promising a local setup page. Add `qiongli provider setup` with optional provider
+selection, offline `status`/`doctor`, and explicitly approved bounded `test`.
+CLI and its Lite/Full MCP profiles share one tokenized loopback setup owner, global
+settings/CAS and the existing OS secret-store facade. Native MCP accepts secrets
+only through the local page; the legacy raw-value save tool redirects callers to
+that page. Preserve the public tool inventory and compatibility alias.
+
+A page previews one selected provider, accepts explicit user confirmation, and
+updates that provider only. Empty key fields retain existing credentials; removing
+a key is explicit. Rotation, failed writes and concurrent settings changes retain
+rollback/no-lost-update checks. Keys stay outside ordinary config, research
+artifacts, output and errors. macOS uses the existing Keychain implementation;
+other platforms retain explicit secure-store-unavailable behavior until their
+separate backend exists. Refresh running native MCP configuration after a save
+and after external settings changes; never cache stale credential access.
+
+Use gpt-6.1-sol / low for isolated meaningful checks/review, including actual
+HTTP/MCP/CLI flows, token/origin/Host/size/timeout refusals, stale revisions,
+missing storage, rollback, canary redaction and unchanged unrelated settings.
+No user credentials, real profiles, online authentication or preceding release
+monitoring is needed. Integrate reviewed scoped local commits into 2.x; a new
+version, push and publication remain separately scoped. Record final results and
+remaining target-native gaps once at integration, without acceptance promotion.
+
+### Focused verification and local integration
+
+Independent gpt-6.1-sol / low verification passes 43 Rust cases against the final
+development pack: 11 new provider setup cases, three existing provider transaction
+owner cases, nine native MCP stdio cases, two provider-runtime cases, six affected
+CLI cases and 12 shared Lite MCP cases. The new cases exercise actual loopback
+HTTP, approval/token/Host/Origin/size/deadline refusals, stale revisions, unavailable
+storage, rotation/write/read-back/CAS compensation, explicit removal and committed
+cleanup failures. Same-session metadata refresh, external revision changes and
+redaction pass. A selected-provider loopback test proves one bounded Crossref
+request with empty successful results and zero requests to other providers.
+Loaded-secret cache replacement is reviewed; real credentials are not read.
+
+Six actual private CLI flows pass, including offline status/doctor, help, missing
+network confirmation and a confirmed Crossref page save followed by clean process
+exit. Two existing Skill resource-link checks, strict library Clippy, formatting,
+ADR validation and whitespace checks pass. Independent final behavior/ownership/
+documentation review has no actionable findings. These are focused development
+checks, not release qualification.
+
+The shared routing reference had a stale native-unavailable/legacy-only rule.
+Reviewed content commit `fd79b388b9f7054f2122eb3f87fb32031ed69c05` replaces it with
+runtime-gated local-page guidance, user-only key entry and old/standalone Lite
+fallbacks. The existing resource-lock owner regenerates the local 446-entry pack:
+content root `cdd2b6317c6e0a32b3f960fbad60fffdd647c4b39f2d282e9fdad73d7a761290`,
+pack `3e811a75863abc088565724e7c67fd0aef2ea5cd88eb90581edf2df4ebf61e8c`.
+Actual compiled CLI bytes contain that complete pack and its routing reference
+matches canonical bytes. The development version remains 2.5.3/Unreleased; this
+new local pack does not replace the immutable v2.5.3 tag/resource identity.
+
+Frozen evidence: `/tmp/qiongli-provider-setup-20261009/verification-summary.json`,
+SHA-256 `e5d13710bab5e96f3714740dfbbd553d4b3fadd18656364ac00ca04db5f3c060`.
+Its `source-bindings.json` has SHA-256
+`bc31283e8950edc97db7e8048dd73307ace61ef54f5c0038ff2aae2dfbad64d1`;
+the actual pack audit has SHA-256
+`33d956e61be27e1a64cf83a2e3d679a4c68579600bb604a94b79a5f37737bf14`.
+Frozen source bindings precede this integration bookkeeping and the provider
+guides' tag-status wording correction. Runtime, tests, canonical content and
+resource-lock inputs remain unchanged; those focused results are reused.
+Initial compile errors, fixture reset/unsupported arXiv argument/CAS-code
+assertions, the concurrent short fixture timeout, sandbox loopback refusal and
+ADR/audit/format invocation failures remain recorded. Corrected fixtures use
+bounded waits and serialized execution without changing production deadlines;
+the actual CLI passes with authorized isolated loopback access. No failed attempt
+is counted as passing or hidden by a skip.
+
+Real macOS Keychain, OS browser launch/navigation, Host sessions, online provider
+authentication and release packaging remain unrun. Windows/Linux secret backends
+remain unavailable. CLI-hosted Lite/Full and the bundled Full Plugin use the new
+owner; the separate standalone Lite runtime retains unavailable setup. The next
+increment is target-native Mac/Plugin configuration and credential-rotation
+verification, followed by separately authorized release qualification. Integrate
+the reviewed scoped commits locally into 2.x; no version bump, push, publication,
+preceding-release monitoring or program task/dependency/accepted-evidence/commit/
+run-field promotion is included.

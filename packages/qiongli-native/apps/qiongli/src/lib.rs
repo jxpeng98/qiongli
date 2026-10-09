@@ -48,6 +48,8 @@ mod platform_capacity;
 mod plugin_source;
 mod portfolio_cli;
 mod product_diagnostics;
+mod provider_setup;
+pub use provider_setup::ProviderSetupOptions;
 mod project_cli;
 mod repository_capture_cli;
 mod saved_document_cli;

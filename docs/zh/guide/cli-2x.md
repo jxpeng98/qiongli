@@ -28,6 +28,13 @@ qiongli content --json
 qiongli doctor --text
 ```
 
+## 文献服务配置（2.5.3 之后的源码更新）
+
+包含新入口的 CLI 可运行 `qiongli provider setup`，在本地页面选择一个服务、填写 key、
+确认保存；`--no-open` 只显示链接。`qiongli provider status` / `doctor` 查看本地配置，
+`qiongli provider test openalex --confirm-network-request` 明确批准一次在线检查。
+详见[文献服务设置](../advanced/mcp-providers-setup.md)，包括现有版本和系统安全存储限制。
+
 ## 安装与升级
 
 ### 直接下载 {#standalone-binary-download}

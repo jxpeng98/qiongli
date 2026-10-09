@@ -54,7 +54,16 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 9, 2026
 
-The current bounded request prepares and dispatches v2.5.3 from integrated
+The current bounded request fills the native CLI/Plugin provider configuration
+entry under ADR 0241. The existing
+[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-9--unified-provider-configuration-entry)
+owns one approved loopback setup page, selected-provider settings/credential
+transactions, offline status and bounded explicitly approved online checks.
+Use gpt-6.1-sol / low and isolated fixtures. Integrate locally into 2.x; platform
+credential backends, live Keychain/Host/online acceptance and a new publication
+remain separately scoped. The preceding release stays unmonitored.
+
+The preceding bounded request prepares and dispatches v2.5.3 from integrated
 `02b37c2c`. The maintainer authorizes source/tag push and the existing release
 automation, then immediate stop without subsequent monitoring. The existing
 [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-9--253-release-handoff)

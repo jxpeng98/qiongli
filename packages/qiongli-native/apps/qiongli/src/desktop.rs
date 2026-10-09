@@ -9,9 +9,9 @@
 use qiongli_config::{
     ConfigError, ConfigState, EmailAddress, GlobalSettings, LegacyProviderId,
     LegacyProviderResolution, LegacyProviderResolutionStrategy, LegacyProviderSecret,
-    ProviderReadiness, RedactedProviderStatus, SecretRef, SecretStore, SecretStoreStatus,
-    SecretValue, UpdateStateStore, UpdateStreamPreference, UpdateTransactionPhase,
-    WorkflowVariantStore,
+    ProviderReadiness, RedactedProviderStatus, SecretRef, SecretStore, SecretStoreError,
+    SecretStoreStatus, SecretValue, UpdateStateStore, UpdateStreamPreference,
+    UpdateTransactionPhase, WorkflowVariantStore,
 };
 use qiongli_content::{
     EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId, WorkflowOverrides,
@@ -4029,6 +4029,8 @@ enum PendingDesktopOperation {
         secret_ref: SecretRef,
         replacement_value: Option<SecretValue>,
         previous_value: Option<SecretValue>,
+        retired_ref: Option<SecretRef>,
+        verify_write: bool,
     },
     AgentBackendSettings {
         token: OperationToken,
@@ -4171,6 +4173,205 @@ impl PendingDesktopOperation {
             | Self::UpdateInstall { token, .. }
             | Self::LegacyMigration { token, .. } => *token,
         }
+    }
+}
+
+// The loopback page is an approval adapter over the existing provider transaction
+// owner. Fresh references keep concurrent rotation from overwriting another key.
+pub(crate) fn apply_provider_setup(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    secret_store: Arc<dyn SecretStore>,
+    change: crate::provider_setup::ProviderSetupChange,
+) -> Result<&'static str, &'static str> {
+    use crate::provider_setup::ProviderSetupChange;
+    let owned_content =
+        crate::embedded_content().map_err(|_| "provider-setup-content-unavailable")?;
+    if owned_content.pack().pack_sha256() != content.pack().pack_sha256() {
+        return Err("provider-setup-content-identity-mismatch");
+    }
+    let content = owned_content;
+    let ProviderSetupChange {
+        provider,
+        expected_revision,
+        enabled,
+        key,
+        remove_key,
+        email,
+    } = change;
+    let loaded = config_store(environment)
+        .and_then(|store| store.load())
+        .map_err(|error| error.reason_code())?;
+    if loaded.revision != expected_revision {
+        return Err("global-settings-revision-conflict");
+    }
+    let mut replacement = loaded.settings.clone();
+    let (kind, position) = match provider {
+        ProviderId::OpenAlex => (ProviderKind::OpenAlex, 0),
+        ProviderId::SemanticScholar => (ProviderKind::SemanticScholar, 1),
+        ProviderId::Crossref => (ProviderKind::Crossref, 2),
+        ProviderId::PubMed => (ProviderKind::PubMed, 3),
+        ProviderId::Arxiv => (ProviderKind::Arxiv, 4),
+    };
+    let key_change = key.is_some() || remove_key;
+    if key_change && !matches!(position, 0 | 1 | 3) {
+        return Err("unsupported-provider-field");
+    }
+    if key.is_some() && remove_key {
+        return Err("provider-key-change-conflict");
+    }
+    if email.is_some() && !matches!(position, 0 | 2) {
+        return Err("unsupported-provider-field");
+    }
+    let email_change = || match &email {
+        None => PublicSettingChange::Keep,
+        Some(value) if value.is_empty() => PublicSettingChange::Clear,
+        Some(value) => PublicSettingChange::Replace(qiongli_ui::PrivateText::new(value.clone())),
+    };
+    if position == 0 {
+        apply_public_email_change(&mut replacement.providers.openalex.email, email_change())?;
+    } else if position == 2 {
+        apply_public_email_change(&mut replacement.providers.crossref.email, email_change())?;
+    }
+    let current_ref = match position {
+        0 => {
+            replacement.providers.openalex.enabled = enabled;
+            &mut replacement.providers.openalex.api_key_ref
+        }
+        1 => {
+            replacement.providers.semantic_scholar.enabled = enabled;
+            &mut replacement.providers.semantic_scholar.api_key_ref
+        }
+        3 => {
+            replacement.providers.pubmed.enabled = enabled;
+            &mut replacement.providers.pubmed.api_key_ref
+        }
+        _ => {
+            if position == 2 {
+                replacement.providers.crossref.enabled = enabled;
+            } else {
+                replacement.providers.arxiv.enabled = enabled;
+            }
+            // A public-only configuration never touches the secret store.
+            let mut service = NativeDesktopService::new(environment.clone(), content, Vec::new());
+            let flags = [
+                replacement.providers.openalex.enabled,
+                replacement.providers.semantic_scholar.enabled,
+                replacement.providers.crossref.enabled,
+                replacement.providers.pubmed.enabled,
+                replacement.providers.arxiv.enabled,
+            ];
+            if position == 2 && enabled && replacement.providers.crossref.email.is_none() {
+                return Err("literature-provider-email-required");
+            }
+            let event = service.preview_provider_settings(ProviderSettingsPatch {
+                expected_revision,
+                providers_enabled: flags,
+                openalex_email: PublicSettingChange::Keep,
+                crossref_email: if position == 2 {
+                    email_change()
+                } else {
+                    PublicSettingChange::Keep
+                },
+            });
+            return confirm_provider_setup(&mut service, event);
+        }
+    };
+    if !key_change {
+        if enabled && current_ref.is_none() {
+            return Err("literature-provider-key-required");
+        }
+        let flags = [
+            replacement.providers.openalex.enabled,
+            replacement.providers.semantic_scholar.enabled,
+            replacement.providers.crossref.enabled,
+            replacement.providers.pubmed.enabled,
+            replacement.providers.arxiv.enabled,
+        ];
+        let mut service = NativeDesktopService::new(environment.clone(), content, Vec::new());
+        let event = service.preview_provider_settings(ProviderSettingsPatch {
+            expected_revision,
+            providers_enabled: flags,
+            openalex_email: if position == 0 {
+                email_change()
+            } else {
+                PublicSettingChange::Keep
+            },
+            crossref_email: PublicSettingChange::Keep,
+        });
+        return confirm_provider_setup(&mut service, event);
+    }
+    if secret_store.status() != SecretStoreStatus::Available {
+        return Err("provider-secret-store-unavailable");
+    }
+    let retired_ref = current_ref.clone();
+    let secret_ref = new_secret_ref()?;
+    let replacement_value = key
+        .map(|value| SecretValue::new(value.as_bytes().to_vec()))
+        .transpose()
+        .map_err(|_| "provider-secret-invalid")?;
+    *current_ref = replacement_value.as_ref().map(|_| secret_ref.clone());
+    if remove_key {
+        match position {
+            0 => replacement.providers.openalex.enabled = false,
+            1 => replacement.providers.semantic_scholar.enabled = false,
+            3 => replacement.providers.pubmed.enabled = false,
+            _ => unreachable!(),
+        }
+    }
+    let token = NativeDesktopService::next_operation_token()?;
+    let digest = global_settings_patch_digest(expected_revision, &replacement);
+    let mut service = NativeDesktopService::new(environment.clone(), content, Vec::new());
+    service.secret_store = secret_store;
+    service.active_operation = Some(PendingDesktopOperation::ProviderSecret {
+        token,
+        expected_revision,
+        provider: kind,
+        replacement,
+        secret_ref,
+        replacement_value,
+        previous_value: None,
+        retired_ref,
+        verify_write: true,
+    });
+    confirm_provider_setup(
+        &mut service,
+        DesktopEvent::PreviewReady(OperationPreview {
+            token,
+            kind: OperationKind::ProviderSecret,
+            title: "Provider configuration preview",
+            summary: "Update only the selected provider and store credentials in the OS credential store.",
+            display_target: None,
+            plan_digest_sha256: Some(digest),
+            approvals_required: vec![
+                OperationApproval::SecretStoreWrite,
+                OperationApproval::ClientConfigChange,
+            ],
+            can_confirm: true,
+            blocked_reason: None,
+        }),
+    )
+}
+
+fn confirm_provider_setup(
+    service: &mut NativeDesktopService,
+    event: DesktopEvent,
+) -> Result<&'static str, &'static str> {
+    let event = match event {
+        DesktopEvent::PreviewReady(preview) if preview.can_confirm => {
+            service.execute(DesktopIntent::ConfirmOperation {
+                token: preview.token,
+            })
+        }
+        DesktopEvent::ValidationFailed {
+            code: "provider-settings-unchanged",
+        } => return Ok("provider-settings-unchanged"),
+        other => other,
+    };
+    match event {
+        DesktopEvent::Completed { code } => Ok(code),
+        DesktopEvent::Failed { code } | DesktopEvent::ValidationFailed { code } => Err(code),
+        _ => Err("provider-setup-confirmation-failed"),
     }
 }
 
@@ -5040,6 +5241,8 @@ impl NativeDesktopService {
             secret_ref,
             replacement_value,
             previous_value,
+            retired_ref: None,
+            verify_write: false,
         });
         DesktopEvent::PreviewReady(OperationPreview {
             token,
@@ -8179,6 +8382,8 @@ impl DesktopService for NativeDesktopService {
                         secret_ref,
                         replacement_value,
                         previous_value,
+                        retired_ref,
+                        verify_write,
                         ..
                     } => {
                         let store = match config_store(&self.environment) {
@@ -8197,44 +8402,91 @@ impl DesktopService for NativeDesktopService {
                             Ok(())
                         };
                         if let Err(error) = credential_write {
+                            if verify_write
+                                && self
+                                    .secret_store
+                                    .remove(&secret_ref)
+                                    .is_err_and(|error| error != SecretStoreError::NotFound)
+                            {
+                                return DesktopEvent::Failed {
+                                    code: "provider-secret-recovery-required",
+                                };
+                            }
                             return DesktopEvent::Failed {
                                 code: error.remediation_code(),
                             };
                         }
-                        match store.replace(expected_revision, replacement) {
-                            Ok(outcome) => DesktopEvent::Completed {
-                                code: match (
-                                    provider,
-                                    replacement_value.is_some(),
-                                    outcome.cleanup_required,
-                                ) {
-                                    (_, _, true) => "provider-secret-updated-cleanup-required",
-                                    (ProviderKind::OpenAlex, true, false) => {
-                                        "openalex-api-key-saved"
-                                    }
-                                    (ProviderKind::SemanticScholar, true, false) => {
-                                        "semantic-scholar-api-key-saved"
-                                    }
-                                    (ProviderKind::OpenAlex, false, false) => {
-                                        "openalex-api-key-removed"
-                                    }
-                                    (ProviderKind::SemanticScholar, false, false) => {
-                                        "semantic-scholar-api-key-removed"
-                                    }
-                                    (ProviderKind::PubMed, true, false) => "pubmed-api-key-saved",
-                                    (ProviderKind::PubMed, false, false) => {
-                                        "pubmed-api-key-removed"
-                                    }
-                                    (ProviderKind::Crossref | ProviderKind::Arxiv, _, false) => {
-                                        "provider-secret-updated"
-                                    }
+                        if verify_write
+                            && replacement_value.as_ref().is_some_and(|expected| {
+                                self.secret_store
+                                    .resolve(&secret_ref)
+                                    .map_or(true, |actual| actual.as_bytes() != expected.as_bytes())
+                            })
+                        {
+                            return DesktopEvent::Failed {
+                                code: if self
+                                    .secret_store
+                                    .remove(&secret_ref)
+                                    .is_err_and(|error| error != SecretStoreError::NotFound)
+                                {
+                                    "provider-secret-recovery-required"
+                                } else {
+                                    "secure-store-read-back-failed"
                                 },
-                            },
+                            };
+                        }
+                        match store.replace(expected_revision, replacement) {
+                            Ok(outcome) => {
+                                if retired_ref.as_ref().is_some_and(|reference| {
+                                    self.secret_store
+                                        .remove(reference)
+                                        .is_err_and(|error| error != SecretStoreError::NotFound)
+                                }) {
+                                    return DesktopEvent::Completed {
+                                        code: "provider-secret-updated-cleanup-required",
+                                    };
+                                }
+                                DesktopEvent::Completed {
+                                    code: match (
+                                        provider,
+                                        replacement_value.is_some(),
+                                        outcome.cleanup_required,
+                                    ) {
+                                        (_, _, true) => "provider-secret-updated-cleanup-required",
+                                        (ProviderKind::OpenAlex, true, false) => {
+                                            "openalex-api-key-saved"
+                                        }
+                                        (ProviderKind::SemanticScholar, true, false) => {
+                                            "semantic-scholar-api-key-saved"
+                                        }
+                                        (ProviderKind::OpenAlex, false, false) => {
+                                            "openalex-api-key-removed"
+                                        }
+                                        (ProviderKind::SemanticScholar, false, false) => {
+                                            "semantic-scholar-api-key-removed"
+                                        }
+                                        (ProviderKind::PubMed, true, false) => {
+                                            "pubmed-api-key-saved"
+                                        }
+                                        (ProviderKind::PubMed, false, false) => {
+                                            "pubmed-api-key-removed"
+                                        }
+                                        (
+                                            ProviderKind::Crossref | ProviderKind::Arxiv,
+                                            _,
+                                            false,
+                                        ) => "provider-secret-updated",
+                                    },
+                                }
+                            }
                             Err(error) => {
                                 let compensated = if let Some(previous) = previous_value.as_ref() {
                                     self.secret_store.store(&secret_ref, previous).is_ok()
                                 } else if replacement_value.is_some() {
-                                    self.secret_store.remove(&secret_ref).is_ok()
+                                    let removed = self.secret_store.remove(&secret_ref);
+                                    removed.is_ok()
+                                        || (verify_write
+                                            && matches!(removed, Err(SecretStoreError::NotFound)))
                                 } else {
                                     true
                                 };

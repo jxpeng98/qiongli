@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+- Add one native provider setup page shared by CLI and its Lite/Full MCP, with explicit
+  confirmation, selected-provider settings CAS and OS credential storage. Add
+  offline provider status/doctor and an explicitly approved bounded connection
+  test. Refresh native MCP configuration on revision changes; retain unavailable
+  secure-store limits and redirect raw-secret MCP saves to the page.
+
 ## [2.5.3]
 
 详细说明见 [2.5.3 发布说明](tooling/release/v2.5.3.md)。

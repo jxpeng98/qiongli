@@ -44,6 +44,15 @@ User-edited Plugin/Skill variants are managed project/user outputs. They do not
 replace canonical content and must retain preview, receipt, and exact-removal
 boundaries.
 
+The literature-provider routing reference gates unified setup on the actual native
+runtime. A supported ConfigureProvider returns a local page for user-only key
+entry and explicit confirmation; older or standalone Lite runtimes retain an
+unavailable fallback. Raw-value MCP saves never become a chat key-collection path.
+CLI help gates the new provider commands, and a saved setting remains distinct
+from credential access or a separately approved online check. Canonical guidance
+changes regenerate the local embedded pack through its existing lock owner;
+published tags and pack identities remain immutable.
+
 ## Skill instruction ownership
 
 The root Skill owns the explicit conversational reply-only choice. Resolve it

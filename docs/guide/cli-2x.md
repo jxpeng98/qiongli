@@ -28,6 +28,15 @@ qiongli content --json
 qiongli doctor --text
 ```
 
+## Literature configuration (native source after 2.5.3)
+
+A CLI containing the new entry supports `qiongli provider setup`: select one
+service, enter its key on the local page and confirm the save. `--no-open` prints
+the link. `qiongli provider status` / `doctor` inspect local settings; use
+`qiongli provider test openalex --confirm-network-request` for an explicitly
+approved online check. See [provider setup](../advanced/mcp-providers-setup.md)
+for version and secure-store limits.
+
 ## Installation and upgrades
 
 ### Download {#standalone-binary-download}

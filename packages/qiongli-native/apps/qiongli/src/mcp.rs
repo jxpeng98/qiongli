@@ -184,6 +184,9 @@ fn lite_server(
             .map_err(|_| RuntimeError::new(RuntimeErrorCode::InvalidLiteContract))?;
         server = server.with_zotero_client(client);
     }
+    server = server.with_provider_configuration(Arc::new(
+        crate::provider_setup::NativeProviderConfiguration::new(environment, content),
+    ));
     Ok(server)
 }
 

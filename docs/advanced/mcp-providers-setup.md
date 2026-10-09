@@ -7,11 +7,49 @@ Installing another MCP package is unnecessary.
 
 ## Configure a provider
 
-Ask the Host to call `qiongli_configure_provider` for the provider you need.
-Open the returned local setup URL and enter the credential there, keeping keys
-out of the conversation. `qiongli_open_config_wizard` is a compatibility alias.
-`qiongli_save_provider_config` also supports an explicitly requested field write;
-its secret value is not returned in the result.
+The unified entry below belongs to the native source increment after 2.5.3. Check
+`qiongli provider --help` before using it: the tagged 2.5.3 build has no fresh-key CLI
+entry and its native MCP configuration tools return unavailable. Updating the CLI
+and refreshing the Plugin are separate steps because each carries an executable.
+
+```sh
+qiongli provider setup
+qiongli provider setup openalex
+qiongli provider setup pubmed --no-open
+qiongli provider status
+qiongli provider test openalex --confirm-network-request
+```
+
+Setup opens a tokenized local page. With `--no-open`, use the displayed link while
+keeping the terminal process running. Select one service, enter its fields, review
+its enablement and check the confirmation box before saving. Blank fields keep
+stored values; removal is explicit. Removing a key disables that service. The
+link expires after ten minutes or one successful save. Setup itself does not
+contact literature services. `status` and its `doctor` alias are offline;
+`test` requires the explicit network flag and returns bounded connectivity
+information, including successful requests with zero matches, without paper data.
+
+In a Host, ask for `qiongli_configure_provider` with the desired provider, then
+open its returned local link. `qiongli_open_config_wizard` is an alias using the
+same page. For arXiv, omit the provider argument and select it on the page;
+the existing MCP provider argument enum remains unchanged. Native MCP never opens
+a browser. Enter keys only on the page; native
+`qiongli_save_provider_config` returns setup-required guidance without writing
+raw values from the conversation. Status refreshes in the same native MCP session
+after a save or another settings writer increments the configuration revision.
+This entry serves the CLI and its Lite/Full MCP profiles, including the bundled
+Full Plugin. The separate standalone Lite package still reports setup unavailable;
+check the actual runtime response before expecting a setup page.
+
+On macOS, keys use the existing Keychain adapter. Ordinary
+`~/.config/qiongli/v2/settings.json` stores opaque references, service switches and
+public contact fields. `QIONGLI_CONFIG_HOME` changes the shared configuration root;
+Hosts using the same user/root read the same provider settings. Windows/Linux do
+not yet have a native credential adapter: secret writes fail clearly, while
+Crossref contact settings and arXiv enablement remain configurable. No plaintext
+file or API-key environment-variable fallback is enabled. A committed save with
+cleanup-required is shown as such; retain that warning instead of assuming that
+previous credential cleanup completed. Model credentials remain Host-owned.
 
 | Provider | Fields used by Qiongli 2 |
 |---|---|

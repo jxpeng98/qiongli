@@ -6,10 +6,41 @@ Host 已能使用 Qiongli 工具后，先调用 `qiongli_config_status` 和
 
 ## 配置一个服务
 
-请 Host 为所需服务调用 `qiongli_configure_provider`，打开返回的本地配置链接，
-在页面中填写凭据，避免把密钥贴进会话。`qiongli_open_config_wizard` 是兼容入口。
-明确要求直接写入某个配置字段时，也可使用 `qiongli_save_provider_config`；
-工具不会在结果中返回密钥原文。
+下列统一入口属于 2.5.3 之后的原生源码更新。先运行 `qiongli provider --help` 确认
+安装的程序已经包含它；2.5.3 标签中的原生版本没有新密钥 CLI 录入入口，其 MCP 配置工具
+返回不可用。CLI 与 Plugin 各自携带程序，更新 CLI 后也需要刷新 Plugin。
+
+```sh
+qiongli provider setup
+qiongli provider setup openalex
+qiongli provider setup pubmed --no-open
+qiongli provider status
+qiongli provider test openalex --confirm-network-request
+```
+
+`setup` 打开带临时令牌的本地页面。使用 `--no-open` 时，保持终端进程运行，手动打开
+显示的链接。选择一个服务，填写字段、核对启用状态，勾选确认后保存。空白字段保留
+现有内容，删除须明确选择；删除 key 也会停用该服务。链接十分钟后或保存成功一次后
+失效。设置过程不访问外部文献服务；`status` 与 `doctor` 别名只查看本地状态。
+`test` 要求显式网络参数，只返回指定服务的一次有范围限制的连接检查，成功请求即使
+没有论文结果也算连接通过，不返回论文正文或凭据。
+
+在 Host 中，请它为所需服务调用 `qiongli_configure_provider`，打开返回的本地链接，
+在页面输入 key。`qiongli_open_config_wizard` 是同一页面的兼容入口。设置 arXiv 时，
+不传 provider 参数，在页面选择 arXiv；现有 MCP 的 provider 参数枚举保持兼容。
+原生 MCP 不自动
+打开浏览器。不要把 key 贴进会话；原生 `qiongli_save_provider_config` 会给出设置页
+指引，不写入通过会话传来的密钥。保存后或其他设置入口增加配置修订号后，同一原生
+MCP 会话能重新读取状态。
+本入口覆盖 CLI 及其 Lite/Full MCP profile，也包括内含 Full MCP 的 Plugin。
+独立 Lite 包仍报告设置不可用，应先检查实际运行时回复，不能保证它会打开设置页。
+
+macOS 密钥使用现有 Keychain。普通 `~/.config/qiongli/v2/settings.json` 只保存凭据
+引用、服务开关和公开联系字段；`QIONGLI_CONFIG_HOME` 可以改变共享配置根目录。同一
+用户和配置目录下，各 Host 的 MCP 共用 provider 设置。Windows/Linux 的原生凭据
+适配器尚未实现：密钥写入会明确失败，Crossref 联系邮箱和 arXiv 开关仍可设置。
+没有明文配置或 API-key 环境变量回退。若保存完成但显示清理待处理，应保留该提示，
+不能认定旧密钥已经清理。模型凭据继续由 Host 管理。
 
 | 服务 | Qiongli 2 使用的配置字段 |
 |---|---|
