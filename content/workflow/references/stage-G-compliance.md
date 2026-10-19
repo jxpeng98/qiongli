@@ -74,14 +74,20 @@ Write/update: `manuscript/claims_evidence_map.md`.
 
 ## G4 — Tone & Style Normalization
 
-Goal: remove reviewer triggers (overclaim, vagueness, hype).
+Use `skills/G_compliance/tone-normalizer.md` to review actual overclaiming,
+empty qualifications, repetition and unclear expression. Follow
+`references/scholarly-voice.md` for language editing and meaning review.
 
 **Definition of done**
-- Overclaim language removed (“prove”, “guarantee”, “always”)
-- Hedging calibrated to evidence (“suggest”, “is consistent with”)
-- Paragraph-level topic sentences are explicit
+- Claim strength and scope match available evidence; substantive corrections
+  identify the changed claim and source basis
+- Observed results can be stated directly; necessary uncertainty and limitations
+  remain without a hedge quota or banned-word list
+- Paragraphs flow clearly; shortening is not a required outcome
+- A polished candidate receives a meaning comparison with its original, with
+  repairs limited to actual drift rather than another general tone rewrite
 
 Write into: `compliance/tone_normalization.md` with:
-- a list of high-risk sentences
+- specific findings in the reviewed scope, which may be empty
 - suggested rewrites
 - global style rules adopted (tense, voice, acronym policy)

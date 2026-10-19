@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-19",
+  "execution": "One independent agent context using supplied guidance; cases D-J; review criteria withheld.",
+  "scope": "Synthetic instruction evaluation, not installed-Host, Antigravity or cross-model validation.",
+  "guidance_sha256": {
+    "content/skills/G_compliance/tone-normalizer.md": "43ff704172b579b2a7589790e16507c6c246203cb914b874ab5f1231e8fa01de",
+    "content/skills/J_proofread/human-voice-rewriter.md": "def9f39b33b557dfb1493d4e5979071b54c280e6153db7d3498154373f021d42",
+    "content/workflow/references/scholarly-voice.md": "83af9e9e314bc72259c76adf7edb559c0263685377947a74255949a1129777cb",
+    "content/workflow/references/academic-output-rubric.md": "b1528f4a983bb865da0e49eeac1b9f4281523ca1dad43d3522ad133ef1ca1c65",
+    "content/workflow/references/stage-J-proofread.md": "e6d52ab41701d254afface5e6e41d593051f8894ef50e5e5059a2763589feef9"
+  },
+  "tasks_D_to_J_sha256": "45bd33718676b49cbd90e5e3f7a3fe0f3f5a14433117e26885829cc329949b0b",
+  "answers": {
+    "D": "在本研究调查的86家本地企业中，X与Y呈正相关（r = 0.27，p = .02）[D1]。该横截面调查不能确立因果关系。\n",
+    "E": "We interviewed each of 60 nurses at one hospital. Of these nurses, 41 reported scheduling difficulties [E1]. Inflexible shift arrangements may contribute to these difficulties, although this explanation has not been tested [E2].\n",
+    "F": "No meaning drift was found. The edit preserves the number of leaves per plant, the timing of measurement and the citation.\n",
+    "G": "发现以下含义变化：\n\n| 位置与变化 | 后果 | 局部修正 |\n|---|---|---|\n| “在本市受访的86家企业中”改为“在所有企业中” | 将本市受访样本的结果扩大到所有企业，丢失地域和样本范围。 | 将“在所有企业中”改回“在本市受访的86家企业中”。 |\n| “X与Y呈正相关（r = 0.27，p = .02）”改为“X使Y提高了27%” | 将相关关系改为因果效应，把相关系数0.27误写为27%的增幅，并删去了p值。 | 将“X使Y提高了27%”改为“X与Y呈正相关（r = 0.27，p = .02）”，保留其后的[G1]。 |\n| 删除“该调查不能确立因果关系” | 丢失了原稿明确的因果推断限制。 | 在第一句后恢复“该调查不能确立因果关系”。 |\n| “尚不能排除企业规模对这一关联的解释”改为“调查已经排除了企业规模的影响” | 将尚未排除的替代解释写成已经排除，反转了原意。 | 将该句改为“尚不能排除企业规模对这一关联的解释”，与恢复的因果限制合为一句：“该调查不能确立因果关系，尚不能排除企业规模对这一关联的解释。” |\n",
+    "H": "| Changed span | Meaning drift | Minimal repair |\n|---|---|---|\n| “2 days” → “2 weeks” | Changes the unit and thus the magnitude of the estimate; it also makes the interval's implied unit inconsistent with the original. | Replace “weeks” with “days”. |\n| First sentence: “[H1]” → “[H2]” | Reassigns the estimate to a different citation. | Restore “[H1]” at the end of the first sentence. |\n| “The interval includes zero; this analysis does not establish equivalence.” → “The groups were equivalent.” | Omits the interval's inclusion of zero and replaces an explicit lack of established equivalence with an equivalence claim. | Replace “The groups were equivalent.” with “The interval includes zero; this analysis does not establish equivalence.” |\n| “Interviews suggested that participants valued weekly calls” → “Interviews demonstrated that weekly calls shortened symptoms” | Strengthens the evidence and changes participants' reported valuation into a causal claim about symptom duration. | Restore “Interviews suggested that participants valued weekly calls”. |\n| Interview sentence: “[H2]” → “[H1]” | Reassigns the interview finding to a different citation. | Restore “[H2]” at the end of the interview sentence. |\n",
+    "I": "One passage needs a substantive claim correction: “This proves that the tool raises productivity in every industry.” The table records tool use among 120 surveyed firms, including 72 reporting use. It contains no productivity measure, comparison group or experimental assignment, so it cannot establish a productivity effect or support a claim covering every industry. Adding “may” would not supply the missing evidence.\n\nReplace that sentence with: “These data do not establish whether the tool raises productivity.” This changes the unsupported conclusion to the limitation supported by the supplied evidence.\n\nRetain the first sentence and [I1]: they directly report the observed sample result. Retain the final sentence: it already presents local procurement practices as an untested explanation.\n",
+    "J": "目前无法判断是否改变了原意，因为缺少原稿。请提供与这句话对应的原文，以便核对受访者人数、预约困难的表述和引文归属。\n"
+  }
+}

@@ -21,3 +21,25 @@ guidance/subagent trial is not an installed-Host observation or evidence of
 cross-model, full-manuscript or expert acceptance. Cases used for corrections
 become regressions; a replay is not a fresh held-out cohort or a controlled
 before/after improvement result.
+
+## G4/J2 language-edit and meaning-review regressions (D–J)
+
+Use each task's supplied synthetic material as its sole evidence. Preserve raw
+answers before review. These cases test instruction behavior separately from
+package integrity; they do not establish real-manuscript or cross-model quality.
+
+| Case | Required observations in the actual answer |
+| --- | --- |
+| D | Natural Chinese with a connected sample/result/limit sequence. Preserve 86 local firms, r = 0.27, p = .02, [D1], cross-sectional design and the causal limit. Remove empty framing/stacked hesitation without generalizing beyond the sample. Return only the paragraph. |
+| E | Idiomatic English preserves 60 nurses at one hospital, 41 reports, correct [E1]/[E2] attachment and an untested possible explanation. Direct reporting of interviews/findings is valid; removing the explanation's uncertainty is not. No new study details or separate audit note. |
+| F | A concise no-drift finding. The same per-plant denominator, timing and [F1] survive. No replacement paragraph, invented caveat or complaint that direct methods wording lacks a hedge. |
+| G | Detect sample-to-universal scope expansion, correlation-to-causation, coefficient-to-percentage substitution, omitted uncertainty/p value and reversal of “cannot exclude” into “excluded.” Offer local restoration using the original; do not invent evidence. |
+| H | Detect days-to-weeks, swapped attribution [H1]/[H2], unsupported equivalence and interview preference becoming a demonstrated symptom effect. Retain the unchanged numeric estimates in repairs. Numeric equality alone cannot pass the review. |
+| I | Keep the observed 72/120 sample count direct. Flag the missing productivity measure, causal evidence and industry-wide scope; “may raise productivity” alone is not a supported repair. Preserve the untested procurement explanation as provisional. Separate an explicit substantive proposal from expression-only changes. No file writes. |
+| J | Request the original before claiming a meaning comparison. Do not report “no drift,” silently rewrite the supplied version, launch a project or demand unrelated sources. |
+
+For every case record a pass/fail by task scope, readable expression where
+requested, and semantic fidelity. Quote concrete answer spans for each verdict.
+Review is qualitative; phrase matching, shorter output and fewer hedges are not
+quality scores. A same-model independent context is not a different-model or
+installed-Host test. Keep first failures and any later corrections distinct.

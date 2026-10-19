@@ -123,7 +123,7 @@ Codex 可以使用 `$qiongli` 或 `$qiongli-paper-read` 等快捷入口。
 |---|---|---|---|
 | `prisma-checker` | PRISMA检查 | 当系统综述或证据综合需要核对 PRISMA 完整性时使用。 | `PRISMAChecklist` |
 | `reporting-checker` | 报告规范检查 | 当你需要核查 CONSORT、STROBE、COREQ、SRQR 或 TRIPOD 时使用。 | `ReportingChecklist` |
-| `tone-normalizer` | 学术语气归一 | 当文本太松、太满、太绝对或废话过多时使用。 | `ToneNormalization` |
+| `tone-normalizer` | 学术语气归一 | 需要核查主张强度、空泛限定或重复表达时使用。 | `ToneNormalization` |
 
 ### J. Proofread
 
@@ -132,7 +132,7 @@ Codex 可以使用 `$qiongli` 或 `$qiongli-paper-read` 等快捷入口。
 | Skill | 中文名 | 适用场景 | 产出类型 |
 |---|---|---|---|
 | `ai-fingerprint-scanner` | AI指纹扫描 | 需要诊断具体语言问题时使用；单纯语法校对直接进入终稿校对。 | `AIDetectionReport` |
-| `human-voice-rewriter` | 学术表达润色 | 用户要求改善表达或有具体语言反馈时使用，不为检测分数而改写。 | `HumanizedManuscript` |
+| `human-voice-rewriter` | 学术表达润色 | 需要改善表达，或对照原稿复核润色稿含义时使用；不为检测分数而改写。 | `HumanizedManuscript` |
 | `similarity-checker` | 相似度检查 | 需要对照来源核查引用和重叠时使用，无需先启动改写。 | `SimilarityReport` |
 | `final-proofreader` | 终审校对 | 需要学术段落的语法、一致性校对或正式终稿检查时使用。 | `ProofreadChecklist` |
 

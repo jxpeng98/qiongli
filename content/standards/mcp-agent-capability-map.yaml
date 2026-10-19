@@ -713,7 +713,7 @@ skill_catalog:
   tone-normalizer:
     file: "skills/G_compliance/tone-normalizer.md"
     category: "reporting-compliance"
-    focus: "Ruthlessly cut fluff, transition words, and absolute claims."
+    focus: "Calibrate academic tone to evidence without empty qualifiers or mechanical hedge and shortening quotas."
     default_outputs:
       - "compliance/tone_normalization.md"
   reviewer-empathy-checker:
@@ -848,7 +848,7 @@ skill_catalog:
   human-voice-rewriter:
     file: "skills/J_proofread/human-voice-rewriter.md"
     category: "proofread"
-    focus: "Rewrite AI-flagged passages to sound authentically human-authored."
+    focus: "Improve scholarly expression and compare revisions with originals for meaning drift."
     default_outputs:
       - "proofread/humanized_manuscript.md"
   similarity-checker:

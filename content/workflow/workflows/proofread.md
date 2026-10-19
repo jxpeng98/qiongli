@@ -33,6 +33,11 @@ Choose J4 for grammar/consistency, J2 for requested expression changes, J1 for a
 pattern diagnosis and J3 for source comparison. Mentioning proofreading does not
 schedule J1 → J2 → J3 → J4. Existing source/claim problems remain visible even
 when they are outside a language-only edit.
+For a supplied original and polished version, J2 can perform meaning review only.
+Follow `references/scholarly-voice.md`: compare claims, citations, quantities and
+scope, report specific drift and repair affected wording. Keep valid language
+edits intact. An authorized cross-Host handoff uses the same responsibilities
+without selecting models or requiring extra agents.
 
 ## Academic Boundary Review
 

@@ -51,6 +51,12 @@ into the manuscript; a bounded edit returns only the requested material.
 Use `references/scholarly-voice.md` for natural English/Chinese expression and
 paragraph continuity. Language-only changes preserve the existing claim IDs,
 evidence ledger and graph; ambiguous reasoning is flagged, not rewritten as fact.
+The shared voice reference also owns the division between language editing and
+meaning review, including an optional authorized cross-Host handoff. When given
+an original and edited version for comparison, report concrete meaning drift and
+minimal repairs; retain valid phrasing rather than restarting stylistic editing.
+Direct observed results need no added hedge. Meaning comparison does not certify
+source support, and missing versions cannot be treated as a completed comparison.
 
 ## J3 — Source-Overlap and Attribution Check
 

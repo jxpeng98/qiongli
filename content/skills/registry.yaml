@@ -829,12 +829,12 @@ skills:
     version: "2.5.3"
     file: skills/G_compliance/tone-normalizer.md
     canonical: true
-    summary: "Cut fluff, hedge words, and absolute claims for concise academic tone."
+    summary: "Review academic tone against evidence; remove empty qualifiers and repetition while preserving warranted uncertainty."
     display_name: "Tone Normalizer"
     when_to_use: "After manuscript draft is complete (but before final submission)"
-    summary_zh: "删除废话、模糊 hedge 和绝对化表述，收敛为简洁学术语气。"
+    summary_zh: "依据证据校准学术语气，删除空泛限定和重复，保留真实不确定性。"
     display_name_zh: "学术语气归一"
-    when_to_use_zh: "当文本太松、太满、太绝对或废话过多时使用。"
+    when_to_use_zh: "需要核查主张强度、空泛限定或重复表达时使用。"
     inputs: [Manuscript]
     outputs: [ToneNormalization]
     tags: [compliance, tone, academic-writing, editing, conciseness]
@@ -1299,10 +1299,10 @@ skills:
     canonical: true
     summary: "Revise stiff or translated scholarly prose into natural English or Chinese while preserving evidence and author voice."
     display_name: "Human-Voice Rewriter"
-    when_to_use: "Use for requested expression or voice revision; reuse supplied text and any existing findings."
+    when_to_use: "Use for expression revision or a meaning comparison of original and edited passages; reuse supplied text and findings."
     summary_zh: "改善中英文学术段落的生硬表达、翻译腔与衔接，保留原意、证据和作者语气。"
     display_name_zh: "学术表达润色"
-    when_to_use_zh: "用户要求改善表达或有具体语言反馈时使用，不为检测分数而改写。"
+    when_to_use_zh: "需要改善表达，或对照原稿复核润色稿含义时使用；不为检测分数而改写。"
     inputs: [Manuscript, AIDetectionReport]
     outputs: [HumanizedManuscript]
     tags: [proofread, humanization, rewriting, voice, style]

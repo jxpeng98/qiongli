@@ -134,7 +134,7 @@ Use Stage J when the draft is substantively complete and needs AI-fingerprint re
 | Skill | Display Name | When to use | Produces |
 |---|---|---|---|
 | `ai-fingerprint-scanner` | AI Fingerprint Scanner | Use for a requested language-pattern diagnosis; grammar-only correction can enter final-proofreader directly. | `AIDetectionReport` |
-| `human-voice-rewriter` | Human-Voice Rewriter | Use for requested expression or voice revision; reuse supplied text and any existing findings. | `HumanizedManuscript` |
+| `human-voice-rewriter` | Human-Voice Rewriter | Use for expression revision or a meaning comparison of original and edited passages; reuse supplied text and findings. | `HumanizedManuscript` |
 | `similarity-checker` | Similarity Checker | Use for requested source-overlap or attribution checks; prior rewriting is not an automatic prerequisite. | `SimilarityReport` |
 | `final-proofreader` | Final Proofreader | Use for requested scholarly grammar/consistency corrections or a formal final proofreading pass. | `ProofreadChecklist` |
 

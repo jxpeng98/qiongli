@@ -106,6 +106,17 @@ quota of mechanisms and implications. Source support follows the result's produc
 its premises without pretending a source states the same conclusion. Subject
 venue overlays distinguish sourced expectations from local advice.
 
+G4/J2 share `scholarly-voice.md` for language editing and meaning review. G4
+proposes evidence-backed tone/claim calibration; J2 preserves research meaning
+while improving expression. A supplied original/candidate pair can receive
+meaning review alone: concrete drift and minimal repairs, without restarting
+style revision. Direct observations require no hedge quota, and helpful
+explanation has no shortening quota. Consequential uncertainty stays in the
+manuscript; operational notes stay in the work record. Bilingual examples cover
+these boundaries. Optional cross-Host handoffs preserve the selected model,
+source/candidate versions, task IDs, artifact paths and preview/approval/CAS;
+they add no launcher, automatic transfer or independent-review claim.
+
 Manuscript-first claim detection and reverse lookup are owned by the existing
 `evidence-verification.md` reference and consumed by Stage F during drafting and
 revision. Start from actual body text, captions and notes, including assertions

@@ -1,7 +1,7 @@
 ---
 id: tone-normalizer
 stage: G_compliance
-description: "Ruthlessly cut fluff, transition words, hedging, and absolute claims to produce concise, objective academic tone."
+description: "Review academic tone against the evidence, removing empty qualifiers and repetition while preserving warranted uncertainty and author voice."
 inputs:
   - type: Manuscript
     description: "Draft text requiring tone normalization"
@@ -9,9 +9,9 @@ outputs:
   - type: ToneNormalization
     artifact: "compliance/tone_normalization.md"
 constraints:
-  - "Must flag every hedge word and absolute claim"
+  - "Must judge claim strength from meaning and evidence, not hedge counts or word lists"
   - "Must preserve technical precision while improving readability"
-  - "Must not strip domain-appropriate hedging"
+  - "Must preserve consequential uncertainty, scope and limitations"
 failure_modes:
   - "Over-cutting removes necessary nuance"
   - "Domain-specific hedging conventions not respected"
@@ -23,11 +23,14 @@ domain_aware: false
 
 # Tone Normalizer Skill
 
-Rewrite text into concise, objective academic tone: reduce overclaiming, cut fluff, calibrate hedging, and ensure every sentence earns its place.
+Review whether the prose states supported claims clearly and qualifies actual uncertainty.
 
 ## Purpose
 
-Ruthlessly cut fluff, transition words, hedging, and absolute claims to produce concise, objective academic tone.
+Remove empty framing and repeated qualifications without weakening supported
+findings. G4 reviews tone and evidence calibration; J2 edits language and checks
+the revision against its source. Use `references/scholarly-voice.md` for their
+shared editing and meaning-review responsibilities, including bilingual examples.
 
 ## Related Task IDs
 
@@ -52,91 +55,64 @@ Ruthlessly cut fluff, transition words, hedging, and absolute claims to produce 
 
 ## Process
 
-### Step 1: Scan for High-Risk Patterns
+### Step 1: Locate Actual Tone Problems
 
-Sweep the manuscript for patterns in each category:
+Inspect the paragraph's claim, supporting material and role in the argument.
+Flag a passage only when its meaning or expression causes a concrete problem:
 
-#### Category A: Overclaiming (Absolute Claims)
+| Issue | Review decision |
+|-------|-----------------|
+| Unsupported strength or scope | Identify the inference or generalization the evidence cannot support; adding "may" alone does not repair it |
+| Empty or repeated qualifications | Remove them when the remaining wording retains the actual uncertainty and scope |
+| Vague praise or significance | State the supported criterion or result; a flattering synonym adds no evidence |
+| Repetition or awkward framing | Clarify information order and referents; retain logical connectors and needed explanation |
 
-| Pattern | Example | Fix |
-|---------|---------|-----|
-| "proves" | "This proves that..." | "This provides evidence that..." / "is consistent with..." |
-| "clearly shows" | "Clearly shows a relationship" | "Indicates a relationship" / "The results suggest" |
-| "always / never" | "X always leads to Y" | "X tends to / is associated with Y" |
-| "significant" (without stats) | "A significant improvement" | "A notable / substantial improvement" or report the test |
-| "ground-breaking / revolutionary" | "Our ground-breaking approach" | Remove — let the reader decide |
-| "unique / novel / first" | "We are the first to..." | "To our knowledge, this is among the first..." (if truly warranted) |
-| "undeniable" | "The evidence is undeniable" | "The evidence is consistent across [n] specifications" |
-
-#### Category B: Excessive Hedging (Undermines Confidence)
-
-| Pattern | Example | Fix |
-|---------|---------|-----|
-| Triple hedging | "It could potentially seem to suggest that perhaps..." | "This suggests..." (one hedge is enough) |
-| Modal stacking | "It might possibly be the case that..." | "It may be that..." |
-| "Arguably" | "This is arguably important" | "This is important because [reason]" |
-| "In some sense" | "In some sense, the results indicate..." | "The results indicate..." |
-
-> **Rule**: One hedge per claim is appropriate. Zero hedges = overclaiming. Three+ hedges = author doubts their own work.
-
-#### Category C: Filler and Fluff
-
-| Pattern | Replace With |
-|---------|-------------|
-| "It is important to note that" | [Delete — just state the note] |
-| "It should be mentioned that" | [Delete] |
-| "In order to" | "To" |
-| "Due to the fact that" | "Because" |
-| "At this point in time" | "Currently" / "Now" |
-| "A large number of" | "Many" / "[specific number]" |
-| "The results of the analysis show that" | "[The specific result]" |
-| "With regard to" / "In terms of" | "[specific preposition]" or restructure |
-| "As a matter of fact" | [Delete] |
-| "Needless to say" | [Delete — if needless, don't say it] |
-
-#### Category D: AI-Generated Text Patterns
-
-| Pattern | Why It's a Problem | Fix |
-|---------|-------------------|-----|
-| "Delve into" / "delve deeper" | AI fingerprint — rarely used in natural academic writing | "Examine" / "Investigate" / "Analyze" |
-| "Landscape" (non-geographic) | "The research landscape" — overused by AI | "The field" / "The literature" / "Current research" |
-| "Multifaceted" | AI favorite | "Complex" / specify the facets instead |
-| "Tapestry" / "rich tapestry" | Almost never in real academic papers | Remove metaphor; be specific |
-| "It's worth noting" | AI filler | [Delete — just note it] |
-| "In conclusion" at every paragraph end | AI structural tic | Remove or vary: "Overall" / "Taken together" |
-| "Sheds light on" | Overused in AI output | "Reveals" / "Clarifies" / "Demonstrates" |
-| Excessive parallelism | Three or more parallel constructions in every section | Vary sentence structure |
+Direct statements of observed results, performed methods or established facts
+need no hedge merely to sound academic. Speculation and uncertain inferences
+retain meaningful qualifications. Judge neither certainty nor authorship from
+particular words, sentence patterns or a count of modal verbs.
 
 ### Step 2: Apply Calibrated Rewrites
 
 For each flagged passage, produce a rewrite that:
 
-1. **Preserves meaning** — don't change the claim
+1. **Preserves meaning in expression edits** — identify any substantive correction separately with its evidence
 2. **Calibrates confidence** — match claim strength to evidence strength
-3. **Reduces words** — target 20–30% reduction per flagged passage
+3. **Improves flow** — remove repetition or expand needed explanation; no word-reduction target applies
 4. **Maintains voice** — don't make everything sound identical
 
 #### Confidence Calibration Guide
 
-| Evidence Strength | Appropriate Language |
-|------------------|---------------------|
-| RCT / strong causal design | "demonstrates" / "shows" / "we find that" |
-| Observational with controls | "is associated with" / "suggests" / "indicates" |
-| Correlational / cross-sectional | "is related to" / "we observe a correlation" |
-| Exploratory / qualitative | "suggests" / "our analysis points to" / "informants describe" |
-| Single case / anecdotal | "appears to" / "in this case" |
-| Speculation / future direction | "may" / "further research could" / "it is plausible that" |
+| Claim and evidence | Appropriate treatment |
+|--------------------|-----------------------|
+| Observed sample result or performed method | State it directly, retaining population, units, time and uncertainty estimates |
+| Association | Name the association and its scope; do not turn it into a causal effect |
+| Causal inference | Check identification assumptions and actual evidence; a design label alone is insufficient |
+| Participant account or case observation | Attribute it to the participants or case without making a prevalence claim |
+| Untested explanation or extrapolation | Preserve its provisional status and relevant limits |
 
-### Step 3: Enforce Style Rules
+G4 may propose an evidence-backed claim correction, identifying the changed
+meaning and source basis in its log. In a language-only request, report an
+unsupported claim separately for substantive review instead of silently changing
+it. Missing support is not supplied by a more cautious verb. Preserve consequential
+limitations in the manuscript; keep tool-status and missing-input notes in the
+existing work record. Avoid repeating the same limitation where it adds nothing,
+but retain it wherever a passage would otherwise mislead, including an abstract.
+
+### Step 3: Check Readability and Meaning
 
 | Rule | Check | Action |
 |------|-------|--------|
-| One idea per paragraph | Does each paragraph have one topic sentence? | Split paragraphs with multiple topics |
+| Paragraph continuity | Can the reader follow the point and its development? | Repair information order without inventing a premise |
 | Define acronyms once | First use fully spelled out; subsequent uses abbreviated | Find duplicated definitions |
 | Active voice where possible | "We measured X" not "X was measured by us" | Rewrite passive constructions (unless convention demands passive) |
 | Consistent terminology | Same concept = same word throughout | Make a terminology table |
-| Numbers | Spell out 1–9; use numerals for 10+; always numeral with units | Check venue style guide |
-| Citation-free claims | "Previous research has shown..." without citation | Add citation or remove claim |
+| Numbers | Do quantities and formatting retain their meaning? | Preserve values and units; apply supplied venue rules |
+| Citation support | Does the cited source support this claim? | Report missing support; use only inspected sources for proposed repairs |
+
+Verify proposed expression edits against the original using the meaning-review
+procedure in `references/scholarly-voice.md`. A request to check a polished
+version authorizes that comparison, not another whole-text tone rewrite.
 
 ### Step 4: Generate the Tone Normalization Log
 
@@ -144,9 +120,7 @@ Record every change for author review:
 
 | # | Location | Original | Issue | Rewrite | Category |
 |---|----------|----------|-------|---------|----------|
-| 1 | § 1, ¶ 2 | "This clearly proves" | Overclaiming | "This evidence supports" | A |
-| 2 | § 3, ¶ 1 | "It could potentially suggest that perhaps" | Triple hedge | "This suggests" | B |
-| 3 | § 4, ¶ 3 | "delve into the multifaceted landscape" | AI pattern | "examine the field" | D |
+| 1 | Results ¶1 | "It is important to note that we surveyed 120 firms." | Empty framing | "We surveyed 120 firms." | Expression; same sample |
 
 ## Output Contract
 
@@ -159,11 +133,11 @@ Record every change for author review:
 
 The tone normalization is **ready** when:
 
-- [ ] All 4 pattern categories scanned (overclaim, underhedge, filler, AI)
-- [ ] Every rewrite preserves the original meaning
+- [ ] Findings identify actual problems in the requested scope; zero findings is valid
+- [ ] Expression edits preserve meaning; substantive proposals identify the changed claim and evidence
 - [ ] Confidence language calibrated to evidence strength
-- [ ] AI-generated text patterns removed or rewritten
-- [ ] 20–30% word reduction achieved in flagged passages
+- [ ] Necessary uncertainty and limitations remain; empty qualifiers and repetition are resolved
+- [ ] Paragraph flow improves without a shortening quota or word blacklist
 - [ ] Author voice preserved (not robotified)
 - [ ] Log compiled with original → rewrite pairs for author review
 
@@ -174,8 +148,8 @@ The tone normalization is **ready** when:
 
 ## Summary
 - Passages flagged: [n]
-- Estimated word reduction: [%]
-- Categories: Overclaiming [n], Excess hedging [n], Filler [n], AI patterns [n]
+- Reviewed scope: [sections/passages]
+- Categories: Claim calibration [n], Empty qualifiers [n], Repetition/flow [n]
 
 ## Changes
 
@@ -198,5 +172,6 @@ The tone normalization is **ready** when:
 | 过度删减 | 删减了必要的 hedging | 保留 evidence-based hedging（如 may, suggest） |
 | 中文论文英文味 | 直译导致语体不对 | 区分中英文学术 register |
 | 去掉所有 transition | 段落间缺少衔接 | 去的是 filler，留 logical connector |
-| 统一 hedge 为 may | 所有句子用同一个 hedging | 变换用词：suggests, indicates, appears to |
+| 为每个主张加限定词 | 已观察到的结果也显得犹疑 | 根据证据表达真实不确定性，不按句子分配限定词 |
+| 复核时重新改写全文 | 润色成果被模板语气覆盖 | 指出具体含义偏移，只修正受影响的句子 |
 | 忽略学科惯例 | 某些学科允许主动语态 | 核查目标期刊的 style preference |

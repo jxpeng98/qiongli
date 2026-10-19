@@ -40,6 +40,8 @@ changes. Keep required AI disclosure; the legacy task/output names are retained.
 - For requests described as humanizer, Harmonizer, naturalizing or removing
   translationese; choose faithful expression, never detector evasion
 - Use J4 for grammar-only corrections and source comparison for attribution issues
+- When an original and edited passage are supplied for meaning review, compare
+  them directly; do not start another language rewrite
 
 ## Related Task IDs
 
@@ -52,6 +54,8 @@ changes. Keep required AI disclosure; the legacy task/output names are retained.
 ## Inputs
 
 - Requested passage or manuscript; any existing J1 findings or supplied feedback
+- For meaning review, the original and edited versions at the same scope;
+  request a missing version rather than claim to have compared it
 - A direct edit needs only the relevant text and constraints; return it in chat
   without starting J1 or requiring a project. Formal J2 runs retain the declared
   inputs, full manuscript artifact and applicable gates below.
@@ -72,7 +76,7 @@ sentence and within-paragraph edits; restructure sections only within requested
 scope. For learning-oriented requests, explain targeted edits instead of silently
 replacing the author's reasoning.
 
-### Step 2: Make the Smallest Useful Edit
+### Step 2: Edit Language at the Requested Depth
 
 Read `references/scholarly-voice.md` for the output language. Preserve meaning
 first, make it idiomatic second, polish only where useful (信、达、雅). Identify
@@ -81,33 +85,47 @@ Clarify referents and information order before adding transitions. A smoother
 sentence must not introduce a cause, contrast or premise absent from the source.
 Flag ambiguity rather than inventing a bridge. Keep necessary uncertainty,
 technical terms and author stance. No word blacklist or rhythm quota applies.
+Follow its language-editor responsibilities: the smallest useful edit may
+reorder, combine or split sentences within scope. Do not preserve awkward
+syntax just to minimize the number of changed words. Remove empty qualifications
+without changing meaningful uncertainty. In a meaning-review-only request,
+skip this editing pass and compare the supplied versions in Step 4.
 
-### Step 3: Verify Scientific Accuracy
+### Step 3: Read the Edited Passage Continuously
 
-For EVERY rewritten passage, check:
+Check whether each sentence develops the paragraph's point with natural phrasing
+and clear referents. Repair concrete expression problems within the requested
+scope; do not add a missing scientific premise to make the text flow.
+
+### Step 4: Review Meaning Against the Original
+
+Use the meaning-review responsibilities in `references/scholarly-voice.md`.
+For every rewritten passage, compare:
 
 | Integrity Check | ✓/✗ |
 |----------------|-----|
 | Statistical values unchanged | |
 | Citations remain correctly attributed | |
 | Technical terminology preserved | |
+| Negation, quantifiers, units and population/time scope preserved | |
 | Claim strength not weakened or inflated | |
 | Causal language matches original intent | |
 | No evidence omitted or added | |
 
-### Step 4: Verify the Affected Passages
-
-Compare the revised passage with its source using the integrity checks above.
-Read the revision continuously for natural phrasing and coherent paragraph flow.
-Fix any actual drift and recheck that change. Stop when the requested issues are
-resolved; do not run a detector-confidence loop. Use an independent reviewer
+Report actual drift with original/edited spans and its consequence; repair the
+affected wording and recheck that change. Leave sound edits intact, including
+direct statements of observed results. No drift is a valid finding. Do not
+restore deleted boilerplate or add uncertainty absent from the original meaning.
+This comparison preserves meaning; source-support verification remains a separate
+task. Stop when the requested issues are resolved. Use an independent reviewer
 only when required and actually available through the active Host; follow
 `skills/Z_cross_cutting/model-collaborator.md` and report unavailable requirements.
 
 ### Step 5: Return the Requested Output
 
 Return only the revision for a direct polish, adding a brief note for a material
-uncertainty or when requested. For a formal J2 run, integrate
+uncertainty or when requested. A meaning-review-only request returns findings
+and any minimal repairs, not another full rewrite. For a formal J2 run, integrate
 changes into the full manuscript and record them in its change log.
 
 ## Output Contract
@@ -137,7 +155,7 @@ The humanized manuscript is **ready** when:
 
 - [ ] All substantive issues in the requested scope are resolved or reported as gaps
 - [ ] Every edit improves a demonstrated issue; no strategy quota applies
-- [ ] Scientific accuracy verified for every rewritten passage
+- [ ] Every edited passage compared with the original for meaning drift
 - [ ] Meaning, author voice and required disclosure are preserved
 - [ ] Formal J2 output includes the full manuscript; direct edits respect requested scope
 - [ ] Formal J2 change log records rewrites; direct polish has only the requested output

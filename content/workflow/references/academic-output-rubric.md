@@ -38,7 +38,10 @@ planned diagnostic is not an applied decision or completed check.
 
 - Bind each core claim to an evidence source, dataset result, or named project artifact.
 - Separate `finding`, `interpretation`, and `implication`; do not let implications masquerade as results.
-- Use cautious strength markers when evidence is limited, observational, exploratory, or indirect.
+- Match claim strength and scope to evidence. State observations and performed
+  methods directly; qualify uncertain interpretations or extrapolations where
+  needed. Observational evidence can support a direct statement of association
+  without supporting causation. Do not impose a hedge on every claim.
 - Do not use empty intensifiers such as "important", "significant", or "robust" unless the text explains the criterion and evidence.
 
 ## Evidence Integrity
@@ -54,6 +57,9 @@ planned diagnostic is not an applied decision or completed check.
 - Name boundary conditions: population, setting, measurement choice, model assumption, time period, or scope limit.
 - Include counterevidence or alternative explanations when they materially affect the claim.
 - Keep prose direct and discipline-native; avoid generic AI phrases and repeated paragraph templates.
+- Apply `references/scholarly-voice.md` to language edits and meaning review.
+  Preserve consequential uncertainty without inserting audit commentary into
+  manuscript prose or restarting style revision during a meaning comparison.
 
 ## Output Check
 
