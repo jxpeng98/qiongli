@@ -52,9 +52,18 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — October 9, 2026
+## Current execution horizon — October 19, 2026
 
-The current bounded request fills the native CLI/Plugin provider configuration
+The current bounded request separates G4/J2 language editing and meaning review,
+removes mechanical hedge/shortening quotas and adds bilingual examples. The
+existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-19--g4j2-language-editing-and-meaning-review)
+owns canonical rules, synthetic behavior checks and local resource-pack
+integration. Preserve task/output contracts, user-selected models and project
+preview/approval/CAS. Integrate locally into `2.x`; no push or publication.
+Actual Antigravity/model comparisons and private manuscripts remain separate
+from this bounded verification; program acceptance is unchanged.
+
+The preceding bounded request fills the native CLI/Plugin provider configuration
 entry under ADR 0241. The existing
 [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-9--unified-provider-configuration-entry)
 owns one approved loopback setup page, selected-provider settings/credential

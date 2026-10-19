@@ -3425,3 +3425,92 @@ verification, followed by separately authorized release qualification. Integrate
 the reviewed scoped commits locally into 2.x; no version bump, push, publication,
 preceding-release monitoring or program task/dependency/accepted-evidence/commit/
 run-field promotion is included.
+
+## October 19 — G4/J2 language editing and meaning review
+
+The maintainer requests the proposed G4/J2 rule changes, Chinese/English examples,
+validation and local integration into `2.x`, with no publication. Canonical source
+commit `553a1125179c5b86388cf19f79e83862e42ae6d8` removes G4's per-claim hedge rule,
+fixed shortening target and word blacklist. G4 makes evidence-backed calibration
+proposals; J2 edits language, then compares meaning against the original. A
+comparison-only request returns concrete drift and minimal repairs, preserving
+valid direct wording. Shared scholarly-voice guidance owns both responsibilities,
+paragraph-level edits, consequential uncertainty and an optional authorized
+Codex/Antigravity handoff. No Host launcher or automatic transfer is added.
+
+The rubric, stage references, workflow, registry, capability summaries and generated
+bilingual Skill guide inherit the same policy. Task IDs, artifact types/paths,
+configured models and preview/approval/CAS owners remain compatible. The content
+distribution contract records this ownership. The resource lock is regenerated
+through `update_qiongli_core_lock`, retaining local version 2.5.3 and 446 entries,
+with source `553a1125`, content root
+`54a9436497108940a21bb344af5d983acc82e0241d4f7bacc82af46f1e9f2e53` and pack
+`7f26315350a76980413c53d6384302476018635dd9d1cd921746c1983f8ec27d`.
+This local development pack does not replace the immutable released pack.
+
+### Behavioral verification
+
+Cases D–J extend the existing `evals/research_journey/writing-quality/` tasks
+and review criteria. One independent agent context receives frozen guidance and
+synthetic tasks, without the criteria, patch discussion or intended answers.
+Original answers and input SHA-256 bindings are retained in
+`evals/research_journey/writing-quality/observations/g4-j2-2026-10-19.json`, SHA-256
+`7aec51c5bc7eac9f4f439128f8e1426820abdc699c41815b8a712550ebaaefcb`.
+The coordinator reviews every original against its task and criteria; all seven
+pass within this scope, with no post-review answer correction:
+
+| Case | Scope / requested flow / meaning | Concrete answer evidence |
+| --- | --- | --- |
+| D | Pass / pass / pass | “86家本地企业中，X与Y呈正相关” retains r = 0.27, p = .02, [D1] and the cross-sectional causal limit without stacked hesitation. |
+| E | Pass / pass / pass | “We interviewed each of 60 nurses at one hospital” connects to 41 reports; “may contribute” and “has not been tested [E2]” retain the untested explanation. |
+| F | Pass / not requested / pass | “No meaning drift was found” preserves the per-plant denominator, timing and citation without a replacement paragraph. |
+| G | Pass / not requested / pass | Findings identify “相关关系改为因果效应”, coefficient-to-27% substitution, missing p value/causal limit, universal scope and reversal of an unexcluded explanation; repairs restore only affected spans. |
+| H | Pass / not requested / pass | “Replace ‘weeks’ with ‘days’” plus separate findings restore attribution, the lack of established equivalence and interview preference instead of a demonstrated symptom effect. |
+| I | Pass / not requested / pass | “Adding ‘may’ would not supply the missing evidence” accompanies an explicit substantive correction; the 72/120 observation and untested procurement explanation remain intact. |
+| J | Pass / not requested / pass | “缺少原稿。请提供与这句话对应的原文” requests the missing input without claiming a completed comparison. |
+
+This is an independent-context instruction trial with coordinator review, not an
+installed Codex/Antigravity journey, different-model comparison, human expert
+acceptance or measured improvement over a baseline. No private manuscript or
+external research source is used in the behavioral trial; user Host configuration
+remains unchanged.
+
+### Contract checks and integration
+
+The affected Skill contract, workflow document, resource-link and generated-guide
+suites pass 19 tests. Capability Contract v2 validation passes. The broad research
+validator reports 6,123 passes, six failures and fourteen warnings. All six
+failures reproduce from byte-identical `2.x` inputs: `meta-optimizer.md` lacks
+Purpose/Process headings and the 2.5.3 release note lacks four legacy format tokens.
+The unchanged validator and failing files were compared directly with the base;
+no unrelated cleanup or passing full-validator claim is included.
+
+The ten bounded cross-platform routing checks pass. The existing portable
+materialization owner reproduces all nine changed canonical resources byte for
+byte. Native `qiongli-content` deterministic writer, embedded service and loader
+suites pass 16 tests, including source/digest drift, corrupted manifests, unsafe
+paths and resource limits. Seven program-ledger tests and index freshness pass.
+Together the affected automated suites pass 52 tests; capability validation and
+actual portable-resource equality are separate checks.
+
+The full routing suite was interrupted during Plugin materialization; a clean
+tracked-source retry also exceeded its 120-second bound and its process group
+was stopped. That projection invokes the Lite binary builder. This full test is
+not counted as passing; the ten selected routing checks and portable-content
+projection above do not claim a full Plugin binary build. Native CLI
+`--test embedded_pack` compilation failed with `No space left on device` before
+execution. Only this run's incremental files and the interrupted test checkout's
+Lite build target were removed; the smaller content suites then passed with
+`CARGO_INCREMENTAL=0`. No full rebuilt CLI or release-package claim is made.
+The local commit initially lacked Git author configuration; the retry uses the
+repository's existing Codex identity for that command only.
+
+Final source review finds no actionable request-fidelity, compatibility or
+meaning-review regressions within the checked scope. The integration uses scoped
+local commits and the frozen-source guard before fast-forwarding `2.x`; unchanged
+checks are reused. The existing six full-validator failures and the uncompleted
+binary-build checks remain recorded rather than reclassified as passes.
+
+Next is an explicitly authorized real-manuscript comparison using the user's
+chosen Antigravity model, judging readable flow and semantic fidelity separately.
+No task state, accepted evidence, remote branch, tag or release is promoted.
