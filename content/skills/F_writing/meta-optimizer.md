@@ -25,6 +25,8 @@ domain_aware: true
 
 # Meta Optimizer Skill
 
+## Purpose
+
 Optimize the requested title, abstract, keywords or metadata while preserving the
 paper's meaning, evidence strength and actual scope. This card serves F6; formal
 submission packaging remains H1.
@@ -42,7 +44,9 @@ For venue-specific work, use `references/stage-H-submission.md` to distinguish
 verified requirements from local profile advice. Apply the actual article type,
 word limit and keyword rules. Unverified conventions are suggestions, not gates.
 
-## Title
+## Process
+
+### Title
 
 Represent the question or supported contribution with recognizable field terms.
 Include context or method when it changes what the reader should expect. Choose
@@ -51,7 +55,7 @@ venue; there is no universal fifteen-word ceiling or preferred title formula.
 Do not imply causality, novelty or broader applicability than the paper supports.
 A request for one title does not require alternatives or a visible checklist.
 
-## Abstract
+### Abstract
 
 Make the paper's question, approach, supported answer and significance clear to
 its intended reader. An empirical abstract usually needs the study design and
@@ -71,7 +75,7 @@ question, constructs, sample, findings, numbers, uncertainty and inference stren
 must agree. Recheck affected claims when results change. An earlier abstract can
 be a working draft; its drafting order is not a completion criterion.
 
-## Keywords and optional metadata
+### Keywords and optional metadata
 
 Choose accurate search terms, including title terms when useful. Broader, narrower,
 method and domain terms are options, not a required mixture. Use controlled

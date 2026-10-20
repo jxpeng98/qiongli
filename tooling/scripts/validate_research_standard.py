@@ -8,6 +8,7 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -520,6 +521,63 @@ def select_latest_release_note(root: Path) -> Path | None:
         return None
     candidates.sort(key=lambda item: item[0], reverse=True)
     return candidates[0][1]
+
+
+def validate_release_note(root: Path, note: Path, report: ValidationReport) -> None:
+    relative_path = str(note.relative_to(root))
+    content = read_text(root, relative_path, report)
+    if not is_native_checkout(root):
+        for token in ("Release Notes", "Validation Evidence", "Publish Steps", "rollback.md"):
+            report.check(
+                token in content,
+                f"{note.name} includes {token}",
+                f"{relative_path} missing token: {token}",
+            )
+        return
+
+    # Native notes follow ADR 0219, not the retained Python release template.
+    # These are documentation checks, not release qualification or authorization.
+    version = re.escape(note.stem.removeprefix("v"))
+    report.check(
+        re.search(rf"^# Qiongli v?{version}(?:\s|$)", content, re.MULTILINE) is not None,
+        f"{note.name} identifies its native release version",
+        f"{relative_path} missing matching Qiongli release heading",
+    )
+    verification = "\n".join(re.findall(
+        r"^## [^\n]*(?:verification|validation)[^\n]*\n(.*?)(?=^## |\Z)",
+        content, flags=re.MULTILINE | re.DOTALL | re.IGNORECASE,
+    ))
+    links = re.findall(r"\[[^\]\n]+\]\(([^\s)]+)\)", verification)
+    report.check(
+        bool(links),
+        f"{note.name} links verification evidence",
+        f"{relative_path} missing linked evidence in a verification/validation section",
+    )
+    for link in links:
+        try:
+            target = urlsplit(link)
+        except ValueError:
+            report.check(False, "", f"{relative_path} has invalid evidence link: {link}")
+            continue
+        if target.scheme in {"http", "https"} and target.netloc:
+            continue  # Network availability is outside this offline source check.
+        evidence = (note.parent / unquote(target.path)).resolve()
+        report.check(
+            not target.scheme and not target.netloc and bool(target.path)
+            and evidence.is_relative_to(root.resolve()) and evidence.is_file(),
+            f"{note.name} resolves evidence link {link}",
+            f"{relative_path} has missing or invalid evidence link: {link}",
+        )
+    body = re.sub(r"^#+[^\n]*$", "", content, flags=re.MULTILINE)
+    for label, pattern in (
+        ("publication guidance", r"\b(?:publish(?:ing|ed)?|publication)\b"),
+        ("rollback guidance", r"\b(?:rollback|revert(?:ing)?)\b"),
+    ):
+        report.check(
+            re.search(pattern, body, re.IGNORECASE) is not None,
+            f"{note.name} includes {label}",
+            f"{relative_path} missing {label} in the note body",
+        )
 
 
 def parse_frontmatter(content: str) -> tuple[dict[str, str], str]:
@@ -2528,19 +2586,7 @@ def validate_release_artifacts(root: Path, report: ValidationReport) -> None:
         "tooling/release/ missing release note files (expected vX.Y.Z.md, vX.Y.Z-beta.N.md, or vX.Y.Z-alpha.N.md)",
     )
     if latest_note is not None:
-        relative_note_path = str(latest_note.relative_to(root))
-        notes_content = read_text(root, relative_note_path, report)
-        for token in (
-            "Release Notes",
-            "Validation Evidence",
-            "Publish Steps",
-            "rollback.md",
-        ):
-            report.check(
-                token in notes_content,
-                f"{latest_note.name} includes {token}",
-                f"{relative_note_path} missing token: {token}",
-            )
+        validate_release_note(root, latest_note, report)
 
     rollback_content = read_text(root, "tooling/release/rollback.md", report)
     if rollback_content:

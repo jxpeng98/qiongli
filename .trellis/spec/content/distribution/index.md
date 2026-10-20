@@ -228,6 +228,14 @@ portable package through the existing materializer. Source checkouts need no
 checked-in generated package. Legacy layout/guide checks remain available for
 the retained line; missing shared guidance, task IDs and resources still fail.
 
+Release-note checks select the same native/legacy source boundary. Native notes
+identify the matching Qiongli version, link evidence in a verification/validation
+section, and include publication and rollback guidance in the body (ADR 0219).
+Repository-local evidence links must resolve within the checkout; web links are
+not fetched by this offline check. Legacy notes retain their four template-token
+requirements. These structural checks do not establish qualification, publication
+authority or the correctness of the linked evidence.
+
 The retained `audit_distribution_payloads.py` prunes name-excluded directories
 before hashing, while preserving its file/suffix rules and deterministic results.
 Included-directory scan errors fail the audit; partial inventories cannot pass.

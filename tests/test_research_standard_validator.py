@@ -19,7 +19,107 @@ from tooling.scripts.validate_research_standard import (
     validate_literature_first_contracts,
     validate_profile_bundle_template,
     validate_quality_gate_contracts,
+    validate_release_note,
 )
+
+
+class ReleaseNoteContractTests(unittest.TestCase):
+    NATIVE_NOTE = """# Qiongli v2.5.3 — focused improvements
+
+## Compatibility and verification / 兼容与验证
+
+Local checks and remaining Host limits are recorded in the
+[execution plan](../../docs/plan.md#checks).
+Qualify the immutable tag before publication; dispatch is not completion.
+Keep the previous executable and research backups for rollback.
+Changing executables does not reverse research writes.
+"""
+
+    def fixture(self, root: Path, *, native: bool = True) -> Path:
+        if native:
+            manifest = root / "packages/qiongli-native/Cargo.toml"
+            manifest.parent.mkdir(parents=True)
+            manifest.touch()
+        evidence = root / "docs/plan.md"
+        evidence.parent.mkdir(parents=True)
+        evidence.write_text("# Plan\n\n## Checks\n\nLocal tests pass; live Host checks remain.\n")
+        note = root / "tooling/release/v2.5.3.md"
+        note.parent.mkdir(parents=True)
+        note.write_text(self.NATIVE_NOTE)
+        return note
+
+    def test_native_note_accepts_current_structure_without_legacy_tokens(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            note = self.fixture(root)
+            report = ValidationReport()
+            validate_release_note(root, note, report)
+            self.assertEqual(report.errors, [])
+
+    def test_native_note_requires_version_evidence_and_body_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            note = self.fixture(root)
+            for old, new, diagnostic in (
+                ("v2.5.3", "v2.5.30", "matching Qiongli release heading"),
+                ("Compatibility and verification", "Compatibility", "missing linked evidence"),
+                ("[execution plan](../../docs/plan.md#checks)", "execution plan", "missing linked evidence"),
+                ("publication", "distribution", "missing publication guidance"),
+                ("rollback", "recovery", "missing rollback guidance"),
+            ):
+                with self.subTest(diagnostic=diagnostic, replacement=new):
+                    note.write_text(self.NATIVE_NOTE.replace(old, new))
+                    report = ValidationReport()
+                    validate_release_note(root, note, report)
+                    self.assertTrue(any(diagnostic in error for error in report.errors), report.errors)
+            note.write_text("# Qiongli v2.5.3\n\n## Verification\n\n## Publication\n\n## Rollback\n")
+            report = ValidationReport()
+            validate_release_note(root, note, report)
+            self.assertEqual(len(report.errors), 3)
+
+    def test_native_note_rejects_missing_directory_and_outside_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "checkout"
+            note = self.fixture(root)
+            (root.parent / "outside.md").write_text("Unrelated evidence\n")
+            for link in ("../../docs/missing.md", "../../docs", "../../../outside.md",
+                         "https://[invalid", "file:///tmp/evidence.md"):
+                with self.subTest(link=link):
+                    note.write_text(self.NATIVE_NOTE.replace("../../docs/plan.md#checks", link))
+                    report = ValidationReport()
+                    validate_release_note(root, note, report)
+                    self.assertTrue(any("evidence link" in error for error in report.errors), report.errors)
+
+    def test_native_note_allows_external_evidence_without_network(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            note = self.fixture(root)
+            note.write_text(self.NATIVE_NOTE.replace("../../docs/plan.md#checks", "https://example.org/run/123"))
+            report = ValidationReport()
+            validate_release_note(root, note, report)
+            self.assertEqual(report.errors, [])
+
+    def test_legacy_note_retains_all_template_requirements(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            note = self.fixture(root, native=False)
+            tokens = ("Release Notes", "Validation Evidence", "Publish Steps", "rollback.md")
+            legacy_note = "\n\n".join(tokens)
+            note.write_text(legacy_note)
+            report = ValidationReport()
+            validate_release_note(root, note, report)
+            self.assertEqual(report.errors, [])
+            for token in tokens:
+                with self.subTest(token=token):
+                    note.write_text(legacy_note.replace(token, ""))
+                    report = ValidationReport()
+                    validate_release_note(root, note, report)
+                    self.assertEqual(len(report.errors), 1)
+                    self.assertIn(token, report.errors[0])
+            note.write_text(self.NATIVE_NOTE)
+            report = ValidationReport()
+            validate_release_note(root, note, report)
+            self.assertEqual(len(report.errors), 4)
 
 
 class ResearchStandardValidatorTests(unittest.TestCase):
