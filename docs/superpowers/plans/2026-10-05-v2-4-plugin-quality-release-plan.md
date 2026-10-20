@@ -3514,3 +3514,70 @@ binary-build checks remain recorded rather than reclassified as passes.
 Next is an explicitly authorized real-manuscript comparison using the user's
 chosen Antigravity model, judging readable flow and semantic fidelity separately.
 No task state, accepted evidence, remote branch, tag or release is promoted.
+
+## October 20 — writing validation completion
+
+The maintainer authorizes cleanup of regenerable build caches, completion of the
+two interrupted checks, repair of all six baseline failures and local integration
+into `2.x`. Source commit `da522d997d9b6c322bee72b2fa15a530c7a18ca2` adds the
+missing Purpose/Process headings to `meta-optimizer` without changing its prose
+or output contract. The research validator now applies native release-note
+structure under ADR 0219 to native checkouts and retains the four legacy token
+checks for the retained line. Native notes need a matching version, linked
+verification evidence, publication guidance and rollback guidance. Local evidence
+files must resolve inside the checkout; web evidence is not fetched. The existing
+2.5.3 release note and publication authority remain unchanged.
+
+Only ignored native `target/debug/deps` and `target/debug/incremental` caches were
+removed, recovering approximately 25 GB. Release artifacts, other target trees
+and research files were preserved. Available space rose from about 1 GB to 26 GB;
+24 GB remains after rebuilding. Native checks use `CARGO_INCREMENTAL=0` and two
+build jobs; Plugin materialization uses four jobs and offline Cargo. No product
+timeouts were changed. The previously interrupted full Plugin test now completes
+in 351 seconds, beyond the earlier 120-second execution bound.
+
+The supported `update_qiongli_core_lock` generator binds the unchanged local
+version 2.5.3 and 446 resources to source `da522d99`, content root
+`50e5cb0afc5113e2490ba05dc9761f603f6a52d57c6c885ff3275167ff0c8423` and pack
+`c888ac2ec572f71366483a0c9bc23f1d02ecf8d9b26b770a5fbaae5bc4c2bd11`.
+This development binding does not replace an immutable released pack.
+
+Completed checks:
+
+| Check | Result |
+| --- | --- |
+| `python3 -m unittest tests.test_research_standard_validator tests.test_release_note_versions` | 26 pass, including missing native evidence/guidance, invalid version, missing/outside evidence files, malformed links and retained legacy failures |
+| `python3 -m unittest tests.test_skill_structure_lint` | 8 pass |
+| `python3 scripts/validate_research_standard.py` | 6,130 pass, zero failures, 14 existing warnings |
+| `python3 -m unittest tests.test_cross_platform_routing_grill_contract` | All 11 pass, including actual Plugin materialization and Lite binary compilation |
+| Native `cargo test --offline -p qiongli --test embedded_pack` | 1 pass after a successful 6m 14s compilation |
+| Native `cargo test --offline -p qiongli-content --test resource_pack_loader --test deterministic_writer --test embedded_content` | 16 pass, retaining digest/source drift, corrupt manifests, path and resource-limit negative cases |
+| `python3 -m unittest tests.test_program_roadmap` and `python3 tooling/scripts/update_program_roadmap.py --check` | 7 pass; generated index current for all 249 tasks |
+
+The focused suites total 69 passing tests; the broad validator is counted
+separately. Python tests use the repository Python source path where required;
+native Cargo commands use `--manifest-path packages/qiongli-native/Cargo.toml`. Logs remain in
+`/tmp/qiongli-*-20261020.log` and `/tmp/qiongli-validation-repair-unit.log` as local
+observations. The earlier timeout and disk failures remain recorded above; these
+completed checks supersede their open validation gaps without deleting them.
+The 14 research-validator warnings concern recommended Skill sections and the
+`/stage-close` guide entry; strict warning-free validation is not claimed. Native
+compilation also retains the existing `Atomic::fetch_update` deprecation warning
+in `qiongli-platform`. G4/J2 guidance and its seven frozen synthetic outputs are
+unchanged, so their prior observations are reused.
+
+Final integration review covers request fidelity, native/legacy compatibility,
+evidence-link failures and generated-pack ownership, with no actionable findings.
+The program-ledger/index checks and frozen-source guard complete the local
+integration record. No task
+state, dependencies, accepted evidence, commit/run fields, Host/model settings,
+remote refs or publication status are promoted.
+
+Next prioritize held-out Chinese/English whole-section comparisons: fix the
+original and context, distinguish rule changes from model differences, and record
+author preference for flow separately from meaning errors. Exercise the actual
+configured Codex → Antigravity → Codex round trip, checking that a no-drift review
+keeps fluent language and changed originals cannot reuse a stale comparison.
+Then address remaining contract warnings by actual requirements, and separate
+fast content checks from cold binary builds with a bounded cache budget. These
+are follow-up recommendations, not completed research-quality qualification.
