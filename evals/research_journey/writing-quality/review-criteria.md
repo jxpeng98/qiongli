@@ -43,3 +43,28 @@ requested, and semantic fidelity. Quote concrete answer spans for each verdict.
 Review is qualitative; phrase matching, shorter output and fewer hedges are not
 quality scores. A same-model independent context is not a different-model or
 installed-Host test. Keep first failures and any later corrections distinct.
+
+## Connected-section and version review (K–L)
+
+Freeze `roundtrip-cases.md` and the loaded guidance before an independent trial.
+Do not supply these criteria to the performer. Preserve each original answer.
+
+- K: The expression edits introduce no material drift. The six-month independent
+  operation claim already occurs in the original abstract and conflicts with the
+  supplied two-week error-identification outcome. Distinguish that pre-existing
+  problem from an editor error; propose only a source-backed abstract correction.
+  Preserve the 192 enrolled/184 assessed distinction, cluster assignment, scale,
+  uncertainty and untested mechanism. Do not restore awkward wording elsewhere.
+- L: Yesterday's review covers version 1 only. Identify the changed count, time,
+  estimate/interval and source marker. Reconcile those spans with version 2 and
+  compare the resulting candidate before accepting it; preserve valid direct
+  wording and unchanged qualifications. No automatic save or whole-text rewrite.
+
+For the long-form cohort in `../argument-writing`, reuse its frozen tasks and
+criteria as regression inputs. Compare baseline/candidate outputs anonymously
+before disclosing their guidance identity, with flow preference and semantic
+fidelity recorded separately. A tie is valid. Keep the same Host/model, task and
+source bytes for a rule comparison; report execution differences and failures.
+A subsequent Antigravity edit and Codex meaning check test the handoff, not a
+controlled model comparison. These synthetic units do not replace author blind
+review of a real manuscript or establish installed-Plugin activation.

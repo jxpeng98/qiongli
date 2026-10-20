@@ -83,6 +83,33 @@ comparison does not establish source support or close an existing evidence gap.
 Stop once the requested language issues and actual meaning drift are resolved;
 source/argument changes return to their substantive owner.
 
+## Connected sections and returned edits
+
+For a chapter or several sections, read the selected unit continuously before
+editing individual sentences. Track the research question, named constructs,
+population, outcomes and time frame across paragraph boundaries. Keep the
+abstract's answer consistent with the current Results and Discussion; an
+independently read abstract still needs the limits that change its conclusion.
+Do not equalize wording where two sections intentionally discuss different
+measures, groups or stages. Existing terminology and claim maps can help; a
+language edit does not require creating another map or checklist.
+
+An inconsistency already present in the original is a separate finding, not
+meaning drift introduced by the editor. Identify its locations and the current
+source needed to resolve it. A fluent edit cannot decide between conflicting
+result versions. If only a selected passage was supplied, state any material
+cross-section dependency briefly rather than claiming a whole-paper check.
+
+For an external handoff, identify the exact original and the requested scope
+alongside the candidate. Keep unresolved editor questions outside the manuscript.
+A file/version identifier or a digest may be useful for saved drafts; two clearly
+labelled passages suffice in chat. If the original, candidate or relevant result
+changed after review, the earlier comparison no longer covers those changed
+claims. Reconcile the affected spans against the current versions before saving
+through the existing owner. Preserve good edits in unaffected passages; do not
+restart whole-text style editing. A no-drift review accepts the candidate's
+language and ends the comparison.
+
 ## English output
 
 Use established collocations and keep the main subject and verb easy to follow.

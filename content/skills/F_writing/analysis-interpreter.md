@@ -43,6 +43,11 @@ interpretation. Read **Result-to-claim decisions** in
 `references/stage-F-writing.md`; it owns the writing contract and three-question
 guidance. Choose the depth and structure supported by the actual evidence.
 
+## When to Use
+
+Use when a result needs substantive interpretation; use J2 when the settled
+interpretation only needs clearer expression.
+
 ## Related Task IDs
 
 - `F3` — results interpretation component.
@@ -99,6 +104,8 @@ Keep the observation, supported interpretation and possible implication distinct
 Place consequential limitations beside the claim they limit. Compare with prior
 work only when its actual finding and context are available; mark a needed
 comparison as unresolved rather than inventing one.
+
+## Quality Bar
 
 Before returning the text, check its central claims against the current sources,
 its consistency with inherited decisions, and any unresolved contradiction. Use

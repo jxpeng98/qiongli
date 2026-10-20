@@ -33,6 +33,11 @@ Read **Result-to-claim decisions** in `references/stage-F-writing.md`. Decide wh
 can be interpreted from the actual estimate before choosing a conversion or
 benchmark; keep uncertainty and the design's claim limit attached.
 
+## When to Use
+
+Use when readers need the magnitude of an estimate explained or translated;
+language polishing alone does not authorize a new conversion or benchmark.
+
 ## Related Task IDs
 
 - `F3` — effect interpretation component.
@@ -88,6 +93,8 @@ For the formal F3 component, use `EffectInterpretation` at
 workflow contract. If an older project contains `effect_size_interpretation.md`,
 read it as prior material and propose reconciliation through the existing owner;
 do not silently rename or remove it.
+
+## Quality Bar
 
 Keep the original estimate/uncertainty, source anchor, supported translation,
 assumptions and unresolved condition together. Use a table only when it helps

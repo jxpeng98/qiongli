@@ -128,7 +128,7 @@ row points to the inspected source or executed output. Unsupported claims remain
 For manuscript-facing citation risks use `references/citation-risk-policy.md`
 and the existing `proofread/citation-risk-report.md` when material.
 
-## Completion and handoff
+## Quality Bar
 
 Check that each conclusion has the actual contributing evidence, a justified
 method, reproducible transformations and visible appraisal/uncertainty limits.

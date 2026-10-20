@@ -31,6 +31,11 @@ Optimize the requested title, abstract, keywords or metadata while preserving th
 paper's meaning, evidence strength and actual scope. This card serves F6; formal
 submission packaging remains H1.
 
+## When to Use
+
+Use for a requested title, abstract, keyword or metadata edit. Recheck the
+abstract when a manuscript revision changes its reported findings or scope.
+
 ## Inputs and scope
 
 Reuse the current manuscript, supplied findings and known venue requirements.

@@ -50,6 +50,11 @@ available authorized Host reader, local attachment, or external resolver. Do not
 imitate an unavailable tool or describe a stub response as a completed download.
 A missing tool does not justify changing the user's installation or configuration.
 
+## When to Use
+
+Use when a selected paper needs retrieval or a source passage must be inspected;
+a language-only edit with sufficient supplied text needs no new retrieval.
+
 ## Process
 
 ### Select and verify the report

@@ -1,0 +1,13 @@
+{
+  "kind": "qiongli-writing-roundtrip-inputs/v1",
+  "baseline_commit": "870afcbd9b22d1c8f205792df64df4bbfbda0bcf",
+  "scope": "K/L new synthetic review cases; existing A/B long-form regression cohort; no real manuscript or installed Plugin claim",
+  "files": {
+    "content/workflow/references/stage-F-writing.md": "2c91996db60989232a243ec8550873d508d8e61431f0f14b831e18751f9db840",
+    "content/workflow/references/scholarly-voice.md": "03a9c0539d0c87abc9efe6d95abcf64695c60684eead3a1b9d7774b8d2215c72",
+    "content/workflow/references/academic-output-rubric.md": "b1528f4a983bb865da0e49eeac1b9f4281523ca1dad43d3522ad133ef1ca1c65",
+    "evals/research_journey/writing-quality/roundtrip-cases.md": "bbd91178d22561c7ee7ea4ceaacd918b47986748ed8a218c10d54d69802337ac",
+    "evals/research_journey/writing-quality/review-criteria.md": "874b44bd459589a085796f2dfc2449772ce61bfe0a28b05815f64417c5bde577",
+    "evals/research_journey/argument-writing/fixture-manifest.json": "b84786abaf9133ff659af58ac6e3874be8af1d0ee4ee0fe407fc39bc7e570da7"
+  }
+}
