@@ -40,6 +40,7 @@ python3 -m bridges.orchestrator doctor --cwd .
 /rebuttal [topic]                    # Rebuttal / response to reviewers
 /code-build [method] --domain ...    # Build academic research code
 /proofread [topic]                   # AI de-trace / final proofreading
+/stage-close [topic] [stage]         # Review stage handoff and unresolved conditions
 /academic-present [topic]            # Academic presentation preparation
 ```
 

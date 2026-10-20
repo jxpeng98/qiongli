@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
+import json
 import subprocess
 import sys
 import tempfile
@@ -170,6 +172,19 @@ class DistributionMaterializerTests(unittest.TestCase):
             self.assertTrue((out / "qiongli-workflow/skills/registry.yaml").is_file())
             self.assertTrue((out / ".agent/workflows/paper.md").is_file())
             self.assertFalse((out / ".gemini/qiongli.md").exists())
+            # This remains the full binary integration lane. The faster routing
+            # suite checks the portable source projection without invoking Cargo.
+            for channel in ("qiongli", "qiongli-next"):
+                plugin = out / "plugins" / channel
+                binary = plugin / "bin" / "qiongli-literature-provider"
+                identity = json.loads((binary.parent / "qiongli-literature-provider.target.json").read_text())
+                self.assertEqual(identity["sha256"], hashlib.sha256(binary.read_bytes()).hexdigest())
+                self.assertEqual(identity["size_bytes"], binary.stat().st_size)
+                skill = plugin / "skills/qiongli-workflow"
+                for relative in ("references/scholarly-voice.md", "references/stage-F-writing.md",
+                                 "skills/G_compliance/tone-normalizer.md", "skills/J_proofread/human-voice-rewriter.md"):
+                    canonical = (LAYOUT.workflow if relative.startswith("references/") else REPO_ROOT / "content") / relative
+                    self.assertEqual((skill / relative).read_bytes(), canonical.read_bytes())
 
     def test_plugin_materializer_does_not_depend_on_bash(self) -> None:
         source = MATERIALIZER_PATH.read_text(encoding="utf-8")

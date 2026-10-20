@@ -128,7 +128,7 @@ pub fn discover_client_activation(
     target: ClientActivationTarget,
 ) -> Result<ClientActivationHandle, ClientActivationError> {
     let target_binding = NEXT_TARGET_BINDING
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+        .try_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
             value.checked_add(1)
         })
         .map_err(|_| ClientActivationError::BindingUnavailable)?;

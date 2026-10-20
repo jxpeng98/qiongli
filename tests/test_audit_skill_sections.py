@@ -6,10 +6,21 @@ import textwrap
 import unittest
 from pathlib import Path
 
-from scripts.audit_skill_sections import REQUIRED_SECTIONS, audit_skills, render_markdown_report
+from scripts.audit_skill_sections import REQUIRED_SECTIONS, audit_skills, extract_skill_sections, render_markdown_report
 
 
 class AuditSkillSectionsTests(unittest.TestCase):
+    def test_section_coverage_accepts_case_and_canonical_failure_modes(self) -> None:
+        content = '---\nfailure_modes:\n  - "Inventing a causal explanation"\n---\n\n## quality bar\n\nCheck evidence.\n'
+        self.assertEqual(extract_skill_sections(content), {"quality bar", "common pitfalls"})
+        self.assertNotIn("purpose", extract_skill_sections("Purpose appears only in prose."))
+
+    def test_empty_malformed_or_body_failure_modes_do_not_supply_pitfalls(self) -> None:
+        for value in ('[]', '[""]', '[null]', '"placeholder"', '[unterminated'):
+            with self.subTest(value=value):
+                self.assertNotIn("common pitfalls", extract_skill_sections(f'---\nfailure_modes: {value}\n---\n'))
+        self.assertNotIn("common pitfalls", extract_skill_sections('failure_modes:\n  - body text\n'))
+
     def _write_skill(self, root: Path, rel: str, body: str) -> Path:
         path = root / rel
         path.parent.mkdir(parents=True, exist_ok=True)

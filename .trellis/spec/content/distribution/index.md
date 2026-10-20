@@ -116,6 +116,10 @@ manuscript; operational notes stay in the work record. Bilingual examples cover
 these boundaries. Optional cross-Host handoffs preserve the selected model,
 source/candidate versions, task IDs, artifact paths and preview/approval/CAS;
 they add no launcher, automatic transfer or independent-review claim.
+Connected-section review distinguishes inherited manuscript inconsistencies from
+editor-introduced drift and rechecks changed source/candidate spans before reuse.
+Abstract, outcome, population and timing consistency are part of the requested
+unit's meaning check; they do not impose a new artifact or another style pass.
 
 Manuscript-first claim detection and reverse lookup are owned by the existing
 `evidence-verification.md` reference and consumed by Stage F during drafting and
@@ -235,6 +239,17 @@ Repository-local evidence links must resolve within the checkout; web links are
 not fetched by this offline check. Legacy notes retain their four template-token
 requirements. These structural checks do not establish qualification, publication
 authority or the correctness of the linked evidence.
+
+Skill section coverage is case-insensitive. A nonempty string list in canonical
+frontmatter `failure_modes` supplies Common Pitfalls coverage without duplicating
+it in prose; missing or malformed entries do not. Required Purpose/Process and
+alias-size checks remain active. Coverage is structural, not a behavioral score.
+
+The routing/Skill suite uses the real portable materializer without building a
+binary. `test_materialize_distribution_payloads` retains full stable/next Plugin
+assembly, runtime digest/size checks and canonical writing-resource equality.
+Run that integration lane when assembly/runtime inputs change or when explicitly
+qualifying a package; do not treat portable projection as binary qualification.
 
 The retained `audit_distribution_payloads.py` prunes name-excluded directories
 before hashing, while preserving its file/suffix rules and deterministic results.

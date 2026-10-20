@@ -52,6 +52,25 @@ Keep changes in their canonical boundary:
 - generated plugin/package payloads: regenerate through the supported
   materialization workflow; never edit generated copies directly.
 
+For writing/content-only changes, the fast routing projection is
+`PYTHONPATH=packages/python-qiongli/src python3 -m unittest tests.test_cross_platform_routing_grill_contract`.
+It materializes actual portable resources. Full Plugin assembly remains in
+`tests.test_materialize_distribution_payloads`; its Plugin test builds the Lite
+binary and verifies both stable/next payloads. A cold build can exceed five
+minutes; allow a build-appropriate observation window instead of weakening the
+checks or changing product timeouts. Native embedded-pack tests remain relevant
+when canonical content and its lock change.
+
+Before a cold binary build, run
+`python3 tooling/scripts/check_build_cache_budget.py`. The local default budget
+is 16 GiB for the listed regenerable dependency/incremental caches and at least
+8 GiB free; both limits are explicit options. This read-only check fails when
+over budget or measurement is incomplete. It never deletes anything and is not
+a guarantee of peak build usage. Inspect its named cache paths before a separately
+authorized cleanup, stop active builders first, and preserve released binaries,
+other target trees and research data. Reuse valid build caches; use
+`CARGO_INCREMENTAL=0` for bounded cold test runs when incremental reuse is unneeded.
+
 ## Optional remote verification
 
 A PR is created only when explicitly requested for remote collaboration; use the

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import re
-import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,6 +8,7 @@ from pathlib import Path
 import yaml
 
 from qiongli.source_layout import RepoLayout
+from scripts.sync_npm_package_payload import build_materialize_source
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -219,27 +218,10 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, combined)
 
-    def test_materialized_plugin_contains_routing_and_grill_contract(self) -> None:
+    def test_portable_payload_contains_routing_and_grill_contract(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
-            out = Path(tmp_dir) / "dist-source"
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    "scripts/materialize_distribution_payloads.py",
-                    "--target",
-                    "plugin",
-                    "--out",
-                    str(out),
-                    "--force",
-                ],
-                cwd=REPO_ROOT,
-                text=True,
-                capture_output=True,
-                check=False,
-            )
-            self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
-
-            plugin_skill = out / "plugins" / "qiongli" / "skills" / "qiongli-workflow"
+            out = build_materialize_source(REPO_ROOT, Path(tmp_dir), dry_run=False)
+            plugin_skill = out / "qiongli-workflow"
             skill_text = read(plugin_skill / "SKILL.md")
             self.assertEqual(skill_text, read(LAYOUT.workflow / "SKILL.md"))
             self.assertIn("references/platform-routing.md", skill_text)
@@ -256,6 +238,10 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
                 read(LAYOUT.workflow / "references" / "stage-F-writing.md"),
             )
             for relative in (
+                "references/scholarly-voice.md",
+                "skills/G_compliance/tone-normalizer.md",
+                "skills/J_proofread/human-voice-rewriter.md",
+                "skills/F_writing/meta-optimizer.md",
                 "references/stage-H-submission.md",
                 "skills/A_framing/venue-analyzer.md",
                 *(f"skills/H_submission/{name}.md" for name in (

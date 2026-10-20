@@ -21,7 +21,7 @@ from qiongli.skill_docs import generate_skill_reference_docs
 from scripts.generate_skill_docs import generate_skill_reference_docs as generate_native_skill_docs
 from qiongli.source_layout import RepoLayout
 from qiongli.workflow_contract_doc import generate_workflow_contract_reference
-from scripts.audit_skill_sections import audit_skills
+from scripts.audit_skill_sections import audit_skills, extract_skill_sections
 from scripts.audit_skill_resource_links import audit_package_resource_links
 from scripts.audit_solo_role_gates import audit_solo_role_gates
 from scripts.sync_npm_package_payload import build_materialize_source, fail_if_symlinks
@@ -1078,13 +1078,11 @@ def validate_skill_structure(root: Path, report: ValidationReport) -> None:
         content = skill_path.read_text(encoding="utf-8")
         _frontmatter, body = parse_frontmatter(content)
         line_count = len(content.splitlines())
-        headings = set(
-            re.findall(r"^##\s+(.+?)(?:\s*\(.+\))?\s*$", content, flags=re.MULTILINE)
-        )
+        headings = extract_skill_sections(content)
         section_count = len(re.findall(r"^##\s+", content, flags=re.MULTILINE))
         for section in REQUIRED_SKILL_SECTIONS:
             report.check(
-                section in headings,
+                section.casefold() in headings,
                 f"Skill {skill_id} contains required section '{section}'",
                 f"{entry.file} missing required section: '{section}'",
             )
@@ -1116,7 +1114,7 @@ def validate_skill_structure(root: Path, report: ValidationReport) -> None:
             continue
         for section in RECOMMENDED_SKILL_SECTIONS:
             report.warn(
-                section in headings,
+                section.casefold() in headings,
                 f"Skill {skill_id} contains recommended section '{section}'",
                 f"{entry.file} missing recommended section: '{section}'",
             )

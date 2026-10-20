@@ -7,6 +7,8 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import yaml
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PYTHON_SOURCE_ROOT = REPO_ROOT / "packages" / "python-qiongli" / "src"
 for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
@@ -130,11 +132,23 @@ def _read_skill_files(root: Path) -> list[Path]:
     return sorted(path for path in skills_dir.rglob("*.md") if path.is_file())
 
 
-def _extract_sections(text: str) -> set[str]:
+def extract_skill_sections(text: str) -> set[str]:
     sections = set()
     for match in re.finditer(r"^##\s+(.+?)\s*$", text, flags=re.MULTILINE):
         name = re.sub(r"\s+\(.+?\)\s*$", "", match.group(1).strip())
-        sections.add(name)
+        sections.add(name.casefold())
+    # Canonical failure_modes already exposes pitfalls; do not require a copy
+    # in the body merely to satisfy a heading inventory.
+    frontmatter = re.match(r"\A---\n(.*?)\n---(?:\n|$)", text, re.DOTALL)
+    if frontmatter:
+        try:
+            metadata = yaml.safe_load(frontmatter[1])
+        except yaml.YAMLError:
+            metadata = None
+        failures = metadata.get("failure_modes") if isinstance(metadata, dict) else None
+        if (isinstance(failures, list) and failures
+                and all(isinstance(item, str) and item.strip() for item in failures)):
+            sections.add("common pitfalls")
     return sections
 
 
@@ -193,8 +207,8 @@ def audit_skills(root: Path) -> AuditResult:
     result = AuditResult(root=root)
     for path in _read_skill_files(root):
         text = path.read_text(encoding="utf-8")
-        section_names = _extract_sections(text)
-        sections = {name: name in section_names for name in REQUIRED_SECTIONS}
+        section_names = extract_skill_sections(text)
+        sections = {name: name.casefold() in section_names for name in REQUIRED_SECTIONS}
         result.skill_results.append(
             SkillAuditResult(
                 path=path.relative_to(root),
