@@ -1,0 +1,879 @@
+Use the supplied Qiongli writing guidance for this bounded synthetic task. Use only the supplied evidence. Do not use tools, browse, read other files, create a project or write files. Return only the requested prose.
+
+GUIDANCE
+# Stage F — Manuscript Writing (F1–F6)
+
+This stage turns artifacts into a publishable narrative: outline → draft → claims/evidence → figures/tables → abstract/title.
+
+## Canonical outputs (contract paths)
+
+- `F1` → `manuscript/outline.md`
+- `F2` → `manuscript/manuscript.md` (section-level drafting)
+- `F3` → `manuscript/manuscript.md`, `manuscript/results_interpretation.md`, `manuscript/effect_interpretation.md`
+- `F4` → `manuscript/claims_evidence_map.md`
+- `F5` → `manuscript/figures_tables_plan.md`, `manuscript/tables/`, `manuscript/figures/`
+- `F6` → `manuscript/meta_optimization.md`
+- Proposal / opening report → `proposal/research_proposal.md` (skill: `proposal-writer`; no separate task ID)
+
+## Quality gate focus
+
+- `Q1` (question-to-method alignment): intro/method/results must answer the same RQ(s).
+- `Q2` (claim-evidence traceability): check during drafting/revision; `F4` and `G3` record formal coverage.
+- Semantic gate report: update `quality-gate-report.md` with `q2_claim_evidence_traceability`; evidence must anchor central claims to the claim-evidence ledger, source notes, analysis outputs, citations, or explicit gap notes.
+
+## Writing Harness Contract
+
+This shared contract applies to Stage F workflows, skill cards and role prompts.
+It specifies the result and boundaries; the active model chooses how to reach it.
+Formal task outputs and Q1/Q2 gates above remain required for the selected task.
+A direct paragraph answer does not require the full artifact set or a gate report.
+
+### Trace the text being written
+
+Use `references/evidence-verification.md` for manuscript-first claim detection
+and source traversal during drafting and revision. Start from the actual text,
+not only a completed reading note or a pre-existing claim map. Cover substantive
+assertions throughout the requested unit, including background, methods, results,
+discussion, captions and explanatory notes. Track independently supported clauses;
+new explanations and connective inferences can introduce claims too.
+
+Draft from inspected evidence with its scope and locator available. If a useful
+explanation needs an uninspected premise, inspect the authorized source or keep
+that premise as a named gap; do not draft it as fact and attach a nearby citation
+afterward. Reconcile changed wording, attribution and manuscript location with
+the final claim/source records. This is part of writing the selected unit, not a
+requirement to start F4 or a separate reviewer for every chat paragraph.
+
+### Result-to-claim decisions
+
+Apply the three questions in `references/academic-output-rubric.md` to the claims
+that determine the requested text. Inspect the current output/source and inherited
+limits before reusing a draft or interpretation.
+
+| What must be decided? | Evidence needed | What can proceed? |
+|---|---|---|
+| Is this a result we can report? | Executed output or inspected source excerpt, version, sample/denominator, units and uncertainty or qualitative context | Draft verified findings. An unexecuted analysis remains planned; inconsistent numbers block that numerical claim until reconciled, while unaffected text can proceed |
+| Which wording does the evidence support? | C's claim type and assumptions, E/I's findings, source anchors and failed checks | State the strongest supported claim. Remove or narrow an unsupported causal/mechanistic assertion; adding "may" alone does not supply evidence |
+| Can we interpret magnitude or practical importance? | Metric, scaling, time horizon, population and a justified benchmark or conversion inputs | Explain the available estimate and uncertainty. Missing context limits the practical translation; do not manufacture a benchmark or substitute an example number |
+| How do contrary findings affect the argument? | Comparable results, negative cases, prespecified/exploratory status and source-specific limitations | Integrate supported convergence/divergence. An unexplained contradiction stays visible; choose narrower prose rather than inventing a mechanism |
+| Is the requested text complete? | Its source-to-claim checks, applicable formal outputs and unresolved dependencies | Return the checked unit, or label the specific incomplete part. Separate an evidence-bounded draft from a gate pass or submission-readiness claim |
+
+Carry the claim ID, source locator, supported wording and limiting assumption in
+the existing interpretation artifact and claim-evidence records when those are in
+scope. On a changed upstream result, identify dependent manuscript passages,
+tables, abstracts and recommendations; revise them together within authorized
+scope or name the remaining affected work in the handoff. Do not silently reuse
+the old estimate or promote a previous review into evidence for the new claim.
+Use **Re-review after a source change** in `references/evidence-verification.md`
+to inspect indirect inferences and unmapped uses as well as recorded links.
+
+### Direction and freedom
+
+- Reuse relevant source material and settled decisions, including
+  `context/boundary_review.md`, `context/decision_log.md`,
+  `context/stage_handoff.md` and `review/self_critique_log.md` when present.
+- Keep a coherent **Story Spine**: what the text argues, the section's job,
+  evidence supporting its central claim and where that claim stops. Reuse an
+  existing outline; a short edit needs no separate Story Spine presentation.
+- Choose structure, drafting order, tools and chunk size from the requested
+  length, evidence dependencies and risk. A bounded section may be drafted and
+  checked as a whole. Split longer work when checkpoints help catch a specific
+  risk, a dependency remains unsettled or the user requests staged delivery.
+- Follow the user, venue or agreed protocol when it specifies a structure or
+  review process. Do not infer extra approval steps from a template or role name.
+
+### Evidence and quality
+
+Shared evidence, meaning-preservation and authorization rules apply to every
+writing card. Chapter structures, title formulas, clustering counts and analytical
+lenses are optional aids unless the user, paper type or verified venue requirement
+makes them necessary. Local venue profiles are discovery aids; distinguish sourced
+requirements from editorial advice before using either as a completion gate.
+
+- Check for mainline drift, unsupported claims, logic jumps, contradiction with
+  settled decisions, and generic or vague claims. Preserve source meaning,
+  numbers, citations, uncertainty and the distinction between findings,
+  interpretation and implication. Never infer measurement from a study label.
+- Match analytical depth to the section's job and evidence. Discussion should
+  explain what the findings mean; methods and results may be descriptive.
+  Mechanisms, tensions, alternatives and implications are useful lenses, not a
+  per-paragraph quota. Narrow claims when evidence cannot support more depth.
+- Interpret qualitative themes when supported, keeping quotations and episodes
+  as evidence anchors. Do not invent mechanisms, negative cases or theoretical
+  contributions to satisfy a writing template.
+- Preserve the design's claim type from Stage A/C and the selected discipline
+  guide. A predictor is not necessarily a cause, an indirect path is not a
+  demonstrated mechanism, and a source interpretation is not a measured effect.
+- Check numerical statements against the actual result: population, denominator,
+  units, direction, time window and uncertainty. Distinguish statistical from
+  substantive importance. A nonsignificant result does not establish equivalence;
+  equivalence/noninferiority claims need their own design, margin and analysis.
+- Preserve the source's level of methodological detail. A named analysis or
+  transformation does not establish its unreported grouping, parameters or
+  implementation. Check those qualifiers against the source before compressing
+  prose; omit unsupported detail or label a necessary inference explicitly,
+  rather than presenting a customary procedure as a reported fact.
+- Separate planned from performed methods and confirmatory from exploratory
+  analyses. Account for deviations, missing observations and null/contradictory
+  findings before compressing results into an abstract or recommendation.
+- For theory/humanities, make premises, source interpretation, objections and
+  scope inspectable without forcing empirical section names. For mixed methods,
+  explain what integration adds and where the strands disagree.
+
+### Readable, specific prose
+
+Apply readability while composing every requested section, including methods,
+results and discussion, not only the literature review or a later J2 polish.
+Use `references/scholarly-voice.md` for the shared clarity decisions and English
+or Chinese phrasing. Keep a recognizable subject, clear referents and an information
+order that lets each sentence develop the preceding point. Explain the actual
+relation between ideas before adding a transition. Abstract nouns, stacked
+modifiers and translated clause order must not obscure who does what or what a
+finding means. Retain necessary technical terms and qualifications; neither
+ornate phrasing nor uniformly short sentences establishes scholarly quality.
+
+Make detail serve the argument: unpack a consequential concept, comparison or
+inferential step with inspected evidence. Removing repeated generalities is
+compatible with explaining the important point more fully. During revision,
+preserve quotations, numbers, citation attribution and the author's intended
+meaning; flag unresolved ambiguity rather than silently choosing a new claim.
+When shortening, preserve the evidence-to-conclusion step. A compact sequence of
+claims without their reasons remains shallow; replacing those reasons with an
+abstract label does not repair it. Explain the relevant relation directly, with
+the amount of detail the reader needs to assess it.
+
+When a paragraph is shallow, locate the missing step: what the evidence actually
+shows, how it bears on the paragraph's point, or what follows for this paper.
+Explain that step with available source detail. Define a consequential term at
+first use, unpack a comparison's basis, and explain how an inference follows
+from its premises. A list of authors or a paraphrase of results cannot substitute
+for the needed explanation. Unsupported mechanisms, extra citations and longer
+sentences do not add depth.
+
+Across paragraphs, carry forward a specific established point or unresolved
+question. Check whether the next paragraph answers, qualifies, contrasts with or
+builds on it; supply the missing reasoning or reorder within the authorized edit.
+Do not manufacture continuity with “therefore”, “however” or a repeated topic label.
+Keep consistent terms and explicit referents so that the reader can follow the
+argument without consulting internal notes.
+
+For a connected section or manuscript, use the existing Story Spine to track the
+opening question, what prior work establishes, the paper's supported answer and
+what that answer changes. Compare the introduction's promises with the actual
+results and discussion; revise a promise or disclose an unanswered part when
+evidence falls short. A contribution may clarify an established account's scope
+or resolve a consequential comparison. Do not invent novelty to fill a gap slot.
+
+Trace different kinds of reasoning to their actual basis. Reported source facts
+need inspected source locations; this study's findings need its materials and
+analysis outputs. An original synthesis or interpretation needs inspectable
+premises and an explained inferential step, not an identical conclusion in a
+cited paper. Distinguish that reasoning from the source author's conclusion and
+from a hypothesis requiring new evidence. Reuse existing claim types and records;
+do not create a second argument register or display internal maps by default.
+
+### Literature review tied to the paper
+
+For a manuscript's literature review/related work, reuse its research question,
+central argument and scope before choosing themes. The section should explain
+what existing evidence lets this paper assume, question or investigate. A missing
+research question may permit a provisional source synthesis, but not invented
+project positioning; ask for the missing focus when it determines the argument.
+A section request does not by itself commission a systematic review or new search.
+
+Develop the consequential comparisons beyond an author/topic inventory. Select
+the details that explain the inference: what a source argues or finds, how its
+evidence supports that statement, and what context or limitation changes its
+relevance here. Compare studies or interpretations on a shared question using
+their actual constructs, designs, texts, populations or time horizons as relevant.
+Explain why convergence or disagreement matters; a difference in topic alone
+does not establish a contradiction. Do not fill unreported methods or mechanisms
+from expectations, treat overlapping samples as independent confirmation, or turn
+abstract-only access into a claim of full-paper appraisal.
+
+Connect the resulting synthesis to a concrete choice in this paper: a construct
+definition, theoretical expectation, comparison, design decision or unresolved
+question. "This is relevant to our topic" is insufficient without that connection.
+Explain what remains unknown and what answering it would change. A list of
+estimators, datasets or robustness checks does not by itself explain a substantive
+contribution. Likewise, saying an estimate is not new or a dataset cannot identify
+a mechanism does not replace explaining what the cited evidence establishes.
+Keep competing explanations and limits that constrain the proposed contribution.
+An unmeasured outcome is a gap in the inspected corpus, not proof that no prior
+research exists. The evidence may support adopting or refining an existing account
+rather than claiming novelty. These are analytical decisions, not a fixed
+paragraph template, a study-count quota or a demand for a mechanism everywhere.
+
+Use boundary reviews, feasibility decisions and analysis plans as drafting inputs,
+not ready-made literature-review prose. Preserve consequential inferential limits
+and methodological debates, but keep detailed implementation/reporting rules in
+the section that needs them. The reader should understand the literature's actual
+findings and unresolved question without reconstructing them from statements about
+what this paper will not claim. A review may motivate a design; that motivation
+must not crowd out the evidence it is supposed to synthesize.
+
+When comparing estimates, explain whether their outcomes, populations, periods
+and estimands permit the proposed comparison. A numerical ordering alone cannot
+establish why studies differ. If the available sources do not support that
+comparison, distinguish their questions and preserve the uncertainty rather than
+inventing a reconciliation. For a supplied section, check available surrounding
+definitions before treating an unexplained term as absent from the whole paper.
+
+### Citation coverage and explanatory notes
+
+Apply `references/citation-risk-policy.md` throughout the requested text,
+including background, definitions and footnotes, not just the central claims.
+Add inspected, claim-matching support where it is needed; citation coverage is
+not a target number of references. Do not fabricate a source or a detail to make
+a paragraph appear more complete. Keep unsupported assertions visibly unresolved
+or narrow them to the available evidence.
+
+Use an explanatory footnote/endnote when a useful qualification, term distinction,
+historical aside or secondary detail would interrupt the main argument. Keep the
+main claim, the evidence needed to assess it and consequential inferential limits
+in the body. A note must not conceal a contradiction or missing support. Distinguish
+explanatory notes from a venue's bibliographic note system: both may need source
+citations, and neither exempts its factual claims from checking.
+
+Make the body understandable on its own. A concept needed to follow the argument
+belongs in the body; a secondary naming distinction or source-specific detail may
+belong in a note. When such a detail matters for the intended reader, supply its
+supported explanation instead of merely leaving a technical label unexplained.
+Track a note's substantive assertions to their own passages, not automatically
+to the nearest body citation. Do not invent extra content to force a footnote.
+
+Follow the requested format and venue's note rules; use Markdown footnotes only
+when the deliverable supports them. Preserve existing note identifiers where
+possible, resolve every marker to its definition, avoid duplicate definitions
+and check citations inside notes. If notes are forbidden, incorporate the useful
+explanation concisely in the permitted form. Do not add notes without a reader
+need, invent page locators, or use notes to evade the requested length limit.
+
+### Review and completion
+
+Read the complete requested unit for flow and depth: can the reader follow the
+argument without reconstructing missing steps? For related work, inspect the
+source comparisons and their specific connection to the paper. Check citation
+coverage in background as well as analysis, and note placement and references
+when notes are used. Revise the demonstrated defect; do not append these internal
+checks as boilerplate to a requested passage.
+
+Check the delivered unit against its opening question and carry the same
+constructs, populations, outcomes and time frames through its later conclusions.
+When the scope changes, explain that change. Check how each paragraph advances
+the preceding point; a set of individually fluent paragraphs may still fail as a
+section. Within the requested scope, repair a missing link or expose an unresolved
+premise before spending effort on stylistic polish. Do not infer whole-manuscript
+coherence from an isolated paragraph or silently reorganize an unrequested section.
+
+Keep two review conclusions distinct: whether the statements are supported, and
+whether the complete unit explains and connects them clearly. A source-accurate
+author list can still fail depth/coherence; fluent prose can still overclaim.
+After a meaning-bearing edit, recheck the affected claim and source location as
+well as the revised flow. Do not mark the unit complete with a known missing
+explanation, unsupported bridge or unresolved substantive note presented as fact.
+
+Check the delivered text against the requested length and format, as well as its
+claims. Use the user's counting rule. If none is specified, count words for an
+English word limit; for a Chinese character limit, count non-whitespace Unicode
+characters in the prose, including punctuation and digits, excluding standalone
+source-anchor citations. Keep that convention consistent during drafting and
+review. Citation strings, headings and editorial notes must not pad a short
+paragraph. Check the actual final text rather than estimating from its appearance;
+after editing, recount the changed unit. Return only the paragraph when that is
+the requested format; an internal length check needs no extra checklist or count.
+If evidence cannot support the requested length, identify the gap rather than
+adding unsupported claims or silently returning an undersized completed draft.
+
+Check the requested unit before returning it. Revise concrete defects and verify
+what changed; further passes need new evidence, a remaining defect or an explicit
+review requirement. Honor configured minimum passes and required independent
+review, including settings carried by an existing run. A clean check is allowed
+and does not require invented revisions. Missing evidence or an exhausted budget
+does not establish readiness.
+
+Continue within the agreed scope when evidence settles the decision. Ask only
+for a consequential unresolved choice, scope change or required write approval;
+continue independent supported work while that branch is blocked. Registered
+project writes still use preview/approval/CAS and preserve user material.
+
+Finish when the requested deliverable meets its applicable checks, or report the
+specific unmet requirement. Record claim-support evidence and unresolved issues
+at the artifact or claim level needed for traceability; routine paragraphs need
+no checkpoint transcript. Preserve stable claim IDs and review issue lineage.
+
+---
+
+## Proposal / Opening Report — Research Proposal Writing
+
+Use `proposal-writer` when the requested output is a research proposal, prospectus, opening report, 开题报告, or study plan. This is a pre-results approval artifact: it synthesizes the RQ, literature gap, theory, contribution, study design, analysis plan, ethics/data management, feasibility, timeline, and risks into `proposal/research_proposal.md`.
+
+Definition of done:
+- The proposal states what will be studied, why it matters, how it will be executed, and what would count as success.
+- Missing citations, data access, ethics status, sample-size rationale, or institutional requirements are visible as gap notes.
+- Planned findings, interpretations, and implications are separated from completed results.
+- The proposal is not treated as a preregistration, systematic review protocol, or manuscript draft.
+
+Write into: `proposal/research_proposal.md`.
+
+---
+
+## F1 — Manuscript Outline
+
+**Definition of done**
+- Section headings match venue norms
+- Each section has bullet “promises” (what it will deliver)
+- Results section mirrors analysis plan outputs or the planned qualitative findings architecture
+
+Write into: `manuscript/outline.md`.
+
+---
+
+## F2 — Single Section / Component Drafting
+
+Use when you want to draft one component precisely (e.g., “intro gap paragraph”).
+
+**Definition of done**
+- The component has a clear rhetorical role (setup / gap / contribution / method / evidence / limitation)
+- The component fulfills its section purpose at the depth supported by the evidence
+- Source-dependent claims, including background and notes, have matching support
+- No new claims that contradict earlier artifacts
+
+Write into: `manuscript/manuscript.md` (or a section placeholder within it).
+
+---
+
+## F3 — Full Draft
+
+**Definition of done (minimum)**
+- All sections required by the paper type and venue exist; do not force an empirical structure onto other paper types
+- Methods contain enough detail for replication or audit (given the artifact set), including sampling, access, data sources, analytic procedure, and reflexivity for qualitative work
+- Results are consistent with analysis plan and reported with uncertainty or transparent evidence structure
+- Findings in qualitative papers are analytic claims; quotes, vignettes, and episodes are evidence anchors rather than the finding itself
+- Related work and discussion explain the evidence's significance to the question;
+  tensions, mechanisms and alternatives are developed when relevant and supported
+- Limitations discuss validity threats (not only “small sample”)
+- The narrative states where claims stop: boundary conditions, contradictory cases, and inferential limits are explicit
+- Discussion distinguishes participant attributions, author interpretation, and speculative implication
+- Result narration is externalized enough to support reuse in `manuscript/results_interpretation.md`
+- Effect magnitude is translated into practical terms in `manuscript/effect_interpretation.md` when applicable
+
+Write into:
+- `manuscript/manuscript.md`
+- `manuscript/results_interpretation.md`
+- `manuscript/effect_interpretation.md`
+
+---
+
+## F4 — Claim–Evidence Map
+
+Build this map from the actual manuscript, not only the claims already in a ledger.
+Every substantive source-dependent or inferential assertion in the selected scope
+must trace to inspected evidence or an explicit unresolved gap.
+
+**Definition of done**
+- Coverage includes all selected body sections, captions and footnotes/endnotes
+- Compound assertions are separated when their evidence or qualifiers differ
+- Each claim has an inspected evidence pointer or a named gap, with manuscript location
+- Claim types retain the evidence-ledger vocabulary; source results, synthesis and inference remain distinct
+
+Use `templates/claim-evidence-map.md` for `manuscript/claims_evidence_map.md`.
+Preserve its exact headers, stable claim IDs and distinction between evidence
+pointers and citation keys. Do not substitute a differently shaped summary table.
+
+---
+
+## F5 — Figures & Tables Plan
+
+Plan visuals early so the narrative has “anchors”.
+
+**Definition of done**
+- List of planned figures/tables with:
+  - purpose (what question it answers)
+  - data source
+  - caption claim (what it will show)
+- Mapping from results sections → figures/tables
+
+Write into: `manuscript/figures_tables_plan.md`.
+
+Recommended pairing:
+- `table-generator` for `manuscript/tables/`
+- `figure-specifier` for `manuscript/figures/`
+
+For qualitative papers, common `F5` outputs include:
+- data structure diagrams
+- process models
+- case comparison matrices
+- evidence tables linking cases/quotes to claims
+
+---
+
+## F6 — Abstract & Title Optimization (Indexing / SEO / Reviewer Scanning)
+
+**Definition of done**
+- Title reflects: construct + setting + method + contribution (as appropriate)
+- Abstract communicates the question, approach, supported answer and contribution
+  appropriate to the paper type; verified venue requirements govern its structure
+- Keywords reflect both author terms and common index terms (without stuffing)
+
+Write into: `manuscript/meta_optimization.md`.
+
+
+# Scholarly Voice: English and Chinese
+
+Use while drafting Stage F prose and with J2 for stiff, translated or generic
+scholarly prose. In revisions, resolve the specific expression problem; in new
+drafts, establish clear information order from the start. Use readable, concise
+language throughout the manuscript. Preserve evidence and logical meaning, then
+choose the clearest wording appropriate to the reader. An academic register does
+not justify obscure vocabulary or a harder-to-follow argument. This reference
+does not require starting a separate J2 task.
+
+## Shared editing decisions
+
+- Keep names, numbers, quotations, equations, citations, terms, negation,
+  quantifiers, scope and uncertainty. Suspected factual errors need a verification
+  note; editing is not permission to correct the underlying research silently.
+- Follow a supplied voice sample or venue rule without inventing personality,
+  experience or a stronger position. Preserve required AI disclosure.
+- Locate the point of each paragraph and the role of each sentence. Keep a
+  stable topic and identifiable referents; use a paragraph break for a topic
+  change when a supported transition cannot connect it naturally.
+- Prefer a familiar word or direct verb when it expresses the same meaning.
+  Retain necessary technical terms, define them where needed and use them
+  consistently. Do not replace a precise term with a vague everyday synonym,
+  or rotate synonyms merely to sound sophisticated.
+- Cut repetition and empty framing, while retaining the premises, comparison,
+  units and qualifications needed to understand the claim. A useful explanation
+  may make a passage longer; disconnected short statements are not a successful
+  simplification. Do not impose a sentence-length ceiling or readability score.
+- Distinguish a genuine contrast from simple addition, and an observed sequence
+  from causation. Retain helpful transitions; do not manufacture a missing premise
+  with “therefore” or “因此”. Flag the missing reasoning instead.
+- On the final continuous read, identify the actual claim, its reason and the
+  link to the following point. If a reader must infer an unspecified actor,
+  referent or premise, clarify it from inspected material or expose the gap.
+  Polished vocabulary cannot make that unresolved step complete.
+- Edit at the requested depth. A language pass preserves section order and
+  fixed headings; structural editing needs a request that covers it. For coaching,
+  show a few meaningful revisions and explain the decisions the author must make.
+- Stop when the text meets the request and the source comparison passes. No
+  detector target, banned-word list, required sentence pattern or forced slang.
+
+## Language editing and meaning review
+
+G4 checks tone and claim calibration against available evidence. J2 improves
+expression while preserving the settled research meaning. Treat language editing
+and meaning review as distinct tasks, even when one agent performs both:
+
+- **Language editor:** read a coherent passage and relevant adjacent context;
+  improve information order, idiom and sentence connections. Combine, split or
+  reorder sentences within the requested paragraph or section scope. An edit
+  may be longer when it restores a needed explanation. Remove a qualifier only
+  when its deletion leaves the actual uncertainty, attribution and scope intact.
+- **Meaning reviewer:** compare the original and edited versions for quantities,
+  units, citations and their claim attachment, terminology, negation, quantifiers,
+  population/time scope, causal strength and uncertainty. Report the exact
+  changed span and its consequence, with a minimal repair when possible. Leave
+  valid language choices intact; do not restart a general stylistic rewrite or
+  add caveats merely because the prose is direct. No drift is a valid result.
+
+Preserve uncertainty of meaning, not the number or wording of hedges. Observed
+results and performed methods can be stated directly. Keep speculative mechanisms
+provisional. A missing premise needs substantive review; neither a fluent bridge
+nor an extra "may" supplies it. Necessary research limits remain where readers
+need them, including independently read abstracts. Repeated boilerplate can be
+removed when the local claim remains accurate. Tool failures, pending checks and
+editor questions belong in the work record or a brief separate note, not inserted
+as manuscript prose; never hide a material research limitation there.
+
+For a requested cross-Host edit, hand over the selected manuscript version,
+relevant context, existing terminology/claim constraints and any supplied voice
+sample. Receive an edited candidate and unresolved questions. An optional
+Codex → Antigravity → Codex sequence assigns editing to Antigravity and meaning
+comparison to Codex; it does not select a model, launch a Host, transmit private
+material or require multiple agents. Use the user's configured Host/model and
+authorized handoff. A bounded edit can use two passages in chat with no new
+project, ledger or mandatory handoff file.
+
+Review the returned candidate against the same original version. If either
+version changed meanwhile, compare the current versions before applying it.
+For registered projects, preserve claim IDs and evidence links and use the
+existing preview/approval/CAS owner to save the reviewed candidate. A language
+comparison does not establish source support or close an existing evidence gap.
+Stop once the requested language issues and actual meaning drift are resolved;
+source/argument changes return to their substantive owner.
+
+## Connected sections and returned edits
+
+For a chapter or several sections, read the selected unit continuously before
+editing individual sentences. Track the research question, named constructs,
+population, outcomes and time frame across paragraph boundaries. Keep the
+abstract's answer consistent with the current Results and Discussion; an
+independently read abstract still needs the limits that change its conclusion.
+Do not equalize wording where two sections intentionally discuss different
+measures, groups or stages. Existing terminology and claim maps can help; a
+language edit does not require creating another map or checklist.
+
+An inconsistency already present in the original is a separate finding, not
+meaning drift introduced by the editor. Identify its locations and the current
+source needed to resolve it. A fluent edit cannot decide between conflicting
+result versions. If only a selected passage was supplied, state any material
+cross-section dependency briefly rather than claiming a whole-paper check.
+
+For an external handoff, identify the exact original and the requested scope
+alongside the candidate. Keep unresolved editor questions outside the manuscript.
+A file/version identifier or a digest may be useful for saved drafts; two clearly
+labelled passages suffice in chat. If the original, candidate or relevant result
+changed after review, the earlier comparison no longer covers those changed
+claims. Reconcile the affected spans against the current versions before saving
+through the existing owner. Preserve good edits in unaffected passages; do not
+restart whole-text style editing. A no-drift review accepts the candidate's
+language and ends the comparison.
+
+## English output
+
+Use established collocations and keep the main subject and verb easy to follow.
+Reduce noun chains and stacked modifiers without dropping qualifications. Keep
+technical terms consistent instead of cycling through near-synonyms. Active or
+passive voice and first person follow meaning and venue, not universal rules.
+Preserve statistical “significant” and exact Methods procedures.
+
+Carry a recognizable topic into the next sentence, then introduce the new point.
+Clarify “this”, “it” or “they” only when the source establishes the referent.
+Use sentence length to fit the idea. When translating, reconstruct English
+clause order and articles rather than carrying over the source grammar.
+
+Example (expression only):
+
+> We conducted an examination of the association in 120 firms. The estimate was
+> 0.18 (p = .03), but the design does not establish causality [12].
+
+Can become:
+
+> We examined the association in 120 firms. The estimate was 0.18 (p = .03), but
+> the design does not establish causality [12].
+
+The numbers, citation and causal limitation stay exact. “The effect proves…”
+would change the research claim, regardless of how fluent it sounds.
+
+Example (flow with consequential uncertainty):
+
+> In relation to the difference in scores, the estimate was 2 points (95% CI:
+> -1 to 5) [S1]. It is important to note that the interval includes zero.
+> Equivalence is not something this analysis establishes.
+
+Can become:
+
+> The estimated score difference was 2 points (95% CI: -1 to 5) [S1]. The
+> interval includes zero, and the analysis does not establish equivalence.
+
+A meaning reviewer accepts this direct wording. "There was no difference"
+or "The groups were equivalent" would change the conclusion and must be
+flagged. Restore the affected conclusion, not the original awkward framing.
+
+## 中文输出
+
+按读者、学科和用途确定语体；简繁体随原稿或用户要求。普通学术说明应清楚平实，
+正式论文保持学科所需的严谨程度；不把长句、抽象名词或公文化表达当作严谨。
+
+先理顺段落意思，再调整信息顺序。能用具体动词时，减少“对……进行……”等空架子；
+拆开堆叠的修饰语和“的”字链。主语可省略，但换话题时要明确指代。不要为了避免
+重复而更换关键术语，也不要把所有长句切成短句。
+
+“因此”须有原文支持的推论，“然而”须有真实转折。“此外”不能弥补话题脱节。
+保留必要的连接词，不强制排比、四字短语或段末总结。处理中译英、英译中时，
+按目标语言重组语序，不新增理由、例子或结论。
+
+例如：
+
+> 本研究对120家企业中的关联进行了检验，估计值为0.18（p = .03）。然而，
+> 该研究设计不能确立因果关系[12]。
+
+可改为：
+
+> 本研究检验了120家企业中的关联，估计值为0.18（p = .03），但该研究设计不能
+> 确立因果关系[12]。
+
+“相关”不可润色成“导致”，“尚不能排除”不可简化成“没有”。完成后连贯通读，
+再对照原稿核查研究含义、数据、引文和限制条件。
+
+例如，已有样本结果支持正相关，待改的是重复限定和句间衔接：
+
+> 在本样本的120家企业中，结果表明，X与Y或许可能存在正相关，估计值为
+> 0.18（p = .03）[S2]。需要谨慎指出的是，该研究设计不能确立因果关系。
+
+可改为：
+
+> 在本样本的120家企业中，X与Y呈正相关，估计值为0.18（p = .03）[S2]。
+> 该研究设计不能确立因果关系。
+
+含义复核接受这个直接表述，无须恢复“或许可能”或“需要谨慎指出的是”。
+“X提高了Y”改变了因果强度；“企业中普遍存在这一关系”扩大了范围，均需指出。
+若原稿另有“这一关联可能反映资源差异，但该解释尚未检验”，其中的机制
+不确定性必须保留，不能套用前例删成“这一关联反映资源差异”。
+
+以上为合成教学样例；[S1]、[S2] 是样例标记，不是可用于论文的新引文。
+
+## Reference
+
+Adapted for Qiongli's scholarly editing scope from
+[jxpeng98/skills humanizer](https://github.com/jxpeng98/skills/tree/32acfac4951d567d1f9ec2c6e934120d84f3436d/plugins/writing-tools/skills/humanizer).
+The upstream guidance informed fidelity, paragraph continuity and language-specific
+editing; Qiongli retains its J2 IDs, artifact contract and project write boundary.
+
+
+# Academic Output Rubric
+
+Use this rubric whenever a workflow or skill produces scholarly prose, evidence synthesis, code review, study design, or submission material.
+
+## Three questions at consequential decisions
+
+Use these questions when choosing a method, changing a central claim, resolving
+conflicting evidence or resuming affected work. Reuse settled answers; routine
+edits need no decision form or repeated interview.
+
+1. **What must be decided now?** Name the requested deliverable and the affected
+   RQ, claim or decision ID. Distinguish the intended claim from the claim the
+   available design/evidence can support.
+2. **What evidence would settle it?** Inspect the available source, result and
+   protocol at their current revision. Separate observed facts, explicit
+   assumptions and missing prerequisites. Ask only for information that could
+   change this decision; a prior summary or review is not new source evidence.
+3. **What can proceed, under what condition?** Choose a supported action, a
+   bounded provisional draft, or a pause of the affected action. Name the missing
+   input and the check that would permit that action to resume. Continue
+   independent supported work. Missing optional context does not block the task;
+   a missing required premise cannot become a passed gate.
+
+The model chooses tools, sequence, methods and presentation within the authorized
+scope. Stage C/E/F references supply concrete decision points. Preserve the
+selected task's formal outputs, gates and protocol requirements.
+
+Keep the decision, evidence basis and continuation condition in the existing
+design, synthesis or interpretation artifact. For consequential project changes,
+reuse `context/decision_log.md` and `context/stage_handoff.md`; preserve IDs,
+source anchors, limitations and prior entries. Do not create a parallel decision
+register. If a source/result changes, revisit only dependent decisions and claims,
+and identify affected downstream artifacts before reusing an earlier conclusion.
+Use the existing preview/approval/CAS owner for persistence; a candidate or
+planned diagnostic is not an applied decision or completed check.
+
+## Claim Discipline
+
+- Bind each core claim to an evidence source, dataset result, or named project artifact.
+- Separate `finding`, `interpretation`, and `implication`; do not let implications masquerade as results.
+- Match claim strength and scope to evidence. State observations and performed
+  methods directly; qualify uncertain interpretations or extrapolations where
+  needed. Observational evidence can support a direct statement of association
+  without supporting causation. Do not impose a hedge on every claim.
+- Do not use empty intensifiers such as "important", "significant", or "robust" unless the text explains the criterion and evidence.
+
+## Evidence Integrity
+
+- Never invent citations, sample sizes, model outputs, statistical results, datasets, institutional requirements, or reviewer comments.
+- If evidence is missing, write a gap note that names the missing input and the artifact that should supply it.
+- Preserve uncertainty, contradictions, boundary conditions, and plausible rival explanations.
+- Prefer field-specific terminology over generic template language.
+
+## Scholar-Like Writing
+
+- State a mechanism or theoretical explanation when evidence permits; otherwise report the supported pattern and its inferential limits. Label untested mechanisms as hypotheses.
+- Name boundary conditions: population, setting, measurement choice, model assumption, time period, or scope limit.
+- Include counterevidence or alternative explanations when they materially affect the claim.
+- Keep prose direct and discipline-native; avoid generic AI phrases and repeated paragraph templates.
+- Apply `references/scholarly-voice.md` to language edits and meaning review.
+  Preserve consequential uncertainty without inserting audit commentary into
+  manuscript prose or restarting style revision during a meaning comparison.
+
+## Output Check
+
+Before finalizing an artifact, verify:
+
+- The artifact path matches the workflow contract.
+- Claims are traceable to evidence or marked as hypotheses.
+- Unsupported claims are removed or downgraded.
+- Limitations are specific enough for a domain reviewer to evaluate.
+- Missing information is disclosed as a gap rather than filled with fabricated detail.
+
+
+SYNTHETIC SOURCES
+# Invented evidence packet
+
+Every named source, study, page and paragraph below is synthetic. Titles are
+fixture labels, not actual publications or bibliographic records. All available
+evidence is reproduced here; there are no underlying articles to retrieve.
+Locator page/paragraph numbering is part of the fixture. Numeric confidence
+intervals and uncertainty statements must be interpreted on their stated scale.
+The two tasks use different study populations and materials.
+
+## L1 — “Formative feedback in university writing: a synthesis”
+
+**p. 4, ¶1.** This secondary meta-analysis included 18 randomized or
+quasi-experimental comparisons with 2,140 novice university students. All compared
+formative feedback with usual instruction or no additional feedback. The pooled
+standardized mean difference for argument-writing quality was 0.31 (95% CI
+0.16–0.46), with positive values favouring feedback. Quality was usually assessed
+through claim clarity, relevance of evidence and treatment of counterarguments.
+The synthesis reported substantial between-study heterogeneity (I² = 61%).
+
+**p. 5, ¶1.** Fourteen comparisons assessed a revised version of the same essay;
+four assessed a new writing task two to six weeks later. The subgroup estimates
+were 0.38 (95% CI 0.22–0.54) for revisions and 0.12 (95% CI −0.08–0.32) for new
+tasks. The interaction estimate and its uncertainty were not reported. Thus the
+subgroups describe different observed results, but the report does not establish
+that their effect sizes differ statistically. Eight comparisons had concerns
+about allocation or outcome assessor masking. The authors did not pool outcomes
+beyond six weeks or estimate effects specifically for evidence attribution.
+
+**p. 6, ¶2.** The review categorized feedback as either directive comments
+(proposing a specific change) or question-based comments (asking writers to
+justify a choice). Many interventions combined both. The authors reported too
+few adequately described comparisons to estimate a reliable difference between
+these categories. Feedback delivery, practice time and revision opportunities
+also varied. Individual studies below are separate synthetic records; L1 does
+not state whether any of them contributed to its pooled estimate.
+
+## L2 — “A revision cycle with explanation prompts”
+
+**p. 7, ¶1.** In a required first-year course, 120 students were individually
+randomized to usual instructor comments or the same comments plus a worksheet
+asking them to explain which claim each cited finding supported and why a
+revision was justified. Both groups received the same evidence packet, writing
+time and one revision opportunity. Baseline argument scores were similar. All
+120 completed the revision; 108 completed an independently written essay using a
+new packet three weeks later, with six missing in each group. Assessors were
+masked to allocation. The reported analysis used the available follow-up essays.
+
+**p. 8, ¶1.** On the revised essay, the worksheet group scored 0.6 points higher
+on a 0–10 argument-quality scale (95% CI 0.2–1.0). On the new essay, its advantage
+was 0.5 points (95% CI 0.1–0.9). The rubric covered claim support and engagement
+with conflicting evidence, but did not separately score citation accuracy.
+The intervention combined explanation prompts with a written revision record;
+the design did not separate their contributions. Students could consult their
+old worksheets during revision but not during the new essay.
+
+**p. 8, ¶2.** In interviews with 16 volunteers from the worksheet group, 11 said
+the worksheet made them notice that a relevant citation could still fail to
+justify the strength of a claim. These were retrospective perceptions; the
+researchers did not directly measure change in understanding or test whether it
+mediated writing improvement. Interview recruitment and the remaining five
+students' accounts were not further described in the supplied passage.
+
+## L3 — “Immediate automated comments and later writing”
+
+**p. 3, ¶1.** A randomized trial assigned 90 novice students to an automated
+comment tool or ordinary written rubric guidance. The tool offered immediate
+sentence-level suggestions for clarity and evidence placement. Each group had
+one 45-minute revision session. Tool users accepted an average of 72% of offered
+suggestions; acceptance does not indicate whether suggestions were correct.
+The excerpt gives no audit of suggestion accuracy. All students completed both
+assessments and assessors were masked.
+
+**p. 4, ¶1.** The tool group gained 0.9 more points on the revised draft's 0–10
+rubric (95% CI 0.4–1.4). In a new essay two weeks later without the tool, the
+between-group difference was 0.0 points (95% CI −0.4–0.4). This rubric emphasized
+coherence and evidence placement, whereas L2 also assessed handling conflicting
+evidence. Neither estimate measured time saved. The new essay result does not
+exclude smaller beneficial or harmful effects and supplies no longer-term result.
+
+## L4 — “Feedback uptake in an optional writing clinic”
+
+**p. 10, ¶1.** This observational study followed 180 first-year students who
+voluntarily attended a writing clinic. Instructors coded whether students
+explained how they used feedback in a revision memo. Students providing such
+explanations subsequently scored 0.7 points higher on a new 0–10 argument task
+(95% CI 0.2–1.2), adjusting for baseline writing score and prior course grade.
+There was no random assignment to explain feedback. Clinic attendance,
+motivation and instructor contact could differ; motivation and contact were
+not measured. The supplied passage does not report missing follow-up counts.
+
+**p. 11, ¶2.** Students with lower baseline scores more often reported that
+feedback phrases such as “develop the warrant” were hard to apply. No subgroup
+effect estimate or comparison of accessible versus technical wording was
+reported. These accounts suggest a usability issue, not an established advantage
+of a particular vocabulary or feedback method.
+
+## L5 — “What it means to use feedback”
+
+**p. 2, ¶1.** This secondary conceptual explanation distinguishes correction of
+a text from learning that can guide a later text. A novice may implement “move
+this citation after the claim” without understanding whether the source supports
+the claim. Independent argument writing requires choosing relevant evidence and
+judging how far it supports a conclusion when a particular comment is absent.
+A warrant is the reasoning that connects the evidence to that conclusion; it
+need not be an explicitly labelled sentence.
+
+**p. 3, ¶2.** The authors propose that explaining a revision can give students
+practice in this judgment, provided they can interpret the feedback and have an
+opportunity to act on it. They also note that explanations may merely repeat an
+instructor's wording. This is a proposed account, not an experimental estimate
+or proof that explanation causes transfer. The chapter reports no new participants,
+effect sizes or tested mediation model.
+
+## C1 — “实验提示与错误识别：研究综合”
+
+**p. 3, ¶1.** 这项二次元分析纳入12项随机或准实验比较，共960名本科生。提示支持相对
+常规说明在当次实验完成度上的合并标准化均差为0.35（95%置信区间0.18—0.52），
+研究间异质性I²为54%。完成度通常按是否正确完成指定步骤评分，不等同于学生能
+解释误差来源。其中仅3项研究考查无提示的新任务，合并标准化均差为0.09
+（95%置信区间−0.15—0.33）。未报告两个结果类别的交互检验；不能仅根据一个
+区间跨零、另一个不跨零就认定类别间差异已得到验证。
+
+**p. 4, ¶2.** 研究综合中，提示内容、实验难度与评分标准不同，5项比较存在分组或评分
+盲法方面的偏倚风险。作者未单独估计“先解释后看提示”的效果，也未汇总延迟超过
+一个月的任务。C2及本研究是否被纳入此综合，材料没有说明。
+
+## C2 — “提示顺序与操作完成”
+
+**p. 6, ¶1.** 一项单校研究将64名学生随机分为先看提示组和先写操作理由再看提示组。
+两组均可在练习中查阅提示，练习时间相同。后者在当次操作完成度0—10分量表上
+高0.8分（95%置信区间0.2—1.4）。研究没有安排新的无提示任务，也没有考查理由
+的准确性；材料未说明评分是否设盲。结果只反映这两种提示使用顺序在当次练习中
+的差异。
+
+## C3 — “为什么能完成步骤仍可能看不出误差”
+
+**p. 2, ¶1.** 这篇二次概念性说明指出，步骤清单可以告诉学生下一步做什么，但识别
+测量误差还要求判断测量值如何产生，以及某一步骤偏差如何影响读数。例如，知道
+需要调零，并不自动意味着能识别未调零带来的系统偏移。“先解释”可能让这种关系
+显现，也可能只是增加书写负担。该文是对学习过程的解释，没有新增实验证据，也
+没有证明解释过程是任何已有干预的中介变量。
+
+## Study — 本文研究记录（不是外部文献）
+
+**§S1 — 设计。** 某校本科实验课10个教学小组按小组随机分配，两组条件各5个小组，
+共200名学生（每种条件100名）。对照条件先看提示，干预条件先简述操作理由再看
+相同提示。教师、提示内容、练习任务和练习时长一致。练习结束后两周，学生完成
+新的测量任务，不能查阅提示。该任务的主要结果是独立识别预设测量误差的得分，
+范围0—10分；不是实际仪器操作完成度。评分者不知组别。
+
+**§S2 — 结果。** 干预条件新任务均分6.4分，对照条件5.6分；考虑小组聚类的组间
+差异估计为0.8分（95%置信区间0.1—1.5）。两种条件各有8人缺席延迟任务，分析
+基于其余184人；缺席原因未记录，未进行缺失数据敏感性分析。练习当次的操作
+完成率分别为86%和88%；组间差异−2个百分点（95%置信区间−10—6个百分点），
+不能据此认定两种条件等效。两项结果的量表和单位不同。
+
+**§S3 — 解释所需的信息边界。** 本研究未评分学生书写理由的质量，也未直接测量
+概念理解、认知负担或练习后额外学习。材料没有延迟任务前的误差识别基线得分。
+本研究只包含一个学校与两周后的一个新任务；没有更长期结果。随机分组单位为
+教学小组，不能描述为200名学生被逐人随机分组。置信区间已按小组聚类处理，
+不得另编标准误、p值、效应量或亚组结果。
+
+
+TASK
+Complete English literature review
+
+Write a complete literature review of approximately 700–1,000 body words for a
+paper asking: **Under what conditions does formative feedback help novice
+university students improve their independent evidence-based argument writing?**
+The audience is education researchers who know basic quantitative methods but
+are unfamiliar with the individual studies. Use L1–L5. Develop an argument that
+answers the question as far as the supplied evidence permits, compares relevant
+findings and identifies the remaining research gap. Explain important concepts
+and evidence relationships rather than producing an annotated bibliography.
+You may draw your own bounded synthesis, clearly distinguishing it from reported
+findings. Give the review a suitable title; no abstract or reference list is
+needed. The word range refers to whitespace-separated body words, excluding the
+title and citation brackets. Paragraph organization is your choice.
+

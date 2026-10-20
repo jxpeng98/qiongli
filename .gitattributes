@@ -27,5 +27,8 @@ tooling/migration/ctr-201-cli-runtime.schema.json text eol=lf
 tooling/migration/ctr-201-orchestrator-runtime.json text eol=lf
 tooling/migration/ctr-201-orchestrator-runtime.schema.json text eol=lf
 
+# Frozen model captures bind exact bytes, including terminal blank lines.
+evals/research_journey/writing-quality/observations/roundtrip-2026-10-20/** text eol=lf whitespace=-blank-at-eof
+
 # Trellis journals are append-only across worktrees.
 .trellis/workspace/*/journal-*.md merge=union

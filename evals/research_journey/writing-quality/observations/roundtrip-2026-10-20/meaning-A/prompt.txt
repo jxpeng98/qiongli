@@ -1,0 +1,244 @@
+Compare the supplied original and edited literature review for meaning changes only. Identify exact changed spans and minimal repairs, or briefly say no drift was found. Do not perform another style rewrite. These are synthetic evaluation texts; do not use tools or write files.
+
+GUIDANCE
+# Scholarly Voice: English and Chinese
+
+Use while drafting Stage F prose and with J2 for stiff, translated or generic
+scholarly prose. In revisions, resolve the specific expression problem; in new
+drafts, establish clear information order from the start. Use readable, concise
+language throughout the manuscript. Preserve evidence and logical meaning, then
+choose the clearest wording appropriate to the reader. An academic register does
+not justify obscure vocabulary or a harder-to-follow argument. This reference
+does not require starting a separate J2 task.
+
+## Shared editing decisions
+
+- Keep names, numbers, quotations, equations, citations, terms, negation,
+  quantifiers, scope and uncertainty. Suspected factual errors need a verification
+  note; editing is not permission to correct the underlying research silently.
+- Follow a supplied voice sample or venue rule without inventing personality,
+  experience or a stronger position. Preserve required AI disclosure.
+- Locate the point of each paragraph and the role of each sentence. Keep a
+  stable topic and identifiable referents; use a paragraph break for a topic
+  change when a supported transition cannot connect it naturally.
+- Prefer a familiar word or direct verb when it expresses the same meaning.
+  Retain necessary technical terms, define them where needed and use them
+  consistently. Do not replace a precise term with a vague everyday synonym,
+  or rotate synonyms merely to sound sophisticated.
+- Cut repetition and empty framing, while retaining the premises, comparison,
+  units and qualifications needed to understand the claim. A useful explanation
+  may make a passage longer; disconnected short statements are not a successful
+  simplification. Do not impose a sentence-length ceiling or readability score.
+- Distinguish a genuine contrast from simple addition, and an observed sequence
+  from causation. Retain helpful transitions; do not manufacture a missing premise
+  with “therefore” or “因此”. Flag the missing reasoning instead.
+- On the final continuous read, identify the actual claim, its reason and the
+  link to the following point. If a reader must infer an unspecified actor,
+  referent or premise, clarify it from inspected material or expose the gap.
+  Polished vocabulary cannot make that unresolved step complete.
+- Edit at the requested depth. A language pass preserves section order and
+  fixed headings; structural editing needs a request that covers it. For coaching,
+  show a few meaningful revisions and explain the decisions the author must make.
+- Stop when the text meets the request and the source comparison passes. No
+  detector target, banned-word list, required sentence pattern or forced slang.
+
+## Language editing and meaning review
+
+G4 checks tone and claim calibration against available evidence. J2 improves
+expression while preserving the settled research meaning. Treat language editing
+and meaning review as distinct tasks, even when one agent performs both:
+
+- **Language editor:** read a coherent passage and relevant adjacent context;
+  improve information order, idiom and sentence connections. Combine, split or
+  reorder sentences within the requested paragraph or section scope. An edit
+  may be longer when it restores a needed explanation. Remove a qualifier only
+  when its deletion leaves the actual uncertainty, attribution and scope intact.
+- **Meaning reviewer:** compare the original and edited versions for quantities,
+  units, citations and their claim attachment, terminology, negation, quantifiers,
+  population/time scope, causal strength and uncertainty. Report the exact
+  changed span and its consequence, with a minimal repair when possible. Leave
+  valid language choices intact; do not restart a general stylistic rewrite or
+  add caveats merely because the prose is direct. No drift is a valid result.
+
+Preserve uncertainty of meaning, not the number or wording of hedges. Observed
+results and performed methods can be stated directly. Keep speculative mechanisms
+provisional. A missing premise needs substantive review; neither a fluent bridge
+nor an extra "may" supplies it. Necessary research limits remain where readers
+need them, including independently read abstracts. Repeated boilerplate can be
+removed when the local claim remains accurate. Tool failures, pending checks and
+editor questions belong in the work record or a brief separate note, not inserted
+as manuscript prose; never hide a material research limitation there.
+
+For a requested cross-Host edit, hand over the selected manuscript version,
+relevant context, existing terminology/claim constraints and any supplied voice
+sample. Receive an edited candidate and unresolved questions. An optional
+Codex → Antigravity → Codex sequence assigns editing to Antigravity and meaning
+comparison to Codex; it does not select a model, launch a Host, transmit private
+material or require multiple agents. Use the user's configured Host/model and
+authorized handoff. A bounded edit can use two passages in chat with no new
+project, ledger or mandatory handoff file.
+
+Review the returned candidate against the same original version. If either
+version changed meanwhile, compare the current versions before applying it.
+For registered projects, preserve claim IDs and evidence links and use the
+existing preview/approval/CAS owner to save the reviewed candidate. A language
+comparison does not establish source support or close an existing evidence gap.
+Stop once the requested language issues and actual meaning drift are resolved;
+source/argument changes return to their substantive owner.
+
+## Connected sections and returned edits
+
+For a chapter or several sections, read the selected unit continuously before
+editing individual sentences. Track the research question, named constructs,
+population, outcomes and time frame across paragraph boundaries. Keep the
+abstract's answer consistent with the current Results and Discussion; an
+independently read abstract still needs the limits that change its conclusion.
+Do not equalize wording where two sections intentionally discuss different
+measures, groups or stages. Existing terminology and claim maps can help; a
+language edit does not require creating another map or checklist.
+
+An inconsistency already present in the original is a separate finding, not
+meaning drift introduced by the editor. Identify its locations and the current
+source needed to resolve it. A fluent edit cannot decide between conflicting
+result versions. If only a selected passage was supplied, state any material
+cross-section dependency briefly rather than claiming a whole-paper check.
+
+For an external handoff, identify the exact original and the requested scope
+alongside the candidate. Keep unresolved editor questions outside the manuscript.
+A file/version identifier or a digest may be useful for saved drafts; two clearly
+labelled passages suffice in chat. If the original, candidate or relevant result
+changed after review, the earlier comparison no longer covers those changed
+claims. Reconcile the affected spans against the current versions before saving
+through the existing owner. Preserve good edits in unaffected passages; do not
+restart whole-text style editing. A no-drift review accepts the candidate's
+language and ends the comparison.
+
+## English output
+
+Use established collocations and keep the main subject and verb easy to follow.
+Reduce noun chains and stacked modifiers without dropping qualifications. Keep
+technical terms consistent instead of cycling through near-synonyms. Active or
+passive voice and first person follow meaning and venue, not universal rules.
+Preserve statistical “significant” and exact Methods procedures.
+
+Carry a recognizable topic into the next sentence, then introduce the new point.
+Clarify “this”, “it” or “they” only when the source establishes the referent.
+Use sentence length to fit the idea. When translating, reconstruct English
+clause order and articles rather than carrying over the source grammar.
+
+Example (expression only):
+
+> We conducted an examination of the association in 120 firms. The estimate was
+> 0.18 (p = .03), but the design does not establish causality [12].
+
+Can become:
+
+> We examined the association in 120 firms. The estimate was 0.18 (p = .03), but
+> the design does not establish causality [12].
+
+The numbers, citation and causal limitation stay exact. “The effect proves…”
+would change the research claim, regardless of how fluent it sounds.
+
+Example (flow with consequential uncertainty):
+
+> In relation to the difference in scores, the estimate was 2 points (95% CI:
+> -1 to 5) [S1]. It is important to note that the interval includes zero.
+> Equivalence is not something this analysis establishes.
+
+Can become:
+
+> The estimated score difference was 2 points (95% CI: -1 to 5) [S1]. The
+> interval includes zero, and the analysis does not establish equivalence.
+
+A meaning reviewer accepts this direct wording. "There was no difference"
+or "The groups were equivalent" would change the conclusion and must be
+flagged. Restore the affected conclusion, not the original awkward framing.
+
+## 中文输出
+
+按读者、学科和用途确定语体；简繁体随原稿或用户要求。普通学术说明应清楚平实，
+正式论文保持学科所需的严谨程度；不把长句、抽象名词或公文化表达当作严谨。
+
+先理顺段落意思，再调整信息顺序。能用具体动词时，减少“对……进行……”等空架子；
+拆开堆叠的修饰语和“的”字链。主语可省略，但换话题时要明确指代。不要为了避免
+重复而更换关键术语，也不要把所有长句切成短句。
+
+“因此”须有原文支持的推论，“然而”须有真实转折。“此外”不能弥补话题脱节。
+保留必要的连接词，不强制排比、四字短语或段末总结。处理中译英、英译中时，
+按目标语言重组语序，不新增理由、例子或结论。
+
+例如：
+
+> 本研究对120家企业中的关联进行了检验，估计值为0.18（p = .03）。然而，
+> 该研究设计不能确立因果关系[12]。
+
+可改为：
+
+> 本研究检验了120家企业中的关联，估计值为0.18（p = .03），但该研究设计不能
+> 确立因果关系[12]。
+
+“相关”不可润色成“导致”，“尚不能排除”不可简化成“没有”。完成后连贯通读，
+再对照原稿核查研究含义、数据、引文和限制条件。
+
+例如，已有样本结果支持正相关，待改的是重复限定和句间衔接：
+
+> 在本样本的120家企业中，结果表明，X与Y或许可能存在正相关，估计值为
+> 0.18（p = .03）[S2]。需要谨慎指出的是，该研究设计不能确立因果关系。
+
+可改为：
+
+> 在本样本的120家企业中，X与Y呈正相关，估计值为0.18（p = .03）[S2]。
+> 该研究设计不能确立因果关系。
+
+含义复核接受这个直接表述，无须恢复“或许可能”或“需要谨慎指出的是”。
+“X提高了Y”改变了因果强度；“企业中普遍存在这一关系”扩大了范围，均需指出。
+若原稿另有“这一关联可能反映资源差异，但该解释尚未检验”，其中的机制
+不确定性必须保留，不能套用前例删成“这一关联反映资源差异”。
+
+以上为合成教学样例；[S1]、[S2] 是样例标记，不是可用于论文的新引文。
+
+## Reference
+
+Adapted for Qiongli's scholarly editing scope from
+[jxpeng98/skills humanizer](https://github.com/jxpeng98/skills/tree/32acfac4951d567d1f9ec2c6e934120d84f3436d/plugins/writing-tools/skills/humanizer).
+The upstream guidance informed fidelity, paragraph continuity and language-specific
+editing; Qiongli retains its J2 IDs, artifact contract and project write boundary.
+
+
+ORIGINAL
+**From Revision to Independent Argument: Conditions for Learning from Formative Feedback**
+
+Formative feedback can improve a draft without necessarily improving the writer’s capacity to construct a later argument independently. L5 distinguishes correcting a text from learning to select relevant evidence and judge the conclusions it supports when a particular comment is absent. A warrant is the reasoning connecting evidence to a conclusion, whether or not it appears as an explicitly labelled sentence. [L5, p. 2, ¶1] This distinction makes performance on a new task central to the present question: successful revision alone cannot establish independent learning.
+
+The strongest aggregate evidence concerns argument quality, usually assessed through claim clarity, evidence relevance and treatment of counterarguments. Across 18 randomized or quasi-experimental comparisons involving 2,140 novice university students, L1 reported a pooled standardized mean difference of 0.31 (95% CI 0.16–0.46) favouring feedback over usual instruction or no additional feedback. Heterogeneity was substantial (I² = 61%), and eight comparisons raised concerns about allocation or assessor masking. Fourteen comparisons assessed revisions, with an estimate of 0.38 (95% CI 0.22–0.54); only four assessed new tasks two to six weeks later, yielding 0.12 (95% CI −0.08–0.32). These results provide clearer evidence for revision gains than for later performance, but without a reported interaction estimate they do not establish that the subgroup effects differ statistically. The new-task interval also leaves both benefit and harm possible. [L1, pp. 4–5, ¶1] Because L1 does not specify whether the individual studies below contributed to its synthesis, they cannot be treated as wholly independent confirmation. [L1, p. 6, ¶2]
+
+L2 provides more specific evidence that a structured revision activity can support later writing. In a first-year course, 120 students were individually randomized to usual instructor comments or the same comments plus a worksheet asking them to identify which claim each cited finding supported and justify their revisions. Evidence materials, writing time and the single revision opportunity were held constant, and assessors were masked. The worksheet group scored 0.6 points higher on the revised essay (95% CI 0.2–1.0) and 0.5 points higher on an independent essay with a new evidence packet three weeks later (95% CI 0.1–0.9), both on a 0–10 argument-quality scale. The later task prohibited worksheet access, supporting an effect extending beyond assisted revision. However, follow-up analysis included only 108 students, with six missing per group; equal missing counts do not establish that attrition was inconsequential. [L2, pp. 7–8, ¶1]
+
+That extension was not observed for every feedback intervention. L3 randomized 90 novices to immediate automated suggestions about clarity and evidence placement or ordinary written rubric guidance, with one 45-minute revision session per group. All students completed both assessments, which were scored by masked assessors. The tool group gained 0.9 more points on the revised draft (95% CI 0.4–1.4), but the difference on a new essay without the tool two weeks later was 0.0 points (95% CI −0.4–0.4), on a 0–10 scale. This interval does not establish equivalence. [L3, pp. 3–4, ¶1] L2 and L3 thus illustrate why revision and independent performance require separate assessment. They do not establish that explanation worksheets outperform automated feedback: their comparators, follow-up periods and rubrics differed, with L2 assessing engagement with conflicting evidence and L3 emphasizing coherence and evidence placement. [L2, p. 8, ¶1; L3, p. 4, ¶1]
+
+The worksheet findings are consistent with L5’s proposal that explaining revisions could provide practice in judging evidential support, but consistency does not demonstrate the proposed process. L5 also warns that explanations may simply repeat an instructor’s wording. [L5, p. 3, ¶2] In L2, 11 of 16 interviewed worksheet users said the worksheet made them notice that a relevant citation might not justify a claim’s strength. These retrospective accounts came from volunteers; the other five accounts and recruitment procedures were not described. They therefore cannot establish changed understanding or mediation. Moreover, the intervention combined explanation prompts with a written revision record, leaving their contributions unresolved. [L2, p. 8, ¶¶1–2]
+
+Observational evidence supports examining explanation while underscoring the difficulty of identifying its contribution. Among 180 first-year writing-clinic volunteers in L4, students who explained feedback use in a revision memo scored 0.7 points higher on a subsequent 0–10 argument task (95% CI 0.2–1.2), adjusting for baseline writing and prior course grade. Because explanation was not randomized, unmeasured motivation or instructor contact could account for the association; follow-up missingness was also unreported. [L4, p. 10, ¶1] This finding complements L2 by identifying a similar pattern in a voluntary clinic, but does not independently establish that explanation causes improvement.
+
+The proposal in L5 also depends on students being able to interpret feedback and having an opportunity to act on it. [L5, p. 3, ¶2] In L4, students with lower baseline scores more often described phrases such as “develop the warrant” as difficult to apply, suggesting an accessibility problem without demonstrating an advantage of simpler wording. [L4, p. 11, ¶2] The evidence also cannot identify a preferred comment format. L1 distinguished directive comments proposing specific changes from questions asking writers to justify choices, but found frequent combinations of both and too few adequately described comparisons to estimate a reliable difference. Delivery, practice time and revision opportunities also varied. [L1, p. 6, ¶2]
+
+Together, these sources provide a conditional answer: adding structured explanation and a revision record to usual comments improved independent writing in L2, but the evidence does not establish explanation alone as necessary or sufficient for improvement. The remaining gap is which features produce gains, for whom, and for how long. Comparisons holding feedback content and revision opportunities constant while separating explanation from recording would address the component question. L2’s gains also leave citation accuracy unresolved because its rubric did not score that outcome separately. [L2, p. 8, ¶1] Longer follow-up is also needed: L1 pooled no outcomes beyond six weeks, leaving the durability of later writing gains unresolved. [L1, p. 5, ¶1]
+
+EDITED
+**From Revision to Independent Argument: Conditions for Learning from Formative Feedback**
+
+Formative feedback can improve a draft without necessarily strengthening a writer’s capacity to construct a later argument independently. L5 distinguishes correcting a text from learning to select relevant evidence and judge the conclusions it supports when a particular comment is absent. A warrant is the reasoning that connects evidence to a conclusion, whether or not it appears as an explicitly labelled sentence [L5, p. 2, ¶1]. This distinction makes performance on a new task central to evaluating feedback: successful revision alone cannot establish independent learning.
+
+The strongest aggregate evidence concerns argument quality, typically assessed through claim clarity, evidence relevance, and treatment of counterarguments. Across 18 randomized or quasi-experimental comparisons involving 2,140 novice university students, L1 reported a pooled standardized mean difference of 0.31 (95% CI 0.16–0.46) favouring feedback over usual instruction or no additional feedback. Heterogeneity was substantial (I² = 61%), and eight comparisons raised concerns regarding allocation or assessor masking. Fourteen comparisons assessed revisions, yielding an estimate of 0.38 (95% CI 0.22–0.54), whereas only four assessed new tasks two to six weeks later, yielding 0.12 (95% CI −0.08–0.32). These findings provide clearer evidence for revision gains than for subsequent performance, but without a reported interaction estimate they do not establish a statistically significant difference between the subgroups. The confidence interval for new tasks also leaves both benefit and harm possible [L1, pp. 4–5, ¶1]. Because L1 does not specify whether the individual studies discussed below contributed to its synthesis, they cannot be treated as wholly independent confirmation [L1, p. 6, ¶2].
+
+L2 provides more specific evidence that a structured revision activity can support subsequent writing. In a first-year course, 120 students were individually randomized to receive either usual instructor comments or those same comments paired with a worksheet asking them to identify which claim each cited finding supported and to justify their revisions. Evidence materials, writing time, and the single revision opportunity were held constant, and assessors were masked. On a 0–10 argument-quality scale, the worksheet group scored 0.6 points higher on the revised essay (95% CI 0.2–1.0) and 0.5 points higher three weeks later on an independent essay using a new evidence packet (95% CI 0.1–0.9). The later task prohibited access to the worksheet, supporting an effect that extended beyond assisted revision. However, the follow-up analysis included only 108 students, with six missing per group; equal attrition across groups does not establish that missingness was inconsequential [L2, pp. 7–8, ¶1].
+
+Such transfer to unassisted writing does not occur across all feedback interventions. L3 randomized 90 novices to receive either immediate automated suggestions on clarity and evidence placement or ordinary written rubric guidance, with one 45-minute revision session per group. All students completed both assessments, which were scored on a 0–10 scale by masked assessors. The automated-tool group gained 0.9 points more on the revised draft (95% CI 0.4–1.4), but two weeks later, the between-group difference on a new essay written without the tool was 0.0 points (95% CI −0.4–0.4). This interval does not establish equivalence [L3, pp. 3–4, ¶1]. Together, L2 and L3 illustrate why revision and independent performance require separate assessment. Even so, they do not establish that explanation worksheets outperform automated feedback: their comparators, follow-up periods, and rubrics differed, with L2 assessing engagement with conflicting evidence and L3 emphasizing coherence and evidence placement [L2, p. 8, ¶1; L3, p. 4, ¶1].
+
+The worksheet findings align with L5’s proposal that explaining revisions may offer practice in judging evidential support, although consistency alone does not demonstrate that mechanism. L5 also cautions that student explanations may simply repeat an instructor’s wording [L5, p. 3, ¶2]. In L2, 11 of 16 interviewed worksheet users reported that the worksheet helped them notice when a relevant citation did not justify the strength of a claim. Because these retrospective accounts came from volunteers and the study described neither the remaining five accounts nor the recruitment procedures, they cannot establish changed understanding or mediation. Moreover, the intervention combined explanation prompts with a written revision record, leaving the separate contribution of each component unresolved [L2, p. 8, ¶¶1–2].
+
+Observational evidence likewise supports examining explanation while underscoring the difficulty of isolating its effect. Among 180 first-year writing-clinic volunteers in L4, students who explained their use of feedback in a revision memo scored 0.7 points higher on a subsequent 0–10 argument task (95% CI 0.2–1.2) after adjustment for baseline writing and prior course grade. Because explanation was not randomized, unmeasured motivation or instructor contact could account for the association, and follow-up missingness was not reported [L4, p. 10, ¶1]. While this finding complements L2 by identifying a similar pattern in a voluntary clinic setting, it does not independently establish that explanation causes improvement.
+
+L5’s proposal also depends on students being able to interpret feedback and having an opportunity to act on it [L5, p. 3, ¶2]. In L4, students with lower baseline scores more frequently described phrases such as “develop the warrant” as difficult to apply, suggesting an accessibility barrier without demonstrating that simpler wording improves outcomes [L4, p. 11, ¶2]. Available evidence also cannot identify a preferred comment format. L1 distinguished directive comments proposing specific changes from questions prompting writers to justify their choices, but found that interventions frequently combined both formats and that too few adequately described comparisons existed to estimate a reliable difference. Delivery methods, practice time, and revision opportunities also varied across studies [L1, p. 6, ¶2].
+
+Taken together, these sources support a conditional conclusion: adding structured explanation and a revision record to usual instructor comments improved independent writing in L2, but the evidence does not establish that explanation alone is necessary or sufficient for improvement. Key open questions concern which intervention features produce gains, for which learners, and over what duration. Trials that hold feedback content and revision opportunities constant while separating explanation prompts from revision recording would help isolate the active components. L2’s gains also leave citation accuracy unresolved because its rubric did not score that outcome separately [L2, p. 8, ¶1]. Finally, longer follow-up is needed: L1 pooled no outcomes beyond six weeks, leaving the durability of subsequent writing gains unknown [L1, p. 5, ¶1].

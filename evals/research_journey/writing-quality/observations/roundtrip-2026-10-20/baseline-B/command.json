@@ -1,0 +1,12 @@
+[
+  "/home/hermes/.local/share/mise/installs/codex/latest/bin/codex",
+  "exec",
+  "--ephemeral",
+  "--skip-git-repo-check",
+  "--sandbox",
+  "read-only",
+  "--json",
+  "--output-last-message",
+  "/tmp/qiongli-writing-roundtrip-20261020-pjrbydmi/baseline-B/answer.md",
+  "<prompt.txt>"
+]

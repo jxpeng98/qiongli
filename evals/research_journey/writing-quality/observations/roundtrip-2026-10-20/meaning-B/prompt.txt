@@ -1,0 +1,245 @@
+请按下面的共享规则，对原稿与润色稿做含义复核。材料完全合成。只输出：结论、与原稿相比的具体含义偏移（如有），及必要的最小修复。不要做第二轮风格重写。无需工具或读取外部资料。
+
+共享规则：
+# Scholarly Voice: English and Chinese
+
+Use while drafting Stage F prose and with J2 for stiff, translated or generic
+scholarly prose. In revisions, resolve the specific expression problem; in new
+drafts, establish clear information order from the start. Use readable, concise
+language throughout the manuscript. Preserve evidence and logical meaning, then
+choose the clearest wording appropriate to the reader. An academic register does
+not justify obscure vocabulary or a harder-to-follow argument. This reference
+does not require starting a separate J2 task.
+
+## Shared editing decisions
+
+- Keep names, numbers, quotations, equations, citations, terms, negation,
+  quantifiers, scope and uncertainty. Suspected factual errors need a verification
+  note; editing is not permission to correct the underlying research silently.
+- Follow a supplied voice sample or venue rule without inventing personality,
+  experience or a stronger position. Preserve required AI disclosure.
+- Locate the point of each paragraph and the role of each sentence. Keep a
+  stable topic and identifiable referents; use a paragraph break for a topic
+  change when a supported transition cannot connect it naturally.
+- Prefer a familiar word or direct verb when it expresses the same meaning.
+  Retain necessary technical terms, define them where needed and use them
+  consistently. Do not replace a precise term with a vague everyday synonym,
+  or rotate synonyms merely to sound sophisticated.
+- Cut repetition and empty framing, while retaining the premises, comparison,
+  units and qualifications needed to understand the claim. A useful explanation
+  may make a passage longer; disconnected short statements are not a successful
+  simplification. Do not impose a sentence-length ceiling or readability score.
+- Distinguish a genuine contrast from simple addition, and an observed sequence
+  from causation. Retain helpful transitions; do not manufacture a missing premise
+  with “therefore” or “因此”. Flag the missing reasoning instead.
+- On the final continuous read, identify the actual claim, its reason and the
+  link to the following point. If a reader must infer an unspecified actor,
+  referent or premise, clarify it from inspected material or expose the gap.
+  Polished vocabulary cannot make that unresolved step complete.
+- Edit at the requested depth. A language pass preserves section order and
+  fixed headings; structural editing needs a request that covers it. For coaching,
+  show a few meaningful revisions and explain the decisions the author must make.
+- Stop when the text meets the request and the source comparison passes. No
+  detector target, banned-word list, required sentence pattern or forced slang.
+
+## Language editing and meaning review
+
+G4 checks tone and claim calibration against available evidence. J2 improves
+expression while preserving the settled research meaning. Treat language editing
+and meaning review as distinct tasks, even when one agent performs both:
+
+- **Language editor:** read a coherent passage and relevant adjacent context;
+  improve information order, idiom and sentence connections. Combine, split or
+  reorder sentences within the requested paragraph or section scope. An edit
+  may be longer when it restores a needed explanation. Remove a qualifier only
+  when its deletion leaves the actual uncertainty, attribution and scope intact.
+- **Meaning reviewer:** compare the original and edited versions for quantities,
+  units, citations and their claim attachment, terminology, negation, quantifiers,
+  population/time scope, causal strength and uncertainty. Report the exact
+  changed span and its consequence, with a minimal repair when possible. Leave
+  valid language choices intact; do not restart a general stylistic rewrite or
+  add caveats merely because the prose is direct. No drift is a valid result.
+
+Preserve uncertainty of meaning, not the number or wording of hedges. Observed
+results and performed methods can be stated directly. Keep speculative mechanisms
+provisional. A missing premise needs substantive review; neither a fluent bridge
+nor an extra "may" supplies it. Necessary research limits remain where readers
+need them, including independently read abstracts. Repeated boilerplate can be
+removed when the local claim remains accurate. Tool failures, pending checks and
+editor questions belong in the work record or a brief separate note, not inserted
+as manuscript prose; never hide a material research limitation there.
+
+For a requested cross-Host edit, hand over the selected manuscript version,
+relevant context, existing terminology/claim constraints and any supplied voice
+sample. Receive an edited candidate and unresolved questions. An optional
+Codex → Antigravity → Codex sequence assigns editing to Antigravity and meaning
+comparison to Codex; it does not select a model, launch a Host, transmit private
+material or require multiple agents. Use the user's configured Host/model and
+authorized handoff. A bounded edit can use two passages in chat with no new
+project, ledger or mandatory handoff file.
+
+Review the returned candidate against the same original version. If either
+version changed meanwhile, compare the current versions before applying it.
+For registered projects, preserve claim IDs and evidence links and use the
+existing preview/approval/CAS owner to save the reviewed candidate. A language
+comparison does not establish source support or close an existing evidence gap.
+Stop once the requested language issues and actual meaning drift are resolved;
+source/argument changes return to their substantive owner.
+
+## Connected sections and returned edits
+
+For a chapter or several sections, read the selected unit continuously before
+editing individual sentences. Track the research question, named constructs,
+population, outcomes and time frame across paragraph boundaries. Keep the
+abstract's answer consistent with the current Results and Discussion; an
+independently read abstract still needs the limits that change its conclusion.
+Do not equalize wording where two sections intentionally discuss different
+measures, groups or stages. Existing terminology and claim maps can help; a
+language edit does not require creating another map or checklist.
+
+An inconsistency already present in the original is a separate finding, not
+meaning drift introduced by the editor. Identify its locations and the current
+source needed to resolve it. A fluent edit cannot decide between conflicting
+result versions. If only a selected passage was supplied, state any material
+cross-section dependency briefly rather than claiming a whole-paper check.
+
+For an external handoff, identify the exact original and the requested scope
+alongside the candidate. Keep unresolved editor questions outside the manuscript.
+A file/version identifier or a digest may be useful for saved drafts; two clearly
+labelled passages suffice in chat. If the original, candidate or relevant result
+changed after review, the earlier comparison no longer covers those changed
+claims. Reconcile the affected spans against the current versions before saving
+through the existing owner. Preserve good edits in unaffected passages; do not
+restart whole-text style editing. A no-drift review accepts the candidate's
+language and ends the comparison.
+
+## English output
+
+Use established collocations and keep the main subject and verb easy to follow.
+Reduce noun chains and stacked modifiers without dropping qualifications. Keep
+technical terms consistent instead of cycling through near-synonyms. Active or
+passive voice and first person follow meaning and venue, not universal rules.
+Preserve statistical “significant” and exact Methods procedures.
+
+Carry a recognizable topic into the next sentence, then introduce the new point.
+Clarify “this”, “it” or “they” only when the source establishes the referent.
+Use sentence length to fit the idea. When translating, reconstruct English
+clause order and articles rather than carrying over the source grammar.
+
+Example (expression only):
+
+> We conducted an examination of the association in 120 firms. The estimate was
+> 0.18 (p = .03), but the design does not establish causality [12].
+
+Can become:
+
+> We examined the association in 120 firms. The estimate was 0.18 (p = .03), but
+> the design does not establish causality [12].
+
+The numbers, citation and causal limitation stay exact. “The effect proves…”
+would change the research claim, regardless of how fluent it sounds.
+
+Example (flow with consequential uncertainty):
+
+> In relation to the difference in scores, the estimate was 2 points (95% CI:
+> -1 to 5) [S1]. It is important to note that the interval includes zero.
+> Equivalence is not something this analysis establishes.
+
+Can become:
+
+> The estimated score difference was 2 points (95% CI: -1 to 5) [S1]. The
+> interval includes zero, and the analysis does not establish equivalence.
+
+A meaning reviewer accepts this direct wording. "There was no difference"
+or "The groups were equivalent" would change the conclusion and must be
+flagged. Restore the affected conclusion, not the original awkward framing.
+
+## 中文输出
+
+按读者、学科和用途确定语体；简繁体随原稿或用户要求。普通学术说明应清楚平实，
+正式论文保持学科所需的严谨程度；不把长句、抽象名词或公文化表达当作严谨。
+
+先理顺段落意思，再调整信息顺序。能用具体动词时，减少“对……进行……”等空架子；
+拆开堆叠的修饰语和“的”字链。主语可省略，但换话题时要明确指代。不要为了避免
+重复而更换关键术语，也不要把所有长句切成短句。
+
+“因此”须有原文支持的推论，“然而”须有真实转折。“此外”不能弥补话题脱节。
+保留必要的连接词，不强制排比、四字短语或段末总结。处理中译英、英译中时，
+按目标语言重组语序，不新增理由、例子或结论。
+
+例如：
+
+> 本研究对120家企业中的关联进行了检验，估计值为0.18（p = .03）。然而，
+> 该研究设计不能确立因果关系[12]。
+
+可改为：
+
+> 本研究检验了120家企业中的关联，估计值为0.18（p = .03），但该研究设计不能
+> 确立因果关系[12]。
+
+“相关”不可润色成“导致”，“尚不能排除”不可简化成“没有”。完成后连贯通读，
+再对照原稿核查研究含义、数据、引文和限制条件。
+
+例如，已有样本结果支持正相关，待改的是重复限定和句间衔接：
+
+> 在本样本的120家企业中，结果表明，X与Y或许可能存在正相关，估计值为
+> 0.18（p = .03）[S2]。需要谨慎指出的是，该研究设计不能确立因果关系。
+
+可改为：
+
+> 在本样本的120家企业中，X与Y呈正相关，估计值为0.18（p = .03）[S2]。
+> 该研究设计不能确立因果关系。
+
+含义复核接受这个直接表述，无须恢复“或许可能”或“需要谨慎指出的是”。
+“X提高了Y”改变了因果强度；“企业中普遍存在这一关系”扩大了范围，均需指出。
+若原稿另有“这一关联可能反映资源差异，但该解释尚未检验”，其中的机制
+不确定性必须保留，不能套用前例删成“这一关联反映资源差异”。
+
+以上为合成教学样例；[S1]、[S2] 是样例标记，不是可用于论文的新引文。
+
+## Reference
+
+Adapted for Qiongli's scholarly editing scope from
+[jxpeng98/skills humanizer](https://github.com/jxpeng98/skills/tree/32acfac4951d567d1f9ec2c6e934120d84f3436d/plugins/writing-tools/skills/humanizer).
+The upstream guidance informed fidelity, paragraph continuity and language-specific
+editing; Qiongli retains its J2 IDs, artifact contract and project write boundary.
+
+
+原稿：
+## 引言
+
+提示可以告诉学生下一步做什么，但识别测量误差还要求判断测量值如何产生、操作偏差如何影响读数。例如，知道需要调零，并不自动意味着能识别未调零造成的系统偏移。这一概念性区分说明，当次操作完成度不足以代表独立识别误差的能力。[C3，p.2，¶1]
+
+一项纳入12项随机或准实验比较、960名本科生的综合发现，提示支持提高了当次完成度，合并标准化均差为0.35（95%置信区间0.18—0.52）。仅3项研究考查无提示新任务，合并估计为0.09（95%置信区间−0.15—0.33），其收益仍不确定；两个结果类别的差异也未经交互检验。[C1，p.3，¶1]另一项64人随机研究发现，先写操作理由再看提示提高了当次完成度，但未安排新的无提示任务，也未考查理由的准确性。[C2，p.6，¶1]这些材料尚未确定，要求学生先解释再看提示，是否有助于其在新任务中独立识别测量误差。本文据此比较两种提示使用顺序，并以两周后的无提示任务回答这一问题。
+
+## 结果
+
+某校本科实验课的10个教学小组按小组随机分配至两种条件，各5组、100人。干预条件先简述操作理由再查阅提示，对照条件先看提示；教师、提示内容、练习任务及时长一致。两周后的新测量任务以独立识别预设测量误差的得分为主要结果，范围0—10分，评分者不知组别。[Study，§S1]
+
+两种条件各有8人缺席延迟任务，分析纳入184人。干预条件均分为6.4分，对照条件为5.6分；考虑小组聚类的组间差异为0.8分（95%置信区间0.1—1.5）。缺席原因未记录，也未开展缺失数据敏感性分析。练习当次操作完成率分别为86%和88%，差异为−2个百分点（95%置信区间−10—6个百分点），不能据此认定两种条件等效。[Study，§S2]
+
+## 讨论
+
+本研究为先解释再看提示改善两周后独立识别误差的表现提供了支持，但收益大小仍不精确，且误差识别得分不能直接代表实际仪器操作能力。[Study，§S1—S2]C2的优势出现在仍可查阅提示的当次练习中，本研究则在无提示的新任务中观察到优势，补充了关于后续独立判断的证据。本研究的当次完成率未显示明确差异，且完成率与C2的评分量表不同，不能直接比较效应大小或认定效果相反。[C2，p.6，¶1；Study，§S1—S2]C1中无提示新任务的收益仍不确定，不能仅据此认定本研究与其结论矛盾：区间是否跨零不足以证明效果不同，且综合中的提示内容和评分标准不一。[C1，p.3，¶1；p.4，¶2；Study，§S2]
+
+这一优势与C3提出的解释相容：先写理由可能让操作偏差与读数之间的关系显现。但C3也指出，解释可能只是增加书写负担。本研究未评分理由质量，也未测量概念理解或认知负担，因而不能确认理解加深或任何中介机制。[C3，p.2，¶1；Study，§S3]两组缺席人数相同不能排除缺失数据偏倚；缺少误差识别基线，也意味着此处报告的是组间差异，而非个体能力的前后变化。证据仅涉及一校、两周后的一个新任务，尚不足以推及长期能力发展。[Study，§S2—S3]
+
+润色稿：
+## 引言
+
+提示可以告诉学生下一步做什么，但识别测量误差还要求判断测量值如何产生、操作偏差如何影响读数。例如，知道需要调零，并不等于能识别未调零造成的系统偏移。这一概念区分说明，当次操作完成度不足以代表独立识别误差的能力。[C3，p.2，¶1]
+
+一项纳入12项随机或准实验比较（共960名本科生）的综合研究发现，提示支持提高了当次完成度，合并标准化均差为0.35（95%置信区间0.18—0.52）；但其中仅3项研究考查了无提示新任务，合并估计值为0.09（95%置信区间−0.15—0.33），其收益仍不确定，且两类结果的差异未经交互检验。[C1，p.3，¶1]另一项64人的随机研究发现，先写操作理由再看提示提高了当次完成度，但该研究未安排新的无提示任务，也未考查理由的准确性。[C2，p.6，¶1]现有证据尚未确定，要求学生先解释再看提示，是否有助于其在新任务中独立识别测量误差。本文据此比较两种提示使用顺序，并以两周后的无提示任务回答这一问题。
+
+## 结果
+
+某校本科实验课的10个教学小组按小组随机分配至两种条件，各5组、100人。干预条件先简述操作理由再查阅提示，对照条件先看提示；两组的教师、提示内容、练习任务及时长一致。两周后的新测量任务以独立识别预设测量误差的得分为主要结果，分值范围0—10分，评分者不知晓组别。[Study，§S1]
+
+两种条件各有8人缺席延迟任务，分析共纳入184人。干预条件均分为6.4分，对照条件为5.6分；考虑小组聚类后的组间差异为0.8分（95%置信区间0.1—1.5）。研究未记录缺席原因，也未开展缺失数据敏感性分析。练习当次的操作完成率分别为86%和88%，组间差异为−2个百分点（95%置信区间−10—6个百分点），不能据此认定两种条件等效。[Study，§S2]
+
+## 讨论
+
+本研究结果支持“先解释再看提示”能够改善两周后独立识别误差的表现，但收益大小仍不精确，且误差识别得分不能直接代表实际仪器操作能力。[Study，§S1—S2]C2中的优势出现在仍可查阅提示的当次练习中，而本研究在无提示的新任务中观察到优势，补充了关于后续独立判断的证据。本研究的当次完成率未显示明确差异，且完成率指标与C2的评分量表不同，因此不能直接比较效应大小或认定效果相反。[C2，p.6，¶1；Study，§S1—S2]C1中无提示新任务的收益仍不确定，不能仅据此认定本研究与其结论矛盾：置信区间是否跨零不足以证明效果不同，且该综合研究中各项研究的提示内容和评分标准不一。[C1，p.3，¶1；p.4，¶2；Study，§S2]
+
+这一优势与C3提出的解释相容：先写理由可能有助于显现操作偏差与读数之间的关系。但C3也指出，撰写解释可能只是增加了书写负担。本研究未对理由质量评分，也未测量概念理解或认知负担，因而不能确认理解有所加深或存在任何中介机制。[C3，p.2，¶1；Study，§S3]此外，两组缺席人数相同并不能排除缺失数据偏倚；缺少误差识别基线，也意味着本文报告的是组间差异，而非个体能力的前后变化。本研究的证据仅涉及一所高校、两周后的一个新任务，尚不足以推及长期能力发展。[Study，§S2—S3]
+

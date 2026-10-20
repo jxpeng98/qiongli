@@ -54,7 +54,16 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 20, 2026
 
-The current bounded request completes the interrupted writing-validation checks,
+The current bounded request strengthens connected-section and version-aware
+writing review, records bilingual anonymous comparisons and an actual configured
+Codex/Antigravity handoff, and separates fast content checks from full Plugin
+builds. The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-20--connected-writing-and-validation-efficiency)
+owns frozen observations, cache budgeting, warning cleanup and regenerated native
+content. Integrate locally into `2.x`; no push, publication or acceptance
+promotion. Real-manuscript author review with explicit Antigravity model identity
+remains the next research-quality increment.
+
+The preceding bounded request completes the interrupted writing-validation checks,
 cleans regenerable build caches and repairs the six existing validator failures.
 The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-20--writing-validation-completion)
 owns native/legacy note validation, metadata-card structure, regenerated content

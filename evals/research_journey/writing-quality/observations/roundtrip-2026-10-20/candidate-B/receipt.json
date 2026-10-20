@@ -1,0 +1,14 @@
+{
+  "termination_reason": "completed",
+  "driver_error": null,
+  "process_cleanup": {
+    "exit_code": 0,
+    "method": "already-exited",
+    "reaped": true,
+    "group_gone": true
+  },
+  "elapsed_seconds": 240.00517563405447,
+  "timeout_seconds": 360,
+  "events_sha256": "0bf1054116359c36e3e90ca9666795de4c458e283f5a53049c00ef832864fb06",
+  "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+}

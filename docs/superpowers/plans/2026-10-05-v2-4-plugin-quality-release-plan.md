@@ -3581,3 +3581,87 @@ keeps fluent language and changed originals cannot reuse a stale comparison.
 Then address remaining contract warnings by actual requirements, and separate
 fast content checks from cold binary builds with a bounded cache budget. These
 are follow-up recommendations, not completed research-quality qualification.
+
+## October 20 — connected writing and validation efficiency
+
+The maintainer authorizes the suggested writing-quality and verification
+improvements, followed by local integration into `2.x` without publication.
+Sources `9a08b2de` and `d56a7b14` extend the existing scholarly-voice owner:
+review a connected unit, align abstract/outcome/population/timing, distinguish
+inherited manuscript conflicts from edit-induced drift, and recheck affected
+claims when the original or returned candidate changes. Good edits survive;
+a no-drift result ends the comparison. Existing G4/J2 roles, configured models,
+task outputs and preview/approval/CAS owners remain intact.
+
+Five Skill cards gain missing entry/quality headings using existing prose. The
+shared section audit recognizes heading case and valid canonical `failure_modes`
+without duplicating pitfalls; required Purpose/Process, malformed metadata,
+alias and size checks remain. The guide now includes the existing `/stage-close`
+command. The fast routing suite exercises the actual portable materializer;
+full stable/next Plugin assembly and binary digest/size checks remain in the
+integration suite. A read-only build-cache budget defaults to 16 GiB of listed
+regenerable caches and 8 GiB free, with explicit overrides and no deletion.
+The native atomic update uses the supported API under the existing Rust 1.97
+minimum; ordering and overflow refusal are unchanged.
+
+The [frozen observation](../../../evals/research_journey/writing-quality/observations/roundtrip-2026-10-20/README.md)
+retains exact inputs, all eight original process captures, anonymous reviewer
+output, identity key, K/L answers and a separately labelled repair. Both baseline
+and candidate pass 2/2 existing synthetic long-form tasks across all six review
+dimensions. The anonymous reviewer slightly prefers candidate flow in both
+languages and English argument development, with semantic fidelity tied.
+This is neither a new held-out cohort nor a controlled general improvement
+estimate. Codex uses configured `gpt-6-astra` / `xhigh`; Antigravity configuration
+is preserved but its event stream does not report model identity. No tools are
+observed in the raw model streams, and no private manuscript is accessed.
+
+The actual Codex → Antigravity → Codex handoff finds five English changed spans,
+including “was not observed” strengthened into “does not occur.” The original
+edit and review remain; coordinator minimal restorations are a separate
+follow-up, not a new independent pass. Chinese review finds no material drift
+and accepts the prose without rewriting. New K/L independent-context answers
+pass coordinator review for inherited abstract conflicts and stale version
+review. These are bounded synthetic observations, not real-manuscript, expert
+or installed-Plugin acceptance.
+
+Completed affected checks:
+
+| Check | Result |
+| --- | --- |
+| Python audit, Skill structure, routing, cache-budget, research-validator and release-note suites | 53 pass in 1.389 s; malformed metadata, missing required sections, alias/size, legacy/native note and budget/symlink negative cases retained |
+| `python3 scripts/validate_research_standard.py --strict` | 6,210 pass, zero failures, zero warnings |
+| Full `DistributionMaterializerTests.test_plugin_target_materializes_to_staging_without_touching_source` | 1 pass in 237.715 s; actual Lite build, both Plugin channels, runtime identity and canonical writing bytes |
+| Native `qiongli-platform --lib product_control::tests` | 8 pass in a private source copy with secure ancestors and umask 077; changed-state, tampering, preview, repair, lifecycle and prior-managed removal cases retained |
+| Native CLI `--test embedded_pack` | 1 pass after successful 88 s compilation |
+| Native content `--test resource_pack_loader --test deterministic_writer --test embedded_content` | 16 pass, including corruption, source drift, path and resource-limit refusals |
+| Program-ledger/index suite and generated-index check | 7 pass; 249-task index current |
+| Frozen input and capture verification | All input/capture hashes and eight terminal answers match; paired prompts differ only in the frozen guide addition |
+| Read-only cache budget | Pass, approximately 2.1 GB listed caches and 25 GB free after native compilation |
+
+The unit/integration suites total 86 passes; structural validation and qualitative
+answer review are separate. Logs remain in `/tmp/qiongli-strengthen-*.log`.
+The first platform attempt failed all eight fixtures before the changed atomic
+operation: checkout ancestors were group-writable. An isolated copy initially
+reused a cached binary with the old compile-time path; after rebuilding, its
+inherited umask still produced group-writable directories. Giving only the new
+copy private directories and umask 077 made all eight pass. A byte comparison
+verified 789 copied inputs; only the subsequently regenerated pack lock differed.
+No existing ancestor permissions or production safety checks were changed.
+These setup failures remain recorded rather than being relabelled as passes.
+After validation, the private copy and its one cached test binary/fingerprint
+were removed to avoid retaining a stale compile-time fixture path.
+
+The supported generator binds local version 2.5.3 and 446 resources to source
+`d56a7b147dae9abef128a58c0da00553826bc45e`, content root
+`f5d29bdc1cf6947c2af2cb64d06df33b5b1409ab72eb80e006c05c84d3f1af16` and pack
+`66757acbefaf36734f0fdb02b32eb0df6adae8d798b196868ee5e028ca3b685b`.
+This is a development binding, with no version bump or released-asset replacement.
+Final review covers source ownership, request fidelity, compatibility, preserved
+negative cases, original observation provenance and unchanged research-write
+boundaries. The frozen-source guard completes local integration; unchanged test
+results are reused after commits and merge.
+
+Next is an authorized real-manuscript author blind comparison, with explicit
+Antigravity model identity and discipline-aware review. No task state,
+dependencies, accepted evidence, commit/run fields, remote refs, installed Plugin
+or publication status is promoted by this work.

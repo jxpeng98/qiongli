@@ -1,0 +1,116 @@
+{
+  "kind": "qiongli-writing-roundtrip-captures/v1",
+  "date": "2026-10-20",
+  "input_manifest": "../../roundtrip-manifest.json",
+  "baseline_commit": "870afcbd9b22d1c8f205792df64df4bbfbda0bcf",
+  "cohort": "existing frozen A/B regression; K/L forward review",
+  "configured_codex": {
+    "model": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "overrides": false
+  },
+  "antigravity": {
+    "model_reported": null,
+    "overrides": false,
+    "mode": "plan",
+    "sandbox": true
+  },
+  "capture": "antigravity_observation.run_process; timeout 360 seconds per process; all original attempts retained; eight completed with exit 0 and process groups gone",
+  "tool_calls_observed": 0,
+  "raw_capture_root": "/tmp/qiongli-writing-roundtrip-20261020-pjrbydmi",
+  "files": {
+    "baseline-A/prompt.txt": "8d19e4de6249ff0e34e74348ade800bae9e2c1fc26bb7f6ee4dbc6b411925091",
+    "baseline-A/answer.md": "a5cf2ca408133c9b50907ca22e97728093e4948a5c0e34f74f3a16deab1db164",
+    "baseline-A/events.jsonl": "21ec265782b98aa3db7e418405db2424d7d5ee667d70197e6e5904acaa47d9b3",
+    "baseline-A/stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+    "baseline-A/receipt.json": "cbcd4cfaa81b2c574bc1f3e83da9d65556134d70361bfea1f973100d9da49057",
+    "baseline-A/command.json": "6f6e5b79e2612cc0bc32cbe1ad36def645bda435fcb3bf529bf86fc352f93808",
+    "baseline-B/prompt.txt": "bfad6f3c938a31bc9fb4878ac545f46aef60669c56a32d496db35194613bd097",
+    "baseline-B/answer.md": "5bb9098f023db5eaa5d370cd60e221aefbed9ed34e1e7006254ec4816ae1005e",
+    "baseline-B/events.jsonl": "1930bd84a5a433b6b917cbf9fc6e91aaaae5d653a942f6943afac906b9c2a9df",
+    "baseline-B/stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+    "baseline-B/receipt.json": "979f6f7280b14fd4518ce776a11ad04c9f9c61d014dd3a77c0297127d7d5bf98",
+    "baseline-B/command.json": "a9f5f4844d9cd1dfca5ab830e20373b55da395eb9b54480936b722d80b157ed9",
+    "candidate-A/prompt.txt": "d3bae09a4a76613bd1addffca2a0be1644e30b3294bf2abf60b42ff1493a01c6",
+    "candidate-A/answer.md": "b833f3919f99589b211db9e6ea5c870e2a0a08f96bff58fffca4e0ef9b1492cf",
+    "candidate-A/events.jsonl": "3ecec112ae379787276082ec81932588d05067832ce095e3f4937d9aba6654f1",
+    "candidate-A/stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+    "candidate-A/receipt.json": "8d9bbea72a1d8fe6b1615e1993cd3f5bb99e6d99290c30209aed4ccdbd4e7290",
+    "candidate-A/command.json": "d669890d7172be714c6b296609150ca0e2343eadcbbcbb24d749a24fb0ceea72",
+    "candidate-B/prompt.txt": "2a84a377d49376c78ac01e499ad12a0b1a9fcb0ceddc102263e68b8fce5a7e4a",
+    "candidate-B/answer.md": "1581eb97c1e803cdaeea2fccb1ceeb5ccaaaeaac940b0baf43e66c30f143184f",
+    "candidate-B/events.jsonl": "0bf1054116359c36e3e90ca9666795de4c458e283f5a53049c00ef832864fb06",
+    "candidate-B/stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+    "candidate-B/receipt.json": "95bac64d1122d84e9e093d50301053fc03c7c3adb4502eb1422fc291952c8b81",
+    "candidate-B/command.json": "9036d0ff89d3686eeab5d99053f7e19b67f8db94c19bdba50963523e0daaadd9",
+    "agy-A/prompt.txt": "941e96b4765ab3cc6d5f1fed60d484669ccd45438988d37a672cb087da90b604",
+    "agy-A/answer.md": "a06bc2fcfcd9046e6d2a84d7b3d7279a4ad51d64955a4f8b2e1e2a738ca4cf71",
+    "agy-A/events.jsonl": "f3afab7a8d3270011cb51f62eeef411d646b5b8669c4aa0a1c189fbe82512333",
+    "agy-A/stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "agy-A/receipt.json": "744bdefc397cb97da897345c9c00fa3bfcece17251a9682e808a0257aeaa2abc",
+    "agy-A/command.json": "b69ee2bc7c1bc6fc6beb2adb45d4e6409692b25a230f1a8fdc0dba176a42d9a1",
+    "agy-B/prompt.txt": "fdef862abd063302016b1471b297810d18868170e3fb4b88b240e88fa42c1902",
+    "agy-B/answer.md": "dc0296f0f3ee27e5ff6f1969a445d712d675ad4848d0b1e45915b230aea146fa",
+    "agy-B/events.jsonl": "69c7fec8ce5e72e9dc60e42f83232d81707d8bc95c7afa6d73b72b4c6f29b3c1",
+    "agy-B/stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "agy-B/receipt.json": "bfd73a0c1a7eb4b452372f8213089f9bdecc4f64c2f8937a62c997dd0bc6351a",
+    "agy-B/command.json": "b69ee2bc7c1bc6fc6beb2adb45d4e6409692b25a230f1a8fdc0dba176a42d9a1",
+    "meaning-A/prompt.txt": "5be6330889cbf220ba483a68dee2ae34a3e584be9bbcbcca0030430844f14700",
+    "meaning-A/answer.md": "7aa1ef3d23e019739ac1e5c4fa8fd521b489c9b9f00ce0bc1729289b07b6b308",
+    "meaning-A/events.jsonl": "c1c7bab9994099086f03eef53b808adb8baaaeee5c52aa83aedd36a5f02a77cf",
+    "meaning-A/stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+    "meaning-A/receipt.json": "bfa5f620ea9962085708eb49c20a69e2f86ddc52dfba8f49944e053bcc1dadc2",
+    "meaning-A/command.json": "ba6f446530036c62a141ca1a34fa8b4cfab2e8c93f8ca20fd8e14694888d8c40",
+    "meaning-B/prompt.txt": "24131040a563194041f835f62aa729e965cae651ac5229c76132a2b2ffd76935",
+    "meaning-B/answer.md": "edeb938617d4f3c3c0a9024ef549320743d3b4c1e155940a549fafeac6b758ad",
+    "meaning-B/events.jsonl": "effaefcdd375fd43b31a9f443c77f30a4579d6d7f0020b52f022e95e5904e66d",
+    "meaning-B/stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+    "meaning-B/receipt.json": "f6327b6301d82412da214894fb545dbd4c8995b16ccb70053510511f33a8a69d",
+    "meaning-B/command.json": "2a451cc2e916ffc9a6a479526246c1b94d037658d3a1483fbd9f50fd07f3c286",
+    "forward-review-answers.json": "1e8e0eeb5f0e5710f4dcad750ceb684e667317a3a9bdfa5f9bafade2c6c890ff",
+    "blind-key.json": "6f661cf5e5d330290e3dec7c04ecaa5eac669d2d7e9e715f4d3a8f7aa136ba41",
+    "blind-review.md": "b2a6096b8df581edc2207572c699fa3060dd8f0b16dd2b4dd616615f3322aff3",
+    "agy-A/repaired-candidate.md": "a700e69a803856b7652f7c6c7cf394b93cefe28ea914d3a1cadb5a3d6290fcf3",
+    "agy-A/repair-diff.txt": "cde078f91e8ad8f5151a69b264d7d0e0916f67f91389fdb38df746515133b753",
+    "README.md": "8d69c61338aa6df1e66a4c587c4c24905bc3ed78f62a176f4ab0b14341bb2cf8"
+  },
+  "blind_review": {
+    "reviewer": "independent agent context; packet only; no arm key or guidance access",
+    "key_disclosed_to_coordinator_after_review": true,
+    "pairing": {
+      "Q": "baseline-A",
+      "R": "candidate-A",
+      "P": "baseline-B",
+      "S": "candidate-B"
+    },
+    "baseline_original_tasks_passed": 2,
+    "candidate_original_tasks_passed": 2,
+    "fixed_tasks_per_arm": 2,
+    "flow_preference": {
+      "A": "slight candidate",
+      "B": "slight candidate"
+    },
+    "argument_preference": {
+      "A": "slight candidate",
+      "B": "tie"
+    },
+    "semantic_fidelity": {
+      "A": "tie",
+      "B": "tie"
+    }
+  },
+  "handoff_review": {
+    "A": "five returned changed-span findings; coordinator minimal follow-up retained separately; no second independent review",
+    "B": "no material drift; accepted without a rewrite",
+    "forward_cases": {
+      "K": "coordinator pass: inherited abstract conflict distinguished from edit drift",
+      "L": "coordinator pass: stale review limited to unchanged version-1 claims"
+    }
+  },
+  "host_versions_after_capture": {
+    "codex": "0.162.1",
+    "antigravity": "1.4.3"
+  },
+  "candidate_source_commit": "d56a7b147dae9abef128a58c0da00553826bc45e",
+  "answer_extraction": "Full terminal response; answer files preserve terminal text, with an optional final newline."
+}

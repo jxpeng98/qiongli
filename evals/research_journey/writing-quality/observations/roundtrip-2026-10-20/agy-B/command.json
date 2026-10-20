@@ -1,0 +1,12 @@
+[
+  "/home/hermes/.local/share/mise/installs/aqua-google-antigravity-antigravity-cli/latest/agy",
+  "--mode",
+  "plan",
+  "--sandbox",
+  "--output-format",
+  "stream-json",
+  "--print-timeout",
+  "360s",
+  "--print",
+  "<prompt.txt>"
+]
