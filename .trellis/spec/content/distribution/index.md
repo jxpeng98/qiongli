@@ -35,6 +35,10 @@ reuse exact returned `readArguments` and preserve query/scope/page bindings on
 continuation. Searching packet string values includes metadata, so hits are
 candidate locations for review, not inferred body evidence. A no-hit result
 covers only the selected saved material. No new tool or evidence store is added.
+The paper-reading owner selects bounded source reads from the requested question
+and current note/summary bindings. Session reuse preserves revision, source hash
+and passage scope; it neither replaces source support nor survives changed or
+unavailable context. Whole-packet reading remains available when coverage needs it.
 Published pre-extension tool counts remain valid historical observations; current
 native inventory validation also accepts coherent Lite 15 / Full 34 and 35 pairs.
 The list extension requires both the saved-document reader and fulltext extension;

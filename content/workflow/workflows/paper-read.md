@@ -187,6 +187,25 @@ predecessor and source fingerprints. A saved summary may be partial or contain
 unresolved claims. Its recovery neither completes a manuscript nor verifies the
 claims; compare its source bindings with current packets before continuing.
 
+Choose read scope from the requested question. For continuation or a targeted
+check, use the current saved note/summary to identify claims and source locations,
+then inspect the supporting passages and needed neighboring context. An observed
+pointer or literal search can locate that evidence without first paging through
+the entire packet. Read the whole packet when the task requires broad coverage
+or its relevant context cannot otherwise be established; do not turn a focused
+check into a full-paper reading claim. Notes and summaries are navigation aids,
+not substitutes for source support.
+
+Within the active session, reuse guidance already loaded at the same version and
+passages still available in context under the same project revision, path, source
+hash and selector/byte range. Avoid rereading them solely because drafting follows
+extraction. Read again when context is lost, a binding changes, a contradiction
+needs checking or the task requires fresh inspection. A new session first checks
+current state and bindings; a saved locator does not establish current access.
+Retain source identity/version, headings, captions, units and qualifying text
+needed to judge the claim. Fewer calls alone do not establish an adequate review;
+record actual coverage and unresolved source or image access in the existing note.
+
 When Full
 MCP exposes `qiongli_project_document_read` (or CLI help exposes `project document
 read`), use it for an explicitly selected `notes/<citekey>.md`,
@@ -195,10 +214,11 @@ read`), use it for an explicitly selected `notes/<citekey>.md`,
 `expected_project_revision`, `relative_path` and `expected_sha256` from actual
 authorized save/receipt/file evidence; never guess a digest or discover files by
 scanning private directories. Read current project state first. The response
-binds the whole-file `sha256` even when `content` is truncated. Continue with
-`nextOffsetBytes` as `offset_bytes`, retaining the same revision/digest; report
-partial coverage when stopping early. Each response is a rechecked file snapshot,
-not a lock, provenance certification or remote-paper refresh. A mismatch requires
+binds the whole-file `sha256` even when `content` is truncated. When more of this
+view is needed, continue with `nextOffsetBytes` as `offset_bytes`, retaining the
+same revision/digest; report partial coverage when stopping early. Each response
+is a rechecked file snapshot, not a lock, provenance certification or remote-paper
+refresh. A mismatch requires
 fresh authorized source inspection and review, not silently replacing the expected
 hash. If the capability or known binding is absent, disclose the recovery gap
 and use only available authorized Host reads. Older releases and Lite do not
