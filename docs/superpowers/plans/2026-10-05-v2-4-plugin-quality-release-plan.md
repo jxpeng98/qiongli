@@ -3665,3 +3665,81 @@ Next is an authorized real-manuscript author blind comparison, with explicit
 Antigravity model identity and discipline-aware review. No task state,
 dependencies, accepted evidence, commit/run fields, remote refs, installed Plugin
 or publication status is promoted by this work.
+
+
+## October 22 — Public visual evidence journey
+
+The maintainer authorizes the first public-paper round: source extraction with
+figures/tables, literature-review writing, fresh-session recovery, fixes and
+recorded results, followed by local integration into `2.x` without publication.
+The [public-visual observation](../../../evals/research_journey/public-visual/README.md)
+owns source versions, frozen tasks/criteria, five original attempts, separate
+follow-ups and reviewed outcomes. It uses Kestin and Bastani public education
+papers, six rendered pages and the affiliation-only Bastani correction. No
+private manuscript, study-data reanalysis or external author review is claimed.
+
+Codex 0.162.1 retains configured `gpt-6-astra` / `xhigh`. The completed bounded
+journey preserves means/medians, SEM, relative changes, assignment/analysis units,
+source versions and the distinction between assisted and independent performance.
+Two source packets, two reviewed notes and a `partial` bilingual writing summary
+are saved through the existing preview/approval/CAS owner. A fresh project-ID-only
+session discovers all five bindings at revision 6, preserves claim IDs and limits,
+actually opens Table 1 and returns a 145-word English continuation. Source and
+image hashes, exact saved bytes and unchanged model-turn project/config bytes
+are verified. This is direct Full MCP plus frozen canonical guidance; the runtime
+binary is hash-bound but lacks a compile-time source stamp. It is not installed
+Plugin, formal manuscript/claim-ledger, expert or program acceptance.
+
+The first extraction driver is interrupted with exit 143 and leaves an owned
+child group; its original partial capture remains. The first synthesis ends with
+a tool-approval denial and no draft. Its corrected follow-up retains a rejected
+`limit: 100` call before successful pagination. Source `1f1e6791` fixes main-thread
+SIGTERM/SIGINT capture cleanup and stale saved-summary help. Explicit policy for
+only the three already-authorized read tools is checked through strict app-server
+`config/read`; the user's profile and sandbox are unchanged. Unsupported schema-
+generation flags and temporary preparation errors remain separate from model
+outcomes and are documented in the observation.
+
+The original synthesis claims image inspection, but its exec stream does not
+prove that action. A separate reviewed candidate changes only this provenance
+annotation. The recovery's authorized public local rollout records a nested
+`view_image` call and an image whose decoded bytes exactly equal the saved table.
+That image call is absent from simplified exec JSON, demonstrating a capture
+limitation. Earlier missing evidence remains unverified rather than retroactively
+passed; replay guidance now distinguishes hashes from actual image delivery.
+
+Affected validation:
+
+| Check | Result |
+| --- | --- |
+| Python capture/preflight, journey, portable routing and saved-document gates | 57 pass in 12.120 s, including actual SIGTERM/SIGINT child cleanup and handler restoration |
+| Canonical MCP fixtures | 9 pass in 0.457 s |
+| Native content loader, deterministic writer and embedded content | 16 pass; corruption, path/limit and source-drift refusals retained |
+| Native CLI embedded pack | 1 pass after cold compilation |
+| Program ledger/index suite and generated index check | 7 pass; 249-task index current |
+| Live isolated negative scenarios | Missing academic approval, missing filesystem approval, stale revision, changed source and missing source refuse without reader/apply writes; original fixture bytes restored |
+| Candidate MCP inventory | 35 tools, with only the corrected summary-path parameter description differing from the frozen runtime |
+| Source/capture/image integrity | All retained digests and terminal answers match; exact recovery image delivery verified; temporary authentication link removed |
+| Build-cache budget | Pass before/after; about 1.75 GB listed caches and 73.5 GB free after compilation; no deletion required |
+
+These are **90 distinct unit/integration tests**, with live negative cases and
+qualitative source review recorded separately. The 23-test capture-only run is a
+subset of the 57-test batch, not another 23 passes. Native logs remain under
+`/tmp/qiongli-visual-native-checks`; raw public source and Host evidence remains at
+the observation manifest's external `capture_root`. No full release or remote CI
+suite is implied. Reuse these results unless their inputs change.
+
+The supported generator binds 446 resources, still version 2.5.3, to source
+`1f1e6791b975daed3a4c537ddd815ea4529d13a5`, content root
+`2e944e0d86d610c82496a5609910b1771e906f8d7decb84035fe85c48be5c83d` and pack
+`96f018af28b11d175298500fd8b295b3a911030b0a1fd97872b9860ab52f6b6a`;
+pack commit `cc14eceb` changes no published asset. Final review covers owner
+placement, source support, retained failures, signal cleanup, compatibility,
+exact approval/read boundaries and generated-content integrity. The frozen-source
+guard completes local integration; no push or publication is authorized.
+
+Only CLI-405 progress text/date and the generated index change. Task states,
+dependencies, accepted evidence and commit/run fields remain unchanged. Next are
+another discipline/visual type, author or subject-expert assessment, and fewer
+repeated guidance/packet reads while retaining source context. Antigravity model
+comparison and private-manuscript review remain separately scoped.

@@ -1,0 +1,319 @@
+{
+  "kind": "qiongli-public-visual-pilot-observation/v1",
+  "date": "2026-10-22",
+  "capture_root": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w",
+  "scope": "coordinator-reviewed public two-paper pilot; not installed Plugin, release or scholarly acceptance",
+  "configured_model": "gpt-6-astra",
+  "configured_effort": "xhigh",
+  "codex_version": "0.162.1",
+  "runtime_binary_sha256": "f5dc02a381f2c18b20fb63a5cc61bb56beec511e11414010952e0140db77e12a",
+  "runtime_build_stamp": "source-build; compile-time source identity unverified",
+  "guidance_checkout": "f3f5fc8330d8543473c3f918bf77c488c4a6a912",
+  "guidance_sha256_verified_at_integration": {
+    "content/workflow/workflows/paper-read.md": "f81b3f1f70067cc2b95480fcb14e85f939eb994763061b1f021c003a6abc352c",
+    "content/workflow/references/evidence-verification.md": "e9248631a8994817d1f84bcdf70968d1053f97bd371afca9b42d6d76dbef39bd",
+    "content/workflow/references/stage-F-writing.md": "2c91996db60989232a243ec8550873d508d8e61431f0f14b831e18751f9db840",
+    "content/workflow/references/scholarly-voice.md": "03a9c0539d0c87abc9efe6d95abcf64695c60684eead3a1b9d7774b8d2215c72",
+    "content/skills/B_literature/paper-extractor.md": "71ce855b1498d98e6019f029c7db39b8d2a6b61c44bbdeefa17a4d41e9d5c352"
+  },
+  "attempts": [
+    {
+      "attempt": "extraction",
+      "files": {
+        "interruption.json": "e8891f332255966700639b3fa13507963ac8c320fa53e50bfb78d6124ef48f5a",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+        "events.jsonl": "f06597733aa99587ac1538290c9b2e93266e1302c4fadafe8b673bf76b90cd02",
+        "invocation.json": "938b61dfda7d6874c9436f779eb858ed66160e9bb3dbbafcbb4b663b4e3cc943"
+      },
+      "prompt_sha256": "0e3ed8db3efec30b9121474df3717e7bc7c9f4ba80df8df2c7141f7e7736eb0e",
+      "interruption": {
+        "driver_exit_code": 143,
+        "model_exit_code": null,
+        "reason": "outer command driver terminated before its 900-second bound; owned orphan group terminated separately",
+        "original_retained": true,
+        "temporary_auth_link_removed": true,
+        "events_sha256": "f06597733aa99587ac1538290c9b2e93266e1302c4fadafe8b673bf76b90cd02"
+      }
+    },
+    {
+      "attempt": "extraction-r2",
+      "files": {
+        "trace-review.json": "b7db81cb15f745f6001634ca42c1e48a9884e341f8277db4af17b0480c99352f",
+        "answer.md": "ee49a87fe31f5add013d6e10ee9aab7eee53f6268f9df0312f08b0ff8ed0a60c",
+        "capture.json": "71a7abb7721b5e58df6ff708957f5aeb6478abb62200ec2f6fc27e4ced1e1a25",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+        "events.jsonl": "5e46cb0247ffca999ba6aa3ca2eddff54ba517c82edb59c8966bd7e7dae8e87c",
+        "terminal-answer.md": "21ad746c43e37b0704c92e7b2eaca1372145541330a3daa6dcbcf91598b63df9",
+        "invocation.json": "7e05b2f7243396efc0e597772e11a0eeb32c9fc68353fb0c22534ba77f7b7492"
+      },
+      "prompt_sha256": "0e3ed8db3efec30b9121474df3717e7bc7c9f4ba80df8df2c7141f7e7736eb0e",
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 397.28511084899947,
+        "timeout_seconds": 900,
+        "events_sha256": "5e46cb0247ffca999ba6aa3ca2eddff54ba517c82edb59c8966bd7e7dae8e87c",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "metrics": {
+        "tool_call_count": 17,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 685964,
+          "cached_input_tokens": 600576,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 7421,
+          "reasoning_output_tokens": 3308
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "failed_calls": []
+    },
+    {
+      "attempt": "synthesis",
+      "files": {
+        "trace-review.json": "53cdb1ff131e1202afd381dc581accc7e1c805bbfb34bc405ca7edc073faef7b",
+        "preservation-after.json": "6452760c2e6e7293c0233c8aafe402324bb596658b34603835c45541692d401b",
+        "answer.md": "00c35b3841b92877a97418dcc621fcfd1b106eabe8bd54a7bd3463bb1977488d",
+        "capture.json": "2215999a8bab1a530d7fd34f6760f81b299cf0f439fb7704ac3469adb4fb54b6",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+        "preservation-before.json": "6452760c2e6e7293c0233c8aafe402324bb596658b34603835c45541692d401b",
+        "events.jsonl": "27f9e941f482f3ab6b46dd7223667aa4ff02668bf7b587ffdb933ad68d763214",
+        "invocation.json": "23b948a700b9380fc4e3c6c448e0d75dddb281321aef7fcc618179a17854281d"
+      },
+      "prompt_sha256": "a03f01cc94784c5700e111028ad4fac526f7f63118ad4e18135d1a2d2a582f30",
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 56.07717303500067,
+        "timeout_seconds": 900,
+        "events_sha256": "27f9e941f482f3ab6b46dd7223667aa4ff02668bf7b587ffdb933ad68d763214",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "metrics": {
+        "tool_call_count": 7,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 1,
+        "usage": {
+          "input_tokens": 66613,
+          "cached_input_tokens": 41728,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1371,
+          "reasoning_output_tokens": 776
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "failed_calls": [
+        {
+          "id": "item_7",
+          "type": "mcp_tool_call",
+          "server": "qiongli",
+          "tool": "qiongli_project_read",
+          "success": false,
+          "status": "failed",
+          "started_event": 15,
+          "completed_event": 16,
+          "arguments_sha256": "78c307483639b8dd052de86cf186f306e09f96ffb180ce60be4814d8bef87ca1",
+          "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "error_sha256": "554ead599db5938bff0210e503c82c2a69e3ffc93fd27af0585bfc383706b64d"
+        }
+      ]
+    },
+    {
+      "attempt": "synthesis-r2",
+      "files": {
+        "reviewed-answer.md": "0d390afc63993e3bcf27a2c5b6892f885928e147fe40cb6140994c0ba8c79da0",
+        "trace-review.json": "1007bb101f473984e1aaaa478a56573f981f8c12d68dd2cfc4f4914c4621963d",
+        "preservation-after.json": "6452760c2e6e7293c0233c8aafe402324bb596658b34603835c45541692d401b",
+        "answer.md": "afdf8acbf175fdfced16649e60523007c4e79d24dfcc923ebcc454a83da2c6ca",
+        "capture.json": "04722d1e57ada650420c0ce9f3398a14729fdead9904cc76a7e2df4492ef36cd",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+        "preservation-before.json": "6452760c2e6e7293c0233c8aafe402324bb596658b34603835c45541692d401b",
+        "events.jsonl": "1f5bb526ace607a6988dc92f83d2bf3c06f4b080f9b1050b63327e186e1cf879",
+        "invocation.json": "3bc8f59e61670ccc9131d43bb247fe9170bee5d899bc6dfcf9eaf3e2881293f4",
+        "coordinator-review.json": "c6fc0cc149450d20d873f3200f51eb34d63bf1868e7561562a77c8d0650eb3cc"
+      },
+      "prompt_sha256": "a03f01cc94784c5700e111028ad4fac526f7f63118ad4e18135d1a2d2a582f30",
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 304.52369419299976,
+        "timeout_seconds": 900,
+        "events_sha256": "1f5bb526ace607a6988dc92f83d2bf3c06f4b080f9b1050b63327e186e1cf879",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "metrics": {
+        "tool_call_count": 36,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 1,
+        "usage": {
+          "input_tokens": 716001,
+          "cached_input_tokens": 644736,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 7405,
+          "reasoning_output_tokens": 3392
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "failed_calls": [
+        {
+          "id": "item_8",
+          "type": "mcp_tool_call",
+          "server": "qiongli",
+          "tool": "qiongli_project_document_list",
+          "success": false,
+          "status": "failed",
+          "started_event": 17,
+          "completed_event": 18,
+          "arguments_sha256": "3a184f9b42f2881840fcb7cc9f44ceefe9d72af2f2ea5d190b9dbefc4056ebf7",
+          "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "error_sha256": "fb9fe2ad2865d85c6e79a37dba0e23425b72f6a9cf68f5a9756499711b776695"
+        }
+      ]
+    },
+    {
+      "attempt": "recovery",
+      "files": {
+        "trace-review.json": "8fa5962b2d84c99468398df2fb18658e0d6fc39fac37b005ff59ba6ffc4722be",
+        "preservation-after.json": "17206e2ce40bcdb29f092da05431542ccabc9d44aa7945043e04de71bd015da1",
+        "image-read-proof.json": "f19eac63e9f2b151c2cad03b6754b1c15f7949dbba215e600dc7dc51926a0c9b",
+        "answer.md": "81f92f3d57dd42317dd999b58bdb36ad38fc9f7833c50682754ef65006c3e0f6",
+        "capture.json": "3a7881abad00123cc88a0e4d32b242ac5f47b1948090491330fd9c011b6bc3f5",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+        "preservation-before.json": "17206e2ce40bcdb29f092da05431542ccabc9d44aa7945043e04de71bd015da1",
+        "events.jsonl": "caaf9bb0d3d7acede5ef0c6ad066584ae1fdcfc3dbb3816dd0473878362699b7",
+        "invocation.json": "e79171e282c4a0b95ae841a5b1e29f7c6bc3017ac43708857aca9130aed76d3a",
+        "coordinator-review.json": "bd8af88e9f6bd9ad393f8dbe3c94bef4824662680c312443ce6956881debab1a"
+      },
+      "prompt_sha256": "8e5264e753d9bf86673a0ab9b2c89766fbd916fd644f37b516750694daae3a0c",
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 219.15777016100037,
+        "timeout_seconds": 900,
+        "events_sha256": "caaf9bb0d3d7acede5ef0c6ad066584ae1fdcfc3dbb3816dd0473878362699b7",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "metrics": {
+        "tool_call_count": 28,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 456860,
+          "cached_input_tokens": 401920,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 4878,
+          "reasoning_output_tokens": 2161
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "failed_calls": []
+    }
+  ],
+  "effective_configuration_evidence": {
+    "config-before-mcp-approval.toml": "1b6c0c49200c61ad22ce1eea05bcbea031c7822d4eb846c868cb4795404eb663",
+    "effective-config-readback.json": "40f5897afc3744fa7a611bb90cb821cdec89c5444dac54ee99864a6e705c539b"
+  },
+  "negative_case_evidence": {
+    "negative-missing-academic-approval-check.json": "09a932f8244add6ba6ecd1e42fb580a037d33bed93d39d28cc3948250beddbda",
+    "negative-missing-filesystem-approval-check.json": "3cafd81c877a1509281e148e42e4d09935226e4c03075ac3a43304480f27dce6",
+    "negative-stale-revision-check.json": "169586deecbeadc2bb9ad5880f3bad8918eb75845a404364144d6a4dd4eb026e",
+    "source-negative-cases.json": "abb11019a290abcd09c053f2dae96b5f18b4e5f4984e2461541354e3ce3792aa",
+    "candidate-inventory.stdout": "62766439e3ab3b1e9e98451b902ec0117a92e7df10fa164c8bd9f0de7369cc42"
+  },
+  "recovery_image_proof": {
+    "thread_id": "01a16436-afbd-7ec1-8af0-4f8a21cbf98c",
+    "rollout_path": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/codex-home/sessions/2026/10/22/rollout-2026-10-22T15-24-28-01a16436-afbd-7ec1-8af0-4f8a21cbf98c.jsonl",
+    "rollout_sha256": "a9cbe8367e4da97af45deb10602f5d970b9f325c286381c243c909b8d65df2cd",
+    "call_id": "call_2b8a628091d44006bbccc5a19058787e",
+    "image_count": 1,
+    "delivered_image_sha256": "d09e1c278b2325a600a4a4d160d19ac8d3fc15229a47c7935e3540a8ad92963b",
+    "saved_image_sha256": "d09e1c278b2325a600a4a4d160d19ac8d3fc15229a47c7935e3540a8ad92963b",
+    "exact_image_bytes_match": true,
+    "model_contexts": [
+      {
+        "model": "gpt-6-astra",
+        "effort": "xhigh"
+      }
+    ],
+    "scope": "actual nested view_image call and image return in public local rollout; exec JSON does not expose this nested call"
+  },
+  "native_test_receipts": {
+    "pack": {
+      "termination_reason": "completed",
+      "driver_error": null,
+      "process_cleanup": {
+        "exit_code": 0,
+        "method": "already-exited",
+        "reaped": true,
+        "group_gone": true
+      },
+      "elapsed_seconds": 24.53861712499929,
+      "timeout_seconds": 1200,
+      "events_sha256": "95d5ff55b2d4a3fa0563bf4cc201cca5b996a51be97fc7df67187259d7391d8f",
+      "stderr_sha256": "f98820b28806369d6df10cd99c3885e3dd45b7b444c4a17cf1708c5200d048f8"
+    },
+    "content": {
+      "termination_reason": "completed",
+      "driver_error": null,
+      "process_cleanup": {
+        "exit_code": 0,
+        "method": "already-exited",
+        "reaped": true,
+        "group_gone": true
+      },
+      "elapsed_seconds": 24.495165604999784,
+      "timeout_seconds": 1200,
+      "events_sha256": "6da50ef3deead225d3faec8de2af09018b1131aa1f327eb170971b6d491885db",
+      "stderr_sha256": "d7ed5142cb4a8e021b16d7a559ee1bf1add572a941e716191b29fe9e4317ece0"
+    },
+    "cli-embedded": {
+      "termination_reason": "completed",
+      "driver_error": null,
+      "process_cleanup": {
+        "exit_code": 0,
+        "method": "already-exited",
+        "reaped": true,
+        "group_gone": true
+      },
+      "elapsed_seconds": 189.46330589399986,
+      "timeout_seconds": 1200,
+      "events_sha256": "2df3f370c1c0c5600828c6e66662b97e748ed7a275ff468a989d5e7dc2895754",
+      "stderr_sha256": "4cf90dc6af5c14a0b75b21cc3927f69477f724ca367b4a3a3f9930a047f1b0c4"
+    }
+  },
+  "temporary_auth_link_absent": true
+}

@@ -81,6 +81,14 @@ model invocation; do not substitute broader sandbox modes. Keep preflight and
 effective-policy evidence with the new frozen inputs. A preflight file read
 cannot fill a model observation's missing guidance-use evidence.
 
+An enabled-tool list alone does not establish approval policy. Codex 0.162.1's
+`mcp get --json` omits per-tool approvals; use app-server `config/read` to inspect
+the effective values. A noninteractive profile still needs existing user
+authorization reflected in the exact read tools' policy. Retain a denied attempt
+before correcting an isolated profile; do not change the user's profile or
+approve every tool on a server. The public visual pilot's
+[replay tasks](public-visual/tasks.md) and results retain this setup failure.
+
 When an outer tool sandbox masks runtime paths, its view of a socket directory's
 permissions may differ from the host's. Diagnose with a separately authorized,
 read-only host-context check before changing shared directories. An authorized

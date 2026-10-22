@@ -52,9 +52,20 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — October 20, 2026
+## Current execution horizon — October 22, 2026
 
-The current bounded request strengthens connected-section and version-aware
+The current bounded request validates public-paper evidence extraction with actual
+figures/tables, bilingual literature synthesis and project-ID-only recovery.
+The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-22--public-visual-evidence-journey)
+owns the five retained attempts, source/visual provenance, capture cancellation
+repair, effective read-tool policy and local integration. Two public education
+papers exercise the complete bounded journey; original failures and unverified
+image-reinspection claims remain distinct from follow-up evidence. Integrate
+locally into `2.x`; no push, publication or acceptance promotion. Additional
+disciplines/visuals, author/expert review and more efficient source reads remain
+next, preserving the user's configured model and existing research-write owners.
+
+The preceding bounded request strengthens connected-section and version-aware
 writing review, records bilingual anonymous comparisons and an actual configured
 Codex/Antigravity handoff, and separates fast content checks from full Plugin
 builds. The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-20--connected-writing-and-validation-efficiency)

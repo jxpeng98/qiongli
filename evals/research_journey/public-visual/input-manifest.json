@@ -1,0 +1,99 @@
+{
+  "kind": "qiongli-public-visual-pilot-inputs/v1",
+  "frozen_review_criteria": {
+    "frozen_before_model": true,
+    "tasks": [
+      "extract",
+      "synthesize",
+      "resume"
+    ],
+    "criteria": [
+      "original PDF version and actual page/figure/table anchors",
+      "actual visual inspection distinguished from text/caption-only coverage",
+      "Kestin means versus medians; SEM not CI; 194 people not 316 independent people; two-week crossover immediate outcomes",
+      "Bastani author PDF Table 1 coefficients/SE/control means; normalized score differences not relative percent or percentage points conflated; 2848 repeated observations not participants",
+      "Bastani Fig2 model error distribution not student learning outcomes; Fig3 engagement not causal learning mechanism",
+      "affiliation-only correction does not revise findings",
+      "cross-study synthesis separates assisted performance from independent short-term outcomes, treatment/design/context differences and unresolved durability; no pooled effect or causal guardrail guarantee",
+      "fresh session discovers receipt-bound notes, packets and summary with current revision/hash and keeps source limits; no copied prior conversation",
+      "negative stale revision, changed source, missing source and absent approvals refuse without writes"
+    ],
+    "reviewer": "coordinator model review, not human or independent expert validation"
+  },
+  "sources": [
+    {
+      "file": "kestin.pdf",
+      "url": "https://www.nature.com/articles/s41598-025-97652-6.pdf",
+      "started_at_unix": 1792680245,
+      "status": 200,
+      "final_url": "https://www.nature.com/articles/s41598-025-97652-6.pdf?error=cookies_not_supported&code=31464e3c-12ab-4d6b-b514-96ee1013650e",
+      "content_type": "application/pdf",
+      "sha256": "afa6965dfd885fccdeb7ba48bec6a9e8293886db12a02860bbc388fa93e7ff72",
+      "bytes": 1376057
+    },
+    {
+      "file": "bastani-author.pdf",
+      "url": "https://hamsabastani.github.io/education_llm.pdf",
+      "started_at_unix": 1792680245,
+      "status": 200,
+      "final_url": "https://hamsabastani.github.io/education_llm.pdf",
+      "content_type": "application/pdf",
+      "sha256": "3c480fab94d0b6e466741a181724eba2bb868015f1a16ab998894a3a61067b4a",
+      "bytes": 1150746
+    },
+    {
+      "file": "kestin.xml",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC12179260/fullTextXML",
+      "started_at_unix": 1792680245,
+      "status": 200,
+      "final_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC12179260/fullTextXML",
+      "content_type": "application/xml",
+      "sha256": "db98d8223d150c7330e87d6ac7b5ccefcc6df63c5448ed85f2e00a787a5f7d34",
+      "bytes": 73298
+    },
+    {
+      "file": "bastani.xml",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC12232635/fullTextXML",
+      "started_at_unix": 1792680246,
+      "status": 200,
+      "final_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC12232635/fullTextXML",
+      "content_type": "application/xml",
+      "sha256": "d3b61ee92873f2ac2eb2b7b82b28f95583c0d12a00b5cd385104dc6d21d60d92",
+      "bytes": 93968
+    },
+    {
+      "file": "bastani-correction.xml",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC12403119/fullTextXML",
+      "started_at_unix": 1792680246,
+      "status": 200,
+      "final_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC12403119/fullTextXML",
+      "content_type": "application/xml",
+      "sha256": "f128b30ca4d931df697105267da4a42350d3ece11025148f28142eca0baa7da4",
+      "bytes": 4723
+    }
+  ],
+  "baseline_input_manifest": {
+    "time_unix": 1792680718,
+    "files": {
+      "inputs/extraction.prompt.txt": "0e3ed8db3efec30b9121474df3717e7bc7c9f4ba80df8df2c7141f7e7736eb0e",
+      "inputs/criteria.json": "429a8f907bc7f3f3b0d23d754575fb1d88c432dc5399a0a396ba677fe57b1c35",
+      "codex-home/config.toml": "1b6c0c49200c61ad22ce1eea05bcbea031c7822d4eb846c868cb4795404eb663",
+      "downloads/receipts.json": "0cc965be44c9839428f23118b85f1a0f843f289e8e2ac9f11c4399de6c3284dd",
+      "inputs/images/kestin-p3.png": "c5c316e74eab4da12534b9b668d41a773194067f7404e69f384677edbc3d5f6c",
+      "inputs/images/kestin-p4.png": "02a37e6a52e59bff58329b576bc85377693f48c52197abfcd7ba82e0eb1ba373",
+      "inputs/images/kestin-p5.png": "b8397a1dcb990971633bfba929c219d4a1b6d27138cfd06762deaea8168538c6",
+      "inputs/images/bastani-author-p10.png": "d09e1c278b2325a600a4a4d160d19ac8d3fc15229a47c7935e3540a8ad92963b",
+      "inputs/images/bastani-author-p16.png": "b96e477a16220ebf14573b857ee455efcf885996652f9f6cb5ffc861343843ca",
+      "inputs/images/bastani-author-p18.png": "68a2fdca1ab45206960cce450c503de4fe540ef3a7e9bcff43ec9338b10147b7",
+      "inputs/text/kestin-main.txt": "0df53dfd414b540b7fff846f3d181ec243d3cd3e2e18adcc90c24ec4ea4db3d7",
+      "inputs/text/bastani-author-main.txt": "fcfcaa2d2bd62662fb2a55d34df93c5297b0d205426c61e579c080379fafc88a",
+      "inputs/text/bastani-correction-xml-body.txt": "63c5cc1c5929e73630f998c73a247f9c7b4a2e9505f33550e3861c817d543bfb"
+    }
+  },
+  "scope": "Direct native Full MCP and frozen canonical guidance, not installed Plugin qualification; local source build stamp absent",
+  "source_checkout": "f3f5fc8330d8543473c3f918bf77c488c4a6a912",
+  "configured_model": "gpt-6-astra",
+  "configured_effort": "xhigh",
+  "codex_version": "0.162.1",
+  "source_artifacts_in_git": false
+}
