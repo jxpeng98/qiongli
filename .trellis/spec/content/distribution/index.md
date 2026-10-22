@@ -39,6 +39,8 @@ The paper-reading owner selects bounded source reads from the requested question
 and current note/summary bindings. Session reuse preserves revision, source hash
 and passage scope; it neither replaces source support nor survives changed or
 unavailable context. Whole-packet reading remains available when coverage needs it.
+Scope selection weighs returned text against round trips, including compact
+packets and evidence spread across sections; no minimum call or byte quota applies.
 Published pre-extension tool counts remain valid historical observations; current
 native inventory validation also accepts coherent Lite 15 / Full 34 and 35 pairs.
 The list extension requires both the saved-document reader and fulltext extension;

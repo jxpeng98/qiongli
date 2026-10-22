@@ -195,6 +195,10 @@ the entire packet. Read the whole packet when the task requires broad coverage
 or its relevant context cannot otherwise be established; do not turn a focused
 check into a full-paper reading claim. Notes and summaries are navigation aids,
 not substitutes for source support.
+Consider both returned text and tool round trips: for a compact packet or claims
+spread across many sections, a complete bounded read can cost less than repeated
+searches. Use the advertised read limit to choose a useful window, rather than
+fragmenting connected evidence into many small requests.
 
 Within the active session, reuse guidance already loaded at the same version and
 passages still available in context under the same project revision, path, source
