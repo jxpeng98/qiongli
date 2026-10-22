@@ -638,7 +638,7 @@
     },
     {
       "name": "qiongli_project_document_list",
-      "description": "List saved paper-note, source-packet, retrieval-manifest and stage-summary bindings from validated consolidation receipts in one registered project. Read the current project revision first. Only current entries supply readArguments for qiongli_project_document_read; missing, changed or unavailable files require review, never a substituted hash. Pages are sorted by relative path; continuation requires the same revision and bindingsSha256. This is bounded local history, not remote verification, a file scan or write permission.",
+      "description": "List saved paper-note, source-packet, retrieval-manifest and stage-summary bindings from validated consolidation receipts in one registered project. Read the current project revision first. Omit limit for the default page size of 32; an explicit limit must be 1–64. Only current entries supply readArguments for qiongli_project_document_read; missing, changed or unavailable files require review, never a substituted hash. Pages are sorted by relative path; continuation requires the same revision and bindingsSha256. This is bounded local history, not remote verification, a file scan or write permission.",
       "inputSchema": {
         "type": "object",
         "required": ["project_id", "expected_project_revision"],
