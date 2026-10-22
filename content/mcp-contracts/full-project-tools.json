@@ -571,7 +571,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 256,
-            "description": "Only notes/<citekey>.md, sources/<citekey>/<sha256>.json, or retrieval_manifest.csv; never an absolute path."
+            "description": "Only notes/<citekey>.md, sources/<citekey>/<sha256>.json, retrieval_manifest.csv, or context/stage_summaries/STG-*.md; never an absolute path."
           },
           "expected_sha256": {
             "type": "string",

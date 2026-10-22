@@ -16,6 +16,7 @@ import re
 import signal
 import subprocess
 import sys
+import threading
 import time
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -258,25 +259,51 @@ def stop_process(process, grace_seconds=3):
 
 
 def run_process(command, workspace, output, timeout_seconds, env=None):
-    """Spool complete stdout/stderr to exclusive files, including failed attempts."""
+    """Spool attempts and clean up owned children, including main-thread cancellation."""
     process, reason, failure, cleanup = None, "completed", None, None
+    cancelled, previous_handlers = None, {}
+
+    def cancel(signum, _frame):
+        # Do not raise between Popen creating a child and assigning its handle,
+        # or interrupt cleanup on a second signal. The wait loop observes this.
+        nonlocal cancelled
+        if cancelled is None:
+            cancelled = signum
+
     started = time.monotonic()
     with (output / "events.jsonl").open("xb") as stdout, (output / "stderr.log").open("xb") as stderr:
         try:
+            if threading.current_thread() is threading.main_thread():
+                for signum in (signal.SIGINT, signal.SIGTERM):
+                    previous_handlers[signum] = signal.signal(signum, cancel)
             process = subprocess.Popen(command, cwd=workspace, stdin=subprocess.DEVNULL,
                                        stdout=stdout, stderr=stderr, start_new_session=True, env=env)
-            try:
-                process.wait(timeout=timeout_seconds)
-            except subprocess.TimeoutExpired:
-                reason = "timeout"
+            deadline = time.monotonic() + timeout_seconds
+            while cancelled is None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    reason = "timeout"
+                    break
+                try:
+                    process.wait(timeout=min(0.1, remaining))
+                    break
+                except subprocess.TimeoutExpired:
+                    continue
         except BaseException as error:
             reason, failure = "driver-error", type(error).__name__
         finally:
-            if process is not None:
-                cleanup = stop_process(process)
+            try:
+                if process is not None:
+                    cleanup = stop_process(process)
+            finally:
+                for signum, handler in previous_handlers.items():
+                    signal.signal(signum, handler)
+    if cancelled is not None:
+        reason = "cancelled"
     if reason == "completed" and cleanup is not None and cleanup["exit_code"] != 0:
         reason = "terminated" if cleanup["exit_code"] < 0 else "nonzero-exit"
     return {"termination_reason": reason, "driver_error": failure, "process_cleanup": cleanup,
+            **({"cancellation_signal": cancelled} if cancelled is not None else {}),
             "elapsed_seconds": time.monotonic() - started, "timeout_seconds": timeout_seconds,
             "events_sha256": baseline.probe.digest(output / "events.jsonl"),
             "stderr_sha256": baseline.probe.digest(output / "stderr.log")}

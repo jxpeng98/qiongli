@@ -2,6 +2,7 @@
 import copy
 import hashlib
 import json
+import os
 from pathlib import Path
 import signal
 import subprocess
@@ -138,6 +139,47 @@ class AntigravityObservationTests(unittest.TestCase):
         self.assertEqual(result['process_cleanup']['method'], 'sigterm')
         self.assertEqual(result['process_cleanup']['exit_code'], 0)
         self.assertIn(b'ready', (output / 'events.jsonl').read_bytes())
+
+    @unittest.skipUnless(os.name == 'posix', 'Owned process groups require POSIX')
+    def test_driver_cancellation_retains_output_and_reaps_child(self):
+        for signum in (signal.SIGTERM, signal.SIGINT):
+            with self.subTest(signal=signum):
+                output = self.root / f'cancel-{signum}'
+                output.mkdir()
+                child = ("import os,signal,sys,time;"
+                         "print(os.getpid(),flush=True);"
+                         "print('partial evidence',file=sys.stderr,flush=True);"
+                         f"os.kill(os.getppid(),{int(signum)});time.sleep(30)")
+                driver = (
+                    "import json,signal,sys;from pathlib import Path;"
+                    "from evals.research_journey import antigravity_observation as a;"
+                    "before={s:signal.getsignal(s) for s in (signal.SIGTERM,signal.SIGINT)};"
+                    f"p=Path({str(output)!r});"
+                    f"r=a.run_process([sys.executable,'-c',{child!r}],p,p,5);"
+                    "r['handlers_restored']=all(signal.getsignal(s)==h for s,h in before.items());"
+                    "print(json.dumps(r))")
+                try:
+                    result = subprocess.run([sys.executable, '-c', driver], cwd=agy.ROOT,
+                                            capture_output=True, text=True, timeout=10)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    receipt = json.loads(result.stdout)
+                    self.assertEqual(receipt['termination_reason'], 'cancelled')
+                    self.assertEqual(receipt['cancellation_signal'], signum)
+                    self.assertIsNone(receipt['driver_error'])
+                    self.assertTrue(receipt['handlers_restored'])
+                    self.assertTrue(receipt['process_cleanup']['reaped'])
+                    self.assertTrue(receipt['process_cleanup']['group_gone'])
+                    self.assertEqual((output / 'stderr.log').read_text(), 'partial evidence\n')
+                    self.assertEqual(receipt['events_sha256'], hashlib.sha256(
+                        (output / 'events.jsonl').read_bytes()).hexdigest())
+                finally:
+                    # Also clean up the owned child if this regression fails.
+                    raw = (output / 'events.jsonl').read_text().strip()
+                    if raw.isdigit():
+                        try:
+                            os.killpg(int(raw), signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
 
     def test_ignoring_sigterm_requires_kill_and_reap(self):
         process = subprocess.Popen([sys.executable, '-c',

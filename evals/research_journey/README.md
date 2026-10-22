@@ -12,10 +12,11 @@ Never substitute a prior answer or count a recovered file as verified prose.
 Before freezing a project-ID-only continuation, check that the authorized read
 surfaces can discover the requested artifact kind. `qiongli_project_read` returns
 redacted project metadata, not an absolute root or research-state body. The saved
-document list covers receipt-backed notes, source packets and retrieval history;
-it does not expose stage summaries. A summary read needs an independently
-authorized project context and an observed history/handoff binding through its
-existing owner. A readable filesystem subtree alone does not supply that binding.
+document list covers receipt-backed notes, source packets, retrieval history and
+stage summaries on current native Full. Use its returned read arguments at the
+current revision. Older Hosts may lack summary discovery; they need an
+independently authorized context and an observed history/handoff binding through
+their existing owner. A readable filesystem subtree alone does not supply that binding.
 Keep the driver prompt consistent with this scope. Do not guess a root from
 `rootLabel`, scan private configuration, or work around a denied tool. Missing
 discovery/authority is an unqualified prerequisite; any diagnostic model run
