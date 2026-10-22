@@ -54,7 +54,18 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 22, 2026
 
-The current bounded request adds computer-science attention diagrams, conflicting
+The current bounded request measures guidance delivery on the saved public
+education papers and exercises recovery with an unavailable attention image.
+The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-22--guidance-delivery-and-unavailable-image-recovery)
+owns four fresh observations, outer-output failure accounting, bounded guidance
+loading and explicit search-context help. Later guidance-bundle truncation is
+avoided in the final candidate, but initial tool discovery still truncates and
+extra calls/input tokens prevent an overall efficiency claim. Missing-image
+recovery preserves historical versus current evidence. Integrate locally into
+`2.x`; no push, publication or acceptance promotion. Scoped initial tool discovery,
+section/round-trip tradeoffs and author/expert review remain next.
+
+The preceding bounded request adds computer-science attention diagrams, conflicting
 paper versions and a frozen source-read comparison. The existing
 [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-22--attention-diagrams-and-bounded-reads)
 owns extraction, three fresh recovery/synthesis observations, bounded-read guidance

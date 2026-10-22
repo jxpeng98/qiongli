@@ -3803,3 +3803,59 @@ Next: measure source-window selection and Host guidance truncation across additi
 papers, exercise unavailable-image recovery, and obtain author/subject-expert
 assessment. This pilot supplies neither independent expert review nor evidence
 that the latest instruction increases overall speed.
+
+## October 22 — Guidance delivery and unavailable-image recovery
+
+The [delivery follow-up](../../../evals/research_journey/public-visual/delivery/README.md)
+records four fresh configured-model observations and offline inspection of the
+three preceding attention rollouts. The latter expose 3/1/3 outer truncations and
+0/1/1 script failures omitted by simplified exec JSON. Existing evaluation code
+now records this layer separately, rejects malformed/duplicate records and keeps
+unknown/unmatched/pending output explicit without exporting source or reasoning.
+
+The education baseline, first candidate and explicit-budget candidate take
+239.7/206.9/228.8 seconds with 23/20/35 recorded calls, 15/12/16 document reads,
+129,186/120,488/94,034 content bytes and 2/2/1 outer truncations. All preserve
+source distinctions, partial status, actual image delivery and project/config
+bytes. The first candidate still bundles three guides; source ee97f6e5 explicitly
+separates nested reader limits from outer budgets. Its later guides arrive in
+bounded sections without another bundle truncation or whole Stage F reread.
+Initial root/tool discovery still truncates; increased calls and input tokens
+prevent an overall efficiency claim. The adaptive follow-up and readable sibling
+input trees are documented, with actual commands confined to selected guidance.
+
+A separate revision-5 public fixture imports prior attention text/notes through
+existing preview/approval/CAS and omits only the current Figure 4 render. The
+original prior image remains intact. The fresh run takes 232.7 seconds, recovers
+four current bindings, actually receives three other images and handles the
+missing-image rejection. It uses the checked caption for AIAYN-C07, explicitly
+defers historical AIAYN-C06 detail and preserves version/causal limits. No image
+rule change is needed. Two invalid coordinator capture requests and one invalid
+consolidation preview remain recorded; correction selects valid evidence objects
+and source bindings without overwriting failures or mutating original projects.
+
+Two education runs each exceed the existing search-context limit. Source 9fe1656c
+exposes default 128 / range 4..512 bytes per side in tool help and points longer
+passages to read mode. Final native inventory differs only in this description;
+model observations use the preceding binary, so prevention remains unobserved.
+The supported generator binds 446 resources, version 2.5.3, to source
+9fe1656c7d9381037cc4dcc7b634f3a56b86da01, content root
+a981d8d144ff10da89b9c5b26a0488d12bb39888efe19ec1460cf33da4a7479f and pack
+d140407859cdce23118726b2c912f3ba52822cd476980ab06d2688dcc4185801.
+
+Affected checks total 71 distinct tests: 38 Python evaluation/content gates,
+9 MCP fixtures, 16 native content, 1 CLI embedded pack and 7 ledger/index checks.
+Changed-input reruns count once. Final bounded native receipts are under
+/tmp/qiongli-delivery-final-native-checks; all exit successfully, are reaped and
+leave no process group. Cache budget is within limits at about 1.75 GB listed
+caches / 73.0 GB free; no cleanup is needed. Public traces, exact image bytes,
+source bindings, removed temporary auth links and unchanged case fingerprints
+are checked. These are coordinator reviews, not blind author/expert judgments.
+
+Final diff review covers owners, output-delivery accounting, source fidelity,
+retained failures, unchanged schemas/write authority and final pack identity.
+The frozen-source guard precedes local fast-forward integration into 2.x.
+Only CLI-405 progress and the generated index change; task states, dependencies,
+accepted evidence and commit/run fields stay unchanged. No push or publication.
+Next: scoped tool discovery during initial loading, section-size/round-trip
+measurements, a behavior check of search help and author/subject-expert review.

@@ -1,0 +1,600 @@
+{
+  "kind": "qiongli-public-visual-pilot-observation/v1",
+  "date": "2026-10-22",
+  "scope": "Public-paper iterative guidance delivery and unavailable-image recovery; coordinator model review only.",
+  "capture_root": "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj",
+  "runtime_identity": {
+    "source_commit": "85aa0cbbbb4e023ce912dab6b8583e5feed15886",
+    "binary_sha256": "dd0383a787f37f013cb9a6bfa18acc79b9ae4c863f75c9725e61c9303e31824a",
+    "codex_sha256": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "model": "gpt-6-astra",
+    "effort": "xhigh"
+  },
+  "historical_delivery": [
+    {
+      "attempt": "baseline",
+      "rollout_path": "/home/hermes/qiongli-public-attention-20261022-gleh7rs5/codex-home/sessions/2026/10/22/rollout-2026-10-22T17-02-33-01a16490-7dc1-7193-afa1-78edf51a6eb6.jsonl",
+      "rollout_sha256": "bb36afd96b239d216afff5240b85a28db9210ced1dc194572911302398d24cc6",
+      "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+      "exec_output_count": 9,
+      "truncation_warnings": 3,
+      "script_failures": 0,
+      "unclassified_outputs": 0,
+      "unmatched_outputs": 0,
+      "pending_exec_calls": []
+    },
+    {
+      "attempt": "candidate",
+      "rollout_path": "/home/hermes/qiongli-public-attention-20261022-gleh7rs5/codex-home/sessions/2026/10/22/rollout-2026-10-22T17-06-18-01a16493-ed42-7803-8bce-c24464e346ec.jsonl",
+      "rollout_sha256": "6caf9bca81419acb902c9ef86ecea6fe7aeaa50465b5bfa80ad4ee56ab111c42",
+      "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+      "exec_output_count": 15,
+      "truncation_warnings": 1,
+      "script_failures": 1,
+      "unclassified_outputs": 0,
+      "unmatched_outputs": 0,
+      "pending_exec_calls": []
+    },
+    {
+      "attempt": "balanced",
+      "rollout_path": "/home/hermes/qiongli-public-attention-20261022-gleh7rs5/codex-home/sessions/2026/10/22/rollout-2026-10-22T17-11-40-01a16498-d81f-7ff1-aaaf-818ceb78e0b3.jsonl",
+      "rollout_sha256": "c7320ed813262169d396f407c9274eb3e414e77f5ac8aed58047d23de8813d58",
+      "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+      "exec_output_count": 13,
+      "truncation_warnings": 3,
+      "script_failures": 1,
+      "unclassified_outputs": 0,
+      "unmatched_outputs": 0,
+      "pending_exec_calls": []
+    }
+  ],
+  "cases": {
+    "education": {
+      "project_id": "prj_aea711163ab262cf4efdc8735c0c44d1",
+      "project_root": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/work/project",
+      "config_root": "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/education-config",
+      "images": [
+        "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/kestin-p3.png",
+        "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/kestin-p4.png",
+        "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/kestin-p5.png",
+        "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/bastani-author-p10.png",
+        "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/bastani-author-p16.png",
+        "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/bastani-author-p18.png"
+      ]
+    },
+    "missing-image": {
+      "project_id": "prj_af1310926c97734ca491cb0bfb12c552",
+      "project_root": "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/work/project",
+      "config_root": "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/config",
+      "images": [
+        "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/inputs/images/proceedings-p8.png",
+        "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/inputs/images/arxiv-v7-p8.png",
+        "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/inputs/images/arxiv-v7-p9.png",
+        "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/inputs/images/arxiv-v7-p14.png"
+      ]
+    }
+  },
+  "attempts": [
+    {
+      "attempt": "education-baseline",
+      "files": {
+        "answer.md": "2445380d175f86af9bd1113b91b1acd49a9c560f1de307bdf96a263f2304a3ef",
+        "capture.json": "296edb386c332af2642e15a65aab502b79582438edc5d92441665c1cedcef665",
+        "coordinator-review.json": "89403327ff7f04101a8c5fd878864ae2584e199ffd61c9c793dc474a5056518f",
+        "delivery.json": "863e52646fe4c2a468146bb3b534d4993c38a52857375609b7b2476eaa6f3763",
+        "events.jsonl": "d86a253dbbbee1ac37f7f758faa00cfb354046a1178f7385e7c01039a0be9f03",
+        "guidance-commands.json": "f7acc34146bc030df77a350d2d44d453a467af21955a3ce5a8ae5fc4a4798bf3",
+        "invocation.json": "91e4f5218657249b03ddb8fc4a0545675ac5fd62da94039f8fd945f595dd9a9a",
+        "metrics.json": "1039e1e0394370f815532564b6c568c745f840f24b934ec803d2b1f9685efeaf",
+        "policy.json": "908f4b248428ff94eeb21f2d70fabc364178fd71890dea34614e2401723243bf",
+        "policy.stderr": "b0278dcadf2fff43372d1f24a9feb054a96699d6465334c5dcdac4330cb14fab",
+        "preservation-after.json": "17206e2ce40bcdb29f092da05431542ccabc9d44aa7945043e04de71bd015da1",
+        "preservation-before.json": "17206e2ce40bcdb29f092da05431542ccabc9d44aa7945043e04de71bd015da1",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 239.66186576600012,
+        "timeout_seconds": 900,
+        "events_sha256": "d86a253dbbbee1ac37f7f758faa00cfb354046a1178f7385e7c01039a0be9f03",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "metrics": {
+        "tool_call_count": 23,
+        "failed_tool_calls": 2,
+        "usage": {
+          "input_tokens": 604228,
+          "cached_input_tokens": 528384,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 7316,
+          "reasoning_output_tokens": 3394
+        },
+        "run_outcome": "completed",
+        "pending_tool_calls": [],
+        "document_read_count": 15,
+        "read_content_bytes": 129186,
+        "mcp_response_bytes": 142595,
+        "command_output_bytes": 144190,
+        "preservation_equal": true,
+        "image_deliveries": [
+          {
+            "call_id": "call_fd8d0faecb1b4f5eb325a16a5396800a",
+            "sha256": "d09e1c278b2325a600a4a4d160d19ac8d3fc15229a47c7935e3540a8ad92963b",
+            "matches_original": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/bastani-author-p10.png"
+          },
+          {
+            "call_id": "call_fd8d0faecb1b4f5eb325a16a5396800a",
+            "sha256": "c5c316e74eab4da12534b9b668d41a773194067f7404e69f384677edbc3d5f6c",
+            "matches_original": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/kestin-p3.png"
+          }
+        ],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "outer_delivery": {
+        "rollout_path": "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/profiles/education-baseline/sessions/2026/10/22/rollout-2026-10-22T18-48-54-01a164f1-da5e-78e1-821e-e6960b6721d8.jsonl",
+        "rollout_sha256": "7c3e092d30f724481f9c0a7f9f3d24af707ef5a1e164bec1e861cbd9f83590e6",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 11,
+        "truncation_warnings": 2,
+        "script_failures": 1,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "review": {
+        "delivery": "Two outer truncations: initial root-plus-catalog bundle and three-guide bundle. Stage F is requested again in full. Invalid search context requests cause two inner refusals and a JSON parsing script failure; recovery completes.",
+        "judgment": "Source meaning retained within inspected scope; delivery problem reproduced.",
+        "reviewer": "coordinator model; not blinded, author or domain-expert review",
+        "source_fidelity": "Bastani relative percentages and assisted versus closed-book outcomes retained; Tutor nonsignificance not equivalence. Kestin body medians distinguished from Figure 1 means/SEM. Different designs/interventions not pooled; package effects not isolated mechanisms; post-test AI restrictions, denominator, long-term and transfer gaps retained. Current claims and partial seed remain attributed.",
+        "language": "Chinese and English paragraphs form a coherent matched argument; no independent language-quality ranking or publication-ready claim.",
+        "length_diagnostics": {
+          "chinese_han_characters": 396,
+          "chinese_nonwhitespace_codepoints": 506,
+          "english_whitespace_words": 214,
+          "limit": "Natural-language length targets only; no exact multilingual counting convention was frozen, so these diagnostics are not a strict pass label."
+        },
+        "preservation": "Project and copied config hashes unchanged; both actual original page deliveries verified; no new source retrieval.",
+        "answer_sha256": "2445380d175f86af9bd1113b91b1acd49a9c560f1de307bdf96a263f2304a3ef"
+      },
+      "guidance_commands_confined_to_selected_variant": true
+    },
+    {
+      "attempt": "education-candidate",
+      "files": {
+        "answer.md": "d673263ca12f8b4acfb5756f3124f45fc1d5b44485eaaa1cccc5e46f79ae4a22",
+        "capture.json": "976560b1d04511ca128b62365c0ba4857e488bde9323e19c8455d9082fdf53f9",
+        "coordinator-review.json": "88e50c61ac5fa041b90deaf108d7834efd542afbcc0be5e879c4e5c4b0d8c79d",
+        "delivery.json": "6cabaa139a3c3f45fc74363eaf71b832fdceee29c23fd3e41a763ef9b43aa1c3",
+        "events.jsonl": "0ac4b88f5d873b958924d50c3dbbc67b06932902f55a0c96cb2a098dd4ba9019",
+        "guidance-commands.json": "e82d14bcb73ed6b2d319760169355188d5e2e0975da25ecb943b3b2f7602d68b",
+        "invocation.json": "497782f80dd43256eb3cbf55c5f9d4788b74e15eee83e2adde3664ce88f5a807",
+        "metrics.json": "4ede2dce33b8cc33cd62c87a4888e654a6bf9ac760b55af185bd7ce469f8849a",
+        "policy.json": "cfdcc2df9c755d75199a28f8604bee7f744e2aa6fb928314fe5c3206050b8b30",
+        "policy.stderr": "9b2e814d5204e5d3f4e65536f60b808c6d60633896a795a8a4fa4d2191493e76",
+        "preservation-after.json": "17206e2ce40bcdb29f092da05431542ccabc9d44aa7945043e04de71bd015da1",
+        "preservation-before.json": "17206e2ce40bcdb29f092da05431542ccabc9d44aa7945043e04de71bd015da1",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 206.85711406500195,
+        "timeout_seconds": 900,
+        "events_sha256": "0ac4b88f5d873b958924d50c3dbbc67b06932902f55a0c96cb2a098dd4ba9019",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "metrics": {
+        "tool_call_count": 20,
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 742936,
+          "cached_input_tokens": 663808,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 6348,
+          "reasoning_output_tokens": 2649
+        },
+        "run_outcome": "completed",
+        "pending_tool_calls": [],
+        "document_read_count": 12,
+        "read_content_bytes": 120488,
+        "mcp_response_bytes": 135705,
+        "command_output_bytes": 140304,
+        "preservation_equal": true,
+        "image_deliveries": [
+          {
+            "call_id": "call_13b67fd1b8e24d25961cf4f68e88d78d",
+            "sha256": "d09e1c278b2325a600a4a4d160d19ac8d3fc15229a47c7935e3540a8ad92963b",
+            "matches_original": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/bastani-author-p10.png"
+          },
+          {
+            "call_id": "call_13b67fd1b8e24d25961cf4f68e88d78d",
+            "sha256": "c5c316e74eab4da12534b9b668d41a773194067f7404e69f384677edbc3d5f6c",
+            "matches_original": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/kestin-p3.png"
+          }
+        ],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "outer_delivery": {
+        "rollout_path": "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/profiles/education-candidate/sessions/2026/10/22/rollout-2026-10-22T18-54-32-01a164f7-0271-70f2-b31b-ace26daccfb8.jsonl",
+        "rollout_sha256": "fd9d23b4169dafa3a70522d79dda3b57ae0da5519ba5896e0f6253209c2e0abd",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 13,
+        "truncation_warnings": 2,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "review": {
+        "delivery": "Two outer truncations remain, including three whole guidance files under a 21000-token inner limit and unchanged outer budget. Stage F is reread. No inner failures; first guidance change does not resolve the observed batching error.",
+        "judgment": "Source meaning retained; first candidate fails to remove guide-bundle truncation.",
+        "reviewer": "coordinator model; not blinded, author or domain-expert review",
+        "source_fidelity": "Bastani relative percentages and assisted versus closed-book outcomes retained; Tutor nonsignificance not equivalence. Kestin body medians distinguished from Figure 1 means/SEM. Different designs/interventions not pooled; package effects not isolated mechanisms; post-test AI restrictions, denominator, long-term and transfer gaps retained. Current claims and partial seed remain attributed.",
+        "language": "Chinese and English paragraphs form a coherent matched argument; no independent language-quality ranking or publication-ready claim.",
+        "length_diagnostics": {
+          "chinese_han_characters": 393,
+          "chinese_nonwhitespace_codepoints": 502,
+          "english_whitespace_words": 215,
+          "limit": "Natural-language length targets only; no exact multilingual counting convention was frozen, so these diagnostics are not a strict pass label."
+        },
+        "preservation": "Project and copied config hashes unchanged; both actual original page deliveries verified; no new source retrieval.",
+        "answer_sha256": "d673263ca12f8b4acfb5756f3124f45fc1d5b44485eaaa1cccc5e46f79ae4a22"
+      },
+      "guidance_commands_confined_to_selected_variant": true
+    },
+    {
+      "attempt": "education-bounded",
+      "files": {
+        "answer.md": "a916a8756425df4cc8c7b9203b8f34c34e018a4269f6f3910da87fbeb4c64412",
+        "capture.json": "953b668cf865eee57d772a915e55e82a5cf0cb218851a432b77588e8a8d7beff",
+        "coordinator-review.json": "c6b64eb634151abc3676d6588e5906719f94adb855f2369f444f15020bddc412",
+        "delivery.json": "78deb53e95e22fc45d2b7c4f092a3c4a9bd25cb3457e9f7fd87f8232270f071a",
+        "events.jsonl": "f4b208867905d96ca439f074a6be0cb634e13a2ec95c18761a4f9da414004b11",
+        "guidance-commands.json": "5732370eb1892294f1b1776da7adbe156c23086726fff792bf90e3666e68d9be",
+        "invocation.json": "310210006eea5570c26bf3000ad303d64e81f9c56175160aef2dc99a3b25f084",
+        "metrics.json": "e8f6c80b6ec3d5e55741671aa5cd1d9a2f7ff8150fff8ab7691b4b85b07891d3",
+        "policy.json": "0bc7074dae6d532a99379b3e13aaea199ae2ed4f4b21b294e43708297112ea0f",
+        "policy.stderr": "47f1b2d1902f82f846d525cebde57271b7ad36065488a49a8fc79651196eba39",
+        "preservation-after.json": "17206e2ce40bcdb29f092da05431542ccabc9d44aa7945043e04de71bd015da1",
+        "preservation-before.json": "17206e2ce40bcdb29f092da05431542ccabc9d44aa7945043e04de71bd015da1",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 228.8469620979995,
+        "timeout_seconds": 900,
+        "events_sha256": "f4b208867905d96ca439f074a6be0cb634e13a2ec95c18761a4f9da414004b11",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "metrics": {
+        "tool_call_count": 35,
+        "failed_tool_calls": 2,
+        "usage": {
+          "input_tokens": 890436,
+          "cached_input_tokens": 813312,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 7367,
+          "reasoning_output_tokens": 2518
+        },
+        "run_outcome": "completed",
+        "pending_tool_calls": [],
+        "document_read_count": 16,
+        "read_content_bytes": 94034,
+        "mcp_response_bytes": 109994,
+        "command_output_bytes": 120254,
+        "preservation_equal": true,
+        "image_deliveries": [
+          {
+            "call_id": "call_976d61ca52aa4a8f93499a5640aa3814",
+            "sha256": "d09e1c278b2325a600a4a4d160d19ac8d3fc15229a47c7935e3540a8ad92963b",
+            "matches_original": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/bastani-author-p10.png"
+          },
+          {
+            "call_id": "call_976d61ca52aa4a8f93499a5640aa3814",
+            "sha256": "c5c316e74eab4da12534b9b668d41a773194067f7404e69f384677edbc3d5f6c",
+            "matches_original": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/kestin-p3.png"
+          }
+        ],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "outer_delivery": {
+        "rollout_path": "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/profiles/education-bounded/sessions/2026/10/22/rollout-2026-10-22T18-58-32-01a164fa-ad0e-7143-a7c7-56933e62ebc6.jsonl",
+        "rollout_sha256": "2d06b490c58282aea0654fc72cf5e130714c43d85f962947890787a6b5c28594",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 16,
+        "truncation_warnings": 1,
+        "script_failures": 1,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "review": {
+        "delivery": "Long follow-up guides are returned as bounded sections; no later guidance-bundle truncation or whole Stage F reread observed. Initial root-plus-broad-catalog output still truncates. Two search contexts above 512 bytes are refused; storing an absent error result causes one outer script failure after two successful outputs were already returned.",
+        "judgment": "Bounded section behavior observed with preserved meaning; residual bootstrap/catalog and invalid search failures remain, and extra calls/input tokens prevent an efficiency claim.",
+        "reviewer": "coordinator model; not blinded, author or domain-expert review",
+        "source_fidelity": "Bastani relative percentages and assisted versus closed-book outcomes retained; Tutor nonsignificance not equivalence. Kestin body medians distinguished from Figure 1 means/SEM. Different designs/interventions not pooled; package effects not isolated mechanisms; post-test AI restrictions, denominator, long-term and transfer gaps retained. Current claims and partial seed remain attributed.",
+        "language": "Chinese and English paragraphs form a coherent matched argument; no independent language-quality ranking or publication-ready claim.",
+        "length_diagnostics": {
+          "chinese_han_characters": 401,
+          "chinese_nonwhitespace_codepoints": 507,
+          "english_whitespace_words": 230,
+          "limit": "Natural-language length targets only; no exact multilingual counting convention was frozen, so these diagnostics are not a strict pass label."
+        },
+        "preservation": "Project and copied config hashes unchanged; both actual original page deliveries verified; no new source retrieval.",
+        "answer_sha256": "a916a8756425df4cc8c7b9203b8f34c34e018a4269f6f3910da87fbeb4c64412"
+      },
+      "guidance_commands_confined_to_selected_variant": true
+    },
+    {
+      "attempt": "missing-image-bounded",
+      "files": {
+        "answer.md": "fe89ef06216f0c9b85dc76a1b7361fc2c07852650fe8f8724e253313eab83c13",
+        "capture.json": "d5b94d259fd26d966a77e54eaea9c2006e9d4464c368a6880c9e65df3ff5e40a",
+        "coordinator-review.json": "efd011a3381ef6b626120a79a78091637b2300870407fbdbf2c125b441f93dd4",
+        "delivery.json": "98330ec4654a88faf5a1d9f4113883e9429a99cfb3e8fdeb628bf74e81a46607",
+        "events.jsonl": "1fcec13e14c9480db7d81e2cdcba55cab0e0c628dd67467204f1beb10e82d8dd",
+        "guidance-commands.json": "56cd133f0d6ac0d57d905e66da657a9b56a6485545e193433c77643580af3b0c",
+        "invocation.json": "7fc23ed08aadef85b337c1aaea675e3f2126caaba1d945060fb80846954950d9",
+        "metrics.json": "6d64687eb521db8dadd2e3d2b8f29adb1d6bc3b03c30cd70c3a66c55bb263f00",
+        "policy.json": "2979bbd69d95f228c62dc080dec2261353d103838bb45be762214ef9be17451d",
+        "policy.stderr": "e456055dbdb1a0c9b26cd666ce1700ac9c59fd57177aadb5121db2a0b8a497b2",
+        "preservation-after.json": "e76a65a25cd373a390b3c81f24cdb7bcf675946850f95136c4214af661ac9b38",
+        "preservation-before.json": "e76a65a25cd373a390b3c81f24cdb7bcf675946850f95136c4214af661ac9b38",
+        "stderr.log": "d0206ef98996e89bf137c1694fe210b8269a091864f51689c8bdc6a138c7fecd"
+      },
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 232.71760503900077,
+        "timeout_seconds": 900,
+        "events_sha256": "1fcec13e14c9480db7d81e2cdcba55cab0e0c628dd67467204f1beb10e82d8dd",
+        "stderr_sha256": "d0206ef98996e89bf137c1694fe210b8269a091864f51689c8bdc6a138c7fecd"
+      },
+      "metrics": {
+        "tool_call_count": 24,
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 781813,
+          "cached_input_tokens": 707456,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 7322,
+          "reasoning_output_tokens": 2723
+        },
+        "run_outcome": "completed",
+        "pending_tool_calls": [],
+        "document_read_count": 8,
+        "read_content_bytes": 87856,
+        "mcp_response_bytes": 97601,
+        "command_output_bytes": 139371,
+        "preservation_equal": true,
+        "image_deliveries": [
+          {
+            "call_id": "call_854a295f04e84c03b9fcbfe11acaaeaa",
+            "sha256": "a6eef97d54b481940e628bbead6f2497c6fe98afc0dcd96e33d44898b029cd0f",
+            "matches_original": "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/inputs/images/proceedings-p8.png"
+          },
+          {
+            "call_id": "call_854a295f04e84c03b9fcbfe11acaaeaa",
+            "sha256": "01489b5ef551ce97fcd90100eb5f228d9f5e8ea86774932f5bb5bb5c30348a67",
+            "matches_original": "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/inputs/images/arxiv-v7-p8.png"
+          },
+          {
+            "call_id": "call_854a295f04e84c03b9fcbfe11acaaeaa",
+            "sha256": "9446191b01bddc4454192360a2d0c7ced29d69630c3456be486f42508fffad9d",
+            "matches_original": "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/inputs/images/arxiv-v7-p9.png"
+          }
+        ],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "outer_delivery": {
+        "rollout_path": "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/profiles/missing-image-bounded/sessions/2026/10/22/rollout-2026-10-22T19-03-05-01a164fe-d545-7381-bdee-3eee0a9c242e.jsonl",
+        "rollout_sha256": "f8db3c3c9968b978294f41a17cd0e7e472248e5cc1fcb87c190a4345013105af",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 14,
+        "truncation_warnings": 1,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "review": {
+        "reviewer": "coordinator model; not blind, author or domain-expert review",
+        "answer_sha256": "fe89ef06216f0c9b85dc76a1b7361fc2c07852650fe8f8724e253313eab83c13",
+        "judgment": "Unavailable-image recovery preserves evidence limits and continues supported text. No new missing-image guidance is needed for this observation.",
+        "source_fidelity": "Both versions remain one study. Proceedings 41.0 versus v7 table/abstract 41.8 and body 41.0 remain unresolved. Test versus development splits, fixed-compute/per-head-dimension ablation and no isolated encoder effect remain distinct. Figure 4 caption is author interpretation, not causal proof.",
+        "missing_image_proof": {
+          "call_id": "call_854a295f04e84c03b9fcbfe11acaaeaa",
+          "path": "/home/hermes/qiongli-guidance-delivery-20261022-64dmdxaj/inputs/images/arxiv-v7-p14.png",
+          "result": "Host view_image rejection: No such file or directory (os error 2)",
+          "historical_image_sha256": "9cfe4895686b5dbccc58d6697a244e8caaf2bc171b338233270e201191f26a74",
+          "historical_original_preserved": true,
+          "only_caption_used_for_current_claim": "AIAYN-C07",
+          "visual_detail_deferred": "AIAYN-C06 its-to-Law/application remains historical, not current observation"
+        },
+        "delivery": "One outer truncation in initial root/tool discovery. Later long guides read in sections. Three actual original page renders returned; the fourth image rejection is handled via Promise.allSettled and appears in the outer output, not simplified exec failure counts.",
+        "preservation": "Four current saved bindings recovered; project/config unchanged; no network or new sources, no stage promotion.",
+        "length_diagnostics": {
+          "chinese_han_characters": 408,
+          "chinese_nonwhitespace_codepoints": 623,
+          "english_whitespace_words": 223,
+          "limit": "The natural-language target did not freeze whether mixed citations/numerals count toward Chinese length; no strict pass label."
+        }
+      },
+      "guidance_commands_confined_to_selected_variant": true
+    }
+  ],
+  "frozen_and_review_files": {
+    "review/bounded-inputs.json": "3255872d9d57db1e65d1388e3a882d5d546f9303ad198f74f1fb960a87c74940",
+    "review/criteria.json": "0a1d95af913aae50173ef7ab79281d0a2ed411e939777fcf409da1ae02dccff9",
+    "review/education-inputs.json": "7b05305e8414dfad8fdb67e505611fbdf26cd11ee90ad259b267712ca0a29f68",
+    "review/final-runtime-inventory.json": "f8b9bdd25ba2900f90be095208c81d855c6aed8a9e252a9108c34944a5f066c7",
+    "review/historical-delivery.json": "eeedf5bb89d25b660d3f4e00544889ca45b1b04990b5bd610b050ea37f62d21c",
+    "review/missing-final-bindings.json": "f7af0edff397846e4682042d4c70df0f47d0d6368849ff7c7ce63a000600f93e",
+    "review/missing-image-inputs.json": "a2d276e88492cea3110dd743b66e612907a6392e668dab8734fdfa2cf239067e",
+    "review/runtime.json": "a0350bb254b56ab0f65044899306983f874cead5e76bab7a057b125996b9dc7e",
+    "driver/driver.py": "f5ef269c3ba4c7aa2ca81c94d9003913ce069267f74e7d02feefc9b61515cda3",
+    "driver/observe.py": "ee6e4e7fa50e31243abb2343fa9aa1ed8389a081057e59e41b2d82fcdbb94a83",
+    "driver/qiongli_delivery_final_native_checks.py": "a96292134df6df828260a7247ef9a1c4cc8e188e74a9329b502beb67154fbd24",
+    "driver/qiongli_delivery_native_checks.py": "8f8df4b3aa93da52125b1c80348b3b43dff707230eedead605c30afb652f8a4f",
+    "driver/qiongli_delivery_observe.py": "ee6e4e7fa50e31243abb2343fa9aa1ed8389a081057e59e41b2d82fcdbb94a83",
+    "driver/qiongli_delivery_report.py": "597b086a3c604097f6379cdcb405de6fb0560084d8925d9f74111d561ba15082",
+    "driver/qiongli_delivery_setup.py": "f77b1564651128051a8306c0a9b5401500a671873d8365dc2d81bd54c3552b32",
+    "driver/qiongli_missing_visual_corrected.py": "bdb2e81d0408bcfe6ce980ff0a23044e207710f47625cbf046b14a145fa85ef3",
+    "driver/qiongli_missing_visual_final.py": "5c461c520c61db34b412bf0653cb64c0a78f37050f9127c0a35be7d1e9ae4a05",
+    "driver/qiongli_missing_visual_fixture.py": "5e2275f63465eea5760caf0295f41b7554a4ca64d66aaf1da4dfe65d3d029820",
+    "driver/qiongli_missing_visual_resume.py": "83d8fdd4929dc2c54027712f16024acef23824afb09cbcf285616111a82b45b3",
+    "driver/replay-archive.json": "6e12ead288f383d837780031c7302567f422785c1e431ec3daf258ce31721adf",
+    "driver/save.py": "13983afacee0ba777ee17c0fdd0c4f500c53e7dbabaa81c5b1de41a57753a35d",
+    "preflight/codex-home/config.toml": "1f7580da5280541d53c1e664d057aca80f6a2e1157aae7b991965a23a1b744a1",
+    "preflight/codex-home/tmp/arg0/codex-arg0vjJHy9/.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "preflight/codex-home/tmp/arg0/codex-arg0vjJHy9/apply_patch": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "preflight/codex-home/tmp/arg0/codex-arg0vjJHy9/applypatch": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "preflight/codex-home/tmp/arg0/codex-arg0vjJHy9/codex-execve-wrapper": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "preflight/codex-home/tmp/arg0/codex-arg0vjJHy9/codex-linux-sandbox": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "preflight/guidance-0/events.jsonl": "2ff7da66e6c7d60cabd6578c8c170fd0c10bf835211c3e29004249deb9171f61",
+    "preflight/guidance-0/stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "preflight/preflight.json": "1cb17bac787bcfdb5c7583214fb7b44dc25b4c1cacae2b69cbe457672ea94ef1",
+    "preflight/sandbox/events.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "preflight/sandbox/stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "preflight/version/events.jsonl": "1df57fdc934f35bbd09e26308fbbd895698596f3be833ace1027c6bcfd2f81e2",
+    "preflight/version/stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "save_and_refusal_files": {
+    "logs/arxiv-v7-packet-save-binding.json": "9038fd3de23c5c8825ad6d4df6069a84c4875c8d3cfe957060ac87b9040e0fb7",
+    "logs/arxiv-v7-packet-saved.json": "4d0b2b3ae4b2d39c8c39f01116bf59a53bcd6d11b645a0a22be4e04e062120d3",
+    "logs/partial-summary-save-binding.json": "2b3dda5cbe79076b9094d606b1b9bd192dc9e078337f604f5fe5ad65efc4f2fd",
+    "logs/partial-summary-saved.json": "521bf93daccac77e5d0d70a0e2c745ea69db17ffeeb9d05d4ed385012dd902b8",
+    "logs/proceedings-packet-save-binding.json": "9db06e562b8fd7282f69897cd2248f45918848b01a26431e8feef66bace1382e",
+    "logs/proceedings-packet-saved.json": "66ce87aac37999f017b7e3eba9eb9588d879278a3eaa3add61275c39a01c5393",
+    "logs/versions-note-capture-preview.stderr": "c071cb306d210c090c8c97b822d78d3b28a783cad9ba20386d4aac3eed3ac298",
+    "logs/versions-note-capture-preview.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "logs/versions-note-corrected-save-preview.stderr": "23e17c4239c54b2bc0133126786a0674a18a97a2e8256daaf0085df28e9b040c",
+    "logs/versions-note-corrected-save-preview.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "logs/versions-note-final-save-binding.json": "94f3aa79198f812a6c877ba7f3e177eaea5450ffaf880970e533524c11874118",
+    "logs/versions-note-final-saved.json": "ce66142944b0b171a5c7cf8c57f718d3b960da1fa232d4988efd44f042a12d8a",
+    "logs/versions-note-retry-capture-preview.stderr": "c071cb306d210c090c8c97b822d78d3b28a783cad9ba20386d4aac3eed3ac298",
+    "logs/versions-note-retry-capture-preview.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "native_check_root": "/tmp/qiongli-delivery-final-native-checks",
+  "native_receipts": {
+    "pack": {
+      "receipt_sha256": "c929b922a1a894b86c6674a090e4ac7e9daadaa585208921054b3984980b7535",
+      "receipt": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 3.315852094998263,
+        "timeout_seconds": 1200,
+        "events_sha256": "c019d00fb2e234446b17c7aad4094ef1193e3997151ca49acf4aee2aad856777",
+        "stderr_sha256": "5b0d8d0a37a5a6a945c31c30ad47ed9c6da82ac7a8f42fca42b8f46a2499cf1e"
+      }
+    },
+    "content": {
+      "receipt_sha256": "a840af71dafcfe6612fa7852dbb30d901bbca2955e2940ecd5317a7a38059ad2",
+      "receipt": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 4.511153714996908,
+        "timeout_seconds": 1200,
+        "events_sha256": "4d4f5624f4c9317a2b06b5ac32f85dbc44f7e804e8e40ba3b711dc10c16f8a37",
+        "stderr_sha256": "e4880c31f988e1e5bb6b48a8b256d8c013818320b06a3844cbcd6c82fa4275e3"
+      }
+    },
+    "cli-embedded": {
+      "receipt_sha256": "94f98e6b1c987a19752d885a842d7cd0ad7c6fc1e0375dc94bccecc721aee701",
+      "receipt": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 80.7016379859997,
+        "timeout_seconds": 1200,
+        "events_sha256": "2df3f370c1c0c5600828c6e66662b97e748ed7a275ff468a989d5e7dc2895754",
+        "stderr_sha256": "fd717cee4f77cf2dc4be0ef41f3b1d32e0b6b2a43cf8a84ec87de9f73ceac9d8"
+      }
+    }
+  },
+  "final_content_lock": {
+    "compatible_product": {
+      "maximum_exclusive": "3.0.0",
+      "minimum": "2.0.0-alpha.1"
+    },
+    "content_root_sha256": "a981d8d144ff10da89b9c5b26a0488d12bb39888efe19ec1460cf33da4a7479f",
+    "content_version": "2.5.3",
+    "entry_count": 446,
+    "lock_version": 1,
+    "pack_id": "qiongli-core",
+    "pack_sha256": "d140407859cdce23118726b2c912f3ba52822cd476980ab06d2688dcc4185801",
+    "source_commit": "9fe1656c7d9381037cc4dcc7b634f3a56b86da01"
+  },
+  "limits": [
+    "Adaptive observations use familiar public sources and one run per variant; no general speed or model-quality claim.",
+    "Raw input token counts include repeated and cached context; returned-content bytes omit search-hit text.",
+    "Recorded calls omit nested image calls; image proof comes from exact returned bytes in authorized public rollouts.",
+    "Sibling input trees were readable; observed guidance commands use only their selected variant. Other fixture preparation did not change case project/config/guidance bytes.",
+    "Unknown or unmatched outer delivery is explicit; zero observed warnings is not complete resource coverage.",
+    "Existing no-image guidance was exercised; historical review is not current inspection.",
+    "No installed Plugin, other Host/model, private manuscript, expert, release or program acceptance."
+  ]
+}
