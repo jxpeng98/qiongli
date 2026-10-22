@@ -312,6 +312,70 @@ def inspect_trace(raw, exit_code, termination_reason=None):
                     "truncated_event_tail": truncated}
 
 
+def inspect_tool_delivery(raw):
+    """Summarize outer exec delivery in an authorized public Codex rollout.
+
+    Exec JSON omits this layer. Do not infer resource coverage from these counts
+    or export source text, images, reasoning or tool inputs in the summary.
+    Unknown output formats and unmatched calls remain explicit limitations.
+    """
+    calls, done, outputs = {}, set(), []
+    unmatched = 0
+    for line in raw.splitlines():
+        if not line.strip():
+            continue
+        event = json.loads(line)
+        if not isinstance(event, dict):
+            raise ValueError("Malformed rollout event")
+        if event.get("type") != "response_item":
+            continue
+        item = event.get("payload")
+        if not isinstance(item, dict):
+            raise ValueError("Malformed rollout payload")
+        kind = item.get("type")
+        if kind not in ("custom_tool_call", "custom_tool_call_output"):
+            continue
+        call_id = item.get("call_id")
+        if not observe.text(call_id):
+            raise ValueError("Missing rollout call ID")
+        if kind == "custom_tool_call":
+            if call_id in calls:
+                raise ValueError("Repeated rollout call")
+            calls[call_id] = item
+            continue
+        if call_id in done:
+            raise ValueError("Repeated rollout output")
+        done.add(call_id)
+        call = calls.get(call_id)
+        if call is None:
+            unmatched += 1
+            continue
+        if call.get("name") not in ("exec", "functions.exec"):
+            continue
+        output = item.get("output")
+        texts = ([output] if isinstance(output, str) else
+                 [b["text"] for b in output if isinstance(b, dict)
+                  and b.get("type") == "input_text" and isinstance(b.get("text"), str)]
+                 if isinstance(output, list) else [])
+        recognized = bool(texts and re.match(r"^Script (?:completed|failed)\n", texts[0]))
+        outputs.append({
+            "call_id": call_id, "input_sha256": value_digest(call.get("input")),
+            "output_sha256": value_digest(output), "recognized_envelope": recognized,
+            "truncation_warning": recognized and any(
+                re.match(r"^Warning: truncated output \(original token count: \d+\)", t)
+                is not None for t in texts),
+            "script_failed": recognized and texts[0].startswith("Script failed\n"),
+        })
+    return {"scope": "outer exec output delivery only; not resource coverage or all nested calls",
+            "outputs": outputs, "exec_output_count": len(outputs),
+            "truncation_warnings": sum(o["truncation_warning"] for o in outputs),
+            "script_failures": sum(o["script_failed"] for o in outputs),
+            "unclassified_outputs": sum(not o["recognized_envelope"] for o in outputs),
+            "unmatched_outputs": unmatched,
+            "pending_exec_calls": [k for k, c in calls.items()
+                                   if c.get("name") in ("exec", "functions.exec") and k not in done]}
+
+
 def trace_summary(raw, exit_code):
     """Compatibility API for callers requiring a completed final answer."""
     answer, metrics = inspect_trace(raw, exit_code)

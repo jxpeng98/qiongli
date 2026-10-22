@@ -59,6 +59,17 @@ interface, and do not retry an unsupported `resources/list` to load local Skills
 If the needed guidance cannot be read, state that limit and complete only the
 supported part of the request without claiming the workflow checks passed.
 
+Load long guidance in bounded sections that fit the Host's returned output.
+Account for both the file reader's limit and any outer tool wrapper's output
+budget; increasing the inner limit does not increase the outer one. When the
+outer budget is unknown, return one bounded section at a time instead of
+concatenating whole long guidance files.
+Return the requested text once; full tool catalogs and duplicate representations
+of the same result can crowd it out. Keep large guidance and evidence outputs
+separate when combining them would truncate either. A successful file read does
+not mean its text reached the model: after truncation or a script failure, recover
+the missing ranges from the same version and retain the portions already received.
+
 User instructions take precedence over Skill workflow defaults. Templates,
 menus, role preferences and suggested review loops do not expand the user's
 scope. This does not waive tool permissions, Qiongli preview/approval/CAS checks,

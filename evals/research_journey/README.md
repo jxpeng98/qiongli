@@ -193,6 +193,16 @@ last JSONL line is recorded as a truncated tail, never a successful final turn.
 Unavailable usage stays null; reported
 input/cached/output counts are retained without guessing a cost or speedup.
 
+For an authorized public Codex local rollout, `plugin_baseline.inspect_tool_delivery`
+additionally records outer exec truncation warnings and script failures that
+simplified exec JSON omits. It exports call IDs, digests and counts, not tool
+inputs, source text, images or reasoning. Unknown envelopes, unmatched outputs
+and pending exec calls remain explicit; malformed or duplicate records refuse.
+These are observed output markers, not proof that every requested resource was
+delivered or read. Inspect the relevant actual output ranges separately. Keep
+outer failures and inner tool failures separate: one error can appear at both
+layers. Missing rollout evidence cannot be scored as zero delivery problems.
+
 Hash bindings are provenance, not authenticated installation, approval or
 scientific truth. Independently check the installed binary/cache and snapshot
 capture. A baseline on one public packet does not qualify held-out papers,

@@ -441,5 +441,57 @@ class PluginBaselineTests(unittest.TestCase):
         self.assertEqual(before, {p: p.read_bytes() for p in before})
 
 
+class ToolDeliveryTests(unittest.TestCase):
+    @staticmethod
+    def event(payload):
+        return json.dumps({"type": "response_item", "payload": payload})
+
+    def capture(self, output, call_id="c1"):
+        return "\n".join([
+            self.event({"type": "custom_tool_call", "name": "exec", "call_id": call_id,
+                        "input": "private input must not be exported"}),
+            self.event({"type": "custom_tool_call_output", "call_id": call_id, "output": output})])
+
+    def test_outer_truncation_and_failed_delivery_are_separate_from_inner_calls(self):
+        raw = self.capture([
+            {"type": "input_text", "text": "Script completed\nWall time 0.1 seconds\nOutput:\n"},
+            {"type": "input_text", "text": "Warning: truncated output (original token count: 12000)\npartial"}
+        ]) + "\n" + self.capture("Script failed\nScript error:\nSyntaxError: invalid JSON", "c2")
+        result = baseline.inspect_tool_delivery(raw)
+        self.assertEqual((result["exec_output_count"], result["truncation_warnings"],
+                          result["script_failures"]), (2, 1, 1))
+        self.assertNotIn("private input", json.dumps(result))
+        self.assertNotIn("SyntaxError", json.dumps(result))
+
+    def test_source_mentions_and_reasoning_do_not_become_delivery_failures(self):
+        raw = self.capture([
+            {"type": "input_text", "text": "Script completed\nOutput:\n"},
+            {"type": "input_text", "text": json.dumps({"content": "Warning: truncated output (original token count: 12000)", "truncatedAfter": True})},
+            {"type": "input_image", "image_url": "data:image/png;base64,secret"}
+        ]) + "\n" + self.event({"type": "reasoning", "summary": "Script failed\nprivate reasoning"})
+        result = baseline.inspect_tool_delivery(raw)
+        self.assertEqual((result["truncation_warnings"], result["script_failures"]), (0, 0))
+        self.assertNotIn("secret", json.dumps(result))
+        self.assertNotIn("private reasoning", json.dumps(result))
+
+    def test_unknown_unmatched_and_pending_output_stay_visible(self):
+        raw = self.capture({"new_format": "unknown"}) + "\n" + self.event({
+            "type": "custom_tool_call_output", "call_id": "absent", "output": "unknown"})
+        raw += "\n" + self.event({"type": "custom_tool_call", "name": "exec",
+                                   "call_id": "pending", "input": "read"})
+        result = baseline.inspect_tool_delivery(raw)
+        self.assertEqual(result["unclassified_outputs"], 1)
+        self.assertEqual(result["unmatched_outputs"], 1)
+        self.assertEqual(result["pending_exec_calls"], ["pending"])
+
+    def test_malformed_or_duplicate_rollout_is_not_a_clean_summary(self):
+        raw = self.capture("Script completed\nOutput:\n")
+        for broken in (raw + "\n{", raw + "\n" + raw.splitlines()[-1],
+                       self.event({"type": "custom_tool_call", "name": "exec"})):
+            with self.subTest(broken=broken):
+                with self.assertRaises(ValueError):
+                    baseline.inspect_tool_delivery(broken)
+
+
 if __name__ == "__main__":
     unittest.main()

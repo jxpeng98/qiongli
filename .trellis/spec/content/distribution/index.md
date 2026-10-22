@@ -80,8 +80,11 @@ It does not expose the generated Codex workflow wrappers as separate public
 Skills. The canonical pack, other Host entry policies and receipt readers for
 older AGY layouts remain unchanged.
 
-The root Skill selects the requested outcome and relevant resources. Stage F
-writing workflows, cards and roles reference
+The root Skill selects the requested outcome and relevant resources. It also
+owns bounded guidance delivery: recover missing output ranges after
+Host truncation or script failure, retaining the version and received context.
+File-read success alone does not establish that the guidance reached the model.
+Stage F writing workflows, cards and roles reference
 `content/workflow/references/stage-F-writing.md` for their shared writing
 contract; they must not duplicate mandatory chunk sequences or paragraph quotas.
 `self-critique.md` owns review convergence. A standard/deep label alone does not
