@@ -54,7 +54,16 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 22, 2026
 
-The current bounded request validates public-paper evidence extraction with actual
+The current bounded request adds computer-science attention diagrams, conflicting
+paper versions and a frozen source-read comparison. The existing
+[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-22--attention-diagrams-and-bounded-reads)
+owns extraction, three fresh recovery/synthesis observations, bounded-read guidance
+and explicit tool page-size help. Source fidelity is retained; neither candidate
+demonstrates a speedup over baseline. Local integration into `2.x` preserves task
+states and accepted evidence; no push or publication. Multi-paper reading/context
+measurements, unavailable-image recovery and author/expert review remain next.
+
+The preceding bounded request validates public-paper evidence extraction with actual
 figures/tables, bilingual literature synthesis and project-ID-only recovery.
 The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-22--public-visual-evidence-journey)
 owns the five retained attempts, source/visual provenance, capture cancellation

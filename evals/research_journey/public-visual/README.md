@@ -128,3 +128,7 @@ Next useful increments are another discipline and figure/table type, author or
 subject-expert assessment, and fewer repeated guidance/packet reads while keeping
 claim-level context. Antigravity model comparisons and private-manuscript review
 remain separate; this pilot does not establish their readiness.
+
+The [attention/version follow-up](attention/README.md) adds a computer-science
+diagram, conflicting source versions and a retained baseline/candidate/follow-up
+comparison. It finds no demonstrated speedup over baseline.

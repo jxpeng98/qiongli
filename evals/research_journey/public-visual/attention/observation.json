@@ -1,0 +1,486 @@
+{
+  "kind": "qiongli-public-visual-pilot-observation/v1",
+  "date": "2026-10-22",
+  "capture_root": "/home/hermes/qiongli-public-attention-20261022-gleh7rs5",
+  "scope": "One public computer-science study in two versions; source extraction and three fresh recovery/synthesis processes. Coordinator model review, not expert, installed Plugin, release or program acceptance.",
+  "baseline_checkout": "9e38a95eb382488fd06904a4d01577d67900c730",
+  "configured_model": "gpt-6-astra",
+  "configured_effort": "xhigh",
+  "codex_version": "0.162.1",
+  "runtime_identity": {
+    "source_commit": "9e38a95eb382488fd06904a4d01577d67900c730",
+    "binary_sha256": "782b1db852781e5de44641b35624858438d90cdf5827dcd17dbe3ebb142de923",
+    "codex_sha256": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "config_sha256": "5cbed1d8a97179a067dd58a84d628c2c90e11afbdcf4726d4b30418fd2af7e17",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "scope": "direct Full MCP with frozen canonical guidance; not installed Plugin qualification"
+  },
+  "sources": [
+    {
+      "key": "proceedings",
+      "url": "https://papers.nips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf",
+      "resolved_url": "https://papers.nips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf",
+      "sha256": "d87d482d5ae7960e2e43d7dd6d21377e60e73e8fce1bf2a01aff7aca8a08c537",
+      "bytes": 569417,
+      "retrieved_at_unix": 1792688053
+    },
+    {
+      "key": "arxiv-v7",
+      "url": "https://arxiv.org/pdf/1706.03762v7",
+      "resolved_url": "https://arxiv.org/pdf/1706.03762v7",
+      "sha256": "bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697",
+      "bytes": 2215244,
+      "retrieved_at_unix": 1792688053
+    }
+  ],
+  "frozen_and_review_files": {
+    "inputs/identity.json": "ce9d15f2d92676e54f9f0199faf1e05c08cfd3a8b5a3c06d6a9615d84f3ebda7",
+    "inputs/build-snapshot.json": "214ca097cc691c43f020accba88fee205071837231f3ecb9160d55d8d78fc063",
+    "inputs/tool-inventory.json": "dfd4f9d40e1e9b237fbf44993dc3b4a6fc45ebd14b87bb883f09aec3d655fae9",
+    "inputs/image-manifest.json": "70162c82bd1a70cdfe1658dd566657b3a6ffdd21bc76143771881787b8cdf83a",
+    "inputs/retrieval-receipts.json": "c2ce2ba041b987bfb36117e3910fac74fa529ae6211095c2ac088b44a878a0e1",
+    "inputs/extraction.prompt.txt": "a988ad9b1f0a853658d348a46dbb81f1c28a9c2ee9105f220324a6cf51544072",
+    "inputs/baseline.prompt.txt": "b1681fa585857d24595ba606803c2cb0560dc28acfdb5897b847a1b4f6b6444e",
+    "inputs/candidate.prompt.txt": "bb99de13f9b99d4c24215f4c847c853ec42d3fa748fbff0a7fb99279b4e5f659",
+    "inputs/balanced.prompt.txt": "5d5952318acac0b5ce5b860b2a6eaed594e55c1feb6e129cf7a3d1454929b570",
+    "review/criteria.json": "83f194690571551d7a3755899bd811e0f4323dae5f232a1c5c75fc7e126f60e7",
+    "review/extraction-inputs.json": "337a75842c22a12252c8e042f079e29d1432d8c4e4df3fd18773e7707674f514",
+    "review/paired-inputs.json": "5f7b0dafa177fae01d1961622a5031b2559ad64f204dfc1d6e78651d6142eec0",
+    "review/balanced-inputs.json": "23e971b73375feba8b67ea8dbbf477dbbb797c8bddefe78b43c84533ff887a96",
+    "review/effective-policy.json": "817b09f74faf90b6c4a924781f3a833b83748220b15b1d4f0f18e10188921dfe",
+    "review/preparation-notes.json": "3fa653923dff17b596c55ddf360c3f0498cac5daf0ef762db9a3067bae05ed8c",
+    "review/final-bindings.json": "da8f590496800c132e7b2959fe3eb7c35d4c18d3fa06c1c400bc74c08f3106f6",
+    "review/negative-cases.json": "00c5f5df3967ada7f89b8d21b5a37a90c623a29aeb66949e5c579c653b5c4fa3",
+    "review/negative-preparation-error.json": "1258bbab87af3fe6e6f543f2874d9fac740a54480c17076d5afb51b0b64ff21e",
+    "review/metadata-search.json": "ca533b5206e64750518f1ffa6907c6af92d7168ced01f88d15362b90d2e231cb",
+    "review/final-runtime-inventory.json": "7fac159c8efb41f7a69bae68a20c558bd0835396b98145b39816d294877a80fe",
+    "review/final-runtime-inventory-review.json": "0bc79675cb08ee6f1db7e5008ce10a083c73e201146747faa5fcdcfb8111ab1f",
+    "preflight/preflight.json": "76a9dc67828991f910c273a64487ea22f92830e697b094ea7ea6ee9d055bf6cc",
+    "driver/replay-archive.json": "52298a586193285d9a1f17bde0f418245d0181302f5b3606ae64c578a8b13c5f",
+    "logs/arxiv-v7-packet-current-saved.json": "7d8d695991abc30d15122c93499b5ef37a1d0603c203f82090f7cf936b37a8de",
+    "logs/partial-summary-saved.json": "f12d9cc0e1f0616b9b5e5e36e0a9497c6bad88764e0afaafcbf7eaaa86dcb974",
+    "logs/proceedings-packet-saved.json": "3bd99119c4ec2ce6740997c357b652e65c3ea49eabdb10f12429620f6f0eee7c",
+    "logs/versions-note-saved.json": "47e1efc0c86531c03c6329cf8201f39cc5c0bfb1296d490b7fb013c9e3709f47",
+    "driver/driver.py": "539d794b6ef8816fc0e8cf6f89773132a1cb6d1527210571ec915f141570c52a",
+    "driver/qiongli_attention_balanced.py": "4637039aa6d58aa0f08b335ca93015bf5e60a3a817439517cced636061edc965",
+    "driver/qiongli_attention_balanced_native_checks.py": "ffd18f13caf94e0d65d30f2881b78fa784a2710836ed1b8e6f8cb4ebcdb23f42",
+    "driver/qiongli_attention_final_native_checks.py": "60fd39b6112e1523f6df26ff0fb3ecf41a1c6dfb44e1c846acb924b1e674cef1",
+    "driver/qiongli_attention_freeze.py": "80be839caa6c391fb4fb116d3d40d89d64b6f2186c65d456a3b337d26153b972",
+    "driver/qiongli_attention_metrics.py": "3643acbb7212cc615342272fa5043147d739ce15a0bd81480377eb3304fdadde",
+    "driver/qiongli_attention_native_checks.py": "283be138af2bfee8225dbc87a8b3a48198f801749c217e63090886be5aa74f5d",
+    "driver/qiongli_attention_negative.py": "f8800a0f03230311c6fecd45f41eb662612f812ba381325df929c537d1129bdc",
+    "driver/qiongli_attention_negative_finalize.py": "5b93e1028ef917dcb7d6fdb6f8225ccecaa53d6817c41f648c3451c981963069",
+    "driver/qiongli_attention_note.py": "bf46f42d5a1ae010a7893876da89db8b974c8f4aa5be49fe111a85f72a44833e",
+    "driver/qiongli_attention_packets.py": "8e7778bf5ecb3a431101ae9e41fa3e3ce1b6274097b3232efc9cd910cea1fda1",
+    "driver/qiongli_attention_pair.py": "0371b3bf2d7d69ceef96b0b8cd431c72411c6976c6645d7214ccb05e6e05c831",
+    "driver/qiongli_attention_prepare.py": "f988aedac56667f20b789bf73e6899584ad9856a7522921c3cbb8080efb4c8ff",
+    "driver/qiongli_attention_report.py": "a4cf897b50fdee7ad357ef5a0ad824c300c65def2fa445689a318220e2f50984",
+    "driver/qiongli_attention_summary.py": "6277955e12256c35e64ca07cfdbbcdb422df67e0905ed7cda9d45d301dfc6490",
+    "driver/save.py": "13983afacee0ba777ee17c0fdd0c4f500c53e7dbabaa81c5b1de41a57753a35d"
+  },
+  "attempts": [
+    {
+      "attempt": "extraction",
+      "files": {
+        "answer.md": "5df79cfcea9c5517b4fde619c27424d31f9b89a50bbf371582724359b5e0d4d8",
+        "capture.json": "a4ab1fa791ca690b79fe52eff205d5dbe5c18b6e96eb0ba8c31c38f2d6c8385b",
+        "coordinator-review.json": "7c1c6251090bbb9aec563d073c3047c9f138a3d5670f3f6f6fb7c572f2eef1ba",
+        "events.jsonl": "42012fbd89e6f63ba09cb9a631888d86fe1e2e4985bbc87a3179968f3ce663f3",
+        "invocation.json": "8ef0c12d72097d872c4adee4ac271901c85a9b4d42830caa510ca998f09989fa",
+        "preservation-after.json": "7455b6bd83ef6bf5cb7b6a0def3bb688388631312cbaa7ebab975ed4b974214f",
+        "preservation-before.json": "4949f5eea6d69306f54c0b2eba78a46e0f0245c3a97ddcb7919cd6de9665714d",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+        "trace-review.json": "807b5057ca0fca2ebfe30b4f5659ac9bd6a7609ce05fad076e7075996b89fd22"
+      },
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 188.33284158899914,
+        "timeout_seconds": 900,
+        "events_sha256": "42012fbd89e6f63ba09cb9a631888d86fe1e2e4985bbc87a3179968f3ce663f3",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "metrics": {
+        "tool_call_count": 15,
+        "failed_tool_calls": 2,
+        "usage": {
+          "input_tokens": 283185,
+          "cached_input_tokens": 231808,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 5894,
+          "reasoning_output_tokens": 2289
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "document_read_calls": 0,
+      "returned_document_content_bytes": 0,
+      "mcp_structured_response_bytes": 0,
+      "recorded_command_output_bytes": 147960,
+      "project_config_preserved": false,
+      "delivered_image_paths": [
+        "inputs/images/proceedings-p8.png",
+        "inputs/images/arxiv-v7-p8.png",
+        "inputs/images/arxiv-v7-p9.png",
+        "inputs/images/arxiv-v7-p14.png",
+        "inputs/images/arxiv-v7-p14.png",
+        "inputs/images/arxiv-v7-p9.png",
+        "inputs/images/proceedings-p8.png",
+        "inputs/images/arxiv-v7-p8.png"
+      ],
+      "rollout_sha256": "9ba2e7a9e59cae94e9652901865626a056579fe68762873204dfd14749eae836",
+      "actual_model_contexts": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "quality_review": {
+        "source_fidelity": "pass within stated coverage",
+        "claim_ids": "AIAYN-C01 through C08, including C03P and C03A",
+        "visual": "Four attached originals match delivered image bytes; all four additionally opened through nested view_image calls",
+        "issues": [
+          "Read-only shell heredoc could not create a temporary file; subsequent python executable absent. Both errors retained; sed reads completed the task.",
+          "Project/config preservation false due to coordinator capture preparation, not a model project write. No extraction MCP calls."
+        ],
+        "interpretation": "Version and within-v7 conflicts, development/test distinction, estimated FLOPs, controlled-compute ablation and noncausal Figure4 interpretation retained",
+        "reviewer": "coordinator model; not human, expert or blinded"
+      }
+    },
+    {
+      "attempt": "baseline",
+      "files": {
+        "answer.md": "6ab578ede2f9c4a0653e8c2da55b427e35c990f417ae67509b0211986f96ebb9",
+        "capture.json": "fe8b448a62d1a9337677a1cd507be88ff0648f5dfe62fd555545c918377fdd1d",
+        "coordinator-review.json": "f4bdb4d76fdc249f5bb380d01b814254b227d2e7fb537b42009b3c28f9a31a8d",
+        "events.jsonl": "07c814df1415a825236b3736230a6e4b72d1e871f79ec24cc67d0c8427bcc4b6",
+        "invocation.json": "7ee1450f58e7f9b1a6150505eb8f7337c3eefb8f4b70e08fcd64dc2b5a2d45bd",
+        "preservation-after.json": "2f2458766c55fe5e7e32a1bbd7738de2fc8775a72cfcdfd1c6e8c64c66a58b65",
+        "preservation-before.json": "2f2458766c55fe5e7e32a1bbd7738de2fc8775a72cfcdfd1c6e8c64c66a58b65",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+        "trace-review.json": "f44ef4e65ae01d839ed81a7eb1abfd2a4e8f2062984460d52e49a405c81af121"
+      },
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 201.11509552399912,
+        "timeout_seconds": 900,
+        "events_sha256": "07c814df1415a825236b3736230a6e4b72d1e871f79ec24cc67d0c8427bcc4b6",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "metrics": {
+        "tool_call_count": 14,
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 472894,
+          "cached_input_tokens": 406656,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 6627,
+          "reasoning_output_tokens": 3165
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "document_read_calls": 8,
+      "returned_document_content_bytes": 87632,
+      "mcp_structured_response_bytes": 97369,
+      "recorded_command_output_bytes": 102653,
+      "project_config_preserved": true,
+      "delivered_image_paths": [
+        "inputs/images/proceedings-p8.png",
+        "inputs/images/arxiv-v7-p8.png",
+        "inputs/images/arxiv-v7-p9.png",
+        "inputs/images/arxiv-v7-p14.png"
+      ],
+      "rollout_sha256": "bb36afd96b239d216afff5240b85a28db9210ced1dc194572911302398d24cc6",
+      "actual_model_contexts": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "quality_review": {
+        "reviewer": "coordinator model, not human/expert or blinded",
+        "source_fidelity": "pass for requested bilingual continuation",
+        "details": [
+          "Recovers revision 5, four current saved bindings and partial summary with no prior conversation",
+          "Preserves AIAYN claim IDs and both inter-version and within-v7 discrepancies",
+          "Separates development-set head ablation from test-set translation, controlled compute and head-dimension changes",
+          "Interprets Figure 4 qualitatively without a causal BLEU explanation or invented weights",
+          "Actual four-image delivery proven from nested image-return bytes; project/config hashes unchanged"
+        ],
+        "reading_behavior": "Eight reads recover full packets (35561 and 43453 bytes), note and summary; no claim of efficient reading from this baseline"
+      }
+    },
+    {
+      "attempt": "candidate",
+      "files": {
+        "answer.md": "78bcd7362affea90f5feeb8e6817e77f618ddb95aed5b832d74aa4163aa4b392",
+        "capture.json": "b806892775b8b30a02059ba317b590f3d68e6bb8be6b2b6ffe31b91701fc717d",
+        "coordinator-review.json": "1192b414c97ba6d82a196c2e7fb7ebebde4dad0fca4fba4c03b08b91400deae2",
+        "events.jsonl": "8c6a1028dd6cf22f193d0a8a3c73abe08d5ad1a492e7172d3c326264aec37516",
+        "invocation.json": "4f25b3b326f31ea912efa2d032632e5b5471232ef2e31e5a99a065aea064248e",
+        "preservation-after.json": "2f2458766c55fe5e7e32a1bbd7738de2fc8775a72cfcdfd1c6e8c64c66a58b65",
+        "preservation-before.json": "2f2458766c55fe5e7e32a1bbd7738de2fc8775a72cfcdfd1c6e8c64c66a58b65",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+        "trace-review.json": "1c39f23cc09dd15871c509f0a0229610e42e912c3d6ba72f7d9c0f006ecebc30"
+      },
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 281.3469472179986,
+        "timeout_seconds": 900,
+        "events_sha256": "8c6a1028dd6cf22f193d0a8a3c73abe08d5ad1a492e7172d3c326264aec37516",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "metrics": {
+        "tool_call_count": 30,
+        "failed_tool_calls": 2,
+        "usage": {
+          "input_tokens": 757298,
+          "cached_input_tokens": 696960,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 6973,
+          "reasoning_output_tokens": 2749
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "document_read_calls": 21,
+      "returned_document_content_bytes": 44917,
+      "mcp_structured_response_bytes": 68887,
+      "recorded_command_output_bytes": 121485,
+      "project_config_preserved": true,
+      "delivered_image_paths": [
+        "inputs/images/arxiv-v7-p14.png",
+        "inputs/images/arxiv-v7-p8.png",
+        "inputs/images/arxiv-v7-p9.png"
+      ],
+      "rollout_sha256": "6caf9bca81419acb902c9ef86ecea6fe7aeaa50465b5bfa80ad4ee56ab111c42",
+      "actual_model_contexts": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "quality_review": {
+        "reviewer": "coordinator model; not human, expert or blinded",
+        "source_fidelity": "pass within targeted coverage",
+        "details": [
+          "Same revision5/four current bindings/partial status and claim IDs",
+          "Version and within-version discrepancies retained",
+          "Development/test, head dimensions and no checkpoint averaging retained",
+          "Figure4 actual image delivery; no causal language-function claim or numeric edge weights"
+        ],
+        "performance": "Original targeted-read candidate increases calls and elapsed time while reducing returned source bytes. Retain this result; it motivates weighing round trips for compact packets and dispersed claims."
+      }
+    },
+    {
+      "attempt": "balanced",
+      "files": {
+        "answer.md": "20a7aa6b631c74afc1ee7303b3d8a5429a1f723f8369dd5847bdff0a12b54cd5",
+        "capture.json": "e765db544383f1a3aa05eeb8bb62ac327ea9fa212d2a1a386d2f069e79e810bd",
+        "coordinator-review.json": "f3801b5a2caaf5b71767c592d0c19815c553f21d838537ae7c715d6ba0e188a1",
+        "events.jsonl": "69e2aa6b3e85cd9fed1f30ba6b048bc915fd115e23c348fe2f9e634eab72f90e",
+        "invocation.json": "e10b297c26f408cb54e749e91d7f563ab8e9140a2ece08ba3299da0aee93a3da",
+        "preservation-after.json": "2f2458766c55fe5e7e32a1bbd7738de2fc8775a72cfcdfd1c6e8c64c66a58b65",
+        "preservation-before.json": "2f2458766c55fe5e7e32a1bbd7738de2fc8775a72cfcdfd1c6e8c64c66a58b65",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+        "trace-review.json": "9aace6007b2f1f053f1fe3f632f1a36f09bc5c681ef811433088c03692056625"
+      },
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 270.37860027200077,
+        "timeout_seconds": 900,
+        "events_sha256": "69e2aa6b3e85cd9fed1f30ba6b048bc915fd115e23c348fe2f9e634eab72f90e",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "metrics": {
+        "tool_call_count": 17,
+        "failed_tool_calls": 1,
+        "usage": {
+          "input_tokens": 655115,
+          "cached_input_tokens": 593152,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 7899,
+          "reasoning_output_tokens": 3423
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "document_read_calls": 9,
+      "returned_document_content_bytes": 87632,
+      "mcp_structured_response_bytes": 97834,
+      "recorded_command_output_bytes": 138750,
+      "project_config_preserved": true,
+      "delivered_image_paths": [
+        "inputs/images/arxiv-v7-p14.png",
+        "inputs/images/arxiv-v7-p9.png",
+        "inputs/images/proceedings-p8.png",
+        "inputs/images/arxiv-v7-p8.png"
+      ],
+      "rollout_sha256": "c7320ed813262169d396f407c9274eb3e414e77f5ac8aed58047d23de8813d58",
+      "actual_model_contexts": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "quality_review": {
+        "reviewer": "coordinator model, not human/expert or blinded",
+        "source_fidelity": "pass for requested bilingual continuation",
+        "details": [
+          "Four current bindings at revision5, same claim IDs, partial status and source fingerprints",
+          "Both version differences and internal-v7 41.8/41.0 discrepancy retained",
+          "Development vs test set, controlled compute and qualitative interpretation retained",
+          "All four original images actually delivered and hash matched; project/config unchanged"
+        ],
+        "reading_behavior": "Nine document reads recover whole packets in coherent consecutive windows. This reduces calls from the first targeted candidate but does not beat the baseline or establish a general speedup.",
+        "language_limit": "English preserves meaning but uses inherited Chinese-style citation punctuation; not publication-ready copyediting or human language review."
+      }
+    }
+  ],
+  "preparation_caveats": {
+    "extraction_preservation": "Project/config fingerprint changed because coordinator prepared two pending captures during the extraction turn. Extraction has no MCP calls or project writes; do not count this run as an unchanged-fixture demonstration. Later paired runs are frozen with no coordinator writes.",
+    "stale_preview": "Both packet previews initially referenced revision 1. After saving the proceedings packet, the arXiv packet is prepared under a new current-revision capture; old preview/capture retained, never applied."
+  },
+  "negative_checks": {
+    "cases": [
+      {
+        "case": "stale-revision",
+        "refused": true,
+        "result": {
+          "isError": true,
+          "content": [
+            {
+              "type": "text",
+              "text": "saved research document read failed"
+            }
+          ],
+          "structuredContent": {
+            "status": "error",
+            "error_kind": "tool_error",
+            "reason_code": "project-revision-conflict",
+            "message": "saved research document read failed"
+          }
+        }
+      },
+      {
+        "case": "nonstring-selector",
+        "refused": true,
+        "result": {
+          "isError": true,
+          "content": [
+            {
+              "type": "text",
+              "text": "saved research document read failed"
+            }
+          ],
+          "structuredContent": {
+            "status": "error",
+            "error_kind": "tool_error",
+            "reason_code": "project-document-invalid",
+            "message": "saved research document read failed"
+          }
+        }
+      },
+      {
+        "case": "changed-source",
+        "refused": true,
+        "result": {
+          "isError": true,
+          "content": [
+            {
+              "type": "text",
+              "text": "saved research document read failed"
+            }
+          ],
+          "structuredContent": {
+            "status": "error",
+            "error_kind": "tool_error",
+            "reason_code": "project-revision-conflict",
+            "message": "saved research document read failed"
+          }
+        }
+      }
+    ],
+    "changed_listing_withholds_read_arguments": true,
+    "other_bindings_current": true,
+    "restored_original_bytes": true,
+    "project_config_equal_to_frozen_pair": true,
+    "metadata_search": "Actual version-label hits retained as candidate locators only; a metadata match does not establish body support.",
+    "unexercised": "No fresh model session with an unavailable visual file; no expert review."
+  },
+  "final_runtime_description_check": {
+    "binary_sha256": "dd0383a787f37f013cb9a6bfa18acc79b9ae4c863f75c9725e61c9303e31824a",
+    "tools": 35,
+    "only_changes": [
+      "qiongli_project_document_list.description"
+    ],
+    "runtime_limits_unchanged": true,
+    "scope": "Actual final native inventory; model observations used the frozen preceding binary. This description change is not claimed to have prevented a model error in a fresh run."
+  },
+  "final_pack": {
+    "compatible_product": {
+      "maximum_exclusive": "3.0.0",
+      "minimum": "2.0.0-alpha.1"
+    },
+    "content_root_sha256": "8973850300a6859aab4564ba32b5f6fd98ac42b1b5e2a44278a17a37e989d1a6",
+    "content_version": "2.5.3",
+    "entry_count": 446,
+    "lock_version": 1,
+    "pack_id": "qiongli-core",
+    "pack_sha256": "d6dcef652df7bb85ae6be5889a50f680b3d5edb8b45c0b3649c40e1cb560de44",
+    "source_commit": "c7895deaae4c794497a3cf1c3f4703c057f7c246"
+  },
+  "native_checks": {
+    "pack": {
+      "receipt": "/tmp/qiongli-attention-final-native-checks/pack/receipt.json",
+      "sha256": "0e3a4d86c9e44620e36a133a34b0f4188ab8004a06fd0663f007366c1480a1bb",
+      "elapsed_seconds": 3.4370928709995496
+    },
+    "content": {
+      "receipt": "/tmp/qiongli-attention-final-native-checks/content/receipt.json",
+      "sha256": "9e5deae90d5d57104d47fa991c669e42cd021cdf6587c674163f6ec941427145",
+      "elapsed_seconds": 4.54739674800112
+    },
+    "cli-embedded": {
+      "receipt": "/tmp/qiongli-attention-final-native-checks/cli-embedded/receipt.json",
+      "sha256": "6508b08560280b80b97557f084d9bba55fa3ea23ed606206f8dc2fd068a7c0d7",
+      "elapsed_seconds": 85.49861800600047
+    }
+  },
+  "model_auth_link_removed": true,
+  "acceptance_promoted": false,
+  "publication": false
+}

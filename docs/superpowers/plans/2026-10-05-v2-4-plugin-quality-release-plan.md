@@ -3743,3 +3743,63 @@ dependencies, accepted evidence and commit/run fields remain unchanged. Next are
 another discipline/visual type, author or subject-expert assessment, and fewer
 repeated guidance/packet reads while retaining source context. Antigravity model
 comparison and private-manuscript review remain separately scoped.
+
+
+## October 22 — Attention diagrams and bounded reads
+
+The [public attention follow-up](../../../evals/research_journey/public-visual/attention/README.md)
+adds one computer-science study in proceedings/arXiv v7 versions, four original
+page renders, an attention-link diagram, comparison/ablation tables and three
+fresh project-ID-only recoveries. It preserves inter-version and within-v7 score
+conflicts, development/test distinctions and qualitative versus causal interpretation.
+Two source packets, a reviewed note and a coordinator-authored partial bilingual
+seed use the existing preview/approval/CAS owner; four current bindings at revision
+5 are recovered without promoting the writing unit or accepted evidence.
+
+All observations retain configured Codex 0.162.1 / gpt-6-astra / xhigh. Baseline,
+first candidate and balanced follow-up take 201.1 / 281.3 / 270.4 seconds, with
+8 / 21 / 9 document reads and 87,632 / 44,917 / 87,632 returned content bytes.
+All preserve source meaning and actual original-image delivery, but neither
+candidate demonstrates lower latency or input tokens than baseline. The first
+candidate's additional searches motivate an explicit compact-packet/dispersed-
+claim tradeoff. Final guidance reuses available version-bound context and chooses
+source windows from the question while retaining evidence and freshness checks.
+This is a single-case iterative comparison, not a general efficiency claim.
+
+Original captures retain extraction's two shell failures, candidate's two invalid
+limit=100 calls and the follow-up's one invalid limit call. Canonical schema bounds
+already exist; final tool help now exposes default 32 / maximum 64 in its description.
+The final runtime's 35-tool inventory differs only in that description. Model runs
+use the frozen preceding binary; prevention of this error with the new help is
+not independently observed. Coordinator capture preparation changes the extraction
+fixture; only the three later, frozen recovery turns demonstrate unchanged project/
+config bytes. A stale unused packet preview and a corrected metadata-search driver
+request remain recorded separately from completed model outcomes.
+
+Source commits d5407661 and addd7956 own reading guidance; c7895dea owns the final
+MCP help. The supported generator binds 446 resources, still version 2.5.3, to
+source c7895deaae4c794497a3cf1c3f4703c057f7c246, content root
+8973850300a6859aab4564ba32b5f6fd98ac42b1b5e2a44278a17a37e989d1a6 and pack
+d6dcef652df7bb85ae6be5889a50f680b3d5edb8b45c0b3649c40e1cb560de44.
+
+Affected checks total 90 distinct tests: 57 Python capture/preflight/journey and
+content gates, 9 MCP fixtures, 16 native content, 1 CLI embedded-pack and 7 ledger/
+index tests. Repeated checks after changed inputs are counted once. Three live
+negative cases refuse stale revision, non-string selection and changed source;
+other bindings stay current and original fixture bytes are restored. Metadata-only
+hits remain locators. Source/capture/image digests, final runtime inventory and
+removed temporary authentication link are checked. Final native receipts remain
+under /tmp/qiongli-attention-final-native-checks. The build-cache budget passes
+at about 1.75 GB listed caches / 73.3 GB free; no cleanup is needed.
+
+Final diff review covers canonical ownership, preserved source conflicts, exact
+saved bytes, missing acceptance claims, original failures, unchanged read/write
+boundaries and generated-pack identity. The frozen-source guard precedes local
+fast-forward integration into 2.x; no push, publication or remote CI is requested.
+Only CLI-405 progress and the generated index change; states, dependencies,
+accepted evidence and commit/run fields remain unchanged.
+
+Next: measure source-window selection and Host guidance truncation across additional
+papers, exercise unavailable-image recovery, and obtain author/subject-expert
+assessment. This pilot supplies neither independent expert review nor evidence
+that the latest instruction increases overall speed.
