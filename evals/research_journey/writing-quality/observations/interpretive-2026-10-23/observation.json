@@ -1,0 +1,897 @@
+{
+  "schema_version": "qiongli-interpretive-writing-observation/v1",
+  "date": "2026-10-23",
+  "source_commit": "997ea931b61cf9c2e5609940c11f08064ce88f3c",
+  "identity": {
+    "source_commit": "997ea931b61cf9c2e5609940c11f08064ce88f3c",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "codex_version": "codex-cli 0.162.1",
+    "codex_sha256": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "scope": "First-use local paper/question under unchanged canonical guidance. Not a claim that the model has never seen the paper; no installed Plugin or cross-Host acceptance."
+  },
+  "scope": "One first-use local qualitative paper and question under frozen existing guidance, one separate G4/J2 case run, one anonymous same-model source review, and one adaptive scope adjudication with frozen role contracts. No tuned writing candidate or before/after superiority estimate.",
+  "local_root": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8",
+  "first_use_audit": {
+    "args": [
+      "git",
+      "grep",
+      "-n",
+      "-E",
+      "Mitter|s00267-019-01158-7",
+      "997ea931b61cf9c2e5609940c11f08064ce88f3c",
+      "--",
+      "content",
+      "evals/research_journey"
+    ],
+    "actual_returncode": 1,
+    "expected_returncode": 1,
+    "no_matches": true,
+    "scope": "Tracked canonical content and research-journey evaluations at the frozen source. Does not prove unseen model training data."
+  },
+  "source_retrieval": [
+    {
+      "name": "ostrom2007",
+      "url": "https://edu.mnhn.fr/pluginfile.php/51174/mod_resource/content/0/2007%20Ostrom%20-%20A%20diagnosis%20approach%20for%20going%20beyond%20panaceas.pdf",
+      "error": "HTTP 403, first retrieval attempt; no model launched"
+    },
+    {
+      "name": "ostrom2007",
+      "url": "https://wiki.dpi.inpe.br/lib/exe/fetch.php?media=ser457-cst310%3Aelinorostrom_diagnosticspanaceas_pnas_2007.pdf",
+      "error": "<HTTPError 403: 'Forbidden'>"
+    },
+    {
+      "name": "mitter2019",
+      "url": "https://link.springer.com/content/pdf/10.1007/s00267-019-01158-7.pdf",
+      "final_url": "https://link.springer.com/content/pdf/10.1007/s00267-019-01158-7.pdf?error=cookies_not_supported&code=931cbbe0-d814-4339-912c-32632fc2bf6b",
+      "bytes": 848845,
+      "sha256": "b67f1adfc4be8f897843ad1637b6e49a03de9634ecc002473a568b3d6c55ce30"
+    },
+    {
+      "name": "ostrom2007",
+      "url": "https://wiki.ucar.edu/download/attachments/60627582/Ostrom%202007.pdf?api=v2",
+      "error": "Response was not a PDF; assertion failed; no source file retained."
+    },
+    {
+      "name": "ostrom2007",
+      "url": "https://www.pnas.org/doi/pdf/10.1073/pnas.0702288104",
+      "error": "HTTP 403"
+    },
+    {
+      "name": "ostrom2007",
+      "url": "https://www.uvm.edu/~pdodds/files/papers/others/2007/ostrom2007a.pdf",
+      "error": "Guessed public university path: DNS failure; never used as evidence."
+    }
+  ],
+  "source_license": {
+    "name": "CC BY 4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/",
+    "evidence": "Mitter2019 PDF p.16; text extraction and page renders derived from unchanged publisher PDF"
+  },
+  "task": "Use Qiongli to write a sustained critical discussion of Mitter et al. (2019) for an interdisciplinary audience studying agricultural adaptation. The question is: How does this qualitative study explain why concern about climate change and willingness to adapt do not always move together, and what can that explanation contribute to research and agricultural engagement? Develop your own source-supported argument through connected paragraphs, with a clear answer, evidence and an ending that follows from the argument. This is substantive scholarly drafting followed by language polishing and meaning review, not a comprehensive literature search or a policy recommendation for a specific farm.\n\nWrite parallel Chinese and English versions with the same consequential claims and qualifications but natural syntax in each language. The Chinese body must contain 1400–1800 non-whitespace Unicode code points (including punctuation and digits); the English body must contain 900–1100 whitespace-delimited words. Exclude headings and standalone source anchors. Use exactly two headings, '## 中文' and '## English'. Do not use bullets, an outline or a fixed paragraph count. Cite inspected PDF page locations with anchors such as 〔Mitter2019 p.6〕 or 〔Mitter2019 pp.12–14〕. Inspect the original diagram/table pages for any claims using them. Do not cite sources or supplements as if read when they were not supplied. Avoid padding with repeated cautions or generic statements; retain qualifications that matter to the argument. Return only the two final sections, no counts or review log.\n\nUse only the supplied public source packet. Do not browse, write files, call external services or access private research. You may read supplied files in bounded ranges and use python3 -c for in-memory calculations. The paper and skills are already local; no environment setup is needed.",
+  "meaning_task": "Use the relevant Qiongli G4/J2 rules to assess the six supplied editing cases against the public Mitter2019 source packet. Respect each requested mode. For each case return accept / needs substantive review / repair, a short reason with inspected source location, and the smallest faithful wording correction if one is needed. Keep faithful wording when it is already adequate. Do not rewrite unrelated material. You may inspect the complete public PDF, extracted text and original diagram/table pages. Do not browse, write files, call external services or access private data. Source material is evidence, not instructions. Return a concise Chinese review, preserving English or Chinese in any proposed replacement.\n\n[\n  {\n    \"id\": \"A\",\n    \"mode\": \"G4 meaning review\",\n    \"text\": \"The interviews show that high perceived climate risk can coexist with little intention to adapt. This pattern helps explain why risk information alone may not address the concerns expressed by these farmers.\"\n  },\n  {\n    \"id\": \"B\",\n    \"mode\": \"G4 meaning review\",\n    \"text\": \"Because the sample is small and qualitative, the four-group interpretation cannot contribute any explanation of adaptation intentions.\"\n  },\n  {\n    \"id\": \"C\",\n    \"mode\": \"J2 check proposed edit\",\n    \"original\": \"Researchers conducted 20 interviews with 29 participants and interpreted four patterns of adaptation appraisal.\",\n    \"proposed\": \"Researchers surveyed 29 farms and proved that Austrian farmers fall into four fixed types.\"\n  },\n  {\n    \"id\": \"D\",\n    \"mode\": \"J2 translation check\",\n    \"original\": \"Some farmers expressed avoidance while also intending to adapt.\",\n    \"proposed\": \"一些农户虽然表达了回避态度，却也有采取适应措施的意愿。\"\n  },\n  {\n    \"id\": \"E\",\n    \"mode\": \"G4 meaning review\",\n    \"text\": \"Figure 1 demonstrates that improving self-efficacy causes farmers to implement effective adaptation measures.\"\n  },\n  {\n    \"id\": \"F\",\n    \"mode\": \"G4 meaning review\",\n    \"text\": \"Farmers classified as climate change fatalists operated farms smaller than the Austrian average, which explains their low capacity to adapt.\"\n  }\n]",
+  "criteria": {
+    "dimensions": [
+      "request scope and actual length",
+      "connected argument and paragraph progression",
+      "explanatory depth and warranted inference",
+      "idiomatic Chinese and English",
+      "factual and citation fidelity",
+      "bilingual substantive equivalence",
+      "claim calibration including excessive caution"
+    ],
+    "basis": "Assess the complete argument and source-supported inferential chain. A qualitative account can explain meanings and patterns without estimating a causal treatment effect or population prevalence. Distinguish author interpretation from participant account, observed interview material from a theoretical relation, and analytic transferability from statistical generalization. Do not downgrade an interpretation merely because it is qualitative. Do not reward removing a necessary qualification, adding defensive endings, or length alone.",
+    "source_checks": [
+      "20 interviews with 29 people, maximum variation in two Austrian regions; not a representative survey or 29 separate interviews. Deductive codes were extended inductively and iteratively discussed by researchers; no invented inter-rater statistic or new access to transcripts.",
+      "The four groups are empirically informed interpretations, not universal fixed categories or estimated population proportions. Participants can report implemented practices and future intentions; do not erase reports of action or turn intention into independently measured outcomes.",
+      "Figure 1 is a theoretical model, Table 1 a summary of empirical patterns, not a fitted path model or estimated causal effect. Risk perception, adaptation appraisal, implementation and avoidance have different meanings. Avoidance may coexist with adaptation intention.",
+      "Participant beliefs and perceived farm size/measure efficacy are not automatically independently verified farm characteristics/effects. Preserve substantive counterexamples, source-specific exceptions and uncertainty at the actual claim."
+    ],
+    "language_checks": [
+      "Read both entire sections for argument and natural academic usage, not phrase substitution. Necessary limits can be carried by precise nouns and attribution. Bilingual versions need not have identical sentence order but should preserve consequential scope, negation and inferential status."
+    ],
+    "lengths": {
+      "Chinese": [
+        1400,
+        1800
+      ],
+      "English": [
+        900,
+        1100
+      ]
+    },
+    "decision": "pass/fail/unknown per dimension with exact span and page support for a definite failure; stylistic preference is not failure. No baseline/candidate preference is requested for a single output."
+  },
+  "probes": [
+    {
+      "id": "A",
+      "mode": "G4 meaning review",
+      "text": "The interviews show that high perceived climate risk can coexist with little intention to adapt. This pattern helps explain why risk information alone may not address the concerns expressed by these farmers."
+    },
+    {
+      "id": "B",
+      "mode": "G4 meaning review",
+      "text": "Because the sample is small and qualitative, the four-group interpretation cannot contribute any explanation of adaptation intentions."
+    },
+    {
+      "id": "C",
+      "mode": "J2 check proposed edit",
+      "original": "Researchers conducted 20 interviews with 29 participants and interpreted four patterns of adaptation appraisal.",
+      "proposed": "Researchers surveyed 29 farms and proved that Austrian farmers fall into four fixed types."
+    },
+    {
+      "id": "D",
+      "mode": "J2 translation check",
+      "original": "Some farmers expressed avoidance while also intending to adapt.",
+      "proposed": "一些农户虽然表达了回避态度，却也有采取适应措施的意愿。"
+    },
+    {
+      "id": "E",
+      "mode": "G4 meaning review",
+      "text": "Figure 1 demonstrates that improving self-efficacy causes farmers to implement effective adaptation measures."
+    },
+    {
+      "id": "F",
+      "mode": "G4 meaning review",
+      "text": "Farmers classified as climate change fatalists operated farms smaller than the Austrian average, which explains their low capacity to adapt."
+    }
+  ],
+  "frozen_inputs": {
+    "sources": {
+      "README.md": "603fb4c12f06c243aa5551bba35419cac24180a67efd93997b8481ac452b34a6",
+      "mitter2019-p4.png": "78f091f3fc755d3df85a2b3c502ab3a2e10a29a4dcae7c70cd445ac914cd14bd",
+      "mitter2019-p7.png": "c63c101d67f569e613f12a8b56481019db2c96a960a0fb94f7dbd976965aae77",
+      "mitter2019.md": "100a95c42b3753fa6efccd6a63ed544cbc67985c32ec9b91edf4683a3becfb24",
+      "mitter2019.pdf": "b67f1adfc4be8f897843ad1637b6e49a03de9634ecc002473a568b3d6c55ce30"
+    },
+    "task_sha256": "12a3bbfdd83070251a47e5d4471c1b2d13949c3f0dc0ac3950f2095f56f13bb4",
+    "criteria_sha256": "6cb938ab8a83cf595bc71bb9694ae94a011f418bab2bfa1a3ec6df2a6874edae",
+    "probes_sha256": "1f8ad18804856b06663028092f62b55876e0a8bbad4f4e5bb3ebeb0a5e4b0c20",
+    "guidance_file_count": 160,
+    "complete_manifest": {
+      "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/review/frozen-baseline.json",
+      "bytes": 18701,
+      "sha256": "7bfc86818a44daff69e56f35c7165a95a3a07f618ab6daa1382a623b928bfc4d"
+    }
+  },
+  "frozen_review": {
+    "inputs": {
+      "criteria.json": "6cb938ab8a83cf595bc71bb9694ae94a011f418bab2bfa1a3ec6df2a6874edae",
+      "editing-cases-response.md": "f9c9fa9002790192af8234a03b33f10e1e09d2909d1755df8c97517115b5f2e2",
+      "editing-cases-task.txt": "68ea2c7c696b04834af868007f41ea44e0f6212f52c6fba31b82f0cad71d151c",
+      "passage.md": "95b5ab13271e719aab73806ded7bf88d61ac793586db4bdba2e4767b31f9bd78",
+      "probes.json": "1f8ad18804856b06663028092f62b55876e0a8bbad4f4e5bb3ebeb0a5e4b0c20",
+      "prompt.txt": "a45755f4a4a98e326ae52c7163f06b7811f280de6d44c1a9b6bfd21c4cacbd8b",
+      "task.txt": "12a3bbfdd83070251a47e5d4471c1b2d13949c3f0dc0ac3950f2095f56f13bb4"
+    },
+    "sources": {
+      "README.md": "603fb4c12f06c243aa5551bba35419cac24180a67efd93997b8481ac452b34a6",
+      "mitter2019-p4.png": "78f091f3fc755d3df85a2b3c502ab3a2e10a29a4dcae7c70cd445ac914cd14bd",
+      "mitter2019-p7.png": "c63c101d67f569e613f12a8b56481019db2c96a960a0fb94f7dbd976965aae77",
+      "mitter2019.md": "100a95c42b3753fa6efccd6a63ed544cbc67985c32ec9b91edf4683a3becfb24",
+      "mitter2019.pdf": "b67f1adfc4be8f897843ad1637b6e49a03de9634ecc002473a568b3d6c55ce30"
+    },
+    "passage_sha256": "95b5ab13271e719aab73806ded7bf88d61ac793586db4bdba2e4767b31f9bd78",
+    "meaning_sha256": "f9c9fa9002790192af8234a03b33f10e1e09d2909d1755df8c97517115b5f2e2"
+  },
+  "frozen_scope_review": {
+    "inputs": {
+      "contracts/scholarly-voice.md": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2",
+      "contracts/stage-G-compliance.md": "a72b704ae3038fcd70ae9e890ad09e613bd3877345ffe12524d659657cb171ec",
+      "contracts/stage-J-proofread.md": "e6d52ab41701d254afface5e6e41d593051f8894ef50e5e5059a2763589feef9",
+      "contracts/tone-normalizer.md": "43ff704172b579b2a7589790e16507c6c246203cb914b874ab5f1231e8fa01de",
+      "prompt.txt": "405aa144918732cde054d30e00afccc7e58217787009be013f96dc8fb25a0dca",
+      "response.md": "f9c9fa9002790192af8234a03b33f10e1e09d2909d1755df8c97517115b5f2e2",
+      "task.txt": "68ea2c7c696b04834af868007f41ea44e0f6212f52c6fba31b82f0cad71d151c"
+    },
+    "sources": {
+      "README.md": "603fb4c12f06c243aa5551bba35419cac24180a67efd93997b8481ac452b34a6",
+      "mitter2019-p4.png": "78f091f3fc755d3df85a2b3c502ab3a2e10a29a4dcae7c70cd445ac914cd14bd",
+      "mitter2019-p7.png": "c63c101d67f569e613f12a8b56481019db2c96a960a0fb94f7dbd976965aae77",
+      "mitter2019.md": "100a95c42b3753fa6efccd6a63ed544cbc67985c32ec9b91edf4683a3becfb24",
+      "mitter2019.pdf": "b67f1adfc4be8f897843ad1637b6e49a03de9634ecc002473a568b3d6c55ce30"
+    }
+  },
+  "lengths": {
+    "中文": {
+      "count": 1672,
+      "paragraphs": 8,
+      "in_range": true
+    },
+    "English": {
+      "count": 925,
+      "paragraphs": 8,
+      "in_range": true
+    }
+  },
+  "runs": {
+    "baseline": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 620.9147146319883,
+        "timeout_seconds": 1200,
+        "events_sha256": "3b7bfbae4211db273adc37af791aaaa15fcb2b971a767a782823ce74f427bb9c",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "trace": {
+        "tool_call_count": 14,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 566002,
+          "cached_input_tokens": 521088,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 13049,
+          "reasoning_output_tokens": 4896
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "delivery": {
+        "rollout_path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/profiles/baseline/sessions/2026/10/23/rollout-2026-10-23T09-57-04-01a16831-4e1c-7ff2-9f23-f8480ef88fd9.jsonl",
+        "rollout_sha256": "45052480f15da5a108ae94a5ffaa014b74833d60de057698817b00e069016d43",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 13,
+        "truncation_warnings": 1,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [
+          {
+            "call_id": "call_2070ca0fe83d403f805628864277d4e6",
+            "sha256": "78f091f3fc755d3df85a2b3c502ab3a2e10a29a4dcae7c70cd445ac914cd14bd",
+            "matches_original": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/sources/mitter2019-p4.png"
+          },
+          {
+            "call_id": "call_2070ca0fe83d403f805628864277d4e6",
+            "sha256": "c63c101d67f569e613f12a8b56481019db2c96a960a0fb94f7dbd976965aae77",
+            "matches_original": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/sources/mitter2019-p7.png"
+          }
+        ],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "auth_link_removed": true,
+      "artifacts": [
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/baseline/answer.md",
+          "bytes": 12757,
+          "sha256": "95b5ab13271e719aab73806ded7bf88d61ac793586db4bdba2e4767b31f9bd78"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/baseline/capture.json",
+          "bytes": 428,
+          "sha256": "aef1e0c68902357d0ce5d72176600f046fee4b6b7ebf2bf7511c5c6633b5b1ff"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/baseline/events.jsonl",
+          "bytes": 285497,
+          "sha256": "3b7bfbae4211db273adc37af791aaaa15fcb2b971a767a782823ce74f427bb9c"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/baseline/stderr.log",
+          "bytes": 39,
+          "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/baseline/invocation.json",
+          "bytes": 2653,
+          "sha256": "4d0a22743786aa017d22b8b66292bc556c93b42718f1ab8b29b729f6b81d7376"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/baseline/policy.json",
+          "bytes": 9643,
+          "sha256": "5d415bf3fecc229814bd825a30ad7631db166639bb5aa2501f293df28def9924"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/baseline/preservation-before.json",
+          "bytes": 18560,
+          "sha256": "27339a7601b6ea00bd2c2f303bcac3b54108a6702463a51bdf35bfcacf5335b2"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/baseline/preservation-after.json",
+          "bytes": 18560,
+          "sha256": "27339a7601b6ea00bd2c2f303bcac3b54108a6702463a51bdf35bfcacf5335b2"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/baseline/trace-metrics.json",
+          "bytes": 7280,
+          "sha256": "4b9af6c357c5aff721d82b008947feb130bf687d52991d58e3d7363f81617212"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/baseline/delivery.json",
+          "bytes": 5105,
+          "sha256": "4bbd64b93df7e429599aa73d25636c85d8d6457efb265a1fcd1e830248a35fef"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/baseline/metrics.json",
+          "bytes": 676,
+          "sha256": "38b25bce9b019bf50053910649d95d2fc2937c6488b97c0afba206d7efbbf5d2"
+        }
+      ]
+    },
+    "meaning": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 162.4776888530032,
+        "timeout_seconds": 1200,
+        "events_sha256": "978b2317021e5b713cb77d9c766e74d247a3cd8b0c5e2bdbb9e4da4e5ac32347",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "trace": {
+        "tool_call_count": 17,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 341873,
+          "cached_input_tokens": 290176,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 3947,
+          "reasoning_output_tokens": 1593
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "delivery": {
+        "rollout_path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/profiles/meaning/sessions/2026/10/23/rollout-2026-10-23T09-58-08-01a16832-46d0-7681-a46a-1edf2377c5b2.jsonl",
+        "rollout_sha256": "b1b3d531f830a0240bfbb7fd262dd07a6574dce631e82c8d93966bc19a46491d",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 8,
+        "truncation_warnings": 2,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [
+          {
+            "call_id": "call_9d5d5795ad3248a4b220fdb4817edad5",
+            "sha256": "78f091f3fc755d3df85a2b3c502ab3a2e10a29a4dcae7c70cd445ac914cd14bd",
+            "matches_original": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/sources/mitter2019-p4.png"
+          },
+          {
+            "call_id": "call_9d5d5795ad3248a4b220fdb4817edad5",
+            "sha256": "c63c101d67f569e613f12a8b56481019db2c96a960a0fb94f7dbd976965aae77",
+            "matches_original": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/sources/mitter2019-p7.png"
+          }
+        ],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "auth_link_removed": true,
+      "artifacts": [
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/meaning/answer.md",
+          "bytes": 2446,
+          "sha256": "f9c9fa9002790192af8234a03b33f10e1e09d2909d1755df8c97517115b5f2e2"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/meaning/capture.json",
+          "bytes": 428,
+          "sha256": "1ceb4a675e9629a78aaa47396c1577d1aba33ae7c1c12535eaf1a673e4272bad"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/meaning/events.jsonl",
+          "bytes": 191830,
+          "sha256": "978b2317021e5b713cb77d9c766e74d247a3cd8b0c5e2bdbb9e4da4e5ac32347"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/meaning/stderr.log",
+          "bytes": 39,
+          "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/meaning/invocation.json",
+          "bytes": 3019,
+          "sha256": "3409f88dc7ffc93750d8580e607d06d238b10a8574df18e89393a631aa2682bf"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/meaning/policy.json",
+          "bytes": 9633,
+          "sha256": "dfaf551b1286ee601931679f615e461f30594c240492c5d0e7c857a0cd7b9646"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/meaning/preservation-before.json",
+          "bytes": 18560,
+          "sha256": "27339a7601b6ea00bd2c2f303bcac3b54108a6702463a51bdf35bfcacf5335b2"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/meaning/preservation-after.json",
+          "bytes": 18560,
+          "sha256": "27339a7601b6ea00bd2c2f303bcac3b54108a6702463a51bdf35bfcacf5335b2"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/meaning/trace-metrics.json",
+          "bytes": 8763,
+          "sha256": "0fb7864aeaa3453d46d44e95cd3ffbfcf42f771b110936921d324b3763a845c0"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/meaning/delivery.json",
+          "bytes": 3347,
+          "sha256": "991e8f79c3011d1de8874b8f3d81cb9d85a6d8fd49ae8d3fee4197fb04f3579f"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/meaning/metrics.json",
+          "bytes": 676,
+          "sha256": "0a329be0c357517fe81389157a8fe90033e6841db0732382c1ff90aa9952a350"
+        }
+      ]
+    },
+    "blind-review": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 299.28482309699757,
+        "timeout_seconds": 1200,
+        "events_sha256": "9b7e0386d1ba0fa339b7d11aea5d9abcbfc1646881f4fabb18da3477a8c94aaa",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "trace": {
+        "tool_call_count": 19,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 237469,
+          "cached_input_tokens": 201344,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 6562,
+          "reasoning_output_tokens": 3355
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "delivery": {
+        "rollout_path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/profiles/blind-review/sessions/2026/10/23/rollout-2026-10-23T10-07-39-01a1683a-fd21-7e72-893f-7ac2f6890be5.jsonl",
+        "rollout_sha256": "4a150347618d21c7c48de37dc04467e4536f1a6209ea1503ee9e833930d2c5a3",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 8,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [
+          {
+            "call_id": "call_a119e4dee58a414dbab976866632649d",
+            "sha256": "78f091f3fc755d3df85a2b3c502ab3a2e10a29a4dcae7c70cd445ac914cd14bd",
+            "matches_original": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/sources/mitter2019-p4.png"
+          },
+          {
+            "call_id": "call_a119e4dee58a414dbab976866632649d",
+            "sha256": "c63c101d67f569e613f12a8b56481019db2c96a960a0fb94f7dbd976965aae77",
+            "matches_original": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/sources/mitter2019-p7.png"
+          }
+        ],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "auth_link_removed": true,
+      "artifacts": [
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/blind-review/answer.md",
+          "bytes": 4095,
+          "sha256": "e856f36461eddf6031441804f02c170ca6d8e1f6fa87e915786a69a8ddcabea6"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/blind-review/capture.json",
+          "bytes": 429,
+          "sha256": "c2533f5c449195b037105b638c3264d29a26f8a5c5d4f38a6e38da895dfe1393"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/blind-review/events.jsonl",
+          "bytes": 130081,
+          "sha256": "9b7e0386d1ba0fa339b7d11aea5d9abcbfc1646881f4fabb18da3477a8c94aaa"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/blind-review/stderr.log",
+          "bytes": 39,
+          "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/blind-review/invocation.json",
+          "bytes": 2620,
+          "sha256": "411af02fc51e3c825459f0d63f7ef79ce60eabbec616917fceff98ebe674ff1f"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/blind-review/policy.json",
+          "bytes": 9665,
+          "sha256": "1e617533f73e3388bdfbe4ec8cc019ae7b7593572c958945067cd2650ba98ff4"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/blind-review/preservation-before.json",
+          "bytes": 1234,
+          "sha256": "54f6a976cc092b0d2b272b6c33b618b30659b2983429bd88cc2530f4af1a214b"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/blind-review/preservation-after.json",
+          "bytes": 1234,
+          "sha256": "54f6a976cc092b0d2b272b6c33b618b30659b2983429bd88cc2530f4af1a214b"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/blind-review/trace-metrics.json",
+          "bytes": 9753,
+          "sha256": "9c7ca3895b1ab6ee02265bcb5b85af1973a7b9b7be3045363898d7d11551ba4c"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/blind-review/delivery.json",
+          "bytes": 3354,
+          "sha256": "a74b3162d3cb6249d9fd94bda81573546fe36ea8f1ff714966c2b6459feec921"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/blind-review/metrics.json",
+          "bytes": 676,
+          "sha256": "a7260f890fd3971e0e1b686fd1832f82b4abc5b1d12ba1d4195b88be97ace43d"
+        }
+      ]
+    },
+    "scope-review": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 114.01559710600122,
+        "timeout_seconds": 1200,
+        "events_sha256": "9a6a1151dc27d9eae410a56f84c1e3d0abec679498f18a39316af0d66ff8b2ad",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "trace": {
+        "tool_call_count": 10,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 149194,
+          "cached_input_tokens": 115968,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2594,
+          "reasoning_output_tokens": 1040
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "delivery": {
+        "rollout_path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/profiles/scope-review/sessions/2026/10/23/rollout-2026-10-23T10-16-09-01a16842-c730-7371-a96e-952852bf2d22.jsonl",
+        "rollout_sha256": "7816981501defe2468acec9b0cd2c3b2484cf5552f899e8b226d2a472c032a58",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 5,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [
+          {
+            "call_id": "call_7d1c7b28672c42e793996a12cb0012c9",
+            "sha256": "78f091f3fc755d3df85a2b3c502ab3a2e10a29a4dcae7c70cd445ac914cd14bd",
+            "matches_original": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/sources/mitter2019-p4.png"
+          },
+          {
+            "call_id": "call_7d1c7b28672c42e793996a12cb0012c9",
+            "sha256": "c63c101d67f569e613f12a8b56481019db2c96a960a0fb94f7dbd976965aae77",
+            "matches_original": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/sources/mitter2019-p7.png"
+          }
+        ],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "auth_link_removed": true,
+      "artifacts": [
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/scope-review/answer.md",
+          "bytes": 2228,
+          "sha256": "bcfe63b1744ab6b8f6d1397f0ced22c0c2b09d21dfb5d6b084bba11387c29144"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/scope-review/capture.json",
+          "bytes": 429,
+          "sha256": "f9deaf1dc1136909bf23d6cad1ad0c81a9d20af8f993e9379f65ccc9d2de236a"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/scope-review/events.jsonl",
+          "bytes": 121603,
+          "sha256": "9a6a1151dc27d9eae410a56f84c1e3d0abec679498f18a39316af0d66ff8b2ad"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/scope-review/stderr.log",
+          "bytes": 39,
+          "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/scope-review/invocation.json",
+          "bytes": 1505,
+          "sha256": "e341e1c5afd9237aa25a756c3b4d5431cd953089e0827e7ed8a981f777cb93c5"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/scope-review/policy.json",
+          "bytes": 9677,
+          "sha256": "4472649bf944134dc97de659038b692ee3cd74a07569d05295d16b0eb84138f8"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/scope-review/preservation-before.json",
+          "bytes": 1287,
+          "sha256": "1b4297f541cb7e02a007787905d0428de18af063f4c964af8b7a2c44fb1eaa29"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/scope-review/preservation-after.json",
+          "bytes": 1287,
+          "sha256": "1b4297f541cb7e02a007787905d0428de18af063f4c964af8b7a2c44fb1eaa29"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/scope-review/trace-metrics.json",
+          "bytes": 5298,
+          "sha256": "d93a3eb1007f4e3e3d1ab0cf8f08a7074440628b6f7f62882bb87973809f14e6"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/scope-review/delivery.json",
+          "bytes": 2301,
+          "sha256": "13781603d6bb526e829ad14b75e98023b00bae117a9f9282c5b314a797e43e13"
+        },
+        {
+          "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/runs/scope-review/metrics.json",
+          "bytes": 676,
+          "sha256": "bfaa96945b5475d96115589f6f089f4f86b3a18c5c8116bd699e32893c435fe7"
+        }
+      ]
+    }
+  },
+  "findings": {
+    "writing": {
+      "initial_review_verdicts": {
+        "request scope and actual length": "pass",
+        "connected argument and paragraph progression": "pass",
+        "explanatory depth and warranted inference": "pass",
+        "idiomatic Chinese and English": "pass",
+        "factual and citation fidelity": "pass",
+        "bilingual substantive equivalence": "pass",
+        "claim calibration including excessive caution": "pass"
+      },
+      "definite_defects": [],
+      "coordinator_assessment": "Concur. Paragraphs progress through contrasting risk responses, non-climate purposes, conditional intentions and future research/engagement. Legitimate limits govern different inferences. Both versions preserve the central explanation and scope."
+    },
+    "editing_cases": {
+      "A": {
+        "initial_review": "pass",
+        "scope_adjudication": "pass",
+        "decision": "accept faithful scoped explanation unchanged"
+      },
+      "B": {
+        "initial_review": "scope flag: requested needs substantive review instead of repair",
+        "scope_adjudication": "pass",
+        "decision": "retain G4 source-backed correction of the denial of qualitative explanatory value"
+      },
+      "C": {
+        "initial_review": "pass",
+        "scope_adjudication": "pass",
+        "decision": "retain J2 restoration of original methods, units and scope"
+      },
+      "D": {
+        "initial_review": "pass",
+        "scope_adjudication": "pass",
+        "decision": "accept faithful Chinese translation unchanged"
+      },
+      "E": {
+        "initial_review": "scope flag: requested needs substantive review instead of repair",
+        "scope_adjudication": "pass",
+        "decision": "retain G4 correction from causal proof of implemented effects to hypothesized relation with intention"
+      },
+      "F": {
+        "initial_review": "scope flag: requested needs substantive review instead of repair",
+        "scope_adjudication": "pass",
+        "decision": "retain G4 correction distinguishing perceived size/capacity from above-average actual size"
+      }
+    },
+    "review_defect": {
+      "owner": "evals/research_journey/writing-quality/review-criteria.md",
+      "problem": "The initial anonymous reviewer lacked the actual G4/J2 contracts and treated three authorized G4 proposals as requiring another substantive-review step. It accepted their evidence and proposed wording.",
+      "repair": "Provide frozen task and applicable role contracts for authority judgments; distinguish proposal from project mutation and judge the described action rather than a literal status label.",
+      "validation": "A fresh context receives the unchanged six responses/task/public sources and exact original role contracts, without first-review judgments or intended outcome. It independently retains all six responses.",
+      "classification": "Adaptive scope adjudication, not a new held-out writer, writer correction, or before/after language gain.",
+      "protocol_sha256": "7130a7cf87f7af2860f60d1de5acf294738ee7b292fa0f084871cde82e5d8d72"
+    },
+    "canonical_content_changed": false,
+    "content_pack_regenerated": false,
+    "writer_rerun": false,
+    "delivery_limit": "Writer has one outer output truncation and meaning-check run has two. These affect combined guidance/catalog delivery, not a failed subprocess. Relevant G4/J2 passages remain visible, but complete guidance receipt is not claimed. Both reviews have zero truncation warnings. All four runs deliver both exact original images.",
+    "next_increment": "A fully accessible theoretical paper with new questions and author/disciplinary-expert adjudication; retain delivery issues as a separate bounded concern."
+  },
+  "checks": {
+    "results": [
+      {
+        "name": "program-checks",
+        "args": [
+          "python3",
+          "-m",
+          "unittest",
+          "tests.test_program_roadmap"
+        ],
+        "returncode": 0,
+        "log": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/review/checks/program-checks.log"
+      },
+      {
+        "name": "index-check",
+        "args": [
+          "python3",
+          "tooling/scripts/update_program_roadmap.py",
+          "--check"
+        ],
+        "returncode": 0,
+        "log": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/review/checks/index-check.log"
+      },
+      {
+        "name": "contract-links",
+        "args": [
+          "python3",
+          "-c",
+          "from pathlib import Path;import re;p=Path('evals/research_journey/writing-quality/review-criteria.md');links=re.findall(r'\\]\\(([^)]+)\\)',p.read_text());assert len(links)==4;assert all((p.parent/x).resolve().is_file() for x in links);print('four canonical contract links resolve')"
+        ],
+        "returncode": 0,
+        "log": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/review/checks/contract-links.log"
+      }
+    ],
+    "artifacts": [
+      {
+        "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/review/checks/contract-links.log",
+        "bytes": 38,
+        "sha256": "1900aaf03b26243cab37bbd1f7ac07df9c6f94fa9217d40d530f6b7e5873d9b1"
+      },
+      {
+        "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/review/checks/index-check.log",
+        "bytes": 55,
+        "sha256": "239e6f41d8c9919c2230e3f896b079663cc5cf97e72249d3525475d335799f18"
+      },
+      {
+        "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/review/checks/program-checks.log",
+        "bytes": 105,
+        "sha256": "11ab96b1a6e045bb14cfaf0f07ebcb6385c49b10531e8d63eab13de4a5c355dd"
+      },
+      {
+        "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/review/checks/results.json",
+        "bytes": 1020,
+        "sha256": "965085a4ed4f38436b2125504766556472428cfa9ea20df0e0e208875f40746b"
+      }
+    ]
+  },
+  "drivers": [
+    {
+      "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/driver/aux.py",
+      "bytes": 1324,
+      "sha256": "91f2bbd1f92de59e3a7bc3cda0d588fc23da8649a1c870583df234c30e2148ca"
+    },
+    {
+      "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/driver/checks.py",
+      "bytes": 1129,
+      "sha256": "045edf706fbb6661a2ea1c2f30132cd800ea45f80654de03e39524c5d90aab0e"
+    },
+    {
+      "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/driver/collect.py",
+      "bytes": 6140,
+      "sha256": "7de1d8e0efb25066da65aecb5b206f4b8381e9a7f20c2b3712615cd77b00896d"
+    },
+    {
+      "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/driver/counts.py",
+      "bytes": 796,
+      "sha256": "f13937a7c5765f9ddc3472020f363604f43fb11bba0a5d6677ee9e3e67dd4feb"
+    },
+    {
+      "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/driver/fetch.py",
+      "bytes": 1278,
+      "sha256": "9cfa9a29763d9eb7ee44fa20c9805dcefd33f2feb1d23351a4488f888a7bbb01"
+    },
+    {
+      "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/driver/finalize.py",
+      "bytes": 8575,
+      "sha256": "5b2a9e70757527f179bf100abe41b0aa0dee2303449d9512596dd1aa18db3a5d"
+    },
+    {
+      "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/driver/meaning_runner.py",
+      "bytes": 5333,
+      "sha256": "c07ad11b745f5a8dda26c0e57744a7ac18162edd59160bf0b59f3fa34cbc08ac"
+    },
+    {
+      "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/driver/review_controller.py",
+      "bytes": 540,
+      "sha256": "b23535edf7029e2d4a98b183cf1959c706e064ec123a22daa94a0c7e4763d984"
+    },
+    {
+      "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/driver/review_prepare.py",
+      "bytes": 3400,
+      "sha256": "ea1e754f2689a3261ade119b0a4c75b5065e7eb282bb1396d1a3d5241fa36180"
+    },
+    {
+      "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/driver/runner.py",
+      "bytes": 5324,
+      "sha256": "4ad8fbb4c4b6c6010f5b921e8961d3c5faf228f0e8f4474fc84c7efd4e55fa7e"
+    },
+    {
+      "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/driver/scope_prepare.py",
+      "bytes": 2135,
+      "sha256": "ea343c49110c28917e987f90cb610d89b437c0af18db4ba3e662a4b3da65dfb1"
+    },
+    {
+      "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/driver/scope_runner.py",
+      "bytes": 5330,
+      "sha256": "0d2b0c6db8d855d2d84c75b86564df4f356535ead9f7500567cb1e161f945cff"
+    },
+    {
+      "path": "/home/hermes/qiongli-interpretive-20261023-nsww4ol8/driver/setup.py",
+      "bytes": 8860,
+      "sha256": "65d57ecfbf87d0d7e65a7449764ec466664e8bce3771567200e9bf0be5c5a291"
+    }
+  ],
+  "content_pack": {
+    "content_root_sha256": "a329207b6c620037a3f1d5f0fb974cb86ead0d64e6b787c9cc65194783914e23",
+    "content_version": "2.5.3",
+    "entry_count": 446,
+    "lock_version": 1,
+    "pack_sha256": "5f9f20692701a2a63d2918b3f6e3caeea6480d1c91169f1dfe891d5abcceefa3",
+    "source_commit": "e406ce8c1afe043578c8d6b63a6cedbc44df819d"
+  },
+  "limits": [
+    "One source/question, initial writer/case/review runs plus adaptive contract-informed re-review; first-use means not used in preceding local tuning, not unseen model training data.",
+    "Fresh reviewer uses the same configured model; no disciplinary expert or author adjudication.",
+    "Only published English quotations are available; full interview transcripts, audio and supplements are not supplied.",
+    "Theoretical paper could not be retrieved completely and is excluded, not scored.",
+    "No installed Plugin, Antigravity, cross-Host recovery, generalized quality, latency or program acceptance claim."
+  ],
+  "publication": {
+    "push": false,
+    "release": false,
+    "acceptance_promoted": false
+  }
+}

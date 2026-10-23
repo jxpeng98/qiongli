@@ -3956,3 +3956,33 @@ commit/run fields remain unchanged. No push or publication. Next validate unchan
 rules on unseen questions/sources and seek author/disciplinary-expert judgments;
 this diagnostic pair does not establish general language-quality gains. Startup
 discovery and optional PDF rendering remain separate bounded work.
+
+## October 23 — First-use qualitative writing
+
+The [qualitative observation](../../../evals/research_journey/writing-quality/observations/interpretive-2026-10-23/README.md)
+freezes existing 997ea931 guidance on Mitter2019, an 18-page public qualitative
+paper not used in preceding local adjustments. The 1672-character Chinese and
+925-word English discussions pass all seven independent review dimensions.
+Six separate G4/J2 cases preserve faithful wording and repair evidenced drift or
+claim errors. The first reviewer accepts their content but requests an extra
+substantive-review status for three G4 proposals. It lacked the role contracts.
+A fresh adjudication with those unchanged contracts retains all six responses.
+
+The narrow fix belongs to the existing writing review criteria: supply the
+frozen task/role contract when assessing authority, preserve identity blinding,
+and judge the described action instead of requiring an escalation label. G4
+substantive proposals remain distinct from J2 expression editing and from project
+writes. Original responses and both reviews are retained; this adaptive review
+does not become a new held-out writing result. Canonical content, pack and user
+model selection remain unchanged. No writer rerun or new prose rule is needed.
+
+Four configured-model runs complete, preserve inputs and deliver the two original
+source images. Three outer truncation warnings in the first two runs remain in
+the record; all four have zero failed inner calls and no outer script failure.
+Program/index checks and contract-link checks accompany integration; unchanged
+content/native checks are reused. Only CLI-405 progress/date and the generated
+index change, preserving task states, accepted evidence, dependencies and commit/
+run fields. Integrate by the authorized local fast-forward workflow into 2.x;
+no push, publication or acceptance promotion. Next use a fully accessible
+purely theoretical paper and author/disciplinary-expert adjudication. The excluded
+Ostrom source, single qualitative sample and same-model reviews limit coverage.

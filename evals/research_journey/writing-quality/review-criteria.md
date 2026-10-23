@@ -28,6 +28,29 @@ Use each task's supplied synthetic material as its sole evidence. Preserve raw
 answers before review. These cases test instruction behavior separately from
 package integrity; they do not establish real-manuscript or cross-model quality.
 
+For judgments about editing authority, supply the frozen task and applicable
+G4/J2 contracts as reviewer inputs. Blind writer identity while retaining the
+context needed to judge the requested role. Use the same source revision of
+[Stage G](../../../content/workflow/references/stage-G-compliance.md),
+[Stage J](../../../content/workflow/references/stage-J-proofread.md) and
+[scholarly voice](../../../content/workflow/references/scholarly-voice.md);
+the [G4 skill](../../../content/skills/G_compliance/tone-normalizer.md) provides
+calibrated-rewrite detail when needed. These existing owners govern the boundary:
+
+- G4 can propose a source-backed substantive correction when the request covers
+  claim calibration, identifying the changed meaning and its evidence.
+- J2 expression edits preserve settled meaning. A meaning comparison can restore
+  drift to the supplied original; an existing research error outside the requested
+  scope needs substantive review.
+- Judge the described action, explanation and source basis. A label such as
+  `repair` alone neither establishes an unauthorized change nor authorizes a
+  project write. Suggested wording in a review remains a proposal; registered
+  writes retain their existing preview/approval/CAS owner.
+
+If a reviewer lacked this contract, retain its original finding and resolve the
+specific scope judgment with the missing context. Record that adjudication as an
+adaptive re-review, keeping the original writer output and first review intact.
+
 | Case | Required observations in the actual answer |
 | --- | --- |
 | D | Natural Chinese with a connected sample/result/limit sequence. Preserve 86 local firms, r = 0.27, p = .02, [D1], cross-sectional design and the causal limit. Remove empty framing/stacked hesitation without generalizing beyond the sample. Return only the paragraph. |
