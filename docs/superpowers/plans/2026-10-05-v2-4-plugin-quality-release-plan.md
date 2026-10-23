@@ -3986,3 +3986,32 @@ run fields. Integrate by the authorized local fast-forward workflow into 2.x;
 no push, publication or acceptance promotion. Next use a fully accessible
 purely theoretical paper and author/disciplinary-expert adjudication. The excluded
 Ostrom source, single qualitative sample and same-model reviews limit coverage.
+
+## October 23 — First-use theoretical writing
+
+The [theoretical observation](../../../evals/research_journey/writing-quality/observations/theory-2026-10-23/README.md)
+uses the complete 17-page publisher PDF of Anderies2004, absent from preceding
+local writing adjustments. Guidance, source, question, seven review dimensions
+and six editing cases are frozen at e21d4581 before execution. The anonymous
+review receives the actual G4/J2 contracts from the start. All seven long-form
+dimensions and six case responses pass; correct definitions, natural translation
+and necessary scope remain intact. No canonical prose-rule change is warranted.
+
+The coordinator counter initially removes all citation anchors, despite a frozen
+task excluding standalone anchor lines only. The reviewer independently reports
+both counts. The corrected task counts are 1752 Chinese code points / 1020 English
+words; removing all anchors gives 1516 / 996. Both pass, so the verdict is unchanged.
+The counter and existing review criteria now preserve this distinction; original
+counter/result, writer output and first review remain. This is a measurement
+correction, not a new writing trial or evidence of improved language.
+
+Three configured-model runs complete with preserved inputs and cleanup. One
+writer outer truncation and one reviewer missing-pdfinfo call remain recorded;
+the supplied full text and original pages support the completed review. Seven
+program tests, index freshness, mixed/no-anchor controls and source/output/model/
+contract audits accompany integration. Canonical content, pack, native code and
+model selection remain unchanged; their prior checks are reused. Only CLI-405
+progress/date and the generated index change, preserving accepted task fields.
+Integrate locally into 2.x with the frozen-source guard and fast-forward workflow;
+no push, publication or acceptance promotion. Next: author/disciplinary-expert
+judgment and proof-based theory, beyond this single conceptual-framework paper.

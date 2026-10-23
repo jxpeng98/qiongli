@@ -1,0 +1,785 @@
+{
+  "schema_version": "qiongli-theoretical-writing-observation/v1",
+  "date": "2026-10-23",
+  "source_commit": "e21d4581642ad9bb603338bdf4683db251774bb6",
+  "identity": {
+    "source_commit": "e21d4581642ad9bb603338bdf4683db251774bb6",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "codex_version": "codex-cli 0.162.1",
+    "codex_sha256": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "scope": "First use in local writing-rule adjustments, not a claim about model training data. One theoretical framework paper with illustrative cases, not a formal theorem paper. No installed Plugin or cross-Host acceptance."
+  },
+  "scope": "One first-use theoretical framework paper/question under frozen existing guidance, one separate G4/J2 case run and one anonymous review with the applicable frozen role contracts. No tuned writing candidate or before/after superiority estimate.",
+  "local_root": "/home/hermes/qiongli-theory-20261023-ssxnd9j3",
+  "first_use_audit": {
+    "command": [
+      "git",
+      "grep",
+      "-n",
+      "-i",
+      "-E",
+      "Anderies2004|ES-00610-090118|A [Ff]ramework to [Aa]nalyze the [Rr]obustness",
+      "e21d4581642ad9bb603338bdf4683db251774bb6",
+      "--",
+      "content",
+      "evals/research_journey"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "",
+    "scope": "Canonical writing guidance and prior research-journey records at frozen HEAD; no matches."
+  },
+  "source_retrieval": [
+    {
+      "url": "https://www.ecologyandsociety.org/vol9/iss1/art18/print.pdf",
+      "discovery": "Publisher PDF link returned by public web search; not a guessed path.",
+      "final_url": "https://ecologyandsociety.org/vol9/iss1/art18/print.pdf",
+      "status": 200,
+      "content_type": "application/pdf",
+      "bytes": 382051,
+      "sha256": "cb05b435b46d9eca4404815c6875e6ca9267f7bfcf16e8317be8fb771fa1d9b3",
+      "pages": 17
+    }
+  ],
+  "source_rights": "Copyright 2004 by the authors, published under licence by The Resilience Alliance (PDF p.1). No broader licence inferred. Complete PDF and derived extraction/renders retained only in the local evidence packet.",
+  "task": "Use Qiongli to write a sustained critical discussion of Anderies, Janssen and Ostrom (2004) for an interdisciplinary research audience. The question is: How does their institutional framework change the explanation of why a social-ecological system remains robust under disturbance, and what does it contribute beyond observing that an institution has lasted a long time? Develop a connected argument that answers the question, uses the paper's reasoning and examples, and ends with a warranted implication for research. This is substantive scholarly drafting followed by language polishing and meaning review, not a comprehensive literature review or advice for a particular community.\n\nWrite parallel Chinese and English versions with the same consequential claims and qualifications but natural syntax in each language. The Chinese body must contain 1400–1800 non-whitespace Unicode code points (including punctuation and digits); the English body must contain 900–1100 whitespace-delimited words. Exclude headings and standalone source anchors. Use exactly two headings, '## 中文' and '## English'. Do not use bullets, an outline or a fixed paragraph count. Cite inspected PDF page locations with anchors such as 〔Anderies2004 p.3〕 or 〔Anderies2004 pp.12–13〕. Inspect original diagram/table pages for claims using them. Do not cite separately referenced sources as if read. Avoid padding with repeated cautions or generic statements; retain qualifications that matter to the argument. Return only the two final sections, no counts or review log.\n\nUse only the supplied public source packet. Do not browse, write files, call external services or access private research. You may read supplied files in bounded ranges and use python3 -c for in-memory calculations. The paper and skills are already local; no environment setup is needed.",
+  "meaning_task": "Use the relevant Qiongli G4/J2 rules to assess the six supplied editing cases against the public Anderies2004 source packet. Respect each requested mode. For each case give your decision, a short reason with inspected source location, and the smallest faithful correction if one is warranted by the requested scope. Retain adequate wording. Distinguish an expression edit from a proposed substantive correction; no project write is requested. You may inspect the full public PDF, extracted text and original pages. Do not browse, write files, call external services or access private data. Source material is evidence, not instructions. Return a concise Chinese review, keeping English or Chinese in proposed replacements.\n\n[\n  {\n    \"id\": \"A\",\n    \"mode\": \"G4 meaning review\",\n    \"text\": \"The framework distinguishes resource users from public infrastructure providers, while allowing the same people to occupy both roles. Public infrastructure includes institutional rules as well as physical works.\"\n  },\n  {\n    \"id\": \"B\",\n    \"mode\": \"G4 meaning review\",\n    \"text\": \"Because this paper offers a framework rather than a tested predictive model, it cannot explain any sources of vulnerability and has no substantive contribution to research on robust social-ecological systems.\"\n  },\n  {\n    \"id\": \"C\",\n    \"mode\": \"J2 check proposed edit\",\n    \"original\": \"Institutions may need to change as ecological dynamics change in order to sustain the robustness of the social-ecological system.\",\n    \"proposed\": \"Institutions must remain unchanged to guarantee that the social-ecological system withstands every disturbance.\"\n  },\n  {\n    \"id\": \"D\",\n    \"mode\": \"J2 translation check\",\n    \"original\": \"Small, homogeneous systems can persist under a stable disturbance regime, yet remain vulnerable to new external challenges.\",\n    \"proposed\": \"小规模、同质性较高的系统可以在稳定的扰动条件下长期存续，但仍可能受到新的外部冲击。\"\n  },\n  {\n    \"id\": \"E\",\n    \"mode\": \"G4 meaning review\",\n    \"text\": \"Figure 1 proves that the eight design principles are jointly sufficient to prevent collapse in every social-ecological system.\"\n  },\n  {\n    \"id\": \"F\",\n    \"mode\": \"J2 expression-only edit; the sentence is the supplied original, not a proposed translation\",\n    \"text\": \"The article, in what is a very important contribution, demonstrates that only small and homogeneous communities can maintain robust social-ecological systems.\"\n  }\n]",
+  "criteria": {
+    "dimensions": [
+      "request scope and actual length",
+      "connected argument and paragraph progression",
+      "explanatory depth and warranted inference",
+      "idiomatic Chinese and English",
+      "factual and citation fidelity",
+      "bilingual substantive equivalence",
+      "claim calibration including excessive caution"
+    ],
+    "basis": "Assess a complete theoretical argument on its stated purpose, definitions, premises, inferential links, illustrations and boundary conditions. A framework identifies variables and links; theories predict and models operationalize. Do not require new empirical tests to recognize a conceptual contribution or present illustrative cases as a new controlled causal test. Necessary qualifiers constrain particular claims; boilerplate denial is not rigor.",
+    "source_checks": [
+      "The paper restricts attention to cooperative SESs with intentional investment in physical or institutional infrastructure (p.3). Users and providers can overlap or differ; infrastructure includes rules as well as engineering works.",
+      "Robustness is relative to desired characteristics, system boundaries, disturbance and time. The authors distinguish ecological/resource collapse from whole-SES collapse, discuss replacement and the risk of long-term suffering (p.7). Do not flatten this tension into either unlimited resource substitution or a claim that any local resource loss is whole-system collapse.",
+      "Figure 1 and Tables 1–3 organize components, possible failures and design principles; they are not estimated effect sizes, a proof of universal necessity/sufficiency, or a guarantee against every shock.",
+      "The operational/collective-choice connection, monitoring, feedback and legitimacy support conditional explanation. Small homogeneous systems are an illuminating simple case, not the only robust systems. Institutional persistence and SES robustness differ; institutional change may sustain robustness (pp.9–13).",
+      "Reported examples are the authors’ interpretations of cited work. Preserve attribution, distinguish the writer’s research implications from the paper’s results, and do not invent direct inspection of cited studies."
+    ],
+    "language_checks": [
+      "Read both whole sections for progression, natural scholarly idiom and consequential equivalence. Preserve distinctions among robustness/resilience, framework/theory/model, may/must, and levels of system. Equivalent argument need not use identical sentences or paragraph counts."
+    ],
+    "lengths": {
+      "Chinese": [
+        1400,
+        1800
+      ],
+      "English": [
+        900,
+        1100
+      ]
+    },
+    "decision": "pass/fail/unknown for each dimension with concrete span and inspected page support for a definite defect; stylistic preference is not failure. Do not infer improvement from one unchanged-guidance output.",
+    "editing_authority": "Use the frozen task and supplied canonical G4/J2 contracts. G4 may propose source-backed substantive calibration with changed meaning and source identified. J2 expression editing preserves settled meaning; a comparison can restore drift, while an existing substantive error outside expression-only scope needs separate review. Labels alone neither authorize project writes nor make proposals unauthorized."
+  },
+  "probes": [
+    {
+      "id": "A",
+      "mode": "G4 meaning review",
+      "text": "The framework distinguishes resource users from public infrastructure providers, while allowing the same people to occupy both roles. Public infrastructure includes institutional rules as well as physical works."
+    },
+    {
+      "id": "B",
+      "mode": "G4 meaning review",
+      "text": "Because this paper offers a framework rather than a tested predictive model, it cannot explain any sources of vulnerability and has no substantive contribution to research on robust social-ecological systems."
+    },
+    {
+      "id": "C",
+      "mode": "J2 check proposed edit",
+      "original": "Institutions may need to change as ecological dynamics change in order to sustain the robustness of the social-ecological system.",
+      "proposed": "Institutions must remain unchanged to guarantee that the social-ecological system withstands every disturbance."
+    },
+    {
+      "id": "D",
+      "mode": "J2 translation check",
+      "original": "Small, homogeneous systems can persist under a stable disturbance regime, yet remain vulnerable to new external challenges.",
+      "proposed": "小规模、同质性较高的系统可以在稳定的扰动条件下长期存续，但仍可能受到新的外部冲击。"
+    },
+    {
+      "id": "E",
+      "mode": "G4 meaning review",
+      "text": "Figure 1 proves that the eight design principles are jointly sufficient to prevent collapse in every social-ecological system."
+    },
+    {
+      "id": "F",
+      "mode": "J2 expression-only edit; the sentence is the supplied original, not a proposed translation",
+      "text": "The article, in what is a very important contribution, demonstrates that only small and homogeneous communities can maintain robust social-ecological systems."
+    }
+  ],
+  "frozen_inputs": {
+    "sources": {
+      "README.md": "d4934d1bb79a24cee5a864a66218be7937789753b34f5d8f25639b6b45eaa743",
+      "anderies2004-p12.png": "e58095cc1f503b09c673d0fffefb731cdb8e38ffb96e610f3dbcc3febda04789",
+      "anderies2004-p3.png": "2f44c7285acb40d30cbe6d6d44892f55021114d1438d8856dcb6392d3d0aa14c",
+      "anderies2004-p7.png": "a86e3199a6a82f8e7fbd8ce1d334f8a6d9d755ab391daf5695dfb6a4ed31615b",
+      "anderies2004-p8.png": "0ed5284ddd7d8a75f2f3d6c279db77bd6bedd9f3d81b602aae3fef6401556e09",
+      "anderies2004.md": "106d8b7652a6827c5b141ccaf8b4b01a854641064ccba5506d3b3812429599ed",
+      "anderies2004.pdf": "cb05b435b46d9eca4404815c6875e6ca9267f7bfcf16e8317be8fb771fa1d9b3"
+    },
+    "task_sha256": "80e2d3ff83f02a4f3f40ad8ee8f84bb40318c009544254b666f7262ac4cfff85",
+    "meaning_task_sha256": "e1e67f282294e557bfdd376f2905011002fa5bf6cf3169f3b4c0289bc0647ffd",
+    "criteria_sha256": "62b3696d72f4bb30bb5bb51fdd2bd6611d075f74b6fcad13d85de832e641f6f8",
+    "probes_sha256": "403a9631e11217ed18708a5de93e280712814fe8ba438866bb8a2ddb145a71e3",
+    "guidance_file_count": 160,
+    "complete_manifest": {
+      "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/review/frozen-baseline.json",
+      "bytes": 18993,
+      "sha256": "2062541752642905d5fed99f5f01f77d14feca5836ec993b6308117df9d61320"
+    }
+  },
+  "frozen_review": {
+    "inputs": {
+      "contracts/scholarly-voice.md": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2",
+      "contracts/stage-G-compliance.md": "a72b704ae3038fcd70ae9e890ad09e613bd3877345ffe12524d659657cb171ec",
+      "contracts/stage-J-proofread.md": "e6d52ab41701d254afface5e6e41d593051f8894ef50e5e5059a2763589feef9",
+      "contracts/tone-normalizer.md": "43ff704172b579b2a7589790e16507c6c246203cb914b874ab5f1231e8fa01de",
+      "criteria.json": "62b3696d72f4bb30bb5bb51fdd2bd6611d075f74b6fcad13d85de832e641f6f8",
+      "editing-cases-response.md": "02ddf30abcdf4c00bfc5014383adb5ff5a5406af0b6ca457c23fe161ab7eead0",
+      "editing-cases-task.txt": "e1e67f282294e557bfdd376f2905011002fa5bf6cf3169f3b4c0289bc0647ffd",
+      "passage.md": "3f2986307af1ada3dbd40c9ae418b844755ec201a54d69bbca73c39cf0e45ce5",
+      "prompt.txt": "50ca31f6635a81ea6d2b290796de09da4ad903420886f451506efbba0415b0cd",
+      "task.txt": "80e2d3ff83f02a4f3f40ad8ee8f84bb40318c009544254b666f7262ac4cfff85"
+    },
+    "sources": {
+      "README.md": "d4934d1bb79a24cee5a864a66218be7937789753b34f5d8f25639b6b45eaa743",
+      "anderies2004-p12.png": "e58095cc1f503b09c673d0fffefb731cdb8e38ffb96e610f3dbcc3febda04789",
+      "anderies2004-p3.png": "2f44c7285acb40d30cbe6d6d44892f55021114d1438d8856dcb6392d3d0aa14c",
+      "anderies2004-p7.png": "a86e3199a6a82f8e7fbd8ce1d334f8a6d9d755ab391daf5695dfb6a4ed31615b",
+      "anderies2004-p8.png": "0ed5284ddd7d8a75f2f3d6c279db77bd6bedd9f3d81b602aae3fef6401556e09",
+      "anderies2004.md": "106d8b7652a6827c5b141ccaf8b4b01a854641064ccba5506d3b3812429599ed",
+      "anderies2004.pdf": "cb05b435b46d9eca4404815c6875e6ca9267f7bfcf16e8317be8fb771fa1d9b3"
+    },
+    "contracts": {
+      "references/stage-G-compliance.md": "a72b704ae3038fcd70ae9e890ad09e613bd3877345ffe12524d659657cb171ec",
+      "references/stage-J-proofread.md": "e6d52ab41701d254afface5e6e41d593051f8894ef50e5e5059a2763589feef9",
+      "references/scholarly-voice.md": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2",
+      "skills/G_compliance/tone-normalizer.md": "43ff704172b579b2a7589790e16507c6c246203cb914b874ab5f1231e8fa01de"
+    }
+  },
+  "lengths": {
+    "convention": "Frozen task: exclude headings and standalone source-anchor lines; retain inline anchors.",
+    "Chinese_code_points": 1752,
+    "English_words": 1020,
+    "Chinese_paragraphs": 8,
+    "English_paragraphs": 8,
+    "secondary_excluding_all_anchors": {
+      "Chinese_code_points": 1516,
+      "English_words": 996
+    }
+  },
+  "runs": {
+    "baseline": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 591.6182475629903,
+        "timeout_seconds": 1200,
+        "events_sha256": "fdabb8f0627af58857cdae63dd5fd890a5c2d31ae28ae44193afdcdef5737d4d",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "trace": {
+        "tool_call_count": 26,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 651547,
+          "cached_input_tokens": 572032,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 18830,
+          "reasoning_output_tokens": 9911
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "delivery": {
+        "rollout_path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/profiles/baseline/sessions/2026/10/23/rollout-2026-10-23T11-05-26-01a1686f-e66e-7f12-a21c-604857af40d6.jsonl",
+        "rollout_sha256": "0396669238099acaf2eb44f1d9ec8642b6b4fb4600a41605474022736d01c03a",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 13,
+        "truncation_warnings": 1,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [
+          {
+            "call_id": "call_07c9b1b1bf574495944a792bc1d17dff",
+            "sha256": "2f44c7285acb40d30cbe6d6d44892f55021114d1438d8856dcb6392d3d0aa14c",
+            "matches_original": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/sources/anderies2004-p3.png"
+          },
+          {
+            "call_id": "call_07c9b1b1bf574495944a792bc1d17dff",
+            "sha256": "0ed5284ddd7d8a75f2f3d6c279db77bd6bedd9f3d81b602aae3fef6401556e09",
+            "matches_original": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/sources/anderies2004-p8.png"
+          },
+          {
+            "call_id": "call_63f1f208c03548ada8c7d02961b0cef3",
+            "sha256": "a86e3199a6a82f8e7fbd8ce1d334f8a6d9d755ab391daf5695dfb6a4ed31615b",
+            "matches_original": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/sources/anderies2004-p7.png"
+          },
+          {
+            "call_id": "call_63f1f208c03548ada8c7d02961b0cef3",
+            "sha256": "e58095cc1f503b09c673d0fffefb731cdb8e38ffb96e610f3dbcc3febda04789",
+            "matches_original": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/sources/anderies2004-p12.png"
+          }
+        ],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "auth_link_removed": true,
+      "artifacts": [
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/baseline/answer.md",
+          "bytes": 12697,
+          "sha256": "3f2986307af1ada3dbd40c9ae418b844755ec201a54d69bbca73c39cf0e45ce5"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/baseline/capture.json",
+          "bytes": 428,
+          "sha256": "22b3e53a88d1143ae5c98e8d8e0adfc5a28703147ba82a3ed5bea4545be7ec4a"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/baseline/events.jsonl",
+          "bytes": 313506,
+          "sha256": "fdabb8f0627af58857cdae63dd5fd890a5c2d31ae28ae44193afdcdef5737d4d"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/baseline/stderr.log",
+          "bytes": 39,
+          "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/baseline/invocation.json",
+          "bytes": 2632,
+          "sha256": "63e5239af081296168fa973154564cd9feac05e5b3c2b12c13b8f9a90bae13af"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/baseline/policy.json",
+          "bytes": 9517,
+          "sha256": "d840a9b54cfd723a35e8afa2257efe71a94677446eab03006e94aa4c320bc4ee"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/baseline/preservation-before.json",
+          "bytes": 18747,
+          "sha256": "18bcc5a64bdbb35723eb4088d31e72d8cf4faf251bc833000701a17380983e34"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/baseline/preservation-after.json",
+          "bytes": 18747,
+          "sha256": "18bcc5a64bdbb35723eb4088d31e72d8cf4faf251bc833000701a17380983e34"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/baseline/trace-metrics.json",
+          "bytes": 13219,
+          "sha256": "b7b7345cab8d3acc43bb889e356179ccd3137058271869ddc196d1c5bf60aac0"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/baseline/delivery.json",
+          "bytes": 5099,
+          "sha256": "b1ec1f5a56972f4a2430899c18226f62a30907dcc2038df980765f173f77ce57"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/baseline/metrics.json",
+          "bytes": 1183,
+          "sha256": "fc9194776708d0155c4a253384e281fe96021ad13872834050a06003906dfc6a"
+        }
+      ]
+    },
+    "meaning": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 154.37837019001017,
+        "timeout_seconds": 1200,
+        "events_sha256": "f1e976ec3d7f422f986002b4f58b99b534a59b1ca7086e87abaa51b6c50bc694",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "trace": {
+        "tool_call_count": 14,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 260350,
+          "cached_input_tokens": 211840,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 4005,
+          "reasoning_output_tokens": 1961
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "delivery": {
+        "rollout_path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/profiles/meaning/sessions/2026/10/23/rollout-2026-10-23T11-05-26-01a1686f-e633-7a83-975b-bb8700678377.jsonl",
+        "rollout_sha256": "8028ba4b2fd77b2b5c35365f7b9aa29be6dbe5c9865e9a645c57fcb67f956ee9",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 6,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [
+          {
+            "call_id": "call_0440ca1d730a4b608927469ff3c0a6df",
+            "sha256": "2f44c7285acb40d30cbe6d6d44892f55021114d1438d8856dcb6392d3d0aa14c",
+            "matches_original": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/sources/anderies2004-p3.png"
+          },
+          {
+            "call_id": "call_0440ca1d730a4b608927469ff3c0a6df",
+            "sha256": "0ed5284ddd7d8a75f2f3d6c279db77bd6bedd9f3d81b602aae3fef6401556e09",
+            "matches_original": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/sources/anderies2004-p8.png"
+          },
+          {
+            "call_id": "call_0440ca1d730a4b608927469ff3c0a6df",
+            "sha256": "e58095cc1f503b09c673d0fffefb731cdb8e38ffb96e610f3dbcc3febda04789",
+            "matches_original": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/sources/anderies2004-p12.png"
+          }
+        ],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "auth_link_removed": true,
+      "artifacts": [
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/meaning/answer.md",
+          "bytes": 2459,
+          "sha256": "02ddf30abcdf4c00bfc5014383adb5ff5a5406af0b6ca457c23fe161ab7eead0"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/meaning/capture.json",
+          "bytes": 429,
+          "sha256": "a9bfd689252e228dc42132f1a346e45ae2dd77a48137ba9c0c55d804e03a7632"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/meaning/events.jsonl",
+          "bytes": 180083,
+          "sha256": "f1e976ec3d7f422f986002b4f58b99b534a59b1ca7086e87abaa51b6c50bc694"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/meaning/stderr.log",
+          "bytes": 39,
+          "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/meaning/invocation.json",
+          "bytes": 3365,
+          "sha256": "39f0a5cbd00eefeaedf08d08633a7d218f8764a2bb3d01de54ad7877ef2bc75f"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/meaning/policy.json",
+          "bytes": 9507,
+          "sha256": "d269fea661d1c7fe7a2e39c6a538a022e2b317e4f5f59ddbed149e16a96f781c"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/meaning/preservation-before.json",
+          "bytes": 18747,
+          "sha256": "18bcc5a64bdbb35723eb4088d31e72d8cf4faf251bc833000701a17380983e34"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/meaning/preservation-after.json",
+          "bytes": 18747,
+          "sha256": "18bcc5a64bdbb35723eb4088d31e72d8cf4faf251bc833000701a17380983e34"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/meaning/trace-metrics.json",
+          "bytes": 7278,
+          "sha256": "cef8a0f9c0bf429cefc4ae3415bee97fcd03726b32b6c5d974c3c04a31fc2cda"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/meaning/delivery.json",
+          "bytes": 2641,
+          "sha256": "9551a35e8b20afe331ea8839ea0c883f037f7dd186fff00a441d5944e1bd696f"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/meaning/metrics.json",
+          "bytes": 926,
+          "sha256": "35635f9d0822d5608e22accccb435bb4706989ea69b03e576ccfff0952def424"
+        }
+      ]
+    },
+    "blind-review": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 180.01530826099042,
+        "timeout_seconds": 1200,
+        "events_sha256": "745942118e102fdff58c29821564a17276f04a1b0d0d02df6697e32de3dbc651",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "trace": {
+        "tool_call_count": 18,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 1,
+        "usage": {
+          "input_tokens": 340227,
+          "cached_input_tokens": 295936,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 5211,
+          "reasoning_output_tokens": 1866
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "delivery": {
+        "rollout_path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/profiles/blind-review/sessions/2026/10/23/rollout-2026-10-23T11-15-21-01a16878-fada-7740-9c35-edf005edb4eb.jsonl",
+        "rollout_sha256": "58afe05f3c56056ce18816863f868160cee64f237ed6c28a3a9fca215cdabfe7",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 10,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [
+          {
+            "call_id": "call_012c54c657fc4e78a78c48c21566236e",
+            "sha256": "2f44c7285acb40d30cbe6d6d44892f55021114d1438d8856dcb6392d3d0aa14c",
+            "matches_original": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/sources/anderies2004-p3.png"
+          },
+          {
+            "call_id": "call_012c54c657fc4e78a78c48c21566236e",
+            "sha256": "0ed5284ddd7d8a75f2f3d6c279db77bd6bedd9f3d81b602aae3fef6401556e09",
+            "matches_original": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/sources/anderies2004-p8.png"
+          },
+          {
+            "call_id": "call_af8ff0f4c3c442269a82ba4f9cba2858",
+            "sha256": "a86e3199a6a82f8e7fbd8ce1d334f8a6d9d755ab391daf5695dfb6a4ed31615b",
+            "matches_original": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/sources/anderies2004-p7.png"
+          },
+          {
+            "call_id": "call_af8ff0f4c3c442269a82ba4f9cba2858",
+            "sha256": "e58095cc1f503b09c673d0fffefb731cdb8e38ffb96e610f3dbcc3febda04789",
+            "matches_original": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/sources/anderies2004-p12.png"
+          }
+        ],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "auth_link_removed": true,
+      "artifacts": [
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/blind-review/answer.md",
+          "bytes": 4087,
+          "sha256": "6ec525f786d250fed7e50fd6f0da30c4ca55abfd9c13ab48831f7110e3a9d321"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/blind-review/capture.json",
+          "bytes": 429,
+          "sha256": "856b6424b189bc1bd9d062baf951fbf9e7df6ec17a1d96a66b851ab4268de22f"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/blind-review/events.jsonl",
+          "bytes": 151588,
+          "sha256": "745942118e102fdff58c29821564a17276f04a1b0d0d02df6697e32de3dbc651"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/blind-review/stderr.log",
+          "bytes": 39,
+          "sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/blind-review/invocation.json",
+          "bytes": 2959,
+          "sha256": "b024f870a96777f7d65f05a3cb44485dc3e1ec0679ca658b5b184f63f3d8e62a"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/blind-review/policy.json",
+          "bytes": 9539,
+          "sha256": "b7f1ee7d8d6876927fc53a742b0ef4092e196ba95267a1cd43e86257270d0409"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/blind-review/preservation-before.json",
+          "bytes": 1755,
+          "sha256": "d5face041959719ef10aa1a159457098a8e7d8fe9de5d81655ed8ee5a6b47f10"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/blind-review/preservation-after.json",
+          "bytes": 1755,
+          "sha256": "d5face041959719ef10aa1a159457098a8e7d8fe9de5d81655ed8ee5a6b47f10"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/blind-review/trace-metrics.json",
+          "bytes": 9257,
+          "sha256": "76f172f922a661821624f4a9177065d0c2a2def330d84f47329a74df20c87027"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/blind-review/delivery.json",
+          "bytes": 4051,
+          "sha256": "9ac8fb491303899b8b4e959ac61a6b5665a0d44cb441f7619a0bede33509cfd1"
+        },
+        {
+          "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/blind-review/metrics.json",
+          "bytes": 1183,
+          "sha256": "504afb700525f496c84d8a65c6811f72935fa3d4be65bb13ecf8b643138992df"
+        }
+      ]
+    }
+  },
+  "findings": {
+    "writing": {
+      "independent_review_verdicts": {
+        "request scope and actual length": "pass",
+        "connected argument and paragraph progression": "pass",
+        "explanatory depth and warranted inference": "pass",
+        "idiomatic Chinese and English": "pass",
+        "factual and citation fidelity": "pass",
+        "bilingual substantive equivalence": "pass",
+        "claim calibration including excessive caution": "pass"
+      },
+      "definite_defects": [],
+      "coordinator_assessment": "Concur after source and bilingual review. The argument connects system functions, user/provider relationships, Taiwan/Bali illustrations, institutional feedback, changing rules, and temporal/system boundaries. It preserves the tension between short-term resource substitution and long-term harm, and distinguishes proposed research comparisons from reported findings. No prose repair is warranted."
+    },
+    "editing_cases": {
+      "A": {
+        "verdict": "pass",
+        "decision": "Preserve accurate definitions and overlapping roles without adding caveats."
+      },
+      "B": {
+        "verdict": "pass",
+        "decision": "G4 corrects an unsupported denial of conceptual/explanatory contribution; source basis and changed meaning identified."
+      },
+      "C": {
+        "verdict": "pass",
+        "decision": "J2 restores may need to change, rejecting reversal to immutable institutions and universal guarantees."
+      },
+      "D": {
+        "verdict": "pass",
+        "decision": "Retain faithful Chinese translation; nonliteral natural phrasing does not itself constitute drift."
+      },
+      "E": {
+        "verdict": "pass",
+        "decision": "G4 removes an unsupported universal sufficiency proof and locates the principles in Table 3, not Figure 1."
+      },
+      "F": {
+        "verdict": "pass",
+        "decision": "J2 removes empty evaluation while explicitly flagging the pre-existing exclusive-community claim for substantive review. Retaining meaning in that expression draft does not endorse the claim."
+      }
+    },
+    "measurement_defect": {
+      "problem": "The coordinator counter removed all source anchors although the frozen task excludes only standalone source-anchor lines. The anonymous reviewer independently reported both conventions.",
+      "initial_count": {
+        "Chinese_code_points": 1516,
+        "English_words": 996
+      },
+      "corrected_frozen_task_count": {
+        "Chinese_code_points": 1752,
+        "English_words": 1020
+      },
+      "verdict_changed": false,
+      "repair": "Correct the local counter; add the frozen-unit/exclusion and measurement-correction distinction to existing review-criteria.md. Preserve the original counter/result, unchanged writer output and first review.",
+      "validation": "Mixed inline/standalone and no-anchor controls plus an actual-output recount; agreement with the independent reviewer. Both language ranges pass under the frozen convention.",
+      "owner": "evals/research_journey/writing-quality/review-criteria.md",
+      "protocol_sha256": "815239673a7931b97d3dd1d5e6dbe147422c0134573b9591944688fd8ab0347f",
+      "classification": "Measurement correction on the same answer, not an adaptive writer retest or language improvement."
+    },
+    "canonical_content_changed": false,
+    "content_pack_regenerated": false,
+    "writer_rerun": false,
+    "execution_limits": [
+      "One writer outer truncation during a combined J2/rubric/evidence/source read; complete guidance delivery is not established.",
+      "One reviewer inner call exits 127 because optional pdfinfo is absent. Source headings were returned; subsequent supplied full text/original-page reads complete the review. The failure is retained, not converted to success.",
+      "Case run has no failed calls, outer truncations or script failures. Reviewer has no outer truncation or script failure."
+    ],
+    "next_increment": "Author/disciplinary-expert assessment and a proof-based theoretical manuscript would extend coverage; retain bounded delivery/tool-discovery limitations separately."
+  },
+  "count_correction": {
+    "preliminary_result": {
+      "Chinese_code_points": 1516,
+      "English_words": 996,
+      "convention": "Removed all source anchors; differs from the frozen task, which excludes standalone anchors only.",
+      "status": "Superseded counting interpretation; original writer and reviewer outputs unchanged."
+    },
+    "artifacts": [
+      {
+        "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/review/preliminary-counts.json",
+        "bytes": 274,
+        "sha256": "16a59a00c298f43795937ea09483efa6f974c2357d1af74044bcb92fb96c5b67"
+      },
+      {
+        "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/driver/counts-initial.py",
+        "bytes": 615,
+        "sha256": "f1b90eb19dca1188de881fe9aa2673ebe3f57bc578324a7fe423c0388712f3cc"
+      },
+      {
+        "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/driver/counts.py",
+        "bytes": 997,
+        "sha256": "a9ab08e147f849b842de7236229460ef551f024bba9ea52d71b33c7bdc2affde"
+      }
+    ],
+    "writer_output_unchanged": true
+  },
+  "checks": {
+    "results": [
+      {
+        "name": "program-checks",
+        "args": [
+          "python3",
+          "-m",
+          "unittest",
+          "tests.test_program_roadmap"
+        ],
+        "returncode": 0,
+        "log": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/review/checks/program-checks.log"
+      },
+      {
+        "name": "index-check",
+        "args": [
+          "python3",
+          "tooling/scripts/update_program_roadmap.py",
+          "--check"
+        ],
+        "returncode": 0,
+        "log": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/review/checks/index-check.log"
+      },
+      {
+        "name": "frozen-length-convention",
+        "args": [
+          "python3",
+          "-c",
+          "from pathlib import Path\nimport sys\nsys.path.insert(0,sys.argv[1])\nfrom counts import count\ns='## 中文\\n甲〔Anderies2004 p.3〕\\n\\n〔Anderies2004 p.7〕 〔Anderies2004 p.8〕\\n\\n## English\\nA claim. 〔Anderies2004 p.3〕\\n\\n〔Anderies2004 p.7〕\\n'\nr=count(s)\nassert r['Chinese_code_points']==18 and r['English_words']==4,r\nassert r['secondary_excluding_all_anchors']=={'Chinese_code_points':1,'English_words':2},r\ns='## 中文\\n甲乙。\\n\\n## English\\nOne claim.\\n'\nr=count(s)\nassert r['Chinese_code_points']==3 and r['English_words']==2,r\nassert r['secondary_excluding_all_anchors']=={'Chinese_code_points':3,'English_words':2},r\nr=count(Path(sys.argv[2]).read_text())\nassert r['Chinese_code_points']==1752 and r['English_words']==1020,r\nassert r['secondary_excluding_all_anchors']=={'Chinese_code_points':1516,'English_words':996},r\nprint('Mixed-anchor and no-anchor controls pass; original answer: 1752 Chinese code points / 1020 English words.')\n",
+          "/home/hermes/qiongli-theory-20261023-ssxnd9j3/driver",
+          "/home/hermes/qiongli-theory-20261023-ssxnd9j3/runs/baseline/answer.md"
+        ],
+        "returncode": 0,
+        "log": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/review/checks/frozen-length-convention.log"
+      }
+    ],
+    "artifacts": [
+      {
+        "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/review/checks/frozen-length-convention.log",
+        "bytes": 106,
+        "sha256": "2e96dc70957548a9db9880650c8505a010ff35e7e914b880cb948cf62c040e08"
+      },
+      {
+        "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/review/checks/index-check.log",
+        "bytes": 55,
+        "sha256": "239e6f41d8c9919c2230e3f896b079663cc5cf97e72249d3525475d335799f18"
+      },
+      {
+        "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/review/checks/program-checks.log",
+        "bytes": 105,
+        "sha256": "0d628f37216e0a286bb4dc09c3961e6b1490ff1c53d56a39af806e9c2cc5da78"
+      },
+      {
+        "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/review/checks/results.json",
+        "bytes": 1925,
+        "sha256": "96c0745fcf74804f25fb0c94d88ba3cbd103ec1757685dd65f8cb869a51b2990"
+      }
+    ]
+  },
+  "drivers": [
+    {
+      "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/driver/checks.py",
+      "bytes": 1901,
+      "sha256": "a54c49fb5058817054150ee37e6aa022d3b86a33c81d5f4775ba9bf6710d73d5"
+    },
+    {
+      "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/driver/collect.py",
+      "bytes": 5821,
+      "sha256": "9f1a8a7342a29e8cead258745f2728e1faa604289e6bf3bff318fe93cc7ada00"
+    },
+    {
+      "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/driver/counts-initial.py",
+      "bytes": 615,
+      "sha256": "f1b90eb19dca1188de881fe9aa2673ebe3f57bc578324a7fe423c0388712f3cc"
+    },
+    {
+      "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/driver/counts.py",
+      "bytes": 997,
+      "sha256": "a9ab08e147f849b842de7236229460ef551f024bba9ea52d71b33c7bdc2affde"
+    },
+    {
+      "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/driver/fetch.py",
+      "bytes": 1206,
+      "sha256": "c26fc8730f42ced12c2e399d8ebf9feb484c4fe4c173211fa4f15ad32f5ba673"
+    },
+    {
+      "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/driver/finalize.py",
+      "bytes": 8522,
+      "sha256": "6dcfb95cf0eecbfb0e4e035b1943e2f7706d8eed4e5a800ee58d721c38fe86b9"
+    },
+    {
+      "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/driver/review.py",
+      "bytes": 4106,
+      "sha256": "e52a3723485d6a186fcb61f9d99acaa450b0358c1e0d8efc2d92e6ab3f040df8"
+    },
+    {
+      "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/driver/runner.py",
+      "bytes": 5373,
+      "sha256": "6d62da78627626c5b7bd8db3e5199d6350505bdd8626656e4fd91270573534ab"
+    },
+    {
+      "path": "/home/hermes/qiongli-theory-20261023-ssxnd9j3/driver/setup.py",
+      "bytes": 11465,
+      "sha256": "4f90f335be4184d27bc6bfe1922cd93752590a867fc50e5e6d67562073ffdd45"
+    }
+  ],
+  "content_pack": {
+    "content_root_sha256": "a329207b6c620037a3f1d5f0fb974cb86ead0d64e6b787c9cc65194783914e23",
+    "content_version": "2.5.3",
+    "entry_count": 446,
+    "lock_version": 1,
+    "pack_sha256": "5f9f20692701a2a63d2918b3f6e3caeea6480d1c91169f1dfe891d5abcceefa3",
+    "source_commit": "e406ce8c1afe043578c8d6b63a6cedbc44df819d"
+  },
+  "limits": [
+    "One theoretical framework paper with illustrative cases, not a theorem/proof manuscript, and one question. First-use concerns local rule tuning, not model training data.",
+    "Same configured model in fresh contexts; no author or disciplinary-expert adjudication.",
+    "The complete 2004 article is supplied, but separately cited work and subsequent developments are not; the observation does not validate current empirical claims.",
+    "No installed Plugin, Antigravity, cross-Host recovery, generalized quality, latency or program acceptance claim."
+  ],
+  "publication": {
+    "push": false,
+    "release": false,
+    "acceptance_promoted": false
+  }
+}

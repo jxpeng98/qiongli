@@ -55,14 +55,15 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 ## Current execution horizon — October 23, 2026
 
 The current bounded request validates unchanged writing rules on a first-use
-qualitative paper and longer bilingual discussion. The existing
-[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-23--first-use-qualitative-writing)
-records seven passing long-form dimensions and six supported G4/J2 case decisions.
-A reviewer-context defect is repaired by supplying the applicable role contracts;
-initial scope flags and adaptive adjudication remain distinct. Preserve canonical
-content, configured models and research-write owners. Integrate locally into
-`2.x` without push, publication or acceptance promotion. A fully accessible
-theoretical paper and author/expert adjudication remain next.
+theoretical framework paper with its complete 17-page original. The existing
+[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-23--first-use-theoretical-writing)
+records seven passing long-form dimensions and six supported G4/J2 decisions.
+The narrow repair corrects an evaluation counter's citation-anchor exclusions;
+original counts/output/review remain and the passing verdict is unchanged.
+Preserve correct prose, canonical content, configured models and research-write
+owners. Integrate locally into `2.x` without push, publication or acceptance
+promotion. Author/expert judgment and proof-based theory remain next; one reading
+truncation and one missing optional PDF utility remain explicit execution limits.
 
 The preceding bounded request tests sustained bilingual argument in additional
 disciplines with longer public-paper sections. The existing

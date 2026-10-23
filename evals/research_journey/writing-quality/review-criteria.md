@@ -16,6 +16,12 @@ changed. These synthetic cases do not represent the user's unavailable manuscrip
 | Edit fidelity and scope | B preserves 120 firms, 0.18, p = .03, association, causal limitation and [S5], without inventing the construct or research details. No unsolicited project, bibliography, search or checklist. C removes/narrows unsupported global, autonomy and priority claims. |
 
 Language/depth judgments are qualitative review, not automatic factual scores.
+Measure length using the frozen task's unit and exclusions. Excluding standalone
+source-anchor lines retains inline anchors; removing all anchors is a different
+metric and must be labelled separately. If a counter used the wrong convention,
+retain its original result, correct the measurement on the unchanged answer and
+record whether the verdict changes. A corrected count is not a new writing trial
+or evidence of improved prose.
 Report structural/projection checks separately from answer review. A materialized
 guidance/subagent trial is not an installed-Host observation or evidence of
 cross-model, full-manuscript or expert acceptance. Cases used for corrections
