@@ -5,7 +5,8 @@ import tempfile
 import unittest
 
 from evals.research_journey.writing_observation import (
-    antigravity_answer, bind_files, count_text, measure_document, read_chunk, verify_files,
+    antigravity_answer, bind_files, count_text, freeze_packet, measure_document,
+    read_chunk, recover_packet, verify_files,
 )
 
 
@@ -13,6 +14,46 @@ ANCHOR = r"〔Source2024 pp?\.[^〕]+〕"
 
 
 class WritingObservationTests(unittest.TestCase):
+    def test_packet_recovers_exact_inputs_and_rejects_stale_versions(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            files = {name: root/name for name in ['original', 'candidate', 'source', 'task']}
+            for name, path in files.items():path.write_text(name)
+            receipt = freeze_packet(files, root/'packet.json')
+            result = recover_packet(receipt['packet'], receipt['sha256'])
+            self.assertEqual(result['status'], 'bindings_current')
+            self.assertEqual(set(result['files']), set(files))
+            for name, path in files.items():
+                path.write_text('new version')
+                with self.subTest(name=name), self.assertRaises(ValueError):
+                    recover_packet(receipt['packet'], receipt['sha256'])
+                path.write_text(name)
+            files['candidate'].unlink()
+            with self.assertRaises(ValueError):recover_packet(receipt['packet'], receipt['sha256'])
+
+    def test_packet_refuses_overwrite_tampering_and_symlink_redirection(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp);original = root/'original';original.write_text('valid')
+            packet = root/'packet.json';receipt = freeze_packet({'original': original}, packet)
+            with self.assertRaises(FileExistsError):freeze_packet({'original': original}, packet)
+            with self.assertRaises(FileExistsError):freeze_packet({'original': original}, original)
+            packet.write_text(packet.read_text()+' ')
+            with self.assertRaises(ValueError):recover_packet(packet, receipt['sha256'])
+            original.unlink();original.symlink_to(packet)
+            with self.assertRaises(ValueError):freeze_packet({'original': original}, root/'other.json')
+            (root/'link').symlink_to(root, target_is_directory=True)
+            with self.assertRaises(ValueError):freeze_packet({'source': packet}, root/'link/new.json')
+
+    def test_packet_refuses_invalid_schema_and_relative_paths(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp)/'packet.json'
+            for value in [[], {}, {'kind': 'other', 'paths': {}, 'binding': {}},
+                          {'kind': 'qiongli-writing-packet/v1', 'paths': {'original': 'relative'}, 'binding': {}},
+                          {'kind': 'qiongli-writing-packet/v1', 'paths': {}, 'binding': {}}]:
+                path.write_text(json.dumps(value))
+                with self.subTest(value=value), self.assertRaises(ValueError):
+                    recover_packet(path, hashlib.sha256(path.read_bytes()).hexdigest())
+
     def agy_events(self):
         return [{"event": "init", "conversation_id": "turn-1", "init": {"cwd": "/public/eval"}},
                 {"event": "result", "result": {"conversation_id": "turn-1", "status": "SUCCESS",

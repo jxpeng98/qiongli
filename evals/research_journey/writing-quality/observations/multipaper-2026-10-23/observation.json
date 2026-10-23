@@ -1,0 +1,1689 @@
+{
+  "schema_version": "qiongli-multipaper-writing-observation/v1",
+  "date": "2026-10-23",
+  "source_commit": "4b56aa81c93b314c2dc95d97fcdcdcdb6e62cc3d",
+  "local_root": "/home/hermes/qiongli-multipaper-20261023-g0tjnel6",
+  "identity": {
+    "source_commit": "4b56aa81c93b314c2dc95d97fcdcdcdb6e62cc3d",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "codex_version": "codex-cli 0.162.1",
+    "codex_sha256": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "antigravity_version": "1.4.6",
+    "model_overrides": false
+  },
+  "scope": "Three first-use public studies; one configured Codex writer, one actual Antigravity language return, one fresh Codex review recovered from explicit local packets, and a coordinator selection. Same-device evaluation only, not installed-Plugin/native-write/restart acceptance or a human quality judgment.",
+  "source_retrieval": [
+    {
+      "citekey": "Kazemitabaar2023",
+      "url": "https://arxiv.org/pdf/2302.07427v2",
+      "final_url": "https://arxiv.org/pdf/2302.07427v2",
+      "status": 200,
+      "content_type": "application/pdf",
+      "version": "2302.07427v2",
+      "bytes": 4278526,
+      "sha256": "eb6d2ca1794d709f5c3fe6b1133211bbe6f4ac309e801106e73fd5e4b968456a",
+      "pages": 23,
+      "text_sha256": "dd09617563a3e4e19282d41112cb583b79f6d2b8a4eed95c447de70b37d6d060",
+      "page_characters": [
+        4305,
+        6654,
+        7089,
+        4805,
+        5026,
+        5711,
+        3321,
+        5081,
+        1930,
+        5197,
+        5097,
+        5035,
+        5069,
+        7103,
+        9257,
+        10851,
+        2371,
+        3978,
+        4522,
+        4419,
+        5197,
+        4723,
+        1828
+      ]
+    },
+    {
+      "citekey": "Prather2024",
+      "url": "https://arxiv.org/pdf/2405.17739v1",
+      "final_url": "https://arxiv.org/pdf/2405.17739v1",
+      "status": 200,
+      "content_type": "application/pdf",
+      "version": "2405.17739v1",
+      "bytes": 5001052,
+      "sha256": "3ab771a8b99b232481ce094ac9efb36863eafc92f1df36f43748a42daa0953c6",
+      "pages": 27,
+      "text_sha256": "1d4365277b71c265f4ab8499fa450a93154a38ca78e5ddf48ab6e84b9790ba0f",
+      "page_characters": [
+        3702,
+        3892,
+        4244,
+        2211,
+        3079,
+        4196,
+        3100,
+        3390,
+        1734,
+        3868,
+        4402,
+        2196,
+        4223,
+        4498,
+        2255,
+        4480,
+        2534,
+        4342,
+        2026,
+        4187,
+        4380,
+        4540,
+        3897,
+        6862,
+        6799,
+        6924,
+        2389
+      ]
+    },
+    {
+      "citekey": "Shen2026",
+      "url": "https://arxiv.org/pdf/2601.20245v2",
+      "final_url": "https://arxiv.org/pdf/2601.20245v2",
+      "status": 200,
+      "content_type": "application/pdf",
+      "version": "2601.20245v2",
+      "bytes": 2860457,
+      "sha256": "769399c218d2471cea9b348aa6d9b16c052652fa1e832d32a32e5825fc03b535",
+      "pages": 31,
+      "text_sha256": "328def1ac71983ae7de437a6b75c4f3e4ba58853b6a5f47841b22774139a44ed",
+      "page_characters": [
+        3943,
+        3335,
+        4543,
+        4419,
+        1441,
+        4429,
+        2292,
+        3579,
+        3327,
+        1140,
+        3053,
+        3511,
+        2690,
+        4890,
+        3148,
+        1934,
+        3504,
+        2873,
+        4622,
+        1205,
+        3866,
+        3932,
+        1020,
+        2387,
+        2290,
+        2100,
+        810,
+        1227,
+        428,
+        345,
+        82
+      ]
+    }
+  ],
+  "first_use_audit": {
+    "args": [
+      "git",
+      "grep",
+      "-n",
+      "-i",
+      "-E",
+      "Kazemitabaar|Widening Gap|AI Impacts Skill Formation|2601.20245|Prather2024",
+      "4b56aa81c93b314c2dc95d97fcdcdcdb6e62cc3d",
+      "--",
+      "content",
+      "evals/research_journey"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "source_selection": {
+    "excluded_prior_sources": [
+      "Kestin2025",
+      "Bastani2025"
+    ],
+    "reason": "Both were used in preceding public-visual/content writing adjustments.",
+    "selected": [
+      "Kazemitabaar2023",
+      "Prather2024",
+      "Shen2026"
+    ],
+    "web_access_notes": [
+      "PMC browser challenge and Nature redirect encountered for excluded candidates; selection exclusion is due to prior use, not a claim about complete-source accessibility."
+    ]
+  },
+  "task": {
+    "anchor_pattern": "〔(?:Kazemitabaar2023|Prather2024|Shen2026) pp?\\.[^〕]+〕",
+    "anchor_exclusion": "standalone",
+    "languages": [
+      {
+        "heading": "## 中文",
+        "sections": [
+          "### 文献综述",
+          "### 讨论"
+        ],
+        "unit": "codepoints",
+        "min": 2200,
+        "max": 3000
+      },
+      {
+        "heading": "## English",
+        "sections": [
+          "### Literature review",
+          "### Discussion"
+        ],
+        "unit": "words",
+        "min": 1200,
+        "max": 1700
+      }
+    ]
+  },
+  "criteria": {
+    "dimensions": [
+      "request scope and measured layout/length",
+      "cross-section argument and promise/answer consistency",
+      "source-grounded explanatory depth",
+      "idiomatic Chinese and English",
+      "source and figure fidelity",
+      "bilingual substantive equivalence",
+      "necessary qualifications without defensive padding"
+    ],
+    "source_checks": [
+      "Kazemitabaar2023 pp.5–6: matched pairs followed by randomized condition assignment; 90 starters, 69 completers (33 Codex/36 baseline), ages10–17, prior block-based experience common. Seven training sessions, next-day immediate and one-week-later retention tests without AI. Completer analysis and exposure-based topic exclusions on p.11 limit interpretation.",
+      "Kazemitabaar2023 pp.8–12/Figures7,9,10: assisted authoring improves; overall post-test/retention correctness differences are not significant. Nonsignificance is not equivalence or universal safety; subgroup findings do not establish a randomized mechanism or proven general interaction. Post-tests remain within trained topics; broad transfer is not demonstrated (p.14).",
+      "Prather2024 pp.4–9,20–23: 21 single-site lab participants; observation, interviews and eye tracking with GenAI available, no contemporaneous randomized no-AI control. 20 complete the task. Observed metacognitive difficulty/illusion of competence can coexist with completion; behavior or historical comparison does not identify causal learning loss or long-term inequality. Tables2/3 describe kinds/counts, not independent experiments.",
+      "Shen2026 pp.6–10: preprint v2; 52 analyzed participants (26 per arm) after one of53 completers excluded; Python-experienced and Trio-unfamiliar. Main study differs from pilot D(n20). Immediate 14-item/27-point comprehension quiz forbids AI. Main task-time effect not significant; main quiz effect d0.738,p0.01, not pilot d1.7 or long-term skill loss.",
+      "Shen2026 p.9 says 4.15 points on a 27-point quiz translates to17%; direct arithmetic is about15.37%, and Figure6(p.10) is a plotted percentage score. Retain an explicit source inconsistency if relying on that conversion; do not silently invent a denominator, replace author results with a recalculation, or convert17% into a clean relative loss/percentage-point fact. Unambiguous direction/effect size may be used without this disputed conversion.",
+      "Shen2026 pp.12–18 describes post-hoc usage patterns, only25 of26 treatment participants usedAI; categories total25. Their association with quiz scores is not randomized evidence that requesting explanations causes learning. Distinguish 95%CI in main plot, sample size, units and design.",
+      "Across papers, distinguish task completion/correctness, immediate independent understanding and delayed within-topic retention. Population, tools, training/exposure, assessments and study design differ; apparent differences need not be a direct contradiction. Qualitative process accounts can motivate explanations but do not prove a mediator. Do not infer an automatic benefit of guardrails or explanations, or a current comprehensive literature consensus."
+    ],
+    "review_scope": "Assess original and candidate independently under actual frozen G4/J2 contracts, retaining identity blinding, no-drift and ties. Locate exact changed spans; separate pre-existing research errors, introduced drift and optional style preferences. Check synthesis premises across source identities. Human preferences remain unmeasured until a human returns the blank form."
+  },
+  "criteria_erratum": {
+    "frozen_criteria_sha256": "b5574966323eb99c44418ec4c1e87a66815516cc4d89a10bd5b40c6e91c263b9",
+    "frozen_criteria_preserved": true,
+    "affected_check_index": 5,
+    "original": "Shen2026 pp.12–18 describes post-hoc usage patterns, only25 of26 treatment participants usedAI; categories total25. Their association with quiz scores is not randomized evidence that requesting explanations causes learning. Distinguish 95%CI in main plot, sample size, units and design.",
+    "correction": "Shen pp.13–14 prints subgroup counts 4+4+4+2+3+7=24. The main analyzed treatment arm is 26; p.12 footnote 3 reports one unavailable AI-condition recording, and p.14 uses a denominator of 25 for query analysis. These are distinct reported scopes. Do not assert that the categories total 25 or infer that exactly one of 26 participants did not use AI. Preserve the unresolved mapping rather than inventing a reconciliation. The subgroup score associations remain observational.",
+    "source_pages": [
+      7,
+      12,
+      13,
+      14
+    ],
+    "effect_on_manuscripts": "Neither manuscript states these subgroup counts or an AI-uptake denominator; no numerical rewrite is needed for this correction. The independent reviewer detected the erroneous check rather than inheriting it as ground truth.",
+    "additional_result_to_retain": "Kazemitabaar p.11 reports higher authoring error counts at retention (1.58 versus 0.99, p=.042) alongside nonsignificant correctness differences. Its proposed explanation involves the baseline group skipping more tasks. A no-detected-impairment claim must be scoped to correctness, not all independent performance."
+  },
+  "frozen_inputs": {
+    "path": "review/frozen-inputs.json",
+    "sha256": "e186aef31dbf0e050988ecad9689f1fe9ef94e2c7a9327154340ffb53003ac60",
+    "bytes": 9637
+  },
+  "frozen_handoff": {
+    "path": "review/frozen-handoff.json",
+    "sha256": "98912f1ba96c3635713597d14d3ce43b9a7e233df780244bb499f33b24a69525",
+    "bytes": 1248
+  },
+  "frozen_recovery": {
+    "path": "review/frozen-recovery.json",
+    "sha256": "b62bdd963b07c9ccbdcc48e896bdafd946267fc83ff5f9102d05f53a40bae698",
+    "bytes": 3763
+  },
+  "preflight": {
+    "path": "preflight/preflight.json",
+    "sha256": "069d1ff22bb3e4268640d2e1fe440b8a42b6691fb4556ae9a33d9e057168e6a5",
+    "bytes": 4191
+  },
+  "driver_recovery": {
+    "failure": "Handoff preparation stopped before any Antigravity invocation because skills/J_proofread was looked up under content/workflow instead of the content/skills canonical owner.",
+    "retained": [
+      "driver/handoff.py",
+      "driver/handoff-launch.log",
+      "handoff-inputs/original.md"
+    ],
+    "repair": "Resume existing partial inputs; copy unchanged canonical J2 skill from content/skills; preserve original writer and clarify the layout conflict for the editor/reviewer.",
+    "additional_observation": "Task requested exactly four section headings; length contract additionally required two language headings. Original has four. Preserve raw-layout rejection and separately count a two-label diagnostic normalization.",
+    "canonical_j2_sha256": "def9f39b33b557dfb1493d4e5979071b54c280e6153db7d3498154373f021d42",
+    "writer_rerun": false,
+    "antigravity_started_before_repair": false,
+    "canonical_content_changed": false
+  },
+  "runs": {
+    "baseline": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 938.723850180002,
+        "timeout_seconds": 1800,
+        "events_sha256": "6828a51d5a60b24936d5ac5009b99de97be658cf06cec29ab661989629c10f89",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "answer": {
+        "path": "runs/baseline/answer.md",
+        "sha256": "9a5c90373a09891a49bd630e497f7109c4236d866cfa1b25ee727fe9f5a750d9",
+        "bytes": 17807
+      },
+      "trace_record": {
+        "path": "runs/baseline/trace-metrics.json",
+        "sha256": "a3780cd6b05c1aafd2c56a3b14579ce07f98c44095a92e52117945aa72a02b7e",
+        "bytes": 34549
+      },
+      "model_contexts": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "images_delivered": 10,
+      "bounded_read_coverage": [
+        {
+          "file": "inputs/guidance/SKILL.md",
+          "sha256": "eb5300a9fbdb2ba6c85bf2529c87084a742c9954acd277f4e54a0c46673391d1",
+          "spans": [
+            [
+              0,
+              18779
+            ]
+          ],
+          "delivered_codepoints": 18779,
+          "total_codepoints": 18779,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/length-contract.json",
+          "sha256": "30984b62ae584e7dc8604d7dd50ff83f5f188587bc34368e448a83ee42708bdd",
+          "spans": [
+            [
+              0,
+              500
+            ]
+          ],
+          "delivered_codepoints": 500,
+          "total_codepoints": 500,
+          "full_text_delivered": true
+        },
+        {
+          "file": "sources/README.md",
+          "sha256": "76b52fde56b1499344f8e6d6a55de4f84cc8914e64530ddacb6b86e6d81a85a5",
+          "spans": [
+            [
+              0,
+              2232
+            ]
+          ],
+          "delivered_codepoints": 2232,
+          "total_codepoints": 2232,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/workflows/academic-write.md",
+          "sha256": "9c3851f72dcf2c2e56a12c82793c94a4fe871b493677e1ae93195fcb1370d0ce",
+          "spans": [
+            [
+              0,
+              4673
+            ]
+          ],
+          "delivered_codepoints": 4673,
+          "total_codepoints": 4673,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/stage-F-writing.md",
+          "sha256": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+          "spans": [
+            [
+              0,
+              26515
+            ]
+          ],
+          "delivered_codepoints": 26515,
+          "total_codepoints": 26515,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/stage-B-literature.md",
+          "sha256": "6f30fa9475e81d3cf00a9e890ec704b80f376ca408b19dffec713e533dcf3b19",
+          "spans": [
+            [
+              15125,
+              17686
+            ]
+          ],
+          "delivered_codepoints": 2561,
+          "total_codepoints": 17686,
+          "full_text_delivered": false
+        },
+        {
+          "file": "inputs/guidance/references/stage-E-synthesis.md",
+          "sha256": "d644fa45ab9869dec4e70ea284c166941c235e1c1526e34ec03b32cb3c470c32",
+          "spans": [
+            [
+              0,
+              9904
+            ]
+          ],
+          "delivered_codepoints": 9904,
+          "total_codepoints": 9904,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/stage-G-compliance.md",
+          "sha256": "a72b704ae3038fcd70ae9e890ad09e613bd3877345ffe12524d659657cb171ec",
+          "spans": [
+            [
+              3056,
+              3997
+            ]
+          ],
+          "delivered_codepoints": 941,
+          "total_codepoints": 3997,
+          "full_text_delivered": false
+        },
+        {
+          "file": "inputs/guidance/references/stage-J-proofread.md",
+          "sha256": "e6d52ab41701d254afface5e6e41d593051f8894ef50e5e5059a2763589feef9",
+          "spans": [
+            [
+              2262,
+              4915
+            ]
+          ],
+          "delivered_codepoints": 2653,
+          "total_codepoints": 4915,
+          "full_text_delivered": false
+        },
+        {
+          "file": "inputs/guidance/references/evidence-verification.md",
+          "sha256": "e9248631a8994817d1f84bcdf70968d1053f97bd371afca9b42d6d76dbef39bd",
+          "spans": [
+            [
+              0,
+              11440
+            ]
+          ],
+          "delivered_codepoints": 11440,
+          "total_codepoints": 14259,
+          "full_text_delivered": false
+        },
+        {
+          "file": "inputs/guidance/references/scholarly-voice.md",
+          "sha256": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2",
+          "spans": [
+            [
+              0,
+              12436
+            ]
+          ],
+          "delivered_codepoints": 12436,
+          "total_codepoints": 12436,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/citation-risk-policy.md",
+          "sha256": "4501942a0bb29fb9bcee6f2af3245f5221db79d4d96ce4a2518ad4f08a145aca",
+          "spans": [
+            [
+              0,
+              3988
+            ]
+          ],
+          "delivered_codepoints": 3988,
+          "total_codepoints": 3988,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/academic-output-rubric.md",
+          "sha256": "b1528f4a983bb865da0e49eeac1b9f4281523ca1dad43d3522ad133ef1ca1c65",
+          "spans": [
+            [
+              0,
+              4368
+            ]
+          ],
+          "delivered_codepoints": 4368,
+          "total_codepoints": 4368,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/evidence-ledger-contract.md",
+          "sha256": "8a53a92f417a70f9dc6510b8017bf4ce8f477dec75e5a6b78f1d17fbc157033d",
+          "spans": [
+            [
+              0,
+              3873
+            ]
+          ],
+          "delivered_codepoints": 3873,
+          "total_codepoints": 3873,
+          "full_text_delivered": true
+        },
+        {
+          "file": "sources/Kazemitabaar2023.md",
+          "sha256": "dd09617563a3e4e19282d41112cb583b79f6d2b8a4eed95c447de70b37d6d060",
+          "spans": [
+            [
+              18099,
+              74894
+            ]
+          ],
+          "delivered_codepoints": 56795,
+          "total_codepoints": 118972,
+          "full_text_delivered": false
+        },
+        {
+          "file": "sources/Prather2024.md",
+          "sha256": "1d4365277b71c265f4ab8499fa450a93154a38ca78e5ddf48ab6e84b9790ba0f",
+          "spans": [
+            [
+              11889,
+              82039
+            ]
+          ],
+          "delivered_codepoints": 70150,
+          "total_codepoints": 104825,
+          "full_text_delivered": false
+        },
+        {
+          "file": "sources/Shen2026.md",
+          "sha256": "328def1ac71983ae7de437a6b75c4f3e4ba58853b6a5f47841b22774139a44ed",
+          "spans": [
+            [
+              7312,
+              63985
+            ],
+            [
+              73101,
+              78720
+            ]
+          ],
+          "delivered_codepoints": 62292,
+          "total_codepoints": 82912,
+          "full_text_delivered": false
+        }
+      ],
+      "delivery": {
+        "rollout_sha256": "8308d7ba7719f78fd5e9855ec2764c788d405a40853ba617b042883a2088f3b6",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 79,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "failed_commands": [],
+      "preservation_equal": true
+    },
+    "recovery": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 1198.9219921890035,
+        "timeout_seconds": 1800,
+        "events_sha256": "1c14b9c2825c84acdce5aba7aacd17f0040faed9d26988fa86bf25271fd8d5c5",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "answer": {
+        "path": "runs/recovery/answer.md",
+        "sha256": "567c3b9f50d6d6858ef886956d5b1fe4a79f9ed00edde76cac01937ccacef3a5",
+        "bytes": 30005
+      },
+      "trace_record": {
+        "path": "runs/recovery/trace-metrics.json",
+        "sha256": "78e02abe216aa1ec659f9a6ec69d6f3f740bb0b3d749238b09c164c916553abc",
+        "bytes": 29081
+      },
+      "model_contexts": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "images_delivered": 10,
+      "bounded_read_coverage": [
+        {
+          "file": "handoff/criteria.json",
+          "sha256": "b5574966323eb99c44418ec4c1e87a66815516cc4d89a10bd5b40c6e91c263b9",
+          "spans": [
+            [
+              0,
+              3519
+            ]
+          ],
+          "delivered_codepoints": 3519,
+          "total_codepoints": 3519,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/task.txt",
+          "sha256": "0cb0f9bcf447800a870ac74ceb21745c341015afad2b135986212307139c0599",
+          "spans": [
+            [
+              0,
+              2813
+            ]
+          ],
+          "delivered_codepoints": 2813,
+          "total_codepoints": 2813,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/length-contract.json",
+          "sha256": "30984b62ae584e7dc8604d7dd50ff83f5f188587bc34368e448a83ee42708bdd",
+          "spans": [
+            [
+              0,
+              500
+            ]
+          ],
+          "delivered_codepoints": 500,
+          "total_codepoints": 500,
+          "full_text_delivered": true
+        },
+        {
+          "file": "handoff/state.md",
+          "sha256": "8350d598d61dd17fb5554dbc6bd63d97b415008144bb2f3ddde0d5789dfbae5a",
+          "spans": [
+            [
+              0,
+              693
+            ]
+          ],
+          "delivered_codepoints": 693,
+          "total_codepoints": 693,
+          "full_text_delivered": true
+        },
+        {
+          "file": "handoff/editor-questions.json",
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "spans": [
+            [
+              0,
+              3
+            ]
+          ],
+          "delivered_codepoints": 3,
+          "total_codepoints": 3,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/stage-G-compliance.md",
+          "sha256": "a72b704ae3038fcd70ae9e890ad09e613bd3877345ffe12524d659657cb171ec",
+          "spans": [
+            [
+              0,
+              3997
+            ]
+          ],
+          "delivered_codepoints": 3997,
+          "total_codepoints": 3997,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/stage-J-proofread.md",
+          "sha256": "e6d52ab41701d254afface5e6e41d593051f8894ef50e5e5059a2763589feef9",
+          "spans": [
+            [
+              0,
+              4915
+            ]
+          ],
+          "delivered_codepoints": 4915,
+          "total_codepoints": 4915,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/scholarly-voice.md",
+          "sha256": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2",
+          "spans": [
+            [
+              0,
+              12436
+            ]
+          ],
+          "delivered_codepoints": 12436,
+          "total_codepoints": 12436,
+          "full_text_delivered": true
+        },
+        {
+          "file": "handoff/original.md",
+          "sha256": "9a5c90373a09891a49bd630e497f7109c4236d866cfa1b25ee727fe9f5a750d9",
+          "spans": [
+            [
+              0,
+              13229
+            ]
+          ],
+          "delivered_codepoints": 13229,
+          "total_codepoints": 13229,
+          "full_text_delivered": true
+        },
+        {
+          "file": "handoff/candidate.md",
+          "sha256": "2f8a2f895ea5058f06c963e46c066e023cd402732267e4032a3fbf4e59d3e95a",
+          "spans": [
+            [
+              0,
+              15084
+            ]
+          ],
+          "delivered_codepoints": 15084,
+          "total_codepoints": 15084,
+          "full_text_delivered": true
+        },
+        {
+          "file": "sources/README.md",
+          "sha256": "76b52fde56b1499344f8e6d6a55de4f84cc8914e64530ddacb6b86e6d81a85a5",
+          "spans": [
+            [
+              0,
+              2232
+            ]
+          ],
+          "delivered_codepoints": 2232,
+          "total_codepoints": 2232,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/stage-E-synthesis.md",
+          "sha256": "d644fa45ab9869dec4e70ea284c166941c235e1c1526e34ec03b32cb3c470c32",
+          "spans": [
+            [
+              0,
+              9904
+            ]
+          ],
+          "delivered_codepoints": 9904,
+          "total_codepoints": 9904,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/stage-F-writing.md",
+          "sha256": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+          "spans": [
+            [
+              8484,
+              25546
+            ]
+          ],
+          "delivered_codepoints": 17062,
+          "total_codepoints": 26515,
+          "full_text_delivered": false
+        },
+        {
+          "file": "sources/Kazemitabaar2023.md",
+          "sha256": "dd09617563a3e4e19282d41112cb583b79f6d2b8a4eed95c447de70b37d6d060",
+          "spans": [
+            [
+              22921,
+              74039
+            ]
+          ],
+          "delivered_codepoints": 51118,
+          "total_codepoints": 118972,
+          "full_text_delivered": false
+        },
+        {
+          "file": "sources/Prather2024.md",
+          "sha256": "1d4365277b71c265f4ab8499fa450a93154a38ca78e5ddf48ab6e84b9790ba0f",
+          "spans": [
+            [
+              11889,
+              34503
+            ],
+            [
+              38007,
+              43660
+            ],
+            [
+              62661,
+              85405
+            ]
+          ],
+          "delivered_codepoints": 51011,
+          "total_codepoints": 104825,
+          "full_text_delivered": false
+        },
+        {
+          "file": "sources/Shen2026.md",
+          "sha256": "328def1ac71983ae7de437a6b75c4f3e4ba58853b6a5f47841b22774139a44ed",
+          "spans": [
+            [
+              16308,
+              67261
+            ],
+            [
+              73101,
+              78720
+            ]
+          ],
+          "delivered_codepoints": 56572,
+          "total_codepoints": 82912,
+          "full_text_delivered": false
+        }
+      ],
+      "delivery": {
+        "rollout_sha256": "17d3a3a7bc3b753e641be4d2fb3b073393fd1f250941d5870236fb7dfb7f1efb",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 67,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "failed_commands": [
+        {
+          "id": "item_1",
+          "exit_code": 1,
+          "command": "/bin/zsh -lc '/usr/bin/python3 /home/hermes/qiongli-multipaper-20261023-g0tjnel6/inputs/tools/writing_observation.py recover /home/hermes/qiongli-multipaper-20261023-g0tjnel6/handoff/earlier-packet.json --sha256 4e5f154f13a49a6a8a5a94ce972ad0d25c55a921f0c4d8ff918d3fb8b2a4efb0'",
+          "error": "Traceback (most recent call last):\n  File \"/home/hermes/qiongli-multipaper-20261023-g0tjnel6/inputs/tools/writing_observation.py\", line 271, in <module>\n    main()\n  File \"/home/hermes/qiongli-multipaper-20261023-g0tjnel6/inputs/tools/writing_observation.py\", line 256, in main\n    result = recover_packet(args.packet, args.sha256)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/hermes/qiongli-multipaper-20261023-g0tjnel6/inputs/tools/writing_observation.py\", line 75, in recover_packet\n    verify_files(packet[\"paths\"], packet[\"binding\"])\n  File \"/home/hermes/qiongli-multipaper-20261023-g0tjnel6/inputs/tools/writing_observation.py\", line 41, in verify_files\n    raise ValueError(\"Selected evidence differs from its frozen binding\")\nValueError: Selected evidence differs from its frozen binding\n"
+        }
+      ],
+      "preservation_equal": true
+    },
+    "antigravity": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 81.69601659999171,
+        "timeout_seconds": 630,
+        "events_sha256": "d5e90d8fa082420127eb1a308061837b9788e745157a76ba013377a2ca6f0cc3",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "answer": {
+        "path": "runs/antigravity/answer.md",
+        "sha256": "2f8a2f895ea5058f06c963e46c066e023cd402732267e4032a3fbf4e59d3e95a",
+        "bytes": 21054
+      },
+      "trace_record": {
+        "path": "runs/antigravity/trace-metrics.json",
+        "sha256": "0542e316d2a063dc9fddaea6dc2f87e1630478c63df7212a8b3ea0a5ee05f6fb",
+        "bytes": 830
+      },
+      "checks": {
+        "complete_stream": true,
+        "host_success": true,
+        "single_completed_turn": true,
+        "no_permission_denial": true
+      },
+      "reported_model_fields": [],
+      "tool_calls": [],
+      "questions": [],
+      "preservation": {
+        "inputs_unchanged": true,
+        "settings_before_sha256": "9ed1c60873721d012d70340638025c1979c95a1ba80c61a54f6472b6d29d0b56",
+        "settings_after_sha256": "9ed1c60873721d012d70340638025c1979c95a1ba80c61a54f6472b6d29d0b56",
+        "workspace_files": {}
+      }
+    }
+  },
+  "recovery": {
+    "mode": "Read-only review proposal; no files, models, or registered project state changed.",
+    "packets": [
+      {
+        "path": "/home/hermes/qiongli-multipaper-20261023-g0tjnel6/handoff/returned-packet.json",
+        "sha256": "b708cde24482d81bb16bf77dc1078e520f631495d6557d4568dabc74f2304171",
+        "status": "bindings_current",
+        "current": true
+      },
+      {
+        "path": "/home/hermes/qiongli-multipaper-20261023-g0tjnel6/handoff/earlier-packet.json",
+        "sha256": "4e5f154f13a49a6a8a5a94ce972ad0d25c55a921f0c4d8ff918d3fb8b2a4efb0",
+        "status": "rejected",
+        "current": false,
+        "reason": "The recover command exited with ValueError: Selected evidence differs from its frozen binding.",
+        "disposition": "The packet's own digest matches, but its evidence binding is invalid. Its candidate was not treated as current or used for substantive review."
+      }
+    ],
+    "verified_current_manuscripts": {
+      "original": {
+        "path": "/home/hermes/qiongli-multipaper-20261023-g0tjnel6/handoff/original.md",
+        "sha256": "9a5c90373a09891a49bd630e497f7109c4236d866cfa1b25ee727fe9f5a750d9"
+      },
+      "candidate": {
+        "path": "/home/hermes/qiongli-multipaper-20261023-g0tjnel6/handoff/candidate.md",
+        "sha256": "2f8a2f895ea5058f06c963e46c066e023cd402732267e4032a3fbf4e59d3e95a"
+      }
+    },
+    "source_identities": [
+      {
+        "id": "Kazemitabaar2023",
+        "title": "Studying the effect of AI Code Generators on Supporting Novice Learners in Introductory Programming",
+        "version": "arXiv:2302.07427v2, 2023-02-21",
+        "inspected": "Methods, results, discussion and limitations on PDF pp.5–15; supplied images of pp.6,9,11,12."
+      },
+      {
+        "id": "Prather2024",
+        "title": "The Widening Gap: The Benefits and Harms of Generative AI for Novice Programmers",
+        "version": "arXiv:2405.17739v1, 2024-05-28",
+        "inspected": "PDF pp.4–9, P7's case on pp.12–13, successful-use cases and discussion on pp.19–23; supplied images of pp.8–9."
+      },
+      {
+        "id": "Shen2026",
+        "title": "How AI Impacts Skill Formation",
+        "version": "arXiv:2601.20245v2, 2026-02-01; preprint",
+        "inspected": "Methods through limitations on PDF pp.5–20 and relevant appendix material on pp.24–25; supplied images of pp.7,9,10,13."
+      }
+    ],
+    "verified_current_source_digests": {
+      "Kazemitabaar2023.pdf": "eb6d2ca1794d709f5c3fe6b1133211bbe6f4ac309e801106e73fd5e4b968456a",
+      "Kazemitabaar2023.md": "dd09617563a3e4e19282d41112cb583b79f6d2b8a4eed95c447de70b37d6d060",
+      "Kazemitabaar2023-p6.png": "df027fe02f780d6ef25c51df047aaf118c728dec8f8631e72da18d3510244d9f",
+      "Kazemitabaar2023-p9.png": "63813559a098e030fff77250be9e74a3193932a3d2ba439235156a3a258f9b59",
+      "Kazemitabaar2023-p11.png": "08575a6335ea04e46ce37b6ea960155b40df797627a4d9cb957712d828cd6052",
+      "Kazemitabaar2023-p12.png": "c5f67722910920080adf7b444cc5410d66efd656d4201d0afa3788c4daa1c1e0",
+      "Prather2024.pdf": "3ab771a8b99b232481ce094ac9efb36863eafc92f1df36f43748a42daa0953c6",
+      "Prather2024.md": "1d4365277b71c265f4ab8499fa450a93154a38ca78e5ddf48ab6e84b9790ba0f",
+      "Prather2024-p8.png": "c561ae8b02a840c2b5ec23dc41939c9d948dc81d1d5438e8ab7c60110b5541de",
+      "Prather2024-p9.png": "3d0cb1f18d6c0516678ec2ffa04537edba829defa556f4424ada56ae9fb1e8c4",
+      "Shen2026.pdf": "769399c218d2471cea9b348aa6d9b16c052652fa1e832d32a32e5825fc03b535",
+      "Shen2026.md": "328def1ac71983ae7de437a6b75c4f3e4ba58853b6a5f47841b22774139a44ed",
+      "Shen2026-p7.png": "0640ae8e572ee6da0394b7a417acf32aab1e4edc237d4e2e2686256841a1ab58",
+      "Shen2026-p9.png": "570661f4eabd03cb8caeade0fd4064857c808df047e23583f24de72b2a0fe8a3",
+      "Shen2026-p10.png": "be8e96b398cd96b8b13d3f34c2f5d7c9dff67d7990374c9c9800f08cae4d68b4",
+      "Shen2026-p13.png": "2363099bf4438d6b0565a0421d3165bd3db8a40f4fd95dac29fa47d24a2f5f96",
+      "README.md": "76b52fde56b1499344f8e6d6a55de4f84cc8914e64530ddacb6b86e6d81a85a5"
+    },
+    "recovered_task": "A bounded bilingual literature review and discussion answering when assisted programming performance supports independent understanding or retention, and how design and learner differences explain apparently different findings.",
+    "editor_questions": [],
+    "recovered_state": "Meaning review and editorial selection were pending; no model or human verdict had been accepted. The original followed the task's four-heading wording but omitted the length contract's language labels. The editor received an explicit layout clarification.",
+    "role_guidance": {
+      "G4": "Calibrate claims to inspected evidence, preserve necessary uncertainty, and identify substantive corrections explicitly. Shortening is not intrinsically an improvement.",
+      "J2": "Compare meaning against the same original; preserve valid wording and correct prose; make localized repairs rather than restart stylistic editing.",
+      "synthesis_and_writing": "Explain cross-paper comparisons through inspected premises; distinguish source findings, synthesis hypotheses and proposed research.",
+      "identity_boundary": "Writer/editor identity and prior judgments were not inferred. This is a model review, not a human author's evaluation."
+    },
+    "measurements": {
+      "rule": "Exclude headings and standalone source-anchor lines; retain inline anchors. Chinese counts include all non-whitespace Unicode code points; English counts use whitespace-delimited words.",
+      "original": {
+        "Chinese_literature_review": 1780,
+        "Chinese_discussion": 1166,
+        "Chinese_total": 2946,
+        "English_literature_review": 768,
+        "English_discussion": 524,
+        "English_total": 1292,
+        "layout": "Four section headings present; both contract language labels absent."
+      },
+      "candidate": {
+        "Chinese_literature_review": 2146,
+        "Chinese_discussion": 1506,
+        "Chinese_total": 3652,
+        "English_literature_review": 869,
+        "English_discussion": 597,
+        "English_total": 1466,
+        "layout": "Both language labels and all four section headings present.",
+        "Chinese_excess": 652
+      },
+      "after_proposed_repairs_in_memory_only": {
+        "Chinese_total": 3699,
+        "English_total": 1497,
+        "Chinese_excess": 699,
+        "all_16_old_strings_occur_once_in_current_candidate": true
+      }
+    },
+    "pending_work": [
+      "Editorial selection of this proposal remains pending; no replacement has been applied.",
+      "The candidate needs a focused Chinese length revision preserving its evidence, reasoning and consequential bilingual content.",
+      "Any subsequently revised manuscript needs a new count and comparison of the affected passages."
+    ],
+    "safe_next_action": "Use only the verified current candidate for a bounded revision incorporating selected factual and meaning repairs, reduce its Chinese body to 2200–3000 code points, and recheck affected claims and bilingual equivalence. This proposal does not authorize or perform a registered save."
+  },
+  "independent_review": {
+    "recovery": {
+      "mode": "Read-only review proposal; no files, models, or registered project state changed.",
+      "packets": [
+        {
+          "path": "/home/hermes/qiongli-multipaper-20261023-g0tjnel6/handoff/returned-packet.json",
+          "sha256": "b708cde24482d81bb16bf77dc1078e520f631495d6557d4568dabc74f2304171",
+          "status": "bindings_current",
+          "current": true
+        },
+        {
+          "path": "/home/hermes/qiongli-multipaper-20261023-g0tjnel6/handoff/earlier-packet.json",
+          "sha256": "4e5f154f13a49a6a8a5a94ce972ad0d25c55a921f0c4d8ff918d3fb8b2a4efb0",
+          "status": "rejected",
+          "current": false,
+          "reason": "The recover command exited with ValueError: Selected evidence differs from its frozen binding.",
+          "disposition": "The packet's own digest matches, but its evidence binding is invalid. Its candidate was not treated as current or used for substantive review."
+        }
+      ],
+      "verified_current_manuscripts": {
+        "original": {
+          "path": "/home/hermes/qiongli-multipaper-20261023-g0tjnel6/handoff/original.md",
+          "sha256": "9a5c90373a09891a49bd630e497f7109c4236d866cfa1b25ee727fe9f5a750d9"
+        },
+        "candidate": {
+          "path": "/home/hermes/qiongli-multipaper-20261023-g0tjnel6/handoff/candidate.md",
+          "sha256": "2f8a2f895ea5058f06c963e46c066e023cd402732267e4032a3fbf4e59d3e95a"
+        }
+      },
+      "source_identities": [
+        {
+          "id": "Kazemitabaar2023",
+          "title": "Studying the effect of AI Code Generators on Supporting Novice Learners in Introductory Programming",
+          "version": "arXiv:2302.07427v2, 2023-02-21",
+          "inspected": "Methods, results, discussion and limitations on PDF pp.5–15; supplied images of pp.6,9,11,12."
+        },
+        {
+          "id": "Prather2024",
+          "title": "The Widening Gap: The Benefits and Harms of Generative AI for Novice Programmers",
+          "version": "arXiv:2405.17739v1, 2024-05-28",
+          "inspected": "PDF pp.4–9, P7's case on pp.12–13, successful-use cases and discussion on pp.19–23; supplied images of pp.8–9."
+        },
+        {
+          "id": "Shen2026",
+          "title": "How AI Impacts Skill Formation",
+          "version": "arXiv:2601.20245v2, 2026-02-01; preprint",
+          "inspected": "Methods through limitations on PDF pp.5–20 and relevant appendix material on pp.24–25; supplied images of pp.7,9,10,13."
+        }
+      ],
+      "verified_current_source_digests": {
+        "Kazemitabaar2023.pdf": "eb6d2ca1794d709f5c3fe6b1133211bbe6f4ac309e801106e73fd5e4b968456a",
+        "Kazemitabaar2023.md": "dd09617563a3e4e19282d41112cb583b79f6d2b8a4eed95c447de70b37d6d060",
+        "Kazemitabaar2023-p6.png": "df027fe02f780d6ef25c51df047aaf118c728dec8f8631e72da18d3510244d9f",
+        "Kazemitabaar2023-p9.png": "63813559a098e030fff77250be9e74a3193932a3d2ba439235156a3a258f9b59",
+        "Kazemitabaar2023-p11.png": "08575a6335ea04e46ce37b6ea960155b40df797627a4d9cb957712d828cd6052",
+        "Kazemitabaar2023-p12.png": "c5f67722910920080adf7b444cc5410d66efd656d4201d0afa3788c4daa1c1e0",
+        "Prather2024.pdf": "3ab771a8b99b232481ce094ac9efb36863eafc92f1df36f43748a42daa0953c6",
+        "Prather2024.md": "1d4365277b71c265f4ab8499fa450a93154a38ca78e5ddf48ab6e84b9790ba0f",
+        "Prather2024-p8.png": "c561ae8b02a840c2b5ec23dc41939c9d948dc81d1d5438e8ab7c60110b5541de",
+        "Prather2024-p9.png": "3d0cb1f18d6c0516678ec2ffa04537edba829defa556f4424ada56ae9fb1e8c4",
+        "Shen2026.pdf": "769399c218d2471cea9b348aa6d9b16c052652fa1e832d32a32e5825fc03b535",
+        "Shen2026.md": "328def1ac71983ae7de437a6b75c4f3e4ba58853b6a5f47841b22774139a44ed",
+        "Shen2026-p7.png": "0640ae8e572ee6da0394b7a417acf32aab1e4edc237d4e2e2686256841a1ab58",
+        "Shen2026-p9.png": "570661f4eabd03cb8caeade0fd4064857c808df047e23583f24de72b2a0fe8a3",
+        "Shen2026-p10.png": "be8e96b398cd96b8b13d3f34c2f5d7c9dff67d7990374c9c9800f08cae4d68b4",
+        "Shen2026-p13.png": "2363099bf4438d6b0565a0421d3165bd3db8a40f4fd95dac29fa47d24a2f5f96",
+        "README.md": "76b52fde56b1499344f8e6d6a55de4f84cc8914e64530ddacb6b86e6d81a85a5"
+      },
+      "recovered_task": "A bounded bilingual literature review and discussion answering when assisted programming performance supports independent understanding or retention, and how design and learner differences explain apparently different findings.",
+      "editor_questions": [],
+      "recovered_state": "Meaning review and editorial selection were pending; no model or human verdict had been accepted. The original followed the task's four-heading wording but omitted the length contract's language labels. The editor received an explicit layout clarification.",
+      "role_guidance": {
+        "G4": "Calibrate claims to inspected evidence, preserve necessary uncertainty, and identify substantive corrections explicitly. Shortening is not intrinsically an improvement.",
+        "J2": "Compare meaning against the same original; preserve valid wording and correct prose; make localized repairs rather than restart stylistic editing.",
+        "synthesis_and_writing": "Explain cross-paper comparisons through inspected premises; distinguish source findings, synthesis hypotheses and proposed research.",
+        "identity_boundary": "Writer/editor identity and prior judgments were not inferred. This is a model review, not a human author's evaluation."
+      },
+      "measurements": {
+        "rule": "Exclude headings and standalone source-anchor lines; retain inline anchors. Chinese counts include all non-whitespace Unicode code points; English counts use whitespace-delimited words.",
+        "original": {
+          "Chinese_literature_review": 1780,
+          "Chinese_discussion": 1166,
+          "Chinese_total": 2946,
+          "English_literature_review": 768,
+          "English_discussion": 524,
+          "English_total": 1292,
+          "layout": "Four section headings present; both contract language labels absent."
+        },
+        "candidate": {
+          "Chinese_literature_review": 2146,
+          "Chinese_discussion": 1506,
+          "Chinese_total": 3652,
+          "English_literature_review": 869,
+          "English_discussion": 597,
+          "English_total": 1466,
+          "layout": "Both language labels and all four section headings present.",
+          "Chinese_excess": 652
+        },
+        "after_proposed_repairs_in_memory_only": {
+          "Chinese_total": 3699,
+          "English_total": 1497,
+          "Chinese_excess": 699,
+          "all_16_old_strings_occur_once_in_current_candidate": true
+        }
+      },
+      "pending_work": [
+        "Editorial selection of this proposal remains pending; no replacement has been applied.",
+        "The candidate needs a focused Chinese length revision preserving its evidence, reasoning and consequential bilingual content.",
+        "Any subsequently revised manuscript needs a new count and comparison of the affected passages."
+      ],
+      "safe_next_action": "Use only the verified current candidate for a bounded revision incorporating selected factual and meaning repairs, reduce its Chinese body to 2200–3000 code points, and recheck affected claims and bilingual equivalence. This proposal does not authorize or perform a registered save."
+    },
+    "original_verdicts": {
+      "request scope and measured layout/length": {
+        "verdict": "fail",
+        "reason": "The review stays within the three-study task and both length limits: 2946 Chinese code points and 1292 English words. It lacks the two language labels required by the length contract. This is a documented task/measurement inconsistency: the original follows the task's literal four-heading instruction."
+      },
+      "cross-section argument and promise/answer consistency": {
+        "verdict": "pass",
+        "reason": "The opening separates assisted output, independent understanding and delayed retention. The discussion answers that question, explains why the studies are not opposing votes, and derives specific future comparisons. The literature review advances an argument rather than merely listing papers."
+      },
+      "source-grounded explanatory depth": {
+        "verdict": "pass",
+        "reason": "The synthesis connects alternating authoring/modification, unequal topic exposure, a short unfamiliar-library task, metacognitive monitoring and relevant prior knowledge to the learning inference. These premises are supported, and proposed mechanisms remain explicitly untested. The localized fidelity problems below require correction but do not erase this explanatory contribution."
+      },
+      "idiomatic Chinese and English": {
+        "verdict": "pass",
+        "reason": "Both languages are readable and largely idiomatic, with clear subjects and coherent paragraph development. Some phrasing can be smoother, but there is no basis for a general rewrite or treating greater formality as better prose."
+      },
+      "source and figure fidelity": {
+        "verdict": "fail",
+        "reason": "The principal numerical results, study designs, pilot/main distinction and exploratory score ranges match the inspected sources. However, partial-credit correctness scores are called accuracy/正确率, access to Prather's tools is phrased as universal use, and one sentence misstates the relation between completion, confidence and understanding. The broad independent-performance conclusion also needs narrowing."
+      },
+      "bilingual substantive equivalence": {
+        "verdict": "pass",
+        "reason": "Both versions give the same answer, findings, design comparison, mechanism qualification and research proposals. Their different sentence structures and slightly different emphasis on the immediate Shen result do not produce materially different conclusions."
+      },
+      "necessary qualifications without defensive padding": {
+        "verdict": "fail",
+        "reason": "Most qualifications are necessary and well placed: completer selection, exposure exclusions, nonsignificance, observational design, self-selected usage and short follow-up. However, '未检出短期独立表现受损'/'absence of detected short-term impairment' extends beyond the reported correctness outcomes despite higher retention authoring-error counts. Narrow that claim rather than add generic hedges."
+      }
+    },
+    "candidate_verdicts": {
+      "request scope and measured layout/length": {
+        "verdict": "fail",
+        "reason": "The clarified layout is correct and the English body has 1466 words, but the Chinese body has 3652 code points, exceeding the maximum by 652. The candidate otherwise retains the requested scope."
+      },
+      "cross-section argument and promise/answer consistency": {
+        "verdict": "pass",
+        "reason": "The candidate preserves the question-led progression and the discussion's answer. Its design and learner explanations remain hypotheses, and future experiments address those hypotheses. Local changes to the proposed outcomes need repair but do not replace the overall argument."
+      },
+      "source-grounded explanatory depth": {
+        "verdict": "pass",
+        "reason": "The same substantive comparisons and explanations survive. Clarifying matched-pair assignment, conditional topic coverage and the final incentives transition helps readers, but the additional wording supplies little new explanatory contribution."
+      },
+      "idiomatic Chinese and English": {
+        "verdict": "pass",
+        "reason": "Both languages remain grammatical and intelligible. Chinese contains more abstract and expanded phrasing than necessary; that is a comparative style concern and a measured length problem, not evidence that the language is generally unidiomatic."
+      },
+      "source and figure fidelity": {
+        "verdict": "fail",
+        "reason": "The candidate inherits the original's localized fidelity issues and additionally changes Shen's analyzed sample into a recruited sample in Chinese. It adds an unsupported physical laboratory setting and accountability claim. The reported main effects and Figure 11 score ranges remain accurate."
+      },
+      "bilingual substantive equivalence": {
+        "verdict": "fail",
+        "reason": "Chinese adds '远迁移' while English retains general transfer; Chinese says 52 participants were recruited while English describes an experimental sample of 52. English also changes identifying learners who most need support into identifying those who benefit most, whereas Chinese retains the needs formulation."
+      },
+      "necessary qualifications without defensive padding": {
+        "verdict": "fail",
+        "reason": "Most important limitations survive and direct reporting of the randomized quiz result is acceptable without extra hedging. However, the broad no-impairment wording remains, and Chinese narrows the retention-benefit caution to long-term retention. Repeated scope framing and expanded qualifications also consume space without consistently adding information."
+      }
+    },
+    "comparison": {
+      "flow": {
+        "preference": "tie",
+        "rationale": "Both have a coherent progression from measurement distinctions to experimental evidence, process evidence, learner differences and implications. The candidate improves some local referents and the Chinese transition to incentives, while its expansion slows other passages."
+      },
+      "argument": {
+        "preference": "tie",
+        "rationale": "The substantive explanatory contribution is shared: independent assessment is needed, the outcomes are not interchangeable, and retained cognitive activity is a hypothesis requiring intervention tests. The candidate adds no clearly supported new explanation; its local meaning changes should be repaired without discarding the shared argument."
+      },
+      "language": {
+        "Chinese_preference": "original",
+        "English_preference": "tie",
+        "rationale": "The original Chinese generally expresses the same reasoning more directly and economically. Both English versions are serviceable; the candidate's clarified phrasing can be retained. These are model judgments, not measured human preferences."
+      }
+    },
+    "findings": [
+      {
+        "kind": "pre-existing",
+        "original_span": "### 文献综述",
+        "candidate_span": "## 中文\n\n### 文献综述",
+        "consequence": "The candidate validly repairs the missing language-label layout. The original's failure must remain recorded alongside the contradictory four-heading task wording.",
+        "source": "state.md; length-contract.json; writing-task.txt"
+      },
+      {
+        "kind": "editor-drift",
+        "original_span": "本综述围绕三篇所提供完整版本展开有界比较",
+        "candidate_span": "本综述围绕所提供的三篇完整论文展开有界比较",
+        "consequence": "Expansion across the Chinese body increases its measured length from 2946 to 3652 code points. This representative opening change is not itself erroneous, but the aggregate expansion violates the frozen limit; it is not an improvement merely because it is longer.",
+        "source": "Full original/candidate body counts; length-contract.json"
+      },
+      {
+        "kind": "pre-existing",
+        "original_span": {
+          "Chinese": "辅助编写的平均正确率为80.1%",
+          "English": "Assisted authoring accuracy averaged 80.1%"
+        },
+        "candidate_span": {
+          "Chinese": "辅助编写的平均正确率为80.1%",
+          "English": "assisted authoring accuracy averaged 80.1%"
+        },
+        "consequence": "The source measures graded correctness with partial credit, not simply the proportion of wholly correct solutions. Naming the score prevents a denominator/construct ambiguity in both training and retention results.",
+        "source": "Kazemitabaar2023 pp.7–9,11; Figures 7 and 9"
+      },
+      {
+        "kind": "pre-existing",
+        "original_span": {
+          "Chinese": "该训练安排下未检出短期独立表现受损",
+          "English": "an absence of detected short-term impairment under this training arrangement"
+        },
+        "candidate_span": {
+          "Chinese": "在该训练安排下未检出短期独立表现受损",
+          "English": "an absence of detected short-term impairment under this training structure"
+        },
+        "consequence": "This broadens nonsignificant overall correctness differences into a statement about independent performance generally. At retention, authoring errors were higher with prior Codex access (1.58 versus 0.99, p=.042); the authors suggest differential task skipping as a possible explanation. Preserve the correctness result and this distinction.",
+        "source": "Kazemitabaar2023 p.11; Figure 9 and accompanying results"
+      },
+      {
+        "kind": "pre-existing",
+        "original_span": {
+          "Chinese": "21名学生使用Copilot和ChatGPT完成限时C++题",
+          "English": "21 students used Copilot and ChatGPT for a timed C++ problem"
+        },
+        "candidate_span": {
+          "Chinese": "21名学生使用Copilot和ChatGPT完成限时C++编程题",
+          "English": "21 students used Copilot and ChatGPT on a timed C++ problem"
+        },
+        "consequence": "The methods establish availability of both tools, not that every participant used both. Twenty participants completed the task. State the offered condition without assigning identical behavior to all 21.",
+        "source": "Prather2024 pp.5–7,19–20"
+      },
+      {
+        "kind": "pre-existing",
+        "original_span": {
+          "Chinese": "提交成功和主观信心可能脱节",
+          "English": "successful submissions and perceived understanding can diverge"
+        },
+        "candidate_span": {
+          "Chinese": "成功提交代码与学习者对自身理解的判断可能发生脱节",
+          "English": "successful submissions can diverge from a learner's perceived understanding"
+        },
+        "consequence": "The relevant mismatch is between successful/confident performance and actual understanding. Completion and confidence can coexist with the same understanding deficit; the current wording gives the divergence the wrong endpoints. Both discussions already express the intended relation more accurately.",
+        "source": "Prather2024 pp.9,12–13,21"
+      },
+      {
+        "kind": "editor-drift",
+        "original_span": "52名有Python经验、未用过Trio库的参与者",
+        "candidate_span": "该研究招募52名具备Python经验但从未使用过Trio库的参与者",
+        "consequence": "Fifty-two is the analyzed sample, not the recruitment count. The study was sent to 58 workers; 53 completed it and one was excluded. The English candidate does not make the same recruitment claim.",
+        "source": "Shen2026 pp.7,9"
+      },
+      {
+        "kind": "editor-drift",
+        "original_span": "并未证明等效或普遍促进保持",
+        "candidate_span": "不能证明两组等效，也不能证明AI普遍促进长期保持",
+        "consequence": "Adding '长期' weakens the caution by restricting it to an unmeasured horizon. Nonsignificant overall retention scores also do not establish a general benefit at the measured interval. English retains the broader caution.",
+        "source": "Kazemitabaar2023 pp.11,14; original/candidate bilingual comparison"
+      },
+      {
+        "kind": "editor-drift",
+        "original_span": "独立构建及迁移",
+        "candidate_span": "独立建构与远迁移",
+        "consequence": "Far transfer is a stronger and more specific proposed assessment target than transfer. Novel code authoring alone does not define it, and English does not introduce it.",
+        "source": "Original discussion; candidate English discussion; Kazemitabaar2023 pp.14–15"
+      },
+      {
+        "kind": "editor-drift",
+        "original_span": {
+          "Chinese": "保留效率收益时改善学习",
+          "English": "while improving learning, and identify which learners need that support most"
+        },
+        "candidate_span": {
+          "Chinese": "保留效率优势的同时保障学习质量",
+          "English": "while protecting learning, and identify which learners benefit most from that scaffolding"
+        },
+        "consequence": "Improving learning becomes protecting it, and the English target changes from greatest need to greatest benefit. These are distinguishable research objectives. Restore the original proposal without rewriting the surrounding experimental design.",
+        "source": "Original and candidate discussions; scholarly-voice.md and J2 preservation of substantive meaning"
+      },
+      {
+        "kind": "editor-drift",
+        "original_span": {
+          "Chinese": "学习该库却没有真实岗位要求带来的激励",
+          "English": "the experiment lacked the incentive that an actual job requirement would provide"
+        },
+        "candidate_span": {
+          "Chinese": "在实验室内学习Trio库并不伴随真实岗位要求带来的考核与责任压力",
+          "English": "learning Trio in a brief laboratory session lacked the accountability and incentives of an actual job requirement"
+        },
+        "consequence": "The source describes an online experiment with recruited crowd workers and a difference in job-related learning incentives. It does not establish a physical laboratory setting or specifically measure accountability and assessment pressure.",
+        "source": "Shen2026 pp.6–9,19"
+      },
+      {
+        "kind": "style-preference",
+        "original_span": "Shen的高分使用方式也可能反映原有能力、动机或自我监控，而非提示方式本身的效果。",
+        "candidate_span": "Shen等人观察到的高分交互模式，同样可能反映参与者原有的能力、学习动机或自我监控水平，而非特定提示策略本身的因果效应。",
+        "consequence": "Both preserve the relevant alternative explanation. The original is more economical; the candidate makes causal interpretation explicit. Neither requires a meaning repair, and valid candidate wording should not be reverted merely to impose a preferred style.",
+        "source": "Shen2026 pp.12–14; G4/J2 and scholarly-voice.md"
+      }
+    ],
+    "repairs": [
+      {
+        "old": "辅助编写的平均正确率为80.1%",
+        "new": "辅助编写的平均正确性得分为80.1%",
+        "reason": "Name the partial-credit correctness measure accurately.",
+        "source": "Kazemitabaar2023 pp.7–9"
+      },
+      {
+        "old": "曾使用Codex组的编写正确率为59.1%",
+        "new": "曾使用Codex组的编写正确性得分为59.1%",
+        "reason": "Use the same measured construct at retention.",
+        "source": "Kazemitabaar2023 pp.7,11"
+      },
+      {
+        "old": "assisted authoring accuracy averaged 80.1%",
+        "new": "assisted authoring correctness scores averaged 80.1%",
+        "reason": "Distinguish graded correctness scores from binary solution accuracy.",
+        "source": "Kazemitabaar2023 pp.7–9"
+      },
+      {
+        "old": "authoring accuracy was 59.1%",
+        "new": "authoring correctness scores averaged 59.1%",
+        "reason": "Preserve the retention score's measurement definition.",
+        "source": "Kazemitabaar2023 pp.7,11"
+      },
+      {
+        "old": "这些结果支持“在该训练安排下未检出短期独立表现受损”，但不能证明两组等效，也不能证明AI普遍促进长期保持。",
+        "new": "这些结果未检出该训练安排下短期无AI测验总体正确性得分的组间差异，但不证明等效或一般保持收益；保持测验中，Codex组编写时的报错更多，作者认为这可能与对照组跳题更多有关。〔Kazemitabaar2023 p.11〕",
+        "reason": "Correct the inherited outcome-scope ambiguity, retain contrary error evidence and its uncertain interpretation, and remove the introduced long-term-only restriction.",
+        "source": "Kazemitabaar2023 p.11"
+      },
+      {
+        "old": "These findings support an absence of detected short-term impairment under this training structure rather than group equivalence or a general retention advantage.",
+        "new": "These findings show no detected overall difference in short-term unassisted correctness scores under this training structure; they establish neither equivalence nor a general retention benefit. At retention, the Codex group encountered more authoring errors, which the authors suggest may reflect more task skipping in the baseline group.〔Kazemitabaar2023 p.11〕",
+        "reason": "Match the Chinese correction while preserving the distinction between correctness, errors and causal interpretation.",
+        "source": "Kazemitabaar2023 p.11"
+      },
+      {
+        "old": "21名学生使用Copilot和ChatGPT完成限时C++编程题",
+        "new": "21名学生可使用Copilot和ChatGPT解答限时C++题",
+        "reason": "Report tool availability without asserting universal use of both tools or completion by all 21.",
+        "source": "Prather2024 pp.5–7,19–20"
+      },
+      {
+        "old": "21 students used Copilot and ChatGPT on a timed C++ problem",
+        "new": "21 students attempted a timed C++ problem with Copilot and ChatGPT available",
+        "reason": "Distinguish the offered condition from participants' individual tool choices.",
+        "source": "Prather2024 pp.5–7,19–20"
+      },
+      {
+        "old": "成功提交代码与学习者对自身理解的判断可能发生脱节",
+        "new": "成功提交代码和自信可能掩盖实际理解的不足",
+        "reason": "Restore actual understanding as the comparison target.",
+        "source": "Prather2024 pp.9,12–13,21"
+      },
+      {
+        "old": "illustrating how successful submissions can diverge from a learner's perceived understanding.",
+        "new": "illustrating how successful submissions and confidence can coexist with gaps in understanding.",
+        "reason": "Express the observed coexistence of success, confidence and incomplete understanding.",
+        "source": "Prather2024 pp.12–13,21"
+      },
+      {
+        "old": "该研究招募52名具备Python经验但从未使用过Trio库的参与者",
+        "new": "该研究分析了52名具备Python经验但未用过Trio库的参与者",
+        "reason": "Fifty-two is the analyzed sample after exclusion, not the recruitment count.",
+        "source": "Shen2026 pp.7,9"
+      },
+      {
+        "old": "独立建构与远迁移",
+        "new": "独立建构与迁移",
+        "reason": "Remove the introduced stronger assessment target and restore bilingual equivalence.",
+        "source": "Original discussion; candidate English discussion; Kazemitabaar2023 pp.14–15"
+      },
+      {
+        "old": "保留效率优势的同时保障学习质量",
+        "new": "保留效率优势的同时改善学习",
+        "reason": "Restore the original proposed improvement outcome.",
+        "source": "Original discussion; J2 meaning-preservation contract"
+      },
+      {
+        "old": "while protecting learning, and identify which learners benefit most from that scaffolding",
+        "new": "while improving learning, and identify which learners need that support most",
+        "reason": "Restore both the learning endpoint and the intended support-targeting question.",
+        "source": "Original discussion; candidate Chinese discussion; J2 meaning-preservation contract"
+      },
+      {
+        "old": "在实验室内学习Trio库并不伴随真实岗位要求带来的考核与责任压力",
+        "new": "在实验中学习Trio库并没有真实岗位要求带来的同等学习激励",
+        "reason": "Remove unsupported setting and accountability details while preserving the source's incentive limitation.",
+        "source": "Shen2026 pp.6–9,19"
+      },
+      {
+        "old": "learning Trio in a brief laboratory session lacked the accountability and incentives of an actual job requirement.",
+        "new": "learning Trio in the experiment did not carry the same incentive as learning it for an actual job requirement.",
+        "reason": "Match the supported incentive comparison without inventing a physical setting or measured accountability difference.",
+        "source": "Shen2026 pp.6–9,19"
+      }
+    ],
+    "limitations": [
+      "These judgments cover the supplied bilingual writing unit and three bound source versions. They do not establish a comprehensive literature consensus, reproduce analyses from raw data, or evaluate other cited publications.",
+      "Shen p.9 reports a 4.15-point difference on a 27-point quiz and calls it 17%; direct division yields approximately 15.37% of the scale maximum. Figure 6 plots percentage scores with 95% confidence intervals. Neither manuscript relies on the disputed conversion: both appropriately retain d=.738, p=.010 and the nonsignificant main task-time result. No conversion repair is needed.",
+      "The supplied criteria's statement that Shen's six categories total 25 is inconsistent with the inspected source: pp.13–14 list n=4,4,4,2,3,7, totaling 24. Page 12 reports 51 recordings and one missing AI-condition recording; p.14 uses a denominator of 25 for query analysis; Appendix B.1 says 51/52 recordings but lists 25 AI plus 25 control. These counts cannot be silently reconciled, nor does missing video establish that a participant did not use AI. The manuscripts do not assert those subgroup totals.",
+      "Prather's Table 3 labels P7 with Location and Interruption, whereas the case heading and narrative on pp.12–13 identify Location and Progression. The reviewed manuscripts rely on the documented behavior rather than assigning P7 those labels, so this source discrepancy does not require a manuscript repair.",
+      "The printed Shen subgroup score ranges and their exploratory status are supported; they do not establish a randomized mechanism or demonstrate that asking for explanations causes learning. Kazemitabaar's subgroup results likewise do not establish a general treatment-by-prior-knowledge interaction.",
+      "The proposed localized repairs are not a length-compliant replacement manuscript. Their in-memory result remains 699 Chinese code points above the limit, requiring a separate focused compression and renewed equivalence check.",
+      "No human preference form or accepted human judgment was supplied. Writer/editor identity remains blinded, and no human authorship evaluation is claimed."
+    ]
+  },
+  "measurements": {
+    "original": {
+      "pass": false,
+      "error": "Delivered headings differ from the frozen layout",
+      "cause": "Task prose said exactly four section headings, conflicting with two language labels plus four sections in the contract. Original preserved.",
+      "normalization": "Add only ## 中文 and ## English for diagnostic body counts; this does not pass the original layout.",
+      "normalized_for_counting": {
+        "anchor_exclusion": "standalone",
+        "languages": {
+          "## 中文": {
+            "unit": "codepoints",
+            "count": 2946,
+            "min": 2200,
+            "max": 3000,
+            "sections": {
+              "### 文献综述": 1780,
+              "### 讨论": 1166
+            },
+            "pass": true
+          },
+          "## English": {
+            "unit": "words",
+            "count": 1292,
+            "min": 1200,
+            "max": 1700,
+            "sections": {
+              "### Literature review": 768,
+              "### Discussion": 524
+            },
+            "pass": true
+          }
+        },
+        "pass": true
+      }
+    },
+    "candidate": {
+      "anchor_exclusion": "standalone",
+      "languages": {
+        "## 中文": {
+          "unit": "codepoints",
+          "count": 3652,
+          "min": 2200,
+          "max": 3000,
+          "sections": {
+            "### 文献综述": 2146,
+            "### 讨论": 1506
+          },
+          "pass": false
+        },
+        "## English": {
+          "unit": "words",
+          "count": 1466,
+          "min": 1200,
+          "max": 1700,
+          "sections": {
+            "### Literature review": 869,
+            "### Discussion": 597
+          },
+          "pass": true
+        }
+      },
+      "pass": false
+    },
+    "selected": {
+      "anchor_exclusion": "standalone",
+      "languages": {
+        "## 中文": {
+          "unit": "codepoints",
+          "count": 2986,
+          "min": 2200,
+          "max": 3000,
+          "sections": {
+            "### 文献综述": 1820,
+            "### 讨论": 1166
+          },
+          "pass": true
+        },
+        "## English": {
+          "unit": "words",
+          "count": 1320,
+          "min": 1200,
+          "max": 1700,
+          "sections": {
+            "### Literature review": 796,
+            "### Discussion": 524
+          },
+          "pass": true
+        }
+      },
+      "pass": true
+    }
+  },
+  "selection": {
+    "basis": "Original manuscript with the returned candidate’s valid language labels and one clearer participant referent, plus source-backed corrections to inherited findings. No wholesale adoption of the overlength candidate.",
+    "review_sha256": "567c3b9f50d6d6858ef886956d5b1fe4a79f9ed00edde76cac01937ccacef3a5",
+    "body_edits": [
+      {
+        "old": "关注辅助下的正确率和速度",
+        "new": "关注辅助下的得分和速度",
+        "reason": "Name the measured graded outcome, not a binary accuracy rate.",
+        "source": "Kazemitabaar2023 pp.7–9"
+      },
+      {
+        "old": "辅助编写的平均正确率为80.1%",
+        "new": "辅助编写的平均正确性得分为80.1%",
+        "reason": "Preserve the partial-credit scoring construct.",
+        "source": "Kazemitabaar2023 pp.7–9"
+      },
+      {
+        "old": "Codex组编写正确率为59.1%",
+        "new": "Codex组编写正确性得分为59.1%",
+        "reason": "Preserve the same construct at retention.",
+        "source": "Kazemitabaar2023 p.11"
+      },
+      {
+        "old": "Assisted authoring accuracy averaged 80.1%",
+        "new": "Assisted authoring correctness scores averaged 80.1%",
+        "reason": "Preserve the partial-credit scoring construct.",
+        "source": "Kazemitabaar2023 pp.7–9"
+      },
+      {
+        "old": "authoring accuracy was 59.1%",
+        "new": "authoring correctness scores averaged 59.1%",
+        "reason": "Preserve the same construct at retention.",
+        "source": "Kazemitabaar2023 p.11"
+      },
+      {
+        "old": "这支持“该训练安排下未检出短期独立表现受损”，并未证明等效或普遍促进保持。",
+        "new": "正确性得分未检出总体组间差异，并不证明等效或普遍促进保持；保持测验中Codex组编写时出错更多，作者认为这可能与对照组跳题更多有关。",
+        "reason": "Narrow the claim to the measured score and retain the contrary error outcome and tentative explanation.",
+        "source": "Kazemitabaar2023 p.11"
+      },
+      {
+        "old": "This supports an absence of detected short-term impairment under this training arrangement, rather than equivalence or a general retention benefit.",
+        "new": "These findings show no detected overall difference in unassisted correctness scores, rather than equivalence or a general retention benefit. At retention, the Codex group encountered more authoring errors; the authors suggest that this could reflect more task skipping in the baseline group.",
+        "reason": "Match the Chinese correction without asserting causal harm from error counts.",
+        "source": "Kazemitabaar2023 p.11"
+      },
+      {
+        "old": "21名学生使用Copilot和ChatGPT完成限时C++题",
+        "new": "21名学生可使用Copilot和ChatGPT解答限时C++题",
+        "reason": "Distinguish availability from universal tool use or completion.",
+        "source": "Prather2024 pp.5–7"
+      },
+      {
+        "old": "21 students used Copilot and ChatGPT for a timed C++ problem",
+        "new": "21 students attempted a timed C++ problem with Copilot and ChatGPT available",
+        "reason": "Distinguish availability from universal tool use.",
+        "source": "Prather2024 pp.5–7"
+      },
+      {
+        "old": "提交成功和主观信心可能脱节",
+        "new": "提交成功和主观信心可能掩盖理解不足",
+        "reason": "Correct the endpoints of the observed mismatch.",
+        "source": "Prather2024 pp.9,12–13,21"
+      },
+      {
+        "old": "successful submissions and perceived understanding can diverge",
+        "new": "successful submissions and confidence can coexist with gaps in understanding",
+        "reason": "Correct the endpoints of the observed mismatch.",
+        "source": "Prather2024 pp.9,12–13,21"
+      },
+      {
+        "old": "分析仅保留完成研究者",
+        "new": "分析仅纳入完成研究的参与者",
+        "reason": "Disambiguate participants completing the study; retain the candidate’s clearer referent.",
+        "source": "Kazemitabaar2023 pp.6,11"
+      }
+    ],
+    "layout_edits": [
+      "Add ## 中文 before ### 文献综述",
+      "Add ## English before ### Literature review"
+    ],
+    "measurement": {
+      "anchor_exclusion": "standalone",
+      "languages": {
+        "## 中文": {
+          "unit": "codepoints",
+          "count": 2986,
+          "min": 2200,
+          "max": 3000,
+          "sections": {
+            "### 文献综述": 1820,
+            "### 讨论": 1166
+          },
+          "pass": true
+        },
+        "## English": {
+          "unit": "words",
+          "count": 1320,
+          "min": 1200,
+          "max": 1700,
+          "sections": {
+            "### Literature review": 796,
+            "### Discussion": 524
+          },
+          "pass": true
+        }
+      },
+      "pass": true
+    },
+    "bindings": {
+      "original": {
+        "sha256": "9a5c90373a09891a49bd630e497f7109c4236d866cfa1b25ee727fe9f5a750d9",
+        "bytes": 17807
+      },
+      "candidate": {
+        "sha256": "2f8a2f895ea5058f06c963e46c066e023cd402732267e4032a3fbf4e59d3e95a",
+        "bytes": 21054
+      },
+      "review": {
+        "sha256": "567c3b9f50d6d6858ef886956d5b1fe4a79f9ed00edde76cac01937ccacef3a5",
+        "bytes": 30005
+      },
+      "selected": {
+        "sha256": "ef96efb12cd81a8603d7da15f138c15745267c3483a744a44ba546bcc177b733",
+        "bytes": 18139
+      },
+      "criteria_erratum": {
+        "sha256": "8ecf01d84e83e7281ca168f1e6bcd2c90e5b997fbfdcb465455b554a5909056d",
+        "bytes": 1630
+      }
+    },
+    "adjudication": "The coordinator checked the fresh reviewer’s substantive findings against the original sources. The partial-credit rubric, retention error finding, tool-availability distinction and mismatch endpoints warrant correction in both languages. Candidate-introduced recruitment, far-transfer, laboratory/accountability, horizon and research-objective changes are avoided by retaining the original. Correct main/pilot, subgroup, causal-limit and cross-paper arguments remain. The Shen denominator erratum and source-internal conversions do not require manuscript additions because neither draft uses those disputed quantities.",
+    "scope": "Coordinator selection and bilingual source/length check after the independent original/candidate review; not a new blinded model trial or a human verdict.",
+    "human_review_status": "pending"
+  },
+  "selected_answer": {
+    "path": "review/selected.md",
+    "sha256": "ef96efb12cd81a8603d7da15f138c15745267c3483a744a44ba546bcc177b733",
+    "bytes": 18139
+  },
+  "audit": {
+    "path": "review/evidence-audit.json",
+    "sha256": "8553f98977246a6eca9a8abdbcbbf169e57ce65325dcb15a6f16c31f96d94b08",
+    "bytes": 106433
+  },
+  "human_review": {
+    "status": "pending",
+    "versions": 3,
+    "packet": "human-review/",
+    "form": "human-review/form.md",
+    "binding": {
+      "path": "review/human-review-binding.json",
+      "sha256": "d0b973af5ea2742e79265b384a936fb01f86318be249f4549bfaab2eac9f540f",
+      "bytes": 785
+    },
+    "coordinator_key": "review/human-review-key.json",
+    "labels_withheld_from_this_summary": true,
+    "sent_to_others": false,
+    "human_preference": null,
+    "human_review_time": null,
+    "human_editing_time": null
+  },
+  "validation": {
+    "affected_tests": {
+      "command": "python3 -m unittest tests.test_writing_observation tests.test_antigravity_observation tests.test_research_journey_evals tests.test_research_journey_observations tests.test_program_roadmap",
+      "unique_tests_passed": 65,
+      "log_sha256": "c06c5bfe740092db7cc95eb9107b2ff966c62a9cec5590657aa31a4c60482368"
+    },
+    "cli_checks": {
+      "freeze_and_recover": "pass",
+      "duplicate_role_refused_without_file": "pass",
+      "changed_original_refused": "pass"
+    },
+    "all_frozen_inputs_preserved": true,
+    "temporary_auth_links_removed": true,
+    "current_packet_verified": true,
+    "stale_original_refused": true,
+    "program_tests_after_ledger": {
+      "passed": 7,
+      "log_sha256": "df3fed384cac67d52cee63c88989bfbd434c1c8298f05e0cbf12e192bb4074a1"
+    },
+    "index_freshness": "pass",
+    "ledger_invariants": {
+      "affected_unique_tests": 65,
+      "program_tests_rerun_after_ledger": 7,
+      "cli_checks": "pass",
+      "index_freshness": "pass",
+      "diff_whitespace": "pass",
+      "ledger_changed_fields": [
+        "CLI-405.blocker"
+      ],
+      "tasks_preserved": 249,
+      "populated_evidence_commit_run_fields_preserved": 198,
+      "recovery_report_digests_match_actual_files": true
+    },
+    "final_review": {
+      "path": "review/final-review.json",
+      "sha256": "b3cc716ba650a2d9d4ee37f680a4ed486f2ed1b5fcc872255ad0c44c58cf3f49"
+    }
+  },
+  "boundaries": {
+    "canonical_content_changed": false,
+    "native_code_changed": false,
+    "pack_changed": false,
+    "configured_models_changed": false,
+    "installed_plugin_acceptance": false,
+    "program_acceptance_promoted": false,
+    "push": false,
+    "publication": false
+  },
+  "next_increment": "Obtain authorized human/disciplinary feedback using the prepared anonymous forms, then use returned findings to select the next bounded regression; preserve ties and actual editing time. Do not infer general quality gains or named-model superiority from these model judgments."
+}

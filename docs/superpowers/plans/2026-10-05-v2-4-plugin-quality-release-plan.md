@@ -4050,3 +4050,44 @@ accepted task fields remain untouched. Canonical content, native code and pack
 remain unchanged; no push, publication or acceptance promotion. Next seek author/
 disciplinary-expert judgment and an unseen multi-paper unit. One paper and a
 same-model reviewer cannot establish general gains or named-model superiority.
+
+
+## October 23 — Multi-paper writing and recovered language review
+
+The [three-study observation](../../../evals/research_journey/writing-quality/observations/multipaper-2026-10-23/README.md)
+uses complete first-use Kazemitabaar2023, Prather2024 and Shen2026 public versions.
+One configured Codex writer, one real Antigravity edit and one fresh Codex review
+complete. The reviewer recovers current source/manuscript/task/guidance bindings
+from an explicit local packet and refuses a separate stale-original control.
+Reusable freeze/recover helpers preserve existing native project-save/CAS owners.
+
+The original's 2946 Chinese code points / 1292 English words fit the body limits,
+but task prose conflicts with required language labels. That raw layout failure
+remains. The returned Chinese expands to 3652 code points; English has 1466 words.
+Both versions pass argument, explanatory depth and natural language. The original
+also passes bilingual equivalence. Source fidelity and outcome qualifications
+need localized correction; the return adds bilingual drift. Flow/argument tie,
+Chinese favors the original and English ties. The selected original-based repair
+has 2986 Chinese code points / 1320 English words, preserving correct argument
+while correcting score constructs, outcome scope, offered tool access and the
+completion/confidence-versus-understanding relation. Selection is coordinator
+adjudication, not another blinded model or human trial.
+
+Preserve the initial handoff path failure, conflicting heading instructions,
+raw judgments, candidate length failure and a frozen check that wrongly totals
+Shen's printed subgroup counts as 25 rather than 24. Separate errata and resumed
+preparation resolve evaluation defects without rewriting history. All runs retain
+inputs/settings and cleanup; each Codex context receives ten original images and
+has no outer truncation. The only failed reviewer command is the intended stale
+packet refusal. Antigravity's selected model remains unknown; configured models,
+canonical content, native code and pack are unchanged.
+
+The 65 affected tests and direct freeze/recover/duplicate-role/stale-input CLI
+checks pass. Final source/meaning/count review, program/index freshness, ledger
+invariants and the frozen-source guard accompany local fast-forward integration
+into 2.x. Only CLI-405 progress/date and the generated index change; task states,
+dependencies and accepted evidence/commit/run fields remain untouched. No push,
+publication or acceptance promotion. Three randomly labelled manuscripts, public
+PDFs and a blank human form are prepared but unsent. Next obtain authorized human/
+disciplinary judgment and actual editing time before claiming user-perceived
+quality gains or choosing the next content regression.

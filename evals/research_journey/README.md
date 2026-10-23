@@ -63,6 +63,13 @@ language quality, source support or installed-Host acceptance. Existing
   source, original, candidate, task and guidance files. A changed or missing file
   invalidates the bound comparison; symlinks are rejected. They do not discover
   configuration or private research directories, write snapshots or approve edits.
+- `freeze_packet`/`recover_packet` save and verify that explicit selection for a
+  new session. Keep the packet's digest with the continuation request. Recovery
+  checks the packet and every selected file before returning paths and hashes;
+  a changed original, candidate, source or task invalidates the old comparison.
+  Packet creation refuses existing destinations. This is a local evaluation
+  handoff, not native project discovery, a research-state store or permission to
+  apply edits. Registered manuscript saves retain their existing approval/CAS owner.
 - `read_chunk` requires the expected file hash and returns exact code-point
   offsets, a continuation cursor and an EOF flag within a serialized JSON byte
   budget. It reads prepared UTF-8 text; supply the original PDF/page images through
@@ -84,7 +91,33 @@ For example, with caller-frozen public files:
 python3 -m evals.research_journey.writing_observation read source.md \
   --sha256 <frozen-file-sha256> --offset 0 --max-bytes 6000
 python3 -m evals.research_journey.writing_observation measure answer.md length-contract.json
+python3 -m evals.research_journey.writing_observation freeze review-packet.json \
+  --file original=original.md --file candidate=returned.md --file task=task.txt \
+  --file source=source.md --file guidance=scholarly-voice.md
+python3 -m evals.research_journey.writing_observation recover review-packet.json \
+  --sha256 <digest-returned-by-freeze>
 ```
+
+For a returned language edit, select the current original, complete candidate,
+separate editor questions, task/scope, relevant source versions and role guidance.
+After recovery, read these inputs and review the changed meaning before selecting
+edits. A current packet proves byte identity, not prose quality. If inputs changed,
+preserve the old packet and obtain a comparison of the current versions rather
+than relabeling the earlier review. No unchanged packet requires another rewrite.
+
+Build the task's ordered heading list from the same length contract, including
+language headings. If an earlier task conflicts with that contract, preserve the
+raw layout failure and label any diagnostic normalization separately. Before a
+live handoff, resolve every selected guidance file: canonical `content/skills/`
+files are not children of `content/workflow/`, even when an assembled package
+exposes both beneath one skill root.
+
+Source-specific checks remain review aids: compare them with the original paper,
+including results for different outcome measures. If a check misstates a sample
+denominator or another fact, preserve the frozen check and record a separate
+source-backed correction. Do not change a correct manuscript to match the check.
+Keep a successful external turn separate from length compliance, meaning review
+and the eventual editorial selection.
 
 Process execution, timeout cleanup and raw-stream retention remain owned by
 `antigravity_observation.run_process`; Codex trace and outer delivery inspection

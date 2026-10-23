@@ -54,17 +54,24 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 23, 2026
 
-The current bounded request validates eight bilingual sections on a first-use
-public paper and completes a real Codex → Antigravity → Codex language handoff.
-The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-23--cross-section-writing-and-external-polish)
-records seven passing dimensions for both versions, tied argument/flow and a
-slight language preference for the original. Retain correct prose and adopt only
-two reviewed expression improvements. Reusable measurements, bindings and bounded
-reads accompany a real structured-finish parser repair; original failed parses,
-startup failures and one catalog truncation remain recorded. Canonical content
-and configured models remain unchanged; the external model identity is unknown.
-Integrate locally into `2.x` without push, publication or acceptance promotion.
-Author/expert judgment and an unseen multi-paper unit are the next quality work.
+The current bounded request validates a three-paper bilingual synthesis and a
+real language-edit return followed by fresh-session recovery. The existing
+[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-23--multi-paper-writing-and-recovered-language-review)
+records coherent argument in both versions, inherited outcome/measurement errors
+and additional drift plus Chinese length overflow in the return. Select the
+original with localized source-backed repairs and valid language labels; preserve
+raw failures and separate evaluation errata. Reusable local freeze/recover helpers
+verify current inputs and refuse a stale original without changing native save/CAS
+owners. Three anonymous review versions and blank forms are prepared but unsent;
+human judgment and actual editing time are the next quality evidence. Canonical
+content, pack and configured models remain unchanged; Antigravity model identity
+is unknown. Integrate locally into `2.x` without push, publication or acceptance
+promotion. This observation does not establish general quality or speed gains.
+
+The preceding eight-section public-paper increment completes a real Codex →
+Antigravity → Codex handoff, with seven passing dimensions per original/return and
+a slight language preference for the original. Its existing plan entry preserves
+parser/runtime failures and the selection of two expression improvements.
 
 The preceding bounded request validates unchanged writing rules on a first-use
 theoretical framework paper with its complete 17-page original. The existing

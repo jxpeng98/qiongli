@@ -41,6 +41,44 @@ def verify_files(files, binding):
         raise ValueError("Selected evidence differs from its frozen binding")
 
 
+def freeze_packet(files, destination):
+    """Save one explicit review selection; never overwrite a draft or packet.
+
+    This local evaluation record confers no project-write approval. The caller
+    supplies authorized files and retains the returned digest for a new session.
+    """
+    binding = bind_files(files)
+    destination = Path(destination)
+    if destination.is_symlink() or any(p.is_symlink() for p in destination.parents):
+        raise ValueError("Packet destination must not traverse a symlink")
+    packet = {"kind": "qiongli-writing-packet/v1",
+              "paths": {name: str(Path(path).absolute()) for name, path in files.items()},
+              "binding": binding}
+    data = (json.dumps(packet, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    with destination.open("xb") as stream:
+        stream.write(data)
+    return {"packet": str(destination.absolute()), "sha256": hashlib.sha256(data).hexdigest()}
+
+
+def recover_packet(path, expected_sha256):
+    """Recover exact review inputs, refusing stale originals, returns or sources."""
+    data = _bytes(path)
+    if hashlib.sha256(data).hexdigest() != expected_sha256:
+        raise ValueError("Review packet changed since handoff")
+    packet = json.loads(data)
+    if (not isinstance(packet, dict) or set(packet) != {"kind", "paths", "binding"}
+            or packet["kind"] != "qiongli-writing-packet/v1"
+            or not isinstance(packet["paths"], dict)
+            or any(not isinstance(p, str) or not Path(p).is_absolute()
+                   for p in packet["paths"].values())):
+        raise ValueError("Invalid writing packet")
+    verify_files(packet["paths"], packet["binding"])
+    return {"packet_sha256": expected_sha256, "status": "bindings_current",
+            "files": {name: {"path": p, **packet["binding"][name]}
+                      for name, p in packet["paths"].items()},
+            "scope": "Input recovery only; no semantic verdict or approval to save a manuscript."}
+
+
 def antigravity_answer(raw, cwd):
     """Reuse Host stream validation without claiming an unrequested MCP result.
 
@@ -202,12 +240,28 @@ def main():
     measure = sub.add_parser("measure", help="Measure a frozen section contract")
     measure.add_argument("answer", type=Path)
     measure.add_argument("contract", type=Path)
+    freeze = sub.add_parser("freeze", help="Bind explicitly selected files for a later review")
+    freeze.add_argument("destination", type=Path)
+    freeze.add_argument("--file", action="append", required=True, metavar="ROLE=PATH")
+    recover = sub.add_parser("recover", help="Verify a packet before continuing in a new session")
+    recover.add_argument("packet", type=Path)
+    recover.add_argument("--sha256", required=True)
     args = parser.parse_args()
     if args.command == "read":
         result = read_chunk(args.path, args.sha256, args.offset, args.max_bytes)
-    else:
+    elif args.command == "measure":
         result = measure_document(_bytes(args.answer).decode("utf-8"),
                                   json.loads(_bytes(args.contract)))
+    elif args.command == "recover":
+        result = recover_packet(args.packet, args.sha256)
+    else:
+        files = {}
+        for selection in args.file:
+            name, separator, path = selection.partition("=")
+            if not separator or not name or not path or name in files:
+                parser.error("Each --file must have a unique nonempty ROLE=PATH")
+            files[name] = Path(path)
+        result = freeze_packet(files, args.destination)
     print(json.dumps(result, ensure_ascii=False))
     if args.command == "measure" and not result["pass"]:
         raise SystemExit(1)
