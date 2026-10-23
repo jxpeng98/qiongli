@@ -52,9 +52,19 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — October 22, 2026
+## Current execution horizon — October 23, 2026
 
-The current bounded request measures guidance delivery on the saved public
+The current bounded request prioritizes evidence-led synthesis, supported results
+and bilingual meaning over startup speed. The existing
+[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-23--evidence-led-writing-quality)
+owns the paired public/synthetic writing tasks, fresh anonymous model review and
+canonical Stage F/scholarly-voice changes. The observed preference is modest:
+more specific explanation and a clearer closing answer, with flow/fidelity often
+tied. Preserve configured models and research-write owners; integrate locally
+into `2.x` without push, publication or acceptance promotion. Broader questions,
+author/expert review and scoped initial tool discovery remain next.
+
+The preceding bounded request measures guidance delivery on the saved public
 education papers and exercises recovery with an unavailable attention image.
 The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-22--guidance-delivery-and-unavailable-image-recovery)
 owns four fresh observations, outer-output failure accounting, bounded guidance

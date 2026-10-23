@@ -87,9 +87,15 @@ Content bytes count decoded document `content` fields and omit search-hit text;
 MCP bytes count structured responses once, including searches. Recorded calls omit
 nested image tools; exact returned image bytes are checked separately. Input tokens
 include repeated/cached context. Neither bytes nor zero warnings prove complete
-resource delivery. Natural-language length targets did not freeze a precise
-multilingual counting convention; recorded length diagnostics are not strict
-compliance scores.
+resource delivery. October 23 correction: the loaded Stage F contract already
+specified the default Chinese count (non-whitespace code points, including
+punctuation/digits, excluding source-anchor citations). The earlier review's
+claim that no precise convention was available was incorrect. Recounting the
+three education bodies gives 506/502/507 characters; the missing-image body has
+531 after excluding its six claim-anchor citations. All fit the requested
+400–600 range. Raw reviews remain preserved; the observation appends this
+correction without changing their hashes. Length compliance is separate from
+the qualitative judgments above.
 
 ## Missing-image fixture
 

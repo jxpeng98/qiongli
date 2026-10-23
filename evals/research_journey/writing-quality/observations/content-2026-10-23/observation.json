@@ -1,0 +1,971 @@
+{
+  "kind": "qiongli-writing-quality-observation/v1",
+  "date": "2026-10-23",
+  "capture_root": "/home/hermes/qiongli-content-quality-20261023-1aciudq0",
+  "runtime": {
+    "checkout": "086e5375cbff44b397068951bb95adb173c9b0b6",
+    "binary_sha256": "876e037a521ed34883fe27e9de2131937fc505d71b919256ac4e3ec27df76900",
+    "codex_sha256": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "model": "gpt-6-astra",
+    "effort": "xhigh",
+    "native_snapshot": {
+      "schemaVersion": 19,
+      "product": {
+        "version": "2.5.3",
+        "build": "9fe1656c7d9381037cc4dcc7b634f3a56b86da01",
+        "operatingSystem": "Linux",
+        "architecture": "AArch64",
+        "trust": {
+          "mode": "source-read-only",
+          "label": "Source build — client changes inspect only",
+          "canApply": false,
+          "reasonCode": "source-build-read-only"
+        }
+      },
+      "content": {
+        "status": "ready",
+        "packId": "qiongli-core",
+        "contentVersion": "2.5.3",
+        "entryCount": 446,
+        "profiles": [
+          {
+            "id": "skill-only",
+            "label": "Skills",
+            "description": "Academic skills and their supporting resources",
+            "includedResourceKinds": 8
+          },
+          {
+            "id": "marketplace-lite",
+            "label": "Plugin Lite",
+            "description": "Skills plus the dependency-free Lite MCP contract",
+            "includedResourceKinds": 11
+          },
+          {
+            "id": "full",
+            "label": "Full workflow",
+            "description": "Complete embedded research workflow content",
+            "includedResourceKinds": 11
+          }
+        ],
+        "managedSkills": {
+          "status": "ready",
+          "destinations": [
+            {
+              "targetId": "skills-target-c55e6b6d9d9863a174a8ec99f8f95dfa4e5e078446b2105bd5a8c5d0a4d3a1bb",
+              "preset": "custom-folder",
+              "symbolicPath": "<custom-folder>",
+              "state": "missing",
+              "status": "missing",
+              "profile": null,
+              "productVersion": null,
+              "projectId": null
+            },
+            {
+              "targetId": "skills-target-ccb922424be3d7f5aedbf0f1345c3be3a6d40ef7af945438200c80a7d635667c",
+              "preset": "qiongli-managed",
+              "symbolicPath": "<user-home>/.qiongli-skills",
+              "state": "missing",
+              "status": "missing",
+              "profile": null,
+              "productVersion": null,
+              "projectId": null
+            }
+          ]
+        }
+      },
+      "mcp": {
+        "status": "ready",
+        "profile": "marketplace-lite",
+        "publicToolCount": 15
+      },
+      "cli": {
+        "status": "unavailable",
+        "state": "unavailable",
+        "installedVersion": null,
+        "availableVersion": "2.5.3",
+        "symbolicTarget": "<user-home>/.local/bin/qiongli",
+        "pathStatus": "disabled",
+        "pathState": "not-observable",
+        "reasonCode": "qiongli-cli-file-unavailable",
+        "canInstall": false,
+        "canTest": false
+      },
+      "zotero": {
+        "status": "disabled",
+        "state": "not-observed",
+        "observation": "not-observed",
+        "zoteroVersion": null,
+        "connectorAvailable": false,
+        "companionAvailable": false,
+        "companionVersion": null,
+        "availableCompanionVersion": "0.3.1",
+        "availableCompanionSha256": "b7cb5bf10f6dfbdcba36b028f9052e2850267a47b262858f8bf0b08864eff8d2",
+        "availableCompanionSizeBytes": 69959,
+        "endpointVersion": null,
+        "supportedEndpointVersion": "2",
+        "supportedZoteroMinVersion": "8.0",
+        "supportedZoteroMaxVersion": "10.0.*",
+        "installationPrepared": false,
+        "fallbackImportAvailable": true,
+        "fallbackFormats": [
+          "references.json",
+          "references.ris",
+          "bibliography.bib",
+          "zotero-import-report.md"
+        ],
+        "reasonCode": "zotero-integration-not-observed",
+        "canPrepareInstall": true,
+        "canReveal": false,
+        "canOpenZotero": false,
+        "canVerify": true
+      },
+      "configuration": {
+        "status": "missing",
+        "revision": 0,
+        "secretStore": "unavailable",
+        "providers": [
+          {
+            "provider": "openalex",
+            "enabled": false,
+            "readiness": "disabled",
+            "configurationFields": [
+              {
+                "field": "api-key",
+                "configured": false
+              },
+              {
+                "field": "email",
+                "configured": false
+              }
+            ]
+          },
+          {
+            "provider": "semantic-scholar",
+            "enabled": false,
+            "readiness": "disabled",
+            "configurationFields": [
+              {
+                "field": "api-key",
+                "configured": false
+              }
+            ]
+          },
+          {
+            "provider": "crossref",
+            "enabled": false,
+            "readiness": "disabled",
+            "configurationFields": [
+              {
+                "field": "email",
+                "configured": false
+              }
+            ]
+          },
+          {
+            "provider": "pubmed",
+            "enabled": false,
+            "readiness": "disabled",
+            "configurationFields": [
+              {
+                "field": "api-key",
+                "configured": false
+              }
+            ]
+          },
+          {
+            "provider": "arxiv",
+            "enabled": true,
+            "readiness": "ready",
+            "configurationFields": []
+          }
+        ],
+        "legacyCredential": {
+          "referencePresent": false,
+          "cleanupAvailable": false
+        },
+        "cleanupRequired": false
+      },
+      "update": {
+        "status": "unavailable",
+        "selectedStream": "stable",
+        "phase": "unavailable",
+        "availableVersion": null,
+        "archiveSizeBytes": null,
+        "progress": null,
+        "reasonCode": "native-update-target-unsupported",
+        "remediation": "use-supported-update-platform",
+        "canSelectStream": false,
+        "canCheck": false,
+        "canPrepare": false,
+        "canInstall": false,
+        "canCancel": false
+      },
+      "researchLibrary": {
+        "schemaVersion": 1,
+        "revision": 0,
+        "health": "empty",
+        "projects": []
+      },
+      "legacyMigration": {
+        "state": "not-detected",
+        "nextAction": "none",
+        "migrationId": null,
+        "detectedItems": 0,
+        "eligibleItems": 0,
+        "reviewItems": 0,
+        "reasonCode": "legacy-migration-not-detected",
+        "providerConflicts": []
+      },
+      "integrations": [
+        {
+          "target": "codex",
+          "label": "Codex",
+          "connection": {
+            "state": "detected-not-connected",
+            "label": "Detected, not connected",
+            "reasonCode": "client-detected-install-ready"
+          },
+          "client": {
+            "detected": true,
+            "status": "ready",
+            "version": "0.162.1",
+            "compatibility": "supported",
+            "minimumSupportedVersion": "0.144.1"
+          },
+          "plugin": {
+            "installedVersion": null,
+            "availableVersion": "2.5.3"
+          },
+          "discovery": "Discovered but unmanaged",
+          "candidateRequired": true,
+          "legacyDetected": false,
+          "migration": {
+            "state": "not-detected",
+            "detectedItems": 0,
+            "eligibleItems": 0,
+            "reviewItems": 0
+          },
+          "overall": "missing",
+          "managedContent": {
+            "source": "missing",
+            "skills": "missing",
+            "marketplace": "missing",
+            "directPackage": null,
+            "registration": "missing",
+            "activation": "missing",
+            "activationObservation": "missing",
+            "mcpAttachment": "missing",
+            "mcpAttachmentObservation": "missing"
+          },
+          "symbolicLocation": "Codex personal marketplace",
+          "activationPolicy": "Client action required",
+          "hostAction": {
+            "scope": "personal",
+            "restartRequired": true,
+            "commands": [
+              {
+                "executable": "codex",
+                "arguments": [
+                  "plugin",
+                  "add",
+                  "--json",
+                  "qiongli-next@personal"
+                ]
+              }
+            ]
+          },
+          "ownership": "Not installed",
+          "ownershipState": "not-installed",
+          "nextAction": "install-ready",
+          "evidenceCode": "client-detected-install-ready",
+          "paths": [
+            {
+              "surface": "Client config",
+              "scope": "User",
+              "source": "Environment override",
+              "state": "missing",
+              "management": "Supported",
+              "selected": true,
+              "symbolicPath": "<codex-config>"
+            },
+            {
+              "surface": "Skills root",
+              "scope": "User",
+              "source": "Official default",
+              "state": "missing",
+              "management": "Supported",
+              "selected": true,
+              "symbolicPath": "<user-home>/.agents/skills"
+            },
+            {
+              "surface": "Skills root",
+              "scope": "Project",
+              "source": "Current project",
+              "state": "missing",
+              "management": "Supported",
+              "selected": true,
+              "symbolicPath": "<project-root>/.agents/skills"
+            },
+            {
+              "surface": "Marketplace",
+              "scope": "User",
+              "source": "Official default",
+              "state": "missing",
+              "management": "Supported",
+              "selected": true,
+              "symbolicPath": "<user-home>/.agents/plugins/marketplace.json"
+            },
+            {
+              "surface": "Plugin source",
+              "scope": "Qiongli managed",
+              "source": "Qiongli managed",
+              "state": "missing",
+              "management": "Supported",
+              "selected": true,
+              "symbolicPath": "<user-home>/.qiongli/plugins/codex/qiongli-next"
+            },
+            {
+              "surface": "Plugin source",
+              "scope": "Legacy",
+              "source": "Legacy observed",
+              "state": "missing",
+              "management": "Legacy only",
+              "selected": false,
+              "symbolicPath": "<user-home>/.agents/plugins/qiongli"
+            },
+            {
+              "surface": "Skills package",
+              "scope": "Legacy",
+              "source": "Legacy observed",
+              "state": "missing",
+              "management": "Legacy only",
+              "selected": false,
+              "symbolicPath": "<codex-config>/skills/qiongli-workflow"
+            },
+            {
+              "surface": "Standalone MCP",
+              "scope": "Legacy",
+              "source": "Legacy observed",
+              "state": "missing",
+              "management": "Legacy only",
+              "selected": false,
+              "symbolicPath": "<codex-config>/config.toml"
+            }
+          ]
+        },
+        {
+          "target": "claude-code",
+          "label": "Claude Code",
+          "connection": {
+            "state": "detected-not-connected",
+            "label": "Detected, not connected",
+            "reasonCode": "client-detected-install-ready"
+          },
+          "client": {
+            "detected": true,
+            "status": "ready",
+            "version": "2.1.296",
+            "compatibility": "supported",
+            "minimumSupportedVersion": "2.1.206"
+          },
+          "plugin": {
+            "installedVersion": null,
+            "availableVersion": "2.5.3"
+          },
+          "discovery": "Discovered but unmanaged",
+          "candidateRequired": true,
+          "legacyDetected": false,
+          "migration": {
+            "state": "not-detected",
+            "detectedItems": 0,
+            "eligibleItems": 0,
+            "reviewItems": 0
+          },
+          "overall": "missing",
+          "managedContent": {
+            "source": "missing",
+            "skills": "missing",
+            "marketplace": "missing",
+            "directPackage": "missing",
+            "registration": "missing",
+            "activation": "missing",
+            "activationObservation": "missing",
+            "mcpAttachment": "missing",
+            "mcpAttachmentObservation": "missing"
+          },
+          "symbolicLocation": "Claude Code marketplace",
+          "activationPolicy": "Reload or client action required",
+          "hostAction": {
+            "scope": "user",
+            "restartRequired": true,
+            "commands": [
+              {
+                "executable": "claude",
+                "arguments": [
+                  "plugin",
+                  "marketplace",
+                  "add",
+                  "$HOME/.qiongli/plugins/claude-code/qiongli-local",
+                  "--scope",
+                  "user"
+                ]
+              },
+              {
+                "executable": "claude",
+                "arguments": [
+                  "plugin",
+                  "install",
+                  "qiongli-next@qiongli-local",
+                  "--scope",
+                  "user"
+                ]
+              }
+            ]
+          },
+          "ownership": "Not installed",
+          "ownershipState": "not-installed",
+          "nextAction": "install-ready",
+          "evidenceCode": "client-detected-install-ready",
+          "paths": [
+            {
+              "surface": "Client config",
+              "scope": "User",
+              "source": "Official default",
+              "state": "missing",
+              "management": "Supported",
+              "selected": true,
+              "symbolicPath": "<user-home>/.claude"
+            },
+            {
+              "surface": "Skills root",
+              "scope": "User",
+              "source": "Official default",
+              "state": "missing",
+              "management": "Supported",
+              "selected": true,
+              "symbolicPath": "<claude-config>/skills"
+            },
+            {
+              "surface": "Skills root",
+              "scope": "Project",
+              "source": "Current project",
+              "state": "missing",
+              "management": "Supported",
+              "selected": true,
+              "symbolicPath": "<project-root>/.claude/skills"
+            },
+            {
+              "surface": "Marketplace",
+              "scope": "Qiongli managed",
+              "source": "Qiongli managed",
+              "state": "missing",
+              "management": "Supported",
+              "selected": true,
+              "symbolicPath": "<user-home>/.qiongli/plugins/claude-code/qiongli-local/.claude-plugin/marketplace.json"
+            },
+            {
+              "surface": "Plugin source",
+              "scope": "Qiongli managed",
+              "source": "Qiongli managed",
+              "state": "missing",
+              "management": "Supported",
+              "selected": true,
+              "symbolicPath": "<user-home>/.qiongli/plugins/claude-code/qiongli-local/plugins/qiongli-next"
+            },
+            {
+              "surface": "Plugin source",
+              "scope": "Legacy",
+              "source": "Legacy observed",
+              "state": "missing",
+              "management": "Legacy only",
+              "selected": false,
+              "symbolicPath": "<user-home>/.qiongli/plugins/claude-code/qiongli-local/plugins/qiongli"
+            },
+            {
+              "surface": "Skills package",
+              "scope": "User",
+              "source": "Qiongli managed",
+              "state": "missing",
+              "management": "Supported",
+              "selected": true,
+              "symbolicPath": "<claude-config>/skills/qiongli-next"
+            },
+            {
+              "surface": "Skills package",
+              "scope": "Legacy",
+              "source": "Legacy observed",
+              "state": "missing",
+              "management": "Legacy only",
+              "selected": false,
+              "symbolicPath": "<claude-config>/skills/qiongli-workflow"
+            },
+            {
+              "surface": "Standalone MCP",
+              "scope": "Legacy",
+              "source": "Legacy observed",
+              "state": "missing",
+              "management": "Legacy only",
+              "selected": false,
+              "symbolicPath": "<user-home>/.claude.json"
+            }
+          ]
+        }
+      ],
+      "capabilities": {
+        "refresh": true,
+        "skillsMaterialize": true,
+        "integrationDiscovery": true,
+        "integrationPreview": true,
+        "projectLibrary": true,
+        "projectMutation": true,
+        "captureInbox": true,
+        "captureMutation": true,
+        "captureDelivery": true,
+        "captureResolution": true,
+        "academicGraph": true,
+        "portfolio": true,
+        "timeline": true,
+        "orchestrationInspect": true,
+        "orchestrationControl": true,
+        "legacyCredentialCleanup": false,
+        "apply": false
+      }
+    }
+  },
+  "case": {
+    "project_id": "prj_aea711163ab262cf4efdc8735c0c44d1",
+    "project_root": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/work/project",
+    "config_root": "/home/hermes/qiongli-content-quality-20261023-1aciudq0/education-config",
+    "images": [
+      "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/kestin-p3.png",
+      "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/kestin-p4.png",
+      "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/kestin-p5.png",
+      "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/bastani-author-p10.png",
+      "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/bastani-author-p16.png",
+      "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/bastani-author-p18.png"
+    ]
+  },
+  "fixed_denominator": {
+    "writer_processes": 2,
+    "tasks_per_writer": 2,
+    "bilingual_public_units": 2,
+    "synthetic_units": 2,
+    "fresh_model_review_processes": 1,
+    "calibration_review_probes": 3
+  },
+  "attempts": [
+    {
+      "attempt": "education-baseline",
+      "files": {
+        "answer.md": "c82718de63028076f65117fe72a29cbed98624b0c6e7fa807c7ad02706a923e3",
+        "capture.json": "bb66efe007e3e97ea376f04e2ae0631295222a5ab64f154e64151473620a538e",
+        "delivery.json": "51b1284f963a21ee8357e126d5f9c9e8f3ea6a06e01115ffd97e8dd34d481532",
+        "events.jsonl": "c725727a1e99453df9a29bdceddbd124ef7f0b9513093fc3370838b508c571b7",
+        "invocation.json": "a8bf073cce9c36b66606620d6ddaeb5a3bf3edaa49e54f0d169fedcfb6d0b95e",
+        "length-review.json": "82406d413c3ba0aafa4e8275f041fee435002630566691fc549a07652e13104d",
+        "metrics.json": "e090d6cf90876741a5fa3d4b249b015c65d5fcf2de899e9cd7ff8644df618267",
+        "policy.json": "e303334e75c12b53f12160884152cb81cd0fe6c4dc92876183209a56ae7ad738",
+        "policy.stderr": "ab1c1112e4d2f9a6b5744364dada798f143a566d247ab3f84ae458a093c30c67",
+        "preservation-after.json": "17206e2ce40bcdb29f092da05431542ccabc9d44aa7945043e04de71bd015da1",
+        "preservation-before.json": "17206e2ce40bcdb29f092da05431542ccabc9d44aa7945043e04de71bd015da1",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 382.2468393769959,
+        "timeout_seconds": 900,
+        "events_sha256": "c725727a1e99453df9a29bdceddbd124ef7f0b9513093fc3370838b508c571b7",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "metrics": {
+        "tool_call_count": 39,
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 829874,
+          "cached_input_tokens": 748928,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 9704,
+          "reasoning_output_tokens": 3145
+        },
+        "run_outcome": "completed",
+        "read_content_bytes": 246266,
+        "mcp_response_bytes": 274589,
+        "command_output_bytes": 130237,
+        "image_deliveries": [
+          {
+            "call_id": "call_6707311b23e54da5b9c173cfb83e92ef",
+            "sha256": "d09e1c278b2325a600a4a4d160d19ac8d3fc15229a47c7935e3540a8ad92963b",
+            "matches_original": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/bastani-author-p10.png"
+          },
+          {
+            "call_id": "call_6707311b23e54da5b9c173cfb83e92ef",
+            "sha256": "c5c316e74eab4da12534b9b668d41a773194067f7404e69f384677edbc3d5f6c",
+            "matches_original": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/kestin-p3.png"
+          }
+        ],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ],
+        "preservation_equal": true,
+        "document_reads": 22,
+        "lengths": {
+          "中文综述": {
+            "count": 721,
+            "min": 600,
+            "max": 900,
+            "within_range": true
+          },
+          "English review": {
+            "count": 366,
+            "min": 350,
+            "max": 500,
+            "within_range": true
+          },
+          "合成研究讨论": {
+            "count": 330,
+            "min": 250,
+            "max": 400,
+            "within_range": true
+          }
+        }
+      },
+      "delivery": {
+        "rollout_path": "/home/hermes/qiongli-content-quality-20261023-1aciudq0/profiles/education-baseline/sessions/2026/10/23/rollout-2026-10-23T08-11-22-01a167d0-8883-7e52-8f6a-56fd2ab44333.jsonl",
+        "rollout_sha256": "fcc18a2e4f42859d32818d99749e83f6b16ab3e568cae82c24208afc2f28d545",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 14,
+        "truncation_warnings": 2,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      }
+    },
+    {
+      "attempt": "education-candidate",
+      "files": {
+        "answer.md": "2a897c818d01d3541f777ff0fc29a59d842a6e118f70f2163295c01a5415598e",
+        "capture.json": "b99742e08cc7d550e232d1d965a02e258f08336d2eff6cb91ab08014c7f604d5",
+        "delivery.json": "148049b9062fff7800d4b135bffe4b3bf39889dc22aa6ec1b9a14a61ab4411e1",
+        "events.jsonl": "969e3eacbbf55dafa5484daeabb2255f19e2ae93710380f9f73a075a54b0d2dc",
+        "invocation.json": "b5b3126d80ebac7c91f6472b01887607b6be6a43ab24ff9cfea9490306ab8f37",
+        "length-review.json": "461c5ed2082d18d2ae53d856a9ec0cbc1c48579dbeaa060567007b4842cdb289",
+        "metrics.json": "917eb512c25cf5a90a4a40b1725195eca4c7c0e6ec4490405c7f2c3e87acf4c0",
+        "policy.json": "6a702e586a28c0efd6b8ddfd763c6d68671950e0ce5494450be0a19a01f4fb96",
+        "policy.stderr": "5b1245d6b6921890a6c8eba22981d15b00deffbcf33c9bc7764b0fd90fe5e2c7",
+        "preservation-after.json": "17206e2ce40bcdb29f092da05431542ccabc9d44aa7945043e04de71bd015da1",
+        "preservation-before.json": "17206e2ce40bcdb29f092da05431542ccabc9d44aa7945043e04de71bd015da1",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 484.21732185299334,
+        "timeout_seconds": 900,
+        "events_sha256": "969e3eacbbf55dafa5484daeabb2255f19e2ae93710380f9f73a075a54b0d2dc",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "metrics": {
+        "tool_call_count": 33,
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 978463,
+          "cached_input_tokens": 899712,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 10386,
+          "reasoning_output_tokens": 4096
+        },
+        "run_outcome": "completed",
+        "read_content_bytes": 224266,
+        "mcp_response_bytes": 240304,
+        "command_output_bytes": 164302,
+        "image_deliveries": [
+          {
+            "call_id": "call_1718257306c74cda9ebb1e42bf01c282",
+            "sha256": "d09e1c278b2325a600a4a4d160d19ac8d3fc15229a47c7935e3540a8ad92963b",
+            "matches_original": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/bastani-author-p10.png"
+          },
+          {
+            "call_id": "call_1718257306c74cda9ebb1e42bf01c282",
+            "sha256": "68a2fdca1ab45206960cce450c503de4fe540ef3a7e9bcff43ec9338b10147b7",
+            "matches_original": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/bastani-author-p18.png"
+          },
+          {
+            "call_id": "call_698bc6ac3de845b9982d96e7337cb58d",
+            "sha256": "c5c316e74eab4da12534b9b668d41a773194067f7404e69f384677edbc3d5f6c",
+            "matches_original": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/kestin-p3.png"
+          }
+        ],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ],
+        "preservation_equal": true,
+        "document_reads": 18,
+        "lengths": {
+          "中文综述": {
+            "count": 794,
+            "min": 600,
+            "max": 900,
+            "within_range": true
+          },
+          "English review": {
+            "count": 373,
+            "min": 350,
+            "max": 500,
+            "within_range": true
+          },
+          "合成研究讨论": {
+            "count": 369,
+            "min": 250,
+            "max": 400,
+            "within_range": true
+          }
+        }
+      },
+      "delivery": {
+        "rollout_path": "/home/hermes/qiongli-content-quality-20261023-1aciudq0/profiles/education-candidate/sessions/2026/10/23/rollout-2026-10-23T08-12-51-01a167d1-e5d3-7a63-bd7a-79cad0a45760.jsonl",
+        "rollout_sha256": "4190e9e571688ff12409c12362bea1c4b299b57eb7431224b3af37a18ae28cbb",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 15,
+        "truncation_warnings": 2,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      }
+    },
+    {
+      "attempt": "blind-review",
+      "files": {
+        "answer.md": "67d403b05635d811214bdc8305d980e4563d7465f284cfc7abaa46cccb60e685",
+        "capture.json": "6594a52786433d3b864abe23f1b6abab8af12e76a60147e21f76839f9249791a",
+        "delivery.json": "a8a24ff7fe8463222a8fa7929b4d904117794a72bce95362bd6e62b1b7382da3",
+        "events.jsonl": "ca960fe0c35975e38c6a4a7e4f72472afc503a813dbb87c39ac463b4d337a29c",
+        "invocation.json": "139d6c8201dc2d383065844e1da40df500915c2a69faf26371c70464791e9bf8",
+        "metrics.json": "0e9f6c2051048ee7489a8664f8f0479702de1bd7f88b59e354d8cf787fd481de",
+        "policy.json": "4728214cbfc46967666491c4c388f47d9b2a1e88f950de150fabd3965e4af6a8",
+        "policy.stderr": "fdc2dc27f4cf80431e941649496408ee9d45410cfeaee0d2b971a7810336c7c4",
+        "preservation-after.json": "e64a53b08f3f8e715aa24ccc232d6bfec763ff927afebd35db48caee6ee9c0b4",
+        "preservation-before.json": "e64a53b08f3f8e715aa24ccc232d6bfec763ff927afebd35db48caee6ee9c0b4",
+        "stderr.log": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 337.68675025699486,
+        "timeout_seconds": 900,
+        "events_sha256": "ca960fe0c35975e38c6a4a7e4f72472afc503a813dbb87c39ac463b4d337a29c",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "metrics": {
+        "tool_call_count": 14,
+        "failed_tool_calls": 2,
+        "usage": {
+          "input_tokens": 196049,
+          "cached_input_tokens": 159360,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 7875,
+          "reasoning_output_tokens": 3718
+        },
+        "run_outcome": "completed"
+      },
+      "delivery": {
+        "rollout_path": "/home/hermes/qiongli-content-quality-20261023-1aciudq0/profiles/blind-review/sessions/2026/10/23/rollout-2026-10-23T08-21-18-01a167d9-9f0f-7050-8b16-d40438f19bf8.jsonl",
+        "rollout_sha256": "3ed2fd11912a95aa47661cfec0b791e8a460bd00ecc59e71aa12aab3ccee04a9",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 7,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      }
+    }
+  ],
+  "blind_mapping": {
+    "P": "education-candidate",
+    "Q": "education-baseline"
+  },
+  "coordinator_review": {
+    "reviewer": "Coordinator model checks of source-bound outputs and identity-blinded review; no human/expert acceptance.",
+    "blind_review_answer_sha256": "67d403b05635d811214bdc8305d980e4563d7465f284cfc7abaa46cccb60e685",
+    "mapping_revealed_after_review_completed": true,
+    "mapping": {
+      "P": "education-candidate",
+      "Q": "education-baseline"
+    },
+    "judgments": {
+      "all_four_task_outputs": "Six dimensions pass within the supplied scope; no material factual or inferential error found.",
+      "public_review_flow": "tie",
+      "public_review_explanatory_depth": "slight candidate preference",
+      "synthetic_discussion_flow": "slight candidate preference",
+      "synthetic_discussion_explanatory_depth": "tie",
+      "factual_and_inference_fidelity": "tie",
+      "bilingual_substantive_equivalence": "both pass"
+    },
+    "evidence": [
+      {
+        "candidate_span": "互动方式的改善并未伴随可确认的独立考试增益",
+        "basis": "Bastani author PDF Figure 3, pp.17–18 defines non-superficial conversations; Table 1 and pp.10–11 do not show a Tutor exam advantage. This adds a concrete distinction between a process indicator and measured independent performance."
+      },
+      {
+        "candidate_span": "显示这套安排在所测内容上的优势",
+        "baseline_span": "这提示整套教学安排具有改善后测表现的潜力",
+        "basis": "Kestin Results, p.2 and Figure 1/body median distinction. Candidate reports the observed post-test result directly while keeping unaided assessment conditions unresolved; baseline is weaker wording, not a factual failure."
+      },
+      {
+        "candidate_span": "研究支持该安排在所测两周后任务中的识别优势",
+        "basis": "Synthetic Study §S1–S3 supports the scoped 0.8-point result (CI 0.1–1.5), distinct from unmeasured mechanism and duration. Candidate closes on the supported answer; baseline also states the benefit earlier."
+      }
+    ],
+    "review_probes": {
+      "X": "accepted scope-correct measured benefit without stylistic rewrite",
+      "Y": "flagged outcome/time expansion to long-term instrument-operation competence; local repair",
+      "Z": "flagged denial of positive evidence solely because mechanism and long-term evidence are absent; local repair"
+    },
+    "reviewer_image_proof": [
+      {
+        "call_id": "call_e2f23350dc00454687df75e0694aeeb6",
+        "sha256": "d09e1c278b2325a600a4a4d160d19ac8d3fc15229a47c7935e3540a8ad92963b",
+        "matches_original": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/bastani-author-p10.png"
+      },
+      {
+        "call_id": "call_e2f23350dc00454687df75e0694aeeb6",
+        "sha256": "68a2fdca1ab45206960cce450c503de4fe540ef3a7e9bcff43ec9338b10147b7",
+        "matches_original": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/bastani-author-p18.png"
+      },
+      {
+        "call_id": "call_e2f23350dc00454687df75e0694aeeb6",
+        "sha256": "c5c316e74eab4da12534b9b668d41a773194067f7404e69f384677edbc3d5f6c",
+        "matches_original": "/home/hermes/qiongli-public-visual-20261022-r1xsep4w/inputs/images/kestin-p3.png"
+      }
+    ],
+    "reviewer_model_contexts": [
+      {
+        "model": "gpt-6-astra",
+        "effort": "xhigh"
+      }
+    ],
+    "recovery_limit": "The anonymous reviewer had output/source/image evidence, not full project-recovery traces. Coordinator separately checked current project/config maps, native read receipts and actual writer image returns.",
+    "preparation_guard": "An attempted review launch asserted candidate capture readiness before its metrics were available. No reviewer process was started by that command; the sole captured review began after both writer captures completed.",
+    "remaining_limits": [
+      "Same model, one familiar public source pair and one existing synthetic task; no independent expert or held-out cohort.",
+      "Writer outer delivery still has two truncation warnings per run; these writing changes do not claim to repair initial tool discovery or improve speed.",
+      "Observed preferences concern these whole drafts; additional Figure 3 inspection also changes evidence selection, so the rule is not isolated from its downstream reading behavior."
+    ]
+  },
+  "frozen_and_review_files": {
+    "review/blind-inputs.json": "c6c9b706f9bdeaf466a7c59a85f57bc4c2b4cd41735254bfdbdbbd03756cd246",
+    "review/blind-key.json": "a78975602b0a4caa546cbaaf95d253785dd3a13dce01a56850e3c0e4523e36f4",
+    "review/coordinator-review.json": "b275ce6c57e7dafe161244348d219f7349d42fd70d63d011f3b157065f8c86aa",
+    "review/criteria.json": "9f2fc100d01a4f796af60e114fe60e5fbb328d683c0b1e1c8bf3689d2607eac0",
+    "review/frozen-inputs.json": "9aa9a8399db309e8e04841929131cd5204cbbbcfe8339550427173aba826d773",
+    "review/runtime.json": "9bf8ae0c2a84a93f6dc4730c2dbce5930e739854a5c4dbc53c59adff0f69f225",
+    "driver/driver.py": "b3b4496ce2e672e5ffb15814d6ef1b58d73b851c79dca4bf8d76e774543fc5ec",
+    "driver/observe.py": "85fa0a7df835eaed2af32811f51b9331493981e57725d8bccaf77f97df2303c2",
+    "driver/qiongli_quality_blind_review.py": "e7b4393c52ab088b82d80f4cd15f7f9bc6bf85acffd268df220e85f1536c6415",
+    "driver/qiongli_quality_native_checks.py": "873b2909aa616d4871690ea754ad36eda2f27ca46b51e1149159613ddd5961e3",
+    "driver/qiongli_quality_report.py": "8ddd8ad8bf66bd4291c501a1e8b37c86b88eb978c769c28fead4679bf3ede00f",
+    "driver/qiongli_quality_setup.py": "1415fb67a5009e69b08672b166381b5b31c982b47501b5145453a1242aa68da9",
+    "driver/setup.py": "1415fb67a5009e69b08672b166381b5b31c982b47501b5145453a1242aa68da9"
+  },
+  "native_checks_root": "/tmp/qiongli-quality-native-checks",
+  "native_checks": {
+    "pack": {
+      "receipt": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 3.3383432020054897,
+        "timeout_seconds": 1200,
+        "events_sha256": "17dc11c73b04944691c9b4eb7cf4d94f0af3f8e3683abd8740ce57f0df4a314a",
+        "stderr_sha256": "d25b033cf3d2c8b6f1915aed9c6f59a916491b0bce6493a0b08e08602cb1a819"
+      },
+      "sha256": "b17821577a2ee94d9e028de98a3b2d4045865883b666fbf0c2ba1b925b166c04"
+    },
+    "content": {
+      "receipt": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 4.408313406005618,
+        "timeout_seconds": 1200,
+        "events_sha256": "6517d248dd87763584419c6de3fc9f9abc34ebdb54ac73b0f42e6fb97e32e091",
+        "stderr_sha256": "3e86a61e6c2015a79f2fb8673239c9d15740a7dd3e6f32db0c92ff17ab17bba2"
+      },
+      "sha256": "c3ef993241ef58ff858cdbf867173542fa82fac18e0403541f22a22a1d8b40c6"
+    },
+    "cli-embedded": {
+      "receipt": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 86.31832230500004,
+        "timeout_seconds": 1200,
+        "events_sha256": "d370cb98837c22a77253b6f95ccbd02790d2fc99cbf766dd95f05cb87b70c958",
+        "stderr_sha256": "6678e1bf3c4857c9fc43cf09f4248b421f25e228e0ae2e3f13a71d114da43c75"
+      },
+      "sha256": "d4c23438daf1544f7fe90124be222bf9ca22eaed8b0c16fc53b8634c9547f6ac"
+    }
+  },
+  "content_lock": {
+    "compatible_product": {
+      "maximum_exclusive": "3.0.0",
+      "minimum": "2.0.0-alpha.1"
+    },
+    "content_root_sha256": "33570901b2670a3269b87c1bf34ed09dd70aaaf6ff6c6e2f887d52df903eb329",
+    "content_version": "2.5.3",
+    "entry_count": 446,
+    "lock_version": 1,
+    "pack_id": "qiongli-core",
+    "pack_sha256": "a617beb6ee81da078e1a33d8d3c54ba8ced7e09d0ef502ac75c7e76940be5373",
+    "source_commit": "aea773ad9fb62c3035501c16c2dcfdec3eff792c"
+  },
+  "limits": [
+    "One familiar public source set and one existing synthetic record; adaptive instruction development, not representative held-out research or statistical quality evidence.",
+    "Anonymous review uses a fresh context of the same configured model; not human, author, expert or a different model.",
+    "Writers overlap in time and inspect different source windows; latency and tokens do not establish causal speed effects.",
+    "Public project and isolated config remain unchanged; no source retrieval, private manuscript, installation, publication or acceptance promotion.",
+    "Exact hashes and image delivery are separate from quality judgments and complete source-reading coverage."
+  ]
+}

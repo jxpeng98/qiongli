@@ -3859,3 +3859,65 @@ Only CLI-405 progress and the generated index change; task states, dependencies,
 accepted evidence and commit/run fields stay unchanged. No push or publication.
 Next: scoped tool discovery during initial loading, section-size/round-trip
 measurements, a behavior check of search help and author/subject-expert review.
+
+## October 23 — Evidence-led writing quality
+
+The maintainer prioritizes content quality over overall startup speed. The
+[quality observation](../../../evals/research_journey/writing-quality/observations/content-2026-10-23/README.md)
+compares two fresh writer processes on the same saved public education papers
+and the existing fictional cluster-randomized error-identification record.
+Each produces a bilingual literature-review unit and a separate Chinese
+Discussion: four task outputs, not four model runs. Source aea773ad strengthens
+Stage F's supported cross-source answer and scholarly voice's distinction between
+measured findings, unknown mechanisms and longer-term outcomes. Its bilingual
+coating example preserves G4 substantive review versus expression-only J2 scope.
+
+Both guidance trees, task/source/config bytes and criteria are frozen before the
+pair. Only Stage F and scholarly voice differ. Writers retain gpt-6-astra/xhigh,
+use separate read-only profiles limited to their selected guidance and supplied
+sources, and preserve the current project/config. A third fresh process receives
+anonymous P/Q outputs, raw sources and actual image metadata, without identities,
+writer traces, other guidance or MCP access. The mapping is revealed after its
+review completes: P is candidate, Q baseline. This is same-model anonymous review,
+not independent author/expert or installed-Plugin acceptance.
+
+All four task outputs pass six reviewed dimensions. Public-review flow and
+fidelity tie; explanatory depth slightly favors candidate's link between actual
+Bastani Figure 3 interaction measures and the absent confirmed Tutor exam gain.
+Candidate also states Kestin's measured post-test advantage directly while
+retaining unconfirmed unaided-test conditions. Synthetic Discussion flow slightly
+favors candidate's closing supported answer; substantive explanation/fidelity
+are tied. The reviewer accepts a scope-correct positive conclusion and detects
+both long-term/instrument-outcome overstatement and excessive-caution denial of
+the measured result. No original output is replaced by a repaired success.
+
+Baseline/candidate Chinese review counts are 721/794, English 366/373, and Chinese
+Discussion 330/369, all within the frozen targets. They take 382.2/484.2 seconds,
+with 39/33 recorded calls and 22/18 document reads; each retains two outer
+truncation warnings, no script/inner-tool failures. Their different source reading
+and concurrent execution do not establish speed improvement. The 337.7-second
+review has no outer delivery failure and independently receives three original
+images. A premature readiness assertion starts no review process; only the
+completed later review counts. Prior delivery-report length ambiguity is corrected:
+the already loaded default rule gives 506/502/507/531 Chinese characters, all in
+range. Original answers/reviews and their hashes remain unchanged.
+
+The canonical Skill validator and 38 distinct affected tests pass: 14 Python
+routing/saved-document, 16 native content, 1 CLI embedded-pack and 7 ledger/index.
+Bounded native receipts are under /tmp/qiongli-quality-native-checks; processes
+exit successfully, are reaped and leave no group. Frozen input/project maps,
+actual image returns, final lock and removed temporary auth links are verified.
+Cache budget passes at about 1.75 GB listed caches / 72.5 GB free; no cleanup.
+Pack cd9950cf retains 446 resources/version 2.5.3, bound to source
+aea773ad9fb62c3035501c16c2dcfdec3eff792c, content root
+33570901b2670a3269b87c1bf34ed09dd70aaaf6ff6c6e2f887d52df903eb329 and pack
+a617beb6ee81da078e1a33d8d3c54ba8ced7e09d0ef502ac75c7e76940be5373.
+
+Final review covers owners, substantive-versus-language-edit authority, source
+and bilingual fidelity, preserved negative cases and restrained quality claims.
+The frozen-source guard precedes local fast-forward integration into 2.x. Only
+CLI-405 progress/date and the generated index change; task states, dependencies,
+accepted evidence and commit/run fields stay unchanged. No push or publication.
+Next test additional questions and author/expert judgments while keeping the
+supported answer clear without accumulating detail; startup discovery remains
+separate bounded work. The pilot does not establish broad language-quality gains.

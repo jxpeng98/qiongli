@@ -596,5 +596,22 @@
     "Unknown or unmatched outer delivery is explicit; zero observed warnings is not complete resource coverage.",
     "Existing no-image guidance was exercised; historical review is not current inspection.",
     "No installed Plugin, other Host/model, private manuscript, expert, release or program acceptance."
-  ]
+  ],
+  "length_convention_correction": {
+    "date": "2026-10-23",
+    "basis": "Frozen loaded stage-F-writing.md already defines the default Chinese count: non-whitespace Unicode code points including punctuation/digits, excluding source-anchor citations. Earlier coordinator notes incorrectly treated this as unresolved.",
+    "scope": "Chinese body only, excluding headings and recovery notes; only actual claim-anchor citations removed. Original answers and review records retained unchanged.",
+    "counts": {
+      "education-baseline": 506,
+      "education-candidate": 502,
+      "education-bounded": 507,
+      "missing-image-bounded": 531
+    },
+    "requested_range": [
+      400,
+      600
+    ],
+    "all_within_range": true,
+    "quality_implication": "Corrects request-compliance reporting only; not evidence of better argument or language quality."
+  }
 }
