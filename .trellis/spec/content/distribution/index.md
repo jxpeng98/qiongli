@@ -110,6 +110,9 @@ The shared scholarly-voice owner prioritizes readable, concise expression with
 technical fidelity; Stage F checks that the requested unit retains its premises,
 stable meanings and paragraph-to-paragraph argument. These apply across sections,
 without a sentence-length score, word blacklist or required extra review process.
+Long passages carry established limits through precise populations and measures;
+recurring defensive endings are not a paragraph requirement. Bilingual expression
+must preserve the measured quantity, including aggregate versus sustained states.
 Writing cards inherit that contract in full: formal output paths do not require
 extra files for direct prose edits. Literature-map cluster counts, title forms
 and analytical lenses are conditional aids; actual task/venue requirements govern.

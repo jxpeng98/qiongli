@@ -266,7 +266,11 @@ checks as boilerplate to a requested passage.
 
 Check the delivered unit against its opening question and carry the same
 constructs, populations, outcomes and time frames through its later conclusions.
-When the scope changes, explain that change. Check how each paragraph advances
+Keep a measure's definition when compressing it: a total number of days in a
+state does not by itself measure an uninterrupted or durable state. When comparing
+results, attach uncertainty to the actual outcome tested before discussing a
+stronger interpretation. When the scope changes, explain that change. Check how
+each paragraph advances
 the preceding point; a set of individually fluent paragraphs may still fail as a
 section. Within the requested scope, repair a missing link or expose an unresolved
 premise before spending effort on stylistic polish. Do not infer whole-manuscript

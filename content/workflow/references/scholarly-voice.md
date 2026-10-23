@@ -62,8 +62,13 @@ results and performed methods can be stated directly. Keep speculative mechanism
 provisional. A missing premise needs substantive review; neither a fluent bridge
 nor an extra "may" supplies it. Necessary research limits remain where readers
 need them, including independently read abstracts. Repeated boilerplate can be
-removed when the local claim remains accurate. Tool failures, pending checks and
-editor questions belong in the work record or a brief separate note, not inserted
+removed when the local claim remains accurate. In a long passage, carry an
+established limit through the named population, measure or comparison instead of
+ending successive paragraphs with the same defense. Restate it when a new
+inference or independently read passage needs it. A paragraph can advance through
+what the evidence explains or implies; it need not close with another denial.
+Tool failures, pending checks and editor questions belong in the work record or
+a brief separate note, not inserted
 as manuscript prose; never hide a material research limitation there.
 
 Attach a qualification to the claim it limits. Uncertainty about a mechanism or
@@ -170,6 +175,12 @@ flagged. Restore the affected conclusion, not the original awkward framing.
 先理顺段落意思，再调整信息顺序。能用具体动词时，减少“对……进行……”等空架子；
 拆开堆叠的修饰语和“的”字链。主语可省略，但换话题时要明确指代。不要为了避免
 重复而更换关键术语，也不要把所有长句切成短句。
+
+把具体测量写成自然的中文，不照搬英文的抽象名词搭配。例如，指标是天数时，
+“缩短处于无家可归状态的时间”比“减少无家可归暴露”更直接，对应英文
+“reduce time spent homeless”；“改善持久住房稳定性”则增加了持续性的含义。
+语言复核应保留前一种改写，并把后一种含义变化交回实质判断。专业术语有明确
+学科含义时保留它；不能用日常说法换掉实际测量的构念。
 
 “因此”须有原文支持的推论，“然而”须有真实转折。“此外”不能弥补话题脱节。
 保留必要的连接词，不强制排比、四字短语或段末总结。处理中译英、英译中时，
