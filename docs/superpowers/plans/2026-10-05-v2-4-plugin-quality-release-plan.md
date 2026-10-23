@@ -4015,3 +4015,38 @@ progress/date and the generated index change, preserving accepted task fields.
 Integrate locally into 2.x with the frozen-source guard and fast-forward workflow;
 no push, publication or acceptance promotion. Next: author/disciplinary-expert
 judgment and proof-based theory, beyond this single conceptual-framework paper.
+
+## October 23 — Cross-section writing and external polish
+
+The [cross-section observation](../../../evals/research_journey/writing-quality/observations/cross-section-2026-10-23/README.md)
+uses the complete nine-page Doshi/Hauser2024 public paper and Figures 1–4, absent
+from prior local adjustments. It freezes guidance, question, eight-section
+bilingual layout, counting contract and seven review dimensions at 01b20b08.
+The configured Codex writes the original; a real Antigravity turn returns a
+language-edited candidate; a fresh identity-blinded Codex review reads both,
+the source and the matching G4/J2 contracts. All seven dimensions pass for each
+version, with tied flow/argument and a slight language preference for the original.
+No consequential drift or research error is found. The coordinator retains the
+original plus two reviewed expression improvements (2102 Chinese code points /
+1091 English words). Full original/return/review remain; this selection is not
+another blind trial. No canonical writing-rule change is warranted.
+
+Reusable helpers provide explicit measurements, selected-file bindings and
+bounded reads. The shared Antigravity parser now handles schema-mode finish
+completion and a clipped ACTIVE preview, binding the complete terminal payload
+without changing ordinary native/MCP argument checks. Both rejected parses of
+the same successful Host stream remain, with no additional editing run. Actual
+Host version is 1.4.6, corroborated by frozen identity and the run log; its selected
+model is unknown. A mistaken prerequisite version note and ineffective plan-mode
+flag are retained with corrections. Configured models and settings are preserved.
+
+The 62 affected tests pass. Source/manuscript/contract chunks and four original
+images are delivered in both Codex contexts where applicable; one writer alias
+failure, two reviewer shell failures and one reviewer startup-catalog truncation
+remain explicit. Source and manuscript delivery are complete. Version/count/
+cleanup audits, index checks and final diff review accompany local fast-forward
+integration into 2.x. Only CLI-405 progress/date and the generated index change;
+accepted task fields remain untouched. Canonical content, native code and pack
+remain unchanged; no push, publication or acceptance promotion. Next seek author/
+disciplinary-expert judgment and an unseen multi-paper unit. One paper and a
+same-model reviewer cannot establish general gains or named-model superiority.

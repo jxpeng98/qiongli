@@ -1,0 +1,1347 @@
+{
+  "schema_version": "qiongli-cross-section-writing-observation/v1",
+  "date": "2026-10-23",
+  "source_commit": "01b20b08bff903c84c77391654345bc4a0186aa7",
+  "local_root": "/home/hermes/qiongli-cross-section-20261023-l86_pc3x",
+  "identity": {
+    "source_commit": "01b20b08bff903c84c77391654345bc4a0186aa7",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "codex_version": "codex-cli 0.162.1",
+    "codex_sha256": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "antigravity_version": "1.4.6",
+    "model_overrides": false
+  },
+  "scope": "One first-use public empirical paper, eight bilingual sections, one actual external language-editing turn, and one fresh contract-informed review. No installed-Plugin, native research-write or cross-Host recovery acceptance.",
+  "source_retrieval": [
+    {
+      "url": "https://discovery.ucl.ac.uk/id/eprint/10195027/1/Generative%20AI%20enhances%20individual%20creativity%20but%20reduces%20the%20collective%20diversity%20of%20novel%20content.pdf",
+      "discovered_from": "https://discovery.ucl.ac.uk/id/eprint/10195027/",
+      "version": "Published Version per UCL repository",
+      "final_url": "https://discovery.ucl.ac.uk/id/eprint/10195027/1/Generative%20AI%20enhances%20individual%20creativity%20but%20reduces%20the%20collective%20diversity%20of%20novel%20content.pdf",
+      "status": 200,
+      "content_type": "application/pdf",
+      "bytes": 1121881,
+      "sha256": "590cbb34ea052a7b4d12a304320c7cf1bb183f38bf1c5b463ffdc676ef631b85",
+      "pages": 9
+    }
+  ],
+  "first_use_audit": {
+    "args": [
+      "git",
+      "grep",
+      "-n",
+      "-i",
+      "-E",
+      "Doshi2024|sciadv.adn5290|Generative AI enhances individual creativity",
+      "01b20b08bff903c84c77391654345bc4a0186aa7",
+      "--",
+      "content",
+      "evals/research_journey"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "source_rights": "CC BY 4.0, complete Published Version supplied by UCL; supplements, data and separately cited papers not supplied.",
+  "task": {
+    "anchor_pattern": "〔Doshi2024 pp?\\.[^〕]+〕",
+    "anchor_exclusion": "standalone",
+    "languages": [
+      {
+        "heading": "## 中文",
+        "sections": [
+          "### 摘要",
+          "### 引言",
+          "### 相关研究与定位",
+          "### 讨论"
+        ],
+        "unit": "codepoints",
+        "min": 1600,
+        "max": 2400
+      },
+      {
+        "heading": "## English",
+        "sections": [
+          "### Abstract",
+          "### Introduction",
+          "### Related work and positioning",
+          "### Discussion"
+        ],
+        "unit": "words",
+        "min": 1000,
+        "max": 1500
+      }
+    ]
+  },
+  "criteria": {
+    "dimensions": [
+      "request scope and measured layout/length",
+      "cross-section argument and promise/answer consistency",
+      "source-grounded explanatory depth",
+      "idiomatic Chinese and English",
+      "source and figure fidelity",
+      "bilingual substantive equivalence",
+      "necessary qualifications without defensive padding"
+    ],
+    "source_checks": [
+      "The analyzed sample is 293 writers/stories after exclusions from 500 starters; DAT is computable for 291. 600 evaluators are a different sample. Writers produce eight-sentence English stories for a teenage/young-adult audience.",
+      "Randomization gives access to zero/one/up-to-five GPT-4 ideas, not compulsory use or five ideas received by everyone. Intention-to-treat causal claims concern access and rated outputs, not durable acquired human skill or professional-writer productivity.",
+      "Novelty/usefulness are contextual rating constructs, not a universal trait or long-term learning outcome. Higher effects for low-DAT participants do not identify a mechanism from an independently randomized mediator.",
+      "Similarity measures concern embeddings of a story and the mean of other stories within condition. Relative-to-baseline range percentages differ from percentage changes in similarity. Story-to-idea comparisons support anchoring interpretation but do not establish a complete causal mediation analysis.",
+      "Collective-similarity evidence and social-dilemma interpretation have different reach: an industry-wide dynamic spiral was not longitudinally observed. Prompt variation, professional writing and longer stories remain future research.",
+      "Figure 1 design and Figures 2–4 outcomes must retain their units and conditions. Main-text reports of supplementary analyses can be attributed to the paper, but no claim of having inspected missing supplements or independent cited papers."
+    ],
+    "review_scope": "Assess original and returned candidate on each dimension. Compare flow and author usability qualitatively, permitting a tie. Locate exact changed spans for meaning drift; distinguish pre-existing errors from editor-introduced changes. Retain adequate direct wording. Apply the frozen G4/J2 contracts to scope. No counting, keyword density or number of changes establishes quality."
+  },
+  "frozen_inputs": {
+    "path": "review/frozen-inputs.json",
+    "sha256": "45ae3284fcd0e6a8e6632d7c9c6fd0999cb38e54348830242e46bbc375b85a9b",
+    "bytes": 20522
+  },
+  "frozen_handoff": {
+    "files": {
+      "prompt.txt": {
+        "sha256": "f9e5ff1bc6d06e9b5cb9d90fa4a5e1591b0bf9b4d9e8b8f6cc6b2fdc2e4ecb3f",
+        "bytes": 46791
+      },
+      "writing-task.txt": {
+        "sha256": "e2a25bdc58469f9c227db73b2f9e539a7d2bdcc705af3faa6f737cca18ae4779",
+        "bytes": 2457
+      },
+      "length-contract.json": {
+        "sha256": "28249d59852d62801fce8c9e5064ef2a801390da865d97abdf6ff9f6f20c4201",
+        "bytes": 606
+      },
+      "original.md": {
+        "sha256": "69db216f78e618efa0824928b20761287dd7bd0e6c2955b36b8448df72b0615c",
+        "bytes": 13892
+      },
+      "response-schema.json": {
+        "sha256": "185b8f0b7e953151748f593fc421bf7f8633b2369a8254224773255a30cdb388",
+        "bytes": 282
+      },
+      "guidance/scholarly-voice.md": {
+        "sha256": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2",
+        "bytes": 14570
+      },
+      "guidance/human-voice-rewriter.md": {
+        "sha256": "def9f39b33b557dfb1493d4e5979071b54c280e6153db7d3498154373f021d42",
+        "bytes": 9245
+      },
+      "guidance/stage-J-proofread.md": {
+        "sha256": "e6d52ab41701d254afface5e6e41d593051f8894ef50e5e5059a2763589feef9",
+        "bytes": 4935
+      }
+    },
+    "writer_answer_sha256": "69db216f78e618efa0824928b20761287dd7bd0e6c2955b36b8448df72b0615c",
+    "adapter_sha256": "835694837288ca4f9541fbaf4c6ecbbcf92e96be37c618df0f19480c151a0bb3"
+  },
+  "frozen_meaning": {
+    "files": {
+      "prompt.txt": {
+        "sha256": "a0ea6397f7849babee8a3625e772bf8218b2e023f824a297491445c9c7f6376d",
+        "bytes": 2557
+      },
+      "read-index.json": {
+        "sha256": "3e8b8bd26b83fdce511da280d84b619d419cd4203b7b655c10d993dcfed4bd70",
+        "bytes": 1032
+      },
+      "criteria.json": {
+        "sha256": "bbc4ccc663514b0c9eeb94f4ac5bfb8780e05dadd35606eb2802cdfc246ef081",
+        "bytes": 2290
+      },
+      "writing-task.txt": {
+        "sha256": "e2a25bdc58469f9c227db73b2f9e539a7d2bdcc705af3faa6f737cca18ae4779",
+        "bytes": 2457
+      },
+      "editor-questions.json": {
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "bytes": 3
+      },
+      "candidate.md": {
+        "sha256": "74485eb6281b134956fd5231de9c453b2aa913372ada7080089ebef1996360da",
+        "bytes": 15252
+      },
+      "length-contract.json": {
+        "sha256": "28249d59852d62801fce8c9e5064ef2a801390da865d97abdf6ff9f6f20c4201",
+        "bytes": 606
+      },
+      "original.md": {
+        "sha256": "69db216f78e618efa0824928b20761287dd7bd0e6c2955b36b8448df72b0615c",
+        "bytes": 13892
+      },
+      "contracts/scholarly-voice.md": {
+        "sha256": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2",
+        "bytes": 14570
+      },
+      "contracts/stage-J-proofread.md": {
+        "sha256": "e6d52ab41701d254afface5e6e41d593051f8894ef50e5e5059a2763589feef9",
+        "bytes": 4935
+      },
+      "contracts/stage-G-compliance.md": {
+        "sha256": "a72b704ae3038fcd70ae9e890ad09e613bd3877345ffe12524d659657cb171ec",
+        "bytes": 4049
+      },
+      "contracts/tone-normalizer.md": {
+        "sha256": "43ff704172b579b2a7589790e16507c6c246203cb914b874ab5f1231e8fa01de",
+        "bytes": 8639
+      }
+    },
+    "sources": {
+      "README.md": "926c1e9b1a5410cb8cb58906a46515e408e6e3127c9bdfa3e8ae6567a8e15a07",
+      "doshi2024-p2.png": "81db4505a2179cf9c38af2f4d37861f41dcf286f52405a88e8ca77634165f8c5",
+      "doshi2024-p3.png": "6ef84757a8d8d0a5a285ecd0684710afaebc9c6e32bf723a7829758a8fa2b10d",
+      "doshi2024-p4.png": "8af35c2922f15dc72570c77ac9ec96dad9977f7c23e4a0ea18fdb0bf2f4dd47e",
+      "doshi2024-p5.png": "213db442b89026d2f1623848f4142598ef890ff880865de316962fc4778bd035",
+      "doshi2024.md": "31c513815c1fb0c95aabe3f67092e46b5471ab4f2b28276076cb375c06ce8e1b",
+      "doshi2024.pdf": "590cbb34ea052a7b4d12a304320c7cf1bb183f38bf1c5b463ffdc676ef631b85"
+    },
+    "adapter_sha256": "5baa5cc526044e1ceec0eb4aa7af0d3f03c90244fd781332d7cb25b5d60a9072"
+  },
+  "lengths": {
+    "baseline": {
+      "anchor_exclusion": "standalone",
+      "languages": {
+        "## 中文": {
+          "unit": "codepoints",
+          "count": 2102,
+          "min": 1600,
+          "max": 2400,
+          "sections": {
+            "### 摘要": 302,
+            "### 引言": 365,
+            "### 相关研究与定位": 478,
+            "### 讨论": 957
+          },
+          "pass": true
+        },
+        "## English": {
+          "unit": "words",
+          "count": 1090,
+          "min": 1000,
+          "max": 1500,
+          "sections": {
+            "### Abstract": 136,
+            "### Introduction": 189,
+            "### Related work and positioning": 234,
+            "### Discussion": 531
+          },
+          "pass": true
+        }
+      },
+      "pass": true
+    },
+    "candidate": {
+      "anchor_exclusion": "standalone",
+      "languages": {
+        "## 中文": {
+          "unit": "codepoints",
+          "count": 2302,
+          "min": 1600,
+          "max": 2400,
+          "sections": {
+            "### 摘要": 308,
+            "### 引言": 383,
+            "### 相关研究与定位": 504,
+            "### 讨论": 1107
+          },
+          "pass": true
+        },
+        "## English": {
+          "unit": "words",
+          "count": 1192,
+          "min": 1000,
+          "max": 1500,
+          "sections": {
+            "### Abstract": 148,
+            "### Introduction": 200,
+            "### Related work and positioning": 255,
+            "### Discussion": 589
+          },
+          "pass": true
+        }
+      },
+      "pass": true
+    }
+  },
+  "runs": {
+    "baseline": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 491.40613850300724,
+        "timeout_seconds": 1200,
+        "events_sha256": "0f5bf74a5383132b38ac8837143ea83cc4108c5db643af7563e8d07904dd83f8",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "answer": {
+        "path": "runs/baseline/answer.md",
+        "sha256": "69db216f78e618efa0824928b20761287dd7bd0e6c2955b36b8448df72b0615c",
+        "bytes": 13892
+      },
+      "trace_summary": {
+        "tool_call_count": 36,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 1,
+        "usage": {
+          "input_tokens": 1852933,
+          "cached_input_tokens": 1779968,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 14823,
+          "reasoning_output_tokens": 2979
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "delivery": {
+        "rollout_sha256": "37757f343f8f8851a244cb3f4dd82651edd937640f61228f3334e367cd927fca",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 43,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "model_contexts": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "preservation_equal": true,
+      "original_image_sha256": [
+        "81db4505a2179cf9c38af2f4d37861f41dcf286f52405a88e8ca77634165f8c5",
+        "6ef84757a8d8d0a5a285ecd0684710afaebc9c6e32bf723a7829758a8fa2b10d",
+        "8af35c2922f15dc72570c77ac9ec96dad9977f7c23e4a0ea18fdb0bf2f4dd47e",
+        "213db442b89026d2f1623848f4142598ef890ff880865de316962fc4778bd035"
+      ],
+      "failed_commands": [
+        {
+          "id": "item_3",
+          "exit_code": 127,
+          "command": "/bin/zsh -lc 'python /home/hermes/qiongli-cross-section-20261023-l86_pc3x/inputs/tools/writing_observation.py read /home/hermes/qiongli-cross-section-20261023-l86_pc3x/sources/README.md --sha256 926c1e9b1a5410cb8cb58906a46515e408e6e3127c9bdfa3e8ae6567a8e15a07 --offset 0'",
+          "error": "zsh:1: command not found: python\n"
+        }
+      ],
+      "bounded_read_coverage": [
+        {
+          "file": "sources/README.md",
+          "sha256": "926c1e9b1a5410cb8cb58906a46515e408e6e3127c9bdfa3e8ae6567a8e15a07",
+          "spans": [
+            [
+              0,
+              661
+            ]
+          ],
+          "total_codepoints": 661,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/read-index.json",
+          "sha256": "cadd261fd5c272fa4749c9393170d5dbd437450e9aff56e7330b51a129dbf023",
+          "spans": [
+            [
+              0,
+              1456
+            ]
+          ],
+          "total_codepoints": 1456,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/SKILL.md",
+          "sha256": "eb5300a9fbdb2ba6c85bf2529c87084a742c9954acd277f4e54a0c46673391d1",
+          "spans": [
+            [
+              0,
+              5657
+            ],
+            [
+              5657,
+              11377
+            ],
+            [
+              11377,
+              17087
+            ],
+            [
+              17087,
+              18779
+            ]
+          ],
+          "total_codepoints": 18779,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/length-contract.json",
+          "sha256": "28249d59852d62801fce8c9e5064ef2a801390da865d97abdf6ff9f6f20c4201",
+          "spans": [
+            [
+              0,
+              570
+            ]
+          ],
+          "total_codepoints": 570,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/workflows/academic-write.md",
+          "sha256": "9c3851f72dcf2c2e56a12c82793c94a4fe871b493677e1ae93195fcb1370d0ce",
+          "spans": [
+            [
+              0,
+              4673
+            ]
+          ],
+          "total_codepoints": 4673,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/stage-F-writing.md",
+          "sha256": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+          "spans": [
+            [
+              0,
+              5698
+            ],
+            [
+              5698,
+              11404
+            ],
+            [
+              11404,
+              17111
+            ],
+            [
+              17111,
+              22789
+            ],
+            [
+              22789,
+              26515
+            ]
+          ],
+          "total_codepoints": 26515,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/evidence-verification.md",
+          "sha256": "e9248631a8994817d1f84bcdf70968d1053f97bd371afca9b42d6d76dbef39bd",
+          "spans": [
+            [
+              0,
+              5719
+            ],
+            [
+              5719,
+              11440
+            ],
+            [
+              11440,
+              14259
+            ]
+          ],
+          "total_codepoints": 14259,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/citation-risk-policy.md",
+          "sha256": "4501942a0bb29fb9bcee6f2af3245f5221db79d4d96ce4a2518ad4f08a145aca",
+          "spans": [
+            [
+              0,
+              3988
+            ]
+          ],
+          "total_codepoints": 3988,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/scholarly-voice.md",
+          "sha256": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2",
+          "spans": [
+            [
+              0,
+              5701
+            ],
+            [
+              5701,
+              10602
+            ],
+            [
+              10602,
+              12436
+            ]
+          ],
+          "total_codepoints": 12436,
+          "full_text_delivered": true
+        },
+        {
+          "file": "sources/doshi2024.md",
+          "sha256": "31c513815c1fb0c95aabe3f67092e46b5471ab4f2b28276076cb375c06ce8e1b",
+          "spans": [
+            [
+              0,
+              5679
+            ],
+            [
+              5679,
+              11299
+            ],
+            [
+              11299,
+              16929
+            ],
+            [
+              16929,
+              22576
+            ],
+            [
+              22576,
+              28252
+            ],
+            [
+              28252,
+              33918
+            ],
+            [
+              33918,
+              39579
+            ],
+            [
+              39579,
+              45251
+            ],
+            [
+              45251,
+              50847
+            ],
+            [
+              50847,
+              55654
+            ]
+          ],
+          "total_codepoints": 55654,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/academic-output-rubric.md",
+          "sha256": "b1528f4a983bb865da0e49eeac1b9f4281523ca1dad43d3522ad133ef1ca1c65",
+          "spans": [
+            [
+              0,
+              4368
+            ]
+          ],
+          "total_codepoints": 4368,
+          "full_text_delivered": true
+        }
+      ]
+    },
+    "meaning": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 395.1550538929878,
+        "timeout_seconds": 1200,
+        "events_sha256": "2de008ff4c623947447850e30002d1a1db271cb7b534b27725c2a3fd6617f39d",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "answer": {
+        "path": "runs/meaning/answer.md",
+        "sha256": "a4caf13b9ba01d7946067411385871420044933516e19eb9d88efee1cfd77742",
+        "bytes": 10057
+      },
+      "trace_summary": {
+        "tool_call_count": 39,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 2,
+        "usage": {
+          "input_tokens": 1818829,
+          "cached_input_tokens": 1749760,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 10199,
+          "reasoning_output_tokens": 2229
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "delivery": {
+        "rollout_sha256": "05070119d2f45757acefe7ff444103d9ad211683679ecdc547c1ff5084cec22e",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 42,
+        "truncation_warnings": 1,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "model_contexts": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "preservation_equal": true,
+      "original_image_sha256": [
+        "81db4505a2179cf9c38af2f4d37861f41dcf286f52405a88e8ca77634165f8c5",
+        "6ef84757a8d8d0a5a285ecd0684710afaebc9c6e32bf723a7829758a8fa2b10d",
+        "8af35c2922f15dc72570c77ac9ec96dad9977f7c23e4a0ea18fdb0bf2f4dd47e",
+        "213db442b89026d2f1623848f4142598ef890ff880865de316962fc4778bd035"
+      ],
+      "failed_commands": [
+        {
+          "id": "item_2",
+          "exit_code": 127,
+          "command": "/bin/zsh -lc \"python -c 'from pathlib import Path; print(Path(\\\"/home/hermes/qiongli-cross-section-20261023-l86_pc3x/meaning-inputs/read-index.json\\\").read_text()[:30000])'\"",
+          "error": "zsh:1: command not found: python\n"
+        },
+        {
+          "id": "item_5",
+          "exit_code": 1,
+          "command": "/bin/zsh -lc \"python3 - <<'PY'\nfrom pathlib import Path\nimport hashlib\nbase=Path('/home/hermes/qiongli-cross-section-20261023-l86_pc3x')\nfor name in ['meaning-inputs/original.md','meaning-inputs/candidate.md','meaning-inputs/writing-task.txt','meaning-inputs/criteria.json','meaning-inputs/length-contract.json','meaning-inputs/editor-questions.json','meaning-inputs/prompt.txt','sources/README.md']:\n p=base/name\n data=p.read_bytes()\n print(name, len(data), hashlib.sha256(data).hexdigest())\nPY\"",
+          "error": "zsh:1: can't create temp file for here document: no such file or directory\n"
+        }
+      ],
+      "bounded_read_coverage": [
+        {
+          "file": "meaning-inputs/criteria.json",
+          "sha256": "bbc4ccc663514b0c9eeb94f4ac5bfb8780e05dadd35606eb2802cdfc246ef081",
+          "spans": [
+            [
+              0,
+              2288
+            ]
+          ],
+          "total_codepoints": 2288,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/task.txt",
+          "sha256": "e2a25bdc58469f9c227db73b2f9e539a7d2bdcc705af3faa6f737cca18ae4779",
+          "spans": [
+            [
+              0,
+              2443
+            ]
+          ],
+          "total_codepoints": 2443,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/length-contract.json",
+          "sha256": "28249d59852d62801fce8c9e5064ef2a801390da865d97abdf6ff9f6f20c4201",
+          "spans": [
+            [
+              0,
+              570
+            ]
+          ],
+          "total_codepoints": 570,
+          "full_text_delivered": true
+        },
+        {
+          "file": "meaning-inputs/editor-questions.json",
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "spans": [
+            [
+              0,
+              3
+            ]
+          ],
+          "total_codepoints": 3,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/stage-G-compliance.md",
+          "sha256": "a72b704ae3038fcd70ae9e890ad09e613bd3877345ffe12524d659657cb171ec",
+          "spans": [
+            [
+              0,
+              3997
+            ]
+          ],
+          "total_codepoints": 3997,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/stage-J-proofread.md",
+          "sha256": "e6d52ab41701d254afface5e6e41d593051f8894ef50e5e5059a2763589feef9",
+          "spans": [
+            [
+              0,
+              4915
+            ]
+          ],
+          "total_codepoints": 4915,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/references/scholarly-voice.md",
+          "sha256": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2",
+          "spans": [
+            [
+              0,
+              5701
+            ],
+            [
+              5701,
+              10602
+            ],
+            [
+              10602,
+              12436
+            ]
+          ],
+          "total_codepoints": 12436,
+          "full_text_delivered": true
+        },
+        {
+          "file": "inputs/guidance/skills/G_compliance/tone-normalizer.md",
+          "sha256": "43ff704172b579b2a7589790e16507c6c246203cb914b874ab5f1231e8fa01de",
+          "spans": [
+            [
+              0,
+              5659
+            ],
+            [
+              5659,
+              8314
+            ]
+          ],
+          "total_codepoints": 8314,
+          "full_text_delivered": true
+        },
+        {
+          "file": "meaning-inputs/prompt.txt",
+          "sha256": "a0ea6397f7849babee8a3625e772bf8218b2e023f824a297491445c9c7f6376d",
+          "spans": [
+            [
+              0,
+              2557
+            ]
+          ],
+          "total_codepoints": 2557,
+          "full_text_delivered": true
+        },
+        {
+          "file": "meaning-inputs/original.md",
+          "sha256": "69db216f78e618efa0824928b20761287dd7bd0e6c2955b36b8448df72b0615c",
+          "spans": [
+            [
+              0,
+              2126
+            ],
+            [
+              2126,
+              7737
+            ],
+            [
+              7737,
+              10054
+            ]
+          ],
+          "total_codepoints": 10054,
+          "full_text_delivered": true
+        },
+        {
+          "file": "meaning-inputs/candidate.md",
+          "sha256": "74485eb6281b134956fd5231de9c453b2aa913372ada7080089ebef1996360da",
+          "spans": [
+            [
+              0,
+              2114
+            ],
+            [
+              2114,
+              7349
+            ],
+            [
+              7349,
+              11012
+            ]
+          ],
+          "total_codepoints": 11012,
+          "full_text_delivered": true
+        },
+        {
+          "file": "sources/README.md",
+          "sha256": "926c1e9b1a5410cb8cb58906a46515e408e6e3127c9bdfa3e8ae6567a8e15a07",
+          "spans": [
+            [
+              0,
+              661
+            ]
+          ],
+          "total_codepoints": 661,
+          "full_text_delivered": true
+        },
+        {
+          "file": "sources/doshi2024.md",
+          "sha256": "31c513815c1fb0c95aabe3f67092e46b5471ab4f2b28276076cb375c06ce8e1b",
+          "spans": [
+            [
+              0,
+              5679
+            ],
+            [
+              5679,
+              11299
+            ],
+            [
+              11299,
+              16929
+            ],
+            [
+              16929,
+              22576
+            ],
+            [
+              22576,
+              28252
+            ],
+            [
+              28252,
+              33918
+            ],
+            [
+              33918,
+              39579
+            ],
+            [
+              39579,
+              45251
+            ],
+            [
+              45251,
+              50847
+            ],
+            [
+              50847,
+              55654
+            ]
+          ],
+          "total_codepoints": 55654,
+          "full_text_delivered": true
+        }
+      ]
+    },
+    "antigravity": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 48.18438255300862,
+        "timeout_seconds": 630,
+        "events_sha256": "8eb2a070edce416d962890db01c0d826117e51379d2e898589b162fad801ac7f",
+        "stderr_sha256": "3a7f8550106d86abb322e8ed0fb30a0296c0e97c6be03d5a8033b99d16737459"
+      },
+      "answer": {
+        "path": "runs/antigravity/answer.md",
+        "sha256": "74485eb6281b134956fd5231de9c453b2aa913372ada7080089ebef1996360da",
+        "bytes": 15252
+      },
+      "trace_metrics": {
+        "checks": {
+          "complete_stream": true,
+          "host_success": true,
+          "single_completed_turn": true,
+          "no_permission_denial": true
+        },
+        "calls": [],
+        "structured_finishes": [
+          {
+            "step_index": 2,
+            "started_event": 3,
+            "completed_event": 4,
+            "parameters_sha256": "2754045d1e926ef8d1001a9c347eaef6014ac6d1353fb6a16be4ac7ac8ae0e72",
+            "parameters_are_complete": false,
+            "output_sha256": "13dd6751b0760fb1ee0c448672d4b95c5de078415fb81f7dea352d2cd309ac65"
+          }
+        ],
+        "pending_steps": [],
+        "problems": [],
+        "usage": {
+          "input_tokens": 16750,
+          "output_tokens": 3527,
+          "thinking_tokens": 502,
+          "cache_read_tokens": 0,
+          "total_tokens": 20277
+        },
+        "reported_model_fields": [],
+        "scope": "Text-turn completion only; no native status, semantic fidelity or model inference."
+      },
+      "preservation": {
+        "inputs_unchanged": true,
+        "settings_before_sha256": "9ed1c60873721d012d70340638025c1979c95a1ba80c61a54f6472b6d29d0b56",
+        "settings_after_sha256": "9ed1c60873721d012d70340638025c1979c95a1ba80c61a54f6472b6d29d0b56",
+        "workspace_files": {}
+      },
+      "questions": [],
+      "first_parse": {
+        "checks": {
+          "complete_stream": false,
+          "host_success": true,
+          "single_completed_turn": true,
+          "no_permission_denial": true
+        },
+        "calls": [],
+        "pending_steps": [
+          2
+        ],
+        "problems": [
+          {
+            "event_index": 4,
+            "reason": "invalid-or-truncated-event"
+          }
+        ],
+        "usage": {
+          "input_tokens": 16750,
+          "output_tokens": 3527,
+          "thinking_tokens": 502,
+          "cache_read_tokens": 0,
+          "total_tokens": 20277
+        },
+        "reported_model_fields": [],
+        "scope": "Text-turn completion only; no native status, semantic fidelity or model inference."
+      },
+      "second_parse": {
+        "checks": {
+          "complete_stream": false,
+          "host_success": true,
+          "single_completed_turn": true,
+          "no_permission_denial": true
+        },
+        "calls": [],
+        "structured_finishes": [],
+        "pending_steps": [],
+        "problems": [
+          {
+            "event_index": 4,
+            "reason": "unbound-structured-finish"
+          }
+        ],
+        "usage": {
+          "input_tokens": 16750,
+          "output_tokens": 3527,
+          "thinking_tokens": 502,
+          "cache_read_tokens": 0,
+          "total_tokens": 20277
+        },
+        "reported_model_fields": [],
+        "scope": "Text-turn completion only; no native status, semantic fidelity or model inference."
+      }
+    }
+  },
+  "review": {
+    "original_verdicts": {
+      "request scope and measured layout/length": {
+        "verdict": "pass",
+        "reason": "The required language and section headings appear in the specified order, with connected analytical prose and no editorial additions. Frozen-contract measurements give 2102 Chinese code points and 1090 English words, both within bounds."
+      },
+      "cross-section argument and promise/answer consistency": {
+        "verdict": "pass",
+        "reason": "Both languages carry the Introduction’s question through construct definitions to a supported Discussion answer: individual ratings and differences across a collection measure different properties. The abstracts retain the unresolved mechanism and limits on long-term cultural conclusions. Proposed experiments remain proposals."
+      },
+      "source-grounded explanatory depth": {
+        "verdict": "pass",
+        "reason": "The article explains why higher perceived novelty need not imply greater separation among stories, connects heterogeneous benefits to evaluation, and develops explicit recommendations about reporting and weighting. Its discussion of anchoring distinguishes a plausible explanation from an identified mechanism (paper pp.1, 4–7). This provides analysis beyond numerical summary."
+      },
+      "idiomatic Chinese and English": {
+        "verdict": "pass",
+        "reason": "Both versions are readable and coherent, with clear subjects, stable terminology and useful transitions. Minor expressions such as '这一推论省略了' are less idiomatic than available alternatives but do not constitute a language failure."
+      },
+      "source and figure fidelity": {
+        "verdict": "pass",
+        "reason": "The analyzed 293 stories and separate 600 evaluators match p.2/Figure 1 and pp.7–8. Access remains optional and capped at one or five ideas. The 8.1%/9.0% gains match p.3/Figure 2; DAT heterogeneity matches p.4/Figure 3. The 0.871/0.718 increases retain the scaled-similarity units and comparison defined on p.4 and shown in Figure 4 on p.5. No consequential source error was identified."
+      },
+      "bilingual substantive equivalence": {
+        "verdict": "pass",
+        "reason": "Chinese and English preserve the same findings, analytical distinction, attribution, mechanism uncertainty, evaluation recommendations and proposed follow-up tests. Differences in sentence construction do not change consequential claims."
+      },
+      "necessary qualifications without defensive padding": {
+        "verdict": "pass",
+        "reason": "Qualifications address distinct inferential boundaries: access versus actual use, rated outputs versus durable ability, contextual usefulness versus publication success, similarity versus mechanism, and experimental convergence versus long-term cultural loss (pp.1–8). They do not negate the supported improvements or overwhelm the argument."
+      }
+    },
+    "candidate_verdicts": {
+      "request scope and measured layout/length": {
+        "verdict": "pass",
+        "reason": "The required headings, order and analytical format are preserved. Frozen-contract measurements give 2302 Chinese code points and 1192 English words, both within bounds."
+      },
+      "cross-section argument and promise/answer consistency": {
+        "verdict": "pass",
+        "reason": "The candidate preserves the original question, constructs, evidential scope and concluding answer in both languages. Each abstract still distinguishes supported output improvements from unresolved psychological mechanisms and unestablished long-term cultural decline."
+      },
+      "source-grounded explanatory depth": {
+        "verdict": "pass",
+        "reason": "The candidate retains the substantive explanation connecting individual ratings, distributional benefits and collection diversity, together with testable research implications. Added transitions make some relationships more explicit but do not supply new evidence or materially deepen the argument (paper pp.1, 4–7)."
+      },
+      "idiomatic Chinese and English": {
+        "verdict": "pass",
+        "reason": "Both languages remain fluent. Some edits improve idiom and sentence integration, including '忽略了作品之间的关系' and '293 eight-sentence stories'. Other choices, such as 'scope conditions' and '需要说明的是', add formality without a corresponding clarity gain, but remain acceptable."
+      },
+      "source and figure fidelity": {
+        "verdict": "pass",
+        "reason": "The candidate preserves the samples, optional-access design, rating percentages, similarity-point units and figure interpretations verified against pp.2–5 and Figures 1–4. 'Non-professional participants' is supported by the paper’s population discussion on p.6. No consequential editor-introduced factual drift was identified."
+      },
+      "bilingual substantive equivalence": {
+        "verdict": "pass",
+        "reason": "Both languages retain equivalent answers, numerical findings, beneficiary differences, uncertainty and recommendations. Neither language silently turns the proposed workflow or unaided follow-up studies into established findings."
+      },
+      "necessary qualifications without defensive padding": {
+        "verdict": "pass",
+        "reason": "The candidate retains the consequential qualifications while stating measured improvements directly. The anchoring account remains provisional, and the social dilemma remains an interpretation rather than an observed longitudinal spiral (pp.5–7). Occasional extra framing is stylistic, not materially defensive."
+      }
+    },
+    "comparison": {
+      "flow": {
+        "preference": "tie",
+        "rationale": "Both follow a coherent progression from the evaluation question through research positioning and measurement to findings and implications. The candidate improves several local connections; the original often reaches the same point more directly. Neither has a consequential continuity gap."
+      },
+      "argument": {
+        "preference": "tie",
+        "rationale": "The substantive reasoning and explanatory depth are essentially unchanged. Both answer how the outcomes can coexist without claiming that the psychological mechanism has been established. No consequential editing drift or pre-existing source or argument error was identified."
+      },
+      "language": {
+        "preference": "original, slightly",
+        "rationale": "The original generally uses more direct language, particularly in English. The candidate contains sound local improvements worth retaining, but some expansions introduce more abstract phrasing without improving precision. This is a style preference, not a factual or acceptance distinction."
+      }
+    },
+    "findings": [
+      {
+        "kind": "style-preference",
+        "original_span": "这一推论省略了作品之间的关系",
+        "candidate_span": "这一推论忽略了作品之间的关系",
+        "consequence": "The candidate uses a more natural verb for an inference that overlooks a relevant consideration. The premise and argumentative role remain unchanged; retain the edit.",
+        "source": "Both versions, Chinese Introduction, first paragraph; paper pp.4–5 distinguishes individual evaluations from story similarity. Frozen scholarly-voice.md permits idiomatic changes that preserve the premise."
+      },
+      {
+        "kind": "style-preference",
+        "original_span": "Their final analysis included 293 stories of eight sentences, evaluated by 600 separate participants. The main assessments preceded disclosure of AI use.",
+        "candidate_span": "Their final analysis included 293 eight-sentence stories evaluated by 600 separate participants, with the primary assessments completed before any disclosure of AI use.",
+        "consequence": "The compound modifier and sentence integration are sound. The candidate preserves the analyzed story count, separate evaluator sample and assessment sequence; retain the edit.",
+        "source": "Both versions, English Introduction, second paragraph; paper p.2/Figure 1 and pp.7–8."
+      },
+      {
+        "kind": "style-preference",
+        "original_span": "The boundaries of short fiction, ordinary participants, and a single task also restrict conclusions about professional creation and lasting changes in ability.",
+        "candidate_span": "The scope conditions of brief stories, non-professional participants, and a single task likewise limit inferences about professional authorship or durable changes in skill.",
+        "consequence": "The limitations remain substantively equivalent, and 'non-professional' has source support. The original is somewhat plainer than 'scope conditions' and 'durable changes in skill'; this preference does not warrant a meaning repair.",
+        "source": "Both versions, English Discussion, third paragraph; paper pp.6–7 describes the constrained task and distinguishes the sample from professional writers."
+      },
+      {
+        "kind": "style-preference",
+        "original_span": "这些是本文提出的检验，而非现有结果。",
+        "candidate_span": "需要说明的是，这些属于本文提出的后续检验，而非既有实验结论。",
+        "consequence": "Both clearly distinguish proposals from results. The candidate’s introductory framing adds no substantive qualification, so the original is more direct. No factual or meaning correction is required.",
+        "source": "Both versions, Chinese Discussion, final paragraph; paper pp.6–7 separates existing findings from future research. Frozen G4/J2 contracts do not require replacing valid wording solely to enforce a style preference."
+      }
+    ],
+    "repairs": [],
+    "limitations": [
+      "The complete nine-page paper was read through the supplied page-labelled extraction; original pages 2–5 containing Figures 1–4 were visually inspected. Other pages were not supplied as images.",
+      "Supplementary materials, underlying datasets and separately cited publications were not supplied. This assessment checks fidelity to the published paper and its figures; it does not independently reproduce its analyses or verify the cited literature."
+    ]
+  },
+  "selection": {
+    "kind": "coordinator editorial selection, not a semantic repair or new model trial",
+    "source_versions": {
+      "original": {
+        "sha256": "69db216f78e618efa0824928b20761287dd7bd0e6c2955b36b8448df72b0615c",
+        "bytes": 13892
+      },
+      "candidate": {
+        "sha256": "74485eb6281b134956fd5231de9c453b2aa913372ada7080089ebef1996360da",
+        "bytes": 15252
+      },
+      "review": {
+        "sha256": "a4caf13b9ba01d7946067411385871420044933516e19eb9d88efee1cfd77742",
+        "bytes": 10057
+      },
+      "task": {
+        "sha256": "e2a25bdc58469f9c227db73b2f9e539a7d2bdcc705af3faa6f737cca18ae4779",
+        "bytes": 2457
+      },
+      "contract": {
+        "sha256": "28249d59852d62801fce8c9e5064ef2a801390da865d97abdf6ff9f6f20c4201",
+        "bytes": 606
+      },
+      "source": {
+        "sha256": "590cbb34ea052a7b4d12a304320c7cf1bb183f38bf1c5b463ffdc676ef631b85",
+        "bytes": 1121881
+      }
+    },
+    "decision": "Retain original as base; adopt only two already-reviewed idiomatic edits. Preserve remaining correct direct wording and all necessary qualifications.",
+    "semantic_repairs": [],
+    "edits": [
+      {
+        "old": "这一推论省略了作品之间的关系",
+        "new": "这一推论忽略了作品之间的关系",
+        "rationale": "The candidate uses a more natural verb for an inference that overlooks a relevant consideration. The premise and argumentative role remain unchanged; retain the edit.",
+        "source": "Both versions, Chinese Introduction, first paragraph; paper pp.4–5 distinguishes individual evaluations from story similarity. Frozen scholarly-voice.md permits idiomatic changes that preserve the premise."
+      },
+      {
+        "old": "Their final analysis included 293 stories of eight sentences, evaluated by 600 separate participants. The main assessments preceded disclosure of AI use.",
+        "new": "Their final analysis included 293 eight-sentence stories evaluated by 600 separate participants, with the primary assessments completed before any disclosure of AI use.",
+        "rationale": "The compound modifier and sentence integration are sound. The candidate preserves the analyzed story count, separate evaluator sample and assessment sequence; retain the edit.",
+        "source": "Both versions, English Introduction, second paragraph; paper p.2/Figure 1 and pp.7–8."
+      }
+    ],
+    "accepted": {
+      "path": "review/accepted.md",
+      "sha256": "03d6623f8ee1ac9a979310e8f7285faba9279d81e75c8363645829d88b8ca9c0"
+    },
+    "length": {
+      "anchor_exclusion": "standalone",
+      "languages": {
+        "## 中文": {
+          "unit": "codepoints",
+          "count": 2102,
+          "min": 1600,
+          "max": 2400,
+          "sections": {
+            "### 摘要": 302,
+            "### 引言": 365,
+            "### 相关研究与定位": 478,
+            "### 讨论": 957
+          },
+          "pass": true
+        },
+        "## English": {
+          "unit": "words",
+          "count": 1091,
+          "min": 1000,
+          "max": 1500,
+          "sections": {
+            "### Abstract": 136,
+            "### Introduction": 190,
+            "### Related work and positioning": 234,
+            "### Discussion": 531
+          },
+          "pass": true
+        }
+      },
+      "pass": true
+    },
+    "whole_selected_version_model_review": false,
+    "review_scope": "Both source versions and these two exact edits were independently reviewed; the coordinator verifies the exact replacement and unchanged remaining bytes."
+  },
+  "parser_repair": {
+    "cause": "Schema output starts step 2 as tool finish and completes it as step_type finish without DONE tool_info. The old shared validator treated this as unknown and left the step pending.",
+    "repair": "Match the active finish step and bind it to equal init/result schemas and terminal structured_output/decoded response; bind the observed 512-character-plus-ellipsis ACTIVE preview without treating it as complete output. Preserve unmatched, stale, foreign, failed and denied negative cases.",
+    "original_metrics": "/home/hermes/qiongli-cross-section-20261023-l86_pc3x/runs/antigravity/trace-metrics.json",
+    "reparsed_metrics": "/home/hermes/qiongli-cross-section-20261023-l86_pc3x/runs/antigravity/trace-metrics-reparsed-v2.json",
+    "raw_events_sha256": "8eb2a070edce416d962890db01c0d826117e51379d2e898589b162fad801ac7f",
+    "new_status_adapter_sha256": "c8daf7ea8416c46584a47d4ecdc4a5c2a5db8a089d77df323b4fb71cfaa51453",
+    "new_writing_adapter_sha256": "5baa5cc526044e1ceec0eb4aa7af0d3f03c90244fd781332d7cb25b5d60a9072",
+    "model_rerun": false,
+    "host_warning": "--mode plan has no effect while slash command expansion is disabled. Actual init permission_mode=request-review; sandbox flag retained; only structured finish occurred, no external tool calls. Do not claim effective plan mode."
+  },
+  "version_correction": {
+    "frozen_identity": "1.4.6",
+    "actual_log_version": "1.4.6",
+    "prerequisite_note_version": "1.4.3",
+    "resolution": "Use frozen --version and actual run log; retain incorrect prerequisite note."
+  },
+  "prerequisites": {
+    "antigravity_models_initial_attempt": {
+      "outcome": "failed in outer filesystem/socket sandbox",
+      "exit_code": 1,
+      "reason": "Host log path read-only and local loopback socket not permitted"
+    },
+    "antigravity_models_host_retry": {
+      "outcome": "completed",
+      "exit_code": 0,
+      "version": "1.4.3",
+      "selection_override": false,
+      "note": "Available model list does not identify the selected model."
+    },
+    "source_web_fetch": {
+      "outcome": "PDF link resolved but browser fetch timed out",
+      "fallback": "Direct download of that exact UCL Published Version URL succeeded; recorded in retrieval.json."
+    }
+  },
+  "execution_note": "One meaning-review ALL_TOOLS metadata dump was truncated. Source, manuscript and guidance chunks were separately delivered without outer truncation. The initial zero-warning audit assumption failed and is retained as a diagnostic, not a Host or writing failure.",
+  "checks": {
+    "command": "python3 -m unittest tests.test_writing_observation tests.test_antigravity_observation tests.test_research_journey_evals tests.test_research_journey_observations tests.test_program_roadmap",
+    "tests_passed": 62,
+    "test_log": {
+      "path": "review/affected-tests.log",
+      "sha256": "3563f52d8464126b0e04094bb7929b031c06915a9365542391cd55fe7ff88dd1",
+      "bytes": 162
+    },
+    "evidence_audit": {
+      "path": "review/evidence-audit.json",
+      "sha256": "e32d02604dcda1dfc2cc0f66e3d9b0721c499b5523f4c48935ea64eb5c0ac482",
+      "bytes": 65526
+    },
+    "selected_bindings_unchanged": true,
+    "temporary_auth_links_removed": true,
+    "frozen_reader_counter_binding_functions_match_final_ast": true,
+    "final_program_tests_passed": 7,
+    "generated_index_current_for_tasks": 249,
+    "final_program_log_sha256": "6264184abb033fe3ae2ff26474640ffc5fb5bba58919be127bc72374876b649d",
+    "initial_frozen_inputs_and_criteria_unchanged": true,
+    "final_diff_review": "No remaining actionable findings against 01b20b08; live formatter behavior covers Antigravity 1.4.6 only. Other versions and disciplinary expert judgments remain unverified."
+  },
+  "artifacts": {
+    "sources/doshi2024.md": {
+      "path": "sources/doshi2024.md",
+      "sha256": "31c513815c1fb0c95aabe3f67092e46b5471ab4f2b28276076cb375c06ce8e1b",
+      "bytes": 56178
+    },
+    "sources/README.md": {
+      "path": "sources/README.md",
+      "sha256": "926c1e9b1a5410cb8cb58906a46515e408e6e3127c9bdfa3e8ae6567a8e15a07",
+      "bytes": 661
+    },
+    "inputs/task.txt": {
+      "path": "inputs/task.txt",
+      "sha256": "e2a25bdc58469f9c227db73b2f9e539a7d2bdcc705af3faa6f737cca18ae4779",
+      "bytes": 2457
+    },
+    "inputs/length-contract.json": {
+      "path": "inputs/length-contract.json",
+      "sha256": "28249d59852d62801fce8c9e5064ef2a801390da865d97abdf6ff9f6f20c4201",
+      "bytes": 606
+    },
+    "review/criteria.json": {
+      "path": "review/criteria.json",
+      "sha256": "bbc4ccc663514b0c9eeb94f4ac5bfb8780e05dadd35606eb2802cdfc246ef081",
+      "bytes": 2290
+    },
+    "review/frozen-inputs.json": {
+      "path": "review/frozen-inputs.json",
+      "sha256": "45ae3284fcd0e6a8e6632d7c9c6fd0999cb38e54348830242e46bbc375b85a9b",
+      "bytes": 20522
+    },
+    "review/frozen-handoff.json": {
+      "path": "review/frozen-handoff.json",
+      "sha256": "b4512c232c43387d8e07b9481638c5c244c6831fb976bda04a189b54430e2053",
+      "bytes": 1336
+    },
+    "review/frozen-meaning.json": {
+      "path": "review/frozen-meaning.json",
+      "sha256": "99ba72f51aa157fcfbc1835c258c7b5af5368099f3848cbcac6c95dd683c5a46",
+      "bytes": 2443
+    },
+    "review/parser-repair.json": {
+      "path": "review/parser-repair.json",
+      "sha256": "21040e2fb5eefac4e419dc09371f5a6e9fe6dea981ea91a409b5ba03c451a3a7",
+      "bytes": 1304
+    },
+    "review/adjudication.json": {
+      "path": "review/adjudication.json",
+      "sha256": "8323257fe8871923f58387212fed1948e670aef0e36e1aa2c81514442e5159bf",
+      "bytes": 3408
+    },
+    "review/accepted.md": {
+      "path": "review/accepted.md",
+      "sha256": "03d6623f8ee1ac9a979310e8f7285faba9279d81e75c8363645829d88b8ca9c0",
+      "bytes": 13907
+    },
+    "runs/antigravity/invocation.json": {
+      "path": "runs/antigravity/invocation.json",
+      "sha256": "b80483f9c4d755a6caea3ea0a0c25b6e86b25377b666165054c247d105f24c61",
+      "bytes": 785
+    },
+    "runs/antigravity/events.jsonl": {
+      "path": "runs/antigravity/events.jsonl",
+      "sha256": "8eb2a070edce416d962890db01c0d826117e51379d2e898589b162fad801ac7f",
+      "bytes": 50510
+    },
+    "runs/antigravity/stderr.log": {
+      "path": "runs/antigravity/stderr.log",
+      "sha256": "3a7f8550106d86abb322e8ed0fb30a0296c0e97c6be03d5a8033b99d16737459",
+      "bytes": 78
+    },
+    "runs/antigravity/trace-metrics.json": {
+      "path": "runs/antigravity/trace-metrics.json",
+      "sha256": "e4fb2363ffcbe52611ed66cf3a92b636375b2e3c5e46117b1d01dac65b509b40",
+      "bytes": 577
+    },
+    "runs/antigravity/trace-metrics-reparsed.json": {
+      "path": "runs/antigravity/trace-metrics-reparsed.json",
+      "sha256": "84e622292b433a8a4bf5350f51e3fefaf2faca65998bce1942aadc52508b1b0e",
+      "bytes": 596
+    },
+    "runs/antigravity/trace-metrics-reparsed-v2.json": {
+      "path": "runs/antigravity/trace-metrics-reparsed-v2.json",
+      "sha256": "ddca8b08643321abe0c978a7b22f96135a1e0fcd201ed9c8fc9eefbbbed23fd4",
+      "bytes": 829
+    },
+    "driver/handoff.py": {
+      "path": "driver/handoff.py",
+      "sha256": "7d64a8856e2d5ce574edfc01a2765f12d4e6926d7fe3cdf028d5417b1551c1ee",
+      "bytes": 8408
+    },
+    "driver/resume.py": {
+      "path": "driver/resume.py",
+      "sha256": "7f0d1f7a3a8f82b6a0f9fb99b572ca7064e75139342c8c7c6f06c132a223b307",
+      "bytes": 2937
+    },
+    "driver/resume-v2.py": {
+      "path": "driver/resume-v2.py",
+      "sha256": "5c681d6dade8f72522717af09ca2cb5100707097eda45e64431cae92baee1656",
+      "bytes": 3035
+    },
+    "driver/final-audit.py": {
+      "path": "driver/final-audit.py",
+      "sha256": "3236fee3265f58efb2cd5d9066218013c6602226a6b401bf07ce7c222d8acfba",
+      "bytes": 5880
+    },
+    "driver/final-select.py": {
+      "path": "driver/final-select.py",
+      "sha256": "7ee7dea8414d38af84dc8b9bc40f4da5ae2a14ef6fa3f34711fb0f6926c1e46d",
+      "bytes": 2401
+    }
+  },
+  "final_helpers": {
+    "evals/research_journey/writing_observation.py": "5baa5cc526044e1ceec0eb4aa7af0d3f03c90244fd781332d7cb25b5d60a9072",
+    "evals/research_journey/antigravity_observation.py": "d0f4d513f847aee40782bf297ca065854dec6e4ffc37a001cc61d935fa827f12"
+  },
+  "content_pack": {
+    "source_commit": "e406ce8c1afe043578c8d6b63a6cedbc44df819d",
+    "content_root_sha256": "a329207b6c620037a3f1d5f0fb974cb86ead0d64e6b787c9cc65194783914e23",
+    "pack_sha256": "5f9f20692701a2a63d2918b3f6e3caeea6480d1c91169f1dfe891d5abcceefa3",
+    "entries": 446,
+    "content_version": "2.5.3",
+    "unchanged": true
+  },
+  "limits": [
+    "Single public empirical paper and one external edit; no general or named-model superiority claim.",
+    "Writer and anonymous reviewer use fresh contexts of the same configured model; disciplinary author judgment remains outstanding.",
+    "Antigravity selected model is not exposed; available model IDs are not identity evidence.",
+    "The coordinator-selected manuscript contains only two already-reviewed edits; it is not a fresh blind trial of the complete final selection.",
+    "One reviewer startup catalog dump is truncated; original source/manuscript/contract chunks and all four images are separately delivered.",
+    "Actual plan mode was ineffective with disabled slash commands; no external tools or project writes occurred.",
+    "Source judgments check the supplied publication; no underlying-data reproduction or independent review of its citations."
+  ],
+  "publication": {
+    "push": false,
+    "published": false,
+    "acceptance_promoted": false
+  }
+}

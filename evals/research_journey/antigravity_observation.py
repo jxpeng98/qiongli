@@ -92,6 +92,26 @@ def status_output(value):
         return {"status_data_valid": False, "mcp_envelope_complete": False}
 
 
+def finish_preview_matches(preview, payload):
+    """Bind the observed v1.4.6 finish preview, including 512-character clips.
+
+    ACTIVE parameters are display previews, not complete output. Only the
+    terminal structured_output and decoded response supply the complete value.
+    This exception never applies to ordinary tool/MCP invocation arguments.
+    """
+    if type(preview) is not type(payload):
+        return False
+    if isinstance(preview, dict):
+        return preview.keys() == payload.keys() and all(
+            finish_preview_matches(value, payload[key]) for key, value in preview.items())
+    if isinstance(preview, list):
+        return len(preview) == len(payload) and all(
+            finish_preview_matches(a, b) for a, b in zip(preview, payload))
+    if isinstance(preview, str) and len(preview) == 513 and preview.endswith("…"):
+        return preview == payload or (len(payload) > 512 and payload.startswith(preview[:512]))
+    return preview == payload
+
+
 def inspect_stream(raw: str, server: str, cwd: str):
     """Retain raw event indexes/value hashes, not tool-shaped response prose."""
     expected = {"ServerName": server, "ToolName": TOOL, "Arguments": {"cwd": cwd}}
@@ -119,6 +139,13 @@ def inspect_stream(raw: str, server: str, cwd: str):
                 step_id, state = step.get("step_index"), step.get("state")
                 if type(step_id) is not int or step_id < 0 or state not in ("ACTIVE", "DONE"):
                     raise ValueError("Invalid step identity/state")
+                if step.get("step_type") == "finish":
+                    previous = steps.get(step_id)
+                    if (state != "DONE" or previous is None or previous["state"] != "ACTIVE"
+                            or previous["identity"]["name"] != "finish"):
+                        raise ValueError("Unmatched structured finish")
+                    previous.update(state="DONE", finish_event=index)
+                    continue
                 if step.get("step_type") != "tool":
                     if step.get("step_type") not in ("user_input", "agent_response", "checkpoint"):
                         raise ValueError("Unknown step type")
@@ -159,6 +186,26 @@ def inspect_stream(raw: str, server: str, cwd: str):
                 raise ValueError("Unsupported event")
         except (ValueError, KeyError, TypeError):
             problems.append({"event_index": index, "reason": "invalid-or-truncated-event"})
+    structured_finishes = []
+    for step_id, step in steps.items():
+        if "finish_event" not in step:
+            continue
+        # Schema-mode finish has no DONE tool_info. Bind it to the actual Host
+        # terminal payload instead of inventing a tool result or ignoring it.
+        try:
+            payload = result["structured_output"]
+            if (not isinstance(init.get("json_schema"), dict)
+                    or result.get("json_schema") != init["json_schema"]
+                    or not finish_preview_matches(step["identity"]["parameters"], payload)
+                    or json.loads(result["response"], object_pairs_hook=unique_object) != payload):
+                raise ValueError("Changed structured finish")
+            structured_finishes.append({"step_index": step_id,
+                "started_event": step["started_event"], "completed_event": step["finish_event"],
+                "parameters_sha256": baseline.value_digest(step["identity"]["parameters"]),
+                "parameters_are_complete": step["identity"]["parameters"] == payload,
+                "output_sha256": baseline.value_digest(payload)})
+        except (ValueError, TypeError, KeyError):
+            problems.append({"event_index": step["finish_event"], "reason": "unbound-structured-finish"})
     pending = [key for key, value in steps.items() if value["state"] != "DONE"]
     usage = result.get("usage") if result else None
     if usage is not None and (not isinstance(usage, dict) or any(
@@ -180,6 +227,7 @@ def inspect_stream(raw: str, server: str, cwd: str):
         "full_native_result": len(exact) == 1 and exact[0]["mcp_envelope_complete"] and not exact[0]["tool_error"],
     }
     return {"checks": checks, "calls": calls, "pending_steps": pending, "problems": problems,
+            "structured_finishes": structured_finishes,
             "host_status": result.get("status") if result else None, "denied_action_count": len(denied),
             "usage": usage, "schema_sha256": baseline.probe.digest(STATUS_SCHEMA)}
 

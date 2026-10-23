@@ -54,7 +54,19 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 23, 2026
 
-The current bounded request validates unchanged writing rules on a first-use
+The current bounded request validates eight bilingual sections on a first-use
+public paper and completes a real Codex → Antigravity → Codex language handoff.
+The existing [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-23--cross-section-writing-and-external-polish)
+records seven passing dimensions for both versions, tied argument/flow and a
+slight language preference for the original. Retain correct prose and adopt only
+two reviewed expression improvements. Reusable measurements, bindings and bounded
+reads accompany a real structured-finish parser repair; original failed parses,
+startup failures and one catalog truncation remain recorded. Canonical content
+and configured models remain unchanged; the external model identity is unknown.
+Integrate locally into `2.x` without push, publication or acceptance promotion.
+Author/expert judgment and an unseen multi-paper unit are the next quality work.
+
+The preceding bounded request validates unchanged writing rules on a first-use
 theoretical framework paper with its complete 17-page original. The existing
 [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-23--first-use-theoretical-writing)
 records seven passing long-form dimensions and six supported G4/J2 decisions.

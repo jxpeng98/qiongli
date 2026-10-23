@@ -78,6 +78,24 @@ class AntigravityObservationTests(unittest.TestCase):
             self.assertEqual(call[key + '_sha256'], expected)
         self.assertEqual((call['started_event'], call['completed_event']), (1, 2))
 
+    def test_structured_finish_keeps_exact_native_call_accounting(self):
+        value = events()
+        schema = {"type": "object", "properties": {"text": {"type": "string"}}}
+        payload = {"text": "Observed status."}
+        value[0]['init']['json_schema'] = schema
+        value[-1]['result'].update(json_schema=schema, structured_output=payload,
+                                   response=json.dumps(payload))
+        value[3:3] = [
+            {'event': 'step_update', 'step_update': {'conversation_id': 'synthetic',
+             'step_index': 3, 'state': 'ACTIVE', 'step_type': 'tool', 'tool_name': 'finish',
+             'tool_info': {'name': 'finish', 'parameters': payload}}},
+            {'event': 'step_update', 'step_update': {'conversation_id': 'synthetic',
+             'step_index': 3, 'state': 'DONE', 'step_type': 'finish'}}]
+        result = inspect(value)
+        self.assertTrue(all(result['checks'].values()))
+        self.assertEqual(len(result['calls']), 1)
+        self.assertEqual(len(result['structured_finishes']), 1)
+
     def test_summary_missing_error_and_inconsistent_content_cannot_be_full(self):
         bad = envelope()
         bad['content'][0]['text'] = '{}'

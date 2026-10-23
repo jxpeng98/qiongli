@@ -46,6 +46,55 @@ principles below, without representing a materialized-guidance/subagent exercise
 as an installed-Plugin trace or awarding V1 passes without its required evidence.
 These tasks do not replace or rescore the fixed installed-Plugin baseline.
 
+### Reusable writing-observation helpers
+
+`writing_observation.py` provides explicit section/length measurements, selected
+file bindings and bounded reads for these local observations. It does not score
+language quality, source support or installed-Host acceptance. Existing
+`plugin_baseline.py` counting semantics and historical scores remain unchanged.
+
+- `measure_document` takes a frozen layout with unique ordered language/section
+  headings, units, ranges, an anchor pattern and an explicit `none`, `standalone`
+  or `all` anchor exclusion. It rejects missing/duplicate/empty sections and
+  unassigned text; headings cannot pad a short body. Inline anchors remain when
+  only standalone anchor lines are excluded. Report a corrected measurement
+  separately while retaining its original answer and earlier count.
+- `bind_files`/`verify_files` cover an explicit caller-selected mapping of public
+  source, original, candidate, task and guidance files. A changed or missing file
+  invalidates the bound comparison; symlinks are rejected. They do not discover
+  configuration or private research directories, write snapshots or approve edits.
+- `read_chunk` requires the expected file hash and returns exact code-point
+  offsets, a continuation cursor and an EOF flag within a serialized JSON byte
+  budget. It reads prepared UTF-8 text; supply the original PDF/page images through
+  the existing source-preparation path. Offsets are not scholarly page locators.
+  Follow missing ranges and budget the outer tool envelope separately. A complete
+  local read does not prove the model received an untruncated response.
+- `antigravity_answer` reuses the existing Host stream validator for a completed
+  text turn, retaining failed/pending calls and extracting model identity only
+  from structured Host fields. Unknown identity stays unknown. A language edit
+  does not require the native status/MCP call used by the separate status baseline.
+  Schema-mode `finish` events bind the active preview to matching terminal schema,
+  structured output and decoded response. The observed v1.4.6 preview may clip
+  strings at 512 characters plus an ellipsis; its hash is retained separately
+  and never presented as the complete output or an MCP call.
+
+For example, with caller-frozen public files:
+
+```sh
+python3 -m evals.research_journey.writing_observation read source.md \
+  --sha256 <frozen-file-sha256> --offset 0 --max-bytes 6000
+python3 -m evals.research_journey.writing_observation measure answer.md length-contract.json
+```
+
+Process execution, timeout cleanup and raw-stream retention remain owned by
+`antigravity_observation.run_process`; Codex trace and outer delivery inspection
+remain owned by `plugin_baseline`. Preserve each attempted run before parsing or
+reviewing its answer. An accepted local revision retains the exact original and
+candidate bindings and the reviewer/coordinator's rationale for any repairs.
+In restricted readers, pass the verified `python3` executable explicitly and
+use these file/argument commands or `-c`; do not assume a `python` alias or a
+writable shell here-document directory. Preserve any failed attempt separately.
+
 ## Installed-Plugin baseline
 
 `plugin-baseline.json` freezes three journeys: public-paper explanation, a paragraph
