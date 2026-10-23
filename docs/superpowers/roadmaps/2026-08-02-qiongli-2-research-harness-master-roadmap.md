@@ -54,7 +54,17 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — October 23, 2026
 
-The current bounded request prioritizes evidence-led synthesis, supported results
+The current bounded request tests sustained bilingual argument in additional
+disciplines with longer public-paper sections. The existing
+[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-23--cross-discipline-long-form-writing)
+owns the ecology/social-policy observations and narrow guidance changes. Social
+policy flow/explanation slightly favor candidate; ecology is tied or mixed, and
+most qualifications remain necessary. Preserve the unresolved source-level
+ambiguity and original outputs, configured models and research-write owners.
+Integrate locally into `2.x` without push, publication or acceptance promotion.
+Unseen questions/sources and author/expert review remain next.
+
+The preceding bounded request prioritizes evidence-led synthesis, supported results
 and bilingual meaning over startup speed. The existing
 [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-23--evidence-led-writing-quality)
 owns the paired public/synthetic writing tasks, fresh anonymous model review and

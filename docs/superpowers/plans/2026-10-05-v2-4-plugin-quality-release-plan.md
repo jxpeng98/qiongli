@@ -3921,3 +3921,38 @@ accepted evidence and commit/run fields stay unchanged. No push or publication.
 Next test additional questions and author/expert judgments while keeping the
 supported answer clear without accumulating detail; startup discovery remains
 separate bounded work. The pilot does not establish broad language-quality gains.
+
+## October 23 — Cross-discipline long-form writing
+
+The maintainer asks for longer public-paper passages in additional disciplines,
+prioritizing content quality and local integration without publication. The
+[long-form observation](../../../evals/research_journey/writing-quality/observations/longform-2026-10-23/README.md)
+uses Hallmann2017 ecology and Dwyer2023 social policy. Two fresh configured-model
+writers produce four bilingual task outputs (eight language sections), all within
+1100–1500 Chinese characters / 700–900 English words. Source e406ce8c narrowly
+clarifies carrying limits across paragraphs, idiomatic measurement wording and
+aggregate versus sustained outcomes; pack eaa4e47d retains version 2.5.3.
+
+The fresh anonymous same-model review finds 27 dimension passes, one local
+unknown and no definite failure. Social-policy flow/explanation slightly favor
+candidate; ecology is tied or mixed, and language/fidelity often tie. Most
+qualifications have distinct purposes, so the initial concern about defensive
+endings does not justify indiscriminate removal. Baseline's similar habitat
+rates follows the paper's body but encounters different rates in its printed
+S5 description. That source tension stays unresolved; candidate already uses
+both groups declined. All six meaning-review probes receive correct acceptance
+or local substantive repair. Original outputs are retained, not rewritten into
+successful runs. Same-file review preparation and metadata-assembly errors are
+repaired without changing inputs or rerunning writers; unsuccessful commands
+remain in the observation.
+
+The canonical validator and 38 distinct affected checks pass (14 Python, 17 native,
+7 program/index). All three model runs finish, preserve their inputs and receive
+the four original images; auth links are removed and bounded subprocess groups
+are reaped. The content source, generated lock and frozen-source boundary are
+reviewed before local fast-forward integration into 2.x. Only CLI-405 progress/date
+and the generated index change; task states, dependencies, accepted evidence and
+commit/run fields remain unchanged. No push or publication. Next validate unchanged
+rules on unseen questions/sources and seek author/disciplinary-expert judgments;
+this diagnostic pair does not establish general language-quality gains. Startup
+discovery and optional PDF rendering remain separate bounded work.

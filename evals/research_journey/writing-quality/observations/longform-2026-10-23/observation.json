@@ -1,0 +1,649 @@
+{
+  "kind": "qiongli-cross-discipline-longform-observation/v1",
+  "date": "2026-10-23",
+  "scope": "Public-source long-form drafting and meaning review with frozen canonical guidance; not installed Plugin, cross-Host, project recovery, release or program acceptance.",
+  "local_directory": "/home/hermes/qiongli-longform-20261023-01aez0w_",
+  "identity": {
+    "source_commit": "4d295445320abcf3a14850205c7da7c062b22573",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "codex_version": "codex-cli 0.162.1",
+    "codex_sha256": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "scope": "Frozen canonical guidance and public source files; no MCP/project recovery or installed Plugin acceptance."
+  },
+  "candidate_source_commit": "e406ce8c1afe043578c8d6b63a6cedbc44df819d",
+  "source_retrieval": [
+    {
+      "key": "hallmann2017",
+      "requested_url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0185809&type=printable",
+      "final_url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0185809&type=printable",
+      "http_status": 200,
+      "bytes": 13474128,
+      "sha256": "888c929659a8841dea7ea6c8a884ad2e5cf0ecc1501b996cad17c5474f038266",
+      "page_count": 21,
+      "text_sha256": "3b5e8fac315c4b11f1d5ea0cf2b431d38d00bcf5cf51f47fb3eef48ecd2aac56"
+    },
+    {
+      "key": "dwyer2023",
+      "requested_url": "https://hpri.usc.edu/wp-content/uploads/2024/03/dwyer-et-al-2023-unconditional-cash-transfers-reduce-homelessness.pdf",
+      "final_url": "https://hpri.usc.edu/wp-content/uploads/2024/03/dwyer-et-al-2023-unconditional-cash-transfers-reduce-homelessness.pdf",
+      "http_status": 200,
+      "bytes": 938346,
+      "sha256": "670c2463b1a0a4da42cfaa0c2a3ca39e8cd2d369f1574bd9f597d98c67bd6e67",
+      "page_count": 9,
+      "text_sha256": "d4b032c4f07afcb1580f6b18ec415c54751ca4c9794c630495c154da38f2fdb0"
+    }
+  ],
+  "source_files": {
+    "README.md": "3766641751a3c33bb891d62ef2d8331980ae06223760eb3fd065f74557217c9f",
+    "dwyer2023-p3.png": "72b5b4857593884a39ce3c84a8fc3ba5fab9a4cff4abb5593eb7852cfd4ba402",
+    "dwyer2023-p4.png": "c047701d55c9c2ddce4dbaead1ab3565ba16a6e0ec0c924442a2df81fb67c0c5",
+    "dwyer2023.md": "d4b032c4f07afcb1580f6b18ec415c54751ca4c9794c630495c154da38f2fdb0",
+    "dwyer2023.pdf": "670c2463b1a0a4da42cfaa0c2a3ca39e8cd2d369f1574bd9f597d98c67bd6e67",
+    "hallmann2017-p11.png": "887ab48a347f88eb6c1a27a42fc009d2cf11a006060023e71acd223c7e84f965",
+    "hallmann2017-p14.png": "838ce2132bb9b98d24fe6c90eb1930b379c4a0777399ebc8810682e77391ac4b",
+    "hallmann2017.md": "3b5e8fac315c4b11f1d5ea0cf2b431d38d00bcf5cf51f47fb3eef48ecd2aac56",
+    "hallmann2017.pdf": "888c929659a8841dea7ea6c8a884ad2e5cf0ecc1501b996cad17c5474f038266"
+  },
+  "task": "Use Qiongli to draft two independent, publication-style critical discussion sections from the supplied public papers. This is new substantive drafting with source checking, followed by a language pass and meaning review. It is not a policy recommendation, exhaustive literature review, or proofreading of a settled author conclusion.\n\nA. Ecology: What does Hallmann et al. (2017) establish about declining flying-insect biomass in protected areas, and what follows for interpreting protection and possible drivers? Explain how sampling, measurements and model results bear on the answer. Write a sustained argument that a reader can follow across paragraphs.\nB. Social policy: What does Dwyer et al. (2023) establish about cash transfers as an approach to reducing homelessness, and how do its different outcomes and study components bear on that interpretation? Explain the evidential connections rather than cataloguing results.\n\nFor EACH task deliver a Chinese section of 1100–1500 non-whitespace Unicode code points and an English section of 700–900 whitespace-delimited words. Exclude headings and standalone source-anchor citations from counts. These are parallel versions for different readers: preserve the substantive answer and consequential evidence/qualifications while using natural academic syntax in each language. Use connected paragraphs, not bullets or an outline. Do not force a paragraph count. Include useful source-specific detail, clear reasoning and a supported ending without filling the text with repeated caveats. Cite precise inspected PDF page locations with anchors like 〔Hallmann2017 p.11〕 or 〔Dwyer2023 pp.3–4〕. Do not cite uninspected supplements or other papers as if you read them. Inspect original figure/table pages for visual claims. Do not invent findings or mechanisms.\n\nUse exactly these top-level headings: '## Ecology — 中文', '## Ecology — English', '## Social policy — 中文', '## Social policy — English'. Return the four final sections only. No work log, checklists, review notes or counts. Do not browse, fetch material, write files or call external services. You may read supplied files and count a draft in memory. Read guidance and sources in bounded ranges; a whole-corpus dump is unnecessary.",
+  "criteria": {
+    "dimensions": [
+      "request scope and actual length",
+      "connected argument and paragraph progression",
+      "explanatory depth and warranted inference",
+      "idiomatic Chinese and English",
+      "factual and citation fidelity",
+      "bilingual substantive equivalence",
+      "claim calibration including excessive caution"
+    ],
+    "basis": "Inspect complete output units and original source locations. Passage-level quality; no hedge-count, sentence-count or lexical-blacklist score. A tie or mixed preference is valid. Distinguish definite defects from stylistic preferences and unavailable supplemental evidence.",
+    "ecology_checks": [
+      "Biomass is not species richness or individual counts. Location-year samples are not 63 continuous site time series. Seasonal and mid-summer model estimates have distinct meaning. Regional sampled protected sites do not establish global decline or protection causal ineffectiveness. Measured covariates failing to explain the trend do not eliminate their roles or establish an unmeasured cause. Model/counterfactual distinctions remain identifiable."
+    ],
+    "social_checks": [
+      "Shelter-cluster allocation and screening define inference scope. Preregistered one-month cognitive/wellbeing comparisons and exploratory yearly housing estimates must not become a single confirmatory success or a null that erases housing evidence. Housing categories are not binary complements. Cost savings are a model calculation not a universal budget promise. Null spending difference is not equivalence or measured no-risk. Public-attitude experiments do not establish recipients mechanism or durable behavior. Claims about supplements require actually provided evidence."
+    ],
+    "language_checks": [
+      "Read continuous passages, not isolated corrected sentences. Necessary source limits belong at the claim they qualify; repetitive metacommentary can damage prose. Meaningful qualifications survive the conclusion and translation. No automatic penalty for cautious or direct words."
+    ],
+    "comparison": "Compare flow, explanation, fidelity and bilingual expression separately. Do not infer identity or score speed/length alone.",
+    "lengths": {
+      "Chinese": [
+        1100,
+        1500
+      ],
+      "English": [
+        700,
+        900
+      ]
+    }
+  },
+  "probes": {
+    "A": {
+      "text": "Hallmann等估计，所研究的德国保护地飞行昆虫生物量在27年间显著下降；现有协变量未解释长期趋势，具体驱动因素仍待检验。〔Hallmann2017 pp.10–14〕",
+      "scope": "Judge the claim, not preferred style."
+    },
+    "B": {
+      "text": "由于没有确定农药或农业集约化的因果作用，该研究目前不能提供保护地飞行昆虫生物量下降的证据。〔Hallmann2017 pp.10–16〕",
+      "scope": "Judge the claim, not preferred style."
+    },
+    "C": {
+      "text": "The decline persisted in protected sites, demonstrating that legal protection has no effect on insect biomass.〔Hallmann2017 pp.10–16〕",
+      "scope": "Judge the claim, not preferred style."
+    },
+    "D": {
+      "original": "探索性分析显示，现金组一年内平均无家可归天数较少；这支持在该筛选样本中继续检验现金补助的住房收益。〔Dwyer2023 pp.3–7〕",
+      "returned": "The trial confirmed that cash transfers reduce homelessness; the effect supports extending the intervention to the entire homeless population.〔Dwyer2023 pp.3–7〕",
+      "scope": "A requested J2 expression-only return; compare meaning and propose only a local repair if needed."
+    },
+    "E": {
+      "text": "Study 3 showed that recipients reduced spending on alcohol, drugs and cigarettes, thereby explaining why cash improved housing outcomes in Study 1.〔Dwyer2023 p.7〕",
+      "scope": "Judge the claim, not preferred style."
+    },
+    "F": {
+      "original": "Cash recipients reported no significant increase in spending on alcohol, drugs and cigarettes relative to controls.〔Dwyer2023 pp.3–4〕",
+      "returned": "与对照组相比，现金领取者在酒精、毒品和香烟上的支出未显著增加。〔Dwyer2023 pp.3–4〕",
+      "scope": "A requested J2 translation; no drift is an acceptable result."
+    }
+  },
+  "frozen_input_records": {
+    "probes.json": {
+      "path": "/home/hermes/qiongli-longform-20261023-01aez0w_/review/probes.json",
+      "sha256": "5f4fba6011a9a6863af7adbd4c3590bb8740101fc0f9c1ee93bf4ab3a1976bf2"
+    },
+    "frozen-candidate.json": {
+      "path": "/home/hermes/qiongli-longform-20261023-01aez0w_/review/frozen-candidate.json",
+      "sha256": "a913dbd9049bdc071e38c565274d9899a500bf146cd1254934c90fb1696efcf0"
+    },
+    "criteria.json": {
+      "path": "/home/hermes/qiongli-longform-20261023-01aez0w_/review/criteria.json",
+      "sha256": "d26a90d2adc52734728a1d4410c0ff80b439579dcd9596e60ec52b988665fc6e"
+    },
+    "frozen-baseline.json": {
+      "path": "/home/hermes/qiongli-longform-20261023-01aez0w_/review/frozen-baseline.json",
+      "sha256": "22bd8e42962d16de4f84b76bb5b6b0d006dbb5acaf35b967339b9bad06c76b3c"
+    },
+    "blind-key.json": {
+      "path": "/home/hermes/qiongli-longform-20261023-01aez0w_/review/blind-key.json",
+      "sha256": "4adda1d7b9f66b5f52ff77b9558f11aec8703df20c36310072e7f0a127967d11"
+    },
+    "identity.json": {
+      "path": "/home/hermes/qiongli-longform-20261023-01aez0w_/review/identity.json",
+      "sha256": "0737cf3e2991440ecc7b3cc89e92ef207b7664f31ed211837110e0a1b814070f"
+    },
+    "retrieval.json": {
+      "path": "/home/hermes/qiongli-longform-20261023-01aez0w_/review/retrieval.json",
+      "sha256": "890b0f460980b577d4c4464cb1c5e67c9c72c9dcfbf1c2007b3157257617149d"
+    },
+    "blind-inputs.json": {
+      "path": "/home/hermes/qiongli-longform-20261023-01aez0w_/review/blind-inputs.json",
+      "sha256": "ddac4b37d981d1d92f33e494e7a0f51344e01e89c64f050bfc8ff9c53b62d175"
+    }
+  },
+  "changed_guidance": [
+    "references/stage-F-writing.md",
+    "references/scholarly-voice.md"
+  ],
+  "runs": [
+    {
+      "name": "baseline",
+      "directory": "/home/hermes/qiongli-longform-20261023-01aez0w_/runs/baseline",
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 891.6784329980001,
+        "timeout_seconds": 1200,
+        "events_sha256": "f2af379dc96cc6f6fd82b1a5da165606890e3ff8c307d0d82f4e6f3f5293456f",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "answer_sha256": "10eaca0c320b6d9626c47fd5e1901f56b86fbd75d7b30624765bf20836d3d7ba",
+      "prompt_sha256": "0a9d0660296f5905e730a7a687abf8b762932c06f19378035870ded15308cd86",
+      "trace": {
+        "tool_call_count": 30,
+        "failed_tool_calls": 4,
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "delivery": {
+        "rollout_path": "/home/hermes/qiongli-longform-20261023-01aez0w_/profiles/baseline/sessions/2026/10/23/rollout-2026-10-23T08-47-46-01a167f1-dc0d-7e11-9ae1-9a4f9cac301e.jsonl",
+        "rollout_sha256": "a10a976e0f88b43838bc512e0d032a117aca73cf202065186843d187b1ef68b0",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 20,
+        "truncation_warnings": 0,
+        "script_failures": 1,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "preservation_equal": true,
+      "image_deliveries": [
+        {
+          "call_id": "call_7045ab923d0149d8bb8cef579670fb17",
+          "sha256": "887ab48a347f88eb6c1a27a42fc009d2cf11a006060023e71acd223c7e84f965",
+          "matches_original": "/home/hermes/qiongli-longform-20261023-01aez0w_/sources/hallmann2017-p11.png"
+        },
+        {
+          "call_id": "call_7045ab923d0149d8bb8cef579670fb17",
+          "sha256": "c047701d55c9c2ddce4dbaead1ab3565ba16a6e0ec0c924442a2df81fb67c0c5",
+          "matches_original": "/home/hermes/qiongli-longform-20261023-01aez0w_/sources/dwyer2023-p4.png"
+        },
+        {
+          "call_id": "call_93d402f0a4264b7bbed370f49fd7af23",
+          "sha256": "838ce2132bb9b98d24fe6c90eb1930b379c4a0777399ebc8810682e77391ac4b",
+          "matches_original": "/home/hermes/qiongli-longform-20261023-01aez0w_/sources/hallmann2017-p14.png"
+        },
+        {
+          "call_id": "call_93d402f0a4264b7bbed370f49fd7af23",
+          "sha256": "72b5b4857593884a39ce3c84a8fc3ba5fab9a4cff4abb5593eb7852cfd4ba402",
+          "matches_original": "/home/hermes/qiongli-longform-20261023-01aez0w_/sources/dwyer2023-p3.png"
+        }
+      ],
+      "model_contexts": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "receipt_sha256s": {
+        "metrics.json": "39b58152b271da49d73973147a77151ca0cb39e508fec03ddd61664054e6c1bb",
+        "policy.json": "1e43f00d359f0e6f20790bafff81467ab200ac806ca3cb25699d166fd6651c3d",
+        "delivery.json": "052f8c837482a13b535103b49ca31ab9f5c330481b3a37c0c0bde33439f11628",
+        "preservation-after.json": "5e9e3182e400fab1e4a26c9e3eed30d890d29a28b628187b6cdfc57488bdb6ce",
+        "trace-metrics.json": "cba99b703f83a202e8cc622dde5e3191265fbac3262374c869580430b0913ae7",
+        "capture.json": "ae926d21176577358d58d465254db7866d85e7539dbd201f9aff706290eac165",
+        "preservation-before.json": "5e9e3182e400fab1e4a26c9e3eed30d890d29a28b628187b6cdfc57488bdb6ce",
+        "invocation.json": "02a1fcb7c326ecb98c467343b8f250ee6c75ffa42e3aa0ff2560b552d033409a"
+      },
+      "lengths": {
+        "Ecology — 中文": {
+          "count": 1250,
+          "paragraphs": 6,
+          "in_range": true
+        },
+        "Ecology — English": {
+          "count": 732,
+          "paragraphs": 6,
+          "in_range": true
+        },
+        "Social policy — 中文": {
+          "count": 1364,
+          "paragraphs": 7,
+          "in_range": true
+        },
+        "Social policy — English": {
+          "count": 775,
+          "paragraphs": 7,
+          "in_range": true
+        }
+      }
+    },
+    {
+      "name": "candidate",
+      "directory": "/home/hermes/qiongli-longform-20261023-01aez0w_/runs/candidate",
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 954.929260475008,
+        "timeout_seconds": 1200,
+        "events_sha256": "0aa7d114f5af1539ee907415a22cdeadb9382b11785679d52d1646c8f9d42704",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "answer_sha256": "fb1116c3860667dfec4a6dcf6c5301e1c28ca3ae0bf1345932915000026ceaf0",
+      "prompt_sha256": "80eae45615bb5bb4e023c7ad91d45641f7f1d34549b0930c60a69f303c38438c",
+      "trace": {
+        "tool_call_count": 21,
+        "failed_tool_calls": 0,
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "delivery": {
+        "rollout_path": "/home/hermes/qiongli-longform-20261023-01aez0w_/profiles/candidate/sessions/2026/10/23/rollout-2026-10-23T09-05-37-01a16802-3309-7023-864e-94a789a83984.jsonl",
+        "rollout_sha256": "f5622226b7d40ddc601fd1333ec88b24eef2307ebb98781314156e5ca9a15fcc",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 16,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "preservation_equal": true,
+      "image_deliveries": [
+        {
+          "call_id": "call_6ebfafa944da43beb002a128e4a1d6c0",
+          "sha256": "887ab48a347f88eb6c1a27a42fc009d2cf11a006060023e71acd223c7e84f965",
+          "matches_original": "/home/hermes/qiongli-longform-20261023-01aez0w_/sources/hallmann2017-p11.png"
+        },
+        {
+          "call_id": "call_6ebfafa944da43beb002a128e4a1d6c0",
+          "sha256": "838ce2132bb9b98d24fe6c90eb1930b379c4a0777399ebc8810682e77391ac4b",
+          "matches_original": "/home/hermes/qiongli-longform-20261023-01aez0w_/sources/hallmann2017-p14.png"
+        },
+        {
+          "call_id": "call_1a8cf9b5267245289b0d6ac8c5aac1b5",
+          "sha256": "72b5b4857593884a39ce3c84a8fc3ba5fab9a4cff4abb5593eb7852cfd4ba402",
+          "matches_original": "/home/hermes/qiongli-longform-20261023-01aez0w_/sources/dwyer2023-p3.png"
+        },
+        {
+          "call_id": "call_1a8cf9b5267245289b0d6ac8c5aac1b5",
+          "sha256": "c047701d55c9c2ddce4dbaead1ab3565ba16a6e0ec0c924442a2df81fb67c0c5",
+          "matches_original": "/home/hermes/qiongli-longform-20261023-01aez0w_/sources/dwyer2023-p4.png"
+        }
+      ],
+      "model_contexts": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "receipt_sha256s": {
+        "metrics.json": "25f3705d96bfafcdb608952f6f7c170252b7f0805088245bec17ef77921d7df0",
+        "policy.json": "58c88eb40eae40f05b01d03c49f3ee5818d731bf73fea68a3cc318943a75b047",
+        "delivery.json": "e2a612c03bd5551d940c72a04dbb8a874814d318244cc1a4c121c685b26d8358",
+        "preservation-after.json": "92ed272627fd02ba3a9955c70eb108f02f256dc4bd332cbde18d135e7afd6ca8",
+        "trace-metrics.json": "2315d153d0aa6a06cab834dcbd65fb4a95dfec4ce7181b43c1316930e27841fe",
+        "capture.json": "f6392887ebaf43d6faa81247f2c7e6bd6a3070f84ea7ec8bc55c7b1744f4b281",
+        "preservation-before.json": "92ed272627fd02ba3a9955c70eb108f02f256dc4bd332cbde18d135e7afd6ca8",
+        "invocation.json": "e8eea88ab135f3e2c9e81e2275be60dbb64fda7cee53aac626afa0e76abb2ff4"
+      },
+      "lengths": {
+        "Ecology — 中文": {
+          "count": 1195,
+          "paragraphs": 6,
+          "in_range": true
+        },
+        "Ecology — English": {
+          "count": 722,
+          "paragraphs": 6,
+          "in_range": true
+        },
+        "Social policy — 中文": {
+          "count": 1385,
+          "paragraphs": 7,
+          "in_range": true
+        },
+        "Social policy — English": {
+          "count": 824,
+          "paragraphs": 7,
+          "in_range": true
+        }
+      }
+    },
+    {
+      "name": "blind-review",
+      "directory": "/home/hermes/qiongli-longform-20261023-01aez0w_/runs/blind-review",
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 598.139026038989,
+        "timeout_seconds": 1200,
+        "events_sha256": "22427e7b159bb847a26d173f733af7b500419d0545fd4b47af9ca3d15714616c",
+        "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721"
+      },
+      "answer_sha256": "4dbf9f4b8768bfe69ee6168524e82d6e89de344f643e6fdb04c025dcd4a32b22",
+      "prompt_sha256": "8b5fd0d54c1b44b582bbda66d31edb1ff7d44f3fa65fd1eb0830fdeabe3d42c2",
+      "trace": {
+        "tool_call_count": 28,
+        "failed_tool_calls": 4,
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "delivery": {
+        "rollout_path": "/home/hermes/qiongli-longform-20261023-01aez0w_/profiles/blind-review/sessions/2026/10/23/rollout-2026-10-23T09-22-32-01a16811-ad45-7da0-8782-9cbb809ab26a.jsonl",
+        "rollout_sha256": "4650b1b8015368b19d5828782707c736c40d56c0da6205bb49402d133010de8b",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 12,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "preservation_equal": true,
+      "image_deliveries": [
+        {
+          "call_id": "call_d456272063e94ef88fc309c8d2e9c314",
+          "sha256": "c047701d55c9c2ddce4dbaead1ab3565ba16a6e0ec0c924442a2df81fb67c0c5",
+          "matches_original": "/home/hermes/qiongli-longform-20261023-01aez0w_/sources/dwyer2023-p4.png"
+        },
+        {
+          "call_id": "call_122a46798c244128b91e8d3b1e70738b",
+          "sha256": "887ab48a347f88eb6c1a27a42fc009d2cf11a006060023e71acd223c7e84f965",
+          "matches_original": "/home/hermes/qiongli-longform-20261023-01aez0w_/sources/hallmann2017-p11.png"
+        },
+        {
+          "call_id": "call_122a46798c244128b91e8d3b1e70738b",
+          "sha256": "838ce2132bb9b98d24fe6c90eb1930b379c4a0777399ebc8810682e77391ac4b",
+          "matches_original": "/home/hermes/qiongli-longform-20261023-01aez0w_/sources/hallmann2017-p14.png"
+        },
+        {
+          "call_id": "call_bf255cd47ee84f59a26b088378202c82",
+          "sha256": "72b5b4857593884a39ce3c84a8fc3ba5fab9a4cff4abb5593eb7852cfd4ba402",
+          "matches_original": "/home/hermes/qiongli-longform-20261023-01aez0w_/sources/dwyer2023-p3.png"
+        }
+      ],
+      "model_contexts": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "receipt_sha256s": {
+        "metrics.json": "88a169a043f227fb7bcc9176c779d2b999d04e6fca048fc6abb0cd7f88215db0",
+        "policy.json": "c469cc4edd1ee446c97e0b73ce2408ef487f64c5230508415bde262d2e37242e",
+        "delivery.json": "0ed1c6f3b1d2a69c0fcad524da0695c4d6abb2d2b76b7eef9e9e0468324b613e",
+        "preservation-after.json": "2ce961c462733b166e4b7163b8c9c966cf5ee5e2d505c5f59d286910a56d4253",
+        "trace-metrics.json": "0a119280e3e7d02e37f453950db666cbc2233c7bfbc0d08cff778ba37501a21d",
+        "capture.json": "4426c068cf8464dae1b2d18d2eeaf7612ffbab47933ddebb398466774546e3f8",
+        "preservation-before.json": "2ce961c462733b166e4b7163b8c9c966cf5ee5e2d505c5f59d286910a56d4253",
+        "invocation.json": "0a5602e529117afdec6f3ffe86f0c142041c82405d71b68925e43e969b829362"
+      }
+    }
+  ],
+  "blind_mapping_revealed_after_review": {
+    "P": "baseline",
+    "Q": "candidate"
+  },
+  "findings": {
+    "review_identity": {
+      "P": "baseline",
+      "Q": "candidate",
+      "mapping_read_after_completed_review": true,
+      "reviewer_type": "fresh identity-blinded context of the same configured model; not an independent subject expert"
+    },
+    "verdict_unit": "Each discipline and guidance version is one task output containing paired Chinese and English sections.",
+    "dimension_verdicts": {
+      "baseline_ecology": {
+        "request scope and actual length": "pass",
+        "connected argument and paragraph progression": "pass",
+        "explanatory depth and warranted inference": "pass",
+        "idiomatic Chinese and English": "pass",
+        "factual and citation fidelity": "unknown",
+        "bilingual substantive equivalence": "pass",
+        "claim calibration including excessive caution": "pass"
+      },
+      "candidate_ecology": {
+        "request scope and actual length": "pass",
+        "connected argument and paragraph progression": "pass",
+        "explanatory depth and warranted inference": "pass",
+        "idiomatic Chinese and English": "pass",
+        "factual and citation fidelity": "pass",
+        "bilingual substantive equivalence": "pass",
+        "claim calibration including excessive caution": "pass"
+      },
+      "baseline_social_policy": {
+        "request scope and actual length": "pass",
+        "connected argument and paragraph progression": "pass",
+        "explanatory depth and warranted inference": "pass",
+        "idiomatic Chinese and English": "pass",
+        "factual and citation fidelity": "pass",
+        "bilingual substantive equivalence": "pass",
+        "claim calibration including excessive caution": "pass"
+      },
+      "candidate_social_policy": {
+        "request scope and actual length": "pass",
+        "connected argument and paragraph progression": "pass",
+        "explanatory depth and warranted inference": "pass",
+        "idiomatic Chinese and English": "pass",
+        "factual and citation fidelity": "pass",
+        "bilingual substantive equivalence": "pass",
+        "claim calibration including excessive caution": "pass"
+      }
+    },
+    "counts": {
+      "writer_runs": 2,
+      "comparison_review_runs": 1,
+      "disciplinary_task_outputs": 4,
+      "language_sections": 8,
+      "review_verdicts": {
+        "pass": 27,
+        "unknown": 1,
+        "fail": 0
+      }
+    },
+    "comparisons": {
+      "ecology": {
+        "flow": "tie",
+        "explanatory_depth": "mixed: baseline explains warming as a counteracting covariate; candidate explains unequal collection intervals and regional scope more specifically",
+        "fidelity": "mostly tied; baseline similar-rates span remains locally unknown because of source tension, avoided by candidate both-groups-declined wording",
+        "language": "both pass; candidate community-property wording is more abstract, a style preference"
+      },
+      "social_policy": {
+        "flow": "slight candidate preference: separate synthesis paragraph gives the final supported answer room",
+        "explanatory_depth": "slight candidate preference: cash/workshop comparison and unadjusted time-specific analyses are clearer",
+        "fidelity": "tie; baseline more explicit about shelter-cost valuation versus all 99 days and policy-eligibility exclusions, candidate adds supported contextual detail",
+        "language": "both pass, substantive Chinese/English equivalence retained"
+      }
+    },
+    "defensive_writing": {
+      "coordinator_initial_target": "Successive baseline paragraphs often end by delimiting an inference; some Chinese duration wording is indirect. These were improvement targets rather than established factual failures.",
+      "blind_review_result": "Most qualifications constrain different claims and are necessary, not repetitive disclaimers. Both versions directly state the supported answer. Do not treat the result as evidence for indiscriminate caveat removal.",
+      "rule_scope": "Carry already established scope through precise terms, restate consequential limits when the inference changes, and keep J2 meaning-preservation boundaries."
+    },
+    "source_tension": {
+      "source": "Hallmann2017",
+      "baseline_spans": [
+        "下降速率却相近",
+        "showed similar rates of decline"
+      ],
+      "main_text": "PDF p.12 says annual decline rates were similar.",
+      "other_location": "The S5 figure description printed in the public PDF p.17 gives annual rates 7.5% (6.6–8.4) and 5.2% (4.8–5.5), with independently fitted models.",
+      "status": "apparent source-level tension; not established misquotation or a resolved statistical contradiction",
+      "uninspected": "S5 supplementary figure itself and its underlying model/data were not supplied or inspected.",
+      "minimal_narrowing": "两类均出现下降 / both groups declined",
+      "candidate_state": "Already uses the narrower supported statement. Original baseline remains unchanged for audit; no source conflict is silently resolved."
+    },
+    "probe_verdicts": {
+      "A": "accept unchanged; supported scoped trend with unknown drivers",
+      "B": "reject and locally repair denial of measured decline because causes are unknown",
+      "C": "reject and locally repair causal claim of zero legal-protection effect without a comparison",
+      "D": "reject and locally restore exploratory status and screened population in the J2 return",
+      "E": "reject conflating a message, observed spending and a housing mechanism; repair to the actual stated-support outcome",
+      "F": "accept unchanged; faithful Chinese translation retains no-significant-increase strength"
+    },
+    "coordinator_check": "Counts independently match all eight reviewer counts; key source locations and original supplied figure markers checked. The source tension is retained as uncertainty, not assigned an invented resolution.",
+    "preparation_failure": {
+      "stage": "After anonymous inputs/key were frozen, before a model review started",
+      "exception": "shutil.SameFileError while archiving review_prepare.py onto itself",
+      "repair": "Guard identical resolved paths; retain initial script and original driver log; verify frozen inputs and key digest; launch the sole review directly without regenerating inputs or rerunning writers."
+    },
+    "execution_failures": {
+      "baseline": [
+        "shell here-document temporary-file failure",
+        "python command unavailable",
+        "fitz unavailable",
+        "pdftoppm unavailable"
+      ],
+      "candidate": [],
+      "blind_review": [
+        "shell here-document temporary-file failure",
+        "python command unavailable",
+        "fitz unavailable",
+        "optional-renderer capability probe exits nonzero while finding python3"
+      ],
+      "accounting": "4/0/4 unsuccessful inner commands; 1/0/0 outer script failures. Categories overlap, so do not add them. No outer truncation in any of the three runs."
+    },
+    "remaining_work": [
+      "Validate unchanged rules on held-out questions and sources, including qualitative or theoretical argument, before a generalization claim.",
+      "Obtain author or disciplinary-expert judgments for broader language-quality claims.",
+      "Treat startup discovery and optional PDF-renderer availability as separate scoped work, preserving existing permission owners."
+    ],
+    "postprocessing_issue": {
+      "stage": "metadata assembly after all model runs",
+      "failed_assembly_invocations": 2,
+      "exception": "SyntaxError in temporary report-driver log-path quotations",
+      "repair": "Correct both quotations and parse the complete Python source before final assembly. Failed invocations did not alter existing observation bytes or model inputs/answers. A subsequent audit detected the missing program_tests field in the earlier successful report; the final rebuild includes and verifies that field.",
+      "model_reruns": 0
+    }
+  },
+  "validation": {
+    "python_tests": {
+      "count": 14,
+      "modules": [
+        "tests.test_cross_platform_routing_grill_contract",
+        "tests.test_native_saved_document_gate"
+      ],
+      "log_path": "/home/hermes/qiongli-longform-20261023-01aez0w_/review/python-checks.log",
+      "sha256": "cda6d1dcb2715fc4521359d47f75c69283bc117a2d34dd4d0ec145506439c336"
+    },
+    "program_tests": {
+      "count": 7,
+      "module": "tests.test_program_roadmap",
+      "log_path": "/home/hermes/qiongli-longform-20261023-01aez0w_/review/program-checks.log",
+      "sha256": "a079ba332ae3109b87ed9b5d9177d90a398afe9be889d1598580fb40cdc832de",
+      "index_check": "249 tasks; generated index current"
+    },
+    "skill_validator": "passed",
+    "native_receipts": {
+      "pack": {
+        "path": "/home/hermes/qiongli-longform-20261023-01aez0w_/native-checks/pack/receipt.json",
+        "sha256": "c1e6ec2dd7fb91f65f5a66f564aa9f4644ff339b7c1726a08f18033256b1ef99",
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 7.5280625079903984,
+        "timeout_seconds": 1200,
+        "events_sha256": "8873045ddc4daad3b77665d0156492ed3f615c81ba6584ded533d29922a54a02",
+        "stderr_sha256": "cfe51277de840acfd678afbc5ec27c816cc37e3ea8e6ed01772a4aea96dc0e3b"
+      },
+      "content": {
+        "path": "/home/hermes/qiongli-longform-20261023-01aez0w_/native-checks/content/receipt.json",
+        "sha256": "3312bba9063debefdf311669b4703d843376a61b20fca39ebb3d881352475b40",
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 5.2257631909888005,
+        "timeout_seconds": 1200,
+        "events_sha256": "ed9a7876ed4fd704fa8e590aaf3dff06dcabe3b7e1a9c26d8570208ee1e420c8",
+        "stderr_sha256": "bc02ba5298ac027ea31886ac17c4bceea354b2c6b92727aa83c136e615a71144"
+      },
+      "cli-embedded": {
+        "path": "/home/hermes/qiongli-longform-20261023-01aez0w_/native-checks/cli-embedded/receipt.json",
+        "sha256": "72c7421a5ecd6b00863a544d37efa1ec0df5d6f5583ae503494b47caaa805246",
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 147.82791302299302,
+        "timeout_seconds": 1200,
+        "events_sha256": "2df3f370c1c0c5600828c6e66662b97e748ed7a275ff468a989d5e7dc2895754",
+        "stderr_sha256": "ad8ea771a737cf8579c4be60c5d23bc279484f78fe272031d911c40c38295dab"
+      }
+    },
+    "pack_lock": {
+      "compatible_product": {
+        "maximum_exclusive": "3.0.0",
+        "minimum": "2.0.0-alpha.1"
+      },
+      "content_root_sha256": "a329207b6c620037a3f1d5f0fb974cb86ead0d64e6b787c9cc65194783914e23",
+      "content_version": "2.5.3",
+      "entry_count": 446,
+      "lock_version": 1,
+      "pack_id": "qiongli-core",
+      "pack_sha256": "5f9f20692701a2a63d2918b3f6e3caeea6480d1c91169f1dfe891d5abcceefa3",
+      "source_commit": "e406ce8c1afe043578c8d6b63a6cedbc44df819d"
+    }
+  },
+  "limitations": [
+    "One fresh writer per guidance version, same configured model and a fresh anonymous same-model reviewer; no subject-expert or author review.",
+    "The candidate rules respond to observed baseline phrasing on these sources; this is a diagnostic before/after comparison, not a held-out generalization test.",
+    "The source packet is fixed to two papers and supplied main-text images. No full literature or supplemental-data verification.",
+    "No model-quality, speed, installed-Plugin, cross-Host or readiness promotion follows from these local checks."
+  ],
+  "raw_preservation": "Raw answers and review are unchanged. Public PDF/text/image and local rollouts stay outside Git; temporary auth links removed and observed subprocess groups reaped."
+}
