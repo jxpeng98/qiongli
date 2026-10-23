@@ -183,15 +183,24 @@ the details that explain the inference: what a source argues or finds, how its
 evidence supports that statement, and what context or limitation changes its
 relevance here. Compare studies or interpretations on a shared question using
 their actual constructs, designs, texts, populations or time horizons as relevant.
-Explain why convergence or disagreement matters; a difference in topic alone
-does not establish a contradiction. Do not fill unreported methods or mechanisms
+Explain what each result answers about the shared question before treating
+different findings as agreement or contradiction. Studies can jointly clarify
+which outcome or condition has evidence even when their effect sizes cannot be
+pooled or ranked. State that supported relation; neither "the studies differ"
+nor "more research is needed" explains it. Differences in setting or design may
+limit a comparison without explaining why its results differ. Do not fill
+unreported methods or mechanisms
 from expectations, treat overlapping samples as independent confirmation, or turn
 abstract-only access into a claim of full-paper appraisal.
 
 Connect the resulting synthesis to a concrete choice in this paper: a construct
 definition, theoretical expectation, comparison, design decision or unresolved
 question. "This is relevant to our topic" is insufficient without that connection.
-Explain what remains unknown and what answering it would change. A list of
+Give the supported answer to the section's question alongside the specific
+uncertainty that changes its reach. If further work is warranted, explain which
+unresolved claim it would distinguish and why that matters here; a generic call
+for larger samples, more controls or longer follow-up is not the synthesis.
+Do not replace an author's settled conclusion during a language-only edit. A list of
 estimators, datasets or robustness checks does not by itself explain a substantive
 contribution. Likewise, saying an estimate is not new or a dataset cannot identify
 a mechanism does not replace explaining what the cited evidence establishes.

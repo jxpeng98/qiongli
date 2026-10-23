@@ -66,6 +66,11 @@ removed when the local claim remains accurate. Tool failures, pending checks and
 editor questions belong in the work record or a brief separate note, not inserted
 as manuscript prose; never hide a material research limitation there.
 
+Attach a qualification to the claim it limits. Uncertainty about a mechanism or
+longer-term outcome does not negate a supported result on the measured outcome.
+Keep that result intelligible before explaining its reach. A passage that only
+lists what cannot be concluded can lose meaning through excessive caution too.
+
 For a requested cross-Host edit, hand over the selected manuscript version,
 relevant context, existing terminology/claim constraints and any supplied voice
 sample. Receive an edited candidate and unresolved questions. An optional
@@ -109,6 +114,12 @@ claims. Reconcile the affected spans against the current versions before saving
 through the existing owner. Preserve good edits in unaffected passages; do not
 restart whole-text style editing. A no-drift review accepts the candidate's
 language and ends the comparison.
+
+When delivering parallel Chinese and English versions, compare their substantive
+answers, evidence-to-conclusion links and consequential qualifications. Rebuild
+sentences for each language; matching clause order is unnecessary. Unless the
+user requests an adaptation, neither version should quietly lose a supported
+finding, add a recommendation or strengthen an inference through compression.
 
 ## English output
 
@@ -192,7 +203,26 @@ flagged. Restore the affected conclusion, not the original awkward framing.
 若原稿另有“这一关联可能反映资源差异，但该解释尚未检验”，其中的机制
 不确定性必须保留，不能套用前例删成“这一关联反映资源差异”。
 
-以上为合成教学样例；[S1]、[S2] 是样例标记，不是可用于论文的新引文。
+### 校准过度保守的结论 / Calibrating an overly cautious conclusion
+
+假定合成来源 [S3] 报告：随机分配涂层处理的台架试验中，新涂层使平均磨损量
+降低0.4 mg（95% CI：0.1–0.7）；试验未测长期耐久性，也未检验作用机制。
+原稿若据后两项写成“因此，新涂层能否降低磨损仍未得到支持”，便把不同问题
+混在了一起。G4 的实质校准可以改为：
+
+> 在所测台架工况下，新涂层使平均磨损量降低0.4 mg（95% CI：0.1–0.7）[S3]。
+> 这一结果支持其在该工况下减少磨损；作用机制和长期耐久性仍未确定。
+
+> Under the tested bench conditions, the new coating reduced mean wear loss by
+> 0.4 mg (95% CI: 0.1–0.7) [S3]. This supports reduced wear under those conditions;
+> the mechanism and long-term durability remain undetermined.
+
+The result, its tested scope and the two unresolved questions stay distinct in
+both languages. This repairs an existing unsupported conclusion; it is not a
+silent expression-only J2 edit. If only language editing is authorized, identify
+the conflict for substantive review while preserving valid edits elsewhere.
+
+以上为合成教学样例；[S1]、[S2]、[S3] 是样例标记，不是可用于论文的新引文。
 
 ## Reference
 

@@ -96,6 +96,10 @@ review depth and explanatory-note placement. Stage B's B4 route consumes that
 owner; a manuscript LR request is not automatically a formal B1 systematic review.
 `scholarly-voice.md` applies during drafting as well as J2 revision, and
 `citation-risk-policy.md` covers source-dependent background and note claims.
+Stage F owns the supported cross-source answer even where estimates cannot be
+pooled; scholarly voice preserves that answer and its specific limits across
+languages. Unresolved mechanisms do not erase measured results, and correcting
+an existing substantive conclusion remains distinct from expression-only J2.
 Neither citation/paragraph quotas nor explanatory notes replace inspected support
 or authorize a new search, project write or substantive change during proofreading.
 Stage F distinguishes literature synthesis from internal positioning/protocol
