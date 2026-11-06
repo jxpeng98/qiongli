@@ -184,7 +184,7 @@ impl OptionMap {
             return Err("native-update-metadata-usage-invalid");
         }
         let mut options = BTreeMap::new();
-        for pair in args.chunks_exact(2) {
+        for pair in args.as_chunks::<2>().0.iter() {
             let name = pair[0]
                 .to_str()
                 .filter(|value| value.starts_with("--"))

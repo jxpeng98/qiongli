@@ -1434,8 +1434,8 @@ fn parse_context_read(args: &[OsString]) -> Result<ProjectContextReadOptions, &'
     let mut artifact_path = None;
     let mut max_bytes = 16 * 1024;
     let mut seen = std::collections::BTreeSet::new();
-    let mut pairs = args[1..].chunks_exact(2);
-    for pair in &mut pairs {
+    let (pairs, remainder) = args[1..].as_chunks::<2>();
+    for pair in pairs {
         let flag = pair[0].to_str().ok_or("invalid context read option")?;
         if !seen.insert(flag) {
             return Err("duplicate context read option");
@@ -1477,7 +1477,7 @@ fn parse_context_read(args: &[OsString]) -> Result<ProjectContextReadOptions, &'
             _ => return Err("unknown context read option"),
         }
     }
-    if !pairs.remainder().is_empty() {
+    if !remainder.is_empty() {
         return Err("context read option requires a value");
     }
     Ok(ProjectContextReadOptions {

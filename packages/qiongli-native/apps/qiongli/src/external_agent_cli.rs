@@ -48,7 +48,7 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ExternalAgentCommand, &'static 
     }
     let (mut handoff, mut packet, mut events, mut status, mut exit_code) =
         (None, None, None, None, None);
-    for pair in args[2..].chunks_exact(2) {
+    for pair in args[2..].as_chunks::<2>().0.iter() {
         match pair[0].to_str() {
             Some("--handoff") if handoff.is_none() => handoff = Some(PathBuf::from(&pair[1])),
             Some("--packet") if packet.is_none() => packet = Some(PathBuf::from(&pair[1])),

@@ -52,8 +52,8 @@ pub(crate) fn parse_search(args: &[OsString]) -> Result<SavedDocumentSearchReque
 
 fn parse_fields(args: &[OsString], mode: &str) -> Result<Map<String, Value>, &'static str> {
     let mut fields = Map::new();
-    let mut pairs = args.chunks_exact(2);
-    for pair in &mut pairs {
+    let (pairs, remainder) = args.as_chunks::<2>();
+    for pair in pairs {
         let (field, numeric) = match pair[0].to_str() {
             Some("--project-id") => ("project_id", false),
             Some("--expected-project-revision") => ("expected_project_revision", true),
@@ -94,7 +94,7 @@ fn parse_fields(args: &[OsString], mode: &str) -> Result<Map<String, Value>, &'s
             return Err("duplicate saved-document read option");
         }
     }
-    if !pairs.remainder().is_empty() {
+    if !remainder.is_empty() {
         return Err("saved-document read option requires a value");
     }
     Ok(fields)

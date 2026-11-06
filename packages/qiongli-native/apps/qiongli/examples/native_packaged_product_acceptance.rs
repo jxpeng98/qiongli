@@ -331,7 +331,7 @@ fn run_legacy_only(values: &[OsString]) -> Result<(), &'static str> {
     }
     let mut canonical = None;
     let mut home = None;
-    for pair in values.chunks_exact(2) {
+    for pair in values.as_chunks::<2>().0.iter() {
         match pair[0].to_str() {
             Some("--canonical") if canonical.is_none() => {
                 canonical = Some(PathBuf::from(&pair[1]));
@@ -677,7 +677,7 @@ impl Arguments {
         let mut output = None;
         let mut source_commit = None;
         let mut signing_script = None;
-        for pair in values.chunks_exact(2) {
+        for pair in values.as_chunks::<2>().0.iter() {
             match pair[0].to_str() {
                 Some("--output") if output.is_none() => output = Some(PathBuf::from(&pair[1])),
                 Some("--source-commit") if source_commit.is_none() => {
@@ -4475,7 +4475,9 @@ fn decode_hex(value: &str) -> Result<Vec<u8>, &'static str> {
     }
     value
         .as_bytes()
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|pair| {
             let high = hex_nibble(pair[0])?;
             let low = hex_nibble(pair[1])?;

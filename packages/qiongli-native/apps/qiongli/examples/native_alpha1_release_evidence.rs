@@ -220,7 +220,7 @@ impl OptionMap {
             return Err("alpha1-release-evidence-usage-invalid");
         }
         let mut options = BTreeMap::new();
-        for pair in values.chunks_exact(2) {
+        for pair in values.as_chunks::<2>().0.iter() {
             let name = pair[0]
                 .to_str()
                 .filter(|value| value.starts_with("--"))

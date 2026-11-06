@@ -955,7 +955,7 @@ fn parse_app_project_artifact_args(args: &[OsString]) -> Result<Command, UsageEr
     let mut expected_project_revision = None;
     let mut expected_projection_id = None;
     let mut entity = None;
-    for pair in args.chunks_exact(2) {
+    for pair in args.as_chunks::<2>().0.iter() {
         let option = pair[0]
             .to_str()
             .ok_or_else(|| app_usage_error("project artifact option is not valid UTF-8"))?;
@@ -1162,7 +1162,7 @@ fn parse_plugin_source_target(
             "Plugin source requires --target and --destination",
         ));
     }
-    for pair in args.chunks_exact(2) {
+    for pair in args.as_chunks::<2>().0.iter() {
         match pair[0].to_str() {
             Some("--target") if target.is_none() => {
                 target = Some(match pair[1].to_str() {
