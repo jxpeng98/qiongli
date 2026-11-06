@@ -20,6 +20,13 @@ Compare how readily a reader can identify the actors, activities, comparison and
 inference. A longer version can be clearer when it makes supplied relationships
 explicit; neither brevity nor expansion earns a preference by itself. Separate
 necessary mechanism/causal qualifications from empty defensive framing.
+For an incompleteness finding, identify the missing premise and the conclusion
+that the reader can no longer follow or justify within the requested scope.
+An omitted optional example or contextual finding can be a useful addition
+without making an otherwise complete argument fail. Check source-specific
+criteria against the task's permitted omissions. If a frozen check imposes extra
+content, retain the original score and record the scope adjudication separately;
+do not force a correct passage to satisfy that check.
 
 Bind human feedback to the actual labelled passage, language and question shown.
 Record only expressed preferences and reasons; keep model diagnoses separate.
@@ -29,6 +36,11 @@ scope. A pasted preferred paragraph is not a new human rewrite when its body is
 unchanged; distinguish any added heading or note without guessing its intended
 placement. Unreported editing time stays unknown. A follow-up wording proposal
 needs its own review before being described as human approved.
+Keep the version key and automatic judgments out of the human packet and visible
+tool outputs until the human response is recorded. Anonymous labels alone do not
+establish a blinded review. If either was exposed, preserve that event and the
+feedback without claiming strict blinding; do not relabel the same comparison
+and call it a fresh blind trial.
 
 Measure length using the frozen task's unit and exclusions. Excluding standalone
 source-anchor lines retains inline anchors; removing all anchors is a different

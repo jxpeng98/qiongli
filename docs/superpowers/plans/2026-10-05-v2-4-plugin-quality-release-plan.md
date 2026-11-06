@@ -4134,3 +4134,50 @@ Configured models and native write/CAS owners remain unchanged. No push,
 publication or acceptance promotion. Next validate on an unseen passage and
 obtain human feedback on the further wording; whole-manuscript/English judgment
 and actual editing time remain open.
+
+## November 6 — Unseen Chinese paragraphs and human selection
+
+The [new Chinese observation](../../../evals/research_journey/writing-quality/observations/chinese-holdout-2026-11-06/README.md)
+uses two previously unused passages from Traag's 2016 PLOS ONE paper. Complete
+publisher HTML/XML/PDF and exact JATS paragraph locators are preserved. The two
+writers receive identical sources/tasks and the user's configured model; their
+prompts differ only by the preceding 16-line scholarly-voice addition. Both
+writers and one fresh anonymous reviewer finish, with complete inline delivery,
+unchanged inputs/settings and authentication-link cleanup. Optional PATH alias
+warnings in the temporary profile remain; no requested operation fails.
+
+All four paragraphs fit the frozen 250–450-character range and pass the model's
+Chinese-naturalness and qualification checks. The reviewer gives one paragraph
+a partial argument score for omitting an experiment observation. Preserve that
+raw score: a separate coordinator adjudication identifies checklist overreach,
+because the task permits optional examples and the passage retains every premise
+needed for its conditional explanation. The review-criteria owner now requires
+an actual missing premise and consequence before calling an argument incomplete.
+No further canonical writing-rule or content-pack change is warranted.
+
+The user prefers B's overall fluency while valuing A's wording/completeness and
+selects B as the base. The [exact response and comparison binding](../../../evals/research_journey/writing-quality/observations/chinese-holdout-2026-11-06/human-feedback.json)
+remain separate from model judgments. The coordinator's combined paragraphs
+retain B's flow, A's conceptual/methodological detail, source attribution and
+necessary uncertainty; they have 348 and 391 characters. The user did not supply
+per-case scores, exact phrase choices or editing time, and has not reviewed the
+combined wording. The version key and automatic review appeared in tool output
+before feedback, so strict human blinding is not claimed. Preserve this exposure;
+future criteria withhold keys/judgments from visible output until the response.
+
+Seven program tests and generated-index freshness pass. Actual helper-based
+checks verify frozen inputs, all three complete prompts, the 16-line-only prompt
+difference, source locators, output/feedback hashes, selected-text counts and
+citation anchors, current packet recovery and cleanup. Final artifact/ledger
+audits retain all 249 tasks and 198 populated acceptance fields; only CLI-405
+progress changes. Native/content/pack source is unchanged, so prior affected
+checks are reused. The final diff review and frozen-source guard accompany local
+fast-forward integration into `2.x`, without push, publication or acceptance
+promotion. Raw local evidence remains under
+`/tmp/qiongli-zh-holdout-20261106-3vfczvmn`; program test output is
+`/tmp/qiongli-zh-holdout-program-tests.log`.
+
+One sample per guidance arm and this scoped human preference do not establish
+general or causal gains. These passages now become regression material. Next use
+a new connected passage with the key and model judgments withheld through human
+review; combined-text, English and whole-manuscript judgments remain open.

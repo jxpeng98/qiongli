@@ -1,0 +1,733 @@
+{
+  "schema_version": "qiongli-chinese-holdout-observation/v1",
+  "date": "2026-11-06",
+  "source_commit": "486dd30c33a3324ca291831c320ce6ddc633c8c9",
+  "local_evidence_root": "/tmp/qiongli-zh-holdout-20261106-3vfczvmn",
+  "scope": "Two source-based Chinese paragraph tasks from one locally first-use public paper; one sample per guidance arm, followed by one identity-blinded same-model reviewer and a separate coordinator adjudication. Not installed-Plugin, human, expert, or broad language-quality acceptance.",
+  "source": {
+    "author": "Vincent A. Traag",
+    "year": 2016,
+    "title": "Complex Contagion of Campaign Donations",
+    "doi": "10.1371/journal.pone.0153539",
+    "license": "CC BY; attribution retained",
+    "official_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0153539",
+    "retrieval": [
+      {
+        "file": "Traag2016.html",
+        "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0153539",
+        "final_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0153539",
+        "status": 200,
+        "content_type": "text/html;charset=UTF-8",
+        "bytes": 268420,
+        "sha256": "c745fb35990e34461bef682e4095e200b030a5953627503cc2f61d87bf6d75a1"
+      },
+      {
+        "file": "Traag2016.xml",
+        "url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0153539&type=manuscript",
+        "status": 200,
+        "content_type": "text/xml",
+        "bytes": 142351,
+        "sha256": "13ed5d501421e77204e7ff7a7fb9ef3a046a0d710dd6e906f4c9aed2cac66188",
+        "final_url_without_temporary_query": "https://corpus-prod.f505aadad1e46610c8f8563037eb3c4b.r2.cloudflarestorage.com/10.1371/journal.pone.0153539/1/pone.0153539.xml",
+        "temporary_redirect_query_omitted": true
+      },
+      {
+        "file": "Traag2016.pdf",
+        "url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0153539&type=printable",
+        "final_url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0153539&type=printable",
+        "status": 200,
+        "content_type": "application/pdf",
+        "bytes": 1353000,
+        "sha256": "346c8d9f33a5557c7d71c01e45ac9b3ddc00f1c9b1ac9b0df926551481502c3b"
+      }
+    ],
+    "first_use": {
+      "args": [
+        "git",
+        "grep",
+        "-n",
+        "-i",
+        "-E",
+        "Traag|0153539|Complex Contagion of Campaign Donations|1601.07679",
+        "486dd30c33a3324ca291831c320ce6ddc633c8c9",
+        "--",
+        "content",
+        "evals/research_journey",
+        "docs/superpowers/plans/2026-10-05-v2-4-plugin-quality-release-plan.md"
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    "excerpt_locators": "Publisher JATS section IDs and direct paragraph child ordinals; not PDF pages.",
+    "excerpts": {
+      "case1": [
+        {
+          "locator": "sec001/p[4]",
+          "section": "Introduction",
+          "text": "If contagion is more likely when adopting neighbours know each other we will speak of cohesive reinforcement. In this case, ego (the focal node) is embedded in a well-knit cohesive environment of adopters. Such an environment is supportive and enables people to take risky actions, knowing they are supported by their friends [29]. It is also frequently a normative environment and part of the social influence is simply adhering to group norms [30–32]. Failing to heed to the group’s norms may lead to being ostracised, pressuring people to adopt the behaviour and follow the group norms [33]. In the case of cohesive reinforcement contagion would be especially likely if adopters come from the same group of people. Take for example protesting: when four friends participate but do not know each other, we may be less inclined to join than when these four friends know each other and we can participate as a group [34]. Such cohesive reinforcement may also play a role in collective action more generally.",
+          "text_sha256": "3d24c169b26904ae4c97b5e5c573f0f86b21a770d72ffbeff0981b6b7c19bf1a"
+        },
+        {
+          "locator": "sec001/p[5]",
+          "section": "Introduction",
+          "text": "If contagion is more likely when adopting neighbours don’t know each other, we will speak of independent reinforcement. In this setting, adopters from the same group do not reinforce social contagion. In some way, signals from the same group are redundant, which is consistent with the strength of weak ties [35]: news passes through weak links, crossing group boundaries. Information from multiple sources is generally more credible [36], but only if they are independent [37, 38]. Indeed, if multiple sources are not independent, they are essentially seen as a single independent source, and are no more persuasive than a single source [38]. Take for example information pertaining to health: if four friends inform us that a diet works well, this is more credible when these friends do not know each other and reached this conclusion independently from one another than when they all know each other (e.g. from a diet club), and have influenced each other in believing that the diet works.",
+          "text_sha256": "73449a62981aba4a95f84654fd1d078db4135859a5dc684978ed523d51be80a9"
+        },
+        {
+          "locator": "sec006/p[5]",
+          "section": "Discussion",
+          "text": "More generally speaking, we hypothesize that complex contagion with independent reinforcement is especially likely with population-wide network externalities—if the value of the behaviour depends on the number of people showing such behaviour [64]. A previous study of contagion in signing up to Facebook reported similar results to our own [28]; a clear case of behaviour with network externalities—using a social network site is only useful if enough other people use it. Cases where network externalities are present are abundant, ranging from communication devices and services to file formats and technical standards [65]. In such situations we expect complex contagions to be driven by independent reinforcement.",
+          "text_sha256": "d5f3131faf6454de17a7b8d575d0ddd02afada10db6bafc77d87a2d2157962d1"
+        },
+        {
+          "locator": "sec006/p[6]",
+          "section": "Discussion",
+          "text": "However, not all network externalities necessarily lead to independent reinforcement. For example, in the presence of a public goods dilemma or a collective action problem, we may expect cohesive reinforcement rather than independent reinforcement. If two alters are unrelated (such that ego is the broker between these two alters), this may make coordination between the three more difficult; when the alters do know each other, it may facilitate communication and thereby agreement on a common course of action. Especially when the stakes are high, failing to coordinate an action can be costly, thereby making cohesive reinforcement more likely. While cascades of cooperation have been observed to take place in experimental studies of public goods [66–69], it is an open question whether such effects are driven by cohesive or independent reinforcement contagion.",
+          "text_sha256": "b3272de0e91b588ce74082767c49a5b704111cfb438d3e97f5cec0a4706127e6"
+        },
+        {
+          "locator": "sec006/p[7]",
+          "section": "Discussion",
+          "text": "Alternatively, if a network externality depends not on the number of people, but on the connections between them, we may expect cohesive reinforcement. Take the mundane example of hanging out at a bar with friends. The joy of such an activity depends not on the number of friends itself, but on whether those friends also know each other and enjoy spending time with each other. Similarly, team performance may not depend so much on the number of people, but on how they are connected [70, 71], favouring cohesive reinforcement.",
+          "text_sha256": "03c93c67fb9b576a1807c2a37e1694769fc1d39674708dbb70f0ad6f7f7312ad"
+        }
+      ],
+      "case2": [
+        {
+          "locator": "sec003/p[4]",
+          "section": "Contagion of donation",
+          "text": "One of the notorious problems of studying social contagion is the problem of homophily [46]. People with similar preferences are more likely to be connected [47], so that exposure to donors does not necessarily causally affect donation, but may simply reflect an underlying similarity in preferences. Such homophilic links may have consequences for how phenomena diffuse over networks [48–51]. Homophily can also create a selection bias (treatment bias) as exposure to donors also depends on underlying preferences, meaning that donors are more likely to be exposed to other donors [46]. This problem has previously been addressed by resorting to propensity matching methods [46]. While it is impossible to completely resolve the confounding of homophily and social contagion in observational studies [52], contagious effects have also been documented in experimental studies [53]. The single best indicator of the underlying preference for donating to a particular campaign is whether that person has previously donated to other Democratic or Republican candidates (Fig 3(e)). Note that campaigns often use previous donations to target likely donors [54], so that controlling for previous donations effectively also controls for selective targeting by campaigns. Previous donation makes it more than 17 times more likely to donate again (χ2 = 7801, p ≈ 0). We use this measure to control for homophily. We cannot rule out other hidden homophily that might explain any remaining network effects [52]. While other relevant co-variates are available in the data (e.g. date of birth, gender, net worth), they have not been as extensively coded, limiting their usefulness as control variables. Nevertheless, observing an identical phenomenon (donation to a political candidate) is a strong indicator that should account better than any other measure for the effects of homophily on donation. If we still see an effect of exposure to other donors after controlling for previous donations—which is such a strong predictor—then this strengthens the hypothesis of social contagion.",
+          "text_sha256": "46dd1215c3e19ab5bdee3525d6de885794a600376ed349d016c5e21068f47575"
+        },
+        {
+          "locator": "sec006/p[1]",
+          "section": "Discussion",
+          "text": "We find that political campaign donations among elite are socially contagious. Being exposed to other donors increases chances of donation significantly, also after controlling for previous donations. Contagion is especially likely after multiple exposures from different communities or from different types of sources (e.g. family, friends, business partners). This supports the idea of independent reinforcement of complex social contagions.",
+          "text_sha256": "c06c1c2f09635fcbad7deb31d63a7cefd50faf9813cf05c418f66b7cc9f84155"
+        }
+      ]
+    },
+    "coverage": "Full public publisher XML/HTML/PDF preserved. Model turns received the complete selected source packet inline. No claim of whole-paper, image, supplementary-data or separately cited literature review."
+  },
+  "identity": {
+    "codex_version": "codex-cli 0.162.1",
+    "codex_sha256": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "model_overrides": false,
+    "user_config_sha256": "2e5933d2347df532e257b938413d5b12abb2dc34fe2d893b64ad73a1bc65c37d",
+    "driver_sha256": "47da58b21e09960923d64a0a57f6107257ed84fd1ffd35b3d69fed7328251c79",
+    "unchanged_helpers": {
+      "evals/research_journey/writing_observation.py": "07d31137cbb94fcde860591012acd92df28f2e1f4cf99edd6a397bfc57e1dff5",
+      "evals/research_journey/plugin_baseline.py": "023babcca15cfece478fa6dd52e097215f3d03099903b080ae4fe8ba3b4e9b7d",
+      "evals/research_journey/antigravity_observation.py": "d0f4d513f847aee40782bf297ca065854dec6e4ffc37a001cc61d935fa827f12"
+    },
+    "unselected_candidate": {
+      "title": "Complex Contagions and the Weakness of Long Ties",
+      "authors": "Centola and Macy",
+      "year": 2007,
+      "reason": "Public full text found; chose a CC BY paper with both theoretical comparisons and explicit observational caveats for a reusable paragraph evaluation."
+    }
+  },
+  "design": {
+    "source_commit": "486dd30c33a3324ca291831c320ce6ddc633c8c9",
+    "baseline_guidance_commit": "04af70af72ff30b4efa93dace3aee538146cc148",
+    "current_guidance_commit": "486dd30c33a3324ca291831c320ce6ddc633c8c9",
+    "scope": "Two paragraph tasks from one locally first-use public paper; one generation per guidance arm, not a replicated causal estimate of quality gains.",
+    "guidance": {
+      "baseline": {
+        "content/workflow/references/stage-F-writing.md": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+        "content/workflow/references/scholarly-voice.md": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2"
+      },
+      "current": {
+        "content/workflow/references/stage-F-writing.md": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+        "content/workflow/references/scholarly-voice.md": "c16a4486d33b440c9e9b3089cf8df482be186fc1d94be7d11a82db2abd3f504b"
+      }
+    }
+  },
+  "task": "使用所给 Qiongli 写作指导，根据论文片段为社会科学综述撰写两段中文正文。面向具有一般社会科学背景、未读过原论文的读者。正文应准确转述作者的论证，表达自然，保留影响结论的限定。每项各写一个连贯自然段，每段 250–450 个非空白 Unicode 字符（含标点和数字；排除标题和整段末尾独立的来源标记）。这不是逐句翻译，不必复述所有例子、统计量或文献列表。仅使用提供的材料，不补写未经支持的研究事实，也不把所引论文当作已直接阅读。\n\n## 段落一\n用一段中文解释作者为何区分独立强化与凝聚强化，以及两者的适用条件有何不同。材料为 case1。\n\n## 段落二\n用一段中文解释作者如何评估捐款行为的社会传播，并说明这项分析支持何种结论。材料为 case2。\n\n仅返回“## 段落一”和“## 段落二”及各自正文。在每段末尾另起一行给出来源标记“〔Traag2016: section/paragraph locators〕”，使用所提供定位。不要附加写作过程、检查清单或偏好说明。无需浏览、工具调用或文件写入；本次所需指导和原文已完整提供。",
+  "frozen_criteria": {
+    "dimensions": [
+      "argument_completeness",
+      "natural_chinese",
+      "necessary_qualifications"
+    ],
+    "general": "Judge each version separately, then compare within each case. Exact spans and source locators required. Ties and unchanged good prose are valid. Length/shortness/number of edits are not quality scores. Separate fidelity repairs from optional style preferences. No ranking based on writer identity.",
+    "case1": [
+      "Explain independent reinforcement versus cohesive reinforcement from source distinctions, including the meaning of population-wide network externalities.",
+      "Connect benefit from widespread adoption to the independent-signal hypothesis; connect knowing one another to communication/coordination and possible cohesive reinforcement.",
+      "Retain the exception: not every network externality favors independence. Where value depends on connections rather than headcount, cohesion may be relevant.",
+      "The theoretical extension is a hypothesis/expectation. Public-goods cooperation cascades have been observed in other studies as cited by this author, but which reinforcement mode drives them remains open. Do not assert the proposed mechanism is an experimentally established result.",
+      "Preserve the difference between observation of behavior and a measured causal mechanism. Definitions or settled source descriptions need no stacked hedges."
+    ],
+    "case2": [
+      "Homophily means similar preferences affect both network connection/exposure and donation, providing an alternative to contagion.",
+      "Previous donation is the author's proxy/control for preference, not randomized exposure or complete elimination of confounding. The result persists after control and supports the social-contagion hypothesis.",
+      "Hidden homophily cannot be excluded; other covariates have incomplete coding. Do not generalize from elites to the public or equate association with a causal effect.",
+      "Omission of optional examples/statistics is acceptable if the reasoning and consequential boundary remain; no need to restate every citation."
+    ],
+    "human_status": "pending; do not infer user preference from model judgments",
+    "repair_policy": "Keep raw outputs. Offer only a minimal local repair for an actual problem, then recheck the altered span. Do not replace both passages merely to make one win."
+  },
+  "frozen_inputs": {
+    "sources/Traag2016-body.md": {
+      "sha256": "20361d16e468820f60f531edc70cf15ddeb1176739e7644ab47d60bd809f5168",
+      "bytes": 43140
+    },
+    "sources/excerpts.json": {
+      "sha256": "f51bd781c04aebcf038297c5bb53e20c5d45a8cf421730e799b1cb90ce7998f1",
+      "bytes": 7975
+    },
+    "sources/Traag2016.pdf": {
+      "sha256": "346c8d9f33a5557c7d71c01e45ac9b3ddc00f1c9b1ac9b0df926551481502c3b",
+      "bytes": 1353000
+    },
+    "sources/Traag2016.html": {
+      "sha256": "c745fb35990e34461bef682e4095e200b030a5953627503cc2f61d87bf6d75a1",
+      "bytes": 268420
+    },
+    "sources/packet.txt": {
+      "sha256": "e2d822b1f4fc993d597a04e3d90dde7b7aed1d7beba885a464405bd432c87644",
+      "bytes": 8651
+    },
+    "sources/Traag2016.xml": {
+      "sha256": "13ed5d501421e77204e7ff7a7fb9ef3a046a0d710dd6e906f4c9aed2cac66188",
+      "bytes": 142351
+    },
+    "baseline-inputs/scholarly-voice.md": {
+      "sha256": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2",
+      "bytes": 14570
+    },
+    "baseline-inputs/prompt.txt": {
+      "sha256": "799c3b60c144a093d0f4aa104719be3af85d0f883e151f7a91e9bf1128abca31",
+      "bytes": 51213
+    },
+    "baseline-inputs/stage-F-writing.md": {
+      "sha256": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+      "bytes": 26591
+    },
+    "current-inputs/scholarly-voice.md": {
+      "sha256": "c16a4486d33b440c9e9b3089cf8df482be186fc1d94be7d11a82db2abd3f504b",
+      "bytes": 15672
+    },
+    "current-inputs/prompt.txt": {
+      "sha256": "8f11f93b90ef5b7312e02bf6a44a57386d921f1a55de9655f7ce69360bc5641f",
+      "bytes": 52315
+    },
+    "current-inputs/stage-F-writing.md": {
+      "sha256": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+      "bytes": 26591
+    },
+    "review/task.txt": {
+      "sha256": "9f86c11f605d536ef2bcffebe469553e7e744292ecb79fae6cdd271f178a9b65",
+      "bytes": 1226
+    },
+    "review/criteria.json": {
+      "sha256": "a2b1972ce00520a157382e7a4fca3e79c211d8650185c32c518e1cbc4fa93aab",
+      "bytes": 2350
+    },
+    "review/design.json": {
+      "sha256": "d84ae1be20ac6d97d5c48698883b46b49f3c96332fa07608edaccc99b824b1c3",
+      "bytes": 935
+    },
+    "review/retrieval.json": {
+      "sha256": "53445fb97f1b3ca21d05dc2cf91f9b1c711d643aa485d027acf4bc1c7420a2fb",
+      "bytes": 1539
+    },
+    "review/first-use.json": {
+      "sha256": "36085c46c275054355720fab2cd39cf66fd5a7e0afa39a0b094cab2eb55bcb42",
+      "bytes": 375
+    }
+  },
+  "prompt_difference": "--- baseline-prompt\n\n+++ current-prompt\n\n@@ -612,6 +612,22 @@\n\n 先理顺段落意思，再调整信息顺序。能用具体动词时，减少“对……进行……”等空架子；\n 拆开堆叠的修饰语和“的”字链。主语可省略，但换话题时要明确指代。不要为了避免\n 重复而更换关键术语，也不要把所有长句切成短句。\n+\n+简洁应减少读者理解的负担。比较不同研究时，按已有材料交代谁参与、安排了什么\n+活动，以及这种差异如何关联当前论点；不要把这些信息压成“更快者”“更多内容”\n+等需要读者猜测的简称。已有上下文足够清楚时可以省略，不必处处补全主语。\n+\n+例如，假定材料已说明学习进度、练习主题和两种任务安排，简写为“甲允许更快者\n+接触更多内容；乙压缩为两项任务”会模糊比较对象。可写成：\n+\n+> 研究甲允许进度较快的参与者接触更多练习主题；研究乙则只安排了两项新库任务。\n+\n+> Study A allowed participants who progressed faster to explore more practice\n+> topics; Study B included only two tasks involving an unfamiliar library.\n+\n+这组中英文合成样例补明了已有信息，不增加研究事实。若随后提出这些安排可能\n+影响学习，应保留机制的不确定性，并说明两种设计是否经过直接比较。读起来更\n+完整，不等于可以把跨研究解释写成实验已证实的因果关系。\n \n 把具体测量写成自然的中文，不照搬英文的抽象名词搭配。例如，指标是天数时，\n “缩短处于无家可归状态的时间”比“减少无家可归暴露”更直接，对应英文\n",
+  "runs": {
+    "baseline": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 260.46618780493736,
+        "timeout_seconds": 1200,
+        "events_sha256": "13153912285ee91488493875229381d01e50c69d1dfde4478c0ca837b70de1fe",
+        "stderr_sha256": "1025394f50d93ac37f58e17399a7fc9b22dc9046f4f310eff108d5c0fee57c9f"
+      },
+      "trace_metrics": {
+        "tool_calls": [],
+        "tool_call_count": 0,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 22347,
+          "cached_input_tokens": 9728,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 8513,
+          "reasoning_output_tokens": 7892
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "outer_delivery": {
+        "rollout_path": "/tmp/qiongli-zh-holdout-20261106-3vfczvmn/profiles/baseline/sessions/2026/11/06/rollout-2026-11-06T09-55-44-01a1b049-1e5c-7653-b712-dfe34f17abbf.jsonl",
+        "rollout_sha256": "fd2f0bb02e16c5106e05d6adbc24a5427e2d88cb32fef3d17bcbd1182684ed33",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "outputs": [],
+        "exec_output_count": 0,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "context_metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "exact_inline_prompt_delivered": true,
+      "temporary_auth_link_removed": true,
+      "prompt_sha256": "799c3b60c144a093d0f4aa104719be3af85d0f883e151f7a91e9bf1128abca31",
+      "prompt_bytes": 51213,
+      "answer_sha256": "2b60a1fa443119cbcac2aff99eb453d46bab1c6696f414aab877b89fa2b2710d",
+      "answer": "## 段落一\n\n作者区分独立强化与凝聚强化，是为了说明：多个已采纳某行为的人能否带动他人行动，还取决于这些人之间的关系。凝聚强化指这些人相互熟识时，传播更容易发生：紧密群体既能提供行动支持，也能通过群体规范形成压力。独立强化则指这些人彼此不相识时，传播更容易发生，因为同一群体传来的信息可能重复，相互独立的来源才更具说服力。作者进一步提出，当一种行为的价值受到他人参与的影响，即存在网络外部性时，两种强化可能适用于不同条件。如果价值取决于总体参与人数，独立强化可能更重要；如果价值取决于参与者之间的联系，则更可能出现凝聚强化。在公共物品困境或集体行动中，凝聚强化也可能更重要，因为彼此相识有助于沟通和协调，尤其当协调失败的代价较高时。因此，网络外部性并不必然对应独立强化；这些适用条件仍是理论预期，公共物品情境中的合作由哪种强化驱动尚未确定。\n\n〔Traag2016: sec001/p[4]; sec001/p[5]; sec006/p[5]; sec006/p[6]; sec006/p[7]〕\n\n## 段落二\n\n作者在美国精英的关系网络中，检验接触其他捐款者是否与本人捐款相关。分析的核心难题是同质性：偏好相近的人更可能相互联系，因此，接触捐款者与本人捐款之间的关联，可能来自共同偏好。作者以既往是否向民主党或共和党候选人捐款来控制这种影响，因为既往捐款能有力预测再次捐款，是捐款偏好的重要指标。竞选团队也常按既往记录寻找潜在捐款者，因此作者认为，这一控制同时处理了选择性募款的影响。结果显示，控制既往捐款后，接触其他捐款者仍与更高的捐款概率显著相关；接触来自不同社群或不同关系类型的多个捐款者时，捐款的可能性尤其高。作者据此认为，捐款具有社会传播特征，这一模式支持独立强化的解释。不过，这项观察性分析仍不能排除未观测的同质性；出生日期等资料的编码不充分，也限制了其作为控制变量的用途。因此，结果增强了社会传播假说的可信度，但不能单凭这一分析确定因果关系。\n\n〔Traag2016: sec003/p[4]; sec006/p[1]〕",
+      "effective_model": "gpt-6-astra",
+      "effective_reasoning_effort": "xhigh",
+      "tool_network": "disabled",
+      "tool_filesystem": "read-only",
+      "stderr_note": "Codex declined optional PATH helper aliases under a temporary CODEX_HOME; all three requested turns completed without tool calls."
+    },
+    "current": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 201.06064081005752,
+        "timeout_seconds": 1200,
+        "events_sha256": "7aae452710c638e0b1b5c5997d91ab5f50414b561c44d72a12aec417d41aa168",
+        "stderr_sha256": "356250f3ae6bdce5bdff9e046b851b2be01800600ddeebd734547901d487e0b6"
+      },
+      "trace_metrics": {
+        "tool_calls": [],
+        "tool_call_count": 0,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 22605,
+          "cached_input_tokens": 9728,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 5286,
+          "reasoning_output_tokens": 4660
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "outer_delivery": {
+        "rollout_path": "/tmp/qiongli-zh-holdout-20261106-3vfczvmn/profiles/current/sessions/2026/11/06/rollout-2026-11-06T09-55-48-01a1b049-2c3d-7851-a416-f24844035bb6.jsonl",
+        "rollout_sha256": "418d1042c609aee45a5074170df7f4d4277b4fdb6f8e24b2ae89b209ffad7d90",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "outputs": [],
+        "exec_output_count": 0,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "context_metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "exact_inline_prompt_delivered": true,
+      "temporary_auth_link_removed": true,
+      "prompt_sha256": "8f11f93b90ef5b7312e02bf6a44a57386d921f1a55de9655f7ce69360bc5641f",
+      "prompt_bytes": 52315,
+      "answer_sha256": "f8ab7ca76cb5e34ebd17b7ef467656c56a2052a6440824e2ef527ef4b29de039",
+      "answer": "## 段落一\n\n作者区分独立强化与凝聚强化，是为了说明，身边多人采取同一行为时，这些人之间的关系也可能影响个体是否跟随。凝聚强化指已参与的熟人彼此相识时，个体更容易跟随；紧密群体既能提供支持，也可能通过群体规范形成参与压力。独立强化则指这些熟人互不相识时，个体更容易跟随：同一群体的信息可能重复，来自不同群体且独立形成的判断更有说服力。两者的适用条件与行为价值的来源有关。作者推测，若行为价值取决于整体人群中的参与人数，独立强化更可能出现；若行动需要协调，尤其协调失败的代价很高，参与者之间的联系有助于沟通和形成共同行动，便可能有利于凝聚强化。若行为价值取决于参与者之间的关系，而非人数本身，也更可能出现凝聚强化。这些适用条件仍是理论预期；公共物品实验中观察到的合作传播究竟由哪类强化驱动，作者明确指出尚无定论。\n〔Traag2016: sec001/p[4]; sec001/p[5]; sec006/p[5]; sec006/p[6]; sec006/p[7]〕\n\n## 段落二\n\n作者评估捐款的社会传播时，首先考虑同质性带来的混淆：偏好相近的人更容易建立联系，因此，相连的人都捐款，未必意味着他们相互带动。在美国精英的观察性网络资料中，作者用此前是否向民主党或共和党候选人捐过款作为既有捐款偏好的指标，并据此控制同质性的影响。既往捐款能有力预测再次捐款；作者还认为，这一控制有助于控制竞选团队依据捐款记录选择募款对象所带来的影响。分析发现，控制既往捐款后，接触其他捐款者仍与更高的捐款可能性显著相关；接触的多位捐款者来自不同社群或不同关系类型时，捐款尤其可能发生。这一模式支持社会传播的解释，也支持独立强化，即来自不同来源的接触可能共同增强行为传播。不过，既往捐款未必涵盖全部潜在偏好，其他可用变量又存在编码不充分的问题，未观测的同质性仍可能解释剩余的网络关联。因此，这项分析为社会传播假说提供了支持，但不足以确立接触他人捐款的因果效应。\n〔Traag2016: sec003/p[4]; sec006/p[1]〕",
+      "effective_model": "gpt-6-astra",
+      "effective_reasoning_effort": "xhigh",
+      "tool_network": "disabled",
+      "tool_filesystem": "read-only",
+      "stderr_note": "Codex declined optional PATH helper aliases under a temporary CODEX_HOME; all three requested turns completed without tool calls."
+    },
+    "review": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 192.6572567250114,
+        "timeout_seconds": 1200,
+        "events_sha256": "0b91564bc959795b27f77742c71a1d143496a8b337be1753ea2923869279b5b5",
+        "stderr_sha256": "8a64f9e191d31a4b220e927fd89c62406d76ef72cd30fbb5789de15b068f14e5"
+      },
+      "trace_metrics": {
+        "tool_calls": [],
+        "tool_call_count": 0,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 19724,
+          "cached_input_tokens": 9728,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 5263,
+          "reasoning_output_tokens": 3029
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "outer_delivery": {
+        "rollout_path": "/tmp/qiongli-zh-holdout-20261106-3vfczvmn/profiles/review/sessions/2026/11/06/rollout-2026-11-06T10-01-02-01a1b04d-f6fc-7ad0-93ac-446b2920c017.jsonl",
+        "rollout_sha256": "58acca05613050afa406b7c1c3ada90f0df60c65106e65fe40667e5f62e30b7c",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "outputs": [],
+        "exec_output_count": 0,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "context_metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "exact_inline_prompt_delivered": true,
+      "temporary_auth_link_removed": true,
+      "prompt_sha256": "2029eb49b98d69fa3845f7c28eae4b82af00d4298166d2cb106367eb279c7a1c",
+      "prompt_bytes": 35019,
+      "answer_sha256": "a8a8bd7747c93f3152796befa901f82a1dc8de4d40a7f83cc2ef4537cbd10903",
+      "answer": "{\n  \"by_version\": {\n    \"A\": {\n      \"段落一\": {\n        \"argument_completeness\": {\n          \"verdict\": \"partial\",\n          \"reason\": \"核心论证完整：“相互独立的来源才更具说服力”解释独立强化，“彼此相识有助于沟通和协调”解释凝聚强化，分别对应 sec001/p[4]、sec001/p[5]、sec006/p[6]；“总体参与人数”与“参与者之间的联系”的对照也准确交代两类适用条件（sec006/p[5]、sec006/p[7]）。但按本次评审要点，“公共物品情境中的合作由哪种强化驱动尚未确定”只交代机制未定，漏掉作者所引实验已观察到合作传播这一事实（sec006/p[6]）。\"\n        },\n        \"natural_chinese\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"“还取决于这些人之间的关系”明确引出比较，“如果价值取决于总体参与人数”与“如果价值取决于参与者之间的联系”结构清楚，术语一致，段落衔接自然。这些表达准确承接 sec001/p[4]、sec001/p[5] 和 sec006/p[5]—p[7]，没有必须修改的语言问题。\"\n        },\n        \"necessary_qualifications\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"“网络外部性并不必然对应独立强化”保留例外，“这些适用条件仍是理论预期”准确限定理论推广，“由哪种强化驱动尚未确定”保留机制的不确定性（sec006/p[5]—p[7]）。没有把提出的机制写成实验结论；实验观察事实的缺项属于论证完整性问题，并非已经发生的因果夸大。\"\n        }\n      },\n      \"段落二\": {\n        \"argument_completeness\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"“偏好相近的人更可能相互联系”及关联“可能来自共同偏好”交代同质性这一替代解释；以既往捐款作为“捐款偏好的重要指标”，说明控制的依据（sec003/p[4]）。随后报告控制后关联仍在，并将不同社群或关系类型的多重接触与独立强化联系起来，完整交代证据如何支持假说（sec006/p[1]）。\"\n        },\n        \"natural_chinese\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"段落依次说明问题、控制方法、结果和结论边界。“因为既往捐款能有力预测再次捐款”解释方法依据，“结果显示”自然转入发现，“不过”引出实质限制，读者无需补足关键前提。相关内容对应 sec003/p[4]、sec006/p[1]，无必要的语言修订。\"\n        },\n        \"necessary_qualifications\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"“美国精英的关系网络”限定人群，“观察性分析”“不能排除未观测的同质性”“资料的编码不充分”保留识别限制，并以“显著相关”和“不能单凭这一分析确定因果关系”校准结论（sec003/p[4]、sec006/p[1]）。有归属的“作者认为，这一控制同时处理了选择性募款的影响”符合原文的方法说明，不等于宣称消除了全部混淆。\"\n        }\n      }\n    },\n    \"B\": {\n      \"段落一\": {\n        \"argument_completeness\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"“同一群体的信息可能重复”与“独立形成的判断更有说服力”解释独立强化，“有助于沟通和形成共同行动”解释凝聚强化（sec001/p[4]、sec001/p[5]、sec006/p[6]）。虽未使用“网络外部性”这一术语，但“行为价值取决于整体人群中的参与人数”已解释其总体人数层面的含义，并与独立强化预期相连；“关系，而非人数本身”保留例外（sec006/p[5]、sec006/p[7]）。末句也交代了已观察到合作传播而驱动机制未定（sec006/p[6]）。\"\n        },\n        \"natural_chinese\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"“身边多人采取同一行为”便于一般读者进入问题，“两者的适用条件与行为价值的来源有关”承接定义与理论推广，随后按人数、协调需要和关系结构展开。术语与指代清楚，准确组织了 sec001/p[4]、sec001/p[5]、sec006/p[5]—p[7] 的内容，无必须修改的表达。\"\n        },\n        \"necessary_qualifications\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"“作者推测”“这些适用条件仍是理论预期”将推广限定为假说；“公共物品实验中观察到的合作传播究竟由哪类强化驱动，作者明确指出尚无定论”明确区分观察到的传播与尚未确定的机制（sec006/p[5]、sec006/p[6]）。关系而非人数的条件保留了网络外部性的例外（sec006/p[7]），也未声称直接阅读所引实验研究。\"\n        }\n      },\n      \"段落二\": {\n        \"argument_completeness\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"“偏好相近的人更容易建立联系”与“未必意味着他们相互带动”解释同质性为何可能造成类似传播的关联；“作为既有捐款偏好的指标”准确说明既往捐款的控制角色（sec003/p[4]）。控制后关联仍在、跨社群或关系类型的接触更突出，以及支持社会传播与独立强化解释的结论，均对应 sec006/p[1]。\"\n        },\n        \"natural_chinese\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"“相连的人都捐款，未必意味着他们相互带动”清楚表达识别问题；“分析发现”与“这一模式支持”区分结果和解释；末尾限制与结论衔接顺畅。对 sec003/p[4]、sec006/p[1] 的转述自然，没有需要修复的翻译腔或不明指代。\"\n        },\n        \"necessary_qualifications\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"“美国精英的观察性网络资料”保留研究范围和设计性质；“既往捐款未必涵盖全部潜在偏好”“编码不充分”“未观测的同质性仍可能解释剩余的网络关联”完整保留控制的局限（sec003/p[4]）。结论使用“提供了支持”并说明“不足以确立……因果效应”，没有把 sec006/p[1] 的发现推广到公众或写成已识别的因果作用。\"\n        }\n      }\n    }\n  },\n  \"comparisons\": {\n    \"段落一\": {\n      \"argument_preference\": \"B\",\n      \"language_preference\": \"tie\",\n      \"qualification_preference\": \"tie\",\n      \"rationale\": \"B的小幅优势在于“公共物品实验中观察到的合作传播”补齐了 sec006/p[6] 中已观察到的现象，再与机制“尚无定论”区分；A只保留后者。这是论证信息的缺项，不意味着A夸大了因果证据。两者对人数与关系条件的解释均准确；B未使用“网络外部性”术语并不造成含义缺失。两者中文均自然，理论预期与例外也都得到恰当限定。\"\n    },\n    \"段落二\": {\n      \"argument_preference\": \"tie\",\n      \"language_preference\": \"tie\",\n      \"qualification_preference\": \"tie\",\n      \"rationale\": \"两者均完整呈现同质性替代解释、既往捐款控制、控制后仍存在的关联和社会传播假说获得支持的推论（sec003/p[4]、sec006/p[1]）。A的“不能排除未观测的同质性”与B的“未观测的同质性仍可能解释剩余的网络关联”保留同一实质边界；A的“同时处理了”有作者归属和后续限制，无需仅因B使用“有助于控制”就判B更准确。两者都满足字数及来源标记要求，没有实质优劣。\"\n    }\n  },\n  \"issues\": [\n    {\n      \"version\": \"A\",\n      \"case\": \"段落一\",\n      \"kind\": \"argument\",\n      \"quote\": \"公共物品情境中的合作由哪种强化驱动尚未确定\",\n      \"reason\": \"按本次列明的评审要点，此处需补齐作者转引实验已经观察到合作传播这一事实，才能完整呈现已观察到的现象与未确定的驱动机制。原句的机制限定本身正确，不需加重保留语。修补后仍只把实验观察归于作者所引研究，没有将强化机制写成实验已证实的结论。\",\n      \"source_locator\": \"sec006/p[6]\",\n      \"minimal_repair\": \"作者所引公共物品实验已观察到合作传播，但其由哪种强化驱动尚未确定\"\n    }\n  ],\n  \"scope\": \"single same-model independent context, not a human/expert judgment\"\n}",
+      "effective_model": "gpt-6-astra",
+      "effective_reasoning_effort": "xhigh",
+      "tool_network": "disabled",
+      "tool_filesystem": "read-only",
+      "stderr_note": "Codex declined optional PATH helper aliases under a temporary CODEX_HOME; all three requested turns completed without tool calls."
+    }
+  },
+  "blind_key": {
+    "labels": {
+      "A": "baseline",
+      "B": "current"
+    },
+    "answer_sha256": {
+      "A": "2b60a1fa443119cbcac2aff99eb453d46bab1c6696f414aab877b89fa2b2710d",
+      "B": "f8ab7ca76cb5e34ebd17b7ef467656c56a2052a6440824e2ef527ef4b29de039"
+    },
+    "method": "secrets.SystemRandom.shuffle once after both complete outputs, before comparison/review; no reroll"
+  },
+  "measurements": {
+    "A": {
+      "段落一": {
+        "body": "作者区分独立强化与凝聚强化，是为了说明：多个已采纳某行为的人能否带动他人行动，还取决于这些人之间的关系。凝聚强化指这些人相互熟识时，传播更容易发生：紧密群体既能提供行动支持，也能通过群体规范形成压力。独立强化则指这些人彼此不相识时，传播更容易发生，因为同一群体传来的信息可能重复，相互独立的来源才更具说服力。作者进一步提出，当一种行为的价值受到他人参与的影响，即存在网络外部性时，两种强化可能适用于不同条件。如果价值取决于总体参与人数，独立强化可能更重要；如果价值取决于参与者之间的联系，则更可能出现凝聚强化。在公共物品困境或集体行动中，凝聚强化也可能更重要，因为彼此相识有助于沟通和协调，尤其当协调失败的代价较高时。因此，网络外部性并不必然对应独立强化；这些适用条件仍是理论预期，公共物品情境中的合作由哪种强化驱动尚未确定。\n\n〔Traag2016: sec001/p[4]; sec001/p[5]; sec006/p[5]; sec006/p[6]; sec006/p[7]〕",
+        "codepoints": 363,
+        "within_range": true
+      },
+      "段落二": {
+        "body": "作者在美国精英的关系网络中，检验接触其他捐款者是否与本人捐款相关。分析的核心难题是同质性：偏好相近的人更可能相互联系，因此，接触捐款者与本人捐款之间的关联，可能来自共同偏好。作者以既往是否向民主党或共和党候选人捐款来控制这种影响，因为既往捐款能有力预测再次捐款，是捐款偏好的重要指标。竞选团队也常按既往记录寻找潜在捐款者，因此作者认为，这一控制同时处理了选择性募款的影响。结果显示，控制既往捐款后，接触其他捐款者仍与更高的捐款概率显著相关；接触来自不同社群或不同关系类型的多个捐款者时，捐款的可能性尤其高。作者据此认为，捐款具有社会传播特征，这一模式支持独立强化的解释。不过，这项观察性分析仍不能排除未观测的同质性；出生日期等资料的编码不充分，也限制了其作为控制变量的用途。因此，结果增强了社会传播假说的可信度，但不能单凭这一分析确定因果关系。\n\n〔Traag2016: sec003/p[4]; sec006/p[1]〕",
+        "codepoints": 372,
+        "within_range": true
+      }
+    },
+    "B": {
+      "段落一": {
+        "body": "作者区分独立强化与凝聚强化，是为了说明，身边多人采取同一行为时，这些人之间的关系也可能影响个体是否跟随。凝聚强化指已参与的熟人彼此相识时，个体更容易跟随；紧密群体既能提供支持，也可能通过群体规范形成参与压力。独立强化则指这些熟人互不相识时，个体更容易跟随：同一群体的信息可能重复，来自不同群体且独立形成的判断更有说服力。两者的适用条件与行为价值的来源有关。作者推测，若行为价值取决于整体人群中的参与人数，独立强化更可能出现；若行动需要协调，尤其协调失败的代价很高，参与者之间的联系有助于沟通和形成共同行动，便可能有利于凝聚强化。若行为价值取决于参与者之间的关系，而非人数本身，也更可能出现凝聚强化。这些适用条件仍是理论预期；公共物品实验中观察到的合作传播究竟由哪类强化驱动，作者明确指出尚无定论。\n〔Traag2016: sec001/p[4]; sec001/p[5]; sec006/p[5]; sec006/p[6]; sec006/p[7]〕",
+        "codepoints": 348,
+        "within_range": true
+      },
+      "段落二": {
+        "body": "作者评估捐款的社会传播时，首先考虑同质性带来的混淆：偏好相近的人更容易建立联系，因此，相连的人都捐款，未必意味着他们相互带动。在美国精英的观察性网络资料中，作者用此前是否向民主党或共和党候选人捐过款作为既有捐款偏好的指标，并据此控制同质性的影响。既往捐款能有力预测再次捐款；作者还认为，这一控制有助于控制竞选团队依据捐款记录选择募款对象所带来的影响。分析发现，控制既往捐款后，接触其他捐款者仍与更高的捐款可能性显著相关；接触的多位捐款者来自不同社群或不同关系类型时，捐款尤其可能发生。这一模式支持社会传播的解释，也支持独立强化，即来自不同来源的接触可能共同增强行为传播。不过，既往捐款未必涵盖全部潜在偏好，其他可用变量又存在编码不充分的问题，未观测的同质性仍可能解释剩余的网络关联。因此，这项分析为社会传播假说提供了支持，但不足以确立接触他人捐款的因果效应。\n〔Traag2016: sec003/p[4]; sec006/p[1]〕",
+        "codepoints": 379,
+        "within_range": true
+      }
+    }
+  },
+  "raw_blind_review": {
+    "by_version": {
+      "A": {
+        "段落一": {
+          "argument_completeness": {
+            "verdict": "partial",
+            "reason": "核心论证完整：“相互独立的来源才更具说服力”解释独立强化，“彼此相识有助于沟通和协调”解释凝聚强化，分别对应 sec001/p[4]、sec001/p[5]、sec006/p[6]；“总体参与人数”与“参与者之间的联系”的对照也准确交代两类适用条件（sec006/p[5]、sec006/p[7]）。但按本次评审要点，“公共物品情境中的合作由哪种强化驱动尚未确定”只交代机制未定，漏掉作者所引实验已观察到合作传播这一事实（sec006/p[6]）。"
+          },
+          "natural_chinese": {
+            "verdict": "pass",
+            "reason": "“还取决于这些人之间的关系”明确引出比较，“如果价值取决于总体参与人数”与“如果价值取决于参与者之间的联系”结构清楚，术语一致，段落衔接自然。这些表达准确承接 sec001/p[4]、sec001/p[5] 和 sec006/p[5]—p[7]，没有必须修改的语言问题。"
+          },
+          "necessary_qualifications": {
+            "verdict": "pass",
+            "reason": "“网络外部性并不必然对应独立强化”保留例外，“这些适用条件仍是理论预期”准确限定理论推广，“由哪种强化驱动尚未确定”保留机制的不确定性（sec006/p[5]—p[7]）。没有把提出的机制写成实验结论；实验观察事实的缺项属于论证完整性问题，并非已经发生的因果夸大。"
+          }
+        },
+        "段落二": {
+          "argument_completeness": {
+            "verdict": "pass",
+            "reason": "“偏好相近的人更可能相互联系”及关联“可能来自共同偏好”交代同质性这一替代解释；以既往捐款作为“捐款偏好的重要指标”，说明控制的依据（sec003/p[4]）。随后报告控制后关联仍在，并将不同社群或关系类型的多重接触与独立强化联系起来，完整交代证据如何支持假说（sec006/p[1]）。"
+          },
+          "natural_chinese": {
+            "verdict": "pass",
+            "reason": "段落依次说明问题、控制方法、结果和结论边界。“因为既往捐款能有力预测再次捐款”解释方法依据，“结果显示”自然转入发现，“不过”引出实质限制，读者无需补足关键前提。相关内容对应 sec003/p[4]、sec006/p[1]，无必要的语言修订。"
+          },
+          "necessary_qualifications": {
+            "verdict": "pass",
+            "reason": "“美国精英的关系网络”限定人群，“观察性分析”“不能排除未观测的同质性”“资料的编码不充分”保留识别限制，并以“显著相关”和“不能单凭这一分析确定因果关系”校准结论（sec003/p[4]、sec006/p[1]）。有归属的“作者认为，这一控制同时处理了选择性募款的影响”符合原文的方法说明，不等于宣称消除了全部混淆。"
+          }
+        }
+      },
+      "B": {
+        "段落一": {
+          "argument_completeness": {
+            "verdict": "pass",
+            "reason": "“同一群体的信息可能重复”与“独立形成的判断更有说服力”解释独立强化，“有助于沟通和形成共同行动”解释凝聚强化（sec001/p[4]、sec001/p[5]、sec006/p[6]）。虽未使用“网络外部性”这一术语，但“行为价值取决于整体人群中的参与人数”已解释其总体人数层面的含义，并与独立强化预期相连；“关系，而非人数本身”保留例外（sec006/p[5]、sec006/p[7]）。末句也交代了已观察到合作传播而驱动机制未定（sec006/p[6]）。"
+          },
+          "natural_chinese": {
+            "verdict": "pass",
+            "reason": "“身边多人采取同一行为”便于一般读者进入问题，“两者的适用条件与行为价值的来源有关”承接定义与理论推广，随后按人数、协调需要和关系结构展开。术语与指代清楚，准确组织了 sec001/p[4]、sec001/p[5]、sec006/p[5]—p[7] 的内容，无必须修改的表达。"
+          },
+          "necessary_qualifications": {
+            "verdict": "pass",
+            "reason": "“作者推测”“这些适用条件仍是理论预期”将推广限定为假说；“公共物品实验中观察到的合作传播究竟由哪类强化驱动，作者明确指出尚无定论”明确区分观察到的传播与尚未确定的机制（sec006/p[5]、sec006/p[6]）。关系而非人数的条件保留了网络外部性的例外（sec006/p[7]），也未声称直接阅读所引实验研究。"
+          }
+        },
+        "段落二": {
+          "argument_completeness": {
+            "verdict": "pass",
+            "reason": "“偏好相近的人更容易建立联系”与“未必意味着他们相互带动”解释同质性为何可能造成类似传播的关联；“作为既有捐款偏好的指标”准确说明既往捐款的控制角色（sec003/p[4]）。控制后关联仍在、跨社群或关系类型的接触更突出，以及支持社会传播与独立强化解释的结论，均对应 sec006/p[1]。"
+          },
+          "natural_chinese": {
+            "verdict": "pass",
+            "reason": "“相连的人都捐款，未必意味着他们相互带动”清楚表达识别问题；“分析发现”与“这一模式支持”区分结果和解释；末尾限制与结论衔接顺畅。对 sec003/p[4]、sec006/p[1] 的转述自然，没有需要修复的翻译腔或不明指代。"
+          },
+          "necessary_qualifications": {
+            "verdict": "pass",
+            "reason": "“美国精英的观察性网络资料”保留研究范围和设计性质；“既往捐款未必涵盖全部潜在偏好”“编码不充分”“未观测的同质性仍可能解释剩余的网络关联”完整保留控制的局限（sec003/p[4]）。结论使用“提供了支持”并说明“不足以确立……因果效应”，没有把 sec006/p[1] 的发现推广到公众或写成已识别的因果作用。"
+          }
+        }
+      }
+    },
+    "comparisons": {
+      "段落一": {
+        "argument_preference": "B",
+        "language_preference": "tie",
+        "qualification_preference": "tie",
+        "rationale": "B的小幅优势在于“公共物品实验中观察到的合作传播”补齐了 sec006/p[6] 中已观察到的现象，再与机制“尚无定论”区分；A只保留后者。这是论证信息的缺项，不意味着A夸大了因果证据。两者对人数与关系条件的解释均准确；B未使用“网络外部性”术语并不造成含义缺失。两者中文均自然，理论预期与例外也都得到恰当限定。"
+      },
+      "段落二": {
+        "argument_preference": "tie",
+        "language_preference": "tie",
+        "qualification_preference": "tie",
+        "rationale": "两者均完整呈现同质性替代解释、既往捐款控制、控制后仍存在的关联和社会传播假说获得支持的推论（sec003/p[4]、sec006/p[1]）。A的“不能排除未观测的同质性”与B的“未观测的同质性仍可能解释剩余的网络关联”保留同一实质边界；A的“同时处理了”有作者归属和后续限制，无需仅因B使用“有助于控制”就判B更准确。两者都满足字数及来源标记要求，没有实质优劣。"
+      }
+    },
+    "issues": [
+      {
+        "version": "A",
+        "case": "段落一",
+        "kind": "argument",
+        "quote": "公共物品情境中的合作由哪种强化驱动尚未确定",
+        "reason": "按本次列明的评审要点，此处需补齐作者转引实验已经观察到合作传播这一事实，才能完整呈现已观察到的现象与未确定的驱动机制。原句的机制限定本身正确，不需加重保留语。修补后仍只把实验观察归于作者所引研究，没有将强化机制写成实验已证实的结论。",
+        "source_locator": "sec006/p[6]",
+        "minimal_repair": "作者所引公共物品实验已观察到合作传播，但其由哪种强化驱动尚未确定"
+      }
+    ],
+    "scope": "single same-model independent context, not a human/expert judgment"
+  },
+  "coordinator_adjudication": {
+    "kind": "coordinator task-scope adjudication",
+    "reviewer": "main coordinator model; not a new blind or human review",
+    "raw_review_sha256": "a8a8bd7747c93f3152796befa901f82a1dc8de4d40a7f83cc2ef4537cbd10903",
+    "original_finding": {
+      "version": "A",
+      "case": "段落一",
+      "kind": "argument",
+      "quote": "公共物品情境中的合作由哪种强化驱动尚未确定",
+      "reason": "按本次列明的评审要点，此处需补齐作者转引实验已经观察到合作传播这一事实，才能完整呈现已观察到的现象与未确定的驱动机制。原句的机制限定本身正确，不需加重保留语。修补后仍只把实验观察归于作者所引研究，没有将强化机制写成实验已证实的结论。",
+      "source_locator": "sec006/p[6]",
+      "minimal_repair": "作者所引公共物品实验已观察到合作传播，但其由哪种强化驱动尚未确定"
+    },
+    "task_allowance": "这不是逐句翻译，不必复述所有例子、统计量或文献列表。",
+    "requested_answer": "Explain why the author distinguishes independent/cohesive reinforcement and how their conditions differ.",
+    "decision": "The frozen review criterion overreaches the writing scope when it makes this contextual observation mandatory. The raw partial score is preserved; task-scope argument completeness is pass.",
+    "reason": "A explains independent evidence versus connected groups, population-wide benefits versus relational benefits, communication/coordination and costly failure, and the hypothesis/open-mechanism limits. Omitting that cited public-goods experiments observed cooperation cascades does not remove a premise needed for those conditional explanations, nor claim that cooperation was unobserved. The reviewer itself calls the core argument complete. Adding the observation can clarify context but is optional for this task.",
+    "raw_preference_handling": "Keep the reviewer's B argument preference as an expressed preference for extra context, not evidence that A has an unsupported conclusion. Both language and qualification comparisons were ties.",
+    "final_task_scope_verdicts": {
+      "A": {
+        "段落一": {
+          "argument_completeness": "pass",
+          "natural_chinese": "pass",
+          "necessary_qualifications": "pass"
+        },
+        "段落二": {
+          "argument_completeness": "pass",
+          "natural_chinese": "pass",
+          "necessary_qualifications": "pass"
+        }
+      },
+      "B": {
+        "段落一": {
+          "argument_completeness": "pass",
+          "natural_chinese": "pass",
+          "necessary_qualifications": "pass"
+        },
+        "段落二": {
+          "argument_completeness": "pass",
+          "natural_chinese": "pass",
+          "necessary_qualifications": "pass"
+        }
+      }
+    },
+    "optional_source_backed_expansion": {
+      "original": "公共物品情境中的合作由哪种强化驱动尚未确定",
+      "proposed": "作者所引公共物品实验已观察到合作传播，但其由哪种强化驱动尚未确定",
+      "source": "Traag2016 sec006/p[6]",
+      "status": "optional context only; not applied to raw outputs or anonymous comparison"
+    },
+    "changes": "Clarify the existing review-criteria owner. Retain all four original paragraphs and canonical writing guidance; no mandatory prose repair found.",
+    "human_preferences": "Received subsequently; see human_review and human-feedback.json. The earlier scope adjudication remains independent of this preference.",
+    "claim_limit": "One paper and one sample per guidance arm cannot establish general or causal improvement. The source was unused before these runs; after this adjudication it is an adaptive regression."
+  },
+  "input_recovery": {
+    "receipt": {
+      "packet": "/tmp/qiongli-zh-holdout-20261106-3vfczvmn/review/writing-packet.json",
+      "sha256": "85b17b7b5227a81eb3f11f2c784e75ba8c09ac3e5f7301eff5850e504af49db0"
+    },
+    "result": {
+      "packet_sha256": "85b17b7b5227a81eb3f11f2c784e75ba8c09ac3e5f7301eff5850e504af49db0",
+      "status": "bindings_current",
+      "files": {
+        "publisher_xml": {
+          "path": "/tmp/qiongli-zh-holdout-20261106-3vfczvmn/sources/Traag2016.xml",
+          "sha256": "13ed5d501421e77204e7ff7a7fb9ef3a046a0d710dd6e906f4c9aed2cac66188",
+          "bytes": 142351
+        },
+        "public_pdf": {
+          "path": "/tmp/qiongli-zh-holdout-20261106-3vfczvmn/sources/Traag2016.pdf",
+          "sha256": "346c8d9f33a5557c7d71c01e45ac9b3ddc00f1c9b1ac9b0df926551481502c3b",
+          "bytes": 1353000
+        },
+        "source_packet": {
+          "path": "/tmp/qiongli-zh-holdout-20261106-3vfczvmn/sources/packet.txt",
+          "sha256": "e2d822b1f4fc993d597a04e3d90dde7b7aed1d7beba885a464405bd432c87644",
+          "bytes": 8651
+        },
+        "task": {
+          "path": "/tmp/qiongli-zh-holdout-20261106-3vfczvmn/review/task.txt",
+          "sha256": "9f86c11f605d536ef2bcffebe469553e7e744292ecb79fae6cdd271f178a9b65",
+          "bytes": 1226
+        },
+        "criteria": {
+          "path": "/tmp/qiongli-zh-holdout-20261106-3vfczvmn/review/criteria.json",
+          "sha256": "a2b1972ce00520a157382e7a4fca3e79c211d8650185c32c518e1cbc4fa93aab",
+          "bytes": 2350
+        },
+        "original_baseline": {
+          "path": "/tmp/qiongli-zh-holdout-20261106-3vfczvmn/runs/baseline/answer.md",
+          "sha256": "2b60a1fa443119cbcac2aff99eb453d46bab1c6696f414aab877b89fa2b2710d",
+          "bytes": 2360
+        },
+        "original_current": {
+          "path": "/tmp/qiongli-zh-holdout-20261106-3vfczvmn/runs/current/answer.md",
+          "sha256": "f8ab7ca76cb5e34ebd17b7ef467656c56a2052a6440824e2ef527ef4b29de039",
+          "bytes": 2334
+        },
+        "anonymous_pair": {
+          "path": "/tmp/qiongli-zh-holdout-20261106-3vfczvmn/review/anonymous-comparison.md",
+          "sha256": "5d25a1ce0fa0a5545550f3ba8861deb1f5823a8db7b338dee28f789c45011788",
+          "bytes": 5562
+        }
+      },
+      "scope": "Input recovery only; no semantic verdict or approval to save a manuscript."
+    }
+  },
+  "human_review": {
+    "status": "received",
+    "scope": "The two anonymous Chinese paragraph pairs only.",
+    "question": "段落一、段落二各自更偏好 A、B，还是持平？也可以只指出一句最想调整的文字。",
+    "response": "经过审核之后，这两个段落都各有各的好处。整体来讲，B的语言更加流畅，但是对于A中的一些用词和完整性也是B比好的，所以B可以作为主体的语言。",
+    "actual_elapsed_time": null,
+    "anonymous_file": "anonymous-comparison.md",
+    "anonymous_file_sha256": "5d25a1ce0fa0a5545550f3ba8861deb1f5823a8db7b338dee28f789c45011788",
+    "feedback_file": "human-feedback.json",
+    "overall_language_preference": "B",
+    "revision_basis": "B plus useful wording/completeness from A; individual spans chosen by coordinator",
+    "blinding_limit": {
+      "human_packet": "A/B file contains neither producer identities nor automatic judgments.",
+      "coordinator_exposure": "The coordinator printed the version key and raw model review in tool output before the human response arrived.",
+      "actual_human_viewing": "unknown; tool output can be visible in the conversation",
+      "claim": "The supplied file is anonymous, but the returned human preference is not claimed as strictly blinded.",
+      "repair": "Review criteria now keep keys and automatic judgments out of human-facing tool output until a response is recorded. Preserve this feedback and exposure; no same-text relabel/retrial."
+    }
+  },
+  "selection": {
+    "base_label": "B",
+    "basis": "Explicit user feedback after anonymous comparison.",
+    "selected_file": "selected.md",
+    "selected_file_sha256": "396038e0c79ce515cfbaee07f02adfb115740e4e434af13b8023bed24bc0c6be",
+    "passages": {
+      "段落一": {
+        "body": "作者区分独立强化与凝聚强化，是为了说明：身边多人采取同一行为时，这些人之间的关系也可能影响个体是否跟随。凝聚强化指这些人彼此相识时，个体更容易跟随；紧密群体既能提供支持，也可能通过群体规范形成参与压力。独立强化则指这些人互不相识时，个体更容易跟随：同一群体传来的信息可能重复，相互独立的来源更有说服力。当一种行为的价值受到他人参与的影响时，就存在网络外部性。作者推测，若行为价值取决于整体人群中的参与人数，独立强化更可能出现；若行动需要协调，尤其协调失败的代价很高，参与者彼此相识有助于沟通和形成共同行动，便可能有利于凝聚强化。若行为价值取决于参与者之间的关系，而非人数本身，也更可能出现凝聚强化。这些适用条件仍是理论预期；作者所引公共物品实验虽已观察到合作传播，但究竟由哪类强化驱动，仍无定论。\n〔Traag2016: sec001/p[4]; sec001/p[5]; sec006/p[5]; sec006/p[6]; sec006/p[7]〕",
+        "codepoints": 348,
+        "sha256": "3bf28b22ad857c693ce2e9f03cade0ed244140aeb05c8b8be35a7f4604924e53"
+      },
+      "段落二": {
+        "body": "作者评估捐款的社会传播时，首先考虑同质性带来的混淆：偏好相近的人更容易建立联系，因此，相连的人都捐款，未必意味着他们相互带动。在美国精英的观察性网络资料中，作者用此前是否向民主党或共和党候选人捐过款作为既有捐款偏好的指标，并据此控制同质性的影响。既往捐款能有力预测再次捐款；竞选团队也常按既往记录寻找潜在捐款者，因此作者认为，纳入这一变量也有助于控制选择性募款的影响。分析发现，控制既往捐款后，接触其他捐款者仍与更高的捐款概率显著相关；接触的多位捐款者来自不同社群或不同关系类型时，捐款概率尤其高。这一模式支持社会传播的解释，也支持独立强化，即来自相互独立来源的接触可能共同促进同一行为的传播。不过，既往捐款未必涵盖全部潜在偏好，其他可用变量又存在编码不充分的问题，未观测的同质性仍可能解释剩余的网络关联。因此，这项分析为社会传播假说提供了支持，但不足以确立接触他人捐款的因果效应。\n〔Traag2016: sec003/p[4]; sec006/p[1]〕",
+        "codepoints": 391,
+        "sha256": "79c199e08bd867573a387593ca8e5dc11554689c4367672a527243fc48a3c666"
+      }
+    },
+    "editor": "main coordinator model",
+    "meaning_review": "Source-compared local selection; no material drift found. Both theoretical conditions stay provisional; public-goods observation does not establish its mechanism; the observational elite-network finding remains an association with hidden homophily unresolved. Exact source anchors retained.",
+    "status": "Post-feedback editorial proposal, not another blind/model trial or a human review of the combined text."
+  },
+  "verification": {
+    "frozen_inputs_preserved": true,
+    "all_three_exact_prompts_delivered": true,
+    "all_three_turns_completed": true,
+    "no_model_overrides": true,
+    "user_config_preserved": true,
+    "all_temporary_auth_links_removed": true,
+    "quoted_issue_span_matches": true,
+    "four_paragraph_lengths_within_bounds": true,
+    "packet_recovered_current": true
+  },
+  "limitations": [
+    "One generation per guidance arm cannot distinguish a general guidance effect from sampling variation.",
+    "A human has supplied an overall language preference for these two pairs; same-model/coordinator judgments and this scoped preference do not establish disciplinary or whole-manuscript acceptance.",
+    "The raw partial score remains preserved; the task-scope adjudication is adaptive and not a new blind trial.",
+    "Only Chinese source-based paragraph writing is tested; no new English, long-manuscript or Antigravity-return trial.",
+    "Producer mapping and raw automatic judgments appeared in coordinator tool output before the human reply; actual viewing is unknown, so the human preference is not treated as strictly blinded."
+  ]
+}

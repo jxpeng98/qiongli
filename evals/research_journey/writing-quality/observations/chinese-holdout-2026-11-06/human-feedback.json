@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-06",
+  "reviewer": {
+    "kind": "human",
+    "id": "user in current conversation"
+  },
+  "scope": "Overall preference across the two anonymous Chinese paragraph pairs; no separate per-case scores supplied.",
+  "question": "请看匿名对照：段落一、段落二各自更偏好 A、B，还是持平？也可以只指出一句最想调整的文字。",
+  "anonymous_sha256": "5d25a1ce0fa0a5545550f3ba8861deb1f5823a8db7b338dee28f789c45011788",
+  "raw_response": "经过审核之后，这两个段落都各有各的好处。整体来讲，B的语言更加流畅，但是对于A中的一些用词和完整性也是B比好的，所以B可以作为主体的语言。",
+  "stated_preference": {
+    "overall_language": "B",
+    "retain_from_A": "some wording and completeness",
+    "base_for_revision": "B"
+  },
+  "specific_span_preferences": null,
+  "per_case_scores": null,
+  "actual_elapsed_time": null,
+  "interpretation_note": "Response preserved verbatim. In context, understood as retaining strengths from A while using B as the prose base. No exact preferred A phrase was supplied.",
+  "not_established": [
+    "full-manuscript quality",
+    "English expression",
+    "source-fidelity acceptance",
+    "human approval of the later combined wording"
+  ],
+  "blinding_limit": {
+    "human_packet": "A/B file contains neither producer identities nor automatic judgments.",
+    "coordinator_exposure": "The coordinator printed the version key and raw model review in tool output before the human response arrived.",
+    "actual_human_viewing": "unknown; tool output can be visible in the conversation",
+    "claim": "The supplied file is anonymous, but the returned human preference is not claimed as strictly blinded.",
+    "repair": "Review criteria now keep keys and automatic judgments out of human-facing tool output until a response is recorded. Preserve this feedback and exposure; no same-text relabel/retrial."
+  }
+}

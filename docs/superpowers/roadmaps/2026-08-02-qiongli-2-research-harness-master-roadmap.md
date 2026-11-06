@@ -54,20 +54,28 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — November 6, 2026
 
-The current bounded increment incorporates the user's preference for B in one
-Chinese Discussion paragraph from the three-paper observation. The existing
-[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-6--scoped-human-feedback-and-chinese-expression)
-preserves the exact feedback and separates it from the earlier whole-document
-model judgment. The shared G4/J2 reference gains a bilingual example of explicit
-subjects and comparisons without inventing premises or deleting necessary limits.
-Review criteria bind human preference to its actual passage, language and question;
-the further wording proposal is not yet human reviewed. Regenerate the development
-content pack through its existing owner. Configured models and native write/CAS
-owners remain unchanged. Integrate locally into `2.x` without push, publication or
-acceptance promotion. Next validate the revised expression on an unseen passage
-and obtain human feedback on the proposed wording; English and whole-manuscript
-judgment and actual editing time remain open. This adaptive example does not
-establish general quality gains.
+The current bounded increment compares the preceding Chinese guidance on two
+locally first-use Traag2016 passages. The existing
+[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-6--unseen-chinese-paragraphs-and-human-selection)
+records two same-model writing turns, one anonymous model review and the user's
+preference for B's fluency with useful wording/completeness from A. Preserve the
+original comparison and prepare a source-checked B-based selection. Correct a
+review check that made optional context mandatory, retaining the raw partial
+score and separate scope adjudication. Record the exposure of the key/automatic
+judgments in tool output; this human feedback is not claimed as strictly blinded.
+Future review keeps that information withheld until the response is recorded.
+Canonical writing guidance, content pack, configured models and native write/CAS
+owners remain unchanged. Integrate locally into `2.x` without push, publication
+or acceptance promotion. Next validate a new connected passage while preserving
+human-review blinding; the combined wording, English and whole-manuscript quality
+and actual editing time remain outside this feedback. One sample per arm does
+not establish general or causal quality gains.
+
+The preceding human-feedback increment adds a bilingual example to shared G4/J2
+guidance after the user prefers B for one Chinese Discussion paragraph. Its
+source, proposed wording and development content-pack binding remain recorded
+in the same execution plan; its one-paragraph preference stays separate from
+earlier whole-document model judgments.
 
 The preceding three-paper increment completes a real external edit and fresh
 review-packet recovery, including stale-original refusal. It preserves inherited
