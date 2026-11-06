@@ -54,7 +54,22 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — November 6, 2026
 
-The current bounded increment validates connected Chinese prose against ten
+The current bounded increment uses a locally first-use environmental-acoustics
+paper to validate two Chinese sections with eight continuous paragraphs per
+version. The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-6--chinese-writing-across-acoustics-sections)
+binds the complete consecutive Methods–Conclusions source range, two completed
+writer runs, source checks and a completed but undisclosed model review. Preserve
+the X/Y anonymous comparison while human preference is pending; neither earlier
+B preferences nor silence selects a version. The coordinator identifies no
+mandatory source/argument repair, so preserve correct prose and canonical rules.
+Archive the completed observation locally without publishing the identity key,
+automatic judgments or indirect label-to-writer paths. On actual feedback,
+record it against the unchanged comparison, adjudicate the model review and make
+any source-backed selection. Local `2.x` integration does not promote acceptance
+or require optional human preference; no push or publication. Broader language,
+whole-manuscript and disciplinary judgments remain open.
+
+The preceding bounded increment validates connected Chinese prose against ten
 consecutive Discussion paragraphs from a locally first-use public paper. The
 [execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-6--connected-chinese-prose-and-blinded-feedback)
 records two four-paragraph outputs and a fresh identity-blinded model review.

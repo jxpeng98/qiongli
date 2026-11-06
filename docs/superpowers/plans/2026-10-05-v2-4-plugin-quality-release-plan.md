@@ -4230,3 +4230,60 @@ is under `/tmp/qiongli-zh-connected-20261106-2m1clugm`; program-test output is
 this scoped human preference do not establish general or causal quality gains.
 These passages now become regression material. Further held-out work needs a new
 source; English, longer manuscripts and disciplinary judgments remain open.
+
+
+## November 6 — Chinese writing across acoustics sections
+
+The [cross-section Chinese observation](../../../evals/research_journey/writing-quality/observations/chinese-crosssection-2026-11-06/README.md)
+uses Tarlao, Steele and Guastavino's 2022 environmental-acoustics paper, locally
+unused at `7616f636`. Complete publisher HTML/XML/PDF are retained. The continuous
+Methods–Results–Discussion–Conclusions packet includes 69 paragraphs, lists, nine
+XML tables and five figure captions (119 blocks), with exact JATS locators.
+Figure pixels, supplements and separately cited papers are not inspected; the
+missing local PDF renderer is explicit rather than a claimed visual check.
+
+Two writers complete the same two-section/eight-paragraph Chinese task within
+3,000–4,200 non-whitespace characters. The prompts differ only by the preceding
+16-line scholarly-voice addition; the configured model and source are unchanged.
+A fresh identity-blinded model review also completes. All three inline prompts,
+read-only turns, no-tool execution, preserved inputs/config and temporary-auth
+cleanup are verified. Runtime observations do not establish a speed or causal
+quality improvement. Isolated PATH/untrusted-project notices are retained;
+no global trust or user-model configuration is changed.
+
+The coordinator source comparison finds no mandatory repair: participant/rating
+units, similar latent structure versus equal ratings, the appropriate-item
+intercept exception, excerpt interactions, visual chronology and the limits of
+causal/application claims survive across sections. Preserve correct prose and
+existing rules; optional details are not missing premises. The completed model
+review remains undisclosed and unadjudicated while human preference is pending.
+The portable observation retains anonymous raw outputs and a hash-bound private
+snapshot reference; the key, raw automatic judgments and indirect identity
+mapping in recovered paths are withheld. The private snapshot retains all three
+complete runs for disclosure after feedback.
+
+The [X/Y anonymous comparison](../../../evals/research_journey/writing-quality/observations/chinese-crosssection-2026-11-06/anonymous-comparison.md)
+is issued with fresh whole-manuscript labels. This time trailing whitespace is
+normalized before presentation, so the repository display remains byte-identical
+to the questioned packet. The user has not yet supplied a preference. Do not
+infer it from earlier B choices, choose a combined draft, or claim human/model
+acceptance. Integrate the completed source/observation work locally; the pending
+question remains available for a later response and does not gate independent
+local development.
+
+Validation covers source blocks and table cells against publisher XML, frozen
+inputs, prompt difference, exact delivered prompts, output lengths/locators,
+comparison hashes, current packet recovery, secret/identity omission and cleanup.
+All seven program tests and generated-index freshness pass; the artifact audit
+retains all 249 tasks and 198 populated acceptance fields. Final diff review and
+the frozen-source guard accompany local fast-forward integration into `2.x`. Canonical content,
+pack, native and helper code are unchanged, so existing checks for those inputs
+are reused. Only CLI-405 progress and the generated index change; task states,
+dependencies and accepted-evidence fields remain unchanged. No push, publication
+or acceptance promotion. Raw evidence is under
+`/tmp/qiongli-zh-crosssection-20261106-s5aeza9x`.
+
+Next bind actual feedback to the issued comparison, then inspect/adjudicate the
+sealed model review and make any source-backed selection. These passages become
+regression material. A general guidance effect, English, full-manuscript,
+disciplinary and installed-Host judgments remain outside this increment.

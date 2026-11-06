@@ -1,0 +1,2105 @@
+{
+  "schema_version": "qiongli-crosssection-chinese-observation/v1",
+  "date": "2026-11-06",
+  "source_commit": "7616f636de88290774b92a79149d9e7c360d652b",
+  "scope": "Environmental acoustics; one locally first-use public source, two independently generated Chinese two-section manuscripts and one identity-blinded same-model reviewer. No English, installed-Plugin, whole-paper visual, Antigravity or disciplinary acceptance.",
+  "source": {
+    "authors": [
+      "Cynthia Tarlao",
+      "Daniel Steele",
+      "Catherine Guastavino"
+    ],
+    "year": 2022,
+    "title": "Assessing the ecological validity of soundscape reproduction in different laboratory settings",
+    "doi": "10.1371/journal.pone.0270401",
+    "license": "CC BY; author and source attribution retained",
+    "official_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0270401",
+    "retrieval": [
+      {
+        "file": "Tarlao2022.html",
+        "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0270401",
+        "final_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0270401",
+        "status": 200,
+        "content_type": "text/html;charset=UTF-8",
+        "bytes": 274776,
+        "sha256": "7548eaa7f5a03c161227c429181ba0040d632bdfee01c0323cbf6eb2bfdc46e8"
+      },
+      {
+        "file": "Tarlao2022.xml",
+        "url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0270401&type=manuscript",
+        "status": 200,
+        "content_type": "application/xml",
+        "bytes": 225552,
+        "sha256": "a60e727bd52b5b5737dced846c4901a5b2044bd0536efecd5735a04b21a9b247",
+        "final_url_without_temporary_query": "https://corpus-prod.f505aadad1e46610c8f8563037eb3c4b.r2.cloudflarestorage.com/10.1371/journal.pone.0270401/1/pone.0270401.xml",
+        "temporary_redirect_query_omitted": true
+      },
+      {
+        "file": "Tarlao2022.pdf",
+        "url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0270401&type=printable",
+        "final_url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0270401&type=printable",
+        "status": 200,
+        "content_type": "application/pdf",
+        "bytes": 2321690,
+        "sha256": "10a53787e6f97ebdf6c76fa18d8623405ebb263a860631d7d296ffd2c46d1d27"
+      }
+    ],
+    "first_use": {
+      "args": [
+        "git",
+        "grep",
+        "-n",
+        "-i",
+        "-E",
+        "Tarlao|0270401|Assessing the ecological validity of soundscape",
+        "7616f636de88290774b92a79149d9e7c360d652b",
+        "--",
+        "content",
+        "evals/research_journey",
+        "docs/superpowers/plans/2026-10-05-v2-4-plugin-quality-release-plan.md"
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    "excerpt_locators": "Publisher JATS direct-child section/paragraph/list identifiers and published table/figure IDs, not PDF pages.",
+    "blocks": [
+      {
+        "kind": "title",
+        "locator": "sec009/title[1]",
+        "text": "Methods",
+        "text_sha256": "8696622f344183c4f73993a175acb8daa6418a5cc29099e5d2d762cba2d6f7f2",
+        "xml_sha256": "e5b760c9cc508a0623322a9b98c262ff70155d66997d32cd4c1d62b8ba190a0b"
+      },
+      {
+        "kind": "p",
+        "locator": "sec009/p[1]",
+        "text": "To answer the research questions, this study was structured in two connected parts. First, data was collected in a public space through a) users’ questionnaire-based soundscape evaluations and b) audio recordings taken during a representative portion of some of the data collection periods. Second, the audio recordings were reproduced in a laboratory experiment to collect participants’ soundscape evaluations and compare those to the ones obtained on site. Ethical approval for this project was given by the Research Ethics Board II of McGill University [REB #686–0606 and #55–0615]. For the in situ study, participant consent was obtained verbally and participation details were reiterated and explained through a written (bilingual) description in the notebook containing the paper-based questionnaire–their written participation is taken as documentation of consent. For the laboratory experiments, participants signed a consent form and were compensated for their participation.",
+        "text_sha256": "889a433e5d1c81382bea631eeb1abbf2f44290e687675a4a5eccbd744d144386",
+        "xml_sha256": "68fe6f6e7597260519c04d492f4ca3de59da96c472e20b469f08c25964f00f4f"
+      },
+      {
+        "kind": "title",
+        "locator": "sec010/title[1]",
+        "text": "In situ study",
+        "text_sha256": "c285409f221ba76da3037c3c0644405bc099097d5d931cbdec0381dfd1a89615",
+        "xml_sha256": "814af22bcfb81bbe030050d82cebb79a561b72faf8263143078f29d3d8606333"
+      },
+      {
+        "kind": "title",
+        "locator": "sec011/title[1]",
+        "text": "Study site",
+        "text_sha256": "a5272f00b3f92cfbe25b2ca4925ec770ce0f843a2d33bec8937071fa91bcbc91",
+        "xml_sha256": "088c7c091483516a0b77816c222a58fe68e01ae83269162539a4e0db9c99dd4a"
+      },
+      {
+        "kind": "p",
+        "locator": "sec011/p[1]",
+        "text": "The study site was a small (about 1,800 m2) public square in Montreal on one of the main commercial streets of that area (Avenue Mont-Royal), with shops and restaurants along two opposing traffic lanes also used by frequent bus lines (<10 minutes) during the day. On the far side from the commercial artery, the space is bordered by residences and a footpath. The locations of the recordings are shown in Fig 1.",
+        "text_sha256": "934cff3d33242f95a23c5889d6abc92e1def772fd38201b67077041f991101ef",
+        "xml_sha256": "7872a1021923ac668566d2cc0cede4f17e8c7944a3d97fcc10ae501e361e0776"
+      },
+      {
+        "kind": "figure_caption",
+        "locator": "pone.0270401.g001",
+        "text": "Fig 1 — Simplified map of the study site, showing recording locations A, B, and C.\nDesign layout provided by design firm Castor et Pollux and used and edited with permission. [Caption only; image pixels not supplied.]",
+        "text_sha256": "17d41917c4f41af1ae71f6ba662ef1a86f0e00275af90db395359a97c6712f2a",
+        "xml_sha256": "9101011aae1d5093a4dd7534ad13c911be40901f7946cf6e56d2e730bf85b9e8"
+      },
+      {
+        "kind": "title",
+        "locator": "sec012/title[1]",
+        "text": "Participants",
+        "text_sha256": "0e27279b3302db0448a2acf5d923ffb09b75270c2e957bfb93f54815d2146aa4",
+        "xml_sha256": "da638e079a3c89fa7253a277f02fdde7c37db851913e1c8f4ef07b08ca7a860e"
+      },
+      {
+        "kind": "p",
+        "locator": "sec012/p[1]",
+        "text": "In situ, participants were approached by a research team member while using the studied public space; generally, participants were only recruited if they had stopped in the space and spend at least a few minutes being exposed to the environment. They were asked to take a paper-based questionnaire, while the researcher noted the time of day and their location in the space while completing it.",
+        "text_sha256": "3420c51025e7f354efde56e785ae7abf98c7575d65cc1cb00442d5b9f6fa5c85",
+        "xml_sha256": "71da227e59a430e1bbc70275010e8b864d7ac2dd9074d7dd4c3e198146cc6d16"
+      },
+      {
+        "kind": "p",
+        "locator": "sec012/p[2]",
+        "text": "Due to logistical constraints and evolving research considerations, the site study was not conducted with systematic factorial experimental design. Additionally, the location was not visited with the same frequency by users at all times of the day and week. Both of those factors led to highly unbalanced sample sizes in terms of weekday-weekend and afternoon-evening (Table 1). Despite variations in the visual design of the square, consistent with analyses conducted by Trudeau et al. [55], we collapse respondent data across the visual design conditions.",
+        "text_sha256": "7471d481dda40830efb56c5451a8b16aa80e3aa1354e0402dd965aa352667dc3",
+        "xml_sha256": "f8a513fcfe110c6829e288260e28033b6754949059ff8ad360a9403e137d6037"
+      },
+      {
+        "kind": "table",
+        "locator": "pone.0270401.t001",
+        "text": "Table 1 — Case counts [and sound levels in dBA (LAeq,10min)] for each condition of in-situ data collection, separated by weekday-weekend, afternoon-evening, and noisy-quiet side of the space.\n | Time period\n | Weekday | Weekend | \nLocation | Afternoon | Evening | Afternoon | Evening | Total\nQuiet | 15 [57.33] | 46 [61.45] | 5 [57.92] | 16 [58.69] | 82\nNoisy | 9 [62.69] | 53 [62.82] | 13 [62.46] | 28 [62.47] | 103\nTotal | 24 | 99 | 18 | 44 | 185",
+        "text_sha256": "79addd9100ae258e7e29f9506b3d98b37a0ba297a70901c2d4e82526af3d4739",
+        "xml_sha256": "1f02154b4c63777d1d20603412048080823f81279c3a86b62298d7c97afb77c9",
+        "rows": [
+          [
+            "",
+            "Time period"
+          ],
+          [
+            "",
+            "Weekday",
+            "Weekend",
+            ""
+          ],
+          [
+            "Location",
+            "Afternoon",
+            "Evening",
+            "Afternoon",
+            "Evening",
+            "Total"
+          ],
+          [
+            "Quiet",
+            "15 [57.33]",
+            "46 [61.45]",
+            "5 [57.92]",
+            "16 [58.69]",
+            "82"
+          ],
+          [
+            "Noisy",
+            "9 [62.69]",
+            "53 [62.82]",
+            "13 [62.46]",
+            "28 [62.47]",
+            "103"
+          ],
+          [
+            "Total",
+            "24",
+            "99",
+            "18",
+            "44",
+            "185"
+          ]
+        ]
+      },
+      {
+        "kind": "p",
+        "locator": "sec012/p[3]",
+        "text": "Afternoon and evening periods consisted of the time slots of 2 pm to 6 pm and after 6 pm, respectively. These choices, based on local working hours, and therefore activity levels, were confirmed by sound level trends on site [9]. Additionally, due to differential sound levels (see Ambisonic recordings section below), participants were grouped based on their location on site. The space was divided in half with a quiet and a noisy side, closest to the residential side and to the commercial street, respectively. Sample sizes for each condition are presented in Table 1.",
+        "text_sha256": "d6db9b1f98c79e530dda70e40504eed1f9c1f50bba179db078839b716e781b2d",
+        "xml_sha256": "83f96348c931633afe50ce5c5a574d887213e5fb18afab99283c440171e1889b"
+      },
+      {
+        "kind": "p",
+        "locator": "sec012/p[4]",
+        "text": "A total of 185 questionnaires (102 women, 76 men, age = 34.76 ± 14.82) were collected. See a summary of average age, noise sensitivity (from the NSS scale [56]), and extraversion (from the BFI [57]–both collected with demographic questions at the end) in Table 2.",
+        "text_sha256": "5f8a2c9e941d156d921b38ef2b529d6b8a0bec8fafea6411d831546d6be88de2",
+        "xml_sha256": "f6af2ddbd5ce7bfef3ff692587c768ea3739892486cae8fb8f8579878c37cffb"
+      },
+      {
+        "kind": "table",
+        "locator": "pone.0270401.t002",
+        "text": "Table 2 — Participants’ profile for both laboratory studies (N = 20 and 14, respectively) and in situ (N = 185).\n | Computer-based | Pen-and-paper | In situ\n | Mean | SD | Mean | SD | Mean | SD\nAge | 44.60 | 16.61 | 45.93 | 17.09 | 34.76 | 14.82\nNoise sensitivity | 4.20 | 0.89 | 4.14 | 1.23 | 3.22 | 1.43\nExtraversion | 3.45 | 1.00 | 3.64 | 0.84 | 3.49 | 1.15",
+        "text_sha256": "661a45a434b97aad04ee94a6bf28f5dd498728608c1d16f42340c0f46f477a10",
+        "xml_sha256": "f67d2ce19365f312476a2c067b2859bcb73ed56a8000d36e7f58969736804fdd",
+        "rows": [
+          [
+            "",
+            "Computer-based",
+            "Pen-and-paper",
+            "In situ"
+          ],
+          [
+            "",
+            "Mean",
+            "SD",
+            "Mean",
+            "SD",
+            "Mean",
+            "SD"
+          ],
+          [
+            "Age",
+            "44.60",
+            "16.61",
+            "45.93",
+            "17.09",
+            "34.76",
+            "14.82"
+          ],
+          [
+            "Noise sensitivity",
+            "4.20",
+            "0.89",
+            "4.14",
+            "1.23",
+            "3.22",
+            "1.43"
+          ],
+          [
+            "Extraversion",
+            "3.45",
+            "1.00",
+            "3.64",
+            "0.84",
+            "3.49",
+            "1.15"
+          ]
+        ]
+      },
+      {
+        "kind": "title",
+        "locator": "sec013/title[1]",
+        "text": "Ambisonic recordings",
+        "text_sha256": "a09a8e2e5f9cc16b27e1401c20f1887618954814976f31620f8463cc3b026222",
+        "xml_sha256": "f22adc30b7d843ee8cbc186f76a874ea7f5870068f6288b0f407acf4e43a6aea"
+      },
+      {
+        "kind": "p",
+        "locator": "sec013/p[1]",
+        "text": "Ten-minute Ambisonic recordings were obtained with a Soundfield ST350 FOA (first-order Ambisonics) microphone and a Sound Devices 744T sound card at three locations on site (Fig 1). Sound levels were recorded simultaneously with a Brüel & Kjær type 2250 sound level meter. All recordings were obtained on the study site in September 2018.",
+        "text_sha256": "1236ebd4a2e83de89376e8bdf9dcb41f575475aedb1e2ad2199dba4c2942f664",
+        "xml_sha256": "32e1d96e6232a37b7ca8d58d956f587083f908c94072b7494049ebe9fd6def83"
+      },
+      {
+        "kind": "p",
+        "locator": "sec013/p[2]",
+        "text": "Based on the 10-min average LAeq value for each recording, the two locations with the consistently lowest (range of 57.3–61.4 dBA) and highest (range of 61.9–66.5 dBA) sound levels were chosen for the laboratory experiments. The individual 10-min average LAeq values (see Table 1) were used to calibrate the reproduction levels in the listening room.",
+        "text_sha256": "3e336b27348496253aa26ed8e049205a9387e69cb2c363dde75428f39476710b",
+        "xml_sha256": "0c67a7491ab30d9176a04c2f690b9301efe83e81b6064cfbef4b0d51167287e8"
+      },
+      {
+        "kind": "p",
+        "locator": "sec013/p[3]",
+        "text": "An additional recording session was conducted late at night on site to obtain a naturalistic background noise floor between conditions for the experiment, referred to as the baseline below.",
+        "text_sha256": "fcacee348805070e30bb192b068b46ce6c6e4757bc43a60e1977b4df179104bf",
+        "xml_sha256": "affc98b7bee0be72569c414087950cb204e352f8f56ee3daeb7e9fe6276de195"
+      },
+      {
+        "kind": "title",
+        "locator": "sec014/title[1]",
+        "text": "Laboratory study",
+        "text_sha256": "3e613730b2fc90b055cce896ef6a21a1ff31bfccd1609f58a3f28adf11856b34",
+        "xml_sha256": "289249f2273baeb3e7ea60d0e6031236ba5d98452f7d98997087e54355c3a8ca"
+      },
+      {
+        "kind": "title",
+        "locator": "sec015/title[1]",
+        "text": "Participants",
+        "text_sha256": "0e27279b3302db0448a2acf5d923ffb09b75270c2e957bfb93f54815d2146aa4",
+        "xml_sha256": "da638e079a3c89fa7253a277f02fdde7c37db851913e1c8f4ef07b08ca7a860e"
+      },
+      {
+        "kind": "p",
+        "locator": "sec015/p[1]",
+        "text": "For the laboratory studies, recruitment was conducted with the help of the Plateau borough in Montreal, to contact people who were familiar with the studied space, whether living or working nearby. An official email from the borough was sent to their mailing list and a Facebook post was posted on their page on two occasions. A total of 34 people (adults with self-reported normal hearing) participated in both studies (Table 2): 20 for the computer-based study (8 women, age = 44.6 ± 16.6, 2 English), and 14 for the pen-and-paper study (10 women, age = 45.9 ± 17.1, 0 English). They received a compensation of 15$ for 1h30 of experiment.",
+        "text_sha256": "75603be68ad586aea4ef915d5b925dcffdb5de89d90e10d8936fd839e10cc275",
+        "xml_sha256": "5d44e17a26efea26497f908aa2a6d730f6b9b80e1bbf4b101e4817229e4ad55c"
+      },
+      {
+        "kind": "title",
+        "locator": "sec016/title[1]",
+        "text": "Conditions",
+        "text_sha256": "97d4be8960698f97bff3834494ca9adb3ae0fac886a6773300ff107336350a90",
+        "xml_sha256": "345d19811f9ac32ee3e87a5a7eaf635ca2f60920f6ea8afbae85c2edbac85ef4"
+      },
+      {
+        "kind": "p",
+        "locator": "sec016/p[1]",
+        "text": "Two-minute excerpts were isolated from a subset of 10-minute long Ambisonic recordings chosen based on location in the space (locations A and C in Fig 1) and day and time of recording. Additionally, to investigate internal consistency, two excerpts were selected from each 10-minute recording. Conditions were selected in a factorial design, with 2 locations (quiet vs. noisy) × 2 days of the week (weekday vs. weekend) × 2 times of day (afternoon vs. evening) × 2 excerpts (selected 2-minute excerpts within each recording), for a total of 16 excerpts.",
+        "text_sha256": "44387789925b51a96ce66334d1be98a598210ec25c8bfd514097a9a00578c006",
+        "xml_sha256": "bd8f452a9efdf2d81b1fa710bc08b77bceb81a8c49e5f0613302de9d24f783df"
+      },
+      {
+        "kind": "title",
+        "locator": "sec017/title[1]",
+        "text": "Procedure",
+        "text_sha256": "9c280284ef2669a2be7280a58557e553942fb2e0d2154e3f5949dc153c029bcf",
+        "xml_sha256": "c72b16c00073f47875b1374bac0bea4cbbbb94d534d7c77ef1061c56c346a2be"
+      },
+      {
+        "kind": "p",
+        "locator": "sec017/p[1]",
+        "text": "Participants were seated in the center of the listening room and loudspeaker array (Fig 2). Each trial lasted for 2 minutes, resulting in approximately 32 (2 minutes x 16 excerpts) minutes of testing with an optional break. They were first presented with two panoramic photographs of the studied site (the public space they were familiar with) from the two locations of recording facing the center of the space (Fig 3) for 30 seconds. They were then asked to listen to the 16 excerpts and fill out a shortened version of the questionnaire used in situ (Table 3). All excerpts were presented in a fully randomized order.",
+        "text_sha256": "fdfa7bcb7235a5de4e17710cca483b159206320b698c5eab4a94ff498708e0c5",
+        "xml_sha256": "2866ee1acedd6a16ffed8c274af15233fa9933f0c1d303e51df7f3197877d4ff"
+      },
+      {
+        "kind": "figure_caption",
+        "locator": "pone.0270401.g002",
+        "text": "Fig 2 — Listening room.\nTop: diagram of loudspeaker array from the side, simplified head for orientation; bottom: panoramic photograph of the room from the back right corner (original copyright: Grégoire Blanc [2019] under a CC BY 4.0 license). [Caption only; image pixels not supplied.]",
+        "text_sha256": "7eacf692d36f580f15d3d734334466814c2477123a711bd6c862b2ce827b4bd7",
+        "xml_sha256": "46c9188a4b4fda94525f1100f47b9981b28f2ab43a728aa5dee57d5fc8c3e322"
+      },
+      {
+        "kind": "figure_caption",
+        "locator": "pone.0270401.g003",
+        "text": "Fig 3 — Panoramic photographs of the space presented at the beginning of the laboratory experiments.\nTop: location A; bottom: location C (original copyright: Mariana Mejía Ahrens [2018] under a CC BY 4.0 license). [Caption only; image pixels not supplied.]",
+        "text_sha256": "58f276774fd69740a5f1c9772f423d5ff4653c20ad8f78d4300b7d41fa87c735",
+        "xml_sha256": "7c049d48fd6c2e2c45388caee641200fcdb1e28818779ad8fa3f7b0461cfd773"
+      },
+      {
+        "kind": "table",
+        "locator": "pone.0270401.t003",
+        "text": "Table 3 — Questions for each of the 16 laboratory conditions.\nQuestion | Type | Simplified name\nI find this soundscape to be: |  | \nPleasant | Likert scale | pleasant\nAppropriate for the activities I would conduct in this space | Likert scale | appropriate\nMonotonous | Likert scale | monotonous\nVibrant | Likert scale | vibrant\nChaotic | Likert scale | chaotic\nCalm | Likert scale | calm\nEventful | Likert scale | eventful\nSpending time in this soundscape gives me a break from my day-to-day routine: | Likert scale | restorative",
+        "text_sha256": "66c4cad3016fb538e180a0d0a2dd33104371640adfdedbc19282fb5a12b4c739",
+        "xml_sha256": "906ba31c744d0f667d1538ff3411565b81e22875a16a562537cedb4c630d7507",
+        "rows": [
+          [
+            "Question",
+            "Type",
+            "Simplified name"
+          ],
+          [
+            "I find this soundscape to be:",
+            "",
+            ""
+          ],
+          [
+            "Pleasant",
+            "Likert scale",
+            "pleasant"
+          ],
+          [
+            "Appropriate for the activities I would conduct in this space",
+            "Likert scale",
+            "appropriate"
+          ],
+          [
+            "Monotonous",
+            "Likert scale",
+            "monotonous"
+          ],
+          [
+            "Vibrant",
+            "Likert scale",
+            "vibrant"
+          ],
+          [
+            "Chaotic",
+            "Likert scale",
+            "chaotic"
+          ],
+          [
+            "Calm",
+            "Likert scale",
+            "calm"
+          ],
+          [
+            "Eventful",
+            "Likert scale",
+            "eventful"
+          ],
+          [
+            "Spending time in this soundscape gives me a break from my day-to-day routine:",
+            "Likert scale",
+            "restorative"
+          ]
+        ]
+      },
+      {
+        "kind": "p",
+        "locator": "sec017/p[2]",
+        "text": "Within each trial, each excerpt was presented to the participants for 15 seconds before the questionnaire appeared to ensure they listened and acclimated to the soundscape. This was done to mirror the surveyed users of the studied site. They could answer the questionnaire for 1 min 40 s before the end of each excerpt. In the computer-based study, participants had no control over the timing of questionnaire presentation, all transitions were automated within the software. In the pen-and-paper study, participants were asked to respect this time, which appeared on screen, but the experimenter was not present to enforce it. However, all soundscape conditions (audio stimuli) were transitioned automatically for both studies. The last five seconds were used to fade into the baseline presented for 15 seconds between excerpts to avoid transitioning to silence.",
+        "text_sha256": "64f328bbc67c2d1008110c6d33550d1ae901a62532beec5ab066572d38205493",
+        "xml_sha256": "baf55b9f6d29cfbbb33d65af98a75b3fd9133ab415ab40e4b0769399754cc40c"
+      },
+      {
+        "kind": "p",
+        "locator": "sec017/p[3]",
+        "text": "The experimenter ran a practice trial with the participant before starting the experiment, to help them familiarize themselves with the task and automated timing. A short break was automatically triggered at the halfway point (after the 8th excerpt).",
+        "text_sha256": "be9bf7e20750f063a871a3da2c34670a18a9807ffa4a6d41bdd5f7550bf1a4e2",
+        "xml_sha256": "0ccf2c39af8fae752614954866b0b4a0f5375f704af9ae4208075a2e079730ff"
+      },
+      {
+        "kind": "title",
+        "locator": "sec018/title[1]",
+        "text": "Ambisonic reproduction",
+        "text_sha256": "d3fbf0f2977aeb4466d2e246e5cfe8fd64c6f67121895a327f56a9dd8f3c47f3",
+        "xml_sha256": "535130518ecedba8567ba62fbbdbbfdfb48b5cfa8fbcc6c2529341a947331314"
+      },
+      {
+        "kind": "p",
+        "locator": "sec018/p[1]",
+        "text": "Stimuli were presented in an acoustically-treated listening room (5.9 x 4.9 x 3.3 m) conforming to the ITU-R BS.775-1 standard [58] over an array of 17 Genelec 8030A loudspeakers placed on four height levels and facing the listener (Fig 2):",
+        "text_sha256": "e185dc11141069ce37c6b21ea7aa5f2f1717ad8ec1f41f15d8e5d709e81d5668",
+        "xml_sha256": "8c39af8975feba0b1062b61d21411346d6eff8ed7b4e1cc0d5c23339a3ddf22d"
+      },
+      {
+        "kind": "list",
+        "locator": "sec018/list[1]",
+        "text": "1. a square of four at floor level (#9–12 in Fig 2)\n2. a square of eight located at head level (1.2 m above the floor–#1–8)\n3. a square of four suspended from the ceiling (2.3 m above the floor–#13–16)\n4. a single speaker directly above the listener (2.6 m above the floor–#17)",
+        "text_sha256": "60a8578d87ce5495249b762cdf8f5a0c4a82b4ec9f831244ae153ac6d50eb1b7",
+        "xml_sha256": "7c4300f92180edfff33d1c8f731d6f7a7627b07733100d722a30a0e9ad56b3e4"
+      },
+      {
+        "kind": "p",
+        "locator": "sec018/p[2]",
+        "text": "Decoding was conducted in MaxMSP version 8.0.5 (Cycling ‘74) using Heller’s Ambisonic Decoder Toolbox for MATLAB [59] compiled for MaxMSP with Faust [60].",
+        "text_sha256": "efbbc49ad7588e1394fa778367467e12baf7781edca0751f97a09a97f98892e7",
+        "xml_sha256": "b3a757d95e86c2682912819678f69e1832871dad10fd80876bf5694985f81e0b"
+      },
+      {
+        "kind": "title",
+        "locator": "sec019/title[1]",
+        "text": "Questionnaires",
+        "text_sha256": "2c25d5aa36e088e770fce072e825069721c7fb3c62fd3a9413d6ddcadc696fa4",
+        "xml_sha256": "4636a0717d416985845f67abdabbd0a04fcbbbf6e137f7fd356c664770b35a1d"
+      },
+      {
+        "kind": "p",
+        "locator": "sec019/p[1]",
+        "text": "The full in-situ questionnaire used on site is the product of multiple iterations over the years and built on the literature presented in the Soundscape assessment section, using our Quebec French translation (see [61]). In this paper, we analyze the soundscape scales that were used in both in situ and laboratory conditions (Table 3). The question on appropriateness was rephrased to maintain equivalency between in situ and laboratory conditions, from: “I find this soundscape to be appropriate for my activity” (in situ) to: “I find this soundscape to be appropriate for the activities I would conduct in this space” (laboratory).",
+        "text_sha256": "50486e18bdd8dc06182cb0b7f92541a3370be773cf4b77bab20c81f7ecdc5cd3",
+        "xml_sha256": "32e97b7295032662b5f31e9706e80278601c0cb7246fb0f998f86d880e8a1e49"
+      },
+      {
+        "kind": "title",
+        "locator": "sec020/title[1]",
+        "text": "Statistical analyses",
+        "text_sha256": "51d2b4c0ae9e5556ddfe2a14b46f26c688f3a449557a0effee5cdab3d2ec8324",
+        "xml_sha256": "2148911e5d0fc12bccc6122c3c6ab6296c7eeaa5f3de7e593fc899deb2469345"
+      },
+      {
+        "kind": "p",
+        "locator": "sec020/p[1]",
+        "text": "To investigate the four research questions, we conducted three types of analyses:",
+        "text_sha256": "cc02370c3c0cedce574e7eadb315fde72cd91dc877bffd51746ff02459645e6d",
+        "xml_sha256": "b70efc287e3997905994ff8aed0de9b4a1fe191a72bf11703304497d0cb5edfb"
+      },
+      {
+        "kind": "list",
+        "locator": "sec020/list[1]",
+        "text": "1. to validate the dimensions underlying soundscape judgments [RQ2], we conducted a CFA on each data set (site and laboratory) with a model based on previous work [61],\n2. to explore the influence of the mode of administration on soundscape assessments [RQ3], we followed up the CFA with an analysis of measurement invariance on the laboratory data,\n3. to investigate the ecological validity of Ambisonic reproduction [RQ1] and the influence of stimuli choice [RQ3], we conducted a MANOVA on each data set (site and laboratory) with day, time, and location as independent variables for the site data, and day, time, location, mode of administration, and excerpt as independent variables for the laboratory data.",
+        "text_sha256": "08684567ea2dd2e8b0d9480ce652446562daeca6c7ba63265e8815a3efddf8d4",
+        "xml_sha256": "1af5521b043e0a59e7a9cd6a14b66aaa556ea5f3053ec675656f31287f84b8c1"
+      },
+      {
+        "kind": "p",
+        "locator": "sec020/p[2]",
+        "text": "Further details are given for each analysis below.",
+        "text_sha256": "284b041dd8470530c213b06306eef3259800ab8981b27ec4d365afbb89e2dd66",
+        "xml_sha256": "8da5af646a5818fb42ed3b0d8c02605f33685b06c1c193e0a26a8746fa06a1f4"
+      },
+      {
+        "kind": "p",
+        "locator": "sec020/p[3]",
+        "text": "Statistical analyses were computed in R 4.0.2 for Mac OS X and Rstudio® 1.3.1073, with α = 0.05. Both the laboratory and in situ data were highly non-normal, whether univariate or multivariate. The in situ data was additionally highly unbalanced with small groups (range of 5 to 53) when subdividing based on the three factors of interest: day (weekday-weekend), time (afternoon-evening), and location (quiet-noisy). For these reasons, we chose to conduct semi-parametric analyses when pertinent.",
+        "text_sha256": "fec494d3052cbd107f55aa2a5b1b786a6a0cedb9631bda27a0e2c3bd0ac212a3",
+        "xml_sha256": "71d9f642f1bc5aa59a403906786797449c44a442862cfcafd6c73c422adab509"
+      },
+      {
+        "kind": "p",
+        "locator": "sec020/p[4]",
+        "text": "Furthermore, missing values for Likert scales were replaced by the mean (rounded to 2 decimals) for each dependent variable per mode of administration in the laboratory (computer-based, pen-and-paper) and per visual design on site, as proportions of missing values were 6.5% or less (0.6–2.2% in the laboratory and 1.6–6.5% in situ). Because of this, we considered the Likert variables as continuous in the following analyses.",
+        "text_sha256": "3dc9c49ff188928ff0babcbd995da2264dc7e5cf62ef21cbc9505849b583b30e",
+        "xml_sha256": "b1b398c16208db06d1cbb36158cb62a48932f0002c5f9a9d02417a249607223b"
+      },
+      {
+        "kind": "p",
+        "locator": "sec020/p[5]",
+        "text": "We first ran a Confirmatory Factor Analysis (CFA) on the site data to ensure that the latent dimensions did not differ from previous results obtained with the same questionnaire [61, 62]. We also conducted a CFA on the laboratory data with the same model, followed by an analysis of measurement invariance [63] between pen-and-paper and computer-based responses. Both CFA and measurement invariance were run on the laboratory data by accounting for repeated measures, as allowed by the lavaan package [64] for R. Measurement invariance testing consists of four steps: configural invariance, metric invariance, scalar invariance, and strict invariance (the latter is almost never needed and tested) [63]. Each step is more restrictive than, and relies on the validation of, the previous step. To validate a step, fit indices are compared to the ones from the previous, that is testing that the change in overall fit between two subsequent models falls under a certain threshold. A difference in Comparative Fit Index (ΔCFI) ≤ 0.010 and a difference in Root Mean Square Error of Approximation (ΔRMSEA) ≤ 0.015 are considered reasonably accurate to detect invariance for samples of more than 300 observations [65]. All CFA were conducted before replacement of missing data, using the lavaan package [64], and with the robust estimation method of Maximum Likelihood with Satorra-Bentler correction (MLM) due to the non-normality of the data [66].",
+        "text_sha256": "c271161812618d50a3d594157c72533d28a0c3f59c2fbf1dc4bca119b66663af",
+        "xml_sha256": "0dfc7ec13c164d1e18644bda17b5a8d6574254b28d197e9adb4da99868a1cc65"
+      },
+      {
+        "kind": "p",
+        "locator": "sec020/p[6]",
+        "text": "A semi-parametric repeated-measure MANOVA with four within-subject factors (day, time, location, and excerpt) and one between-subject factor (mode of administration) was conducted on the laboratory data using the multRM function from the MANOVA.RM package, version 0.4.2 [67]. This package was developed to “enhance the small sample properties of [nonparametric procedures] while preserving their general applicability for all kinds of data in factorial repeated measures and split plot designs” [68]. Due to the covariance matrix being singular and the relatively small sample size, we used the Modified ANOVA-type statistic (MATS) and wild bootstrap resampling method for p-values, as recommended by the package authors [68]. The resampling was conducted with 1,000 iterations. Follow-up semi-parametric repeated-measure ANOVA with the same factors were conducted–with the RM function from the MANOVA.RM package looking at the ANOVA-type statistic (ATS) and wild bootstrap resampling–on each of the scales, with Šidák p-value corrections of αSID = 0.0064 for α = 0.05.",
+        "text_sha256": "f4206e6985be3f67b99014fe9c4263ac077befec88d30572dcd4c0193fc98ce1",
+        "xml_sha256": "d4d871814a0b936bd5f2776d81a4205f865bb18bd365d21f863c440efbab0f7a"
+      },
+      {
+        "kind": "p",
+        "locator": "sec020/p[7]",
+        "text": "Finally, a semi-parametric MANOVA, and follow-up semi-parametric ANOVA on each scale with Šidák p-value corrections of αSID = 0.0064 for α = 0.05, with three factors (day, time, location) were conducted on the in situ data using the MANOVA function from the MANOVA.RM package. The ANOVA were not justified based on the MANOVA results but were conducted for comparison with the laboratory results.",
+        "text_sha256": "58e1bf4c5126c0cfcd15ad7a387e95c6d86e289c2b3ee0de79ce7978dd2bef3f",
+        "xml_sha256": "a8daf19ab88b71c2e5f990f69b48a77bcfbba524fa4490ac0a836fd01804211b"
+      },
+      {
+        "kind": "title",
+        "locator": "sec021/title[1]",
+        "text": "Results",
+        "text_sha256": "219c4a6c86a716e99d5dc9611b61e584deb11b57e972d87d4b773387ebc3cadd",
+        "xml_sha256": "1cff2a2fad349b829e5ae0a7f549a577a365a94c035de79e80e7388dccc8e675"
+      },
+      {
+        "kind": "p",
+        "locator": "sec021/p[1]",
+        "text": "The results are organized in three parts following the four research questions:",
+        "text_sha256": "4d421413f09267131b6079a9e20b3af37a2df213ee80f3b27fce1ec05647dd70",
+        "xml_sha256": "c0076ba9253672a8767d347dabf27a2adcdec9b1685de13267c6d229a14b45f9"
+      },
+      {
+        "kind": "list",
+        "locator": "sec021/list[1]",
+        "text": "1. validating the dimensions underlying soundscape judgments [RQ2], with a CFA model based on previous work [61],\n2. verifying methodological aspects of mode of administration with measurement invariance [RQ3] and of stimuli choice as a factor in the MANOVA [RQ4],\n3. investigating the ecological validity of Ambisonic reproduction through the investigation of the effect of contextual factors in the MANOVA [RQ1].",
+        "text_sha256": "75d4ae1bec23b7d5c32b01c0ac9e507d9b94c74a40a12d67de5f7e63dc06298e",
+        "xml_sha256": "bb9ecd0f1728860327c007c66cb4386f5ca50054faaafea4d683e547036c0648"
+      },
+      {
+        "kind": "title",
+        "locator": "sec022/title[1]",
+        "text": "Dimensions underlying soundscape judgments",
+        "text_sha256": "79cc55b6d14179b4c592fd8f407afffeb7d5c6fddd7f7e14346abc255a7a2078",
+        "xml_sha256": "96d87a342605c5b2c414452660e23f8afd71a758f6e02f7327ace7f4d326eec4"
+      },
+      {
+        "kind": "p",
+        "locator": "sec022/p[1]",
+        "text": "To investigate if the dimensions underlying participant’s soundscape judgments, both in situ and in the laboratory, correspond to the previously found model [61, 62], we tested the same CFA model, which was as follows:",
+        "text_sha256": "ddaed3c830a19c4e93de7de98cb62a0d8c45e2fc07f1deda4217403bcfed2eb5",
+        "xml_sha256": "d1155697a7303e2cbe4a4a4d8af310642226a4d698536259ee2cc383280e14c5"
+      },
+      {
+        "kind": "list",
+        "locator": "sec022/list[1]",
+        "text": "1. “PL” factor measured by the variables “pleasant”, “appropriate”, “calm”, “restorative”, and “chaotic”, representing the pleasantness dimension\n2. “EV” factor measured by the variables “eventful”, “vibrant”, “calm,” and “chaotic”, representing the eventfulness dimension.",
+        "text_sha256": "cc8f534f6b42621475afdd2f813de44d59050dc8dbe4f90e07e8a8ae96f8712c",
+        "xml_sha256": "f425733d99a64086bd81e6e3f9a3946c282e17a207d8eaa811eee9aefb37d28d"
+      },
+      {
+        "kind": "title",
+        "locator": "sec023/title[1]",
+        "text": "In situ data",
+        "text_sha256": "f27464d3658e6cf38474c1516efa535f55ea8e1ec6f17e4ea639ad144a60312c",
+        "xml_sha256": "316856bc75caff7bf6df197d7d8e0d450bb7cbaa0ec4483999c9d5fee0c0750e"
+      },
+      {
+        "kind": "p",
+        "locator": "sec023/p[1]",
+        "text": "The model fit for site data, was acceptable but not excellent, with χ2SB = 18.53, df = 11, p = 0.070; robust CFI = 0.970; robust RMSEA = 0.065, 90% CI [0.000, 0.121]; and SRMR = 0.054. In consequence, we looked at modification indices to explore how to improve the model, which suggested adding the correlation between “pleasant” and “appropriate” (mi = 11.035). This is supported by previous work [61, 62], wherein “pleasant” is consistently found to be associated with “appropriate”. This new model yielded an excellent fit, with χ2SB = 10.19, df = 10, p = 0.424; robust CFI = 0.999; robust RMSEA = 0.011, 90% CI [0.000, 0.090]; and SRMR = 0.045, and was therefore retained.",
+        "text_sha256": "28ed47aba5bb80bae6830836498412955a824a55d9e21782c821e400b073de1c",
+        "xml_sha256": "2a75c06078d591637d09956fa770f1ab59bed40c60ef5bef961c73e897e4d1e3"
+      },
+      {
+        "kind": "p",
+        "locator": "sec023/p[2]",
+        "text": "The standardized estimates of the factor loadings in the improved model (Table 4) were middling to large (0.21–0.80) and statistically significant (all with p < 0.001 except “chaotic” on “EV” with p = 0.024). The “pleasant”, “appropriate”, “restorative”, and “calm” variables loaded positively, while “chaotic” loaded negatively on the latent factor “PL”. In parallel, “calm” loaded negatively, and “chaotic, “eventful”, and “vibrant” loaded positively on the latent factor “EV”.",
+        "text_sha256": "c95ed42f085cd8dbdae1cca40c7f58e5234545eff753daf00caceda374085808",
+        "xml_sha256": "41c58e41947a9ccb76ff86d43780a808e0301ee9a111e4580ec30a878be2d9c3"
+      },
+      {
+        "kind": "table",
+        "locator": "pone.0270401.t004",
+        "text": "Table 4 — Standardized factor loadings and standard errors (SE) for the retained CFA model for in situ data (N = 185).\n | PL | EV\nItem | Loadings | SE | Loadings | SE\nPleasant | 0.746 | 0.085 |  | \nAppropriate | 0.572 | 0.089 |  | \nRestorative | 0.604 | 0.095 |  | \nCalm | 0.795 | 0.096 | -0.365 | 0.106\nChaotic | -0.563 | 0.101 | 0.210 | 0.111\nVibrant |  |  | 0.637 | 0.128\nEventful |  |  | 0.730 | 0.134",
+        "text_sha256": "21f10cc223a4f2a460223301acbca14f34047e368e223f34d19103a269b14734",
+        "xml_sha256": "cdd2173a366ce43a0446d2e1a3175bfcf6b1a814293089e213beca04deaa1459",
+        "rows": [
+          [
+            "",
+            "PL",
+            "EV"
+          ],
+          [
+            "Item",
+            "Loadings",
+            "SE",
+            "Loadings",
+            "SE"
+          ],
+          [
+            "Pleasant",
+            "0.746",
+            "0.085",
+            "",
+            ""
+          ],
+          [
+            "Appropriate",
+            "0.572",
+            "0.089",
+            "",
+            ""
+          ],
+          [
+            "Restorative",
+            "0.604",
+            "0.095",
+            "",
+            ""
+          ],
+          [
+            "Calm",
+            "0.795",
+            "0.096",
+            "-0.365",
+            "0.106"
+          ],
+          [
+            "Chaotic",
+            "-0.563",
+            "0.101",
+            "0.210",
+            "0.111"
+          ],
+          [
+            "Vibrant",
+            "",
+            "",
+            "0.637",
+            "0.128"
+          ],
+          [
+            "Eventful",
+            "",
+            "",
+            "0.730",
+            "0.134"
+          ]
+        ]
+      },
+      {
+        "kind": "p",
+        "locator": "sec023/p[3]",
+        "text": "Additionally, the two latent variables “PL” and “EV” are not strictly independent, showing a borderline significant (p = 0.069) but weak covariance (cov = 0.203, SE = 0.112), which is expected, as they share some measured variables. And finally, the added correlation between “pleasant” and “appropriate” is expectedly significant (p = 0.010) although moderate (cov = 0.363, SE = 0.079). Those results are very similar to those obtained in situ in previous studies [61, 62].",
+        "text_sha256": "aed8846982a2a97dc5f7149950855ef81cae231491eae451706ead4a58fb06f0",
+        "xml_sha256": "f6ff35f1c465758563d56a320f222455a0e67bd8feb6f89eb347fed9ced994ae"
+      },
+      {
+        "kind": "title",
+        "locator": "sec024/title[1]",
+        "text": "Laboratory data",
+        "text_sha256": "ed36cf39c85609dca090b1119c95f0e18baf7279eea92f0c2d2f4acb0ce97b72",
+        "xml_sha256": "419ca57c7392ca3d8a81a0c1364895da35aa183bfb04890aa8498d08d9aff6a6"
+      },
+      {
+        "kind": "p",
+        "locator": "sec024/p[1]",
+        "text": "In comparison to both the in situ data and previous results, we tested the same CFA model on the laboratory data. The model fit on the laboratory data was good, with χ2SB = 23.87, df = 11, p < 0.05; robust CFI = 0.987; robust RMSEA = 0.068, 90% CI [0.030, 0.105]; and SRMR = 0.031, and was therefore retained, thus confirming that laboratory reproduction elicits similar latent dimensions to in situ listening.",
+        "text_sha256": "8eb6861f6b3b6217a1d09c0d5622458742047ceeced0e6496180cc1f8e4491a2",
+        "xml_sha256": "c8c019a3a07677f4093883db7ce837a6eb8b9006e3510c71f9e47d5a198f50be"
+      },
+      {
+        "kind": "p",
+        "locator": "sec024/p[2]",
+        "text": "The standardized estimates of the factor loadings in this model (Table 5) were middling to large (0.19–0.90) and statistically significant (p < 0.001). The “pleasant”, “appropriate”, “restorative”, and “calm” variables loaded positively, while “chaotic” loaded negatively on the “PL” latent factor. In parallel, “calm” loaded negatively, and “chaotic”, “eventful”, and “vibrant” loaded positively on the “EV” latent factor.",
+        "text_sha256": "93b4708d0aa1307de21f91e202b365b43c7d18a7286a769435bc79a330cac4a1",
+        "xml_sha256": "796ce071e2ba18fdfc0432a9538105b70a373b1c3aa580854fced85d1018298b"
+      },
+      {
+        "kind": "table",
+        "locator": "pone.0270401.t005",
+        "text": "Table 5 — Factor loadings and standard errors (SE) for the retained CFA model for laboratory data (N = 544).\n | PL | EV\nItem | Loadings | SE | Loadings | SE\nPleasant | 0.904 | 0.069 |  | \nAppropriate | 0.869 | 0.087 |  | \nRestorative | 0.855 | 0.082 |  | \nCalm | 0.709 | 0.079 | -0.193 | 0.056\nChaotic | -0.633 | 0.144 | 0.241 | 0.105\nVibrant |  |  | 0.816 | 0.088\nEventful |  |  | 0.794 | 0.104",
+        "text_sha256": "e3a404795c8da858cb228c954bd30ea9bdfc74dc380628e917f7934494270f73",
+        "xml_sha256": "2ba47a5ee233c4ca34056f3e6e03ea77de239483974b89a263a823e21d95cf4f",
+        "rows": [
+          [
+            "",
+            "PL",
+            "EV"
+          ],
+          [
+            "Item",
+            "Loadings",
+            "SE",
+            "Loadings",
+            "SE"
+          ],
+          [
+            "Pleasant",
+            "0.904",
+            "0.069",
+            "",
+            ""
+          ],
+          [
+            "Appropriate",
+            "0.869",
+            "0.087",
+            "",
+            ""
+          ],
+          [
+            "Restorative",
+            "0.855",
+            "0.082",
+            "",
+            ""
+          ],
+          [
+            "Calm",
+            "0.709",
+            "0.079",
+            "-0.193",
+            "0.056"
+          ],
+          [
+            "Chaotic",
+            "-0.633",
+            "0.144",
+            "0.241",
+            "0.105"
+          ],
+          [
+            "Vibrant",
+            "",
+            "",
+            "0.816",
+            "0.088"
+          ],
+          [
+            "Eventful",
+            "",
+            "",
+            "0.794",
+            "0.104"
+          ]
+        ]
+      },
+      {
+        "kind": "p",
+        "locator": "sec024/p[3]",
+        "text": "Additionally, the two latent variables “PL” and “EV” are not strictly independent here as well, showing a significant (p = 0.001) but weak covariance (cov = -0.195, SE = 0.060).",
+        "text_sha256": "8637d5eed9bd06abe4cbb5338afe5dfc97fb573e99381cf62e91b440b7233e69",
+        "xml_sha256": "13b1b6fb1fec6448b2fe6211bd90dce5959d27299b33a94209ff3efbcb098786"
+      },
+      {
+        "kind": "title",
+        "locator": "sec025/title[1]",
+        "text": "Comparison of latent dimensions between in situ and laboratory results",
+        "text_sha256": "c27c8b9ab8b6b5c649f0bb54b8297d67adaaabd08c64500438fd659700f100f6",
+        "xml_sha256": "923232dd383aac5a1e48a141fea222db64a949a84351750829deda6d3cc419ae"
+      },
+      {
+        "kind": "p",
+        "locator": "sec025/p[1]",
+        "text": "Both CFA are validated, confirming that the previously developed model of factors underlying the soundscape ratings in our context is applicable for both in situ and laboratory data. The only difference between the two models is the addition of a correlation between pleasant and appropriate to the in situ model. This relation makes theoretical sense but we did not add it to the laboratory model in the interest of parsimony as it was already a good model. Comparing the two models’ loadings, we see that the laboratory results are more salient, with higher absolute loading values and smaller standard errors.",
+        "text_sha256": "8ca28ff19f68b9bd84b89273abaec91553644c5bae357dfddc8474705a3d663a",
+        "xml_sha256": "96e945b6b28a8906ed3fc0f6e53b7c8ecad96dc54d63754fa9e93ce725294ed3"
+      },
+      {
+        "kind": "title",
+        "locator": "sec026/title[1]",
+        "text": "Methodological verifications",
+        "text_sha256": "6e59fbd350a0e7cee112261e915da6a3a92d441514c2b093c4c24ae5bd8db661",
+        "xml_sha256": "7c92eda82e723c987cd2fb1767065c7bd030547f7ecde382d68f37939a3d980e"
+      },
+      {
+        "kind": "title",
+        "locator": "sec027/title[1]",
+        "text": "Effect of mode of administration",
+        "text_sha256": "d0504cc9fab5e44cb4f7a776afa443a73c4ed8a46ea474b6c9053107d0fe66ef",
+        "xml_sha256": "0803ac5de07f84a8b4c3e521882bc0cf2104fe2a22dd5b18241fb77b316b64e6"
+      },
+      {
+        "kind": "p",
+        "locator": "sec027/p[1]",
+        "text": "Following the validation of the CFA model on laboratory results, we tested the measurement invariance between modes of administration (pen-and-paper vs. computer-based). The first step, configural invariance, merely compares parameter estimates and p-values for the two groups of interest–pen-and-paper and computer-based. The model fit was acceptable to accept configural invariance (M1 in Table 6). The next step, metric invariance, forces identical factor loadings across groups. The change in model fit compared to the previous step was within bound, so we retained it (M2 in Table 6). The third step, scalar invariance, additionally forces identical intercepts between groups. The change in model fit compared to metric invariance was within bound and the model was retained (M3 in Table 6). The fourth, and last, step is strict invariance and constrains residuals in addition to the previous constraints. This change in model fit was too large and the model was not retained (M4 in Table 6), but this last step is rarely needed and tested.",
+        "text_sha256": "1ad10371981f70efdb467c44a0a9625cebf36391e9cf1bbda9a8fa4e8d1b0f26",
+        "xml_sha256": "8723def098b95845b88b1218cd38e6ea311aebdbb445059d276b4b54bc5cf841"
+      },
+      {
+        "kind": "table",
+        "locator": "pone.0270401.t006",
+        "text": "Table 6 — Tests of measurement invariance between pen-and-paper (N = 224) and computer-based (N = 320).\nModel | χ2SB (df) | CFI | RMSEA (90% CI) | SRMR | comparison | Δ χ2SB (Δ df) | p-value | Δ CFI | Δ RMSEA | Δ SRMR | Retain\nM1: configural | 38.431 (22) | 0.985 | 0.072 (0.031–0.109) | 0.037 | – | – | – | – | – | – | Y\nM2: metric | 45.456 (29) | 0.984 | 0.066 (0.023–0.101) | 0.059 | M2 vs. M1 | 8.1262 (7) | 0.322 | -0.006 | -0.001 | 0.022 | Y\nM3: scalar | 56.557 (34) | 0.975 | 0.075 (0.038–0.108) | 0.065 | M3 vs. M2 | 9.9367 (5) | 0.077 | -0.013 | 0.011 | 0.006 | Y\nM4: strict | 71.742 (41) | 0.963 | 0.083 (0.049–0.115) | 0.059 | M4 vs M3 | 13.665 (7) | 0.057 | -0.012 | -0.008 | 0.006 | N",
+        "text_sha256": "20d506a5cfd7f108c663d721206ebff409583a48179afaa76ee1b1961066766d",
+        "xml_sha256": "a8d6cef52230c3b98bd8a65e938fdc6200ff3a85efa4894c72f3b3bf7bc10e88",
+        "rows": [
+          [
+            "Model",
+            "χ2SB (df)",
+            "CFI",
+            "RMSEA (90% CI)",
+            "SRMR",
+            "comparison",
+            "Δ χ2SB (Δ df)",
+            "p-value",
+            "Δ CFI",
+            "Δ RMSEA",
+            "Δ SRMR",
+            "Retain"
+          ],
+          [
+            "M1: configural",
+            "38.431 (22)",
+            "0.985",
+            "0.072 (0.031–0.109)",
+            "0.037",
+            "–",
+            "–",
+            "–",
+            "–",
+            "–",
+            "–",
+            "Y"
+          ],
+          [
+            "M2: metric",
+            "45.456 (29)",
+            "0.984",
+            "0.066 (0.023–0.101)",
+            "0.059",
+            "M2 vs. M1",
+            "8.1262 (7)",
+            "0.322",
+            "-0.006",
+            "-0.001",
+            "0.022",
+            "Y"
+          ],
+          [
+            "M3: scalar",
+            "56.557 (34)",
+            "0.975",
+            "0.075 (0.038–0.108)",
+            "0.065",
+            "M3 vs. M2",
+            "9.9367 (5)",
+            "0.077",
+            "-0.013",
+            "0.011",
+            "0.006",
+            "Y"
+          ],
+          [
+            "M4: strict",
+            "71.742 (41)",
+            "0.963",
+            "0.083 (0.049–0.115)",
+            "0.059",
+            "M4 vs M3",
+            "13.665 (7)",
+            "0.057",
+            "-0.012",
+            "-0.008",
+            "0.006",
+            "N"
+          ]
+        ]
+      },
+      {
+        "kind": "p",
+        "locator": "sec027/p[2]",
+        "text": "Ultimately, our laboratory data showed scalar invariance between pen-and-paper and computer-based administration, with the exception of the intercept for “appropriate,” which may necessitate more investigation to explain.",
+        "text_sha256": "1523854c72704ef647f3f00ca66672ce1288ef71d3331bef5dcac6449defb078",
+        "xml_sha256": "0056bb33a166c466f48bda90a9d45d8ebe6f9b0b24a1a6764908d6ba08bf2ff5"
+      },
+      {
+        "kind": "title",
+        "locator": "sec028/title[1]",
+        "text": "Effect of stimuli choice",
+        "text_sha256": "15eff5bc75bea3952aeabbe4f5b2fb20d44549d9049e9c2141f9a231a4d98ecf",
+        "xml_sha256": "b35c2cdcd0088aca6b0c9071349452c7f1460222d9190054f3eff1ea3a056bfe"
+      },
+      {
+        "kind": "p",
+        "locator": "sec028/p[1]",
+        "text": "The laboratory experiment relied on a factorial design that included the factor of excerpt selection. Within each recording of a specific combination of day, time, and location in the public space of interest, two distinct excerpts were selected to investigate the effect of excerpt selection. MANOVA results on laboratory data (see Laboratory results section below) showed no effect of excerpt. Excerpt was present in two significant interactions but they will not be detailed further since the main effect of excerpt was not significant and those interactions have no theoretical meaning.",
+        "text_sha256": "86a1b33bd43d1e4c44b03f3ea42c8c3aab76b4a1d3ff1d76a20d8c5fc66d742f",
+        "xml_sha256": "22a34aefd2d2fa6f179a272d50db1032115d7780d48b62c19cd4577ad9a3ab53"
+      },
+      {
+        "kind": "title",
+        "locator": "sec029/title[1]",
+        "text": "Ecological validity of laboratory reproduction",
+        "text_sha256": "260a19368669b542f0ef782f8d58275b6583bc6f29d8badc2b787527478cee08",
+        "xml_sha256": "1c9bdb66213989023cae2590cbc34722aae3c35daf13c6b7f9480b9ce2cc9a74"
+      },
+      {
+        "kind": "p",
+        "locator": "sec029/p[1]",
+        "text": "The following section details semi-parametric (M)ANOVA results using (modified) ANOVA-type statistics ((M)ATS)–between-subjects for in situ data and within-subjects for laboratory data–to compare the extent to which the same factors significantly moderate the data.",
+        "text_sha256": "6790154bcd7a05fa041c2002e06f74ebcc64f03bb649443d9d8aaa7e444db27b",
+        "xml_sha256": "f2ae64a00a3991295607d516125f7a9a543e69d1e10334cd88bbf34f66fc1a71"
+      },
+      {
+        "kind": "title",
+        "locator": "sec030/title[1]",
+        "text": "In situ results",
+        "text_sha256": "68fea2121d985fd613b5b06d7f09d5fe85f8030c7f8e058a76c4817a73e8304f",
+        "xml_sha256": "ac3718dd2c65e5f0c171fbbe76cb5ee1db6a70b9d777c775ef822b0fd5220be3"
+      },
+      {
+        "kind": "p",
+        "locator": "sec030/p[1]",
+        "text": "Overall MANOVA. The semi-parametric independent MANOVA with day, time, and location as factors on the site data shows no main effects and no interactions (S1 Table).",
+        "text_sha256": "2d2e360aefc39086f262b8321c9acbe12d86d4e693d5fe78d963bd18321812c1",
+        "xml_sha256": "a7f2195ea972dfb1bd7b202f0a9c59aac7b315b3c5ec5c8f09eab8f4276e0c90"
+      },
+      {
+        "kind": "p",
+        "locator": "sec030/p[2]",
+        "text": "ANOVA per scale on site. Unsurprisingly, following the MANOVA results, the follow-up ANOVA on each scale are all highly non-significant (S2 Table). These were conducted for the purpose of comparison with the laboratory results.",
+        "text_sha256": "c7930de448abf33f10883cc2d8f5c02c349c8b27f7ae6304f1d76de8a9e6f8d8",
+        "xml_sha256": "ad78c24dfa6198bb2252d4591b0744d680ccebac63088434320259912812d9d0"
+      },
+      {
+        "kind": "title",
+        "locator": "sec031/title[1]",
+        "text": "Laboratory results",
+        "text_sha256": "9d02478d86ec654de6dd03d5f5d438cc3643379def784a6d5bd92e9b686639e9",
+        "xml_sha256": "09e52c11bf591eb434d9208eb8e907fa46e63226e653dc1faf52b98e0f1d7dc3"
+      },
+      {
+        "kind": "p",
+        "locator": "sec031/p[1]",
+        "text": "Overall MANOVA. The repeated-measure MANOVA (Table 7) shows significant main effects of day (MATS = 14.93, p < 0.001), time (MATS = 42.13, p < 0.001), and location (MATS = 424.79, p < 0.001). Significant interactions between day and time (MATS = 7.38, p = 0.026), day and location (MATS = 24.97, p < 0.001), and time and location (MATS = 47.05, p < 0.001) were also found. Additional interactions, involving the excerpt, were found: day and excerpt (MATS = 30.55, p < 0.001), and day and location and excerpt (MATS = 24.79, p = 0.001). These will not be detailed further for the aforementioned reasons.",
+        "text_sha256": "6197381814102f04aa6521d886231503a68734d9517869c882bb16be89c6415a",
+        "xml_sha256": "6898f28263359f59e0532a6840d155d03b6a9ba6f737aaf2440be582f1888ce4"
+      },
+      {
+        "kind": "table",
+        "locator": "pone.0270401.t007",
+        "text": "Table 7 — Modified ANOVA-type statistics (MATS) and their resampled p-values (wild bootstrap– 1,000 iterations) for RM MANOVA over all scales (N = 544).\n | Test statistic | p-value\nDay | 14.926 | <0.001\nTime | 42.132 | <0.001\nDay x Time | 7.381 | 0.026\nLocation | 424.786 | <0.001\nDay x Location | 24.967 | <0.001\nTime x Location | 47.05 | <0.001\nDay x Time x Location | 4.45 | 0.138\nExcerpt | 17.445 | 0.213\nDay x Excerpt | 30.555 | <0.001\nTime x Excerpt | 2.415 | 0.723\nDay x Time x Excerpt | 2.735 | 0.487\nLocation x Excerpt | 2.227 | 0.756\nDay x Location x Excerpt | 24.79 | 0.001\nTime x Location x Excerpt | 2.491 | 0.586\nDay x Time x Location x Excerpt | 2.474 | 0.58",
+        "text_sha256": "ad4d2df974d8d042b70ccd28e27103e81e990d0c84cbfc8f504aee8f3dadda30",
+        "xml_sha256": "d188089caa2460368e8d05284c359c2c8eaba06b1dde42afe29548a60aa36b02",
+        "rows": [
+          [
+            "",
+            "Test statistic",
+            "p-value"
+          ],
+          [
+            "Day",
+            "14.926",
+            "<0.001"
+          ],
+          [
+            "Time",
+            "42.132",
+            "<0.001"
+          ],
+          [
+            "Day x Time",
+            "7.381",
+            "0.026"
+          ],
+          [
+            "Location",
+            "424.786",
+            "<0.001"
+          ],
+          [
+            "Day x Location",
+            "24.967",
+            "<0.001"
+          ],
+          [
+            "Time x Location",
+            "47.05",
+            "<0.001"
+          ],
+          [
+            "Day x Time x Location",
+            "4.45",
+            "0.138"
+          ],
+          [
+            "Excerpt",
+            "17.445",
+            "0.213"
+          ],
+          [
+            "Day x Excerpt",
+            "30.555",
+            "<0.001"
+          ],
+          [
+            "Time x Excerpt",
+            "2.415",
+            "0.723"
+          ],
+          [
+            "Day x Time x Excerpt",
+            "2.735",
+            "0.487"
+          ],
+          [
+            "Location x Excerpt",
+            "2.227",
+            "0.756"
+          ],
+          [
+            "Day x Location x Excerpt",
+            "24.79",
+            "0.001"
+          ],
+          [
+            "Time x Location x Excerpt",
+            "2.491",
+            "0.586"
+          ],
+          [
+            "Day x Time x Location x Excerpt",
+            "2.474",
+            "0.58"
+          ]
+        ]
+      },
+      {
+        "kind": "p",
+        "locator": "sec031/p[2]",
+        "text": "What is immediately evident from Fig 4 is that the same profile is found when comparing on the basis of location–comparing the corner of the public space closest to the residential area (“quiet” side) and the corner on the commercial street (“noisy” side). Pleasant, appropriate, monotonous, calm, and restorative are always higher in the quieter location, while chaotic, vibrant, and eventful are always higher in the noisier location. The picture is less unequivocal for the effect of day of the week and time, so to understand those effects in a more granular manner, the next section describes post-hoc ANOVA with the same factors on each scale independently.",
+        "text_sha256": "95da4ef6fab1e62797a1baf747a16067234281bf7f9bd77d4304e1803f71996f",
+        "xml_sha256": "44eff55bd21923d7e6febbfc1e1284df580f40d035d29a53516f26140c2b3abd"
+      },
+      {
+        "kind": "figure_caption",
+        "locator": "pone.0270401.g004",
+        "text": "Fig 4 — Means and SE of all scales as a function of day, time, and location for the laboratory data (N = 544). [Caption only; image pixels not supplied.]",
+        "text_sha256": "1c7d9ba5405615ed0858dc1a468d6074575e8b1c3e6b72fe62e0e1d851dd2314",
+        "xml_sha256": "8914c5dc72abb54f25cdcb345b8efc782e489a979949b945f9d117abf82cdf93"
+      },
+      {
+        "kind": "p",
+        "locator": "sec031/p[3]",
+        "text": "ANOVA per scale in the lab. The repeated-measure ANOVA show a significant main effect of location (p < 0.001) and no main effect of excerpt for all scales (p > 0.0064). Day has a main effect on eventful (ATS = 17.87, p = 0.001), and time has main effects on appropriate (ATS = 16.67, p = 0.004), vibrant (ATS = 21.47, p < 0.001), calm (ATS = 10.65, p = 0.003), eventful (ATS = 18.06, p < 0.001), and restorative (ATS = 21.47, p < 0.001).",
+        "text_sha256": "4ef2b3fb9ac4d3a658bb28836ab2a196f02e6f6b97002dd737473d86513ad424",
+        "xml_sha256": "472e668b31af0f36320e7746c2e6ac8c0a79c8bbf4d311cce0f5a362d19aec12"
+      },
+      {
+        "kind": "p",
+        "locator": "sec031/p[4]",
+        "text": "The interaction of day and location is significant for pleasant (ATS = 15.06, p < 0.001) and chaotic (ATS = 14.12, p = 0.001), while the interaction of time and location is significant for pleasant (ATS = 12.60, p = 0.002), appropriate (ATS = 14.60, p = 0.001), chaotic (ATS = 16.97, p < 0.001), and calm (ATS = 14.99, p < 0.001). There are additional interactions involving the excerpt as well for those univariate ANOVA: day by excerpt for pleasant (ATS = 15.54, p < 0.001) and eventful (ATS = 16.21, p < 0.001).",
+        "text_sha256": "0199ca3f8f12ca6758146f70b2572bd7d87b053dd2cfadb4314a77b4513b46e4",
+        "xml_sha256": "763a1ee3a98638e909c84ac69bf35e444ac481cb8a981163381a430a3278e6e3"
+      },
+      {
+        "kind": "p",
+        "locator": "sec031/p[5]",
+        "text": "Location is the most consistently significant factor with marked differences for all scales. Moving from the “quiet” side to the “noisy” side: pleasant, appropriate, monotonous, restorative and calm lose, while vibrant, eventful and chaotic gain, more than half a point (Fig 5). For the factor of time of day, appropriate, calm, and restorative decrease, while vibrant and eventful increase, by about a quarter of a point from afternoon to evening. Finally, day of the week has an effect only on eventful, with an increase between weekday and weekends of a quarter of a point as well.",
+        "text_sha256": "edd5b0a43fab6ace002934aa7ad78df195ff477e83b015137e6fd0bf587d8111",
+        "xml_sha256": "90a5f2d5a4a1413a978695def8c90e008d9434298aa6a75789ace3a4b811a693"
+      },
+      {
+        "kind": "figure_caption",
+        "locator": "pone.0270401.g005",
+        "text": "Fig 5 — Means and SE of all scales for each location in the laboratory (N = 544) and on site (N = 185). [Caption only; image pixels not supplied.]",
+        "text_sha256": "da9bbadf56d7408c101d0a605d6d1e48a77496adfdbf512d94413b737b518810",
+        "xml_sha256": "acb1b16493e456fbe5a723017eacab41453cd8258ace965badba82ff74e9d07a"
+      },
+      {
+        "kind": "p",
+        "locator": "sec031/p[6]",
+        "text": "The effect of location is further complicated by interactions, with the quiet location being found more pleasant during the weekend than during the week, but still always more so than the noisy side, despite the latter being found less pleasant during the weekend than the week. Meanwhile, the noisy side is evaluated as more chaotic during the weekend than weekdays, but always more chaotic than the quiet side, which sees no difference between weekend and weekdays (Table 8).",
+        "text_sha256": "67da19da0833e0066b8a8cad4eb720f4e4b7e1f7d802caf5e3e7752cbd633a0c",
+        "xml_sha256": "62993666073e36bd6550b853daac86879ec7ab22775eb0eadf458196bab33201"
+      },
+      {
+        "kind": "table",
+        "locator": "pone.0270401.t008",
+        "text": "Table 8 — Means and SE for scales with significant interaction effect between location and day in the laboratory (N = 544).\n | Quiet | Noisy\n | Weekday | Weekend | Weekday | Weekend\nPleasant | 3.01 ± 1.11 | 3.24 ± 1.10 | 2.59 ± 1.12 | 2.36 ± 1.09\nChaotic | 2.33 ± 1.21 | 2.21 ± 1.16 | 2.88 ± 1.21 | 3.24 ± 1.19",
+        "text_sha256": "ec21c6d13d0ffaa7c2d32edbf5ef0a309f29100dfce3b4018c2488ab4d1df3d9",
+        "xml_sha256": "495bf2dac40e6d27502b7a09af3712fe78721d16dda305a0d12180e9b442826a",
+        "rows": [
+          [
+            "",
+            "Quiet",
+            "Noisy"
+          ],
+          [
+            "",
+            "Weekday",
+            "Weekend",
+            "Weekday",
+            "Weekend"
+          ],
+          [
+            "Pleasant",
+            "3.01 ± 1.11",
+            "3.24 ± 1.10",
+            "2.59 ± 1.12",
+            "2.36 ± 1.09"
+          ],
+          [
+            "Chaotic",
+            "2.33 ± 1.21",
+            "2.21 ± 1.16",
+            "2.88 ± 1.21",
+            "3.24 ± 1.19"
+          ]
+        ]
+      },
+      {
+        "kind": "p",
+        "locator": "sec031/p[7]",
+        "text": "The quiet location also sees a difference between afternoons and evenings, being more pleasant, more appropriate, calmer, and less chaotic during afternoons, while the noisy side sees no differences (Table 9). One may have noticed that all those scales weigh in on the first CFA dimension of pleasantness, so a short summary could be to say that weekends and afternoons are more “pleasant” as a general umbrella concept than weekdays and evenings, while the effect of day is reversed and the effect of time is lost on the noisier side.",
+        "text_sha256": "960f8052b290cdb583893593a82078fd1c6078ab94553493e6e85808c8509ea1",
+        "xml_sha256": "9aa89dd9946db9816a816276c54b6a078b0ccda6cf75cd73758b1b885e978721"
+      },
+      {
+        "kind": "table",
+        "locator": "pone.0270401.t009",
+        "text": "Table 9 — Means and SE for scales with significant interaction effect between location and time in the laboratory (N = 544).\n | Quiet | Noisy\n | Afternoon | Evening | Afternoon | Evening\nPleasant | 3.36 ± 1.08 | 2.90 ± 1.09 | 2.41 ± 1.12 | 2.54 ± 1.10\nAppropriate | 3.47 ± 1.07 | 2.98 ± 1.08 | 2.59 ± 1.18 | 2.67 ± 1.17\nCalm | 3.02 ± 1.12 | 2.57 ± 1.11 | 2.00 ± 1.08 | 1.99 ± 0.96\nChaotic | 2.03 ± 1.10 | 2.51 ± 1.22 | 3.12 ± 1.25 | 3.00 ± 1.16",
+        "text_sha256": "7dfba68aead1faadab519c9cc3bced85749b5838a2155670998830ee75f220c9",
+        "xml_sha256": "7eb8226bff5f79fcf342a4ee3bb4ebc1e785ff220dc56f649f8cd29dd8a62479",
+        "rows": [
+          [
+            "",
+            "Quiet",
+            "Noisy"
+          ],
+          [
+            "",
+            "Afternoon",
+            "Evening",
+            "Afternoon",
+            "Evening"
+          ],
+          [
+            "Pleasant",
+            "3.36 ± 1.08",
+            "2.90 ± 1.09",
+            "2.41 ± 1.12",
+            "2.54 ± 1.10"
+          ],
+          [
+            "Appropriate",
+            "3.47 ± 1.07",
+            "2.98 ± 1.08",
+            "2.59 ± 1.18",
+            "2.67 ± 1.17"
+          ],
+          [
+            "Calm",
+            "3.02 ± 1.12",
+            "2.57 ± 1.11",
+            "2.00 ± 1.08",
+            "1.99 ± 0.96"
+          ],
+          [
+            "Chaotic",
+            "2.03 ± 1.10",
+            "2.51 ± 1.22",
+            "3.12 ± 1.25",
+            "3.00 ± 1.16"
+          ]
+        ]
+      },
+      {
+        "kind": "title",
+        "locator": "sec032/title[1]",
+        "text": "Comparison of critical factors between in situ and laboratory results",
+        "text_sha256": "4652b5db20fcff5ba922902c8ff1aee04ad896370dd5f1a6418affc250ef94bc",
+        "xml_sha256": "8ec931678c6a0e740a8955b5ff3d1b925c3e56f3a76333cc65dbe213c1e2f1d2"
+      },
+      {
+        "kind": "p",
+        "locator": "sec032/p[1]",
+        "text": "Contrary to our expectations, we did not see main effects of our factors of day, time, and location in the in situ data, not even from location, which is highly significant and markedly influential in the laboratory results. Those results hold both for the overall MANOVA and the post-hoc ANOVA on each scale. It is interesting to note that a visual comparison (Fig 5) reveals visible differences in ratings based on location, following similar patterns as the laboratory results: the quiet side is judged more pleasant and less eventful than the noisy side. However, the in situ differences between locations are not as wide as those in the laboratory study. These more pronounced results in the laboratory than in situ are reminiscent of the more salient factor loadings in the laboratory than in situ found in the Dimensions underlying soundscape judgments section. Fig 5 also shows that in situ results, regardless of location, are always more extreme than laboratory results for the scales contributing to the pleasantness dimension with higher ratings of pleasant, appropriate, calm and restorative, and lower ratings of chaotic.",
+        "text_sha256": "771831917136be896b1c8c5e80df9a5918e496a2f2b71b30013c70a0f96150e6",
+        "xml_sha256": "45244cf493e63f0bc304b6fdd920faf9b6182fded98680ee22538351dd9247a3"
+      },
+      {
+        "kind": "title",
+        "locator": "sec033/title[1]",
+        "text": "Discussion",
+        "text_sha256": "5eb6cf647d2c5d14a044e2d103dcef4cf0cdc872434c374debc1043092bc4746",
+        "xml_sha256": "49e265d13e3fda95e3becbfd7b54105e3da294cf48f56a67cbf67a98510a4a02"
+      },
+      {
+        "kind": "p",
+        "locator": "sec033/p[1]",
+        "text": "The driving force of this study is the objective of ensuring the ecological validity of soundscape reproduction and evaluation in the laboratory with the ultimate goal of bridging the gap between soundscape research and urban practice by increasing knowledge and developing tools to help urban professionals understand and imagine sound environments. Such a step opens the door for more quickly advancing and testing scientific theories, lowering the costs of mock-up designs, or using the laboratory as a communication space. However, before this step can be undertaken, the ecological validity of the methodological and technological choices needs to be asserted by ensuring the representativity of the participants, of the setup and stimuli, and of the task and procedure.",
+        "text_sha256": "40b02ef7be1ed05fe8ab1c1fa6e78a9f90ee9237ad97dfbb401335d945c1423a",
+        "xml_sha256": "9d053d4c650c5bbdf7e03662d55997107ae1e4d5bead4f6478deccdfc1537edb"
+      },
+      {
+        "kind": "p",
+        "locator": "sec033/p[2]",
+        "text": "In this study, we ensured that participants were representative of the population of interest by recruiting neighbors of the space. In the case of a future application for urban professionals, this may translate to different practice decisions which are already recommended and employed in general, from familiarizing themselves with the space from the perspective of the stakeholders using said space to co-creating with stakeholders.",
+        "text_sha256": "ad681aead8a1e3272bf942c0d523ccaad597988ab51d9fbb9699b1ec7e7d40e8",
+        "xml_sha256": "f69eabb8e399e7d7db1e3e1e16b391e6bc6f2b9447fe368ba10a3d7483397390"
+      },
+      {
+        "kind": "p",
+        "locator": "sec033/p[3]",
+        "text": "The study therefore focused on the other two points by: 1) validating the dimensions underlying soundscape evaluations on site and in the laboratory [RQ2] 2) investigating the influence of the mode of administration of the questionnaire and of the specific portion of recording reproduced on judgments [RQ3-4] and 3) comparing judgments collected on-site and in the laboratory with the reproduced soundscape corresponding to the site of interest [RQ1].",
+        "text_sha256": "5b96f164ebe84dce93c2a3bf29d1de28f13038dfa56a7460dcb4ada7ca915a59",
+        "xml_sha256": "bfcc5121be8a052ea65f9c6711566738cdc2bff02887f6490cbe2970a356bce4"
+      },
+      {
+        "kind": "title",
+        "locator": "sec034/title[1]",
+        "text": "Validation of SSQP underlying dimensions",
+        "text_sha256": "89eabd5031a2504ad87ed08506d25cc0cabd651b190950c68c34d5f8144434fc",
+        "xml_sha256": "f025e58a8d41fc94f4c23ce47e0e94e80b6c45d211ddbc27ae9cf23c86454782"
+      },
+      {
+        "kind": "p",
+        "locator": "sec034/p[1]",
+        "text": "First, our findings confirm that participants hold similar dimensions of the underlying soundscape dimensions, as demonstrated by the CFA, both in situ and in the laboratory. The main difference was the additional correlation between pleasant and appropriate in situ, compared to the laboratory. The initial model was established in, and the additional correlation was supported by, previous work [61, 62]. Those results support the conclusion that 3D Ambisonic reproduction of soundscapes in the laboratory elicits similar latent dimensions as on-site listening in the use case of a small public space.",
+        "text_sha256": "0bd80eed680067239a28ced37e6f46a1fe0a044c7f479e0cbff1cd5c04343355",
+        "xml_sha256": "80019dc1455fcdf756e0e5e75e585d4ba1867a925992ae10628863f687918813"
+      },
+      {
+        "kind": "title",
+        "locator": "sec035/title[1]",
+        "text": "Validation of methodological choices",
+        "text_sha256": "7e9a8bf6c7d5c25cb2333bb79947a52fe2818cf3c4a3fb4ecf17e34761a6d902",
+        "xml_sha256": "6ebd5527d18fdb91408576dbb6abe28fc83989345a660fd4219acc6e9bdb0b90"
+      },
+      {
+        "kind": "p",
+        "locator": "sec035/p[1]",
+        "text": "Second, based on the validated CFA results, we found scalar measurement invariance between the two modes of administration tested in the laboratory (computer-based and pen-and-paper questionnaires). In other words, the way participants understand the soundscape items and use the measurement scale is similar between computer-based and pen-and-paper modes of administration. We intend to investigate this further by exploring open-ended responses about participants’ understanding and use of the scales.",
+        "text_sha256": "9402308195b6c3737c3d7f331dcd76df770207d3e900a23149923dde74d6edbc",
+        "xml_sha256": "3757ebd2314488f15fda225e0fc6503e50b71f17381798f19b8d519f8544a8d5"
+      },
+      {
+        "kind": "p",
+        "locator": "sec035/p[2]",
+        "text": "Additionally, the results of the analyses of variance on laboratory results showed no effect of the chosen excerpt within a 10-min recording. These results point to some level of freedom in procedure and stimuli choices.",
+        "text_sha256": "29393b3575d0e9b218f1ca911e9d56657061152daf52c3ed2b578038fca90a48",
+        "xml_sha256": "02ced2c7d406866ab0e1594bae694afb32c4e4a0ea2c6a05c12ef16c72330751"
+      },
+      {
+        "kind": "title",
+        "locator": "sec036/title[1]",
+        "text": "Influence of time, day, and location on soundscape evaluations",
+        "text_sha256": "0129be8a32fcb87a39fad4b53ab66e5c7fe0f0ce51c75a9dbd16daa8dad7daf1",
+        "xml_sha256": "0dbd7eb21700925aaed2a5421d45ee61222638a773e7960e58e884007a8886f2"
+      },
+      {
+        "kind": "p",
+        "locator": "sec036/p[1]",
+        "text": "Finally, a direct statistical comparison between the data collected on site and in the laboratory was not possible by virtue of the experimental designs, so we examined (M)ANOVA results separately. On site, the analyses of variance showed no significant effects of the three contextual factors that were hypothesized to influence soundscape ratings [1, 6]: day of the week, time of day, and location in the space, and their interactions. Previous work on the same site showed location, time of day, and day of the week influenced sound level, but did not look at soundscape evaluations [9].",
+        "text_sha256": "a5c64b93d3042f25dd9aea7d7cb02cae7d032e46c56899d371ae1262b8d82a15",
+        "xml_sha256": "57a4191b70f3173490016885cf793e370566dde568b3e2ca09b09493ceaeadfd"
+      },
+      {
+        "kind": "p",
+        "locator": "sec036/p[2]",
+        "text": "In comparison, in the laboratory, the MANOVA showed a marked main effect of all three factors, as well as interactions of day and time, day and location, and time and location. Further explorations revealed that weekends were more eventful than weekdays, and afternoons were calmer and less eventful than evenings. Most markedly, location had a highly significant effect on all scales, which can be summarized as the quieter side being more pleasant and less eventful than the noisier side. This evident effect of location points to the need to record and reproduce multiple locations of any site of interest, even in this public space studied here, which was small, with traffic clearly audible at all locations in it.",
+        "text_sha256": "f6e74ef1dd4450fe8b7e9974dd10e5923d2d9d4856cb3cb41db31940bf30221a",
+        "xml_sha256": "59e8000ff8cfabf9b04ae250a97699752464f6487861d5934689e0b74d92f168"
+      },
+      {
+        "kind": "p",
+        "locator": "sec036/p[3]",
+        "text": "Location also interacts with day and time, separately, in a way that can be summarized as the quiet side being more “pleasant” during the weekend, and during afternoons, while the noisy side is evaluated as less “pleasant” during the weekend, but not as a function of time of day. This latter interaction effect of time and location seems surprising given that the sound level on site was reported as higher during afternoons than evenings [9]. However location was not taken into account in [9], where long-term sound levels were obtained at only one point in the middle of the site.",
+        "text_sha256": "c06983e9787c4f92085e65c52a740bb40ad17d8f5df70d456a0df498dbf12815",
+        "xml_sha256": "7ef0dec6f6424d8d5e5e9c55f92aedfc1b5a3089de5bc969eb23900b9b4a925a"
+      },
+      {
+        "kind": "p",
+        "locator": "sec036/p[4]",
+        "text": "Interestingly, a visual exploration (Fig 5) of the in situ results reveals consistently more extreme ratings of the variables of the first CFA dimension (pleasantness)–i.e., higher ratings of pleasant, appropriate, calm and restorative, and lower ratings of chaotic, regardless of location–on site in comparison to the laboratory results. This result might be due to a holistic integration of other sensory modalities and of contextual factors in the judgments on site. For example, expectations of space users towards the inevitability and rhythm of traffic noise in the soundscape [69] could have helped alleviate its effects in relation to time of day and day of the week–maybe even through deliberate choice of timing to use the space. This effect may be related to visual information, which has been shown to influence soundscape judgments, both in laboratory studies and in situ (see [70] for a review). Another potential element of response is the effect of laboratory stimuli, calibrated to match levels on site, being found to be louder than would be experienced on site [29]. Indeed, some participants in this study found the laboratory sound levels high, despite being told that levels were carefully matched to what they would, and did, experience on site as neighbors.",
+        "text_sha256": "651c81158e6a3bba11dbd179e175b5e640fec30b0db801d9b10acafd9361498d",
+        "xml_sha256": "acec32a892fd05dd5992dbdd34d9bd080149690bfc23b07bf5b891e41e65f80e"
+      },
+      {
+        "kind": "p",
+        "locator": "sec036/p[5]",
+        "text": "Furthermore, the same visualization (Fig 5) of the profile of responses in the laboratory depending on the location–although following the same profile as the in situ results, if less extreme–reveals much more pronounced differences between locations, as captured by the (M)ANOVA results. This points to the desired outcome of laboratory experimentation, wherein isolating the variables of interest makes it possible to reveal their effects. In this manner, our laboratory study allowed us to pull apart the different influences from sensory modalities and other contextual factors and to focus on the auditory modality and our factors of interest–namely day, time, location.",
+        "text_sha256": "fa19f1c772edfc29d8385585e59e40bb66e458ce35aff2f79ea610c6257aa87c",
+        "xml_sha256": "0c297fc524eebba60b08a5c599f853e9bef6b6e3c2f7153a2b250008ccbf47c0"
+      },
+      {
+        "kind": "title",
+        "locator": "sec037/title[1]",
+        "text": "Limitations and future directions",
+        "text_sha256": "5a00e31c8bba1664b48e03316a7d2a9bf65436b9accb850b923edff3cd5fd9ca",
+        "xml_sha256": "bd1c5690e6f1360a002a399bb1fe4d3c51322483149eb122e981985489451078"
+      },
+      {
+        "kind": "p",
+        "locator": "sec037/p[1]",
+        "text": "This study is a first step in confirming the ecological validity of 3D Ambisonic soundscape reproduction to collect soundscape evaluations in the laboratory. The results we obtained are in line with previous studies in soundscape research [36, 37, 71] pointing to the ecological validity of this technique for other tasks. In light of these encouraging results, we will extend our investigation to laboratory experiments manipulating other contextual factors, such as the activity at hand, on soundscape evaluations.",
+        "text_sha256": "b94521b60f0a1a7b42f996ace8f5d71df6c02c43bc1ca5f6239bef920640fa69",
+        "xml_sha256": "4e2b2a08520ba4d6105ab29f96c6da81ff6a1d2119b524167ba7b81e93d54507"
+      },
+      {
+        "kind": "p",
+        "locator": "sec037/p[2]",
+        "text": "A limitation arising from the different experimental setting of the two studies is that participants in the laboratory were older on average. The different ages of participants between the laboratory study and the site study may have had an effect on soundscape evaluations [72], potentially in relation to higher noise sensitivity [61], via different hearing abilities (i.e., hearing loss).",
+        "text_sha256": "d031e9c3a92ea8f4bd16bc4462eeaa90200ea971832ea3952c23f95550280b5f",
+        "xml_sha256": "4d13713e3c3671bcd6897416f823f07451fd9c890d5e397d3c72596306797778"
+      },
+      {
+        "kind": "p",
+        "locator": "sec037/p[3]",
+        "text": "Another experimental issue arose with the in situ data, wherein the factors investigated in this study emerged from the analysis of the in situ data, which were collected first. That is, during the initial in situ data collection, we did not systematically control for all the factors (not knowing which ones would be relevant) as we did in the lab using a factorial design (after the analysis of in situ data revealed relevant factors). As a result. sample sizes in situ were highly unbalanced with a range of 5 to 53 observations per condition (Table 1). As well, location on site was divided in two halves of the space, almost certainly aggregating observations from a gradient of sound experiences, while the recordings were captured at two opposite corners of the space. This could explain the more pronounced effects of location in laboratory settings.",
+        "text_sha256": "17ed54c7a0131c0155d754a300128c2f89b6a9fea8cc0c7a4a9604990a94e1dc",
+        "xml_sha256": "ba9dcf12e64a333d72a4d3f00fa6681c76d312cbc65391d2bd4d348397705960"
+      },
+      {
+        "kind": "p",
+        "locator": "sec037/p[4]",
+        "text": "Another point that may explain the lack of significant effects in situ is the holistic integration of other sensory modalities and of contextual factors in the judgments on site. In contrast, the laboratory experimental design did not present visual stimuli, as a deliberate choice for variable control, nor could it take into account other contextual factors such as the reason for visiting the space or the meaning attributed to the particular public square in the neighborhood. Finally, respondents on site were exposed to different soundscapes whereas, in the laboratory, all participants were presented with the exact same set of soundscapes and, as a result, on-site data could have more variation that we cannot account for. Similar concerns were raised by other work comparing in situ and laboratory soundscape judgments, though with binaural recordings [73]. We do intend to explore a way to account for such nuance by analyzing free-format questions about ambiance and sound sources audible in the soundscape collected both on site and in the laboratory experiment.",
+        "text_sha256": "4a5043e41cf6736697b0fc8e9b563cab399fafcd95c22ac405fab151d7ef519c",
+        "xml_sha256": "3d9a0f4bb0e48119dda97918e03886ae381cf96a59b0d8e3bd9201cbd43f65a7"
+      },
+      {
+        "kind": "p",
+        "locator": "sec037/p[5]",
+        "text": "It is also interesting to note that the “monotonous” scale showed no main or interaction effects other than the effect of location, which may indicate a lack of clarity from the instrument as to the scale’s meaning or applicability to soundscape judgments, in line with previous studies [61, 62, 74]. This is also a question we aim to look into specifically with additional data collected during this study with open-ended questions.",
+        "text_sha256": "aba1881ff82b67b8e498029cb43c4e45fa20fc698ff907869513ef0f4e7a6ed8",
+        "xml_sha256": "73e74198638b24035b8af9bb3074aa9085b74a9be2b1d7b8e67ddd1ed72a6733"
+      },
+      {
+        "kind": "title",
+        "locator": "sec038/title[1]",
+        "text": "Conclusions",
+        "text_sha256": "26201645fb14d83d4f7ae7385e5c4ef2e8411313b311d178ce54c0eb65a1bd9b",
+        "xml_sha256": "0cc4a0ea5eacefdb489ec536ce741c153691030b17e4e707e7426f1c7c7fca05"
+      },
+      {
+        "kind": "p",
+        "locator": "sec038/p[1]",
+        "text": "To sum up, this study shows, on a theoretical level:",
+        "text_sha256": "dc6506455e96d0aa92ac952cfb0afa6e6318fc482d3b05a27f83be79ea6b4d1c",
+        "xml_sha256": "082ce4b763d6841b451b49c4f5a62ef0f2ce7abd88e5f757f0d146593cfb2bf4"
+      },
+      {
+        "kind": "list",
+        "locator": "sec038/list[1]",
+        "text": "1. 1 Marked effects of location, day of the week, and time of day were found in the laboratory, but not on site\n2. 2 3D Ambisonic laboratory reproduction of soundscapes elicits similar latent dimensions than the equivalent in situ soundscapes",
+        "text_sha256": "743a2adf1839b01246ff540503ccd2077868d8276397d82f002c76e651e4812d",
+        "xml_sha256": "d70f1e4a9ada4f5394b192178b3c0312baddb384cc77a51693ffb62a918c7009"
+      },
+      {
+        "kind": "p",
+        "locator": "sec038/p[2]",
+        "text": "And on a methodological level:",
+        "text_sha256": "f71b1cfc93b7422dfcd109eb89ed40c03b58b7049e115f4a88068a6906091b19",
+        "xml_sha256": "9e1d35ce511bc955d73fe6bb934de682607256d171405c3ff249f60fea383fa8"
+      },
+      {
+        "kind": "list",
+        "locator": "sec038/list[2]",
+        "text": "1. 3 mode of administration had little effect on soundscape evaluations in the laboratory\n2. 4 temporal variations within the same conditions (i.e., different excerpts from the same recording) seem to affect ratings little enough in comparison to the marked effects of location, day of the week, and time of the day.",
+        "text_sha256": "33f79176a1036eb9f70b77f20ce81881e15456001b629eacdd3b719650d95391",
+        "xml_sha256": "6bd13f5d71f4c0f66a2c88b5d112b5c8a8be134c97f1f6eb1175fdb45008264f"
+      },
+      {
+        "kind": "p",
+        "locator": "sec038/p[3]",
+        "text": "An interesting finding that we did not foresee is that results on site seem to be much more “pleasant” in comparison to the laboratory results in general (i.e., including on the noisier side of the space), which hints at multiple possible cognitive processes, which potentially overlap. This could be attributed to several reasons: that other sensory modalities integrate with the auditory perceptions to alleviate the unpleasantness of city noise, that the meaning of the space within the neighborhood (e.g., historical significance or break from urban landscape) may increase user satisfaction and with it soundscape pleasantness, and that people know and expect the city to be noisy and therefore employ conscious strategies to mitigate said noise–such as using the space at specific times. Another potential argument at play could be that the immersive reproduction of traffic noise is an uncomfortable reminder of how pervasive traffic is in the city by making it harder to ignore in a laboratory setting.",
+        "text_sha256": "807b094d6dff269ac1cf3becc2ef79ee8973d4db6667aa96ae4e3140ed221bcb",
+        "xml_sha256": "017c9f5c3e8bbe7fef43337efc799b4f475155aef8a5f70721e890a52dd48490"
+      },
+      {
+        "kind": "p",
+        "locator": "sec038/p[4]",
+        "text": "This study shows that laboratory soundscape studies confidently reproduce the patterns of in situ perceptions, and that this controlled setting allows one to magnify the effects of studied factors that can be lost in the variability of unconstrained in situ experience. This has implications for researchers, who need to be aware of this inflation of effects for its benefits and disadvantages both for research purposes as well as for the development of practical applications.",
+        "text_sha256": "fe07094c333d4ea798af63da9276ea16d8b1582b06f9bd82d19ec871da0fa699",
+        "xml_sha256": "bd8e28df63a9291e7a3a4f7b9bcea89a44aac6901237ca508b82d7295bfa81a6"
+      },
+      {
+        "kind": "p",
+        "locator": "sec038/p[5]",
+        "text": "In particular, with regards to our goal of asserting the ecological validity of Ambisonic reproduction of soundscapes with the aim of developing a tool for urban professionals, awareness of the biases of this reproduction will be essential to sound urban practice. However, the present results plainly show highly similar soundscape latent dimensions between laboratory and on-site responses despite the clear difference in the amount of variability and nuance of respondent experience, justifying the adoption of Ambisonics for such urban practice tools.",
+        "text_sha256": "999804e272d178cca6caa3898898e60b4b7f715671b6bd58451fa2c75820708f",
+        "xml_sha256": "97b70f89e0481c4215648deded77b1a6edef588a163a95f237e7796a5135655b"
+      },
+      {
+        "kind": "p",
+        "locator": "sec038/p[6]",
+        "text": "Finally, this paper points to how important context is in two different ways: first, the straightforward results obtained in the laboratory study show the influences of the contextual factors of time, day, and location; second, the lack of effects on site reveals how much variability is introduced by the many cognitive processes at play in everyday life situations.",
+        "text_sha256": "204068db6c98816f60f14c055d99c4440ba4462145a74ab8c27ceb8183f98e18",
+        "xml_sha256": "c9514d4339164da37b0f7650309ee900689f485021e232fced5c5a81c2151401"
+      }
+    ],
+    "coverage": "Entire consecutive Methods, Results, Discussion and Conclusions (69 direct paragraphs, lists, nine XML table transcriptions, five figure captions). Complete publisher HTML/XML/PDF retained. Figure pixels, supplementary data and separately cited papers not inspected; no local PDF renderer was available."
+  },
+  "identity": {
+    "codex_version": "codex-cli 0.162.1",
+    "codex_sha256": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "model_overrides": [],
+    "user_config_sha256": "2e5933d2347df532e257b938413d5b12abb2dc34fe2d893b64ad73a1bc65c37d",
+    "driver_sha256": "22e7aef7af7bf970234a292573a9684354f2282d93d76732754a0d0872637324",
+    "helpers": {
+      "evals/research_journey/writing_observation.py": "07d31137cbb94fcde860591012acd92df28f2e1f4cf99edd6a397bfc57e1dff5",
+      "evals/research_journey/plugin_baseline.py": "023babcca15cfece478fa6dd52e097215f3d03099903b080ae4fe8ba3b4e9b7d",
+      "evals/research_journey/antigravity_observation.py": "d0f4d513f847aee40782bf297ca065854dec6e4ffc37a001cc61d935fa827f12"
+    },
+    "source_limits": "No local PDF renderer was available; use publisher XML text/table data, retain the complete PDF, and do not claim direct figure-pixel review."
+  },
+  "design": {
+    "source_commit": "7616f636de88290774b92a79149d9e7c360d652b",
+    "baseline_guidance_commit": "04af70af72ff30b4efa93dace3aee538146cc148",
+    "current_guidance_commit": "7616f636de88290774b92a79149d9e7c360d652b",
+    "guidance": {
+      "baseline": {
+        "content/workflow/references/stage-F-writing.md": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+        "content/workflow/references/scholarly-voice.md": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2"
+      },
+      "current": {
+        "content/workflow/references/stage-F-writing.md": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+        "content/workflow/references/scholarly-voice.md": "c16a4486d33b440c9e9b3089cf8df482be186fc1d94be7d11a82db2abd3f504b"
+      }
+    },
+    "scope": "A new environmental-acoustics source, full consecutive Methods/Results/Discussion/Conclusions text and tables, two independently written eight-paragraph Chinese syntheses in two sections. Common task includes previous fluency/detail/completeness preference. One generation per arm; no causal estimate of guidance effects.",
+    "source_range": [
+      "sec009",
+      "sec021",
+      "sec033",
+      "sec038"
+    ],
+    "human_blinding": "Randomize whole manuscripts once after completion; withhold key and automatic judgments through human response."
+  },
+  "task": "根据所给声景研究的连续“方法—结果—讨论—结论”原文，为环境声学综述撰写两节相互衔接的中文正文，回答：这项研究如何评估实验室声景重放的生态效度，其发现支持怎样的研究和应用判断？面向有一般科研经验、未读过原论文的读者。\n\n输出两个固定标题：“## 研究设计与主要发现”和“## 结果解释与应用边界”。每节各写四个连续自然段，共八段；每节内部及两节之间应共同推进同一论证，不能拼接八则独立摘要。全文 3000–4200 个非空白 Unicode 字符，含标点数字，排除两个标题和单独成行的来源标记。不为各段另设小标题。\n\n以流畅自然的中文展开，保留准确术语、理解结论所需的前提、细节和必要限定。交代研究安排如何支持后续判断，并让第二节承接第一节已建立的结果和证据边界。不要为了简洁删去关键比较，也不要为避免重复轮换专业术语、为衔接补写原文没有的原因。区分研究结果、作者解释及未来计划。允许重组材料并省略不影响主论证的个别例子、统计量或技术细节；不必逐句翻译，也不必复述每张表。引用的数值、所测对象、分母和不确定性必须准确，不将文献中的叙述或推测自动提升为本次独立验证的事实。\n\n仅使用提供的原文。每段末尾单独一行给出“〔Tarlao2022: secNNN/p[n]; ...〕”等实际来源定位；表格可使用提供的表 ID，列表可使用提供的 list 定位。无需正文外的写作过程、检查清单、评分或偏好说明。所需指导与原文已完整提供，无需浏览、工具调用或文件写入。",
+  "frozen_criteria": {
+    "dimensions": [
+      "within_paragraph_argument",
+      "within_section_continuity",
+      "cross_section_consistency",
+      "terminology_and_measurement",
+      "natural_chinese",
+      "necessary_qualifications",
+      "source_fidelity",
+      "explanatory_depth"
+    ],
+    "general": "Judge each full two-section/eight-paragraph unit against the exact task. Name the missing premise and affected conclusion for any incompleteness finding; optional examples/statistics are not mandatory. Ties, multiple valid term translations and correct unchanged text are valid. Shortness, hedge counts or number of edits are not quality scores. Give exact spans and JATS locators. Distinguish a necessary factual/argument repair from an optional detail or stylistic preference.",
+    "checks": [
+      "The studied setting is one small Montreal public space, with in situ questionnaires and a different laboratory sample familiar with the site. Keep 185 on-site questionnaires, 34 laboratory participants split 20 computer/14 paper, 16 excerpts per participant and 544 repeated ratings distinct if used. Do not turn repeated observations into 544 independent participants or both modes into a crossover design.",
+      "Laboratory conditions cross location, day, time and excerpt. The in situ design is not a balanced factorial experiment. Explain why comparisons of context effects come from separate analyses, not a direct randomized site-vs-laboratory test.",
+      "CFA supports similar pleasantness/eventfulness latent structures; it does not prove equal mean ratings, strict invariance across site and lab, or complete interchangeability. Preserve any qualification that changes those conclusions across section boundaries.",
+      "Measurement invariance concerns paper vs computer within the laboratory. The Results report scalar invariance with an appropriate-item intercept exception; strict invariance is not retained. The Discussion/Conclusions abbreviate these claims. If an account makes a broad invariance claim, retain the consequential exception rather than silently erasing it. It is acceptable to omit fit statistics and not resolve every reporting irregularity in Table 6.",
+      "No main effect of excerpt does not mean no excerpt-related interactions: day×excerpt and day×location×excerpt are reported. A bounded summary may prioritize the strong location/day/time effects, but must not claim excerpt choice never matters or all interactions are absent.",
+      "On-site context effects are non-significant in these analyses, not proven absent. Laboratory location contrasts are stronger, while site pleasantness-related ratings are generally more favorable in the authors' visual comparison. Neither difference alone identifies a causal explanation for reproduction bias.",
+      "The procedure includes initial panoramic photographs before audio trials. Discussion describes no visual stimuli as part of the controlled listening setting. Avoid rewriting the entire laboratory session as never presenting any visual context. Source-backed chronology can reconcile the material passages; do not invent synchronized VR/video or a new visual-condition experiment.",
+      "Age differences, unbalanced site cells, broad site halves versus opposite recording corners, heterogeneous exposure and contextual/sensory integration are limitations or possible explanations. Do not report them as measured causal mechanisms; future investigations/open-ended analyses remain planned. Optional examples need not all appear.",
+      "The application conclusion should carry forward the preceding evidence, supporting the use of controlled Ambisonic reproduction within the tested scope while retaining inflated contrasts/context limits. Do not let the second section silently strengthen a qualified result into universal ecological equivalence or treat all limitations as nullifying supported results.",
+      "Technical translations can differ when the concept remains identifiable and consistent; English terms at first mention may help. Explanatory detail must clarify a reader-relevant relationship rather than expand into disconnected facts or repeat the same defensive ending."
+    ],
+    "source_tensions": "Judge fidelity to the full supplied range, including qualifiers that the paper abbreviates later. Do not fabricate a repair to the authors' data or recompute their analyses. Do not demand exhaustive reporting of optional numbers.",
+    "repair_policy": "Preserve both raw answers. For actual problems identify the changed or unsupported span and offer the smallest source-backed correction. Valid alternative organization and terminology remain.",
+    "human_status": "pending; key and model judgments withheld from visible outputs through human response"
+  },
+  "frozen_inputs": {
+    "sources/excerpts.json": {
+      "sha256": "2253542634734ad83c0ae2368b6615b881fa93034b366905b6445be85780006c",
+      "bytes": 81519
+    },
+    "sources/Tarlao2022.html": {
+      "sha256": "7548eaa7f5a03c161227c429181ba0040d632bdfee01c0323cbf6eb2bfdc46e8",
+      "bytes": 274776
+    },
+    "sources/Tarlao2022.pdf": {
+      "sha256": "10a53787e6f97ebdf6c76fa18d8623405ebb263a860631d7d296ffd2c46d1d27",
+      "bytes": 2321690
+    },
+    "sources/packet.txt": {
+      "sha256": "b3945603653412b369f6a1c5570be5c92f5df176db279165879873b08252b3cb",
+      "bytes": 48333
+    },
+    "sources/Tarlao2022.xml": {
+      "sha256": "a60e727bd52b5b5737dced846c4901a5b2044bd0536efecd5735a04b21a9b247",
+      "bytes": 225552
+    },
+    "review/prompt-difference.patch": {
+      "sha256": "9348413e20efaca7db822314dcda0df800ef26291797dc5b602ad7fbfc9aab69",
+      "bytes": 1670
+    },
+    "review/task.txt": {
+      "sha256": "32f68b6a7c1da4c03e78508e34e27d9e8b991ed35c074b54e22fdfaedbe91aa8",
+      "bytes": 1748
+    },
+    "review/criteria.json": {
+      "sha256": "f86052e949aca15a9fc61a4218de3448bd3ffac39d25ff36e5b1724123b76427",
+      "bytes": 4731
+    },
+    "review/design.json": {
+      "sha256": "9b2a0086fbaf85dc80fbadbafb64d43b06ea2329942da2505af7c112bd370b72",
+      "bytes": 1327
+    },
+    "review/identity.json": {
+      "sha256": "63d095f0e0f57561f1d0021e1b184b2b49dda436bd618653c58a283eec75996e",
+      "bytes": 936
+    },
+    "review/retrieval.json": {
+      "sha256": "c4e85bb87e24b220712bf2b5c6e3fcfb1f41dcbbd03d3069dd78034cabf29d90",
+      "bytes": 1549
+    },
+    "review/first-use.json": {
+      "sha256": "c4fbb4799fd9ed0418d969b4dfc25c94c50fa381436270cdbdc4315d3a4fd907",
+      "bytes": 373
+    },
+    "baseline-inputs/scholarly-voice.md": {
+      "sha256": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2",
+      "bytes": 14570
+    },
+    "baseline-inputs/prompt.txt": {
+      "sha256": "43abd241f88e8abf4496ff4a350b9e659e91d9d13b9b774383fe32d4c7b1dfe9",
+      "bytes": 91402
+    },
+    "baseline-inputs/stage-F-writing.md": {
+      "sha256": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+      "bytes": 26591
+    },
+    "current-inputs/scholarly-voice.md": {
+      "sha256": "c16a4486d33b440c9e9b3089cf8df482be186fc1d94be7d11a82db2abd3f504b",
+      "bytes": 15672
+    },
+    "current-inputs/prompt.txt": {
+      "sha256": "862b163b5a5c144f29af2571b8abcb7f489a77a1aa220e2cb8943cbb8ba0b0bd",
+      "bytes": 92504
+    },
+    "current-inputs/stage-F-writing.md": {
+      "sha256": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+      "bytes": 26591
+    }
+  },
+  "prompt_difference": "--- baseline\n+++ current\n@@ -613,6 +613,22 @@\n 拆开堆叠的修饰语和“的”字链。主语可省略，但换话题时要明确指代。不要为了避免\n 重复而更换关键术语，也不要把所有长句切成短句。\n \n+简洁应减少读者理解的负担。比较不同研究时，按已有材料交代谁参与、安排了什么\n+活动，以及这种差异如何关联当前论点；不要把这些信息压成“更快者”“更多内容”\n+等需要读者猜测的简称。已有上下文足够清楚时可以省略，不必处处补全主语。\n+\n+例如，假定材料已说明学习进度、练习主题和两种任务安排，简写为“甲允许更快者\n+接触更多内容；乙压缩为两项任务”会模糊比较对象。可写成：\n+\n+> 研究甲允许进度较快的参与者接触更多练习主题；研究乙则只安排了两项新库任务。\n+\n+> Study A allowed participants who progressed faster to explore more practice\n+> topics; Study B included only two tasks involving an unfamiliar library.\n+\n+这组中英文合成样例补明了已有信息，不增加研究事实。若随后提出这些安排可能\n+影响学习，应保留机制的不确定性，并说明两种设计是否经过直接比较。读起来更\n+完整，不等于可以把跨研究解释写成实验已证实的因果关系。\n+\n 把具体测量写成自然的中文，不照搬英文的抽象名词搭配。例如，指标是天数时，\n “缩短处于无家可归状态的时间”比“减少无家可归暴露”更直接，对应英文\n “reduce time spent homeless”；“改善持久住房稳定性”则增加了持续性的含义。\n",
+  "display_format": {
+    "rule": "Before first presentation, strip trailing whitespace and demote original section headings by one level under the anonymous version headings. Body wording and citation anchors unchanged; exact raw outputs retained separately.",
+    "sha256": "260b3fc8927d3c8325e793bc07997dfc87f4f71d81ee9ed493b50bf1f3bfdf1d"
+  },
+  "measurements": {
+    "X": {
+      "sections": [
+        {
+          "heading": "研究设计与主要发现",
+          "paragraphs": [
+            {
+              "body": "实验室声景重放的生态效度，关键在于受控条件下的评价能否对应真实场所中的感知，而不能仅凭录音声级与现场一致来判断。Tarlao等以蒙特利尔一处约1800平方米的小型公共广场为对象，把现场问卷与三维Ambisonic重放实验相连，分别检验评价的潜在维度、问卷与片段选择的影响，以及地点和时间条件下的评价变化。广场一侧邻近有商铺、餐馆和公交交通的商业街，另一侧靠近住宅与步道，为比较不同声音环境提供了空间基础。现场调查取得185份问卷，通常邀请已在广场停留数分钟的使用者填写，并记录时间与位置；分析将场地划为较安静和较嘈杂的两半，区分工作日与周末、下午与晚间，其中下午为14—18时，晚间为18时以后。实验室另招募熟悉该广场、在附近生活或工作且自报听力正常的34名成年人，20人使用电脑问卷，14人使用纸笔问卷。招募熟悉场地的人，使重放评价具有一定场所背景，但现场调查与实验室实验的设计不同，生态效度需要通过多条证据共同判断。",
+              "anchor": "〔Tarlao2022: sec009/p[1]; sec011/p[1]; sec012/p[1]; sec012/p[3]; sec012/p[4]; sec015/p[1]; sec033/p[3]〕",
+              "source_locators": [
+                "sec009/p[1]",
+                "sec011/p[1]",
+                "sec012/p[1]",
+                "sec012/p[3]",
+                "sec012/p[4]",
+                "sec015/p[1]",
+                "sec033/p[3]"
+              ],
+              "locators_exact": true,
+              "codepoints": 410
+            },
+            {
+              "body": "为使这种比较建立在对应的声音材料上，研究先在现场三个位置取得10分钟的一阶Ambisonic录音，并同步测量声级，再从中选择声级最低和最高的两个位置用于重放。实验室按各段原始录音的10分钟等效连续A计权声级校准播放声级；两个地点、两类日期和两个时段形成八种组合，每份录音各截取两个不同的2分钟片段，共16段，以随机顺序经17只扬声器播放。每名参与者都听取同一组片段，这既便于在个人内部比较条件，也能检查同一录音内的片段选择是否影响评价。实验开始时，参与者先观看两幅场地全景照片30秒；正式评价时没有同步呈现现场视觉信息。因此，这里的情境提示应与持续的视听重放区分开来。每段要求先听15秒再答题，片段之间以现场深夜录得的背景声衔接。两种问卷的声景切换均自动进行，但电脑问卷自动限制答题时序，纸笔组则需自行遵守屏幕提示。现场的“适合我正在进行的活动”也改为实验室的“适合我会在此开展的活动”，保留了活动适宜性的评价主题，但实验室所依据的是设想中的活动。",
+              "anchor": "〔Tarlao2022: sec013/p[1]; sec013/p[2]; sec013/p[3]; sec016/p[1]; sec017/p[1]; sec017/p[2]; sec018/p[1]; sec019/p[1]; sec037/p[4]〕",
+              "source_locators": [
+                "sec013/p[1]",
+                "sec013/p[2]",
+                "sec013/p[3]",
+                "sec016/p[1]",
+                "sec017/p[1]",
+                "sec017/p[2]",
+                "sec018/p[1]",
+                "sec019/p[1]",
+                "sec037/p[4]"
+              ],
+              "locators_exact": true,
+              "codepoints": 424
+            },
+            {
+              "body": "研究首先检查两种情境是否用相近的心理维度组织声景评价，这比直接比较某一项评分更基础。共同使用的八项量表涉及愉悦、活动适宜性、单调、活跃、混乱、平静、事件丰富程度和恢复性感受；其中恢复性询问的是在该声景中停留能否让人暂时脱离日常惯例，并未测量健康改善。验证性因子分析考察愉悦度与事件丰富度两个潜在维度：愉悦、适宜、恢复性和平静与愉悦度正向关联，混乱与其负向关联；活跃、事件丰富程度和混乱与事件丰富度正向关联，平静则反向关联。现场模型在加入愉悦与活动适宜性评分之间的相关后拟合改善，实验室原模型已拟合良好。由此得到的是两种情境下相近的评价组织方式，而非每项评分数值相同。实验室共获得544次评价，来自34人各听16段录音的重复测量，因子分析已对此作相应处理。两套模型的差别还在于实验室因子载荷总体更突出、标准误更小；这一结果为重放保留核心评价维度提供了支持，也留下了为何实验室判断更鲜明的问题。",
+              "anchor": "〔Tarlao2022: pone.0270401.t003; sec020/p[5]; sec022/list[1]; sec023/p[1]; sec023/p[2]; sec024/p[1]; sec024/p[2]; pone.0270401.t005; sec025/p[1]〕",
+              "source_locators": [
+                "pone.0270401.t003",
+                "sec020/p[5]",
+                "sec022/list[1]",
+                "sec023/p[1]",
+                "sec023/p[2]",
+                "sec024/p[1]",
+                "sec024/p[2]",
+                "pone.0270401.t005",
+                "sec025/p[1]"
+              ],
+              "locators_exact": true,
+              "codepoints": 395
+            },
+            {
+              "body": "情境因素的分析进一步显示，相近的评价维度并不意味着现场与实验室出现同样明显的条件差异。考虑到数据明显偏离正态分布，且现场各组样本不均衡，作者分别采用半参数多变量方差分析及逐项量表分析，并对后者作多重比较校正。现场的地点、工作日或周末、下午或晚间及其交互作用均未达到统计显著；实验室的多变量分析则检出三个因素的主效应及若干交互作用。逐项分析中，全部八项评分均有地点主效应：较安静侧的愉悦、适宜、单调、平静和恢复性评分较高，较嘈杂侧的混乱、活跃和事件丰富程度评分较高，作者报告各项地点差异均超过半分。日期的主效应仅见于事件丰富程度，周末高于工作日；晚间相较下午，活跃和事件丰富程度评分更高，活动适宜性、平静和恢复性评分更低。交互作用使这些概括必须附带地点条件：较安静侧周末比工作日更愉悦，较嘈杂侧方向相反；较安静侧下午比晚间更愉悦、更适宜、更平静且更少混乱，较嘈杂侧未检出这些时段差异。因此，研究支持在重放材料中区分地点和时间组合，不能把“周末更愉悦”当作整个广场的统一结论。",
+              "anchor": "〔Tarlao2022: sec020/p[3]; sec020/p[6]; sec020/p[7]; sec031/p[1]; sec031/p[3]; sec031/p[5]; sec031/p[6]; sec031/p[7]; sec032/p[1]〕",
+              "source_locators": [
+                "sec020/p[3]",
+                "sec020/p[6]",
+                "sec020/p[7]",
+                "sec031/p[1]",
+                "sec031/p[3]",
+                "sec031/p[5]",
+                "sec031/p[6]",
+                "sec031/p[7]",
+                "sec032/p[1]"
+              ],
+              "locators_exact": true,
+              "codepoints": 436
+            }
+          ],
+          "codepoints": 1665
+        },
+        {
+          "heading": "结果解释与应用边界",
+          "paragraphs": [
+            {
+              "body": "上述结果支持的是有条件的生态效度：三维Ambisonic重放保留了这一小型公共空间中声景判断的主要维度，并使所选录音之间的差异更易辨认，但尚不能据此把实验室分数直接换算为现场体验。作者说明，两种研究设计不允许直接进行现场与实验室的统计比较，因此只能对照各自分析中的因素作用；一边显著、另一边不显著，本身也不足以证明两种环境中的效应差异显著。问卷形式和片段选择的检查则说明这种受控比较有一定操作余地。作者报告，电脑与纸笔问卷达到标量不变性，即多数项目的理解及量表使用方式相近，但活动适宜性项目的截距例外，严格不变性也未获支持，不宜概括为两种形式完全可互换。同一份10分钟录音中两个片段的选择没有显著主效应，却出现了日期与片段、日期与地点与片段的显著交互作用。作者未展开讨论这些交互作用；它们仍限制了“片段选择不重要”的结论。较稳妥的判断是，在本研究所选录音内，更换片段对总体评分的影响相对有限，而非任意截取任何时段都能代表完整声景。",
+              "anchor": "〔Tarlao2022: sec027/p[1]; sec027/p[2]; sec028/p[1]; sec031/p[1]; sec034/p[1]; sec035/p[2]; sec036/p[1]; sec038/list[2]〕",
+              "source_locators": [
+                "sec027/p[1]",
+                "sec027/p[2]",
+                "sec028/p[1]",
+                "sec031/p[1]",
+                "sec034/p[1]",
+                "sec035/p[2]",
+                "sec036/p[1]",
+                "sec038/list[2]"
+              ],
+              "locators_exact": true,
+              "codepoints": 415
+            },
+            {
+              "body": "实验室差异更鲜明，还应放回两套设计的可比性中理解。现场因素是在先期数据分析后确定的，调查没有按完整析因设计均衡取样，每种条件仅有5—53份问卷；实验室则让每人评价全部16段固定录音。现场使用者听到的声景并不完全相同，实验室参与者听到的材料却一致，这使两者的变异来源和识别差异的条件不同。空间划分也不对等：现场把半个广场内的使用者归为一组，可能混合了沿空间逐渐变化的声音体验；实验室选用的是相对两角的录音，较容易形成鲜明对照。两种情境的参与者构成同样存在差别，电脑组与纸笔组的平均年龄分别约为45岁与46岁，现场约为35岁，实验室组的平均噪声敏感性也更高。作者提出年龄、噪声敏感性和听觉能力可能参与其中，但没有在本次研究中确定这些因素如何解释组间评价差异。因而，现场未检出显著效应不能解释为地点和时间对真实体验没有作用，实验室较大的地点差异也不能全部归因于重放技术本身。这些限制要求把“更能辨别所选材料”与“准确还原现场效应大小”分开。",
+              "anchor": "〔Tarlao2022: sec016/p[1]; pone.0270401.t002; sec037/p[2]; sec037/p[3]; sec037/p[4]〕",
+              "source_locators": [
+                "sec016/p[1]",
+                "pone.0270401.t002",
+                "sec037/p[2]",
+                "sec037/p[3]",
+                "sec037/p[4]"
+              ],
+              "locators_exact": true,
+              "codepoints": 417
+            },
+            {
+              "body": "除差异幅度外，整体评分水平的差别也需要结合体验背景理解。作者根据评分图形的描述性比较发现，现场无论较安静侧还是较嘈杂侧，愉悦、活动适宜性、平静和恢复性评分都高于实验室，混乱评分则更低。现场两个地点的对照方向与实验室相近：较安静侧更愉悦、事件丰富程度评分更低，但两侧的评分差距较小。对于现场较积极的评价，作者提出的解释包括其他感官信息与听觉共同参与判断、场所对使用者的意义，以及人们对交通噪声的预期或选择到访时间的策略。实验室虽在开始时提供照片提示，却没有在评价过程中重现持续的视觉环境，也未纳入到访目的和场所意义；这些解释因而具有针对性，但尚未被逐一检验。部分参与者认为实验室声音偏响，尽管播放声级已经校准。这些反馈提示，物理声级的匹配未必保证主观响度体验一致，但本研究并未据此量化现场与实验室的响度差异。作者计划进一步分析两种情境中均已收集的有关氛围和可听声源的开放回答，以探索声景评价中尚未解释的情境差异。",
+              "anchor": "〔Tarlao2022: sec032/p[1]; sec036/p[4]; sec037/p[4]; sec038/p[3]〕",
+              "source_locators": [
+                "sec032/p[1]",
+                "sec036/p[4]",
+                "sec037/p[4]",
+                "sec038/p[3]"
+              ],
+              "locators_exact": true,
+              "codepoints": 405
+            },
+            {
+              "body": "这些证据支持将Ambisonic重放用于声音条件的受控比较和声景评价结构的研究。相近的潜在维度使实验室判断仍能围绕真实场所中的愉悦度与事件丰富度展开，鲜明的地点差异则要求即便研究小型广场，也应记录和重放多个位置；时间条件还应与地点共同考虑，以免把局部规律推广到全场。面向城市专业人员，实验室可望用于交流声音体验、讨论设计方案和开展原型测试，但这些是作者设想的应用方向，本研究没有验证某项规划工具的实际成效。应用时应考虑参与者对场所的熟悉程度，并让决策者理解重放可能突出条件差异、改变整体评价水平，避免按实验室分差直接承诺现场改善。证据范围目前仍是这一处广场、熟悉场地的参与者和所选短时录音，不能扩展为对所有城市空间或长期体验的验证。作者计划进一步操纵正在进行的活动等情境因素，并用开放回答研究量表的理解方式；“单调”项目的含义或适用性也尚待澄清。因此，现有研究已经为城市声景工具采用这种重放技术提供了依据，而把实验室比较用于实际设计决策，仍需结合现场调查所揭示的体验差异。",
+              "anchor": "〔Tarlao2022: sec033/p[1]; sec033/p[2]; sec034/p[1]; sec035/p[1]; sec036/p[2]; sec036/p[3]; sec037/p[1]; sec037/p[5]; sec038/p[4]; sec038/p[5]〕",
+              "source_locators": [
+                "sec033/p[1]",
+                "sec033/p[2]",
+                "sec034/p[1]",
+                "sec035/p[1]",
+                "sec036/p[2]",
+                "sec036/p[3]",
+                "sec037/p[1]",
+                "sec037/p[5]",
+                "sec038/p[4]",
+                "sec038/p[5]"
+              ],
+              "locators_exact": true,
+              "codepoints": 436
+            }
+          ],
+          "codepoints": 1673
+        }
+      ],
+      "codepoints": 3338,
+      "within_range": true
+    },
+    "Y": {
+      "sections": [
+        {
+          "heading": "研究设计与主要发现",
+          "paragraphs": [
+            {
+              "body": "这项研究把实验室声景重放的生态效度落实为两个相互关联的问题：重放能否引出与现场相似的评价维度，以及地点、日期和时段对评价的影响能否在两种环境中对应起来。研究对象是蒙特利尔一处约1800平方米的公共广场，一侧邻近有商店、餐馆和公交线路的商业街，另一侧靠近住宅。研究者先在现场收集185份问卷，通常招募已在广场停留数分钟的使用者，并在部分采集时段录音；随后招募熟悉该场所、居住或工作在附近的34名自报听力正常的成年人参与实验室研究，其中20人使用电脑问卷，14人使用纸笔问卷。这一安排使实验室评价指向参与者熟悉的真实场所。两种环境采用共有的八项声景评价，包括愉悦、适宜、单调、活跃、混乱、平静、事件丰富和恢复性感受；其中恢复性以能否暂离日常事务的自评衡量。适宜性问题则从现场的“适合我正在进行的活动”改为实验室的“适合我会在这里进行的活动”，以保持评价所指向的关系。",
+              "anchor": "〔Tarlao2022: sec009/p[1]; sec011/p[1]; sec012/p[1]; sec012/p[4]; sec015/p[1]; sec019/p[1]; pone.0270401.t003〕",
+              "source_locators": [
+                "sec009/p[1]",
+                "sec011/p[1]",
+                "sec012/p[1]",
+                "sec012/p[4]",
+                "sec015/p[1]",
+                "sec019/p[1]",
+                "pone.0270401.t003"
+              ],
+              "locators_exact": true,
+              "codepoints": 381
+            },
+            {
+              "body": "为把场所差异转化为可重复比较的刺激，研究者在三个位置采集一阶Ambisonics的10分钟录音，再选出声级持续最低和最高的两个位置，分别代表安静侧和嘈杂侧。实验条件组合了两个地点、工作日与周末、下午与晚间，并从各段10分钟录音中选取两个不同的2分钟片段，共得到16个刺激。每名参与者均以随机顺序听取全部片段，使地点和时间条件能在同一人身上比较，片段因素则用于考察取样选择的影响。录音在经声学处理的听音室内通过17只扬声器重放，重放声级依各原始录音的10分钟等效连续A计权声级校准。实验开始前展示两张场地全景照片30秒，随后听音评价期间没有同步视觉刺激；每段设置15秒适应期后开始答题，片段间播放15秒现场深夜录得的背景声，避免直接转入静默。这套程序统一了听觉刺激并随机安排次序，为比较同一组声景提供了可控基础，现场活动与多感官经历则没有被完整重现。",
+              "anchor": "〔Tarlao2022: sec013/p[1]; sec013/p[2]; sec013/p[3]; sec016/p[1]; sec017/p[1]; sec017/p[2]; sec018/p[1]; sec037/p[4]〕",
+              "source_locators": [
+                "sec013/p[1]",
+                "sec013/p[2]",
+                "sec013/p[3]",
+                "sec016/p[1]",
+                "sec017/p[1]",
+                "sec017/p[2]",
+                "sec018/p[1]",
+                "sec037/p[4]"
+              ],
+              "locators_exact": true,
+              "codepoints": 374
+            },
+            {
+              "body": "在检验环境条件的影响之前，作者先用验证性因子分析确认两种环境中的问卷是否指向相近的判断结构。结果支持“愉悦度”和“事件丰富度”两个潜在维度：愉悦、适宜、恢复性和平静与前者正向关联，混乱与之负向关联；事件丰富、活跃和混乱与后者正向关联，平静则反向关联。现场的初始模型拟合可接受，在参考修正指数、增加愉悦与适宜两项的相关后拟合改善；实验室模型已具有良好拟合，未作这一增补。因此，证据支持的是相似的评价维度，两个保留模型并非完全相同。实验室内的问卷形式检验也提供了有条件的一致性证据：作者报告，除适宜性题项的截距外，电脑与纸笔回答达到标量不变性，说明两种方式下对题项和量尺的使用大体相近；要求残差也相同的严格不变性未获保留。片段选择的主效应在多变量及逐量表分析中均不显著，但涉及日期与片段、日期与地点与片段的交互作用出现显著结果。作者认为这些交互作用缺乏理论意义，未进一步展开；这些结果支持在所测范围内保留一定的程序与选段弹性，尚不足以把所有片段视为可互换。",
+              "anchor": "〔Tarlao2022: sec023/p[1]; sec023/p[2]; sec024/p[1]; sec024/p[2]; sec025/p[1]; sec027/p[1]; sec027/p[2]; sec028/p[1]; sec031/p[3]; pone.0270401.t007〕",
+              "source_locators": [
+                "sec023/p[1]",
+                "sec023/p[2]",
+                "sec024/p[1]",
+                "sec024/p[2]",
+                "sec025/p[1]",
+                "sec027/p[1]",
+                "sec027/p[2]",
+                "sec028/p[1]",
+                "sec031/p[3]",
+                "pone.0270401.t007"
+              ],
+              "locators_exact": true,
+              "codepoints": 426
+            },
+            {
+              "body": "情境因素的检验却揭示了实验室与现场的重要分歧。考虑到评分分布偏离正态、现场样本分组不均，作者采用半参数方差分析，在实验室分析中处理重复测量，并对逐量表检验作多重比较校正。实验室的多变量分析显示地点、日期和时段均有显著主效应，其中地点在全部八项评价上都有显著影响：从安静侧到嘈杂侧，愉悦、适宜、单调、平静和恢复性评分降低，活跃、事件丰富和混乱评分升高，作者报告各项差异均超过半个量表分值。相较下午，晚间的适宜、平静和恢复性评分较低，活跃与事件丰富评分较高，差异约为四分之一个分值；工作日到周末的主效应仅见于事件丰富评分，增幅也约为四分之一个分值。交互作用进一步限定了这种概括：安静侧在周末比工作日更愉悦，嘈杂侧的方向相反；安静侧下午比晚间更愉悦、更适宜、更平静、较少混乱，而嘈杂侧未见相应的时段差异。现场的多变量及逐量表分析则均未检出这些因素的显著影响。作者对图示的描述指出，现场仍呈安静侧更愉悦、事件丰富度较低的方向，但地点间差距小于实验室；同时，两侧的现场评价在愉悦、适宜、平静和恢复性上都较高，混乱程度较低。",
+              "anchor": "〔Tarlao2022: sec020/p[3]; sec020/p[6]; sec020/p[7]; sec030/p[1]; sec030/p[2]; sec031/p[1]; sec031/p[3]; sec031/p[5]; sec031/p[6]; sec031/p[7]; sec032/p[1]〕",
+              "source_locators": [
+                "sec020/p[3]",
+                "sec020/p[6]",
+                "sec020/p[7]",
+                "sec030/p[1]",
+                "sec030/p[2]",
+                "sec031/p[1]",
+                "sec031/p[3]",
+                "sec031/p[5]",
+                "sec031/p[6]",
+                "sec031/p[7]",
+                "sec032/p[1]"
+              ],
+              "locators_exact": true,
+              "codepoints": 456
+            }
+          ],
+          "codepoints": 1637
+        },
+        {
+          "heading": "结果解释与应用边界",
+          "paragraphs": [
+            {
+              "body": "这组结果使生态效度成为一个需要分层判断的问题。潜在维度相似表明，在这一小型公共空间的案例中，三维Ambisonics重放能够唤起与现场相近的声景评价结构；地点差异的描述性方向相近，又使重放具有用于辨别场所内部声景差异的依据。然而，维度相似不能保证评分水平或差异幅度一致。现场在愉悦度相关题项上整体评价较好，实验室中的地点对比却更鲜明，说明将实验室评分直接当成现场体验的数值替身会超出这些结果。作者因两项研究设计不同，未对现场与实验室数据作直接统计比较，而是分别考察情境因素的检验结果。因此，一处显著、另一处不显著，本身并不构成两种环境效应差异的直接检验，现场未检出效应也不能证明两侧体验相同。更合适的判断是：这套重放方案支持评价结构与部分相对模式的延续，但绝对评分的对应关系及现场差异的大小仍需另行验证。据此可以比较所测刺激在实验室中的评价模式，但不能仅凭上述分值推定真实空间改造后使用者体验会改变多少。",
+              "anchor": "〔Tarlao2022: sec025/p[1]; sec032/p[1]; sec034/p[1]; sec036/p[1]; sec038/p[4]〕",
+              "source_locators": [
+                "sec025/p[1]",
+                "sec032/p[1]",
+                "sec034/p[1]",
+                "sec036/p[1]",
+                "sec038/p[4]"
+              ],
+              "locators_exact": true,
+              "codepoints": 402
+            },
+            {
+              "body": "对于现场为何整体更愉悦、地点差异却不够突出，作者提出的核心解释是，使用者会把声音与视觉、活动目的及场所意义一并纳入判断。按照这一解释，现场问卷反映的是身处广场的综合经历，实验室则使参与者更集中于声音及预设情境因素，因而更容易显出声景之间的差别。作者还提出，使用者对城市交通声的预期、按时段选择到访的行为，可能缓和噪声带来的负面感受；场所在社区中的意义也可能改变评价。这些都是解释性假设，本研究没有分别操纵或验证相应过程，不能把较高的现场愉悦评分归因于某一种已证实机制。声级校准同样没有消除主观响度问题：一些实验室参与者反映声音偏大，即使播放声级已经按现场录音校准；这支持继续检查重放体验，却不能证明实验室与现场响度存在多大的系统差异。还应保留视觉呈现的具体边界：实验室在开始时提供了照片，听音评价期间没有持续呈现视觉场景。因此，这项比较检验的是带有场所提示的听觉重放与现场经历之间的关系，不能用来单独估计视觉信息的影响。",
+              "anchor": "〔Tarlao2022: sec017/p[1]; sec036/p[4]; sec036/p[5]; sec037/p[4]; sec038/p[3]〕",
+              "source_locators": [
+                "sec017/p[1]",
+                "sec036/p[4]",
+                "sec036/p[5]",
+                "sec037/p[4]",
+                "sec038/p[3]"
+              ],
+              "locators_exact": true,
+              "codepoints": 410
+            },
+            {
+              "body": "上述解释还必须与研究设计造成的可比性限制一起考虑。现场调查先于实验室研究，相关因素是在后续分析中明确的，采集时未作系统的析因安排，八种地点、日期与时段组合的样本量从5到53不等；实验室则让同一批人评价全部条件。实验室表中的544份评分来自34人各评价16个片段，参与者人数与评分次数需要区分。更关键的是，两种环境的“地点”并不处在相同的空间尺度上：现场把整个广场划为安静、嘈杂两半，将各半区内不同声环境的体验合并，实验室录音却取自两端的角落。这种取样差异本身就可能使实验室的地点对比更强。现场使用者实际听到的声景也各不相同，实验室参与者则共享同一组录音，现场因此可能包含分析未能解释的变异。两组人群也有差别：实验室参与者平均年龄更高，平均噪声敏感性也高于现场样本。作者把年龄、听觉能力与噪声敏感性的可能联系列为限制，但并未证明这些因素造成了两种环境的评分差异。因而，控制条件带来的清晰对比、空间取样方式和人群差异仍交织在一起，现有证据不足以把对比增强全部归于重放技术本身。",
+              "anchor": "〔Tarlao2022: sec012/p[2]; pone.0270401.t001; pone.0270401.t002; sec015/p[1]; sec016/p[1]; sec037/p[2]; sec037/p[3]; sec037/p[4]〕",
+              "source_locators": [
+                "sec012/p[2]",
+                "pone.0270401.t001",
+                "pone.0270401.t002",
+                "sec015/p[1]",
+                "sec016/p[1]",
+                "sec037/p[2]",
+                "sec037/p[3]",
+                "sec037/p[4]"
+              ],
+              "locators_exact": true,
+              "codepoints": 436
+            },
+            {
+              "body": "这些边界限定了研究对环境声学研究与城市实践的支持方式。对研究者而言，三维Ambisonics重放提供了在统一条件下检验声景评价结构、比较地点与时间条件的可行路径，其较鲜明的对比有利于辨别所测声音场景之间的差异，报告时则需保留与现场结果的分歧。对于面向规划设计的工具，作者据此支持采用这种技术，帮助专业人员理解、展示和讨论声音环境；实际使用时，应把利益相关者的场所经验纳入判断，将重放作为现场评估的辅助。取样方面，即使在这处各位置都能清楚听见交通声的小广场，两个录音点仍有明显的评价差别，因此作者强调应记录和重放场所的多个位置。工作日与周末的差异方向，以及下午与晚间的差异是否显现，又与地点有关，比较方案也需保留这些条件组合。问卷形式和同段录音内的选段可以有一定弹性，但适宜性截距例外与片段交互作用仍限制这种灵活性的范围。作者计划未来开展操纵活动等情境因素的实验，并分析已收集的开放回答，以理解量表使用、氛围和可听声源，单调题项的含义也将进一步考察。这些后续工作尚未形成结论；当前证据支持有边界地采用重放进行比较和沟通，具体方案在真实使用中的意义仍需结合现场资料判断。",
+              "anchor": "〔Tarlao2022: sec027/p[2]; sec028/p[1]; sec033/p[1]; sec033/p[2]; sec035/p[1]; sec036/p[2]; sec036/p[3]; sec037/p[1]; sec037/p[4]; sec037/p[5]; sec038/p[4]; sec038/p[5]〕",
+              "source_locators": [
+                "sec027/p[2]",
+                "sec028/p[1]",
+                "sec033/p[1]",
+                "sec033/p[2]",
+                "sec035/p[1]",
+                "sec036/p[2]",
+                "sec036/p[3]",
+                "sec037/p[1]",
+                "sec037/p[4]",
+                "sec037/p[5]",
+                "sec038/p[4]",
+                "sec038/p[5]"
+              ],
+              "locators_exact": true,
+              "codepoints": 483
+            }
+          ],
+          "codepoints": 1731
+        }
+      ],
+      "codepoints": 3368,
+      "within_range": true
+    }
+  },
+  "input_recovery": {
+    "receipt": {
+      "packet": "/tmp/qiongli-zh-crosssection-20261106-s5aeza9x/review/writing-packet.json",
+      "sha256": "ed83d6f5bae2e23fcc6db613df4e382d51db3de89588a1b69e7e535e9879ecc8"
+    },
+    "status": "bindings_current",
+    "scope": "Input bindings recovered and verified. Label-to-writer paths remain in the private snapshot until human feedback."
+  },
+  "human_review": {
+    "status": "pending",
+    "scope": "One anonymous pair of two-section/eight-paragraph Chinese manuscripts.",
+    "response": null,
+    "actual_elapsed_time": null,
+    "anonymous_file": "anonymous-comparison.md",
+    "anonymous_file_sha256": "260b3fc8927d3c8325e793bc07997dfc87f4f71d81ee9ed493b50bf1f3bfdf1d",
+    "question_binding": {
+      "question": "请看[本轮跨章节匿名对照](/home/hermes/repos/jxpeng98/qiongli/evals/research_journey/writing-quality/observations/chinese-crosssection-2026-11-06/anonymous-comparison.md)：整体更偏好 X、Y、持平，还是各有优点？尤其请看第二节能否顺畅承接第一节，以及哪些细节值得保留。本轮标签与前轮 A/B 没有对应关系；也可以只指出一处最想调整的文字。",
+      "comparison_file": "evals/research_journey/writing-quality/observations/chinese-crosssection-2026-11-06/anonymous-comparison.md",
+      "comparison_sha256": "260b3fc8927d3c8325e793bc07997dfc87f4f71d81ee9ed493b50bf1f3bfdf1d",
+      "status": "pending",
+      "unit": "two sections and eight paragraphs per manuscript",
+      "identity_key_visible": false,
+      "model_judgments_visible": false
+    }
+  },
+  "limitations": [
+    "One generation per arm cannot isolate a general guidance effect from sampling variation.",
+    "The same-model reviewer/coordinator are not independent disciplinary experts.",
+    "Local first use is confined to the recorded repository paths and revision, not model training data.",
+    "The common task includes prior fluency/detail preferences but none of the earlier source passages or outputs.",
+    "Human preference, model-review adjudication and a combined-text selection remain pending. Local integration preserves completed source checks without treating silence as a choice or approval."
+  ],
+  "execution": {
+    "baseline": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 511.95191546017304,
+        "timeout_seconds": 1200,
+        "events_sha256": "705ca38090400f2a02d496ff041c5b4796e424571c20b3d77882757db1468896",
+        "stderr_sha256": "4380f8d230744b99cc42ce261eac360c03930aa530da0f9dee932440ae710d40"
+      },
+      "exact_inline_prompt_delivered": true,
+      "temporary_auth_link_removed": true,
+      "prompt_sha256": "43abd241f88e8abf4496ff4a350b9e659e91d9d13b9b774383fe32d4c7b1dfe9",
+      "prompt_bytes": 91402,
+      "effective_model": "gpt-6-astra",
+      "effective_reasoning_effort": "xhigh",
+      "permission_verification": {
+        "policy_readback": true,
+        "no_mcp_servers": true,
+        "tool_network_disabled": true,
+        "web_search_disabled": true,
+        "actual_turn_read_only": true,
+        "actual_turn_approval_never": true
+      },
+      "runtime_notes": [
+        "Optional PATH helper aliases are declined under the temporary CODEX_HOME.",
+        "The isolated policy probe reports project-local config/hooks/exec policies disabled in the untrusted repository; actual tasks use the temporary work directory and inline guidance. No global trust setting is changed."
+      ],
+      "stderr_bindings": {
+        "stderr.log": {
+          "bytes": 266,
+          "sha256": "4380f8d230744b99cc42ce261eac360c03930aa530da0f9dee932440ae710d40"
+        },
+        "policy.stderr": {
+          "bytes": 706,
+          "sha256": "796213d1f4802c3814f59e1cd02921e02b21d684e452c3f5cd87e966ed2b2d05"
+        }
+      }
+    },
+    "current": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 621.6017271450255,
+        "timeout_seconds": 1200,
+        "events_sha256": "52be215adff4481b67158be42f5971586d870a052a258e58763b8b470e7b5b65",
+        "stderr_sha256": "b5f7b3a65b843d315ade88418c1b640d1c8fa34b1e215badc0c0aed8e139b86c"
+      },
+      "exact_inline_prompt_delivered": true,
+      "temporary_auth_link_removed": true,
+      "prompt_sha256": "862b163b5a5c144f29af2571b8abcb7f489a77a1aa220e2cb8943cbb8ba0b0bd",
+      "prompt_bytes": 92504,
+      "effective_model": "gpt-6-astra",
+      "effective_reasoning_effort": "xhigh",
+      "permission_verification": {
+        "policy_readback": true,
+        "no_mcp_servers": true,
+        "tool_network_disabled": true,
+        "web_search_disabled": true,
+        "actual_turn_read_only": true,
+        "actual_turn_approval_never": true
+      },
+      "runtime_notes": [
+        "Optional PATH helper aliases are declined under the temporary CODEX_HOME.",
+        "The isolated policy probe reports project-local config/hooks/exec policies disabled in the untrusted repository; actual tasks use the temporary work directory and inline guidance. No global trust setting is changed."
+      ],
+      "stderr_bindings": {
+        "stderr.log": {
+          "bytes": 265,
+          "sha256": "b5f7b3a65b843d315ade88418c1b640d1c8fa34b1e215badc0c0aed8e139b86c"
+        },
+        "policy.stderr": {
+          "bytes": 704,
+          "sha256": "1bf73f2181ea7defbeefdcca544f5946da1a5fa00ddef3423ae755a1c3a0ad1e"
+        }
+      }
+    },
+    "review": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 282.27671781601384,
+        "timeout_seconds": 1200,
+        "events_sha256": "ddc10ab102c2fd476ac89f80ec783b9a9a6c1ba963d9b85e72e30f84d7aeb20f",
+        "stderr_sha256": "da145b5c1661a201f7b7f59ef5156c2983ea4f2314114a0b9344a3a24425e074"
+      },
+      "exact_inline_prompt_delivered": true,
+      "temporary_auth_link_removed": true,
+      "prompt_sha256": "ccc276c09b4c170a9e465967387029d62be4747397bd551474669b289085f29b",
+      "prompt_bytes": 98895,
+      "effective_model": "gpt-6-astra",
+      "effective_reasoning_effort": "xhigh",
+      "permission_verification": {
+        "policy_readback": true,
+        "no_mcp_servers": true,
+        "tool_network_disabled": true,
+        "web_search_disabled": true,
+        "actual_turn_read_only": true,
+        "actual_turn_approval_never": true
+      },
+      "runtime_notes": [
+        "Optional PATH helper aliases are declined under the temporary CODEX_HOME.",
+        "The isolated policy probe reports project-local config/hooks/exec policies disabled in the untrusted repository; actual tasks use the temporary work directory and inline guidance. No global trust setting is changed."
+      ],
+      "stderr_bindings": {
+        "stderr.log": {
+          "bytes": 264,
+          "sha256": "da145b5c1661a201f7b7f59ef5156c2983ea4f2314114a0b9344a3a24425e074"
+        },
+        "policy.stderr": {
+          "bytes": 702,
+          "sha256": "2871eefd29f667e380b756eb5df48dcb04e74e91c205535d31c95fe7e3c4d686"
+        }
+      }
+    }
+  },
+  "anonymous_outputs": {
+    "X": "## 研究设计与主要发现\n\n实验室声景重放的生态效度，关键在于受控条件下的评价能否对应真实场所中的感知，而不能仅凭录音声级与现场一致来判断。Tarlao等以蒙特利尔一处约1800平方米的小型公共广场为对象，把现场问卷与三维Ambisonic重放实验相连，分别检验评价的潜在维度、问卷与片段选择的影响，以及地点和时间条件下的评价变化。广场一侧邻近有商铺、餐馆和公交交通的商业街，另一侧靠近住宅与步道，为比较不同声音环境提供了空间基础。现场调查取得185份问卷，通常邀请已在广场停留数分钟的使用者填写，并记录时间与位置；分析将场地划为较安静和较嘈杂的两半，区分工作日与周末、下午与晚间，其中下午为14—18时，晚间为18时以后。实验室另招募熟悉该广场、在附近生活或工作且自报听力正常的34名成年人，20人使用电脑问卷，14人使用纸笔问卷。招募熟悉场地的人，使重放评价具有一定场所背景，但现场调查与实验室实验的设计不同，生态效度需要通过多条证据共同判断。\n〔Tarlao2022: sec009/p[1]; sec011/p[1]; sec012/p[1]; sec012/p[3]; sec012/p[4]; sec015/p[1]; sec033/p[3]〕\n\n为使这种比较建立在对应的声音材料上，研究先在现场三个位置取得10分钟的一阶Ambisonic录音，并同步测量声级，再从中选择声级最低和最高的两个位置用于重放。实验室按各段原始录音的10分钟等效连续A计权声级校准播放声级；两个地点、两类日期和两个时段形成八种组合，每份录音各截取两个不同的2分钟片段，共16段，以随机顺序经17只扬声器播放。每名参与者都听取同一组片段，这既便于在个人内部比较条件，也能检查同一录音内的片段选择是否影响评价。实验开始时，参与者先观看两幅场地全景照片30秒；正式评价时没有同步呈现现场视觉信息。因此，这里的情境提示应与持续的视听重放区分开来。每段要求先听15秒再答题，片段之间以现场深夜录得的背景声衔接。两种问卷的声景切换均自动进行，但电脑问卷自动限制答题时序，纸笔组则需自行遵守屏幕提示。现场的“适合我正在进行的活动”也改为实验室的“适合我会在此开展的活动”，保留了活动适宜性的评价主题，但实验室所依据的是设想中的活动。\n〔Tarlao2022: sec013/p[1]; sec013/p[2]; sec013/p[3]; sec016/p[1]; sec017/p[1]; sec017/p[2]; sec018/p[1]; sec019/p[1]; sec037/p[4]〕\n\n研究首先检查两种情境是否用相近的心理维度组织声景评价，这比直接比较某一项评分更基础。共同使用的八项量表涉及愉悦、活动适宜性、单调、活跃、混乱、平静、事件丰富程度和恢复性感受；其中恢复性询问的是在该声景中停留能否让人暂时脱离日常惯例，并未测量健康改善。验证性因子分析考察愉悦度与事件丰富度两个潜在维度：愉悦、适宜、恢复性和平静与愉悦度正向关联，混乱与其负向关联；活跃、事件丰富程度和混乱与事件丰富度正向关联，平静则反向关联。现场模型在加入愉悦与活动适宜性评分之间的相关后拟合改善，实验室原模型已拟合良好。由此得到的是两种情境下相近的评价组织方式，而非每项评分数值相同。实验室共获得544次评价，来自34人各听16段录音的重复测量，因子分析已对此作相应处理。两套模型的差别还在于实验室因子载荷总体更突出、标准误更小；这一结果为重放保留核心评价维度提供了支持，也留下了为何实验室判断更鲜明的问题。\n〔Tarlao2022: pone.0270401.t003; sec020/p[5]; sec022/list[1]; sec023/p[1]; sec023/p[2]; sec024/p[1]; sec024/p[2]; pone.0270401.t005; sec025/p[1]〕\n\n情境因素的分析进一步显示，相近的评价维度并不意味着现场与实验室出现同样明显的条件差异。考虑到数据明显偏离正态分布，且现场各组样本不均衡，作者分别采用半参数多变量方差分析及逐项量表分析，并对后者作多重比较校正。现场的地点、工作日或周末、下午或晚间及其交互作用均未达到统计显著；实验室的多变量分析则检出三个因素的主效应及若干交互作用。逐项分析中，全部八项评分均有地点主效应：较安静侧的愉悦、适宜、单调、平静和恢复性评分较高，较嘈杂侧的混乱、活跃和事件丰富程度评分较高，作者报告各项地点差异均超过半分。日期的主效应仅见于事件丰富程度，周末高于工作日；晚间相较下午，活跃和事件丰富程度评分更高，活动适宜性、平静和恢复性评分更低。交互作用使这些概括必须附带地点条件：较安静侧周末比工作日更愉悦，较嘈杂侧方向相反；较安静侧下午比晚间更愉悦、更适宜、更平静且更少混乱，较嘈杂侧未检出这些时段差异。因此，研究支持在重放材料中区分地点和时间组合，不能把“周末更愉悦”当作整个广场的统一结论。\n〔Tarlao2022: sec020/p[3]; sec020/p[6]; sec020/p[7]; sec031/p[1]; sec031/p[3]; sec031/p[5]; sec031/p[6]; sec031/p[7]; sec032/p[1]〕\n\n## 结果解释与应用边界\n\n上述结果支持的是有条件的生态效度：三维Ambisonic重放保留了这一小型公共空间中声景判断的主要维度，并使所选录音之间的差异更易辨认，但尚不能据此把实验室分数直接换算为现场体验。作者说明，两种研究设计不允许直接进行现场与实验室的统计比较，因此只能对照各自分析中的因素作用；一边显著、另一边不显著，本身也不足以证明两种环境中的效应差异显著。问卷形式和片段选择的检查则说明这种受控比较有一定操作余地。作者报告，电脑与纸笔问卷达到标量不变性，即多数项目的理解及量表使用方式相近，但活动适宜性项目的截距例外，严格不变性也未获支持，不宜概括为两种形式完全可互换。同一份10分钟录音中两个片段的选择没有显著主效应，却出现了日期与片段、日期与地点与片段的显著交互作用。作者未展开讨论这些交互作用；它们仍限制了“片段选择不重要”的结论。较稳妥的判断是，在本研究所选录音内，更换片段对总体评分的影响相对有限，而非任意截取任何时段都能代表完整声景。\n〔Tarlao2022: sec027/p[1]; sec027/p[2]; sec028/p[1]; sec031/p[1]; sec034/p[1]; sec035/p[2]; sec036/p[1]; sec038/list[2]〕\n\n实验室差异更鲜明，还应放回两套设计的可比性中理解。现场因素是在先期数据分析后确定的，调查没有按完整析因设计均衡取样，每种条件仅有5—53份问卷；实验室则让每人评价全部16段固定录音。现场使用者听到的声景并不完全相同，实验室参与者听到的材料却一致，这使两者的变异来源和识别差异的条件不同。空间划分也不对等：现场把半个广场内的使用者归为一组，可能混合了沿空间逐渐变化的声音体验；实验室选用的是相对两角的录音，较容易形成鲜明对照。两种情境的参与者构成同样存在差别，电脑组与纸笔组的平均年龄分别约为45岁与46岁，现场约为35岁，实验室组的平均噪声敏感性也更高。作者提出年龄、噪声敏感性和听觉能力可能参与其中，但没有在本次研究中确定这些因素如何解释组间评价差异。因而，现场未检出显著效应不能解释为地点和时间对真实体验没有作用，实验室较大的地点差异也不能全部归因于重放技术本身。这些限制要求把“更能辨别所选材料”与“准确还原现场效应大小”分开。\n〔Tarlao2022: sec016/p[1]; pone.0270401.t002; sec037/p[2]; sec037/p[3]; sec037/p[4]〕\n\n除差异幅度外，整体评分水平的差别也需要结合体验背景理解。作者根据评分图形的描述性比较发现，现场无论较安静侧还是较嘈杂侧，愉悦、活动适宜性、平静和恢复性评分都高于实验室，混乱评分则更低。现场两个地点的对照方向与实验室相近：较安静侧更愉悦、事件丰富程度评分更低，但两侧的评分差距较小。对于现场较积极的评价，作者提出的解释包括其他感官信息与听觉共同参与判断、场所对使用者的意义，以及人们对交通噪声的预期或选择到访时间的策略。实验室虽在开始时提供照片提示，却没有在评价过程中重现持续的视觉环境，也未纳入到访目的和场所意义；这些解释因而具有针对性，但尚未被逐一检验。部分参与者认为实验室声音偏响，尽管播放声级已经校准。这些反馈提示，物理声级的匹配未必保证主观响度体验一致，但本研究并未据此量化现场与实验室的响度差异。作者计划进一步分析两种情境中均已收集的有关氛围和可听声源的开放回答，以探索声景评价中尚未解释的情境差异。\n〔Tarlao2022: sec032/p[1]; sec036/p[4]; sec037/p[4]; sec038/p[3]〕\n\n这些证据支持将Ambisonic重放用于声音条件的受控比较和声景评价结构的研究。相近的潜在维度使实验室判断仍能围绕真实场所中的愉悦度与事件丰富度展开，鲜明的地点差异则要求即便研究小型广场，也应记录和重放多个位置；时间条件还应与地点共同考虑，以免把局部规律推广到全场。面向城市专业人员，实验室可望用于交流声音体验、讨论设计方案和开展原型测试，但这些是作者设想的应用方向，本研究没有验证某项规划工具的实际成效。应用时应考虑参与者对场所的熟悉程度，并让决策者理解重放可能突出条件差异、改变整体评价水平，避免按实验室分差直接承诺现场改善。证据范围目前仍是这一处广场、熟悉场地的参与者和所选短时录音，不能扩展为对所有城市空间或长期体验的验证。作者计划进一步操纵正在进行的活动等情境因素，并用开放回答研究量表的理解方式；“单调”项目的含义或适用性也尚待澄清。因此，现有研究已经为城市声景工具采用这种重放技术提供了依据，而把实验室比较用于实际设计决策，仍需结合现场调查所揭示的体验差异。\n〔Tarlao2022: sec033/p[1]; sec033/p[2]; sec034/p[1]; sec035/p[1]; sec036/p[2]; sec036/p[3]; sec037/p[1]; sec037/p[5]; sec038/p[4]; sec038/p[5]〕",
+    "Y": "## 研究设计与主要发现\n\n这项研究把实验室声景重放的生态效度落实为两个相互关联的问题：重放能否引出与现场相似的评价维度，以及地点、日期和时段对评价的影响能否在两种环境中对应起来。研究对象是蒙特利尔一处约1800平方米的公共广场，一侧邻近有商店、餐馆和公交线路的商业街，另一侧靠近住宅。研究者先在现场收集185份问卷，通常招募已在广场停留数分钟的使用者，并在部分采集时段录音；随后招募熟悉该场所、居住或工作在附近的34名自报听力正常的成年人参与实验室研究，其中20人使用电脑问卷，14人使用纸笔问卷。这一安排使实验室评价指向参与者熟悉的真实场所。两种环境采用共有的八项声景评价，包括愉悦、适宜、单调、活跃、混乱、平静、事件丰富和恢复性感受；其中恢复性以能否暂离日常事务的自评衡量。适宜性问题则从现场的“适合我正在进行的活动”改为实验室的“适合我会在这里进行的活动”，以保持评价所指向的关系。\n〔Tarlao2022: sec009/p[1]; sec011/p[1]; sec012/p[1]; sec012/p[4]; sec015/p[1]; sec019/p[1]; pone.0270401.t003〕\n\n为把场所差异转化为可重复比较的刺激，研究者在三个位置采集一阶Ambisonics的10分钟录音，再选出声级持续最低和最高的两个位置，分别代表安静侧和嘈杂侧。实验条件组合了两个地点、工作日与周末、下午与晚间，并从各段10分钟录音中选取两个不同的2分钟片段，共得到16个刺激。每名参与者均以随机顺序听取全部片段，使地点和时间条件能在同一人身上比较，片段因素则用于考察取样选择的影响。录音在经声学处理的听音室内通过17只扬声器重放，重放声级依各原始录音的10分钟等效连续A计权声级校准。实验开始前展示两张场地全景照片30秒，随后听音评价期间没有同步视觉刺激；每段设置15秒适应期后开始答题，片段间播放15秒现场深夜录得的背景声，避免直接转入静默。这套程序统一了听觉刺激并随机安排次序，为比较同一组声景提供了可控基础，现场活动与多感官经历则没有被完整重现。\n〔Tarlao2022: sec013/p[1]; sec013/p[2]; sec013/p[3]; sec016/p[1]; sec017/p[1]; sec017/p[2]; sec018/p[1]; sec037/p[4]〕\n\n在检验环境条件的影响之前，作者先用验证性因子分析确认两种环境中的问卷是否指向相近的判断结构。结果支持“愉悦度”和“事件丰富度”两个潜在维度：愉悦、适宜、恢复性和平静与前者正向关联，混乱与之负向关联；事件丰富、活跃和混乱与后者正向关联，平静则反向关联。现场的初始模型拟合可接受，在参考修正指数、增加愉悦与适宜两项的相关后拟合改善；实验室模型已具有良好拟合，未作这一增补。因此，证据支持的是相似的评价维度，两个保留模型并非完全相同。实验室内的问卷形式检验也提供了有条件的一致性证据：作者报告，除适宜性题项的截距外，电脑与纸笔回答达到标量不变性，说明两种方式下对题项和量尺的使用大体相近；要求残差也相同的严格不变性未获保留。片段选择的主效应在多变量及逐量表分析中均不显著，但涉及日期与片段、日期与地点与片段的交互作用出现显著结果。作者认为这些交互作用缺乏理论意义，未进一步展开；这些结果支持在所测范围内保留一定的程序与选段弹性，尚不足以把所有片段视为可互换。\n〔Tarlao2022: sec023/p[1]; sec023/p[2]; sec024/p[1]; sec024/p[2]; sec025/p[1]; sec027/p[1]; sec027/p[2]; sec028/p[1]; sec031/p[3]; pone.0270401.t007〕\n\n情境因素的检验却揭示了实验室与现场的重要分歧。考虑到评分分布偏离正态、现场样本分组不均，作者采用半参数方差分析，在实验室分析中处理重复测量，并对逐量表检验作多重比较校正。实验室的多变量分析显示地点、日期和时段均有显著主效应，其中地点在全部八项评价上都有显著影响：从安静侧到嘈杂侧，愉悦、适宜、单调、平静和恢复性评分降低，活跃、事件丰富和混乱评分升高，作者报告各项差异均超过半个量表分值。相较下午，晚间的适宜、平静和恢复性评分较低，活跃与事件丰富评分较高，差异约为四分之一个分值；工作日到周末的主效应仅见于事件丰富评分，增幅也约为四分之一个分值。交互作用进一步限定了这种概括：安静侧在周末比工作日更愉悦，嘈杂侧的方向相反；安静侧下午比晚间更愉悦、更适宜、更平静、较少混乱，而嘈杂侧未见相应的时段差异。现场的多变量及逐量表分析则均未检出这些因素的显著影响。作者对图示的描述指出，现场仍呈安静侧更愉悦、事件丰富度较低的方向，但地点间差距小于实验室；同时，两侧的现场评价在愉悦、适宜、平静和恢复性上都较高，混乱程度较低。\n〔Tarlao2022: sec020/p[3]; sec020/p[6]; sec020/p[7]; sec030/p[1]; sec030/p[2]; sec031/p[1]; sec031/p[3]; sec031/p[5]; sec031/p[6]; sec031/p[7]; sec032/p[1]〕\n\n## 结果解释与应用边界\n\n这组结果使生态效度成为一个需要分层判断的问题。潜在维度相似表明，在这一小型公共空间的案例中，三维Ambisonics重放能够唤起与现场相近的声景评价结构；地点差异的描述性方向相近，又使重放具有用于辨别场所内部声景差异的依据。然而，维度相似不能保证评分水平或差异幅度一致。现场在愉悦度相关题项上整体评价较好，实验室中的地点对比却更鲜明，说明将实验室评分直接当成现场体验的数值替身会超出这些结果。作者因两项研究设计不同，未对现场与实验室数据作直接统计比较，而是分别考察情境因素的检验结果。因此，一处显著、另一处不显著，本身并不构成两种环境效应差异的直接检验，现场未检出效应也不能证明两侧体验相同。更合适的判断是：这套重放方案支持评价结构与部分相对模式的延续，但绝对评分的对应关系及现场差异的大小仍需另行验证。据此可以比较所测刺激在实验室中的评价模式，但不能仅凭上述分值推定真实空间改造后使用者体验会改变多少。\n〔Tarlao2022: sec025/p[1]; sec032/p[1]; sec034/p[1]; sec036/p[1]; sec038/p[4]〕\n\n对于现场为何整体更愉悦、地点差异却不够突出，作者提出的核心解释是，使用者会把声音与视觉、活动目的及场所意义一并纳入判断。按照这一解释，现场问卷反映的是身处广场的综合经历，实验室则使参与者更集中于声音及预设情境因素，因而更容易显出声景之间的差别。作者还提出，使用者对城市交通声的预期、按时段选择到访的行为，可能缓和噪声带来的负面感受；场所在社区中的意义也可能改变评价。这些都是解释性假设，本研究没有分别操纵或验证相应过程，不能把较高的现场愉悦评分归因于某一种已证实机制。声级校准同样没有消除主观响度问题：一些实验室参与者反映声音偏大，即使播放声级已经按现场录音校准；这支持继续检查重放体验，却不能证明实验室与现场响度存在多大的系统差异。还应保留视觉呈现的具体边界：实验室在开始时提供了照片，听音评价期间没有持续呈现视觉场景。因此，这项比较检验的是带有场所提示的听觉重放与现场经历之间的关系，不能用来单独估计视觉信息的影响。\n〔Tarlao2022: sec017/p[1]; sec036/p[4]; sec036/p[5]; sec037/p[4]; sec038/p[3]〕\n\n上述解释还必须与研究设计造成的可比性限制一起考虑。现场调查先于实验室研究，相关因素是在后续分析中明确的，采集时未作系统的析因安排，八种地点、日期与时段组合的样本量从5到53不等；实验室则让同一批人评价全部条件。实验室表中的544份评分来自34人各评价16个片段，参与者人数与评分次数需要区分。更关键的是，两种环境的“地点”并不处在相同的空间尺度上：现场把整个广场划为安静、嘈杂两半，将各半区内不同声环境的体验合并，实验室录音却取自两端的角落。这种取样差异本身就可能使实验室的地点对比更强。现场使用者实际听到的声景也各不相同，实验室参与者则共享同一组录音，现场因此可能包含分析未能解释的变异。两组人群也有差别：实验室参与者平均年龄更高，平均噪声敏感性也高于现场样本。作者把年龄、听觉能力与噪声敏感性的可能联系列为限制，但并未证明这些因素造成了两种环境的评分差异。因而，控制条件带来的清晰对比、空间取样方式和人群差异仍交织在一起，现有证据不足以把对比增强全部归于重放技术本身。\n〔Tarlao2022: sec012/p[2]; pone.0270401.t001; pone.0270401.t002; sec015/p[1]; sec016/p[1]; sec037/p[2]; sec037/p[3]; sec037/p[4]〕\n\n这些边界限定了研究对环境声学研究与城市实践的支持方式。对研究者而言，三维Ambisonics重放提供了在统一条件下检验声景评价结构、比较地点与时间条件的可行路径，其较鲜明的对比有利于辨别所测声音场景之间的差异，报告时则需保留与现场结果的分歧。对于面向规划设计的工具，作者据此支持采用这种技术，帮助专业人员理解、展示和讨论声音环境；实际使用时，应把利益相关者的场所经验纳入判断，将重放作为现场评估的辅助。取样方面，即使在这处各位置都能清楚听见交通声的小广场，两个录音点仍有明显的评价差别，因此作者强调应记录和重放场所的多个位置。工作日与周末的差异方向，以及下午与晚间的差异是否显现，又与地点有关，比较方案也需保留这些条件组合。问卷形式和同段录音内的选段可以有一定弹性，但适宜性截距例外与片段交互作用仍限制这种灵活性的范围。作者计划未来开展操纵活动等情境因素的实验，并分析已收集的开放回答，以理解量表使用、氛围和可听声源，单调题项的含义也将进一步考察。这些后续工作尚未形成结论；当前证据支持有边界地采用重放进行比较和沟通，具体方案在真实使用中的意义仍需结合现场资料判断。\n〔Tarlao2022: sec027/p[2]; sec028/p[1]; sec033/p[1]; sec033/p[2]; sec035/p[1]; sec036/p[2]; sec036/p[3]; sec037/p[1]; sec037/p[4]; sec037/p[5]; sec038/p[4]; sec038/p[5]〕"
+  },
+  "coordinator_review": {
+    "reviewer": "main coordinator; source comparison, not disciplinary expert review",
+    "recorded_at_utc": "2026-11-06T11:33:55.522605+00:00",
+    "model_review_status_at_initial_assessment": "Completed but judgments not inspected or displayed while human preference is pending.",
+    "required_repairs": [],
+    "source_checks": [
+      {
+        "theme": "Study units and sampling",
+        "locators": [
+          "sec012/p[2]",
+          "sec015/p[1]",
+          "sec016/p[1]",
+          "pone.0270401.t001",
+          "pone.0270401.t002",
+          "sec037/p[3]"
+        ],
+        "finding": "Both retain 185 field questionnaires, 34 laboratory participants split 20/14, and 16 excerpts. The 544 ratings are distinguished from independent people. Site cells and repeated lab measurements are not treated as comparable balanced samples."
+      },
+      {
+        "theme": "Latent structure versus effect magnitude",
+        "locators": [
+          "sec025/p[1]",
+          "sec032/p[1]",
+          "sec036/p[1]"
+        ],
+        "finding": "Both distinguish similar CFA dimensions from equal scores or direct between-setting effect tests. Section two preserves the distinction between a descriptive difference and a tested difference in effects."
+      },
+      {
+        "theme": "Mode invariance exceptions",
+        "locators": [
+          "sec027/p[1]",
+          "sec027/p[2]"
+        ],
+        "finding": "Both place scalar invariance within the laboratory paper/computer comparison, retain the appropriate-item intercept exception and state that strict invariance was not retained. The paper abbreviates these qualifications later; neither manuscript erases the relevant exception."
+      },
+      {
+        "theme": "Excerpt and context interactions",
+        "locators": [
+          "sec028/p[1]",
+          "sec031/p[1]",
+          "sec031/p[3]",
+          "sec031/p[5]",
+          "sec031/p[6]",
+          "sec031/p[7]"
+        ],
+        "finding": "Both retain no excerpt main effect and the two excerpt-related interactions. Location-dependent reversals prevent a universal weekend or afternoon conclusion; the application passage preserves conditional sampling judgments."
+      },
+      {
+        "theme": "Visual chronology and proposed mechanisms",
+        "locators": [
+          "sec017/p[1]",
+          "sec036/p[4]",
+          "sec037/p[4]",
+          "sec038/p[3]"
+        ],
+        "finding": "Both retain initial photographs and absence of synchronized visuals during listening. Multisensory integration, site meaning, visitor choice and age/noise sensitivity remain proposed explanations rather than isolated causal findings."
+      },
+      {
+        "theme": "Applications and future work",
+        "locators": [
+          "sec033/p[1]",
+          "sec033/p[2]",
+          "sec037/p[1]",
+          "sec037/p[5]",
+          "sec038/p[4]",
+          "sec038/p[5]"
+        ],
+        "finding": "Both support controlled comparison and communication while retaining the single-site design and contextual limits. Planned activity manipulation and open-ended analysis remain future work. Neither claims validated urban-design outcomes."
+      }
+    ],
+    "continuity": {
+      "X": "Research setting → reproduction and question procedure → evaluation structure → context results → bounded interpretation and procedural tests → design comparability → contextual explanations → applications. The second section links to the first without changing the empirical claim.",
+      "Y": "Research setting and scales → reproduction procedure → evaluation structure and procedural tests → context results → layered ecological validity → contextual explanations → design comparability → applications. The second section develops rather than silently strengthens the first."
+    },
+    "optional_detail_policy": "Paper/computer timing, precise age averages, quarter-point differences, and additional factor-loading detail can be helpful but are not all required by the task. Missing optional detail does not make either argument incomplete.",
+    "language_notes": "Both use source-specific qualifications. The recovery item may be defined without the optional health-outcome contrast; timing detail may be added if selected for explanatory value. These are optional editing choices, not source defects or a basis for assigning human preference.",
+    "source_reporting_limits": "Do not fabricate numerical corrections to Table 6 or claim to have independently inspected figure pixels. Exact author descriptions, XML tables and captions delimit this review.",
+    "selection_status": "Pending human preference; do not infer current X/Y choice from earlier B responses."
+  },
+  "verification": {
+    "frozen_inputs_preserved": true,
+    "all_three_exact_prompts_delivered": true,
+    "all_three_turns_completed_without_tools": true,
+    "user_config_preserved": true,
+    "temporary_auth_links_removed": true,
+    "unchanged_helpers": true,
+    "each_manuscript_two_sections_four_paragraphs_each": true,
+    "both_lengths_within_bounds": true,
+    "exact_source_locators": true,
+    "source_range_consecutive_and_tables_verified": true,
+    "packet_recovered_current": true
+  },
+  "sealed_review": {
+    "status": "completed; judgments not inspected by coordinator or disclosed before human response",
+    "identity_key_and_raw_review_included_here": false,
+    "private_snapshot_path": "/tmp/qiongli-zh-crosssection-20261106-s5aeza9x/review/private-archive/observation.json",
+    "private_snapshot_sha256": "97a2cbbcae91edececbad82bd3f97c5955daaf8343dec50051553b05db60953c",
+    "raw_review_sha256": "eff37ac041d30f801509b4e246e11d90a1cf604049531d05cb6859746fc7dee3",
+    "reason": "Preserve the current anonymous human comparison. Keep raw outputs, the randomized key and the complete model review in the frozen private snapshot; append their judgments and adjudication only after feedback.",
+    "human_status": "pending",
+    "selection": null,
+    "publication": "none"
+  }
+}
