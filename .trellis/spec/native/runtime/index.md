@@ -39,6 +39,17 @@ packets do not transfer Host-bound checkpoints or authenticated evidence authori
 The Qiongli 2 executable, CLI, Desktop service, Full MCP, project state, and
 embedded resources live under `packages/qiongli-native/`.
 
+`project context read` exposes the existing
+`AcademicGraphService::read_registered_artifact` owner for `research-state` and
+`stage-handoff` only. It requires a registered project ID and positive expected
+revision; `max-bytes` defaults to 16 KiB and permits 1–256 KiB. Unknown, duplicate,
+missing and non-decimal options refuse. The existing reader checks manifest and
+semantic freshness before and after reading, retains safe-path and ownership
+checks, and returns the existing bounded artifact view including truncation flags.
+No Graph projection, catalog lock, derived-state rebuild or project/config write
+is required. This CLI-only route adds no MCP tool or persistence schema; saved
+summaries and source packets keep their separate receipt/hash-bound readers.
+
 `project document list` and Full-only `qiongli_project_document_list` share
 `ProjectStateService::list_saved_documents`. The strict request requires registered
 `project_id` and `expected_project_revision`; `offset` defaults to 0 and `limit`

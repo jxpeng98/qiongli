@@ -3934,6 +3934,59 @@ fn consolidation_journey(
                 true,
             )
         };
+        // Fresh-session context reads must work before any Graph/catalog rebuild.
+        let before_context = (snapshot(&project_root), snapshot(&fixture.config_root));
+        let context_read = |artifact: &str, revision: &str, max_bytes: &str| {
+            read(&[
+                "project",
+                "context",
+                "read",
+                "--project-id",
+                &project_id,
+                "--expected-project-revision",
+                revision,
+                "--artifact",
+                artifact,
+                "--max-bytes",
+                max_bytes,
+            ])
+        };
+        for (artifact, path) in [
+            ("research-state", "context/research_state.md"),
+            ("stage-handoff", "context/stage_handoff.md"),
+        ] {
+            let resumed = context_read(artifact, "2", "262144");
+            assert!(resumed.status.success(), "{}", public_output(&resumed));
+            let view = parse_json(&resumed);
+            assert_eq!(view["artifactPath"], path);
+            assert_eq!(view["projectRevision"], 2);
+            assert_eq!(
+                view["content"],
+                fs::read_to_string(project_root.join(path)).unwrap()
+            );
+            assert_eq!(view["truncatedAfter"], false);
+            assert!(view["projectionId"].is_null());
+            let stale = context_read(artifact, "1", "16384");
+            assert_eq!(stale.stderr, b"error: project-revision-conflict\n");
+        }
+        let bounded = context_read("stage-handoff", "2", "1024");
+        assert!(bounded.status.success(), "{}", public_output(&bounded));
+        assert!(parse_json(&bounded)["contentSizeBytes"].as_u64().unwrap() <= 1024);
+        assert_eq!(
+            before_context,
+            (snapshot(&project_root), snapshot(&fixture.config_root))
+        );
+        let handoff_path = project_root.join("context/stage_handoff.md");
+        let saved = fs::read(&handoff_path).unwrap();
+        fs::write(&handoff_path, b"unregistered change\n").unwrap();
+        let drift_before = (snapshot(&project_root), snapshot(&fixture.config_root));
+        let drift = context_read("stage-handoff", "2", "16384");
+        assert_eq!(drift.stderr, b"error: project-revision-conflict\n");
+        assert_eq!(
+            drift_before,
+            (snapshot(&project_root), snapshot(&fixture.config_root))
+        );
+        fs::write(&handoff_path, saved).unwrap();
         let graph = read(&["project", "graph", "snapshot", "--project-id", &project_id]);
         assert!(graph.status.success(), "{}", public_output(&graph));
         let graph = parse_json(&graph);

@@ -17,12 +17,14 @@ use crate::command::{CliOutput, CommandEnvironment, config_root};
 pub(crate) const PROJECT_USAGE: &str = "Qiongli Research Library\n\nUsage:\n  qiongli project list\n  qiongli project show --project-id <prj_id>\n  qiongli project graph snapshot --project-id <prj_id>\n  qiongli project graph view --project-id <prj_id> [--open|--save]\n  qiongli project graph source --project-id <prj_id> --expected-project-revision <revision> --expected-projection-id <grp_id> <--node-id <nod_id>|--edge-id <edg_id>>\n  qiongli project graph portfolio\n  qiongli project graph query --project-id <prj_id> --expected-projection-id <grp_id> [filters]\n  qiongli project graph doctor --project-id <prj_id>\n  qiongli project portfolio <status|reconcile|rebuild|delete-derived-state|query|timeline|doctor>\n  qiongli project doctor\n  qiongli project doctor repair <preview|apply> --project-id <prj_id> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project create preview --root <absolute-path> --name <name> [--kind <article|review|dissertation-article|manuscript>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project create apply --root <absolute-path> --name <name> [--kind <kind>] [--stage <stage>] --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project register preview --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>]\n  qiongli project register apply --root <absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project export <preview|apply> --project-id <prj_id> --destination <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project import <preview|apply> --source <absolute-path> --root <absolute-path> [--expected-plan-digest <sha256> --approve-filesystem-write]\n  qiongli project migrate preview --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] [--project-id <prj_id>] [--manifest-created-at-unix <timestamp>]\n  qiongli project migrate apply --source <legacy-absolute-path> --root <new-absolute-path> [--name <name>] [--kind <kind>] [--stage <stage>] --project-id <prj_id> --manifest-created-at-unix <timestamp> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project migrate recover preview --source <legacy-absolute-path> --root <committed-2x-path>\n  qiongli project migrate recover apply --source <legacy-absolute-path> --root <committed-2x-path> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project migrate rollback preview --source <legacy-absolute-path> --root <migration-owned-2x-path>\n  qiongli project migrate rollback apply --source <legacy-absolute-path> --root <migration-owned-2x-path> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project <archive|restore|refresh|unregister> preview --project-id <prj_id>\n  qiongli project <archive|restore|refresh|unregister> apply --project-id <prj_id> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli project --help\n\nGraph view emits self-contained HTML on stdout by default. --save writes a new private snapshot; --open also asks the default HTML application to open it. Snapshots retain their original state. Sources remain version-bound reads through graph source.\n\nGraph filters:\n  --focus-node-id <nod_id> --direction <incoming|outgoing|both>\n  --node-type <type> --relation <relation> --layer <layer>\n  --canonical-id <id> --text <text> --max-nodes <1..256> --max-edges <1..512>\n\nPortable export format:\n  A private directory package containing qiongli-portable-project.json and project/.\n  Absolute paths, client configuration, recognizable credential files, sessions, chats, and transcripts are excluded.\n\nLegacy project migration:\n  Copies bounded academic files into a new 2.x project and leaves the source untouched.\n  Legacy .qiongli runtime state and recognizable credential/session files are not copied.\n  Apply must reuse the projectId, manifestCreatedAtUnix, and planDigest returned by preview.\n  Recover resumes an exact committed copy after a process interruption without copying again.\n  Rollback reconciles every copied artifact, refuses destination drift, unregisters the project,\n  and removes only the exact receipt-owned 2.x destination while retaining the 1.x source.\n\nStages:\n  idea | framing | literature | design | analysis | writing | review | submission\n";
 pub(crate) const GRAPH_NEIGHBOURHOOD_USAGE: &str =
     "Graph neighbourhood:\n  --max-depth <1..3> requires --focus-node-id and defaults to 1";
+pub(crate) const CONTEXT_USAGE: &str = "Saved project context:\n  qiongli project context read --project-id <prj_id> --expected-project-revision <revision> --artifact <research-state|stage-handoff> [--max-bytes <1024..262144>]\n\nReads the current registered research state or stage handoff without rebuilding Graph or writing derived state. Revision and semantic freshness are checked before and after the read. max-bytes defaults to 16384; if truncatedAfter is true, increase it within the limit before treating the context as complete. Saved summaries and source packets use project document list/read.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ProjectCliCommand {
     Help,
     List,
     Show(ProjectId),
+    ContextRead(ProjectContextReadOptions),
     DocumentRead(qiongli_project::SavedDocumentReadRequest),
     DocumentSearch(qiongli_project::SavedDocumentSearchRequest),
     DocumentList(qiongli_project::SavedDocumentListRequest),
@@ -52,6 +54,14 @@ pub(crate) enum ProjectCliCommand {
     ApplyMigrationRollback(ProjectMigrationRecoveryOptions, String),
     PreviewLifecycle(ProjectLifecycleCommand, ProjectId),
     ApplyLifecycle(ProjectLifecycleCommand, ProjectId, String),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ProjectContextReadOptions {
+    project_id: ProjectId,
+    expected_project_revision: u64,
+    artifact_path: &'static str,
+    max_bytes: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -117,6 +127,7 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ProjectCliCommand, &'static str
         "show" if args.len() == 2 => parse_project_id(&args[1]).map(ProjectCliCommand::Show),
         "show" => parse_project_id_only(&args[1..]).map(ProjectCliCommand::Show),
         "graph" => parse_graph(&args[1..]),
+        "context" => parse_context_read(&args[1..]).map(ProjectCliCommand::ContextRead),
         "portfolio" => crate::portfolio_cli::parse(&args[1..])
             .map(Box::new)
             .map(ProjectCliCommand::Portfolio),
@@ -149,7 +160,7 @@ pub(crate) fn parse(args: &[OsString]) -> Result<ProjectCliCommand, &'static str
 pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironment) -> CliOutput {
     if command == ProjectCliCommand::Help {
         return CliOutput::success_text(format!(
-            "{PROJECT_USAGE}\n{GRAPH_NEIGHBOURHOOD_USAGE}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+            "{PROJECT_USAGE}\n{GRAPH_NEIGHBOURHOOD_USAGE}\n{CONTEXT_USAGE}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
             crate::portfolio_cli::USAGE,
             crate::capture_cli::CAPTURE_USAGE,
             crate::capture_delivery_cli::USAGE,
@@ -204,6 +215,15 @@ pub(crate) fn execute(command: ProjectCliCommand, environment: &CommandEnvironme
                 project,
             }))
         }),
+        ProjectCliCommand::ContextRead(options) => AcademicGraphService::new(service.clone())
+            .read_registered_artifact(
+                &options.project_id,
+                options.expected_project_revision,
+                options.artifact_path,
+                None,
+                options.max_bytes,
+            )
+            .map(ProjectCliOutput::Context),
         ProjectCliCommand::DocumentRead(request) => service
             .read_saved_document(&request)
             .map(ProjectCliOutput::Document),
@@ -1405,6 +1425,69 @@ fn parse_graph_relation(value: &OsStr) -> Result<AcademicGraphRelation, &'static
     }
 }
 
+fn parse_context_read(args: &[OsString]) -> Result<ProjectContextReadOptions, &'static str> {
+    if args.first().and_then(|arg| arg.to_str()) != Some("read") {
+        return Err("expected project context read");
+    }
+    let mut project_id = None;
+    let mut revision = None;
+    let mut artifact_path = None;
+    let mut max_bytes = 16 * 1024;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut pairs = args[1..].chunks_exact(2);
+    for pair in &mut pairs {
+        let flag = pair[0].to_str().ok_or("invalid context read option")?;
+        if !seen.insert(flag) {
+            return Err("duplicate context read option");
+        }
+        let value = pair[1].to_str().ok_or("invalid context read value")?;
+        let number = || {
+            if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
+                return Err("context read number must be unsigned decimal");
+            }
+            value
+                .parse::<u64>()
+                .map_err(|_| "invalid context read number")
+        };
+        match flag {
+            "--project-id" => project_id = Some(parse_project_id(&pair[1])?),
+            "--expected-project-revision" => {
+                let parsed = number()?;
+                if parsed == 0 {
+                    return Err("context read revision must be positive");
+                }
+                revision = Some(parsed);
+            }
+            "--artifact" => {
+                artifact_path = Some(match value {
+                    "research-state" => "context/research_state.md",
+                    "stage-handoff" => "context/stage_handoff.md",
+                    _ => return Err("unknown context artifact"),
+                });
+            }
+            "--max-bytes" => {
+                max_bytes = usize::try_from(number()?).map_err(|_| "invalid context read limit")?;
+                if !(qiongli_project::MIN_PROJECT_ARTIFACT_VIEW_BYTES
+                    ..=qiongli_project::MAX_PROJECT_ARTIFACT_VIEW_BYTES)
+                    .contains(&max_bytes)
+                {
+                    return Err("invalid context read limit");
+                }
+            }
+            _ => return Err("unknown context read option"),
+        }
+    }
+    if !pairs.remainder().is_empty() {
+        return Err("context read option requires a value");
+    }
+    Ok(ProjectContextReadOptions {
+        project_id: project_id.ok_or("project ID is required")?,
+        expected_project_revision: revision.ok_or("expected project revision is required")?,
+        artifact_path: artifact_path.ok_or("context artifact is required")?,
+        max_bytes,
+    })
+}
+
 fn parse_project_id_only(args: &[OsString]) -> Result<ProjectId, &'static str> {
     if args.len() != 2 || args[0] != OsStr::new("--project-id") {
         return Err("exactly one project ID is required");
@@ -1508,6 +1591,7 @@ fn json_output<T: Serialize>(value: &T) -> CliOutput {
 #[derive(Serialize)]
 #[serde(untagged)]
 enum ProjectCliOutput {
+    Context(qiongli_project::ProjectArtifactViewV1),
     Document(qiongli_project::SavedDocumentViewV1),
     DocumentSearch(qiongli_project::SavedDocumentSearchViewV1),
     Documents(qiongli_project::SavedDocumentListV1),
@@ -1680,6 +1764,62 @@ mod tests {
 
     fn args(values: &[&str]) -> Vec<OsString> {
         values.iter().map(OsString::from).collect()
+    }
+
+    #[test]
+    fn context_read_requires_bounded_explicit_bindings() {
+        let valid = [
+            "context",
+            "read",
+            "--project-id",
+            "prj_00000000000000000000000000000000",
+            "--expected-project-revision",
+            "3",
+            "--artifact",
+            "stage-handoff",
+        ];
+        let parsed = parse(&args(&valid)).unwrap();
+        assert!(matches!(parsed, ProjectCliCommand::ContextRead(options)
+            if options.artifact_path == "context/stage_handoff.md"
+                && options.expected_project_revision == 3 && options.max_bytes == 16384));
+        for (flag, value) in [
+            ("--artifact", "stage-handoff"),
+            ("--max-bytes", "1023"),
+            ("--max-bytes", "262145"),
+            ("--max-bytes", "+1024"),
+            ("--max-bytes", "18446744073709551616"),
+            ("--unknown", "x"),
+        ] {
+            let mut input = valid.to_vec();
+            input.extend([flag, value]);
+            assert!(parse(&args(&input)).is_err(), "{flag} {value}");
+        }
+        for value in [
+            "../stage_handoff.md",
+            "context/stage_handoff.md",
+            "/tmp/private",
+        ] {
+            let mut input = valid;
+            input[7] = value;
+            assert!(parse(&args(&input)).is_err());
+        }
+        for value in ["0", "-1", "+1", " 1"] {
+            let mut input = valid;
+            input[5] = value;
+            assert!(parse(&args(&input)).is_err());
+        }
+        for length in [1, 2, 4, 6, 7] {
+            assert!(parse(&args(&valid[..length])).is_err());
+        }
+        for limit in ["1024", "262144"] {
+            let mut input = valid.to_vec();
+            input[7] = "research-state";
+            input.extend(["--max-bytes", limit]);
+            assert!(
+                matches!(parse(&args(&input)), Ok(ProjectCliCommand::ContextRead(options))
+                if options.artifact_path == "context/research_state.md")
+            );
+        }
     }
 
     #[test]
