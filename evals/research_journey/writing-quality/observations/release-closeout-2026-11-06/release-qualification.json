@@ -1,0 +1,248 @@
+{
+  "source_commit": "1a1b616404ef4bc74046509eb7df6445c9b74adf",
+  "version": "2.6.0",
+  "target": "aarch64-unknown-linux-gnu",
+  "status": "qualified-unpublished",
+  "manifest": {
+    "version": "2.6.0",
+    "source_commit": "1a1b616404ef4bc74046509eb7df6445c9b74adf",
+    "target": "aarch64-unknown-linux-gnu",
+    "channel": "github-release",
+    "status": "qualified-unpublished",
+    "managed_product_authority": false,
+    "rustc": "rustc 1.97.0 (2d8144b78 2026-07-07)",
+    "checks": {
+      "cli_clippy": "passed",
+      "cli_mcp_tests": "passed",
+      "archive_smoke": {
+        "version": "2.6.0",
+        "invalid_command_rejected": true,
+        "mcp_tools": {
+          "lite": 15,
+          "full": 35
+        },
+        "content_pack_sha256": "b73a4c0349ef98b3d1fc02a330effdcf9a6b54b947dafd238dc8ccd0b9fb04c1",
+        "runtime_path": "empty"
+      },
+      "npm_wheel_local_install": "passed",
+      "registry_install": {
+        "npm": {
+          "version": "2.6.0",
+          "invalid_command_rejected": true,
+          "mcp_tools": {
+            "lite": 15,
+            "full": 35
+          },
+          "content_pack_sha256": "b73a4c0349ef98b3d1fc02a330effdcf9a6b54b947dafd238dc8ccd0b9fb04c1",
+          "deepseek_plugin": {
+            "skills": 22,
+            "mcp_tools": 35,
+            "content_pack_sha256": "b73a4c0349ef98b3d1fc02a330effdcf9a6b54b947dafd238dc8ccd0b9fb04c1"
+          }
+        },
+        "pypi": {
+          "version": "2.6.0",
+          "invalid_command_rejected": true,
+          "mcp_tools": {
+            "lite": 15,
+            "full": 35
+          },
+          "content_pack_sha256": "b73a4c0349ef98b3d1fc02a330effdcf9a6b54b947dafd238dc8ccd0b9fb04c1"
+        }
+      },
+      "marketplace_plugins": {
+        "codex": {
+          "version": "2.6.0",
+          "source_commit": "1a1b616404ef4bc74046509eb7df6445c9b74adf",
+          "platform": "codex",
+          "target": "aarch64-unknown-linux-gnu",
+          "plugin_name": "qiongli-linux-arm64",
+          "artifact": "qiongli-codex-plugin-v2.6.0-aarch64-unknown-linux-gnu.tar.gz",
+          "binary_sha256": "ed1f68099d31f6f6f589a6bda0867ef09f3273e561eadb1fa2645e9cc8011a4a",
+          "pack_sha256": "b73a4c0349ef98b3d1fc02a330effdcf9a6b54b947dafd238dc8ccd0b9fb04c1",
+          "content_root_sha256": "e8ed876fe8c9465709831f0051283c66ea3bbb5ad3e4c8bda6eb79fe5aec742a",
+          "sha256": "2555a51a4254362c2bf08912300e5b469ae4264d27c88684b10044ea441ea4c2",
+          "bytes": 9308067,
+          "status": "passed",
+          "runtime_path": "empty",
+          "mcp_tools": 15
+        },
+        "claude": {
+          "version": "2.6.0",
+          "source_commit": "1a1b616404ef4bc74046509eb7df6445c9b74adf",
+          "platform": "claude",
+          "target": "aarch64-unknown-linux-gnu",
+          "plugin_name": "qiongli-linux-arm64",
+          "artifact": "qiongli-claude-plugin-v2.6.0-aarch64-unknown-linux-gnu.tar.gz",
+          "binary_sha256": "ed1f68099d31f6f6f589a6bda0867ef09f3273e561eadb1fa2645e9cc8011a4a",
+          "pack_sha256": "b73a4c0349ef98b3d1fc02a330effdcf9a6b54b947dafd238dc8ccd0b9fb04c1",
+          "content_root_sha256": "e8ed876fe8c9465709831f0051283c66ea3bbb5ad3e4c8bda6eb79fe5aec742a",
+          "sha256": "917964ba7c8ae95640057013e90b8571dfcd83b9a92a8cfffe250625dea53822",
+          "bytes": 9303194,
+          "status": "passed",
+          "runtime_path": "empty",
+          "mcp_tools": 15
+        }
+      }
+    },
+    "artifacts": [
+      {
+        "file": "qiongli-2.6.0-aarch64-unknown-linux-gnu.tar.gz",
+        "sha256": "bdb39c32d65a643eebfe90376637b8c7c80340ee5e67371a21bde09747a4e9a7",
+        "bytes": 8615897
+      },
+      {
+        "file": "qiongli-2.6.0-py3-none-manylinux_2_35_aarch64.whl",
+        "sha256": "4b392592c82a8916714e0d32192c0321a30645a52491599c40df0e149010f359",
+        "bytes": 8661503
+      },
+      {
+        "file": "qiongli-2.6.0.tgz",
+        "sha256": "928def176dc2b201aa09894ce0aae5146bdb6ece9165ca3666d25696e0778210",
+        "bytes": 9536965
+      },
+      {
+        "file": "qiongli-claude-plugin-v2.6.0-aarch64-unknown-linux-gnu.tar.gz",
+        "sha256": "917964ba7c8ae95640057013e90b8571dfcd83b9a92a8cfffe250625dea53822",
+        "bytes": 9303194
+      },
+      {
+        "file": "qiongli-codex-plugin-v2.6.0-aarch64-unknown-linux-gnu.tar.gz",
+        "sha256": "2555a51a4254362c2bf08912300e5b469ae4264d27c88684b10044ea441ea4c2",
+        "bytes": 9308067
+      }
+    ]
+  },
+  "manifest_sha256": "f2cbd2f7db8377ab3724c79bba3fd40ade54e69b15f63cd8ff33ffaa2331d381",
+  "checksums_sha256": "e4954221dfe2070c6e199c874d84ec5d527a000a351d04fc4e2c32353830071c",
+  "required_glibc_versions": [
+    "2.17",
+    "2.18",
+    "2.25",
+    "2.27",
+    "2.28",
+    "2.29",
+    "2.30",
+    "2.32",
+    "2.33",
+    "2.34"
+  ],
+  "advertised_glibc_baseline": "2.35",
+  "asset_audit": "All artifact sizes, hashes and SHA256SUMS entries match; extracted binary equals built binary.",
+  "release_cli_tests": 47,
+  "release_mcp_tests": 9,
+  "packaged_recovery": {
+    "source_commit": "1a1b616404ef4bc74046509eb7df6445c9b74adf",
+    "exit_code": 0,
+    "passed": 2,
+    "elapsed_seconds": 3.0126121200155467,
+    "binary_sha256": "ed1f68099d31f6f6f589a6bda0867ef09f3273e561eadb1fa2645e9cc8011a4a",
+    "log": "/tmp/qiongli-closeout-packaged-recovery.log",
+    "log_sha256": "4554f98aad64131923e8d5724a8c25188b7356528607dcc14a4564d4eda0a067",
+    "scope": "Existing handoff and summary save/resume journeys against the extracted candidate executable; empty runtime path and original refusal/preservation assertions retained."
+  },
+  "cache_cleanup": {
+    "time_unix": 1793996707,
+    "source_commit": "1a1b616404ef4bc74046509eb7df6445c9b74adf",
+    "removed": [
+      {
+        "path": "/home/hermes/repos/jxpeng98/qiongli/packages/qiongli-native/target/debug/deps",
+        "logical_bytes": 4337565859,
+        "files": 1581
+      },
+      {
+        "path": "/home/hermes/repos/jxpeng98/qiongli/packages/qiongli-native/target/debug/incremental",
+        "logical_bytes": 0,
+        "files": 0
+      },
+      {
+        "path": "/home/hermes/qiongli-release-260-20261106-private/packages/qiongli-native/target/debug/deps",
+        "logical_bytes": 4479081705,
+        "files": 1685
+      },
+      {
+        "path": "/home/hermes/qiongli-release-260-20261106-private/packages/qiongli-native/target/debug/incremental",
+        "logical_bytes": 0,
+        "files": 0
+      }
+    ],
+    "total_logical_bytes": 8816647564,
+    "free_bytes_before": 46037237760,
+    "free_bytes_after": 54582972416,
+    "active_builders": [],
+    "retained_file_count": 45,
+    "scope": "Only ignored regenerable native debug deps/incremental directories. Release assets/executables, project materials and evaluation evidence retained byte-for-byte. No tracked file or user configuration removed."
+  },
+  "free_bytes_delta": 8545734656,
+  "post_cleanup_cache_budget": {
+    "cache_bytes": {
+      "packages/qiongli-native/target/debug/deps": 0,
+      "packages/qiongli-native/target/debug/incremental": 0,
+      "packages/qiongli-lite-mcp/target/debug/deps": 0,
+      "packages/qiongli-lite-mcp/target/debug/incremental": 0,
+      "packages/qiongli-lite-mcp/target/release/deps": 0
+    },
+    "total_cache_bytes": 0,
+    "free_bytes": 54582833152,
+    "max_cache_bytes": 17179869184,
+    "min_free_bytes": 8589934592,
+    "within_budget": true
+  },
+  "preservation": "Retained file hashes match before and after cleanup.",
+  "release_log": "/tmp/qiongli-closeout-release-glibc235.log",
+  "release_log_sha256": "ca35940c66be862fd92a14e8917c21cb449bbf77a0b1d674023d81eee12f9e5f",
+  "raw_evidence": "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/review",
+  "prior_packaging_attempt": {
+    "source_commit": "1a1b616404ef4bc74046509eb7df6445c9b74adf",
+    "status": "failed-before-package-qualification",
+    "cli_passed": 47,
+    "mcp_passed": 9,
+    "strict_clippy": "passed",
+    "binary_build": "passed",
+    "failure": "Missing auditwheel release-tool executable; Linux wheel audit not completed.",
+    "log": "/tmp/qiongli-closeout-release-fourth.log",
+    "log_sha256": "5a41ae5ab7244d5969b720b4d8bd79070f92719f681e21724dfd4f0f95583e2f"
+  },
+  "release_tools": {
+    "environment": "Task-local release-python directory only; existing user Python used for ensurepip/venv support.",
+    "initial_venv_failure": "System /usr/bin/python3 lacks ensurepip; no system package installed.",
+    "tool_install_log": "/tmp/qiongli-closeout-release-tools-target.log",
+    "yaml_install_log": "/tmp/qiongli-closeout-release-yaml.log",
+    "system_or_project_dependencies_changed": false,
+    "versions": {
+      "auditwheel": "6.8.2",
+      "patchelf": "0.19.3.0",
+      "PyYAML": "6.0.3"
+    }
+  },
+  "rejected_glibc_host_build": {
+    "source_commit": "1a1b616404ef4bc74046509eb7df6445c9b74adf",
+    "status": "rejected-incompatible-host-build",
+    "format": "passed",
+    "strict_clippy": "passed",
+    "cli_passed": 47,
+    "mcp_passed": 9,
+    "required_glibc_symbols": [
+      "pidfd_spawnp@GLIBC_2.39",
+      "pidfd_getpid@GLIBC_2.39"
+    ],
+    "advertised_baseline": "glibc 2.35",
+    "auditwheel": "correctly refused manylinux_2_35_aarch64",
+    "log": "/tmp/qiongli-closeout-release-fifth.log",
+    "log_sha256": "43cd8c823272b0d5e2b8d55a0c4338208a0afed277b4feec6ec7ef31403ccc79",
+    "next": "Use CI Ubuntu 22.04 and Rust 1.97 baseline; no retagging or weakened audit."
+  },
+  "container_release": {
+    "exit_code": 0,
+    "elapsed_seconds": 833.6856174189597,
+    "image_id": "53c8eb02235b2dec8d409a5913fee53fe043a5e6d3d7bc46274758697c6bd7e4",
+    "source_commit": "1a1b616404ef4bc74046509eb7df6445c9b74adf",
+    "scope": "Ubuntu 22.04/glibc 2.35; CI Rust 1.97; no network, no credentials or research packet mount; separate target cache.",
+    "log": "/tmp/qiongli-closeout-release-glibc235.log"
+  },
+  "remaining": [
+    "Human complete bilingual example feedback, languages read, reviewer role and actual reading/editing time.",
+    "Exact-source four-target distribution qualification and requested release-source integration.",
+    "Publication and announcement remain separate decisions; no push, tag or publication occurred."
+  ]
+}

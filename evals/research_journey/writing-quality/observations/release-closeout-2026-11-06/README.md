@@ -107,3 +107,37 @@ still set their own overrides. The complete release CLI and MCP suites then pass
 a test isolation repair; production discovery and custom Host paths are unchanged.
 The previous release build was terminated (exit 143) before test results or assets;
 its log records no compiler error and does not establish the termination cause.
+
+
+### Local 2.6.0 candidate and cache cleanup
+
+Clean source `1a1b6164` passes the supported release owner for
+Linux ARM64: format, strict Clippy, 47 CLI and 9 MCP tests, extracted archive
+smoke, clean npm/wheel installs and both Host Plugin packages. The five artifacts,
+manifest and checksum list agree. The same extracted binary additionally passes
+both existing saved-handoff/summary recovery journeys, including current-context
+reads and stale-revision/semantic-drift refusal. Exact details are in
+[release-qualification.json](release-qualification.json).
+
+The first packaging attempt lacks `auditwheel`; the system Python also lacks
+`ensurepip`. These environment failures remain recorded. The final retry uses
+the existing Python and task-local auditwheel/patchelf/PyYAML tools. The host
+build then correctly fails the glibc 2.35 audit because of two versioned glibc
+2.39 symbols. The successful candidate uses an isolated Ubuntu 22.04/glibc 2.35
+environment with CI Rust 1.97, no network or credentials, and its own target cache.
+Host system packages and project dependencies remain unchanged.
+
+After builders stop, cleanup removes only ignored debug dependency/incremental
+directories in the original and private checkout: 8,816,647,564
+logical bytes, with 8,545,734,656 bytes of observed disk space recovered.
+All 45 retained release, executable, project and
+evaluation files match their pre-cleanup hashes. Other target trees and user
+configuration remain intact. The read-only cache-budget check passes afterward.
+
+This is an unpublished current-target candidate. Human bilingual review, actual
+reading/editing time and reviewer role are still pending; model judgments and
+the anonymous key remain sealed. The next increment is to adjudicate that real
+feedback, then qualify the exact release source across the advertised targets
+under the requested publication workflow. No program acceptance, remote push,
+tag, publication or announcement is implied. Later bookkeeping changes do not
+change the named artifact source or reuse its evidence for different bytes.
