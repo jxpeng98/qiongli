@@ -1,0 +1,441 @@
+{
+  "source_commit": "e0f3d329d02537c03ceec195ce99be238e7fc3b1",
+  "private_checkout": "/home/hermes/qiongli-release-260-20261106-private",
+  "cache_copy_retry_exit_code": 0,
+  "source_identity_matches": true,
+  "working_tree_clean": true,
+  "old_full_unit_result": {
+    "passed": 231,
+    "failed": 37,
+    "ignored": 3,
+    "log": "/tmp/qiongli-closeout-toolchain-unit-private.log"
+  },
+  "initial_hung_attempt": "/tmp/qiongli-closeout-toolchain-unit.log",
+  "initial_single_case_diagnosis": "/tmp/qiongli-closeout-unit-diagnosis.log",
+  "tightening_only_target_dirs_was_insufficient": "/tmp/qiongli-closeout-unit-diagnosis-private.log",
+  "root_cause": "Approved materialization checks the entire ancestor chain. Original workspace ancestors have mode 0775; changing only fixture/cache directories does not meet that contract. Private home checkout uses the same source with safe ancestor modes.",
+  "bounded_wait_fix": "e0f3d329 replaces only the test synchronization barriers with channels and timeout; production behavior unchanged.",
+  "private_copy_retry": {
+    "record": "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/review/private-copy-retry.json",
+    "complete_retry_log": "/tmp/qiongli-closeout-cache-copy-retry.log",
+    "complete_retry_exit_code": 0
+  },
+  "private_full_unit_log": "/tmp/qiongli-closeout-secure-unit-retry.log",
+  "same_source_private_unit_result": {
+    "passed": 264,
+    "failed": 4,
+    "ignored": 3,
+    "log": "/tmp/qiongli-closeout-secure-unit-retry.log"
+  },
+  "remaining_four": {
+    "diagnosis": "Four same-UID host executable links return EACCES; the production process guard correctly refuses incomplete inspection.",
+    "host_inspection": {
+      "own_uid_processes": 92,
+      "unreadable_executable_entries": [
+        {
+          "pid": 965,
+          "errno": 13
+        },
+        {
+          "pid": 967,
+          "errno": 13
+        },
+        {
+          "pid": 4016959,
+          "errno": 13
+        },
+        {
+          "pid": 4155468,
+          "errno": 13
+        }
+      ],
+      "scope": "Only own-UID status and executable-link readability; no process arguments or private file contents read."
+    },
+    "failed_isolation_attempt": {
+      "scope": "Controlled PID/user namespace tests only; host-wide update guard still refuses unreadable executable entries. No production behavior changed.",
+      "results": [
+        {
+          "case": "linux_process_guard_",
+          "exit_code": 101,
+          "elapsed_seconds": 0.03215523809194565,
+          "log": "/tmp/qiongli-closeout-proc-linux-process.log",
+          "argv": [
+            "bwrap",
+            "--die-with-parent",
+            "--new-session",
+            "--unshare-user",
+            "--uid",
+            "1003",
+            "--gid",
+            "1003",
+            "--unshare-pid",
+            "--as-pid-1",
+            "--unshare-net",
+            "--ro-bind",
+            "/",
+            "/",
+            "--bind",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "--bind",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests",
+            "--proc",
+            "/proc",
+            "--setenv",
+            "TMPDIR",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests",
+            "--",
+            "/home/hermes/qiongli-release-260-20261106-private/packages/qiongli-native/target/debug/deps/qiongli-28e6e5dddb9c0db6",
+            "linux_process_guard_",
+            "--nocapture"
+          ]
+        },
+        {
+          "case": "update_reconcile::tests::cli_pair_activation_recovers_both_files_and_rejects_incomplete_journals",
+          "exit_code": 101,
+          "elapsed_seconds": 0.2674876709934324,
+          "log": "/tmp/qiongli-closeout-proc-cli-pair.log",
+          "argv": [
+            "bwrap",
+            "--die-with-parent",
+            "--new-session",
+            "--unshare-user",
+            "--uid",
+            "1003",
+            "--gid",
+            "1003",
+            "--unshare-pid",
+            "--as-pid-1",
+            "--unshare-net",
+            "--ro-bind",
+            "/",
+            "/",
+            "--bind",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "--bind",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests",
+            "--proc",
+            "/proc",
+            "--setenv",
+            "TMPDIR",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests",
+            "--",
+            "/home/hermes/qiongli-release-260-20261106-private/packages/qiongli-native/target/debug/deps/qiongli-28e6e5dddb9c0db6",
+            "update_reconcile::tests::cli_pair_activation_recovers_both_files_and_rejects_incomplete_journals",
+            "--exact",
+            "--nocapture"
+          ]
+        },
+        {
+          "case": "update_reconcile::tests::native_activation_and_recovery_refuse_live_cli_files",
+          "exit_code": 101,
+          "elapsed_seconds": 0.1646025818772614,
+          "log": "/tmp/qiongli-closeout-proc-live-cli.log",
+          "argv": [
+            "bwrap",
+            "--die-with-parent",
+            "--new-session",
+            "--unshare-user",
+            "--uid",
+            "1003",
+            "--gid",
+            "1003",
+            "--unshare-pid",
+            "--as-pid-1",
+            "--unshare-net",
+            "--ro-bind",
+            "/",
+            "/",
+            "--bind",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "--bind",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests",
+            "--proc",
+            "/proc",
+            "--setenv",
+            "TMPDIR",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests",
+            "--",
+            "/home/hermes/qiongli-release-260-20261106-private/packages/qiongli-native/target/debug/deps/qiongli-28e6e5dddb9c0db6",
+            "update_reconcile::tests::native_activation_and_recovery_refuse_live_cli_files",
+            "--exact",
+            "--nocapture"
+          ]
+        }
+      ]
+    },
+    "corrected_isolation": {
+      "scope": "Controlled PID/user namespace with one proc mount and a proper device mount. Host-wide guard still refuses unreadable entries; product code unchanged.",
+      "previous_attempt": "Root bind inherited a second proc mount and did not provide a usable private /dev. Preserve the failed attempt; fix the test environment only.",
+      "results": [
+        {
+          "case": "linux_process_guard_",
+          "exit_code": 0,
+          "elapsed_seconds": 0.06555960583500564,
+          "log": "/tmp/qiongli-closeout-proc-valid-linux-process.log",
+          "argv": [
+            "bwrap",
+            "--die-with-parent",
+            "--new-session",
+            "--unshare-user",
+            "--uid",
+            "1003",
+            "--gid",
+            "1003",
+            "--unshare-pid",
+            "--as-pid-1",
+            "--unshare-net",
+            "--ro-bind",
+            "/usr",
+            "/usr",
+            "--symlink",
+            "usr/bin",
+            "/bin",
+            "--symlink",
+            "usr/sbin",
+            "/sbin",
+            "--symlink",
+            "usr/lib",
+            "/lib",
+            "--ro-bind",
+            "/etc",
+            "/etc",
+            "--ro-bind",
+            "/home",
+            "/home",
+            "--bind",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "--bind",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests-valid",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests-valid",
+            "--proc",
+            "/proc",
+            "--dev",
+            "/dev",
+            "--chdir",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "--setenv",
+            "TMPDIR",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests-valid",
+            "--",
+            "/home/hermes/qiongli-release-260-20261106-private/packages/qiongli-native/target/debug/deps/qiongli-28e6e5dddb9c0db6",
+            "linux_process_guard_",
+            "--nocapture"
+          ]
+        },
+        {
+          "case": "update_reconcile::tests::cli_pair_activation_recovers_both_files_and_rejects_incomplete_journals",
+          "exit_code": 0,
+          "elapsed_seconds": 0.9205107458401471,
+          "log": "/tmp/qiongli-closeout-proc-valid-cli-pair.log",
+          "argv": [
+            "bwrap",
+            "--die-with-parent",
+            "--new-session",
+            "--unshare-user",
+            "--uid",
+            "1003",
+            "--gid",
+            "1003",
+            "--unshare-pid",
+            "--as-pid-1",
+            "--unshare-net",
+            "--ro-bind",
+            "/usr",
+            "/usr",
+            "--symlink",
+            "usr/bin",
+            "/bin",
+            "--symlink",
+            "usr/sbin",
+            "/sbin",
+            "--symlink",
+            "usr/lib",
+            "/lib",
+            "--ro-bind",
+            "/etc",
+            "/etc",
+            "--ro-bind",
+            "/home",
+            "/home",
+            "--bind",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "--bind",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests-valid",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests-valid",
+            "--proc",
+            "/proc",
+            "--dev",
+            "/dev",
+            "--chdir",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "--setenv",
+            "TMPDIR",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests-valid",
+            "--",
+            "/home/hermes/qiongli-release-260-20261106-private/packages/qiongli-native/target/debug/deps/qiongli-28e6e5dddb9c0db6",
+            "update_reconcile::tests::cli_pair_activation_recovers_both_files_and_rejects_incomplete_journals",
+            "--exact",
+            "--nocapture"
+          ]
+        },
+        {
+          "case": "update_reconcile::tests::native_activation_and_recovery_refuse_live_cli_files",
+          "exit_code": 0,
+          "elapsed_seconds": 0.4654937779996544,
+          "log": "/tmp/qiongli-closeout-proc-valid-live-cli.log",
+          "argv": [
+            "bwrap",
+            "--die-with-parent",
+            "--new-session",
+            "--unshare-user",
+            "--uid",
+            "1003",
+            "--gid",
+            "1003",
+            "--unshare-pid",
+            "--as-pid-1",
+            "--unshare-net",
+            "--ro-bind",
+            "/usr",
+            "/usr",
+            "--symlink",
+            "usr/bin",
+            "/bin",
+            "--symlink",
+            "usr/sbin",
+            "/sbin",
+            "--symlink",
+            "usr/lib",
+            "/lib",
+            "--ro-bind",
+            "/etc",
+            "/etc",
+            "--ro-bind",
+            "/home",
+            "/home",
+            "--bind",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "--bind",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests-valid",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests-valid",
+            "--proc",
+            "/proc",
+            "--dev",
+            "/dev",
+            "--chdir",
+            "/home/hermes/qiongli-release-260-20261106-private",
+            "--setenv",
+            "TMPDIR",
+            "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/proc-tests-valid",
+            "--",
+            "/home/hermes/qiongli-release-260-20261106-private/packages/qiongli-native/target/debug/deps/qiongli-28e6e5dddb9c0db6",
+            "update_reconcile::tests::native_activation_and_recovery_refuse_live_cli_files",
+            "--exact",
+            "--nocapture"
+          ]
+        }
+      ]
+    },
+    "result": "All four formerly failing cases pass in a controlled PID/user namespace; the existing ambiguous-process negative case also passes. No production process-guard change."
+  },
+  "platform_unit_result": {
+    "passed": 138,
+    "failed": 0,
+    "log": "/tmp/qiongli-closeout-secure-platform.log"
+  },
+  "application_coverage": "264 passing cases in the private checkout plus the remaining four passing cases in a correctly isolated process environment; 3 existing manual tests remain ignored. This is combined scoped evidence, not a single full-suite pass or proof that this shared host permits managed replacement.",
+  "source_repairs": {
+    "62800842": "Use fixed-size slice chunks without suppressing Rust 1.99 Clippy or changing input guards.",
+    "e0f3d329": "Bound the cancellation test handshake; early fixture failures no longer hang the test indefinitely."
+  },
+  "first_release_attempt": {
+    "attempt": "release-2.6.0",
+    "source_commit": "54ce148ab900c28622011d281194f76df6e24645",
+    "rustc": "1.99.1 (58cf8f9c3 2026-10-13)",
+    "outcome": "failed at strict Clippy before packages were produced",
+    "cause": "Rust 1.99 chunks_exact_to_as_chunks lint; first platform decoders, then CLI parsers. Equivalent typed slice grouping resolves it without suppressing warnings.",
+    "logs": [
+      "/tmp/qiongli-closeout-release.log",
+      "/tmp/qiongli-closeout-clippy-repair.log",
+      "/tmp/qiongli-closeout-clippy-repair-2.log"
+    ],
+    "staging": "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/release-2.6.0",
+    "strict_clippy_retry": "passed: same workspace/all-targets/current-target command with -D warnings",
+    "next": "Complete related unit tests, local ff integration and a fresh release-owner run in a new staging directory."
+  },
+  "coordinator_copy_failure": {
+    "initial_copy_exit_code": 1,
+    "cause": "Coordinator moved the scratch checkout before the asynchronous cache copy had completed; cp reported missing destination metadata paths. No qualification result accepted.",
+    "stopped_private_cargo": 4146248,
+    "stopped_owned_children": [],
+    "repair": "Stop only the private scratch build, remove its incomplete copied target cache, copy stable original caches to the final private location and await completion before restarting.",
+    "original_sources_and_evidence_preserved": true
+  },
+  "directory_permission_repair": {
+    "changes": [
+      {
+        "path": "/home/hermes/repos/jxpeng98/qiongli/packages/qiongli-native/target/debug/deps",
+        "before": "0775",
+        "after": "0700",
+        "content_deleted": false
+      },
+      {
+        "path": "/home/hermes/repos/jxpeng98/qiongli/packages/qiongli-native/target/antigravity-bundle-tests",
+        "before": "0775",
+        "after": "0700",
+        "content_deleted": false
+      },
+      {
+        "path": "/home/hermes/repos/jxpeng98/qiongli/packages/qiongli-native/target/antigravity-installer-tests",
+        "before": "0775",
+        "after": "0700",
+        "content_deleted": false
+      },
+      {
+        "path": "/home/hermes/repos/jxpeng98/qiongli/packages/qiongli-native/target/automatic-source-tests",
+        "before": "0775",
+        "after": "0700",
+        "content_deleted": false
+      },
+      {
+        "path": "/home/hermes/repos/jxpeng98/qiongli/packages/qiongli-native/target/local-host-cache-8",
+        "before": "0775",
+        "after": "0700",
+        "content_deleted": false
+      },
+      {
+        "path": "/home/hermes/repos/jxpeng98/qiongli/packages/qiongli-native/target/pi-installer-tests",
+        "before": "0775",
+        "after": "0700",
+        "content_deleted": false
+      },
+      {
+        "path": "/home/hermes/repos/jxpeng98/qiongli/packages/qiongli-native/target/qiongli-codex-plugin-tests",
+        "before": "0775",
+        "after": "0700",
+        "content_deleted": false
+      }
+    ],
+    "basis": "Identified ignored build/test directories, all owned by current user; tighten directory permissions after stopping the failed test. No file content or product guard changed."
+  },
+  "limits": [
+    "Installed-Host acceptance, four-target distribution and publication remain separate.",
+    "The original shared-host guard refusal stays valid; process visibility was not weakened.",
+    "Human complete-article review and actual timing remain pending."
+  ],
+  "final_strict_clippy": {
+    "result": "passed",
+    "log": "/tmp/qiongli-closeout-secure-clippy.log",
+    "source_commit": "e0f3d329d02537c03ceec195ce99be238e7fc3b1",
+    "scope": "workspace excluding qiongli-ui, all targets, Linux ARM64, no-default-features, offline, -D warnings"
+  }
+}

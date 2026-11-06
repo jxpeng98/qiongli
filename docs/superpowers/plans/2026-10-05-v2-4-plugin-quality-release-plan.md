@@ -4432,3 +4432,38 @@ qualification and explicit cache cleanup follow on the clean merged candidate.
 The final receipt will identify those exact bytes. Human feedback/adjudication,
 four-target remote distribution and publication remain separate pending work.
 Raw evidence: `/tmp/qiongli-writing-closeout-20261106-fmpzj1jt`.
+
+
+### Release preflight repairs and environment qualification
+
+The first clean 2.6.0 candidate `54ce148a` stops at strict Clippy under Rust 1.99.1.
+Source `62800842` makes equivalent fixed-size slice grouping changes across the
+hex decoders, CLI parsers and release examples, retaining length/remainder and
+signature guards. `e0f3d329` bounds only a cancellation-test handshake that could
+otherwise wait forever after an early fixture failure. Production update and
+process-inspection behavior is unchanged.
+
+The [preflight record](../../../evals/research_journey/writing-quality/observations/release-closeout-2026-11-06/release-preflight.json)
+retains the original hung attempt, a completed 231-pass/37-fail/3-ignored run,
+the failed narrow permission repair, and the exact same-source private checkout.
+The original workspace has group-writable ancestors; approved materialization
+correctly refuses that chain. Seven identified generated cache/test directories
+are tightened without deleting contents, but parent permissions remain unchanged.
+The private checkout under a secure home chain passes 264 cases, leaving four
+process-visibility cases and the three existing manual skips. Four same-UID host
+executable links are unreadable; the guard correctly fails closed. A controlled
+PID/user namespace with one proc mount and a proper device mount passes all four
+remaining cases plus the original ambiguous-process negative case. This is
+combined scoped evidence, not a single full-suite pass or permission to replace
+executables on this shared host.
+
+The first private-cache transfer was moved before its asynchronous copy completed.
+It is retained as a coordinator failure, with no qualification claim: the private
+build was stopped, its incomplete cache removed, and a completed copy verified
+before the same-source retry. No original source, research record or released
+binary was removed. Final strict workspace/current-target Clippy and all 138
+platform unit tests pass; format passes. The regenerated content pack is unchanged.
+Local fast-forward integration retains these results and the pending human review.
+A new current-target release-owner run must use the clean private `2.x` checkout;
+its source, assets and cache cleanup will be recorded separately. No publication,
+remote synchronization or acceptance promotion occurs.

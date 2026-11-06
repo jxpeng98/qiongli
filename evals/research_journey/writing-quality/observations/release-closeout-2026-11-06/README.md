@@ -86,3 +86,13 @@ and cache cleanup are recorded separately at integration. Other target platforms
 remote distribution and publication require their own exact-source evidence and
 authority. Full/Lite tools, research schemas, configured models and existing
 write approvals remain unchanged.
+
+
+The [release preflight record](release-preflight.json) adds Rust 1.99 compatibility
+and bounded test synchronization repairs. It preserves the original workspace
+permission failures, a corrected private-checkout run and the four controlled
+process-namespace retries. The combined application evidence covers 268 passing
+cases with three existing manual skips; 138 platform cases and final strict
+Clippy pass. This is not a single full-suite result or a claim that the shared
+host permits managed executable replacement. The first incomplete private-cache
+copy and its corrected retry are recorded as coordinator work, not product faults.
