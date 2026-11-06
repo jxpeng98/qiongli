@@ -4091,3 +4091,46 @@ publication or acceptance promotion. Three randomly labelled manuscripts, public
 PDFs and a blank human form are prepared but unsent. Next obtain authorized human/
 disciplinary judgment and actual editing time before claiming user-perceived
 quality gains or choosing the next content regression.
+
+## November 6 — Scoped human feedback and Chinese expression
+
+The user prefers B for the single Chinese Discussion paragraph shown in the
+[first-pass follow-up](../../../evals/research_journey/writing-quality/observations/multipaper-2026-10-23/README.md#november-6--human-preference-for-one-chinese-paragraph),
+while finding further room for improvement. Preserve the exact question, three
+labelled excerpts and manuscript/request hashes. A/C are identical at this scope;
+the submitted body equals B, with one added line whose intended placement is
+unspecified. No specific preference reason or editing time was supplied. Record
+the response separately from the prior whole-document model judgment and frozen
+manuscript selection; do not promote it to English, source or disciplinary review.
+
+The shared G4/J2 scholarly-voice reference gains a bilingual synthetic example
+that makes participants, practice topics and task comparisons explicit. The
+review criteria judge reader effort rather than brevity and bind human preference
+to the actual unit shown. The coordinator's further wording proposal retains
+both possible mechanisms, the cross-study inference, lack of a direct comparison,
+authors' separate interpretations, causal-attribution limit and exact citations.
+It is not human approved or applied to the frozen manuscript. This feedback-driven
+example is an adaptive regression, not a fresh held-out model experiment.
+
+The supported `update_qiongli_core_lock` owner binds 446 resources at local version
+2.5.3 to content source `81e2e5ad3f45c9fc8c291b41fc1e83e9c0b250a5`, content root
+`3ab80b24604ad5f8a9a41ea5756a3aa57c7ff63f55f68f5906ab9aea9ec84eac` and pack
+`6b4a969ea234a50449d544c3a63eb557a540eaa636289e6d0327d6dfb542da98`.
+This development binding does not replace a published pack or installed Skill.
+
+Validation: 43 affected tests pass — 19 routing/structure, 16 native content
+loader/writer/embedded-content, one actual native CLI embedded-pack check and
+seven program-ledger checks. Skill quick validation, generated-index freshness,
+feedback/input hashes, unchanged original observation, proposal consistency and
+exact content-source binding also pass. Cache budget is within bounds; no cleanup
+is needed. Existing negative fixtures retain digest, path and malformed-input
+checks. Test logs are `/tmp/qiongli-chinese-feedback-{content-tests,native-content,
+native-app,program-tests}.log`; no new Antigravity or model batch is claimed.
+
+Review the final diff and use the frozen-source guard before local fast-forward
+integration into `2.x`. Only CLI-405 progress/date change in the ledger; all task
+states, dependencies and 198 populated evidence/commit/run fields are preserved.
+Configured models and native write/CAS owners remain unchanged. No push,
+publication or acceptance promotion. Next validate on an unseen passage and
+obtain human feedback on the further wording; whole-manuscript/English judgment
+and actual editing time remain open.

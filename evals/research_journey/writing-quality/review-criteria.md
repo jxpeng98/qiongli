@@ -16,6 +16,20 @@ changed. These synthetic cases do not represent the user's unavailable manuscrip
 | Edit fidelity and scope | B preserves 120 firms, 0.18, p = .03, association, causal limitation and [S5], without inventing the construct or research details. No unsolicited project, bibliography, search or checklist. C removes/narrows unsupported global, autonomy and priority claims. |
 
 Language/depth judgments are qualitative review, not automatic factual scores.
+Compare how readily a reader can identify the actors, activities, comparison and
+inference. A longer version can be clearer when it makes supplied relationships
+explicit; neither brevity nor expansion earns a preference by itself. Separate
+necessary mechanism/causal qualifications from empty defensive framing.
+
+Bind human feedback to the actual labelled passage, language and question shown.
+Record only expressed preferences and reasons; keep model diagnoses separate.
+A one-paragraph preference is not a whole-document ranking, a bilingual score or
+a source-fidelity verdict. Preserve earlier model judgments with their original
+scope. A pasted preferred paragraph is not a new human rewrite when its body is
+unchanged; distinguish any added heading or note without guessing its intended
+placement. Unreported editing time stays unknown. A follow-up wording proposal
+needs its own review before being described as human approved.
+
 Measure length using the frozen task's unit and exclusions. Excluding standalone
 source-anchor lines retains inline anchors; removing all anchors is a different
 metric and must be labelled separately. If a counter used the wrong convention,

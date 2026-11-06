@@ -3,6 +3,8 @@
 This increment tests a bilingual literature review and discussion, one actual
 external language edit, and a fresh session continuing from a bound review packet.
 It prepares anonymous human-review materials without claiming a human judgment.
+The November 6 follow-up below records a subsequently received, single-paragraph
+human preference; the October 23 results remain unchanged.
 It reuses the current plugin-quality plan and existing G4/J2 and synthesis rules.
 Local evidence packets do not replace native project discovery, save approval/CAS
 or installed-Plugin qualification. Correct original wording remains eligible for
@@ -179,11 +181,49 @@ promotion is part of this increment.
 `human-review/` contains three randomly labelled complete manuscript versions,
 original public PDFs and a blank Chinese review form. Writer/editor identities,
 automatic verdicts and the coordinator's mapping are outside that packet. No
-materials have been sent to others; human preference and actual review/editing
-time remain pending. The next increment is authorized human/disciplinary feedback
+materials had been sent to others at the October 23 closeout; human preference and
+actual review/editing time were pending. The next increment was human/disciplinary feedback
 on this packet, followed by a regression chosen from that feedback. This single
 three-paper unit and same-model review do not establish general quality gains.
 
 Exact input/output hashes, original judgments, corrections and local paths are in
 [observation.json](observation.json). Full local evidence is retained at
 `/home/hermes/qiongli-multipaper-20261023-g0tjnel6`.
+
+## November 6 — Human preference for one Chinese paragraph
+
+The user prefers **B** for Discussion paragraph 2, while stating that its Chinese
+still needs improvement. The first-pass request compares A/C (identical at this
+paragraph) with B. The [feedback record](human-feedback-2026-11-06.json) preserves
+the question, exact excerpts, manuscript/excerpt/request hashes and response.
+The supplied body equals B exactly; the added line is `任务设计上的区别和差异`.
+Its intended placement is unspecified. The proposal below treats it as a possible
+topic label, without recording an invented human sentence edit or reason.
+
+This is one human preference for Chinese expression in one paragraph. Whole-text
+ranking, English, bilingual equivalence, source fidelity and disciplinary
+acceptance remain unreviewed by this user feedback; actual editing time is
+unknown. The earlier model preference for the original Chinese whole document
+retains its original scope. The full selected manuscript and all frozen outputs
+remain unchanged.
+
+The coordinator's diagnosis is that B names the task design, participant progress
+and practice topics more clearly and connects the comparison to the inference.
+These are model explanations of the preference, not reasons supplied by the user.
+The shared G4/J2 scholarly-voice reference now illustrates this distinction with
+a bilingual synthetic example. Review criteria distinguish reader effort from
+length and bind future human feedback to its actual scope. The example is an
+adaptive regression, not a new held-out test of the updated guidance.
+
+### Further wording proposal — not yet human reviewed
+
+Suggested topic label: **任务设计的差异**. This removes the synonymous pair in the
+added line; it does not add a heading to the frozen manuscript's required layout.
+
+> 任务设计的差异为理解上述表面分歧提供了依据，但这一解释尚未得到直接检验。Kazemitabaar等人将代码生成与无AI辅助的修改任务交替安排，并允许进度较快的参与者接触更多练习主题；Shen等人则只安排了两项新库任务，参与者可以全程委托AI求解。前一种安排可能通过后续的独立练习，补足参与者在代码生成阶段省略的思考；后一种安排则可能减少诊断概念问题的机会。两种教学设计并未在同一实验中直接比较，因此，上述解释是本综述的跨研究推论。两篇论文的作者分别指出，独立修改与自主排错可能有助于学习，但现有实验设计尚不能将学习收益或损失唯一归因于这些活动。〔Kazemitabaar2023 pp.8,13〕〔Shen2026 pp.8,17–19〕
+
+The coordinator's B-to-proposal comparison finds no material drift: both possible
+mechanisms, lack of a direct experimental comparison, synthesis attribution,
+authors' separate interpretations and the causal-attribution limit remain.
+Both citation anchors are exact. This is a local expression review, not another
+independent source check, Antigravity run or bilingual acceptance judgment.

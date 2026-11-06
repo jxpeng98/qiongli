@@ -52,21 +52,29 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — October 23, 2026
+## Current execution horizon — November 6, 2026
 
-The current bounded request validates a three-paper bilingual synthesis and a
-real language-edit return followed by fresh-session recovery. The existing
-[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#october-23--multi-paper-writing-and-recovered-language-review)
-records coherent argument in both versions, inherited outcome/measurement errors
-and additional drift plus Chinese length overflow in the return. Select the
-original with localized source-backed repairs and valid language labels; preserve
-raw failures and separate evaluation errata. Reusable local freeze/recover helpers
-verify current inputs and refuse a stale original without changing native save/CAS
-owners. Three anonymous review versions and blank forms are prepared but unsent;
-human judgment and actual editing time are the next quality evidence. Canonical
-content, pack and configured models remain unchanged; Antigravity model identity
-is unknown. Integrate locally into `2.x` without push, publication or acceptance
-promotion. This observation does not establish general quality or speed gains.
+The current bounded increment incorporates the user's preference for B in one
+Chinese Discussion paragraph from the three-paper observation. The existing
+[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-6--scoped-human-feedback-and-chinese-expression)
+preserves the exact feedback and separates it from the earlier whole-document
+model judgment. The shared G4/J2 reference gains a bilingual example of explicit
+subjects and comparisons without inventing premises or deleting necessary limits.
+Review criteria bind human preference to its actual passage, language and question;
+the further wording proposal is not yet human reviewed. Regenerate the development
+content pack through its existing owner. Configured models and native write/CAS
+owners remain unchanged. Integrate locally into `2.x` without push, publication or
+acceptance promotion. Next validate the revised expression on an unseen passage
+and obtain human feedback on the proposed wording; English and whole-manuscript
+judgment and actual editing time remain open. This adaptive example does not
+establish general quality gains.
+
+The preceding three-paper increment completes a real external edit and fresh
+review-packet recovery, including stale-original refusal. It preserves inherited
+outcome/measurement errors, return-introduced drift and length overflow, separate
+evaluation errata, and an original-based selection with localized source repairs.
+That frozen selection and the original review remain unchanged. Antigravity model
+identity is unknown.
 
 The preceding eight-section public-paper increment completes a real Codex →
 Antigravity → Codex handoff, with seven passing dimensions per original/return and
