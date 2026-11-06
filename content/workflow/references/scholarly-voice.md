@@ -8,6 +8,14 @@ choose the clearest wording appropriate to the reader. An academic register does
 not justify obscure vocabulary or a harder-to-follow argument. This reference
 does not require starting a separate J2 task.
 
+## Optional style choices
+
+For a named style, supplied voice sample, parallel versions or a request to keep
+several styles, use `references/writing-styles.md`. It offers `concise` (简洁流畅)
+and `explanatory` (细节展开), supports scoped custom samples and retains multiple
+accepted versions. All choices share the meaning checks below. Without a style
+request, preserve a sound original voice; no extra selection step is required.
+
 ## Shared editing decisions
 
 - Keep names, numbers, quotations, equations, citations, terms, negation,

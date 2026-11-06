@@ -239,6 +239,7 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
             )
             for relative in (
                 "references/scholarly-voice.md",
+                "references/writing-styles.md",
                 "skills/G_compliance/tone-normalizer.md",
                 "skills/J_proofread/human-voice-rewriter.md",
                 "skills/F_writing/meta-optimizer.md",

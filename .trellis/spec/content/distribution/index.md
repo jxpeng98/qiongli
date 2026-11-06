@@ -136,6 +136,11 @@ Connected-section review distinguishes inherited manuscript inconsistencies from
 editor-introduced drift and rechecks changed source/candidate spans before reuse.
 Abstract, outcome, population and timing consistency are part of the requested
 unit's meaning check; they do not impose a new artifact or another style pass.
+Its optional `writing-styles.md` reference owns concise/explanatory choices,
+scoped custom samples and retained alternatives. Style fit is separate from
+meaning integrity; no global default follows from one preference. Requested
+project persistence reuses the existing context/handoff save and resume owners,
+without a new native setting, artifact schema or installed-profile mutation.
 
 Manuscript-first claim detection and reverse lookup are owned by the existing
 `evidence-verification.md` reference and consumed by Stage F during drafting and
