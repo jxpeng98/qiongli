@@ -1,0 +1,1211 @@
+{
+  "date": "2026-11-06",
+  "base_commit": "2a5e5682effd66fa56f7116084331d73e1e5c98e",
+  "canonical_commit": "1062203c",
+  "scope": "Actual isolated native saved-style recovery; complete public-source bilingual analytical example; real Host-selected Antigravity return. Reused sources, no held-out or private-manuscript claim.",
+  "raw_directory": "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt",
+  "saved_project": {
+    "project_id": "prj_722ee9075653027e283e4a763ce9b2c0",
+    "semantic_revision": 3,
+    "artifacts": {
+      "context/research_state.md": {
+        "sha256": "8456d84353a28ab218b365162ef155d65f95243000ac2f8c66f08ecedf6bc4f9",
+        "bytes": 1497
+      },
+      "context/stage_handoff.md": {
+        "sha256": "d99cb2296941764ae5bb47da3038789ac0fb4219169cde157f4f7abd20ebd8ce",
+        "bytes": 2590
+      },
+      "context/stage_summaries/STG-W-STYLES-001.md": {
+        "sha256": "1d92b6a177a62e42dc94198066437541a4546401e067c7988c9475f2718a489e",
+        "bytes": 24272
+      },
+      "sources/Tarlao2022/4ebe75b47277c140fa20708bb6bf1420ab6a4d4f1369e87d8dbee3707c8ed3b5.json": {
+        "sha256": "4ebe75b47277c140fa20708bb6bf1420ab6a4d4f1369e87d8dbee3707c8ed3b5",
+        "bytes": 84841
+      }
+    },
+    "negative_checks": {
+      "results": {
+        "missing-academic": "error: capture consolidation apply requires review timestamp, plan digest, academic approval, and filesystem approval\n\nRun `qiongli project --help` for usage.\n",
+        "missing-filesystem": "error: capture consolidation apply requires review timestamp, plan digest, academic approval, and filesystem approval\n\nRun `qiongli project --help` for usage.\n",
+        "changed-handoff": "error: project-plan-mismatch\n"
+      },
+      "project_and_config_preserved": true
+    },
+    "preview_log_sha256": "482f18e0b0a43fdfb92a11b2106db318d0c8f38a44cba020bdbf3de2ead7928e",
+    "apply_log_sha256": "0a67996a4e1685e083af3e90e98bd81dd861666262553efbad632e57224c5851"
+  },
+  "recovery_attempts": {
+    "recovery": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 128.7720519588329,
+        "timeout_seconds": 1200,
+        "events_sha256": "c843c32c2f00b5593746f79a550fb7f5876e7e69a6edddcac36a70b2c44ce16e",
+        "stderr_sha256": "8c5dfd66fbe7dc4bd28cdb74b97e2c766b51e1ca0a74be3a803aed0745d90555"
+      },
+      "metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "trace_metrics": {
+        "tool_calls": [
+          {
+            "id": "item_1",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 3,
+            "completed_event": 4,
+            "arguments_sha256": "88f5cb5d2088da4f52f3d6d4c3bac13f75e05a6f946a0ec917a2789875371d43",
+            "result_sha256": "27ccb2b5f41720502c4e716b7e634739c026ea7b50502c27d006db66f576524a",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_2",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": false,
+            "status": "failed",
+            "started_event": 5,
+            "completed_event": 7,
+            "arguments_sha256": "ad24099a551210935af6646159bb5747a6dc25058c6ade7f5c0c96935d5c05f0",
+            "result_sha256": "96eb8a9c822d007383985bef3785c7b9742e79f29b0a21019fc4e2c8b99dcce5",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_3",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 6,
+            "completed_event": 8,
+            "arguments_sha256": "c4a395383d3e699bb59c49ddbfc809a2608e2efd5e624d357770c3ae069409d6",
+            "result_sha256": "7a05ec87046cce538673e322f15a63c6998d15ddf75935d1b35d6cabf890b875",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_5",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": false,
+            "status": "failed",
+            "started_event": 10,
+            "completed_event": 13,
+            "arguments_sha256": "ad24099a551210935af6646159bb5747a6dc25058c6ade7f5c0c96935d5c05f0",
+            "result_sha256": "96eb8a9c822d007383985bef3785c7b9742e79f29b0a21019fc4e2c8b99dcce5",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_6",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 11,
+            "completed_event": 14,
+            "arguments_sha256": "984dd4338c42386d64dbad145a117f117a7ec72f3b155ab23c55b6d9a15c8ad2",
+            "result_sha256": "ed83cb6b1bbd36b9567b03e25e9de3f42a46aa2807515812bcb6ea009dc0bcc6",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_7",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 12,
+            "completed_event": 15,
+            "arguments_sha256": "4493bccde656b4db9b8f99eb614ca7e25f3c5a5bdae55fa04ac0f831cabe97bd",
+            "result_sha256": "d0b8a52dbf3561e148fb8d3cd2e9c36c7614bfd3b0d10d2af1652ea5af67e59a",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_8",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 16,
+            "completed_event": 18,
+            "arguments_sha256": "984dd4338c42386d64dbad145a117f117a7ec72f3b155ab23c55b6d9a15c8ad2",
+            "result_sha256": "ed83cb6b1bbd36b9567b03e25e9de3f42a46aa2807515812bcb6ea009dc0bcc6",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_9",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 17,
+            "completed_event": 19,
+            "arguments_sha256": "07b15ef415a4117a193da9c531eeffa283337dc174faca93aa3cb24957d54b01",
+            "result_sha256": "9272ecdce9034b3d5dd1d450062362e2ee1ad53c42cbb828827e2926bfba8799",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_10",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 20,
+            "completed_event": 21,
+            "arguments_sha256": "1fed2f94cffedffca0f9d47853ef271bf614390757985f3c36c65d63c2506ab8",
+            "result_sha256": "4c1b47f85fe40d7f0f1727185a6fdf5e2c258c366392a61c241ee1397cee5576",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          }
+        ],
+        "tool_call_count": 9,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 2,
+        "usage": {
+          "input_tokens": 222668,
+          "cached_input_tokens": 188928,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 4579,
+          "reasoning_output_tokens": 2140
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "answer_sha256": "b8c0fd0100881fd8382effad193a32066bdb2bb6306491ebb284a5a28104edfd",
+      "prompt_sha256": "49249e908e6356971382eb3daaa3082b0cc5adf4c3f07c9fdb81b4436e897734",
+      "delivery": {
+        "rollout_path": "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/profiles/recovery/sessions/2026/11/06/rollout-2026-11-06T18-44-07-01a1b22c-df3d-7b40-8643-7b4136f75225.jsonl",
+        "rollout_sha256": "b9063572c12d53effa1a5ea7297401672e61b807821a0e02b271398b662e6d1b",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "outputs": [
+          {
+            "call_id": "call_a96be1033ab548ac9f1f303c71b2c569",
+            "input_sha256": "4a9bc8549157a24a3a3a99d9302cccca7ff800ede2b6dd516b06dc3154764141",
+            "output_sha256": "d91a345208551c822d2cf4331ba031e9c3c1f4a3f482574915a23d79b5424afb",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_9dbbc1d1dd644f8d97c1909040353e64",
+            "input_sha256": "eeac615ce1c3e5ddb9797c03b2eda2f2e153121ca8fcde071ebe55eabb1176f7",
+            "output_sha256": "4634a310a96c864b792cc28c14d00e9446f2ea1255d330a6ee41f4a2e912c983",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_199dfb5a9c2e466aa76a8280d8156b22",
+            "input_sha256": "31ee8e0553bcca3f78fb36181f2b1e94551a0ab691c010db01f7cefdfcfe86a3",
+            "output_sha256": "84f468ab7dfafd24ca27374c40f5be7806af0381e5b3889829d1d65bbd0e4280",
+            "recognized_envelope": true,
+            "truncation_warning": true,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_ec68e5ab94e34900b8e745453a3dec9d",
+            "input_sha256": "653f3b9a677753638623067808b93cd5c3dd7f716e91ac8d722303efb122b2e6",
+            "output_sha256": "1c0f8d22b0ad45df868cfadc97db47f2588d535708b3448f22fe521e98a59e1b",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_293aa759eeb84535899b7f319464e849",
+            "input_sha256": "a05a63d41cde49189755069e17aaae9c733b11144ef3504d0dcbdae5808d1862",
+            "output_sha256": "9be33682d8f84119f93ae65e49d086b4f7de28bdb4b322d4080db5a911399b37",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_2c9134aeffbd465eb376653eb26a3963",
+            "input_sha256": "7a3b0404abbf69437be3ad35c9edef76a3a6f008d61c5f1e526f3b7d4f176060",
+            "output_sha256": "8d98dbb2eeb15768782b1a503150171d773e9c9fa649cb1a5b9f9132dbe92412",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          }
+        ],
+        "exec_output_count": 6,
+        "truncation_warnings": 1,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "raw_directory": "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/runs/recovery",
+      "outcome": "Failed preference recovery: read-only Graph snapshot returns project-persistence-failed; current saved preference unconfirmed. Historical sample continuation is not a pass."
+    },
+    "override": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 103.73880364513025,
+        "timeout_seconds": 1200,
+        "events_sha256": "2a2cd4fb66a7a74c798798f09c213a50f32d69812710e219d60ba3d5c9aefdbc",
+        "stderr_sha256": "082f7ec3af3a3813ec35ad1bca1422461b7606fe307046992e9a1d51116827c5"
+      },
+      "metrics": {
+        "preservation_equal": false,
+        "image_deliveries": [],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "trace_metrics": {
+        "tool_calls": [
+          {
+            "id": "item_1",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 3,
+            "completed_event": 4,
+            "arguments_sha256": "88f5cb5d2088da4f52f3d6d4c3bac13f75e05a6f946a0ec917a2789875371d43",
+            "result_sha256": "27ccb2b5f41720502c4e716b7e634739c026ea7b50502c27d006db66f576524a",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_3",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 6,
+            "completed_event": 7,
+            "arguments_sha256": "c4a395383d3e699bb59c49ddbfc809a2608e2efd5e624d357770c3ae069409d6",
+            "result_sha256": "7a05ec87046cce538673e322f15a63c6998d15ddf75935d1b35d6cabf890b875",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_2",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": false,
+            "status": "failed",
+            "started_event": 5,
+            "completed_event": 8,
+            "arguments_sha256": "ad24099a551210935af6646159bb5747a6dc25058c6ade7f5c0c96935d5c05f0",
+            "result_sha256": "96eb8a9c822d007383985bef3785c7b9742e79f29b0a21019fc4e2c8b99dcce5",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_5",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 10,
+            "completed_event": 12,
+            "arguments_sha256": "925fb50368309b566bb9452d258ff0b2d6e2ae22454f5bfe2b990a2976d715dc",
+            "result_sha256": "978511ec985bea9065154a51414aa3a673293a4bde4f825573adf96ce568a9d2",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_6",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 11,
+            "completed_event": 13,
+            "arguments_sha256": "36c6c4aac33a02bf90eccdbf70f2241b82de7200cb59c4207fa9d5d94ed7be1d",
+            "result_sha256": "5c88992581b96d0217a6056123503b5586dfca44a2da6075ee365f53093d0ae0",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_4",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": false,
+            "status": "failed",
+            "started_event": 9,
+            "completed_event": 14,
+            "arguments_sha256": "ad24099a551210935af6646159bb5747a6dc25058c6ade7f5c0c96935d5c05f0",
+            "result_sha256": "96eb8a9c822d007383985bef3785c7b9742e79f29b0a21019fc4e2c8b99dcce5",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_8",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 16,
+            "completed_event": 18,
+            "arguments_sha256": "b5e5fab443659f8a49f01e4457b06c4b1f19974abb0ad37ec0a064c24c49c067",
+            "result_sha256": "25678a4a6d5ae5d74b9c338f57f0746c11a87d9a19004d5848dea77a52e3884f",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_9",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 17,
+            "completed_event": 19,
+            "arguments_sha256": "07b15ef415a4117a193da9c531eeffa283337dc174faca93aa3cb24957d54b01",
+            "result_sha256": "9272ecdce9034b3d5dd1d450062362e2ee1ad53c42cbb828827e2926bfba8799",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_10",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 20,
+            "completed_event": 21,
+            "arguments_sha256": "1fed2f94cffedffca0f9d47853ef271bf614390757985f3c36c65d63c2506ab8",
+            "result_sha256": "4c1b47f85fe40d7f0f1727185a6fdf5e2c258c366392a61c241ee1397cee5576",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          }
+        ],
+        "tool_call_count": 9,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 2,
+        "usage": {
+          "input_tokens": 166643,
+          "cached_input_tokens": 138624,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 4098,
+          "reasoning_output_tokens": 2042
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "answer_sha256": "3d8cde51870fbcb928d6a7d0d0c7a78f5abec0df611ab3deedc0d393a8f54972",
+      "prompt_sha256": "676ab42ea276667b19c7be8ac21208297a038e2c135e87173a68602268c00e77",
+      "delivery": {
+        "rollout_path": "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/profiles/override/sessions/2026/11/06/rollout-2026-11-06T18-47-08-01a1b22f-9f6e-7180-aa93-a3de0cf4df58.jsonl",
+        "rollout_sha256": "a52d841b57da3e353b2428f276360ae2f3ed9730e6ba1d0f994aba28f18f68c1",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "outputs": [
+          {
+            "call_id": "call_0e87b776a29c467789829ac8b4831a13",
+            "input_sha256": "50e5bd251124657e5a905a56db834659f9a87217b0f5ec5781637332c6673c53",
+            "output_sha256": "4d8b6f930e560e60fab17585db7790c6ab0914adda1a52fdb4cee644147a581a",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_921ecfc154d54337b692e6d35e031893",
+            "input_sha256": "4d7e01542879a8f72af74c31def8c0ec04a493c9ff60f790456ec9821ccee510",
+            "output_sha256": "cf1c34b68921d13781985529ea5c321ac01eb1f21cab7e5544ff14310ec35598",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_118d469528914044af80ab39099f10db",
+            "input_sha256": "3f96ba0b4281e3ce6c5c03bf8773971da11bf759efaf2f280971c5cb1fc4b2ef",
+            "output_sha256": "dfb89baf501f5f0bc7a71c2574b4b903d890e20b3e35a4a9119651d54dcf4430",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_d5e1f243680e4e4a9103141a6b214b79",
+            "input_sha256": "11dcd81d552f84580816c43ef415afd7f597182ee7da0db02dbc1a8cdde7c315",
+            "output_sha256": "9bfd386a4e2964eb2a8d1fab78324477629690813bc075181cde54c4e4e8fd0c",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_05ea9608eab242db87b60f6253302e76",
+            "input_sha256": "1a1f697c03de7a3907a390f69fd7821d1270db0d8ddeeadc346611f913e502f5",
+            "output_sha256": "0d22f5a74858c34f01955d471f213ce492606f04e1a1a0508c1c757b5653c12f",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          }
+        ],
+        "exec_output_count": 5,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "raw_directory": "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/runs/override",
+      "outcome": "Excluded: preservation assertion failed because the coordinator ran a diagnostic Graph snapshot concurrently and created the derived catalog. Not evidence of a model write or a valid recovery."
+    },
+    "recovery-fixed": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 115.67587296501733,
+        "timeout_seconds": 1200,
+        "events_sha256": "378605591af5199082c23410e4d7c0f398426c853907dd59a6416c48e3bebb35",
+        "stderr_sha256": "e776253ff9e03db021a996eec34153b3374a685a1da2b4fb3519d5e12665ae93"
+      },
+      "metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "trace_metrics": {
+        "tool_calls": [
+          {
+            "id": "item_1",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 3,
+            "completed_event": 4,
+            "arguments_sha256": "8dcccea146a3659165b5b65400f03b4bd3300e8415e10d903e835adaeac11202",
+            "result_sha256": "27ccb2b5f41720502c4e716b7e634739c026ea7b50502c27d006db66f576524a",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_2",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 5,
+            "completed_event": 8,
+            "arguments_sha256": "9d8f8ce683bf55935d5cf35923c51eaafd09b0d23bb89126f2b6d4e9e5eab053",
+            "result_sha256": "cef077b6555066786ecad467d1e3626e561f545ce9767f3427747154c17a6e92",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_3",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 6,
+            "completed_event": 9,
+            "arguments_sha256": "f1c82db3cfed8c6c034f623e5c81d4af1c67912a9cb56d51d6f65c318f05596d",
+            "result_sha256": "7a05ec87046cce538673e322f15a63c6998d15ddf75935d1b35d6cabf890b875",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_4",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 7,
+            "completed_event": 10,
+            "arguments_sha256": "bf7796a7563a10af08c1f0a847cec98f2a59d5adc328f7bb33bd45bc3364af3a",
+            "result_sha256": "7f7c290dd2b24e88352aa7448632adb35c183a489faad116044e28209e6e9762",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_5",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 11,
+            "completed_event": 13,
+            "arguments_sha256": "db61c14557ac99e8bbce1c9380cf2b61324133bc8ef759614cebd1b77d00bfd5",
+            "result_sha256": "ed83cb6b1bbd36b9567b03e25e9de3f42a46aa2807515812bcb6ea009dc0bcc6",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_6",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 12,
+            "completed_event": 14,
+            "arguments_sha256": "08a692302ee6c53ffc1ccb928d8ba9acd00a787d3db60baa0a1b15ca5e93acc9",
+            "result_sha256": "9272ecdce9034b3d5dd1d450062362e2ee1ad53c42cbb828827e2926bfba8799",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_8",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 16,
+            "completed_event": 17,
+            "arguments_sha256": "e65156cdaab5bfb8fb6e9a548291478343cc37edb60f0796b431447bf590719b",
+            "result_sha256": "ed83cb6b1bbd36b9567b03e25e9de3f42a46aa2807515812bcb6ea009dc0bcc6",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_9",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 18,
+            "completed_event": 19,
+            "arguments_sha256": "9d765d6b1d71aee7ef21a731a6139d6fe284c30925c680e07e5caca4f57c3a17",
+            "result_sha256": "d0b8a52dbf3561e148fb8d3cd2e9c36c7614bfd3b0d10d2af1652ea5af67e59a",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_10",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 20,
+            "completed_event": 21,
+            "arguments_sha256": "699319bf9327463eb1d4a02b033f6624d2c0e95b9ef97e71af74140c52c47004",
+            "result_sha256": "9ab5ddce1821546b1ec69ff142e9b539958057ffbd1e2c5c32cb18f8d94d8a85",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_11",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 22,
+            "completed_event": 23,
+            "arguments_sha256": "916c1e2f22940d4e30e2c99f80af131ab69d6d8b20fdfba0f8de9f0e87bdef69",
+            "result_sha256": "4c1b47f85fe40d7f0f1727185a6fdf5e2c258c366392a61c241ee1397cee5576",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          }
+        ],
+        "tool_call_count": 10,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 274801,
+          "cached_input_tokens": 238336,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 3929,
+          "reasoning_output_tokens": 1649
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "answer_sha256": "5e7149fcb48c03d9eb8cab79b5645cbaccc5faa60239dbc6c4f2fa096225fa3d",
+      "prompt_sha256": "c5fa169a9fc12d2beeb37603e6b817a5ea09c7eb05439237b53fcae92f1c8856",
+      "delivery": {
+        "rollout_path": "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/profiles/recovery-fixed/sessions/2026/11/06/rollout-2026-11-06T18-59-41-01a1b23b-1e71-7560-9295-73c56ac5e1a3.jsonl",
+        "rollout_sha256": "5806ba859022da2138842f9e233ba6fdb3e72a77247e4ccf4d9731143faa0292",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "outputs": [
+          {
+            "call_id": "call_f787f2afe4e84133ab2ede402d581a6c",
+            "input_sha256": "20578be015bc73e4fa5922763a8c77b8bfb24b6210c372210fd08d19fe739f3f",
+            "output_sha256": "c9ef4d15779d772c7bb0e113de98939c8d78738d6d22cbdc9adfea8021619012",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_1e288131133f4faa8ed7e831a0520ee2",
+            "input_sha256": "ef61c6264066edaa2cd914c85df1654580f67035bf51ce13571f0f7617193c02",
+            "output_sha256": "9e0eb7d419d432b4dff2476bc465fee702e8f34986f103fe72ad47b4ed24d3c3",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_e6521fc91d154712831af0a41f2e9e70",
+            "input_sha256": "9fd154481754de761ed6da69c5ce0c034c6e27f8e20f66edd0f8f60ef174feb5",
+            "output_sha256": "9f048b312398756a1bf5c6eda4832911b53aa63f043aff1f3e12a4c05946e530",
+            "recognized_envelope": true,
+            "truncation_warning": true,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_afc240acb9c7420ab09ca6e847a42809",
+            "input_sha256": "aecef8fc234168832aa6a563e1585af9844083fe291c7eeeb6f75c624af19e26",
+            "output_sha256": "344d97c0d6b5c751803bd07b540fa56b836756e4e67888d77070ec83d19eeedb",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_48f4594fc35f4e518c487913a1854af8",
+            "input_sha256": "2d6539be564d36a25d0ba049a0fd56ec4e43b174c78de170ab8eb631c7a309df",
+            "output_sha256": "546c52fec9c619d9f2c1205d3c0cc4b5869aea5caf7c7cd6ea1aae558c48e655",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_137781c785b04ce3982676f1f7d32ae8",
+            "input_sha256": "886cf13a83322a918d01e42aaf05c8e664441d11f89d145c6a5ac734111d3423",
+            "output_sha256": "5365efe741af7fcca8b6fe609b574b11afb8688ff569c67df8b2426997aa068c",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_2acc02790d504814b31a21be7a8e1387",
+            "input_sha256": "a61a3a4b21fa1016b0bfe881bd69f150cc8857d7419505dec68cdff3852f7b8b",
+            "output_sha256": "5977888876fb7400bd0aaa252b30275ba3b217ee69534fcd35a799d6e643de26",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          }
+        ],
+        "exec_output_count": 7,
+        "truncation_warnings": 1,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "raw_directory": "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/runs/recovery-fixed",
+      "outcome": "Passed scoped saved-preference recovery and source-checked continuation; not a general quality or installed-Plugin verdict.",
+      "binding_proof": {
+        "command_count": 10,
+        "all_commands_succeeded": true,
+        "context_paths": [
+          "context/stage_handoff.md",
+          "context/research_state.md"
+        ],
+        "saved_document_reconstruction": {
+          "sources/Tarlao2022/4ebe75b47277c140fa20708bb6bf1420ab6a4d4f1369e87d8dbee3707c8ed3b5.json": {
+            "sha256": "4ebe75b47277c140fa20708bb6bf1420ab6a4d4f1369e87d8dbee3707c8ed3b5",
+            "complete_native_response_bytes": 84841,
+            "intervals": [
+              [
+                0,
+                32768
+              ],
+              [
+                32768,
+                65536
+              ],
+              [
+                65536,
+                84841
+              ]
+            ]
+          },
+          "context/stage_summaries/STG-W-STYLES-001.md": {
+            "sha256": "1d92b6a177a62e42dc94198066437541a4546401e067c7988c9475f2718a489e",
+            "complete_native_response_bytes": 24272,
+            "intervals": [
+              [
+                0,
+                24272
+              ]
+            ]
+          }
+        },
+        "exact_prompt_delivered": true,
+        "temporary_auth_removed": true,
+        "project_and_config_preserved": true,
+        "scope": "Exact native responses and original input delivery. Outer tool delivery and truncation recovery remain separately recorded; this does not establish a universal writing-quality improvement."
+      },
+      "coordinator_review": {
+        "active_preference_recovered": "concise for Chinese project review",
+        "local_override": "none",
+        "both_retained_versions_preserved": true,
+        "required_meaning_repairs": [],
+        "source_checks": [
+          "Reported scalar invariance, appropriate-item intercept exception and strict-invariance non-retention: sec027/p[1–2].",
+          "Similar item interpretation and scale use: sec035/p[1].",
+          "No direct statistical laboratory/in-situ comparison: sec036/p[1]."
+        ],
+        "delivery_limit": "One initial outer tool-output truncation, explicitly acknowledged. Subsequent separate/paged reads deliver complete retained summary and source responses; binding-proof checks reconstruct exact saved bytes.",
+        "claims": "One paragraph continuation, saved preference and local override handling only; no saved output or model-setting change."
+      }
+    },
+    "override-fixed": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 119.53287188708782,
+        "timeout_seconds": 1200,
+        "events_sha256": "70e2ecafa396356662f7b7e99b161e7fc0afcc7cf977d7476f065b6b39af2949",
+        "stderr_sha256": "7d35ea2737624be8a0354bf455fdfbc8de59049ce215c1ef334a184f6c461ea1"
+      },
+      "metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "trace_metrics": {
+        "tool_calls": [
+          {
+            "id": "item_1",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 3,
+            "completed_event": 4,
+            "arguments_sha256": "8dcccea146a3659165b5b65400f03b4bd3300e8415e10d903e835adaeac11202",
+            "result_sha256": "27ccb2b5f41720502c4e716b7e634739c026ea7b50502c27d006db66f576524a",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_4",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 7,
+            "completed_event": 8,
+            "arguments_sha256": "9d8f8ce683bf55935d5cf35923c51eaafd09b0d23bb89126f2b6d4e9e5eab053",
+            "result_sha256": "cef077b6555066786ecad467d1e3626e561f545ce9767f3427747154c17a6e92",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_3",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 6,
+            "completed_event": 9,
+            "arguments_sha256": "bf7796a7563a10af08c1f0a847cec98f2a59d5adc328f7bb33bd45bc3364af3a",
+            "result_sha256": "7f7c290dd2b24e88352aa7448632adb35c183a489faad116044e28209e6e9762",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_2",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 5,
+            "completed_event": 10,
+            "arguments_sha256": "f1c82db3cfed8c6c034f623e5c81d4af1c67912a9cb56d51d6f65c318f05596d",
+            "result_sha256": "7a05ec87046cce538673e322f15a63c6998d15ddf75935d1b35d6cabf890b875",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_5",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 11,
+            "completed_event": 13,
+            "arguments_sha256": "e65156cdaab5bfb8fb6e9a548291478343cc37edb60f0796b431447bf590719b",
+            "result_sha256": "ed83cb6b1bbd36b9567b03e25e9de3f42a46aa2807515812bcb6ea009dc0bcc6",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_6",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 12,
+            "completed_event": 14,
+            "arguments_sha256": "9d765d6b1d71aee7ef21a731a6139d6fe284c30925c680e07e5caca4f57c3a17",
+            "result_sha256": "d0b8a52dbf3561e148fb8d3cd2e9c36c7614bfd3b0d10d2af1652ea5af67e59a",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_7",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 15,
+            "completed_event": 16,
+            "arguments_sha256": "e65156cdaab5bfb8fb6e9a548291478343cc37edb60f0796b431447bf590719b",
+            "result_sha256": "ed83cb6b1bbd36b9567b03e25e9de3f42a46aa2807515812bcb6ea009dc0bcc6",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_9",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 18,
+            "completed_event": 19,
+            "arguments_sha256": "9d765d6b1d71aee7ef21a731a6139d6fe284c30925c680e07e5caca4f57c3a17",
+            "result_sha256": "d0b8a52dbf3561e148fb8d3cd2e9c36c7614bfd3b0d10d2af1652ea5af67e59a",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          },
+          {
+            "id": "item_10",
+            "type": "command_execution",
+            "server": null,
+            "tool": null,
+            "success": true,
+            "status": "completed",
+            "started_event": 20,
+            "completed_event": 21,
+            "arguments_sha256": "f098a5ef58eb15dea167102856d1da74f7fd72330930932e83d633f10fb1d607",
+            "result_sha256": "387354ea97134e7e315ca3e3c2f8840f92c4690da48760b177fb2542fc5110c9",
+            "error_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+          }
+        ],
+        "tool_call_count": 9,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 279854,
+          "cached_input_tokens": 242048,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 4171,
+          "reasoning_output_tokens": 1859
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "answer_sha256": "480d30542c099581ddf6df5da30347ee2598666f4afa5876561ac271573b3d3b",
+      "prompt_sha256": "2b888129b85ad8e2f204562589774cb6396d16dfc5365b9d7df2e8fe849262e1",
+      "delivery": {
+        "rollout_path": "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/profiles/override-fixed/sessions/2026/11/06/rollout-2026-11-06T19-01-51-01a1b23d-18cc-7092-9bca-42419c4d37d9.jsonl",
+        "rollout_sha256": "887a9d3ab1064edbfa71b4294f334d569b309f25a1eb1f7fb0635f8c5f39a67a",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "outputs": [
+          {
+            "call_id": "call_8585a21e34d8495fa75a157109a2ec29",
+            "input_sha256": "0c52bcfe32d40bc68119fb98e6c1c30beac2220870c5c797d7817d21bcb8b14b",
+            "output_sha256": "22c19337acba43f17ee0c314dcb83f7c7420bd453cead4b87948691c1d04c262",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_87ae99a94e954201b901c4922b9bc90e",
+            "input_sha256": "2c0d36e87e6e310bee471f61c69bf3a70812c8184ecf0671513ff8199c7e8b09",
+            "output_sha256": "8509a6b733667b7f74f99b23d2ec27a638ed541231053da191ba15c2827f15b3",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_11ee2ec5b54d432f8a09b2f8e43bbb4e",
+            "input_sha256": "2097a1205e8c9478ee529bf4aa4cd21951ec274e27fea789453a023f3188a578",
+            "output_sha256": "dc0c2438a7da6867ca6e58b7d421157ec71e35f47f0425fffc9ed45a85d83080",
+            "recognized_envelope": true,
+            "truncation_warning": true,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_da9775de0b1a4da7b524b522f18d63e0",
+            "input_sha256": "e99263364049d35a2463927ecc841a1a1d5ecaa64a7527de999ee5682f2b5850",
+            "output_sha256": "344d97c0d6b5c751803bd07b540fa56b836756e4e67888d77070ec83d19eeedb",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_f51303076a7745f7a8f0be392d08ef67",
+            "input_sha256": "81dfbccd76f05174f6299f97cf5e33c501a1ec4a4710aa8b09414b8e7f356eaa",
+            "output_sha256": "35c443aa000daa4067e7ab6ecc7b9cf38f395925fe538ea27b0937dc6a0edc32",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_f2c1a8194543401e8b068abc88c058d6",
+            "input_sha256": "363dc39d2b191f4295e214ce3be95e29f479ac2f9dff7eb4bde4938b7fafc948",
+            "output_sha256": "0dd2b084ad319b47f932065ce8ff96742ee9e69d5da2567dc61f7d9058e49cb6",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          },
+          {
+            "call_id": "call_6733834a86904113a2030a96a3b52a25",
+            "input_sha256": "9c63272aa86ddf657d6aacfbe5ff23be34965c998a223ad250b6f08f991d62d5",
+            "output_sha256": "ab968a8a5ca624e77243b820a860bee6f92613e36253b3e48402177d2d7bd31f",
+            "recognized_envelope": true,
+            "truncation_warning": false,
+            "script_failed": false
+          }
+        ],
+        "exec_output_count": 7,
+        "truncation_warnings": 1,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "raw_directory": "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/runs/override-fixed",
+      "outcome": "Passed scoped saved-preference recovery and source-checked continuation; not a general quality or installed-Plugin verdict.",
+      "binding_proof": {
+        "command_count": 9,
+        "all_commands_succeeded": true,
+        "context_paths": [
+          "context/stage_handoff.md",
+          "context/research_state.md"
+        ],
+        "saved_document_reconstruction": {
+          "sources/Tarlao2022/4ebe75b47277c140fa20708bb6bf1420ab6a4d4f1369e87d8dbee3707c8ed3b5.json": {
+            "sha256": "4ebe75b47277c140fa20708bb6bf1420ab6a4d4f1369e87d8dbee3707c8ed3b5",
+            "complete_native_response_bytes": 84841,
+            "intervals": [
+              [
+                0,
+                32768
+              ],
+              [
+                32768,
+                84841
+              ]
+            ]
+          },
+          "context/stage_summaries/STG-W-STYLES-001.md": {
+            "sha256": "1d92b6a177a62e42dc94198066437541a4546401e067c7988c9475f2718a489e",
+            "complete_native_response_bytes": 24272,
+            "intervals": [
+              [
+                0,
+                24272
+              ]
+            ]
+          }
+        },
+        "exact_prompt_delivered": true,
+        "temporary_auth_removed": true,
+        "project_and_config_preserved": true,
+        "scope": "Exact native responses and original input delivery. Outer tool delivery and truncation recovery remain separately recorded; this does not establish a universal writing-quality improvement."
+      },
+      "coordinator_review": {
+        "active_preference_recovered": "concise for Chinese project review",
+        "local_override": "explanatory for this paragraph only",
+        "both_retained_versions_preserved": true,
+        "required_meaning_repairs": [],
+        "source_checks": [
+          "Reported scalar invariance, appropriate-item intercept exception and strict-invariance non-retention: sec027/p[1–2].",
+          "Similar item interpretation and scale use: sec035/p[1].",
+          "No direct statistical laboratory/in-situ comparison: sec036/p[1].",
+          "Inflated factor effects and practical application boundary: sec038/p[4]."
+        ],
+        "delivery_limit": "One initial outer tool-output truncation, explicitly acknowledged. Subsequent separate/paged reads deliver complete retained summary and source responses; binding-proof checks reconstruct exact saved bytes.",
+        "claims": "One paragraph continuation, saved preference and local override handling only; no saved output or model-setting change."
+      }
+    }
+  },
+  "implementation_commit": "5fa20e32",
+  "fixed_recovery_binding": {
+    "binary_sha256": "de9ed5a0135d8918384494da90f82af3fd3f9fd37c4e62939ba56c84d4246c9e",
+    "guidance": {
+      "scholarly-voice.md": "d3ebcc900a31b3e7871042529ca525829ae6ff138aa724c83859e162ae45c8d3",
+      "writing-styles.md": "8cc5d9e0704e840d962a5f4c5412427c72f0ce40cb659a74989bd1a562a9baff",
+      "stage-handoff-contract.md": "5de1e776521b7f185dd0f01c5e7cb994be2b962ec3120afc8e700747110d604b"
+    },
+    "project_id": "prj_722ee9075653027e283e4a763ce9b2c0",
+    "change": "Replace write-requiring Graph snapshot discovery with existing version-bound registered-artifact reader through project context read. Original failed attempts and original binary retained."
+  },
+  "antigravity": {
+    "version": "1.5.2",
+    "model_label": "Gemini 4 Argon (Medium)",
+    "identity_basis": "Actual completed-turn Host log selection; not catalog-only or model self-report. No CLI model/effort override supplied.",
+    "runtime_log_sha256": "b5857f8fbd3b8b92987c6c769459fe304fa989c0714419799797f3f0809c5920",
+    "selection_lines": [
+      {
+        "line": 86,
+        "text": "I1106 18:43:12.274384       1 model_config_manager.go:363] Propagating selected model override to backend: label=\"Gemini 4 Argon (Medium)\""
+      },
+      {
+        "line": 98,
+        "text": "I1106 18:43:13.811238     265 model_config_manager.go:363] Propagating selected model override to backend: label=\"Gemini 4 Argon (Medium)\""
+      },
+      {
+        "line": 100,
+        "text": "I1106 18:43:13.811586     374 model_config_manager.go:363] Propagating selected model override to backend: label=\"Gemini 4 Argon (Medium)\""
+      }
+    ],
+    "elapsed_seconds": 73.0625400210265,
+    "termination_reason": "completed",
+    "stream_checks": {
+      "checks": {
+        "complete_stream": true,
+        "host_success": true,
+        "single_completed_turn": true,
+        "no_permission_denial": true
+      },
+      "calls": [],
+      "structured_finishes": [
+        {
+          "step_index": 2,
+          "started_event": 3,
+          "completed_event": 4,
+          "parameters_sha256": "a0774579d21db311a840c7059ea83522ddaf3148b5dc1baeb8b1d1038e2a40a0",
+          "parameters_are_complete": false,
+          "output_sha256": "57c8a49d575bf2ead60d5482eb8dde7dd2e4b194933d9c3ffe197784240e8a92"
+        }
+      ],
+      "pending_steps": [],
+      "problems": [],
+      "usage": {
+        "input_tokens": 15532,
+        "output_tokens": 4965,
+        "thinking_tokens": 1932,
+        "cache_read_tokens": 0,
+        "total_tokens": 20497
+      },
+      "reported_model_fields": [],
+      "scope": "Text-turn completion only; no native status, semantic fidelity or model inference."
+    },
+    "preservation_equal": true,
+    "catalog_path": "/tmp/qiongli-release-agy-models-retry.txt",
+    "scope": "One frozen original versus a real polished return; no between-model ranking or repeated-run latency estimate."
+  },
+  "whole_manuscript": {
+    "human": {
+      "comparison_sha256": "a262e7db8b6ecafeb9808d5bf83aaf414cabf157b6afbffc74a7aab2a78bde58",
+      "status": "awaiting actual human response",
+      "reviewed_languages": null,
+      "reviewer_role": null,
+      "reading_minutes": null,
+      "editing_minutes": null,
+      "scope": "Public-source complete analytical article; not an actual private manuscript or author/expert acceptance without that identity and assessment."
+    },
+    "comparison": "anonymous-comparison.md",
+    "model_review_completed": true,
+    "model_review_identity": [
+      {
+        "model": "gpt-6-astra",
+        "effort": "xhigh"
+      }
+    ],
+    "model_review_scope": "Fresh identity-blinded source-text review; all four sections in both languages. No new pixel inspection or disciplinary expert acceptance.",
+    "status": "Awaiting actual human language/role/time feedback; model judgments and identity mapping remain uninspected and withheld. No return adopted.",
+    "sealed_packet": {
+      "path": "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/review/private-archive/packet.json",
+      "sha256": "1d0f404890855c2d81d374837c720b404f07ea6d6e1d8f13fc32e253b877f680",
+      "verified_current": "bindings_current"
+    },
+    "preservation_equal": true
+  },
+  "preserved_failures": [
+    "Initial agy models call refused in sandbox; retained logs and succeeded through authorized Host execution.",
+    "Initial handoff draft was group-writable (0664), correctly refused; fixture permissions fixed to 0600 without relaxing the owner.",
+    "Missing-approval test initially expected exit 1; parser correctly returned exit 2. Corrected harness and retained first result.",
+    "Read-only Graph snapshot failed; direct context reader exposes the existing safe revision-bound owner.",
+    "Concurrent coordinator Graph diagnostic invalidated the first override preservation check; excluded rather than retried as evidence.",
+    "Initial focused CLI fixture tests under ambient umask 002 created group-writable captures and were correctly refused; rerunning the same checks with private fixture umask 077 passed.",
+    "Initial native build correctly rejected stale content lock; regenerated via supported owner from canonical commit.",
+    "First versioned strict check rejected release-note section naming; changed heading to Verification, retaining linked evidence."
+  ],
+  "remaining": [
+    "Actual human full-text preference, reviewed languages, reviewer role and real reading/editing time. Unknown time must stay unknown.",
+    "Meaning-review unsealing and source adjudication after human response; preserve correct original/return wording.",
+    "Four-target exact-source remote distribution and explicit publication decision remain outside local qualification."
+  ],
+  "tests": {
+    "strict_research_standard": {
+      "passed": 6211,
+      "failed": 0,
+      "warnings": 0,
+      "log": "/tmp/qiongli-closeout-standard-final.log"
+    },
+    "portable_routing": {
+      "passed": 11,
+      "log": "/tmp/qiongli-closeout-routing.log"
+    },
+    "context_parser": {
+      "passed": 1,
+      "log": "/tmp/qiongli-closeout-context-unit-retry.log"
+    },
+    "real_cli_saved_context": {
+      "passed": 2,
+      "log": "/tmp/qiongli-closeout-context-cli-private.log",
+      "fixture_umask": "077"
+    },
+    "native_embedded_pack": {
+      "passed": 2,
+      "logs": [
+        "/tmp/qiongli-closeout-native-content.log",
+        "/tmp/qiongli-closeout-native-pack.log"
+      ]
+    },
+    "evaluation_helpers_and_versions": {
+      "passed": 53,
+      "log": "/tmp/qiongli-closeout-helpers.log"
+    },
+    "format": "cargo fmt --all --check passed"
+  },
+  "private_packet_retention": "The complete private originals, returned text, source, task, key and review are frozen with a packet digest. Reopen only after the pending human response and verify every binding first."
+}

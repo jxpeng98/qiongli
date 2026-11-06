@@ -4370,3 +4370,65 @@ CLI-405 progress and the generated index change; task states, dependencies and
 accepted evidence remain unchanged. No push, release, installed-profile update
 or acceptance promotion. Next verify saved-preference recovery with an actually
 requested project save; use a new source for further held-out quality assessment.
+
+
+## November 6 — Writing release closeout and 2.6.0 preparation
+
+The user requests completion of the three writing evidence gaps, preparation of
+new release content and cleanup of regenerable build caches. The
+[closeout observation](../../../evals/research_journey/writing-quality/observations/release-closeout-2026-11-06/README.md)
+binds a real isolated native save, two fresh configured-model recoveries, a
+Host-labelled Antigravity return and a complete anonymous bilingual example.
+The existing owners remain responsible for source review, project writes and
+release qualification; local preparation does not authorize push or publication.
+
+Actual preview/approval/CAS saves retain the public Tarlao2022 source, both complete
+writing styles and the concise project preference at revision 3. Missing academic
+or filesystem approval and changed handoff bytes under an old digest refuse with
+unchanged project/config state. The first real read-only recovery reveals that
+Graph snapshot discovery rebuilds a derived portfolio catalog and cannot serve
+this read-only continuation. Native fix `5fa20e32` exposes the existing registered
+artifact reader as `project context read`, restricted to research state and stage
+handoff. It retains before/after semantic/revision checks and safe paths, without
+new persistence, Graph writes, MCP tools or model defaults. Canonical guidance and
+2.6.0 version sources are `1062203c`; the supported pack owner regenerates 447
+entries from that commit.
+
+Fresh gpt-6-astra/xhigh sessions complete in 115.7/119.5 seconds: recover the concise
+project default, retain both versions, and apply an explanatory paragraph override
+without changing the default. Each acknowledges one initial outer-output
+truncation and completes separate/paged rereads. Saved summary/source bytes,
+actual prompt delivery, project/config preservation and temporary-auth cleanup
+are verified. Coordinator source review finds no required meaning repair in the
+two continuations. Preserve the first failed recovery and exclude the original
+override attempt, whose preservation check was confounded by a concurrent
+coordinator Graph diagnostic. These are isolated native CLI observations, not
+installed-Plugin or general writing-quality acceptance.
+
+Antigravity 1.5.2 completes an actual frozen bilingual-article polishing turn in
+73.1 seconds; its runtime log confirms Gemini 4 Argon (Medium), with no supplied
+model/effort override and unchanged settings. The complete stream has no external
+tool calls. The Doshi/Hauser public-source example contains four sections in both
+languages and is reused material, not a new held-out or private manuscript.
+M/N are randomized once. A fresh blinded source-text model review completes, but
+its judgments and identity key stay sealed pending the actual human response.
+Reading/editing time, reviewed languages and reviewer role are unknown; elapsed
+message time and model review cannot substitute for these facts. No returned
+manuscript is adopted. The private packet/digest preserves original, return,
+source, task, comparison, key and review for later verified unsealing.
+
+Strict content validation passes 6211/6211 with no warnings; 11 portable routing,
+one context-parser, two native save/resume, two embedded-pack and 53 helper/version
+checks pass. Format passes. Initial failures remain recorded: changed content
+correctly refuses a stale lock; ambient umask 002 makes fixture files group-writable
+and is resolved with private fixture umask 077; release-note verification naming
+is corrected. No native permission check or validation requirement is relaxed.
+
+The 2.6.0 release notes summarize changes since 2.5.3 and retain rollout/rollback
+limits. Program/index preservation checks and final diff review accompany local
+fast-forward integration into `2.x`. CLI-405/410 progress changes only; all states,
+dependencies and accepted-evidence fields remain. Current-target release-owner
+qualification and explicit cache cleanup follow on the clean merged candidate.
+The final receipt will identify those exact bytes. Human feedback/adjudication,
+four-target remote distribution and publication remain separate pending work.
+Raw evidence: `/tmp/qiongli-writing-closeout-20261106-fmpzj1jt`.
