@@ -4329,3 +4329,44 @@ dependencies and accepted-evidence fields remain. No push, publication or
 acceptance promotion. Retain Y as regression material; future held-out work needs
 new sources, and broader language/manuscript and disciplinary judgments remain
 outside this observation.
+
+## November 6 — Selectable writing styles
+
+The user additionally asks to retain or refine X and save several writing styles
+in Qiongli. The [style observation](../../../evals/research_journey/writing-quality/observations/writing-styles-2026-11-06/README.md)
+retains original X, a separate three-sentence refinement and unchanged selected Y.
+Canonical `writing-styles.md`, routed conditionally from `scholarly-voice.md`,
+offers concise/explanatory choices and scoped custom samples. Meaning integrity
+remains shared across F/G4/J2. A local choice does not replace the project default;
+several saved choices do not all become active. Requested persistence uses the
+existing context/handoff preview/approval/CAS owner, not a new setting or store.
+
+One isolated run preserves the configured gpt-6-astra/xhigh and completes in
+166.8 seconds. The four bilingual style outputs preserve population/groups,
+scalar-invariance reporting and its intercept exception, and strict-invariance
+non-retention. Three supplied-context preference cases and an overclaim negative
+case behave as requested. The fresh model review accepts the three X refinements
+while retaining the validity of original X; coordinator source comparison agrees,
+with no required repair or override. The exact 98,915-byte prompt, read-only
+no-tool turn, input/config/helper preservation and auth cleanup are verified.
+This reused source is regression material, not a new held-out or human judgment;
+supplied handoff reasoning is not real project save/restart evidence.
+
+Strict research-standard validation passes 6210/6210 with no warnings; 11 portable
+routing checks, Skill quick validation and two native embedded-pack tests pass.
+The supported pack owner regenerates 447 entries from canonical commit `09b9e5fa`.
+The cache-budget check passes with about 1.75 GB of caches and 62.1 GB free.
+Unqualified Python initially lacks PyYAML before tests/model launch; the existing
+system interpreter resolves this without an install. The first commit attempt
+lacks Git identity; per-command use of the existing Codex author identity resolves
+it without configuration changes. Actual raw execution, notes and bindings are
+retained at `/tmp/qiongli-writing-styles-20261106-5p4gkxzq`; focused logs are
+`/tmp/qiongli-writing-styles-{standard,pack,native-content,native-app}.log`.
+
+All seven program tests, generated-index freshness and artifact/ledger preservation
+checks pass. Final diff review and the fast frozen-source guard accompany local
+fast-forward integration into `2.x`. Only
+CLI-405 progress and the generated index change; task states, dependencies and
+accepted evidence remain unchanged. No push, release, installed-profile update
+or acceptance promotion. Next verify saved-preference recovery with an actually
+requested project save; use a new source for further held-out quality assessment.

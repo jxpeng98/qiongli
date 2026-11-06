@@ -1,0 +1,96 @@
+{
+  "bilingual_outputs": {
+    "concise": {
+      "zh": "Tarlao等比较了两组实验室参与者的声景评价：20人使用电脑问卷，14人使用纸笔问卷；这34名成年人均熟悉所研究的蒙特利尔广场，并自报听力正常〔Tarlao2022: sec015/p[1]〕。作者报告两组达到标量不变性，但活动适宜性（appropriate）项目的截距例外；进一步约束残差的严格不变性模型未获保留〔Tarlao2022: sec027/p[1]; sec027/p[2]〕。这些结果支持两组对声景项目的理解和量表使用方式相近，但不足以认定两种问卷完全等效或可任意互换〔Tarlao2022: sec035/p[1]〕。",
+      "en": "Tarlao et al. compared laboratory soundscape ratings from 20 adults using computer questionnaires and 14 using pen-and-paper questionnaires. All 34 participants were familiar with the Montreal square under study and reported normal hearing [Tarlao2022: sec015/p[1]]. The authors reported scalar invariance across the two groups, with an exception for the intercept of the “appropriate” item; the stricter model imposing additional residual constraints was not retained [Tarlao2022: sec027/p[1]; sec027/p[2]]. The findings support similar interpretations of the soundscape items and use of the response scale, but do not establish complete equivalence or unrestricted interchangeability between formats [Tarlao2022: sec035/p[1]]."
+    },
+    "explanatory": {
+      "zh": "Tarlao等在实验室中比较电脑与纸笔问卷，参与者是熟悉所研究的蒙特利尔广场、自报听力正常的34名成年人，其中电脑组20人，纸笔组14人〔Tarlao2022: sec015/p[1]〕。研究通过测量不变性检验，考察两组评分是否具有相近的测量基础：先检验模型结构，再依次要求因子载荷和项目截距跨组相等。作者报告结果达到标量不变性，即检验推进到截距层级，但明确指出活动适宜性（appropriate）项目的截距是例外。进一步对残差施加相等约束时，模型拟合变化过大，因此严格不变性模型未获保留〔Tarlao2022: sec027/p[1]; sec027/p[2]〕。作者据此认为两组理解声景项目和使用量表的方式相近；这一结论支持所测条件下的可比性，却不能消除上述例外，也不能扩展为两种形式完全等效、可任意互换〔Tarlao2022: sec035/p[1]〕。",
+      "en": "The questionnaire comparison involved two laboratory groups: 20 adults completed computer questionnaires and 14 completed pen-and-paper questionnaires. Participants were familiar with the Montreal square being studied and reported normal hearing [Tarlao2022: sec015/p[1]]. Measurement-invariance testing examined whether ratings had a comparable measurement basis across these groups. After assessing the model structure, the researchers progressively constrained factor loadings and then item intercepts to equality. They reported scalar invariance, the level that includes intercept constraints, while identifying an exception for the intercept of the “appropriate” item. Adding residual constraints produced too large a change in model fit, so strict invariance was not supported [Tarlao2022: sec027/p[1]; sec027/p[2]]. The authors interpreted the findings as indicating similar understanding of the soundscape items and use of the scale. This supports comparability under the tested conditions, with the stated exception, rather than complete equivalence or unrestricted interchangeability of the questionnaire formats [Tarlao2022: sec035/p[1]]."
+    }
+  },
+  "preference_cases": {
+    "a": {
+      "effective_choice": "本小节使用 explanatory（细节展开）；项目默认仍为 concise（简洁流畅）。",
+      "response": "我会只在这一小节展开必要解释，其余内容和项目默认风格保持不变。"
+    },
+    "b": {
+      "effective_choice": "中文综述沿用 concise（简洁流畅）；explanatory（细节展开）作为保留的备选。",
+      "response": "我会依据所供交接摘录，用简洁流畅风格续写，不再要求选择。该摘录是本次上下文；我未读取实际项目，也未核验或更新两个版本的保存状态。"
+    },
+    "c": {
+      "effective_choice": "本次正文仅使用 concise（简洁流畅）；两种风格继续作为保留选项，模型不变。",
+      "response": "我会只提供一版简洁流畅正文，保留另一版的名称和原文，不以本次正文覆盖它，并沿用当前模型。本次未执行项目保存或覆盖操作。"
+    }
+  },
+  "meaning_case": {
+    "proposed_span": "电脑和纸笔问卷完全等效，可以任意互换。",
+    "verdict": "存在含义变化，不能作为仅表达修改接受。",
+    "finding": "这句话把特定实验室比较中带有项目截距例外的标量不变性，强化为无条件的完全等效和任意互换，同时丢失了严格不变性未获支持的结果。",
+    "minimal_faithful_wording": "在本研究的实验室比较中，作者报告电脑与纸笔问卷达到标量不变性，但活动适宜性项目的截距例外，严格不变性未获支持，不能据此认定两种形式完全可互换。",
+    "source_locators": [
+      "Tarlao2022: sec027/p[1]",
+      "Tarlao2022: sec027/p[2]"
+    ]
+  },
+  "refinement_review": {
+    "overall_verdict": "三处修改均可接受，未发现需要修复的含义偏移；原稿的相应表达也成立。",
+    "changes": [
+      {
+        "id": 1,
+        "original_literal_span": "为使这种比较建立在对应的声音材料上，研究先在现场三个位置取得10分钟的一阶Ambisonic录音，并同步测量声级，再从中选择声级最低和最高的两个位置用于重放。",
+        "revised_literal_span": "研究先在现场三个位置采集10分钟的一阶Ambisonic录音，并同步测量声级，再选择声级最低和最高的两个位置用于重放。",
+        "verdict": "可接受的表达压缩，无必要前提或技术细节丢失。",
+        "reason": "删去目的性开头后，句子直接进入录音方法。“取得”改为“采集”符合研究语境。三个位置、10分钟、一阶Ambisonic、同步测量声级，以及选择声级最低和最高的两个位置均保留。连续阅读时，上段已说明现场调查与重放实验的联系，本段随后又交代按原始录音声级校准及截取片段，因此对应声音材料这一比较基础仍然清楚。段末引文未变，仍支持录音与位置选择的方法。",
+        "optional_preference": "若希望更显式地承接上段，可以保留原来的目的性开头；这属于衔接偏好，不是必要修复。",
+        "source_locators": [
+          "Tarlao2022: sec009/p[1]",
+          "Tarlao2022: sec013/p[1]",
+          "Tarlao2022: sec013/p[2]",
+          "Tarlao2022: sec016/p[1]"
+        ],
+        "required_repairs": []
+      },
+      {
+        "id": 2,
+        "original_literal_span": "研究首先检查两种情境是否用相近的心理维度组织声景评价，这比直接比较某一项评分更基础。",
+        "revised_literal_span": "研究先检验两种情境中的声景评价是否具有相近的潜在维度，再考察具体评分的差异。",
+        "verdict": "可接受的分析路线说明，未引入直接跨情境统计比较的主张。",
+        "reason": "“潜在维度”与后文验证性因子分析的术语衔接更直接；“先……再……”在此概括分析与叙述的展开顺序，符合来源先讨论维度、再分析条件作用的安排。原句对方法层次的说明“更基础”被删去，但后文仍明确区分相近的评价组织方式与评分数值相同，并在下一段转入条件差异。在“结果解释与应用边界”中，两种设计不能直接进行现场与实验室统计比较的限定也完整保留。因此，连贯阅读没有把分别分析或描述性对照改写成直接跨情境检验。因子分析、重复测量处理及相关引文均未改变。",
+        "optional_preference": "是否保留“这比直接比较某一项评分更基础”，取决于是否希望强调方法层次；其删除不构成必要推理前提的丢失。",
+        "source_locators": [
+          "Tarlao2022: sec020/list[1]",
+          "Tarlao2022: sec020/p[5]",
+          "Tarlao2022: sec021/list[1]",
+          "Tarlao2022: sec025/p[1]",
+          "Tarlao2022: sec036/p[1]"
+        ],
+        "required_repairs": []
+      },
+      {
+        "id": 3,
+        "original_literal_span": "除差异幅度外，整体评分水平的差别也需要结合体验背景理解。",
+        "revised_literal_span": "整体评分水平的差别，则需要结合参与者的体验背景来理解。",
+        "verdict": "可接受的话题衔接与指代明确化，无解释强度变化。",
+        "reason": "上段已讨论条件差异的幅度，修订句以“则”转入整体评分水平，仍保留两个分析角度的区别。增加“参与者”明确了体验的主体，没有把体验背景缩限为某一组，也没有增加机制事实。后文仍把评分水平差别标为图形的描述性比较，把感官整合、场所意义和预期等列为作者提出且尚未逐一检验的解释；主观响度差异未被量化的限定同样保留。段末引文及其所支持的发现、假说和限制均未改变。",
+        "optional_preference": "原句“除差异幅度外”更明确地点出与上段的关系，修订句则更快进入新话题；两者都是有效的衔接选择。",
+        "source_locators": [
+          "Tarlao2022: sec032/p[1]",
+          "Tarlao2022: sec036/p[4]",
+          "Tarlao2022: sec037/p[4]",
+          "Tarlao2022: sec038/p[3]"
+        ],
+        "required_repairs": []
+      }
+    ],
+    "continuous_read_assessment": {
+      "necessary_premises": "现场录音与实验室重放的对应关系、潜在维度与评分差异的区别，以及条件差异幅度与整体评分水平的区别，仍由相邻句段清楚承接。",
+      "technical_details": "三处改动没有删改数量、单位、录音阶数、位置选择、因子分析结果或重复测量处理；问卷比较中的截距例外和严格不变性结果也完整保留。",
+      "citations": "三处所在段落的引文均原样保留，未发现改写导致引文转而支持更强或不同的主张。",
+      "qualifications": "不能直接进行现场与实验室统计比较、描述性观察不等于机制验证，以及研究场所、参与者和录音材料的适用范围均保留。",
+      "meaning_problems": []
+    },
+    "required_repairs": [],
+    "overall_scope_note": "本次对所供Original X与Refined X作连续阅读，并依据内联来源重点核查三处改句及其上下文。结论限于这些版本和材料；不涉及外部核验、项目保存、人类偏好评分或留出质量测试，也不据此认定修订稿整体优于原稿。"
+  }
+}

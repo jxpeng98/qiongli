@@ -1,0 +1,194 @@
+{
+  "schema_version": "qiongli-writing-style-observation/v1",
+  "date": "2026-11-06",
+  "base_commit": "f771374a15211b7b23aac6837173048759aff0aa",
+  "canonical_commit": "09b9e5fa3441d7177275c5fc6994aea1b6c30620",
+  "scope": "One configured-model, read-only regression on a reused public source; bilingual style generation, supplied-context preference handling, meaning review and localized X refinement. No real project write/restart or new human/held-out acceptance.",
+  "input_manifest": {
+    "task": "Use the supplied Qiongli writing and style guidance for the following bounded public-source regression. Return valid JSON with bilingual_outputs, preference_cases, meaning_case and refinement_review. Do not use tools, browse or write files; the full material is supplied inline. These are synthetic requests with public paper evidence, not actual project save operations.\n\n1. bilingual_outputs: Explain this paper's paper-versus-computer questionnaire comparison for a reader of a scholarly review. Produce one Chinese and one English paragraph in each style, concise and explanatory. Both should retain the comparison population/groups, the reported measurement-invariance level and consequential exception, and the strict-invariance finding. Use the same evidence for both and actual Tarlao2022 section locators; there is no length quota. Make each paragraph natural in its language rather than a clause-by-clause translation. Do not import unrelated site-versus-lab results.\n\n2. preference_cases: Respond briefly to each request; name the effective choice and what you would do, without claiming an operation you have not performed.\na. “本项目默认用简洁流畅风格。这一小节请改用细节展开，其余不变。”\nb. A supplied saved handoff excerpt says: “Decision Summary: 写作偏好：综述使用 concise（简洁流畅）；explanatory（细节展开）为保留的备选。范围：中文综述。Completed Artifacts: 已保留两个版本。” Current request: “请续写这份中文综述，不用再让我选风格。” The excerpt is provided as context; you have no actual project read/write capability in this run.\nc. “我想保留两种风格，但这次只要一版简洁流畅正文；不要覆盖另一版，也不更换模型。”\n\n3. meaning_case: The user proposes replacing the paper's qualified questionnaire result with “电脑和纸笔问卷完全等效，可以任意互换。” as an expression-only edit. Give a meaning-review finding and smallest faithful wording if needed, without rewriting unrelated text.\n\n4. refinement_review: Compare the supplied original X and refined X continuously against the source, focusing on the three changed sentences. Assess whether necessary premises, technical details, citations and qualifications survive; distinguish expression improvements, optional preferences and meaning problems. Return each change's original/revised literal spans, verdict, reason and source locators, plus any required repairs and an overall scope note. Do not assume the refinement is better or invent a problem merely to make changes. This is not a human-preference score or a held-out quality test.",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "user_config_sha256": "2e5933d2347df532e257b938413d5b12abb2dc34fe2d893b64ad73a1bc65c37d",
+    "prompt_sha256": "75474a3684678c3352206ba2b66d43fcc6c997b1bcff676496cd0bbfa3a5904a",
+    "prompt_bytes": 98915,
+    "guidance": {
+      "content/workflow/references/scholarly-voice.md": "d3ebcc900a31b3e7871042529ca525829ae6ff138aa724c83859e162ae45c8d3",
+      "content/workflow/references/writing-styles.md": "8cc5d9e0704e840d962a5f4c5412427c72f0ce40cb659a74989bd1a562a9baff",
+      "content/workflow/references/stage-handoff-contract.md": "d3d9d944dfd72558e3ea2ef57d2e3ba31d847941a5e453c04abe630e95bdcf9e"
+    },
+    "original_observation_sha256": "d1b793845db038e2b1e27c366cec65ff3480af00d5fea03858cfdcede1600716",
+    "examples_sha256": "24f97e7d4fc6b432e240b0db82e0ce5c829861418bb01a736d172ed5e3c4d073",
+    "source_packet_sha256": "caa39ae6619a513c042f56f11fa60c6d97fd50b8ed228e0d9e726cb3f9a37905",
+    "runner_sha256": "22c8bbc863e5cdda61e538c3a1963b53378273426fb5da1641c54cbaea2bfdb7",
+    "helpers": {
+      "evals/research_journey/writing_observation.py": "07d31137cbb94fcde860591012acd92df28f2e1f4cf99edd6a397bfc57e1dff5",
+      "evals/research_journey/plugin_baseline.py": "023babcca15cfece478fa6dd52e097215f3d03099903b080ae4fe8ba3b4e9b7d",
+      "evals/research_journey/antigravity_observation.py": "d0f4d513f847aee40782bf297ca065854dec6e4ffc37a001cc61d935fa827f12"
+    },
+    "scope": "One configured-model, read-only regression on a reused public source; bilingual style generation, supplied-context preference handling, meaning review and localized X refinement. No real project write/restart or new human/held-out acceptance."
+  },
+  "source": {
+    "observation": "../chinese-crosssection-2026-11-06/observation.json",
+    "sha256": "d1b793845db038e2b1e27c366cec65ff3480af00d5fea03858cfdcede1600716",
+    "doi": "10.1371/journal.pone.0270401",
+    "authors": [
+      "Cynthia Tarlao",
+      "Daniel Steele",
+      "Catherine Guastavino"
+    ],
+    "license": "CC BY",
+    "blocks": 119,
+    "limits": "Reused complete consecutive Methods–Conclusions XML packet; tables transcribed, figures captions only. No new source, pixel review, supplement or external-paper inspection."
+  },
+  "prompt_reconstruction": {
+    "guidance_order": [
+      "content/workflow/references/scholarly-voice.md",
+      "content/workflow/references/writing-styles.md",
+      "content/workflow/references/stage-handoff-contract.md"
+    ],
+    "source_intro": "Cynthia Tarlao, Daniel Steele and Catherine Guastavino (2022), DOI 10.1371/journal.pone.0270401, CC BY. Publisher XML Methods through Conclusions. Figures are captions only; tables are XML transcripts.\n",
+    "recipe": "task + \\n\\n# Shared guidance\\n + guidance sections joined by \\n\\n (# path + \\n + canonical text) + \\n\\n# Public paper source\\n + source_intro + source blocks joined by \\n\\n (### locator + \\n + text) + \\n\\n# Original X\\n + x-original.md + \\n\\n# Refined X\\n + x-refined.md. UTF-8; all source fields and text are recoverable from the bound repository files."
+  },
+  "artifacts": {
+    "examples.json": {
+      "sha256": "24f97e7d4fc6b432e240b0db82e0ce5c829861418bb01a736d172ed5e3c4d073",
+      "bytes": 3259
+    },
+    "x-original.md": {
+      "sha256": "bbfbbdc09ff4cecb5d4af9ec22107b362f02c20cfa19d07b08634b1f5ec15205",
+      "bytes": 10856
+    },
+    "x-refined.md": {
+      "sha256": "196f6dbb1ba3725a09af626d0614d0cdde9cf9b8691d0e0c8c7ef392a91f24a3",
+      "bytes": 10781
+    },
+    "raw-response.json": {
+      "sha256": "6b1dd8b00f16e47199088a5957ce238d30ad0ac9ad6fbbd4a765dc37fc690d1a",
+      "bytes": 10969
+    }
+  },
+  "execution": {
+    "raw_directory": "/tmp/qiongli-writing-styles-20261106-5p4gkxzq",
+    "capture": {
+      "termination_reason": "completed",
+      "driver_error": null,
+      "process_cleanup": {
+        "exit_code": 0,
+        "method": "already-exited",
+        "reaped": true,
+        "group_gone": true
+      },
+      "elapsed_seconds": 166.79945606319234,
+      "timeout_seconds": 1200,
+      "events_sha256": "d494660f304f70b198dcd266ff615ece02d02b98a666fd9d22397cd6d83ce26e",
+      "stderr_sha256": "7bbd1ad3a97b1a7e57e26fc0141329e3fb1cc7cdbe7879fc5492569c7a7a4cd3"
+    },
+    "trace_metrics": {
+      "tool_calls": [],
+      "tool_call_count": 0,
+      "pending_tool_calls": [],
+      "failed_tool_calls": 0,
+      "usage": {
+        "input_tokens": 35803,
+        "cached_input_tokens": 9728,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 5408,
+        "reasoning_output_tokens": 2588
+      },
+      "exit_code": 0,
+      "run_outcome": "completed",
+      "truncated_event_tail": false
+    },
+    "delivery": {
+      "rollout_path": "/tmp/qiongli-writing-styles-20261106-5p4gkxzq/profiles/styles/sessions/2026/11/06/rollout-2026-11-06T17-24-14-01a1b1e3-bb8f-7c22-8aad-f5544f154bb1.jsonl",
+      "rollout_sha256": "7d8154f9d0f05847400d28e78f345307ec00a5271af7a553f964f42389c047b5",
+      "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+      "outputs": [],
+      "exec_output_count": 0,
+      "truncation_warnings": 0,
+      "script_failures": 0,
+      "unclassified_outputs": 0,
+      "unmatched_outputs": 0,
+      "pending_exec_calls": []
+    },
+    "metrics": {
+      "preservation_equal": true,
+      "image_deliveries": [],
+      "model_contexts": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ]
+    },
+    "effective_permission": {
+      "approval": "never",
+      "sandbox": "read-only",
+      "tool_network": false,
+      "web_search": "disabled",
+      "mcp_servers": {}
+    },
+    "runtime_notes": [
+      "Optional PATH helper aliases declined under temporary CODEX_HOME.",
+      "Isolated policy probe disables untrusted project-local config/hooks; actual task uses the temporary work directory. No global trust change."
+    ]
+  },
+  "coordinator_review": {
+    "bilingual_outputs": {
+      "verdict": "pass for this bounded task",
+      "basis": "All four paragraphs preserve the 20/14 laboratory groups, 34 adults familiar with the square and self-reported normal hearing; the reported scalar invariance with appropriate-intercept exception; and non-retention of strict invariance. Explanatory prose adds supported testing steps; concise prose omits that optional explanation. Both languages read coherently without importing site-versus-lab effects. No human ranking is inferred.",
+      "source_locators": [
+        "sec015/p[1]",
+        "sec020/p[5]",
+        "sec027/p[1]",
+        "sec027/p[2]",
+        "sec035/p[1]"
+      ]
+    },
+    "preference_cases": {
+      "verdict": "pass for supplied-context reasoning",
+      "basis": "Only the named subsection changes; the provided saved concise preference is reused without another interview; retaining alternatives does not activate both, overwrite the other version or change the model. The response does not claim to have read, saved or verified a real project."
+    },
+    "meaning_case": {
+      "verdict": "pass",
+      "basis": "Identifies the proposed unconditional equivalence as a meaning change and restores the tested scope, intercept exception and strict-invariance result without rewriting unrelated prose."
+    },
+    "refinement_review": {
+      "verdict": "agree with all three model judgments; no overrides",
+      "basis": "Literal old/new spans and source anchors match. Adjacent paragraphs retain the recording/reproduction basis, latent-dimension versus rating distinction, and contrast-magnitude versus overall-level transition. Required details and qualifications remain; the original X wording is also valid.",
+      "required_repairs": []
+    },
+    "human_preference_for_refined_X": "not supplied",
+    "general_style_winner": "not claimed"
+  },
+  "verification": {
+    "reconstructed_prompt_matches_delivered_bytes": true,
+    "unchanged_user_config_and_helpers": true,
+    "input_preservation": true,
+    "actual_read_only_no_tools": true,
+    "temporary_auth_removed": true,
+    "raw_response_retained": true,
+    "exactly_three_X_edits": true,
+    "all_eight_anchors_and_paragraphs_retained": true,
+    "original_Y_unchanged": true
+  },
+  "initial_failures": [
+    {
+      "step": "portable test and probe launcher under unqualified python3",
+      "result": "ModuleNotFoundError: yaml before tests/model launch",
+      "resolution": "Use existing /usr/bin/python3 with PyYAML 6.0.1; no dependency installation or user configuration edit."
+    },
+    {
+      "step": "first local canonical commit",
+      "result": "Git author identity unavailable; commit not created",
+      "resolution": "Use the existing Codex author identity from preceding commits as per-command -c settings; no Git configuration change."
+    }
+  ],
+  "limits": [
+    "One configured gpt-6-astra/xhigh regression using reused public material, not held-out or independent expert evidence.",
+    "Style generation is evaluated by the coordinator; the same-model X refinement review is not human approval.",
+    "Supplied handoff reasoning is not a real project read/write/restart test. No project preference has been persisted by this observation.",
+    "No fresh Antigravity round trip, custom-style generation, whole-manuscript or installed-package qualification.",
+    "No publication, release, model configuration change or program acceptance promotion."
+  ]
+}

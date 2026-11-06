@@ -54,7 +54,20 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — November 6, 2026
 
-The current bounded increment uses a locally first-use environmental-acoustics
+The current bounded increment retains X alongside the selected Y and adds optional
+concise/explanatory styles and scoped custom samples to shared F/G4/J2 guidance.
+The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-6--selectable-writing-styles)
+owns the retained originals, three localized X refinements and one configured-model
+bilingual/preference/meaning-review regression on the reused public source. Both
+styles preserve necessary facts and qualifications; no global default or quality
+ranking follows from earlier feedback. Requested persistence reuses the existing
+context/handoff owner. Supplied-context preference handling is observed, while
+actual saved-preference recovery remains untested in this increment. Integrate
+locally into `2.x`; no installed-profile update, push, publication or acceptance
+promotion. Next check saved-preference recovery when an actual project save is
+requested, and use new material for any further held-out quality claim.
+
+The preceding bounded increment uses a locally first-use environmental-acoustics
 paper to validate two Chinese sections with eight continuous paragraphs per
 version. The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-6--chinese-writing-across-acoustics-sections)
 binds the complete consecutive Methods–Conclusions source range, two completed
