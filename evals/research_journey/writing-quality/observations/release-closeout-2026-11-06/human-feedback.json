@@ -1,0 +1,326 @@
+{
+  "date": "2026-11-06",
+  "comparison_sha256": "a262e7db8b6ecafeb9808d5bf83aaf414cabf157b6afbffc74a7aab2a78bde58",
+  "human": {
+    "comparison_sha256": "a262e7db8b6ecafeb9808d5bf83aaf414cabf157b6afbffc74a7aab2a78bde58",
+    "status": "bilingual ordinary-reader feedback received; actual duration not reported",
+    "reviewed_languages": [
+      "Chinese",
+      "English"
+    ],
+    "reviewer_role": "ordinary reader",
+    "reading_minutes": null,
+    "editing_minutes": null,
+    "scope": "Public-source complete analytical example; ordinary-reader assessment, not disciplinary-expert acceptance or measured editing efficiency.",
+    "preference": "N",
+    "preference_strength": "slight",
+    "perceived_difference": "small",
+    "verbatim": "两个的效果好像这次差不太多， 相比较还是N的更舒服一些。",
+    "review_method_verbatim": "先用现有公开论文材料形成完整示范稿，由我审阅并记录用时",
+    "required_edits": null,
+    "timing_status": "not reported; neither elapsed message time nor model runtime substituted",
+    "followup_verbatim": "普通读者的身份， 都读完了， M的英文稍微是正式一点点。 N的相比较来讲更informal一些。",
+    "english_register": {
+      "M": "slightly more formal",
+      "N": "comparatively more informal"
+    },
+    "disclosure_sequence": "Overall slight N preference was received and frozen before unsealing. Language coverage, reader role and English-register comments were reported after the identities had been disclosed.",
+    "overall_preference_received_before_unsealing": true,
+    "followup_received_after_disclosure": true
+  },
+  "identity": {
+    "labels": {
+      "M": "return",
+      "N": "original"
+    },
+    "raw_hashes": {
+      "original": "03d6623f8ee1ac9a979310e8f7285faba9279d81e75c8363645829d88b8ca9c0",
+      "return": "9b62efa4843f17e7a6e2aae1353322341bdc686490058f71115a68c29b40cf64"
+    },
+    "randomization": "one SystemRandom shuffle after both complete texts; no reroll"
+  },
+  "packet_sha256": "1d0f404890855c2d81d374837c720b404f07ea6d6e1d8f13fc32e253b877f680",
+  "meaning_review": {
+    "file": "meaning-review.json",
+    "sha256": "84c966101e017ea29333b2120d8c1a1d06b7472b9967feeac899b83c116ecfc1",
+    "scientific_required_repairs": [],
+    "scope": "Fresh identity-blinded source-text review; all four sections in both languages. No new pixel inspection or disciplinary expert acceptance."
+  },
+  "coordinator_source_text_checks": [
+    {
+      "pages": "1–2, 7–8",
+      "finding": "293 stories, 600 evaluators, random access conditions and ratings before AI disclosure are supported. Access is not the number of ideas used."
+    },
+    {
+      "pages": "3–4",
+      "finding": "8.1% novelty and 9.0% usefulness increases, with differentiated effects by DAT scores, are supported. Task performance is not a complete measure of creative potential."
+    },
+    {
+      "pages": "4–5, 8",
+      "finding": "0.871/0.718 are increments in cosine similarity scaled by 100, measured against the average embedding of other stories in the same condition; they are not diversity-loss percentages."
+    },
+    {
+      "pages": "5–7",
+      "finding": "Complementarity, possible anchoring, restricted interaction and long-term limitations are retained. The source does not establish the proposed follow-up studies as findings."
+    },
+    {
+      "pages": "6",
+      "finding": "The source focuses on complementarity rather than a human-versus-AI horse race. Both local wording repairs avoid an author/framework mismatch or overstating rejection of other approaches."
+    }
+  ],
+  "coordinator_required_meaning_repairs": [],
+  "mechanical_constraint_failure": {
+    "version": "M",
+    "language": "Chinese",
+    "original_count": 2458,
+    "maximum": 2400,
+    "over_by": 58,
+    "unit": "non-whitespace Unicode code points, excluding headings and standalone anchors",
+    "status": "original failure retained; separate refinement passes"
+  },
+  "length_contract": {
+    "anchor_pattern": "〔Doshi2024 pp?\\.[^〕]+〕",
+    "anchor_exclusion": "standalone",
+    "languages": [
+      {
+        "heading": "## 中文",
+        "sections": [
+          "### 摘要",
+          "### 引言",
+          "### 相关研究与定位",
+          "### 讨论"
+        ],
+        "unit": "codepoints",
+        "min": 1600,
+        "max": 2400
+      },
+      {
+        "heading": "## English",
+        "sections": [
+          "### Abstract",
+          "### Introduction",
+          "### Related work and positioning",
+          "### Discussion"
+        ],
+        "unit": "words",
+        "min": 1000,
+        "max": 1500
+      }
+    ]
+  },
+  "length_contract_sha256": "28249d59852d62801fce8c9e5064ef2a801390da865d97abdf6ff9f6f20c4201",
+  "measurements": {
+    "N": {
+      "original": {
+        "anchor_exclusion": "standalone",
+        "languages": {
+          "## 中文": {
+            "unit": "codepoints",
+            "count": 2102,
+            "min": 1600,
+            "max": 2400,
+            "sections": {
+              "### 摘要": 302,
+              "### 引言": 365,
+              "### 相关研究与定位": 478,
+              "### 讨论": 957
+            },
+            "pass": true
+          },
+          "## English": {
+            "unit": "words",
+            "count": 1091,
+            "min": 1000,
+            "max": 1500,
+            "sections": {
+              "### Abstract": 136,
+              "### Introduction": 190,
+              "### Related work and positioning": 234,
+              "### Discussion": 531
+            },
+            "pass": true
+          }
+        },
+        "pass": true
+      },
+      "refined": {
+        "anchor_exclusion": "standalone",
+        "languages": {
+          "## 中文": {
+            "unit": "codepoints",
+            "count": 2105,
+            "min": 1600,
+            "max": 2400,
+            "sections": {
+              "### 摘要": 304,
+              "### 引言": 365,
+              "### 相关研究与定位": 479,
+              "### 讨论": 957
+            },
+            "pass": true
+          },
+          "## English": {
+            "unit": "words",
+            "count": 1096,
+            "min": 1000,
+            "max": 1500,
+            "sections": {
+              "### Abstract": 136,
+              "### Introduction": 190,
+              "### Related work and positioning": 234,
+              "### Discussion": 536
+            },
+            "pass": true
+          }
+        },
+        "pass": true
+      }
+    },
+    "M": {
+      "original": {
+        "anchor_exclusion": "standalone",
+        "languages": {
+          "## 中文": {
+            "unit": "codepoints",
+            "count": 2458,
+            "min": 1600,
+            "max": 2400,
+            "sections": {
+              "### 摘要": 339,
+              "### 引言": 403,
+              "### 相关研究与定位": 570,
+              "### 讨论": 1146
+            },
+            "pass": false
+          },
+          "## English": {
+            "unit": "words",
+            "count": 1128,
+            "min": 1000,
+            "max": 1500,
+            "sections": {
+              "### Abstract": 144,
+              "### Introduction": 191,
+              "### Related work and positioning": 239,
+              "### Discussion": 554
+            },
+            "pass": true
+          }
+        },
+        "pass": false
+      },
+      "refined": {
+        "anchor_exclusion": "standalone",
+        "languages": {
+          "## 中文": {
+            "unit": "codepoints",
+            "count": 2395,
+            "min": 1600,
+            "max": 2400,
+            "sections": {
+              "### 摘要": 328,
+              "### 引言": 395,
+              "### 相关研究与定位": 554,
+              "### 讨论": 1118
+            },
+            "pass": true
+          },
+          "## English": {
+            "unit": "words",
+            "count": 1128,
+            "min": 1000,
+            "max": 1500,
+            "sections": {
+              "### Abstract": 144,
+              "### Introduction": 191,
+              "### Related work and positioning": 239,
+              "### Discussion": 554
+            },
+            "pass": true
+          }
+        },
+        "pass": true
+      }
+    }
+  },
+  "refinements": {
+    "N": {
+      "file": "version-n-refined.md",
+      "base_sha256": "03d6623f8ee1ac9a979310e8f7285faba9279d81e75c8363645829d88b8ca9c0",
+      "sha256": "a500b3a66f6608bfce6ae6502af135327b7241d50d6911d1b258bcecb925b1f9",
+      "edits": [
+        {
+          "before": "同一实验条件内的故事更为相似",
+          "after": "同一AI辅助条件下的故事更为相似"
+        },
+        {
+          "before": "他们同时区别于人类与AI谁更强的竞赛框架",
+          "after": "他们没有采用比较人类与AI谁更强的竞赛框架"
+        },
+        {
+          "before": "Nor should a task score settle a writer’s entire creative potential.",
+          "after": "Nor should a task score be treated as a complete measure of a writer’s creative potential."
+        }
+      ],
+      "human_reviewed": false,
+      "adopted_into_project": false
+    },
+    "M": {
+      "file": "version-m-refined.md",
+      "base_sha256": "9b62efa4843f17e7a6e2aae1353322341bdc686490058f71115a68c29b40cf64",
+      "sha256": "40d4b4d717b46c229d73f6e5be2b87ca066f4a6149dae205905691503b147092",
+      "edits": [
+        {
+          "before": "生成式人工智能为何能在改善个人创作的同时削弱集体多样性？",
+          "after": "生成式人工智能为何能改善个人创作，却削弱集体多样性？"
+        },
+        {
+          "before": "本文基于Doshi和Hauser（2024）的短篇故事实验展开批判性分析，不报告新的实证实验。",
+          "after": "本文基于Doshi和Hauser（2024）的短篇故事实验作批判性分析，不报告新实验。"
+        },
+        {
+          "before": "评价AI的创作贡献需同时考察作品质量、收益在不同作者间的分布以及作品集合的多样性",
+          "after": "评价AI的贡献需同时考察作品质量、不同作者的收益分布和作品集合的多样性"
+        },
+        {
+          "before": "以及这一区分如何改变我们对AI贡献的评价方式。本文的核心论点是，",
+          "after": "以及这一区分如何改变AI贡献的评价。核心论点是，"
+        },
+        {
+          "before": "以下学术定位依据该论文对既有文献的梳理，其引用的原始文献并未另行独立审阅。",
+          "after": "以下定位依据该论文对既有文献的梳理，其引用文献并未另行审阅。"
+        },
+        {
+          "before": "同时，他们摒弃了比较人类与AI孰优孰劣的竞赛框架，转而关注",
+          "after": "他们没有采用比较人类与AI孰优孰劣的竞赛框架，而是关注"
+        },
+        {
+          "before": "这对本文研究问题的关键启示在于：",
+          "after": "这对本文的启示是："
+        },
+        {
+          "before": "这一区分进一步引出可检验的后续研究设计：未来研究可对比",
+          "after": "这一区分引出可检验的后续研究：可对比"
+        },
+        {
+          "before": "至此，引言提出的问题得到了明确回答：",
+          "after": "由此可回答引言的问题："
+        },
+        {
+          "before": "基于上述分析，本文主张将作品平均质量、不同作者群体的收益分布与集合多样性并列报告；若要汇总为单一评价指标，则必须明确具体用途与权重。",
+          "after": "据此，本文主张将作品平均质量、不同作者的收益分布与集合多样性并列报告；若要汇总为单一指标，须明确用途与权重。"
+        }
+      ],
+      "human_reviewed": false,
+      "adopted_into_project": false
+    }
+  },
+  "decision": "Retain N as this comparison’s slightly preferred original and M as an alternate. Save local refinements separately; do not infer a global style/model default or overwrite either reviewed version.",
+  "limits": [
+    "Actual reading/editing duration remains unknown.",
+    "Ordinary-reader feedback is not disciplinary-expert acceptance.",
+    "Supplementary register comments arrived after identity disclosure.",
+    "The source-text adjudication adds no new figure-pixel inspection or statistical replication.",
+    "The revised examples have not received human review; no generalized model ranking or efficiency estimate follows."
+  ]
+}

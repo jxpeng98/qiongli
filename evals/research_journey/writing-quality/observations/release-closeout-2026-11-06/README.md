@@ -53,17 +53,22 @@ effort override and preserves the existing settings. The stream is complete with
 no external tool calls. This establishes model-labelled execution, not a quality
 verdict or a comparison between different models.
 
-M/N are freshly randomized once after both texts are complete. A new blinded
-source-text review has completed using the configured Codex model. Its judgments
-and the identity key remain sealed while the human response is pending. The
-frozen private packet's digest and current-byte verification are retained in the
-observation; no polished return has been adopted.
+M/N were randomized once after both texts were complete. The ordinary reader
+reports a small overall difference and a slight preference for N. After identity
+disclosure, the reader confirms completing both languages and describes M's
+English as slightly more formal and N's as comparatively more informal. Actual
+reading/editing duration was not reported. The frozen packet and every binding
+verify before unsealing: N is the original; M is the Antigravity return.
 
-Human preference, reviewed languages, reviewer role and actual reading/editing
-time remain pending. Elapsed message time is not work time, and unknown time must
-remain unknown. A public-source example and model review cannot establish author
-or disciplinary-expert acceptance. After the actual response, unseal the review,
-check any proposed repair against the source and preserve all correct wording.
+The [human review and adjudication](human-review.md) separate overall preference,
+register, source meaning and mechanical constraints. The previously blinded
+model review and coordinator source-text check identify no required scientific
+repair. Mechanical counting does find M's Chinese exceeds the 2400 limit (2458).
+Separate local refinements pass: M has 2395 Chinese code points with its English
+unchanged; N has three optional expression edits. The reviewed originals and
+comparison remain byte-identical. Revised examples are not yet human-reviewed or
+adopted into a project; the ordinary-reader response establishes no expert or
+timed-efficiency claim.
 
 ## Validation and remaining release work
 
@@ -134,10 +139,9 @@ All 45 retained release, executable, project and
 evaluation files match their pre-cleanup hashes. Other target trees and user
 configuration remain intact. The read-only cache-budget check passes afterward.
 
-This is an unpublished current-target candidate. Human bilingual review, actual
-reading/editing time and reviewer role are still pending; model judgments and
-the anonymous key remain sealed. The next increment is to adjudicate that real
-feedback, then qualify the exact release source across the advertised targets
-under the requested publication workflow. No program acceptance, remote push,
+This is an unpublished current-target candidate. The subsequent ordinary-reader
+feedback and verified unsealing are recorded above; timing remains unreported.
+The next release increment is exact-source qualification across the advertised
+targets under an authorized release workflow. No program acceptance, remote push,
 tag, publication or announcement is implied. Later bookkeeping changes do not
 change the named artifact source or reuse its evidence for different bytes.

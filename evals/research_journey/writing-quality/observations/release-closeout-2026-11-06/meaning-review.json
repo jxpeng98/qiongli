@@ -1,0 +1,271 @@
+{
+  "by_version": {
+    "M": {
+      "overall": "Acceptable as a complete bilingual article; no required repair identified.",
+      "argument_continuity": {
+        "verdict": "Meets",
+        "assessment": "Across all four sections in each language, the abstract states the distinction, the Introduction establishes the question, Related work explains its conceptual significance, and the Discussion answers it through evidence and proposed evaluation criteria. The follow-up studies extend that argument without becoming promised findings."
+      },
+      "explanatory_depth": {
+        "verdict": "Meets",
+        "assessment": "Explains why individual ratings and relationships among works can move differently, why average gains conceal differences across beneficiaries, and why similarity does not identify a psychological mechanism. Its evaluation proposal follows from these distinctions."
+      },
+      "natural_chinese": {
+        "verdict": "Meets",
+        "assessment": "Clear, connected scholarly Chinese. Some phrasing is formal or expansive, but this does not obstruct the argument. The attribution verb “摒弃” could optionally be softened."
+      },
+      "natural_english": {
+        "verdict": "Meets",
+        "assessment": "Readable, idiomatic academic prose with stable terminology and clear sentence connections. The longer explanations generally carry useful distinctions."
+      },
+      "source_fidelity": {
+        "verdict": "Meets",
+        "assessment": "The design, numerical results, outcome definitions and literature positioning agree with the supplied paper. The article attributes findings and labels its additional evaluation framework and research designs as analysis or proposals.",
+        "source_anchors": [
+          "〔Doshi2024 pp.1–4〕",
+          "〔Doshi2024 pp.5–8〕"
+        ]
+      },
+      "bilingual_consistency": {
+        "verdict": "Meets",
+        "assessment": "Chinese and English preserve the same research question, evidence, inferential limits and recommendations. Differences in sentence structure and elaboration do not change consequential claims."
+      },
+      "necessary_qualifications": {
+        "verdict": "Meets",
+        "assessment": "Both independently readable abstracts identify the short-story experiment, rated outcomes, unresolved mechanism and limits on long-term cultural inference. The bodies distinguish access from actual idea use, output from lasting ability, and similarity increments from percentage diversity loss."
+      }
+    },
+    "N": {
+      "overall": "Acceptable as a complete bilingual article; minor optional language polishing would help.",
+      "argument_continuity": {
+        "verdict": "Meets",
+        "assessment": "All four sections in each language maintain the same question and answer. Compression preserves the links from experimental findings to separate individual and collective evaluations, then to proposed tests."
+      },
+      "explanatory_depth": {
+        "verdict": "Meets",
+        "assessment": "Retains the consequential explanations: distinct measurement levels, heterogeneous benefits, the limits of similarity as mechanism evidence, and the need to state evaluation objectives. Its shorter treatment does not omit a necessary premise."
+      },
+      "natural_chinese": {
+        "verdict": "Meets with minor optional polish",
+        "assessment": "Generally direct and natural. The phrase “他们同时区别于……框架” creates a locally awkward comparison between people and a framework, but its intended meaning is recoverable."
+      },
+      "natural_english": {
+        "verdict": "Meets with minor optional polish",
+        "assessment": "Generally fluent and connected. A few compressed expressions are less idiomatic, especially “settle a writer’s entire creative potential”; these do not change the scientific argument."
+      },
+      "source_fidelity": {
+        "verdict": "Meets",
+        "assessment": "The empirical claims and their interpretation agree with the supplied source. Shorter explanations retain the relevant comparison, units and causal scope.",
+        "source_anchors": [
+          "〔Doshi2024 pp.1–4〕",
+          "〔Doshi2024 pp.5–8〕"
+        ]
+      },
+      "bilingual_consistency": {
+        "verdict": "Meets",
+        "assessment": "The consequential claims and recommendations match across languages. The Chinese abstract leaves “AI” implicit in its within-condition similarity statement, while English names it; context supplies the referent, although making it explicit would improve local precision."
+      },
+      "necessary_qualifications": {
+        "verdict": "Meets",
+        "assessment": "Preserves the independently necessary abstract limits and the body's distinctions between access and use, immediate output and transferable ability, plausible mechanisms and identified mechanisms, and experimental findings and proposed investigations."
+      }
+    }
+  },
+  "comparisons": {
+    "argument_continuity": {
+      "verdict": "Tie",
+      "reason": "Both complete articles sustain the same evidence-to-conclusion chain. Neither relies on the other version to supply a missing argument.",
+      "quoted_spans": [
+        {
+          "version": "M",
+          "location": "English, Introduction",
+          "quote": "Its central argument is that ratings of individual works cannot adequately represent the creative value of an entire collection."
+        },
+        {
+          "version": "N",
+          "location": "English, Discussion",
+          "quote": "Its contribution must be assessed at both levels, together with the distribution of benefits, before it can be judged against a particular creative objective."
+        }
+      ],
+      "source_anchors": [
+        "〔Doshi2024 pp.3–5〕",
+        "〔Doshi2024 p.7〕"
+      ]
+    },
+    "explanatory_depth": {
+      "verdict": "Tie on substantive adequacy",
+      "reason": "M sometimes makes an already available distinction more explicit; N usually expresses the same reasoning more economically. For example, N's preceding description of multiplying cosine similarity by 100 already supplies the scale that M subsequently names. Additional wording is not an additional premise.",
+      "quoted_spans": [
+        {
+          "version": "M",
+          "location": "English, Discussion",
+          "quote": "These values are scaled similarity increments rather than percentages of diversity lost, and they do not imply that offering more suggestions necessarily produces greater homogenization."
+        },
+        {
+          "version": "N",
+          "location": "English, Discussion",
+          "quote": "These numbers are not percentages of diversity lost, and they do not support a necessary progression from more suggestions to greater homogenization."
+        }
+      ],
+      "source_anchors": [
+        "〔Doshi2024 p.4〕",
+        "〔Doshi2024 p.8〕"
+      ]
+    },
+    "natural_chinese": {
+      "verdict": "Both acceptable; no decisive whole-article winner",
+      "reason": "N is generally more economical; M sometimes gives relationships a smoother explicit formulation. Neither expansiveness nor compression establishes superiority. The local expression issues are listed as optional edits."
+    },
+    "natural_english": {
+      "verdict": "Small local advantage to M",
+      "reason": "M has somewhat more idiomatic phrasing at identifiable points. This is an expression preference, not a difference in explanatory adequacy or evidential support.",
+      "quoted_spans": [
+        {
+          "version": "M",
+          "location": "English, Discussion",
+          "quote": "Nor should a single task score be treated as a complete measure of a writer’s creative potential."
+        },
+        {
+          "version": "N",
+          "location": "English, Discussion",
+          "quote": "Nor should a task score settle a writer’s entire creative potential."
+        }
+      ],
+      "source_anchors": [
+        "〔Doshi2024 pp.3–4〕"
+      ]
+    },
+    "source_fidelity": {
+      "verdict": "Tie",
+      "checked_claims": [
+        {
+          "versions": [
+            "M",
+            "N"
+          ],
+          "location": "English, Introduction",
+          "quote": "Their final analysis included 293 eight-sentence stories evaluated by 600 separate participants, with the primary assessments completed before any disclosure of AI use.",
+          "assessment": "Supported. Both articles also correctly identify the randomized intervention as access to ideas, rather than the number of ideas actually used.",
+          "source_anchors": [
+            "〔Doshi2024 pp.1–2〕",
+            "〔Doshi2024 p.6〕",
+            "〔Doshi2024 pp.7–8〕"
+          ]
+        },
+        {
+          "versions": [
+            "M",
+            "N"
+          ],
+          "location": "English, Discussion",
+          "quote": "Figure 2 and the accompanying text show that access to up to five ideas increased novelty ratings by 8.1% and usefulness ratings by 9.0% relative to independent writing.",
+          "assessment": "Both percentages and their comparison group are supported by the supplied results text.",
+          "source_anchors": [
+            "〔Doshi2024 p.3〕"
+          ]
+        },
+        {
+          "version": "M",
+          "location": "English, Discussion",
+          "quote": "Relative to independent writing, similarity increased by 0.871 points with access to one idea and by 0.718 points with access to up to five ideas, as shown in Figure 4.",
+          "assessment": "The numerical claims are correct; N reports the same values and comparison. Both correctly describe similarity to the average embedding of the other stories in the same condition, rather than an average of all pairwise similarities.",
+          "source_anchors": [
+            "〔Doshi2024 p.4〕",
+            "〔Doshi2024 p.5〕",
+            "〔Doshi2024 p.8〕"
+          ]
+        },
+        {
+          "version": "N",
+          "location": "English, Related work and positioning",
+          "quote": "They also distinguish their approach from comparisons that ask whether humans or AI perform better, focusing instead on what ordinary participants can produce with assistance.",
+          "assessment": "Accurately represents the paper's positioning around complementarity. Both versions connect that positioning to the evaluation question and explicitly limit their literature account to the supplied paper.",
+          "source_anchors": [
+            "〔Doshi2024 p.1〕",
+            "〔Doshi2024 pp.5–7〕"
+          ]
+        }
+      ]
+    },
+    "bilingual_consistency": {
+      "verdict": "Tie on consequential meaning",
+      "reason": "Both pairs preserve the substantive answer, numerical evidence, uncertainty and proposed research implications. N's implicit AI-condition modifier is a local clarity opportunity, not a demonstrated change to the complete article's claim."
+    },
+    "necessary_qualifications": {
+      "verdict": "Tie",
+      "reason": "Both retain useful qualifications without negating supported results. Neither needs repeated caveats, every procedural detail, or a full account of the cited literature.",
+      "quoted_spans": [
+        {
+          "version": "M",
+          "location": "English, Discussion",
+          "quote": "Content similarity alone, however, cannot distinguish psychological anchoring from writers deliberately adopting helpful suggestions."
+        },
+        {
+          "version": "N",
+          "location": "English, Discussion",
+          "quote": "These are proposed investigations, not established findings."
+        }
+      ],
+      "source_anchors": [
+        "〔Doshi2024 p.5〕",
+        "〔Doshi2024 pp.6–7〕"
+      ],
+      "interpretive_notes": [
+        "The Introduction's hypothetical about helping every writer is not a report that every participant benefited; both bodies explicitly discuss heterogeneous gains.",
+        "The upper-bound discussion is reasonably read as interpreting the observed pattern, not establishing a universal ceiling on AI-assisted creativity.",
+        "Omitting the DAT's ten-word procedure, uptake percentages or full reference-idea assignment procedure does not leave a necessary premise missing from these analytical articles."
+      ]
+    },
+    "shared_issues_and_drift": {
+      "verdict": "No consequential scientific divergence identified after source checking",
+      "assessment": "The context-specific usefulness measure, embedding-based similarity measure and restricted experimental setting originate in the source and are appropriately bounded in both manuscripts. They are not language-edit-induced errors. No shared unsupported scientific claim requiring correction was identified. The anonymous pair supplies no editing chronology, so version-specific wording differences cannot establish which text introduced a change."
+    }
+  },
+  "required_repairs": [],
+  "optional_edits": [
+    {
+      "version": "M",
+      "language": "Chinese",
+      "location": "相关研究与定位, first paragraph",
+      "quoted_span": "他们摒弃了比较人类与AI孰优孰劣的竞赛框架",
+      "minimal_replacement": "他们没有采用比较人类与AI孰优孰劣的竞赛框架",
+      "reason": "More closely matches the source's choice to focus on complementarity. “摒弃” can suggest a stronger rejection of the alternative framework than the paper explicitly expresses; the surrounding passage already makes the intended positioning clear.",
+      "source_anchor": "〔Doshi2024 p.6〕"
+    },
+    {
+      "version": "N",
+      "language": "Chinese",
+      "location": "相关研究与定位, first paragraph",
+      "quoted_span": "他们同时区别于人类与AI谁更强的竞赛框架",
+      "minimal_replacement": "他们没有采用比较人类与AI谁更强的竞赛框架",
+      "reason": "Removes the awkward comparison between the authors themselves and a framework while preserving the intended positioning.",
+      "source_anchor": "〔Doshi2024 p.6〕"
+    },
+    {
+      "version": "N",
+      "language": "English",
+      "location": "Discussion, first paragraph",
+      "quoted_span": "Nor should a task score settle a writer’s entire creative potential.",
+      "minimal_replacement": "Nor should a task score be treated as a complete measure of a writer’s creative potential.",
+      "reason": "“Settle” is an awkward collocation with “creative potential.” The replacement preserves the existing methodological qualification.",
+      "source_anchor": "〔Doshi2024 pp.3–4〕"
+    },
+    {
+      "version": "N",
+      "language": "Chinese",
+      "location": "摘要",
+      "quoted_span": "同一实验条件内的故事更为相似",
+      "minimal_replacement": "同一AI实验条件内的故事更为相似",
+      "reason": "Makes the treatment scope explicit in the independently readable abstract and matches the English wording. The preceding AI-access clause and the Discussion already establish this scope, so this is clarification rather than a necessary scientific correction.",
+      "source_anchor": "〔Doshi2024 p.4〕"
+    }
+  ],
+  "limits": [
+    "The assessment covers all four sections together in each language of each version, using only the supplied manuscripts, source text and contracts. No tools were used and no files were written.",
+    "The supplied material contains figure captions and corresponding results text, but not the original figure graphics. Numerical claims associated with Figures 2–4 are supported by that text; visual inspection and compliance with the original figure-inspection instruction cannot be verified.",
+    "The cited publications, supplementary materials, underlying data and preregistration were not independently inspected. Source fidelity here does not independently validate the experiment's analyses.",
+    "No exact mechanical length-count audit or verification against the actual frozen length-contract.json file is claimed.",
+    "This is one anonymous pair evaluated against a reused source. It is neither held-out evidence nor evidence of human evaluation, and it supports no general claim about author, model, tool or workflow superiority.",
+    "Authorship and editing provenance remain unknown; no identity or direction of editing has been inferred."
+  ]
+}

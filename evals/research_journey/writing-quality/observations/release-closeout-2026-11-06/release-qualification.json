@@ -244,5 +244,7 @@
     "Human complete bilingual example feedback, languages read, reviewer role and actual reading/editing time.",
     "Exact-source four-target distribution qualification and requested release-source integration.",
     "Publication and announcement remain separate decisions; no push, tag or publication occurred."
-  ]
+  ],
+  "followup_evaluation": "human-feedback.json",
+  "remaining_scope": "The remaining list records the state at package qualification. Subsequent bilingual ordinary-reader feedback and adjudication are in the followup evaluation; timing remains unreported, target qualification and publication remain separate."
 }

@@ -54,17 +54,18 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — November 6, 2026
 
-The current bounded increment closes actual saved-style recovery and prepares
-2.6.0 locally. The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-6--writing-release-closeout-and-260-preparation)
-binds native context-read repair `5fa20e32`, canonical/version source `1062203c`,
-two real read-only configured-model continuations and a runtime-labelled
-Antigravity return. Complete bilingual M/N examples are issued for human review;
-actual preference, languages, reviewer role and reading/editing time remain
-pending, with model judgments/key sealed. Preserve the failed/confounded attempts,
-correct prose and existing approval/CAS owners. Qualify the clean merged candidate
-with the release owner, then clean only identified regenerable caches. Local
-integration and package preparation do not promote acceptance or authorize push,
-remote distribution, publication or installed-profile updates.
+The current bounded increment records ordinary-reader feedback on the complete
+bilingual example and prepares 2.6.0 locally. The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#ordinary-reader-feedback-and-verified-unsealing)
+binds the saved-style recovery repair, two configured-model continuations and the
+Host-labelled Antigravity return. The reader slightly prefers N (the original),
+confirms both languages and describes M's English as slightly more formal. The
+verified packet and source-text review are unsealed; actual reading/editing time
+remains unknown. Preserve both originals and save local refinements separately,
+including M's corrected Chinese length overrun. No model or global style default
+changes. Candidate `1a1b6164` passes local Linux ARM64 package qualification and
+identified old caches have been cleaned. Next qualify the exact release source
+across the advertised targets under authorized release scope. These observations
+and local merges do not promote program acceptance or authorize push/publication.
 
 The preceding bounded increment retains X alongside the selected Y and adds optional
 concise/explanatory styles and scoped custom samples to shared F/G4/J2 guidance.

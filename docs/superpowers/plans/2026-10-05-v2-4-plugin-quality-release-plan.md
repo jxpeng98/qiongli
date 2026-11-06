@@ -4512,3 +4512,35 @@ feedback, then qualify the exact release source across the advertised targets
 under the requested publication workflow. No program acceptance, remote push,
 tag, publication or announcement is implied. Later bookkeeping changes do not
 change the named artifact source or reuse its evidence for different bytes.
+
+
+### Ordinary-reader feedback and verified unsealing
+
+The reader chooses the public-source complete example, then reports a small
+overall difference with a slight preference for N before identity disclosure.
+After disclosure, the reader confirms reading Chinese and English as an ordinary
+reader and describes M's English as slightly more formal, N's as relatively more
+informal. Actual reading/editing time is unreported; it remains unknown.
+
+The original packet and all seven file bindings verify. N is the original; M is
+the Host-confirmed Antigravity return. The [human review](../../../evals/research_journey/writing-quality/observations/release-closeout-2026-11-06/human-review.md)
+retains the verbatim feedback, disclosure order, unsealed model review and
+coordinator source-text adjudication. No required scientific repair is found.
+Mechanical checks separately expose M's 2458 Chinese code points against a 2400
+maximum; the original failure is retained. A separate M refinement reduces this
+to 2395 while retaining English byte-for-byte. N receives three optional local
+expression improvements, with 2105 Chinese code points and 1096 English words.
+Both revised candidates preserve numbers, citations, headings and consequential
+reasoning/qualifications, and pass the original section/length contract.
+
+The reviewed originals and anonymous comparison remain unchanged. The revisions
+are review candidates, not newly human-approved texts or project saves. Existing
+writing/style rules already cover this case, so canonical guidance, model settings
+and package inputs are unchanged. The Linux ARM64 qualification remains bound to
+`1a1b6164`; this evidence-only update needs no binary rebuild or new cache.
+Seven program tests, input/hash preservation, length/citation/number/heading checks,
+final diff review and the local boundary guard cover integration. All task states,
+dependencies and accepted evidence stay unchanged. Next: review any requested
+local refinement and qualify the exact release source across the advertised
+targets under appropriate release authority. No push, publication, general model
+ranking, expert acceptance or measured efficiency improvement is claimed.

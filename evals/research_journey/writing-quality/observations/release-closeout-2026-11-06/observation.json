@@ -1135,12 +1135,30 @@
   "whole_manuscript": {
     "human": {
       "comparison_sha256": "a262e7db8b6ecafeb9808d5bf83aaf414cabf157b6afbffc74a7aab2a78bde58",
-      "status": "awaiting actual human response",
-      "reviewed_languages": null,
-      "reviewer_role": null,
+      "status": "bilingual ordinary-reader feedback received; actual duration not reported",
+      "reviewed_languages": [
+        "Chinese",
+        "English"
+      ],
+      "reviewer_role": "ordinary reader",
       "reading_minutes": null,
       "editing_minutes": null,
-      "scope": "Public-source complete analytical article; not an actual private manuscript or author/expert acceptance without that identity and assessment."
+      "scope": "Public-source complete analytical example; ordinary-reader assessment, not disciplinary-expert acceptance or measured editing efficiency.",
+      "preference": "N",
+      "preference_strength": "slight",
+      "perceived_difference": "small",
+      "verbatim": "两个的效果好像这次差不太多， 相比较还是N的更舒服一些。",
+      "review_method_verbatim": "先用现有公开论文材料形成完整示范稿，由我审阅并记录用时",
+      "required_edits": null,
+      "timing_status": "not reported; neither elapsed message time nor model runtime substituted",
+      "followup_verbatim": "普通读者的身份， 都读完了， M的英文稍微是正式一点点。 N的相比较来讲更informal一些。",
+      "english_register": {
+        "M": "slightly more formal",
+        "N": "comparatively more informal"
+      },
+      "disclosure_sequence": "Overall slight N preference was received and frozen before unsealing. Language coverage, reader role and English-register comments were reported after the identities had been disclosed.",
+      "overall_preference_received_before_unsealing": true,
+      "followup_received_after_disclosure": true
     },
     "comparison": "anonymous-comparison.md",
     "model_review_completed": true,
@@ -1151,13 +1169,21 @@
       }
     ],
     "model_review_scope": "Fresh identity-blinded source-text review; all four sections in both languages. No new pixel inspection or disciplinary expert acceptance.",
-    "status": "Awaiting actual human language/role/time feedback; model judgments and identity mapping remain uninspected and withheld. No return adopted.",
+    "status": "Ordinary reader completed both languages and slightly prefers N; source-text adjudication complete. M length failure retained and separately corrected. Timing unreported; refinements not yet human-reviewed or adopted.",
     "sealed_packet": {
       "path": "/tmp/qiongli-writing-closeout-20261106-fmpzj1jt/review/private-archive/packet.json",
       "sha256": "1d0f404890855c2d81d374837c720b404f07ea6d6e1d8f13fc32e253b877f680",
-      "verified_current": "bindings_current"
+      "verified_current": "bindings_current",
+      "verified_on_unsealing": "bindings_current"
     },
-    "preservation_equal": true
+    "preservation_equal": true,
+    "identity": {
+      "M": "return",
+      "N": "original"
+    },
+    "feedback": "human-feedback.json",
+    "model_review_file": "meaning-review.json",
+    "unsealed_after_preference": true
   },
   "preserved_failures": [
     "Initial agy models call refused in sandbox; retained logs and succeeded through authorized Host execution.",
@@ -1170,9 +1196,9 @@
     "First versioned strict check rejected release-note section naming; changed heading to Verification, retaining linked evidence."
   ],
   "remaining": [
-    "Actual human full-text preference, reviewed languages, reviewer role and real reading/editing time. Unknown time must stay unknown.",
-    "Meaning-review unsealing and source adjudication after human response; preserve correct original/return wording.",
-    "Four-target exact-source remote distribution and explicit publication decision remain outside local qualification."
+    "Actual reading/editing duration was not reported; no timed efficiency claim.",
+    "Local refinements are review candidates, not human-accepted replacements or project saves.",
+    "Exact-source four-target remote distribution and publication remain separate."
   ],
   "tests": {
     "strict_research_standard": {
@@ -1207,5 +1233,5 @@
     },
     "format": "cargo fmt --all --check passed"
   },
-  "private_packet_retention": "The complete private originals, returned text, source, task, key and review are frozen with a packet digest. Reopen only after the pending human response and verify every binding first."
+  "private_packet_retention": "The original frozen packet remains unchanged. Verified identities and source-text review were unsealed after the first human preference; later feedback and local refinements are separate records."
 }
