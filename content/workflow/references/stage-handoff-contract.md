@@ -67,9 +67,17 @@ handoff flag or restoring stale source bytes. An already consolidated capture
 cannot be reused to append a handoff; create a reviewed capture at the current
 revision for genuinely new work.
 
-After restart, read the current registered `research_state` and `stage_handoff`
-through the existing revision-bound readers. Read the latest available stage
-summary separately, checking its own source bytes and dependencies.
+After restart, obtain the current revision with `project show --project-id
+<prj_id> --json`. Read each registered context artifact with `project context
+read --project-id <prj_id> --expected-project-revision <revision> --artifact
+<research-state|stage-handoff> --json`. This direct reader needs no Graph snapshot
+or derived-state writes. Check `truncatedAfter`; increase `--max-bytes` within
+the advertised limit before treating the context as complete. A stale revision
+or changed semantic input requires a fresh read and re-review, not a refresh to
+conceal the conflict. Older CLIs may lack this entry: report the limitation and
+use an available authorized revision-bound reader without relaxing permissions.
+Read the latest available stage summary separately through `project document
+list/read`, checking its saved digest, source bytes and dependencies.
 The last capture-marked handoff is the latest appended entry, not permission to
 ignore earlier unresolved dependencies. A changed source reopens affected
 conclusions. Non-registered sources and stage summaries still require their own

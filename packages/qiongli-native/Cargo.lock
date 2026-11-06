@@ -4476,7 +4476,7 @@ checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
 
 [[package]]
 name = "qiongli"
-version = "2.5.3"
+version = "2.6.0"
 dependencies = [
  "ed25519-dalek",
  "futures",
@@ -4510,11 +4510,11 @@ dependencies = [
 
 [[package]]
 name = "qiongli-bounded-alloc"
-version = "2.5.3"
+version = "2.6.0"
 
 [[package]]
 name = "qiongli-config"
-version = "2.5.3"
+version = "2.6.0"
 dependencies = [
  "qiongli-content",
  "qiongli-windows-security",
@@ -4529,7 +4529,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-content"
-version = "2.5.3"
+version = "2.6.0"
 dependencies = [
  "same-file",
  "semver",
@@ -4542,7 +4542,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-execution"
-version = "2.5.3"
+version = "2.6.0"
 dependencies = [
  "agent-client-protocol",
  "async-io",
@@ -4563,7 +4563,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-platform"
-version = "2.5.3"
+version = "2.6.0"
 dependencies = [
  "crc32fast",
  "ed25519-dalek",
@@ -4584,7 +4584,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-project"
-version = "2.5.3"
+version = "2.6.0"
 dependencies = [
  "dunce",
  "getrandom 0.3.4",
@@ -4602,7 +4602,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-runtime"
-version = "2.5.3"
+version = "2.6.0"
 dependencies = [
  "flate2",
  "pdf-extract",
@@ -4622,7 +4622,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-ui"
-version = "2.5.3"
+version = "2.6.0"
 dependencies = [
  "eframe",
  "egui",
@@ -4632,7 +4632,7 @@ dependencies = [
 
 [[package]]
 name = "qiongli-windows-security"
-version = "2.5.3"
+version = "2.6.0"
 
 [[package]]
 name = "quick-error"
