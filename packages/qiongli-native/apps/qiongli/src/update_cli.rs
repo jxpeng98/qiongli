@@ -2469,8 +2469,8 @@ mod tests {
     }
 
     struct BlockingArchiveFetcher {
-        entered: Arc<Barrier>,
-        release: Arc<Barrier>,
+        entered: std::sync::mpsc::Sender<()>,
+        release: std::sync::mpsc::Receiver<()>,
     }
 
     impl ArchiveFetcher for BlockingArchiveFetcher {
@@ -2479,8 +2479,12 @@ mod tests {
             verified: &VerifiedNativeUpdateManifest,
             transaction_root: &Path,
         ) -> Result<(), &'static str> {
-            self.entered.wait();
-            self.release.wait();
+            self.entered
+                .send(())
+                .map_err(|_| "test-download-entry-channel-closed")?;
+            self.release
+                .recv_timeout(Duration::from_secs(10))
+                .map_err(|_| "test-download-release-timeout")?;
             let manifest = verified.manifest();
             stage_archive_from_reader(
                 ARCHIVE_BYTES,
@@ -3350,11 +3354,9 @@ mod tests {
             .to_canonical_json()
             .unwrap();
         let (store, root) = store("concurrent-cancel");
-        let entered = Arc::new(Barrier::new(2));
-        let release = Arc::new(Barrier::new(2));
+        let (download_entered, entered) = std::sync::mpsc::channel();
+        let (release, download_release) = std::sync::mpsc::channel();
         let download_store = store.clone();
-        let download_entered = Arc::clone(&entered);
-        let download_release = Arc::clone(&release);
         let handle = std::thread::spawn(move || {
             execute_with_fetchers(
                 UpdateCliCommand::Download {
@@ -3371,7 +3373,9 @@ mod tests {
             )
         });
 
-        entered.wait();
+        entered
+            .recv_timeout(Duration::from_secs(10))
+            .expect("download must reach the archive fetcher before cancellation");
         let reserved = store.load().unwrap();
         assert_eq!(reserved.revision, 1);
         assert_eq!(
@@ -3390,7 +3394,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(serde_json::to_value(cancelled).unwrap()["revision"], 3);
-        release.wait();
+        release.send(()).unwrap();
         assert_eq!(
             handle.join().unwrap(),
             Err("native-update-state-cleanup-required")
