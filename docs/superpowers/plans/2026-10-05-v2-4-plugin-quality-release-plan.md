@@ -4287,3 +4287,45 @@ Next bind actual feedback to the issued comparison, then inspect/adjudicate the
 sealed model review and make any source-backed selection. These passages become
 regression material. A general guidance effect, English, full-manuscript,
 disciplinary and installed-Host judgments remain outside this increment.
+
+
+### Human feedback and unchanged Y selection
+
+The later [human response](../../../evals/research_journey/writing-quality/observations/chinese-crosssection-2026-11-06/human-feedback.json)
+resolves the preference that remained pending at local integration `a738675f`.
+The user considers both descriptions to have no very large problems and prefers
+Y for conciseness and fluency, recognizing that individual preferences may differ.
+The exact response is bound to the unchanged comparison before unsealing the key
+and model review. The key and fresh model judgments had not appeared in visible
+output or the committed record; coordinator source-check summaries were visible.
+Do not turn that scoped feedback into source/expert verification, exact phrase
+scores, editing-time measurements or publication approval.
+
+The original model review gives both versions passes on eight content dimensions,
+all seven paragraph transitions and all five traced cross-section claims. Its
+five comparisons tie and its issue list is empty. The coordinator agrees after
+source comparison and literal-span checks, without overrides. These judgments
+remain separate from the human preference. The key reveals X as current guidance
+and Y as the earlier baseline; retain that result without claiming a candidate
+win or inferring a general guidance effect. X/Y body counts are 3338/3368, so the
+human's conciseness preference is not a claim that Y contains fewer characters.
+
+The [selected text](../../../evals/research_journey/writing-quality/observations/chinese-crosssection-2026-11-06/selected.md)
+retains Y's two sections and eight paragraphs with zero wording, citation or
+ordering changes. Only trailing whitespace and the terminal newline are normalized.
+No optional X detail is added: no missing premise or meaning error justifies it.
+The original comparison, pre-feedback snapshot/digest, exact feedback, raw review,
+identity key and post-feedback adjudication remain separately traceable. This
+completes the pending judgment/selection follow-up without rerunning unchanged
+writer or reviewer inputs or changing canonical guidance, pack, native or helpers.
+
+Focused checks cover feedback/comparison hashes, the private snapshot commitment,
+exact restoration of the key/review/recovery data, source locators, all quoted
+cross-section spans, unchanged Y wording/anchors and the 3368-character count.
+All seven program tests, generated-index freshness and artifact/ledger audits
+pass. Final diff review and the frozen-source guard accompany local fast-forward
+integration into `2.x`. Only CLI-405 progress and its generated index change; all task states,
+dependencies and accepted-evidence fields remain. No push, publication or
+acceptance promotion. Retain Y as regression material; future held-out work needs
+new sources, and broader language/manuscript and disciplinary judgments remain
+outside this observation.

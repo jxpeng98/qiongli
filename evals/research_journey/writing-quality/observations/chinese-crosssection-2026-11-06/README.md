@@ -59,11 +59,15 @@ paragraph transitions, including the section boundary, are checked separately.
 The criteria require a specific missing premise before calling an argument
 incomplete and allow correct alternative organization or optional omissions.
 
-Human preference is pending. The identity key and automatic review judgments
-remain withheld from visible outputs through the human response. Prior B
-preferences do not establish a preference between this trial's X/Y manuscripts.
+The [human response](human-feedback.json) considers neither version to have large
+descriptive problems and prefers Y for conciseness and fluency, while recognizing
+that preferences may differ. It supplies no exact phrase choices, dimension
+scores or editing time. The identity key and fresh model judgments remain
+withheld through that response; earlier coordinator source-check summaries were
+visible. This is identity-blinded feedback, not a claim that all prior assessment
+was hidden or that the user independently verified the source.
 
-## Source review and pending judgments
+## Source review and disclosed judgments
 
 The coordinator compares both original manuscripts with the supplied source.
 Both preserve the participant/rating distinction, the limited CFA comparison,
@@ -74,31 +78,45 @@ scope. No mandatory source or argument repair is identified in this review.
 Differences in optional procedural detail do not make an argument incomplete.
 Preserve the correct prose and existing G4/J2/scholarly-voice rules.
 
-The [portable observation](observation.json) retains the anonymous raw outputs,
-source blocks, frozen task/criteria, measurements, runtime checks and separate
-coordinator notes. The model review is complete but its judgments have not yet
-been inspected by the coordinator or disclosed. A hash-bound private snapshot
-retains the key, complete model review and label-to-writer recovery paths under
-`/tmp/qiongli-zh-crosssection-20261106-s5aeza9x/review/private-archive/`.
-Those fields are omitted from the public record while the human comparison is
-pending; their later adjudication remains open. This is an explicit record of
-completed work, not a claim that human or model review has accepted the writing.
+The [portable observation](observation.json) now includes the unchanged key,
+complete raw model review and exact recovery paths, disclosed only after the
+actual response was recorded. Original outputs, source blocks, frozen criteria,
+runtime checks and the prior pending snapshot/digest remain preserved. The first
+local integration, `a738675f`, correctly records human preference as pending;
+this follow-up supplies the later response and adjudication.
 
-The anonymous question remains pending. After an actual response, bind its exact
-wording and this unchanged comparison digest, then disclose/adjudicate the model
-review and make any source-backed selection. No combined draft is selected now,
-and silence is not treated as preference or approval. Local integration of the
-completed source/observation work does not depend on that optional preference.
+| Version | Guidance | Body characters | Content dimensions | Transitions | Cross-section claims |
+|---|---|---:|---|---|---|
+| X | Current | 3,338 | All eight pass | All seven pass | All five pass |
+| Y | Earlier baseline | 3,368 | All eight pass | All seven pass | All five pass |
+
+The model ties all five comparisons and returns no required or optional issues.
+The coordinator agrees after checking the exact source and quoted cross-section
+spans; no verdict is overridden. Preserve the human's Y preference separately
+from the model's ties. Y has slightly more characters: perceived conciseness is
+not a shorter-character-count result, and these counts do not explain its cause.
+The preferred version uses earlier guidance. Do not recast that as a candidate
+win; one sample per arm cannot justify a causal guidance claim or rule rollback.
+
+## Selected text
+
+The [selected text](selected.md) retains Y's two sections and eight paragraphs,
+with no wording, citation or paragraph-order changes. Only trailing whitespace
+and the terminal newline are normalized. No optional details are added from X:
+Y already preserves the premises and qualifications needed for its argument.
+The preference applies to this original body, rather than a newly synthesized
+draft. It is not publication approval or disciplinary/program acceptance.
 
 ## Integration and scope
 
-The display-normalization fix is applied before presentation, and the pending
-export omits both the explicit identity key and the indirect mapping in recovered
-file paths. These are observation-preparation changes, not native/runtime fixes.
+Display normalization occurred before presentation. The initial pending export
+omitted the explicit identity key and indirect mapping in recovered file paths;
+both are restored unchanged after feedback. The original comparison remains
+byte-identical. These are observation-preparation changes, not native fixes.
 Canonical content, the content pack, native code and shared helpers are unchanged.
 The existing execution plan records focused integration checks once; no package
-rebuild or model override is needed. Integrate locally into `2.x`, with no push,
-publication or program-acceptance promotion.
+rebuild, writer/reviewer rerun or model override is needed. The follow-up retains
+local-only `2.x` integration, with no push, publication or acceptance promotion.
 
 One source, one generation per arm and a same-model reviewer cannot establish a
 general guidance effect. The primary outcome is a longer cross-section Chinese
