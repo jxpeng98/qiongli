@@ -96,3 +96,14 @@ cases with three existing manual skips; 138 platform cases and final strict
 Clippy pass. This is not a single full-suite result or a claim that the shared
 host permits managed executable replacement. The first incomplete private-cache
 copy and its corrected retry are recorded as coordinator work, not product faults.
+
+
+The next release-mode CLI run on `38219e48` passes 46 cases and fails the legacy
+inventory count: the isolated fixture inherits the live `CODEX_HOME`. Removing
+only the inherited Host roots makes that unchanged case pass. The shared test
+helpers now clear `CODEX_HOME` and `CLAUDE_CONFIG_DIR`; explicit custom-root tests
+still set their own overrides. The complete release CLI and MCP suites then pass
+47/47 and 9/9 with the actual parent environment retained. Format passes. This is
+a test isolation repair; production discovery and custom Host paths are unchanged.
+The previous release build was terminated (exit 143) before test results or assets;
+its log records no compiler error and does not establish the termination cause.

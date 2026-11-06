@@ -437,5 +437,31 @@
     "log": "/tmp/qiongli-closeout-secure-clippy.log",
     "source_commit": "e0f3d329d02537c03ceec195ce99be238e7fc3b1",
     "scope": "workspace excluding qiongli-ui, all targets, Linux ARM64, no-default-features, offline, -D warnings"
+  },
+  "release_cli_fixture_isolation": {
+    "failed_candidate": {
+      "source_commit": "38219e486b9a46502c545a3d9b98f72eb61cbdd2",
+      "status": "failed-before-packaging",
+      "cli": {
+        "passed": 46,
+        "failed": 1
+      },
+      "failed_case": "legacy_migration_inspection_is_path_free_and_preview_requires_packaged_authority",
+      "observed_detected_count": 2,
+      "expected_detected_count": 1,
+      "log": "/tmp/qiongli-closeout-release-third.log",
+      "diagnosis": "CLI fixture changed HOME but inherited CODEX_HOME, causing real Host inventory to enter an isolated migration count. Removing Host config environment names makes the unchanged existing case pass. Product custom-path behavior remains unchanged.",
+      "single_case_clean_environment_result": "1 passed",
+      "single_case_log": "/tmp/qiongli-closeout-cli-isolation-repro.log",
+      "log_sha256": "006ed4642d3daea1aac67f4cf187e7fe792a116d1e589da4faccb5f66a36e6de"
+    },
+    "repair": "Clear inherited CODEX_HOME and CLAUDE_CONFIG_DIR in isolated CLI command helpers; explicit per-case overrides still apply. No runtime changes.",
+    "fixed_result": {
+      "cli_passed": 47,
+      "mcp_passed": 9,
+      "log": "/tmp/qiongli-closeout-cli-isolation-fixed.log",
+      "log_sha256": "6a288e3d0f8766a49ccd449861b9eca132dcab516c9f2b1f2c7a8d61d9cd993c",
+      "format": "passed"
+    }
   }
 }

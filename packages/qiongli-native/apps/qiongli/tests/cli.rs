@@ -585,6 +585,8 @@ fn run_without_home_or_path(args: &[&str]) -> Output {
         .args(args)
         .env("PATH", "")
         .env_remove("QIONGLI_CONFIG_HOME")
+        .env_remove("CODEX_HOME")
+        .env_remove("CLAUDE_CONFIG_DIR")
         .env_remove("HOME")
         .env_remove("USERPROFILE")
         .env_remove("HOMEDRIVE")
@@ -599,7 +601,9 @@ fn fixture_command(executable: &Path, fixture: &Fixture) -> Command {
         .current_dir(&fixture.root)
         .env("QIONGLI_CONFIG_HOME", &fixture.config_root)
         .env("HOME", &fixture.home)
-        .env("USERPROFILE", &fixture.home);
+        .env("USERPROFILE", &fixture.home)
+        .env_remove("CODEX_HOME")
+        .env_remove("CLAUDE_CONFIG_DIR");
     command
 }
 
