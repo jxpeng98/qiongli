@@ -4181,3 +4181,52 @@ One sample per guidance arm and this scoped human preference do not establish
 general or causal gains. These passages now become regression material. Next use
 a new connected passage with the key and model judgments withheld through human
 review; combined-text, English and whole-manuscript judgments remain open.
+
+## November 6 — Connected Chinese prose and blinded feedback
+
+The [connected Chinese observation](../../../evals/research_journey/writing-quality/observations/chinese-connected-2026-11-06/README.md)
+uses the first ten consecutive Discussion paragraphs from Fanelli's 2009 PLOS
+ONE paper, locally unused at `53de04a6`. Complete publisher HTML/XML/PDF and exact
+JATS locators are retained. Both writers receive the same 1,281-word source and
+four-paragraph Chinese task; the prompts differ only by the preceding 16-line
+guidance addition. Two writing turns and one fresh identity-blinded review finish
+using the configured model, with complete inline delivery and no tool calls.
+
+The raw sections contain 1,512 and 1,400 characters. Both pass all six content
+dimensions and three paragraph transitions; model preferences tie and no required
+repair is identified. The coordinator confirms the source distinctions and
+permitted omissions. Necessary limits concerning respondents, incidents, papers,
+truthful reporting and calibration are substantive reasoning in this passage.
+Preserve correct writing and the existing G4/J2/scholarly-voice contracts.
+
+The [exact human feedback](../../../evals/research_journey/writing-quality/observations/chinese-connected-2026-11-06/human-feedback.json)
+prefers B's overall language and A's detail handling. Whole-section labels were
+randomized once, and neither the key nor model judgments appeared in visible
+output before the response. No exact phrase preferences, per-dimension scores or
+editing time were supplied. A 1,506-character B-based selection adds A's historical
+argument/direct-measurement distinction and willingness/past-behavior example.
+Both additions are source-checked; paragraphs 2 and 4 and citation anchors remain
+unchanged apart from trailing whitespace. The combined text is not newly human
+reviewed, and this success does not erase the preceding trial's blinding limit.
+
+Seven program tests and generated-index freshness pass. Actual artifact checks
+verify frozen sources/prompts, continuous source selection, complete deliveries,
+runtime permissions, exact feedback and output hashes, the two selected edits,
+counts/anchors, current packet recovery and cleanup. All 249 tasks and 198
+populated acceptance fields remain; only CLI-405 progress changes. Canonical
+content, pack, native code and helper code are unchanged, so their prior checks
+are reused. Initial sandbox DNS failure is resolved by authorized public-source
+retrieval. Temporary-profile PATH aliases and the isolated policy probe's
+untrusted-project notice remain documented; no global trust/config change occurs.
+The initial staged whitespace check rejects four Markdown hard-break space pairs.
+Normalize only the archived display's trailing spaces, retaining the exact issued
+packet and digest separately in the observation; source, model inputs, wording,
+human feedback and their original bindings remain intact.
+
+Review the final diff and run the frozen-source guard before local fast-forward
+integration into `2.x`; no push, publication or acceptance promotion. Raw evidence
+is under `/tmp/qiongli-zh-connected-20261106-2m1clugm`; program-test output is
+`/tmp/qiongli-zh-connected-program-tests.log`. One generation per guidance arm and
+this scoped human preference do not establish general or causal quality gains.
+These passages now become regression material. Further held-out work needs a new
+source; English, longer manuscripts and disciplinary judgments remain open.

@@ -1,0 +1,873 @@
+{
+  "schema_version": "qiongli-connected-chinese-observation/v1",
+  "date": "2026-11-06",
+  "source_commit": "53de04a66573291bbaa3ee4f09992e1a0028c538",
+  "local_evidence_root": "/tmp/qiongli-zh-connected-20261106-2m1clugm",
+  "scope": "One first-use public source, ten consecutive Discussion paragraphs, two independently generated four-paragraph Chinese sections, one identity-blinded same-model reviewer. No installed-Plugin, English, Antigravity, whole-manuscript or disciplinary acceptance claim.",
+  "source": {
+    "author": "Daniele Fanelli",
+    "year": 2009,
+    "title": "How Many Scientists Fabricate and Falsify Research? A Systematic Review and Meta-Analysis of Survey Data",
+    "doi": "10.1371/journal.pone.0005738",
+    "license": "CC BY; author and source attribution retained",
+    "official_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0005738",
+    "retrieval": [
+      {
+        "file": "Fanelli2009.html",
+        "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0005738",
+        "final_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0005738",
+        "status": 200,
+        "content_type": "text/html;charset=UTF-8",
+        "bytes": 239213,
+        "sha256": "22c123942342273ed3e507fc5cdaa90da68d02b2899625a7f4e8454a30901d61"
+      },
+      {
+        "file": "Fanelli2009.xml",
+        "url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0005738&type=manuscript",
+        "status": 200,
+        "content_type": "text/xml",
+        "bytes": 124633,
+        "sha256": "cae3eb044519dd1e3553c718dfd294ed177014190e758dbeacd5cf0a02cda4e4",
+        "final_url_without_temporary_query": "https://corpus-prod.f505aadad1e46610c8f8563037eb3c4b.r2.cloudflarestorage.com/10.1371/journal.pone.0005738/1/pone.0005738.xml",
+        "temporary_redirect_query_omitted": true
+      },
+      {
+        "file": "Fanelli2009.pdf",
+        "url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0005738&type=printable",
+        "final_url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0005738&type=printable",
+        "status": 200,
+        "content_type": "application/pdf",
+        "bytes": 335145,
+        "sha256": "8df8866704cf6818cda2a6a1fe35e78fdbb90b7ebe06d6438a787c3a26aa9853"
+      }
+    ],
+    "first_use": {
+      "args": [
+        "git",
+        "grep",
+        "-n",
+        "-i",
+        "-E",
+        "Fanelli|0005738|How Many Scientists Fabricate",
+        "53de04a66573291bbaa3ee4f09992e1a0028c538",
+        "--",
+        "content",
+        "evals/research_journey",
+        "docs/superpowers/plans/2026-10-05-v2-4-plugin-quality-release-plan.md"
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    "excerpt_locators": "Publisher JATS section s4, direct paragraph children 1 through 10 inclusive, consecutive without omission; not PDF pages.",
+    "excerpts": [
+      {
+        "locator": "s4/p[1]",
+        "section": "Discussion",
+        "text": "This is the first meta-analysis of surveys asking scientists about their experiences of misconduct. It found that, on average, about 2% of scientists admitted to have fabricated, falsified or modified data or results at least once –a serious form of misconduct my any standard [10], [36], [37]– and up to one third admitted a variety of other questionable research practices including “dropping data points based on a gut feeling”, and “changing the design, methodology or results of a study in response to pressures from a funding source”. In surveys asking about the behaviour of colleagues, fabrication, falsification and modification had been observed, on average, by over 14% of respondents, and other questionable practices by up to 72%. Over the years, the rate of admissions declined significantly in self-reports, but not in non-self-reports.",
+        "text_sha256": "6e54720cab7746c84dfaa0e942b9d3baee8414d0692a5536195c619ccac430ce"
+      },
+      {
+        "locator": "s4/p[2]",
+        "section": "Discussion",
+        "text": "A large portion of the between-studies variance in effect size was explained by three basic methodological factors: whether the survey asked about self or not, whether it was mailed or handed out to respondents, and whether it explicitly used the words “fabrication” and “falsification”. Once these factors were controlled for, surveys conducted among clinical, medical and pharmacological researchers appeared to yield higher rates of misconduct than surveys in other fields or in mixed samples.",
+        "text_sha256": "eaaf9343543be23ae3ebe1ad50a7afcf7f2ac1a587f88703b384e1da749966fc"
+      },
+      {
+        "locator": "s4/p[3]",
+        "section": "Discussion",
+        "text": "All the above results were robust with respect to inclusion or exclusion of any particular study, with perhaps one exception: Martinson et al. (2005) [19], which is one of the largest and most frequently cited surveys on misconduct published to date. This study appears to be rather conservative, because without it the pooled average frequency with which scientists admit they have committed misconduct would jump to nearly 3%.",
+        "text_sha256": "9e9606b9a8a8db78da32ee9ffb4fb0b07ae13b5a815d4d2cf8624498c52e5ac9"
+      },
+      {
+        "locator": "s4/p[4]",
+        "section": "Discussion",
+        "text": "How reliable are these numbers? And what can they tell us on the actual frequency of research misconduct? Below it will be argued that, while surveys asking about colleagues are hard to interpret conclusively, self-reports systematically underestimate the real frequency of scientific misconduct. Therefore, it can be safely concluded that data fabrication and falsification –let alone other questionable research practices- are more prevalent than most previous estimates have suggested.",
+        "text_sha256": "4cb70c8ad52495d0c780874ed9b047c84c8d63beabe71ff605347e38e045962a"
+      },
+      {
+        "locator": "s4/p[5]",
+        "section": "Discussion",
+        "text": "The procedure adopted to standardize data in the review clearly has limitations that affect the interpretation of results. In particular, the percentage of respondents that recall at least one incident of misconduct is a very rough measure of the frequency of misconduct, because some of the respondents might have committed several frauds, but others might have “sinned” only once. In this latter case, the frequencies reported in surveys would tend to overestimate the prevalence of biased or falsified data in the literature. The history of science, however, shows that those responsible of misconduct have usually committed it more than once [38], [39], so the latter case might not be as likely as the former. In any case, many of the included studies asked to recall at least one incident, so this limitation is intrinsic to large part of the raw data.",
+        "text_sha256": "3bb12d14b1f34c9436ed41a5ff92bea3feeddc67520f4f84c48cfe28630c7e85"
+      },
+      {
+        "locator": "s4/p[6]",
+        "section": "Discussion",
+        "text": "The distinction made in this review between “fabrication, falsification and alteration” of results and QRP is somewhat arbitrary. Not all alterations of data are acts of falsification, while “dropping data points based on a gut feeling” or “failing to publish data that contradicts one's previous research” (e.g. [19]) might often be. As explained in the introduction, any boundary defining misconduct will be arbitrary, but intention to deceive is the key aspect. Scientists who answered “yes” to questions asking if they ever fabricated or falsified data are clearly admitting their intention to misrepresent results. Questions about altering and modifying data “to improve the outcome” might be more ambiguously interpreted, which might explain why these questions yield higher admission rates. However, even if we limited the meta-analysis to the most restrictive types of questions in self-reports, we would still have an average admission rate above 1%, which is higher than previous estimates (e.g. [11]).",
+        "text_sha256": "4c763c2aadc7d07805db3672d56691107f738338b82414c4f48cd6bbfcda4164"
+      },
+      {
+        "locator": "s4/p[7]",
+        "section": "Discussion",
+        "text": "The accuracy of self-reports on scientific misconduct might be biased by the effect of social expectations. In self-reports on criminal behaviour, social expectations make many respondents less likely to admit a crime they committed (typically, females and older people) and make others likely to report a crime they have not really committed (typically, young males) [40]. In the case of scientists, however, social expectations should always lead to underreporting, because a reputation of honesty and objectivity is fundamental in any stage of a scientific career. Anyone who has ever falsified research is probably unwilling to reveal it and/or to respond to the survey despite all guarantees of anonymity [41]. The opposite (scientists admitting misconduct they didn't do) appears very unlikely. Indeed, there seems to be a large discrepancy between what researchers are willing to do and what they admit in a survey. In a sample of postdoctoral fellows at the University of California San Francisco, USA, only 3.4% said they had modified data in the past, but 17% said they were “willing to select or omit data to improve their results” [42]. Among research trainees in biomedical sciences at the University of California San Diego, 4.9% said they had modified research results in the past, but 81% were “willing to select, omit or fabricate data to win a grant or publish a paper” [35].",
+        "text_sha256": "5a8df25405176a13490a422e99e0cd92477630b4bb928418846a6c2395f3bd17"
+      },
+      {
+        "locator": "s4/p[8]",
+        "section": "Discussion",
+        "text": "Mailed surveys yielded lower frequencies of misconduct than handed out surveys. Which of the two is more accurate? Mailed surveys were often combined with follow-up letters and other means of encouraging responses, which ensured higher response rates. However, the accuracy of responses to sensitive questions is often independent of response rates, and depends strongly on respondents' perception of anonymity and confidentiality [43], [44]. Questionnaires that are handed to, and returned directly by respondents might better entrust anonymity than surveys that need to be mailed or emailed. Therefore, we cannot rule out the possibility that handed out surveys are more accurate despite the lower response rates. This latter interpretation would be supported by one of the included studies: a handed out survey that attempted to measure non-response bias using a Random-Response (RR) technique on part of its sample [28]. Differently from the usual Direct Response technique, in RR, respondents toss coins to determine whether they will respond to the question or just mark “yes”. This still allows admission rates to be calculated, yet it guarantees full anonymity to respondents because no one can tell whether an individual respondent answered “yes” to the question or because of chance. Contrary to author's expectations, response and admission rates were not higher with RR compared to DR, suggesting that in this handed out survey non-response bias was absent.",
+        "text_sha256": "ddb84fab08ad5e8385a897dda416f1295ea69411bb6a4a978e98bd51ef122e82"
+      },
+      {
+        "locator": "s4/p[9]",
+        "section": "Discussion",
+        "text": "The effect of social expectations in surveys asking about colleagues is less clear, and could depend on the particular interests of respondents. In general, scientists might tend to protect the reputation of their field, by minimizing their knowledge of misconduct [27]. On the other hand, certain categories of respondents (e.g. participants at a Conference on Research Policies and Quality Assurance [30]) might have particular experience with misconduct and might be very motivated to report it.",
+        "text_sha256": "f1de65d22ee92f6f253301487c7aa310156b79ee618ac4aab0835f9b2254ed81"
+      },
+      {
+        "locator": "s4/p[10]",
+        "section": "Discussion",
+        "text": "Surveys on colleagues' behaviour might tend to inflate estimates of misconduct also because the same incident might be reported by many respondents. One study controlled for this factor by asking only one researcher per department to recall cases that he had observed in that department in the past three years [31]. It found that falsification and fabrication had been observed by 5.2% of respondents, which is lower than all previous non-self reports. However, since one individual will not be aware of all cases occurring around him/her, this is a conservative estimate [31]. In the sensitivity analysis run on the regression model, exclusion of this study caused the single largest increase in explained variance, which further suggests that findings of this study are unusual.",
+        "text_sha256": "297e160b6ac1d7418459b87c9cf845fdb009ff334cdec479a89286eedbf68e43"
+      }
+    ],
+    "coverage": "Complete publisher HTML/XML/PDF retained. Model input contains the entire selected text packet, not full-paper images, supplementary data or independently inspected cited studies."
+  },
+  "identity": {
+    "codex_version": "codex-cli 0.162.1",
+    "codex_sha256": "071cbe8d821cf1b02b6d8ba6c8b7991b228fcb8519dcb68a37d31222bb8cabe5",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "model_overrides": [],
+    "user_config_sha256": "2e5933d2347df532e257b938413d5b12abb2dc34fe2d893b64ad73a1bc65c37d",
+    "driver_sha256": "923c3356225690caf865a54183bc7c4b47838fda5d8f1e8d22319801df1ee157",
+    "helpers": {
+      "evals/research_journey/writing_observation.py": "07d31137cbb94fcde860591012acd92df28f2e1f4cf99edd6a397bfc57e1dff5",
+      "evals/research_journey/plugin_baseline.py": "023babcca15cfece478fa6dd52e097215f3d03099903b080ae4fe8ba3b4e9b7d",
+      "evals/research_journey/antigravity_observation.py": "d0f4d513f847aee40782bf297ca065854dec6e4ffc37a001cc61d935fa827f12"
+    },
+    "retrieval_note": "Initial sandbox request failed DNS before fetching any bytes. Authorized network retry fetched complete publisher files."
+  },
+  "design": {
+    "source_commit": "53de04a66573291bbaa3ee4f09992e1a0028c538",
+    "baseline_guidance_commit": "04af70af72ff30b4efa93dace3aee538146cc148",
+    "current_guidance_commit": "53de04a66573291bbaa3ee4f09992e1a0028c538",
+    "guidance": {
+      "baseline": {
+        "content/workflow/references/stage-F-writing.md": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+        "content/workflow/references/scholarly-voice.md": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2"
+      },
+      "current": {
+        "content/workflow/references/stage-F-writing.md": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+        "content/workflow/references/scholarly-voice.md": "c16a4486d33b440c9e9b3089cf8df482be186fc1d94be7d11a82db2abd3f504b"
+      }
+    },
+    "scope": "One generation per guidance arm on ten consecutive source paragraphs, rewritten as one four-paragraph Chinese section. Both tasks include the latest fluency/terminology/completeness preference. This observes task behavior, not a replicated causal guidance-effect estimate. Previous passages are not supplied.",
+    "human_blinding": "Randomize the completed whole-section outputs once; keep the key and automatic judgments out of the user packet and visible tool output until the response is recorded."
+  },
+  "task": "请根据所给论文 Discussion 的连续十段，为科研方法综述撰写一节由四个连续自然段组成的中文正文，回答：这些调查结果在多大程度上反映了科研不端的实际发生情况，不同问法和调查方式又为什么会影响解释？面向有一般科研经验、未读过该论文的读者。各段共同推进同一个论证，不能写成四则彼此独立的摘要。\n\n表达自然流畅，同时保留准确的术语、理解结论所需的前提和必要解释。可以调整源文信息的组织顺序；不要为了简洁删去关键比较、为了避免重复随意改换术语，或为了衔接补写原文没有的原因。保留有实际意义的限定，将调查结果与作者的解释区分开，不必反复附加空泛的谨慎表态。只使用提供的材料，不补入外部研究事实，也不把作者引用的研究写成已独立核验。\n\n正文共 1200–1800 个非空白 Unicode 字符，含标点数字，排除标题与单独成行的来源标记。只返回标题“## 科研不端调查的结果与解释”及四个自然段；各段末尾另起一行给出“〔Fanelli2009: s4/p[n]; ...〕”，引用实际用到的段落定位。不要给四段另加小标题。无须逐句翻译，允许省略不影响主论证的个别例子、统计量、趋势或文献列表；引用过的数字必须保持所测对象、分母、时间含义和精度。无需附加写作过程、检查清单、评语或偏好说明。所需指导和原文已完整提供，无需浏览、工具调用或文件写入。",
+  "frozen_criteria": {
+    "dimensions": [
+      "within_paragraph_argument",
+      "cross_paragraph_continuity",
+      "terminology_and_measurement",
+      "natural_chinese",
+      "necessary_qualifications",
+      "source_fidelity"
+    ],
+    "general": "Judge the full connected four-paragraph unit, and each transition, against the actual task. For any incomplete-argument finding identify a missing premise and the conclusion it invalidates. Optional examples, numerical detail, trends or citations need not all appear; do not force a source checklist into the text. Ties and unchanged correct prose are valid. Length or count of hedges/edits is not a quality score. Give exact spans and source locators; separate errors from optional preferences.",
+    "checks": [
+      "Explain what the self-reports and reports about colleagues can establish, without conflating a respondent who reports observing misconduct with a colleague proven to have committed it. The reported percentages are not estimates of the proportion of fraudulent papers or incidents.",
+      "Connect the at-least-once measurement to its inability to distinguish repeated misconduct from one incident. Do not invent person-to-paper denominators or claim a precise correction for true prevalence.",
+      "Keep fabrication/falsification, broader alteration/modification and questionable research practices distinct. Preserve the importance of intention and ambiguity of questions without making all data alteration fraudulent or all QRP harmless.",
+      "Identify author interpretation as such where explaining possible underreporting, reputation/social expectations, willingness versus actual past behavior, or perceived anonymity. Do not turn willingness-to-act percentages into measured misconduct.",
+      "When discussing survey delivery, preserve that response rate and truthful reporting are different; higher response or higher reported misconduct alone does not establish accuracy. Random-response detail is optional. If included, its comparison and inference stay with the cited survey, not all surveys.",
+      "Reports about colleagues may reflect incentives in either direction, multiple reports of one incident and incomplete individual awareness. Relevant mechanisms are distinct rather than a universal downward/upward bias.",
+      "Use paragraph-to-paragraph development (finding, measure, explanation, inference or other supported ordering), stable referents and accurate terms. Avoid both a list of limitations with no answer and new causal bridges created for flow.",
+      "Preserve source attribution and consequential qualifications near their claims. Findings/methods can be direct; necessary limitations need not be repeated verbatim in every paragraph. Do not require every source paragraph or numerical example to be mentioned."
+    ],
+    "repair_policy": "Retain both raw answers. For actual meaning/argument problems suggest the smallest source-backed repair. Do not rewrite correct wording just to select a winner.",
+    "human_status": "pending; model verdicts and version identity must be withheld from human-facing output until human response is recorded"
+  },
+  "frozen_inputs": {
+    "sources/excerpts.json": {
+      "sha256": "07aaaeafb7401d06ecf89c03cb076c5bb27ef41a4ada8e6853f80d3ad70bc0c4",
+      "bytes": 10000
+    },
+    "sources/Fanelli2009.pdf": {
+      "sha256": "8df8866704cf6818cda2a6a1fe35e78fdbb90b7ebe06d6438a787c3a26aa9853",
+      "bytes": 335145
+    },
+    "sources/Fanelli2009.html": {
+      "sha256": "22c123942342273ed3e507fc5cdaa90da68d02b2899625a7f4e8454a30901d61",
+      "bytes": 239213
+    },
+    "sources/Fanelli2009.xml": {
+      "sha256": "cae3eb044519dd1e3553c718dfd294ed177014190e758dbeacd5cf0a02cda4e4",
+      "bytes": 124633
+    },
+    "sources/packet.txt": {
+      "sha256": "73c1bc0f2cf76d6f81a7b551a7b3b74a4aa16500a8af885e29eb1a87f3840b39",
+      "bytes": 10784
+    },
+    "sources/discussion.md": {
+      "sha256": "e8590bb0dcd2052f19b4e0040023e07d8f1ed5f87595a9455196bb2a4bcd68e7",
+      "bytes": 14240
+    },
+    "review/prompt-difference.patch": {
+      "sha256": "9348413e20efaca7db822314dcda0df800ef26291797dc5b602ad7fbfc9aab69",
+      "bytes": 1670
+    },
+    "review/task.txt": {
+      "sha256": "5c45ecb97ef54c1175a87789394c34a42de602e7b2bd1a8acc47ffbfceea46df",
+      "bytes": 1581
+    },
+    "review/criteria.json": {
+      "sha256": "38b6bc59652b93569b6c650c1fef1421c6fd07a9c5833a81c78cc571ead970d3",
+      "bytes": 3105
+    },
+    "review/design.json": {
+      "sha256": "23c2a09495f114b824646b6497536f82ac262a03f28a6c1f7e061738e56f866f",
+      "bytes": 1290
+    },
+    "review/identity.json": {
+      "sha256": "9b4883a16095d8e0da1a5fe661aed642b03b2a4b880b8c11f4ea2d82e649c8f9",
+      "bytes": 916
+    },
+    "review/retrieval.json": {
+      "sha256": "25abd6f4e21b0bb8b449ce7cb435eb33d27899de3a8f77ec08d4f5cb76fa602d",
+      "bytes": 1544
+    },
+    "review/first-use.json": {
+      "sha256": "79049f2719314835c81904157f97be27e9ded7154b83fb816780cb2dd75cd33a",
+      "bytes": 356
+    },
+    "baseline-inputs/scholarly-voice.md": {
+      "sha256": "2c0669181e8d5aa6f9670b559f3a82a9feac4c65ada37dbe1f6ee311c57396b2",
+      "bytes": 14570
+    },
+    "baseline-inputs/prompt.txt": {
+      "sha256": "48ddf8db3bf36342b59471f4b1313b62ab918529b38635f358e26fc805abc354",
+      "bytes": 53684
+    },
+    "baseline-inputs/stage-F-writing.md": {
+      "sha256": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+      "bytes": 26591
+    },
+    "current-inputs/scholarly-voice.md": {
+      "sha256": "c16a4486d33b440c9e9b3089cf8df482be186fc1d94be7d11a82db2abd3f504b",
+      "bytes": 15672
+    },
+    "current-inputs/prompt.txt": {
+      "sha256": "84c3d2a6b117e3571c08af36ae527c278c2b82db0f6cb175e37448671d541587",
+      "bytes": 54786
+    },
+    "current-inputs/stage-F-writing.md": {
+      "sha256": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428",
+      "bytes": 26591
+    }
+  },
+  "prompt_difference": "--- baseline\n+++ current\n@@ -613,6 +613,22 @@\n 拆开堆叠的修饰语和“的”字链。主语可省略，但换话题时要明确指代。不要为了避免\n 重复而更换关键术语，也不要把所有长句切成短句。\n \n+简洁应减少读者理解的负担。比较不同研究时，按已有材料交代谁参与、安排了什么\n+活动，以及这种差异如何关联当前论点；不要把这些信息压成“更快者”“更多内容”\n+等需要读者猜测的简称。已有上下文足够清楚时可以省略，不必处处补全主语。\n+\n+例如，假定材料已说明学习进度、练习主题和两种任务安排，简写为“甲允许更快者\n+接触更多内容；乙压缩为两项任务”会模糊比较对象。可写成：\n+\n+> 研究甲允许进度较快的参与者接触更多练习主题；研究乙则只安排了两项新库任务。\n+\n+> Study A allowed participants who progressed faster to explore more practice\n+> topics; Study B included only two tasks involving an unfamiliar library.\n+\n+这组中英文合成样例补明了已有信息，不增加研究事实。若随后提出这些安排可能\n+影响学习，应保留机制的不确定性，并说明两种设计是否经过直接比较。读起来更\n+完整，不等于可以把跨研究解释写成实验已证实的因果关系。\n+\n 把具体测量写成自然的中文，不照搬英文的抽象名词搭配。例如，指标是天数时，\n “缩短处于无家可归状态的时间”比“减少无家可归暴露”更直接，对应英文\n “reduce time spent homeless”；“改善持久住房稳定性”则增加了持续性的含义。\n",
+  "runs": {
+    "baseline": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 338.14355334895663,
+        "timeout_seconds": 1200,
+        "events_sha256": "875747de808ce2e47d2b148d7f9c8902078bf24abbd072d21a3b9a8d041c28fc",
+        "stderr_sha256": "6d07ab036087a0258cd49b80547aad1808722cf5a615c800bef8eb3c3bbc7b33"
+      },
+      "trace_metrics": {
+        "tool_calls": [],
+        "tool_call_count": 0,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 22964,
+          "cached_input_tokens": 9728,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 13153,
+          "reasoning_output_tokens": 11910
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "outer_delivery": {
+        "rollout_path": "/tmp/qiongli-zh-connected-20261106-2m1clugm/profiles/baseline/sessions/2026/11/06/rollout-2026-11-06T10-32-28-01a1b06a-be37-7533-874e-975bec1c75c7.jsonl",
+        "rollout_sha256": "70ae8805f49fca432d53cc60d3722b36a79708488ae9d68085669564f235d2b4",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "outputs": [],
+        "exec_output_count": 0,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "context_metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "exact_inline_prompt_delivered": true,
+      "temporary_auth_link_removed": true,
+      "prompt_sha256": "48ddf8db3bf36342b59471f4b1313b62ab918529b38635f358e26fc805abc354",
+      "prompt_bytes": 53684,
+      "answer_sha256": "419a23c0f7e29d6788ffa2042254b2463d6a5d570f36733db8863049a62d1ce5",
+      "answer": "## 科研不端调查的结果与解释\n\nFanelli（2009）汇总的调查中，平均约2%的受访科研人员承认曾至少一次捏造、篡改或修改数据或结果，其他可疑研究行为的承认比例最高达三分之一；询问同事行为时，平均超过14%的受访者表示观察到过前一类行为，其他可疑研究行为的观察比例最高达72%。理解这些数字，首先要分清统计的是人、事件还是文献：这些比例表示有过相应经历的受访者占比，并不表示不端事件占全部研究活动的比例，也不表示含有问题数据的文献比例。“至少一次”把仅发生一次与反复发生的情况记为同一类，无法揭示行为次数及其涉及的研究产出。作者指出，若行为仅发生一次，这类比例可能高估文献中有偏差或遭篡改数据的普遍程度；他援引科学史材料认为重复实施更可能，但这不是对纳入调查中行为次数的直接测量。调查结果因而只能作为理解实际发生情况的起点，不能直接换算为不端事件或受影响文献的比例。\n〔Fanelli2009: s4/p[1]; s4/p[5]〕\n\n除了统计单位，问题划定的行为边界也会改变数字的含义。该综述将捏造、篡改和修改结果与其他可疑研究行为分开，但作者承认这条界线带有一定任意性：修改数据未必就是篡改，而凭直觉删除数据点、不发表与既往研究相矛盾的数据，也可能构成篡改。按作者的解释，关键在于欺骗意图；直接承认“捏造”或“篡改”，意味着承认歪曲结果的意图，“为改善结果而修改数据”则有更大的理解空间。这种含混可能解释后一类问法为何得到较高承认率，不能把差异全部当作真实行为差异。不过，即使只保留最严格的自报问法，平均承认率仍超过1%。自报还取决于是否愿意坦承：作者认为，维护诚实与客观的职业声誉，可能使实施过不端的人隐瞒经历或拒绝参与。在他引述的一个博士后样本中，表示愿意为改善结果而选择或删去数据者，比承认曾修改数据者更多。这为作者的漏报解释提供了线索，但意愿与既往行为是不同指标，不能用前者补算实际发生率。\n〔Fanelli2009: s4/p[6]; s4/p[7]〕\n\n这种坦承意愿也使调查方式成为解释的一部分。邮寄调查得到的不端报告比例低于当面发放的调查，前者又常借助催复信等办法获得较高应答率；但更多人作答，并不自动意味着敏感问题答得更真实。作者据其引用的研究指出，回答的准确性与应答率未必同步，而与受访者如何判断匿名性和保密性密切相关。他提出，直接发放并回收问卷可能比邮寄或电子邮件更能让人相信身份不会暴露，因此不能仅因应答率较低就认定其结果更差。论文转述的一项当面发放调查还在部分样本中采用随机回答技术：受访者通过掷硬币决定回答问题，还是直接填“是”，使研究者能够估计承认率，却无法判定某个“是”来自对问题的回答还是随机安排。该调查中，随机回答并未比直接回答带来更高的应答率或承认率。作者将此视为该调查不存在无应答偏差的提示；它支持当面发放结果可能较准确的解释，却不足以证明这种方式普遍更准确。\n〔Fanelli2009: s4/p[8]〕\n\n转而询问同事，也不能把较高的观察比例直接当作实际发生率。受访者可能为维护本领域声誉而少报，某些受访群体则可能具有相关经验，并更愿意报告；作者因此认为，这类调查中社会期待的影响方向更难判断。观察比例还受报告是否重叠、个人能看见多少事件的共同影响：多人可能报告同一件事，推高估计；限制报告者人数又可能漏掉他们不知道的事。论文引述的一项调查仅从每个系选择一名研究人员，询问其过去三年在本系观察到的案例，5.2%的受访者报告见过篡改或捏造。这一比例低于此前同事报告调查的结果，但作者认为，单个研究人员难以知悉所有案例，因此这一估计仍偏保守。它说明，减少重复报告与扩大事件覆盖之间存在取舍，较低或较高的数字本身都不能裁定何者更接近真实。作者认为自报会系统性低估科研不端，并据此判断捏造与篡改比既往估计更普遍；这一判断来自对问法、坦承意愿及调查方式的综合解释，并不等于已经得到一个校正后的实际发生率。\n〔Fanelli2009: s4/p[4]; s4/p[6]; s4/p[7]; s4/p[8]; s4/p[9]; s4/p[10]〕",
+      "effective_model": "gpt-6-astra",
+      "effective_reasoning_effort": "xhigh",
+      "tool_network": "disabled",
+      "tool_filesystem": "read-only",
+      "permission_verification": {
+        "policy_readback": true,
+        "no_mcp_servers": true,
+        "web_search_disabled": true,
+        "tool_network_disabled": true,
+        "actual_turn_read_only": true,
+        "actual_turn_approval_never": true
+      },
+      "runtime_notes": [
+        "Codex declined optional PATH helper aliases under the temporary CODEX_HOME.",
+        "The policy probe reports project-local config/hooks/exec policies disabled for the untrusted repository in its isolated profile. The actual task runs from the temporary work directory with inline guidance; no trust setting is changed."
+      ],
+      "stderr_bindings": {
+        "stderr.log": {
+          "sha256": "6d07ab036087a0258cd49b80547aad1808722cf5a615c800bef8eb3c3bbc7b33",
+          "bytes": 263
+        },
+        "policy.stderr": {
+          "sha256": "08bc035009a0f3783cf902c814f546384326fea58f40dd7adc46d0231c9c5a52",
+          "bytes": 700
+        }
+      }
+    },
+    "current": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 289.3920440459624,
+        "timeout_seconds": 1200,
+        "events_sha256": "64a915b3c8c3222816f953a609de8c66e4d46b2d76cd80c6b8c74714fccd617b",
+        "stderr_sha256": "6a8960f0ffa5de6ff8362269a8406cd4b74c2e15efc27139fcfc138ae7242fbd"
+      },
+      "trace_metrics": {
+        "tool_calls": [],
+        "tool_call_count": 0,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 23222,
+          "cached_input_tokens": 9728,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 7608,
+          "reasoning_output_tokens": 6444
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "outer_delivery": {
+        "rollout_path": "/tmp/qiongli-zh-connected-20261106-2m1clugm/profiles/current/sessions/2026/11/06/rollout-2026-11-06T10-32-27-01a1b06a-b985-72a3-b50a-b7e4be49180a.jsonl",
+        "rollout_sha256": "5bdf5e43fd778d6a1b9eade29f3325cee846cab1c92e9969f32ffd9ec04b46a4",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "outputs": [],
+        "exec_output_count": 0,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "context_metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "exact_inline_prompt_delivered": true,
+      "temporary_auth_link_removed": true,
+      "prompt_sha256": "84c3d2a6b117e3571c08af36ae527c278c2b82db0f6cb175e37448671d541587",
+      "prompt_bytes": 54786,
+      "answer_sha256": "d471787c1028b3920c5f21d1f6186b39449e204df47f590261a58ad7e702958d",
+      "answer": "## 科研不端调查的结果与解释\n\nFanelli（2009）的元分析发现，平均约2%的受访科研人员承认至少一次伪造、篡改或修改过数据或结果；在询问同事行为的调查中，平均超过14%的受访者表示见过这类行为。这两组数字分别统计承认实施过行为的人和观察到行为的人，都以受访者为分母，因此不能把后者理解成实施不端者的比例。综述将调查数据统一为回忆起至少一次事件的受访者比例，也无法区分同一人多次实施与仅实施一次。作者提醒，若实施者只做过一次，调查中的人员比例还可能高估文献中偏倚或伪造数据的比例。判断调查是否低估实际情况，须先分清所讨论的是实施者、事件，还是文献中受影响的数据。研究间结果的一大部分差异，与询问本人还是同事、问卷如何发放及是否明确使用“伪造”“篡改”有关，这使调查方法本身成为解释结果的关键。  \n〔Fanelli2009: s4/p[1]; s4/p[2]; s4/p[5]〕\n\n首先，问卷如何界定行为，会改变承认比例的含义。该综述将伪造、篡改和修改结果与其他可疑研究行为分开，但作者承认，这条界线并不明确：修改数据未必就是篡改，凭直觉删除数据点或不发表与以往研究相矛盾的数据，却可能构成篡改。作者把欺骗意图视为关键；在这一理解下，直接承认“伪造”或“篡改”，明确表达了歪曲结果的意图，而“为改善结果而修改数据”可能被不同受访者作不同理解。作者认为，这种歧义可能解释后一类问题为何得到较高的承认比例。因此，不能仅凭某种问法得到更高比例，就认定它更接近真实情况。不过，即使只保留限制最严格的自我报告问题，平均承认比例仍超过1%。对不端行为的承认并未随问法收紧而消失，但明确的措辞仍不能保证受访者愿意如实回答。  \n〔Fanelli2009: s4/p[6]〕\n\n作者认为，诚实与客观的声誉对科研职业生涯至关重要，实施过不端的人可能隐瞒经历，甚至拒绝参加调查；相反，承认自己未曾实施的不端行为很不可能。因此，作者判断自我报告会系统性低估实际发生情况，但这不等于已经测得漏报幅度。调查方式的比较也说明，回收率本身不足以判断回答是否准确。邮寄问卷得到的不端报告比例低于现场发放的问卷，尽管前者常借助催复信等方式取得更高回收率。作者提出，直接发放和交回问卷可能更能使受访者相信匿名与保密，因此不能排除现场问卷回答更准确的可能。综述转述的一项现场调查在部分样本中使用随机回答法：受访者掷硬币决定回答问题还是直接勾选“是”，研究者仍可估算总体承认比例，却无法辨别个人的“是”源于经历还是随机安排。该方法的回收率和承认比例均未高于直接回答法，作者将其视为该项调查可能不存在无应答偏倚的线索；它并不能证明现场发放普遍更准确。  \n〔Fanelli2009: s4/p[4]; s4/p[7]; s4/p[8]〕\n\n同事报告则不能直接用来校正自我报告，因为其偏倚方向更不确定。受访者可能为维护本领域声誉而少报，也可能因特别熟悉不端事件、报告动机更强而积极报告。同事报告还有重复计数的问题：同一事件可能被多人报告，较高的报告者比例并不代表发生了同样多的独立事件。作者转述的一项研究为减少重复，只请每个部门的一名研究者报告过去三年在本部门观察到的事件；其中5.2%的受访者见过伪造或篡改，低于此前其他同事报告的比例。但每部门只询问一人，又会遗漏此人不知道的事件，作者因而将这一结果视为保守估计。这个例子显示，避免重复报告与充分发现事件之间存在取舍，较低比例也可能来自观察范围受限。综合这些证据与解释，作者认为自我报告低估了实际发生情况，伪造和篡改比多数以往估计显示的更普遍；同事报告则难以给出确定解释。两类调查之间的差距不能直接等同于隐瞒程度，也无法据此还原科研不端的确切发生频率。  \n〔Fanelli2009: s4/p[4]; s4/p[9]; s4/p[10]〕",
+      "effective_model": "gpt-6-astra",
+      "effective_reasoning_effort": "xhigh",
+      "tool_network": "disabled",
+      "tool_filesystem": "read-only",
+      "permission_verification": {
+        "policy_readback": true,
+        "no_mcp_servers": true,
+        "web_search_disabled": true,
+        "tool_network_disabled": true,
+        "actual_turn_read_only": true,
+        "actual_turn_approval_never": true
+      },
+      "runtime_notes": [
+        "Codex declined optional PATH helper aliases under the temporary CODEX_HOME.",
+        "The policy probe reports project-local config/hooks/exec policies disabled for the untrusted repository in its isolated profile. The actual task runs from the temporary work directory with inline guidance; no trust setting is changed."
+      ],
+      "stderr_bindings": {
+        "stderr.log": {
+          "sha256": "6a8960f0ffa5de6ff8362269a8406cd4b74c2e15efc27139fcfc138ae7242fbd",
+          "bytes": 262
+        },
+        "policy.stderr": {
+          "sha256": "9ae1b5bd8810875587a30f82850531373db54975eed1aad145f1ce74748e3cf2",
+          "bytes": 698
+        }
+      }
+    },
+    "review": {
+      "capture": {
+        "termination_reason": "completed",
+        "driver_error": null,
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        },
+        "elapsed_seconds": 262.7120846339967,
+        "timeout_seconds": 1200,
+        "events_sha256": "e6662c68bca39ebea37058351bd65cb5397dc12aab857da66da389cbccedd4e1",
+        "stderr_sha256": "e96f8a0d03fba751242372f1cb12d1ea46f7514f5b1c1d6e06e85e16d8454ff6"
+      },
+      "trace_metrics": {
+        "tool_calls": [],
+        "tool_call_count": 0,
+        "pending_tool_calls": [],
+        "failed_tool_calls": 0,
+        "usage": {
+          "input_tokens": 22212,
+          "cached_input_tokens": 9728,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 7590,
+          "reasoning_output_tokens": 4142
+        },
+        "exit_code": 0,
+        "run_outcome": "completed",
+        "truncated_event_tail": false
+      },
+      "outer_delivery": {
+        "rollout_path": "/tmp/qiongli-zh-connected-20261106-2m1clugm/profiles/review/sessions/2026/11/06/rollout-2026-11-06T10-38-31-01a1b070-475b-7083-84b0-6f6a688bbf99.jsonl",
+        "rollout_sha256": "572e5c4909cdb12d19052d0b09532c608a4d408a1a08fcc6b9a978bcf75a61a4",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "outputs": [],
+        "exec_output_count": 0,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "context_metrics": {
+        "preservation_equal": true,
+        "image_deliveries": [],
+        "model_contexts": [
+          {
+            "model": "gpt-6-astra",
+            "effort": "xhigh"
+          }
+        ]
+      },
+      "exact_inline_prompt_delivered": true,
+      "temporary_auth_link_removed": true,
+      "prompt_sha256": "c4215c2b64454051a58078dcc837cb86be9ad4e4e894d4bdaee36062168e86b3",
+      "prompt_bytes": 45087,
+      "answer_sha256": "74c33617cadc2f7d9103fc521c57f43835267b801e32524c4993ab6da4843537",
+      "answer": "{\n  \"by_version\": {\n    \"A\": {\n      \"dimensions\": {\n        \"within_paragraph_argument\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"第1段以「“至少一次”把仅发生一次与反复发生的情况记为同一类」说明为何不能换算事件或文献比例，前提与结论对应（s4/p[5]）。第2段分别用问法歧义和坦承意愿解释承认率，且以「意愿与既往行为是不同指标」限制推论（s4/p[6]、s4/p[7]）。第3段以「更多人作答，并不自动意味着敏感问题答得更真实」引出匿名感与回答准确性的区别（s4/p[8]）。第4段把重复报告和个人知情不全分别对应估计偏高与偏保守，论证成立（s4/p[9]、s4/p[10]）。\"\n        },\n        \"cross_paragraph_continuity\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"全文沿统计单位、行为定义与坦承意愿、调查方式、同事报告及综合判断推进。「除了统计单位」承接第1段的测量限制；「这种坦承意愿」承接第2段的自报机制；「转而询问同事」转入另一种报告来源。最后以「作者认为自报会系统性低估科研不端」回答实际发生情况的问题，形成共同论证，而非独立摘要。关系分别有s4/p[5]至s4/p[8]、s4/p[9]至s4/p[10]及s4/p[4]支持。\"\n        },\n        \"terminology_and_measurement\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"「平均约2%」「平均超过14%」分别附着于承认自身行为和报告观察同事行为的受访者，三分之一与72%也保留最高比例的含义（s4/p[1]）。「修改数据未必就是篡改」保留修改、篡改与可疑研究行为的区别（s4/p[6]）。「过去三年在本系观察到的案例，5.2%的受访者报告见过篡改或捏造」保留时间、范围和分母（s4/p[10]）。应答率、承认率和文献比例未被混用。\"\n        },\n        \"natural_chinese\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"「理解这些数字，首先要分清统计的是人、事件还是文献」直接交代阅读数字的关键，准确展开s4/p[5]的测量问题；「但更多人作答，并不自动意味着敏感问题答得更真实」自然表达s4/p[8]的比较。第2段虽同时讨论定义与坦承意愿，但「自报还取决于是否愿意坦承」明确标示层次，指代清楚，无须为统一风格而改写。\"\n        },\n        \"necessary_qualifications\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"「他援引科学史材料认为重复实施更可能，但这不是对纳入调查中行为次数的直接测量」保留引述证据与调查测量的区别（s4/p[5]）；「不能用前者补算实际发生率」避免把意愿当成既往行为（s4/p[7]）；「不足以证明这种方式普遍更准确」将随机回答结果限定在所引调查（s4/p[8]）。结尾「并不等于已经得到一个校正后的实际发生率」准确限制作者关于低估的判断（s4/p[4]）。\"\n        },\n        \"source_fidelity\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"「作者承认这条界线带有一定任意性」及欺骗意图的说明对应s4/p[6]；「受访者可能为维护本领域声誉而少报」与某些群体更愿报告的解释对应s4/p[9]，没有把动机统一为单向偏差。随机回答研究和每系一人的调查均以「论文转述」或「论文引述」呈现，对应s4/p[8]、s4/p[10]，未冒充独立核验。结尾关于系统性低估及既往估计的判断明确归于作者，符合s4/p[4]。\"\n        }\n      },\n      \"transitions\": [\n        {\n          \"from_paragraph\": 1,\n          \"to_paragraph\": 2,\n          \"relation\": \"从计数单位的限制推进到被计数行为的定义及自报条件\",\n          \"verdict\": \"pass\",\n          \"reason\": \"第1段「不能直接换算为不端事件或受影响文献的比例」解决统计单位问题；第2段「除了统计单位，问题划定的行为边界也会改变数字的含义」进一步解释同一受访者比例所涵盖的行为。两项限制分别来自s4/p[5]、s4/p[6]，是互补关系，没有增添因果前提。\"\n        },\n        {\n          \"from_paragraph\": 2,\n          \"to_paragraph\": 3,\n          \"relation\": \"从坦承意愿推进到调查方式可能影响坦承的机制\",\n          \"verdict\": \"pass\",\n          \"reason\": \"第2段「维护诚实与客观的职业声誉，可能使实施过不端的人隐瞒经历或拒绝参与」对应s4/p[7]；第3段以「这种坦承意愿也使调查方式成为解释的一部分」承接，并用受访者对匿名性、保密性的判断说明联系（s4/p[8]）。机制保持为作者提出的可能解释。\"\n        },\n        {\n          \"from_paragraph\": 3,\n          \"to_paragraph\": 4,\n          \"relation\": \"从自报调查方式的解释转向同事报告的不同偏差机制，并综合回答\",\n          \"verdict\": \"pass\",\n          \"reason\": \"第3段「不足以证明这种方式普遍更准确」限定调查方式比较；第4段「转而询问同事，也不能把较高的观察比例直接当作实际发生率」引出社会期待、重复报告与知情范围（s4/p[8]至s4/p[10]）。结尾再区分作者对自报低估的判断与实际发生率的精确校正，落实s4/p[4]的主问题。\"\n        }\n      ]\n    },\n    \"B\": {\n      \"dimensions\": {\n        \"within_paragraph_argument\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"第1段以「分别统计承认实施过行为的人和观察到行为的人」明确分母，再用至少一次的计数限制说明为何须区分人员、事件与文献（s4/p[1]、s4/p[5]）。第2段用「修改数据未必就是篡改」和欺骗意图解释问法差异（s4/p[6]）。第3段把声誉压力与作者的低估判断相连，同时用匿名感解释调查方式差异（s4/p[4]、s4/p[7]、s4/p[8]）。第4段以动机差异、重复计数和知情不全支撑「同事报告则不能直接用来校正自我报告」，结论有据（s4/p[9]、s4/p[10]）。\"\n        },\n        \"cross_paragraph_continuity\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"第1段「这使调查方法本身成为解释结果的关键」建立后文主线；第2段「首先，问卷如何界定行为」展开问法，第3段承接「明确的措辞仍不能保证受访者愿意如实回答」，讨论自报与调查方式；第4段「同事报告则不能直接用来校正自我报告」转入另一报告来源。顺序落实s4/p[2]列出的方法因素，并通过s4/p[4]、s4/p[6]至s4/p[10]形成综合回答。\"\n        },\n        \"terminology_and_measurement\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"「都以受访者为分母，因此不能把后者理解成实施不端者的比例」准确限定2%与超过14%的比较（s4/p[1]）；「无法区分同一人多次实施与仅实施一次」保留至少一次的测量含义（s4/p[5]）。「伪造、篡改和修改结果」及「其他可疑研究行为」在行为定义讨论中保持区分（s4/p[6]）。5.2%明确对应每部门一名受访者、过去三年、本部门观察经历（s4/p[10]）。「回收率」在问卷语境中可成立，且与承认比例保持区别（s4/p[8]）。\"\n        },\n        \"natural_chinese\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"「判断调查是否低估实际情况，须先分清所讨论的是实施者、事件，还是文献中受影响的数据」按读者理解顺序展开s4/p[5]的问题；「但明确的措辞仍不能保证受访者愿意如实回答」自然连接定义与作答意愿（s4/p[6]、s4/p[7]）。「同事报告还有重复计数的问题」随后明确解释同一事件被多人报告，术语并未代替说明（s4/p[10]）。整体语言清楚，无须强制换用A的措辞。\"\n        },\n        \"necessary_qualifications\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"「作者判断自我报告会系统性低估实际发生情况，但这不等于已经测得漏报幅度」区分作者解释与测量结果（s4/p[4]、s4/p[7]）。「不能排除现场问卷回答更准确的可能」及「它并不能证明现场发放普遍更准确」保留调查方式解释和单项随机回答研究的范围（s4/p[8]）。「两类调查之间的差距不能直接等同于隐瞒程度」也与同事报告的多种机制相容（s4/p[9]、s4/p[10]）。未采用意愿百分比，不构成缺失必要前提。\"\n        },\n        \"source_fidelity\": {\n          \"verdict\": \"pass\",\n          \"reason\": \"「研究间结果的一大部分差异，与询问本人还是同事、问卷如何发放及是否明确使用“伪造”“篡改”有关」对应s4/p[2]，未将方法关联写成已证实的单一因果作用。「作者认为，这种歧义可能解释后一类问题为何得到较高的承认比例」对应s4/p[6]。两项具体调查均以「综述转述」或「作者转述」引入（s4/p[8]、s4/p[10]）；结尾「比多数以往估计显示的更普遍」准确归于作者（s4/p[4]）。\"\n        }\n      },\n      \"transitions\": [\n        {\n          \"from_paragraph\": 1,\n          \"to_paragraph\": 2,\n          \"relation\": \"从方法差异的总体框架推进到问法与行为定义\",\n          \"verdict\": \"pass\",\n          \"reason\": \"第1段列出「询问本人还是同事、问卷如何发放及是否明确使用“伪造”“篡改”」，第2段以「首先，问卷如何界定行为，会改变承认比例的含义」具体展开其中一项。总体因素与具体解释分别对应s4/p[2]、s4/p[6]，承接明确。\"\n        },\n        {\n          \"from_paragraph\": 2,\n          \"to_paragraph\": 3,\n          \"relation\": \"从问题是否明确推进到受访者是否坦承及调查方式的影响\",\n          \"verdict\": \"pass\",\n          \"reason\": \"第2段末「明确的措辞仍不能保证受访者愿意如实回答」提出下一个解释层次；第3段以「诚实与客观的声誉对科研职业生涯至关重要」说明作者为何预期隐瞒或拒答，再讨论匿名感。该推进分别依据s4/p[6]、s4/p[7]、s4/p[8]，不存在以措辞明确直接推出漏报的跳跃。\"\n        },\n        {\n          \"from_paragraph\": 3,\n          \"to_paragraph\": 4,\n          \"relation\": \"从自报可能低估转向同事报告为何不能充当直接校正依据\",\n          \"verdict\": \"pass\",\n          \"reason\": \"第3段「不等于已经测得漏报幅度」保留校正问题；第4段「同事报告则不能直接用来校正自我报告，因为其偏倚方向更不确定」承接，并分别补出少报动机、积极报告、重复计数和知情不全的依据（s4/p[9]、s4/p[10]）。最后区分自报低估与同事报告难以确定解释，符合s4/p[4]。\"\n        }\n      ]\n    }\n  },\n  \"comparisons\": {\n    \"overall_argument\": \"tie\",\n    \"language\": \"tie\",\n    \"terminology\": \"tie\",\n    \"qualifications\": \"tie\",\n    \"rationale\": \"两版均说明调查能提供有相应经历或报告经历的受访者比例，并解释其与实际事件、文献受影响程度之间的距离。A用「不能直接换算为不端事件或受影响文献的比例」明确限定推论；B用「不能把后者理解成实施不端者的比例」突出同事报告的分母，均符合s4/p[1]、s4/p[5]。A保留意愿比较并说明「不能用前者补算实际发生率」（s4/p[7]）；B以「这使调查方法本身成为解释结果的关键」组织后文（s4/p[2]），两种安排均有效。A的「捏造」与B的「伪造」、A的「应答率」与B的「回收率」在各自语境中可保留。两版都把随机回答推论限定于所引调查，也都解释同事报告的重复与知情范围（s4/p[8]至s4/p[10]）。B省略可疑研究行为的比例和意愿例子，A省略方法因素的集中列举，均未损害其现有结论所需的前提；未发现必须修复的含义或论证问题。\"\n  },\n  \"issues\": [],\n  \"scope\": \"same configured model in a separate context; not human or disciplinary acceptance\"\n}",
+      "effective_model": "gpt-6-astra",
+      "effective_reasoning_effort": "xhigh",
+      "tool_network": "disabled",
+      "tool_filesystem": "read-only",
+      "permission_verification": {
+        "policy_readback": true,
+        "no_mcp_servers": true,
+        "web_search_disabled": true,
+        "tool_network_disabled": true,
+        "actual_turn_read_only": true,
+        "actual_turn_approval_never": true
+      },
+      "runtime_notes": [
+        "Codex declined optional PATH helper aliases under the temporary CODEX_HOME.",
+        "The policy probe reports project-local config/hooks/exec policies disabled for the untrusted repository in its isolated profile. The actual task runs from the temporary work directory with inline guidance; no trust setting is changed."
+      ],
+      "stderr_bindings": {
+        "stderr.log": {
+          "sha256": "e96f8a0d03fba751242372f1cb12d1ea46f7514f5b1c1d6e06e85e16d8454ff6",
+          "bytes": 261
+        },
+        "policy.stderr": {
+          "sha256": "e4f80743a096781572af957ff028c7d600710fadf827478379326be6072668c1",
+          "bytes": 696
+        }
+      }
+    }
+  },
+  "blind_key": {
+    "labels": {
+      "A": "baseline",
+      "B": "current"
+    },
+    "answer_sha256": {
+      "A": "419a23c0f7e29d6788ffa2042254b2463d6a5d570f36733db8863049a62d1ce5",
+      "B": "d471787c1028b3920c5f21d1f6186b39449e204df47f590261a58ad7e702958d"
+    },
+    "method": "secrets.SystemRandom.shuffle once after both completed answers; whole-section labels; no reroll"
+  },
+  "measurements": {
+    "A": {
+      "paragraphs": [
+        {
+          "body": "Fanelli（2009）汇总的调查中，平均约2%的受访科研人员承认曾至少一次捏造、篡改或修改数据或结果，其他可疑研究行为的承认比例最高达三分之一；询问同事行为时，平均超过14%的受访者表示观察到过前一类行为，其他可疑研究行为的观察比例最高达72%。理解这些数字，首先要分清统计的是人、事件还是文献：这些比例表示有过相应经历的受访者占比，并不表示不端事件占全部研究活动的比例，也不表示含有问题数据的文献比例。“至少一次”把仅发生一次与反复发生的情况记为同一类，无法揭示行为次数及其涉及的研究产出。作者指出，若行为仅发生一次，这类比例可能高估文献中有偏差或遭篡改数据的普遍程度；他援引科学史材料认为重复实施更可能，但这不是对纳入调查中行为次数的直接测量。调查结果因而只能作为理解实际发生情况的起点，不能直接换算为不端事件或受影响文献的比例。",
+          "anchor": "〔Fanelli2009: s4/p[1]; s4/p[5]〕",
+          "codepoints": 369
+        },
+        {
+          "body": "除了统计单位，问题划定的行为边界也会改变数字的含义。该综述将捏造、篡改和修改结果与其他可疑研究行为分开，但作者承认这条界线带有一定任意性：修改数据未必就是篡改，而凭直觉删除数据点、不发表与既往研究相矛盾的数据，也可能构成篡改。按作者的解释，关键在于欺骗意图；直接承认“捏造”或“篡改”，意味着承认歪曲结果的意图，“为改善结果而修改数据”则有更大的理解空间。这种含混可能解释后一类问法为何得到较高承认率，不能把差异全部当作真实行为差异。不过，即使只保留最严格的自报问法，平均承认率仍超过1%。自报还取决于是否愿意坦承：作者认为，维护诚实与客观的职业声誉，可能使实施过不端的人隐瞒经历或拒绝参与。在他引述的一个博士后样本中，表示愿意为改善结果而选择或删去数据者，比承认曾修改数据者更多。这为作者的漏报解释提供了线索，但意愿与既往行为是不同指标，不能用前者补算实际发生率。",
+          "anchor": "〔Fanelli2009: s4/p[6]; s4/p[7]〕",
+          "codepoints": 383
+        },
+        {
+          "body": "这种坦承意愿也使调查方式成为解释的一部分。邮寄调查得到的不端报告比例低于当面发放的调查，前者又常借助催复信等办法获得较高应答率；但更多人作答，并不自动意味着敏感问题答得更真实。作者据其引用的研究指出，回答的准确性与应答率未必同步，而与受访者如何判断匿名性和保密性密切相关。他提出，直接发放并回收问卷可能比邮寄或电子邮件更能让人相信身份不会暴露，因此不能仅因应答率较低就认定其结果更差。论文转述的一项当面发放调查还在部分样本中采用随机回答技术：受访者通过掷硬币决定回答问题，还是直接填“是”，使研究者能够估计承认率，却无法判定某个“是”来自对问题的回答还是随机安排。该调查中，随机回答并未比直接回答带来更高的应答率或承认率。作者将此视为该调查不存在无应答偏差的提示；它支持当面发放结果可能较准确的解释，却不足以证明这种方式普遍更准确。",
+          "anchor": "〔Fanelli2009: s4/p[8]〕",
+          "codepoints": 366
+        },
+        {
+          "body": "转而询问同事，也不能把较高的观察比例直接当作实际发生率。受访者可能为维护本领域声誉而少报，某些受访群体则可能具有相关经验，并更愿意报告；作者因此认为，这类调查中社会期待的影响方向更难判断。观察比例还受报告是否重叠、个人能看见多少事件的共同影响：多人可能报告同一件事，推高估计；限制报告者人数又可能漏掉他们不知道的事。论文引述的一项调查仅从每个系选择一名研究人员，询问其过去三年在本系观察到的案例，5.2%的受访者报告见过篡改或捏造。这一比例低于此前同事报告调查的结果，但作者认为，单个研究人员难以知悉所有案例，因此这一估计仍偏保守。它说明，减少重复报告与扩大事件覆盖之间存在取舍，较低或较高的数字本身都不能裁定何者更接近真实。作者认为自报会系统性低估科研不端，并据此判断捏造与篡改比既往估计更普遍；这一判断来自对问法、坦承意愿及调查方式的综合解释，并不等于已经得到一个校正后的实际发生率。",
+          "anchor": "〔Fanelli2009: s4/p[4]; s4/p[6]; s4/p[7]; s4/p[8]; s4/p[9]; s4/p[10]〕",
+          "codepoints": 394
+        }
+      ],
+      "codepoints": 1512,
+      "within_range": true
+    },
+    "B": {
+      "paragraphs": [
+        {
+          "body": "Fanelli（2009）的元分析发现，平均约2%的受访科研人员承认至少一次伪造、篡改或修改过数据或结果；在询问同事行为的调查中，平均超过14%的受访者表示见过这类行为。这两组数字分别统计承认实施过行为的人和观察到行为的人，都以受访者为分母，因此不能把后者理解成实施不端者的比例。综述将调查数据统一为回忆起至少一次事件的受访者比例，也无法区分同一人多次实施与仅实施一次。作者提醒，若实施者只做过一次，调查中的人员比例还可能高估文献中偏倚或伪造数据的比例。判断调查是否低估实际情况，须先分清所讨论的是实施者、事件，还是文献中受影响的数据。研究间结果的一大部分差异，与询问本人还是同事、问卷如何发放及是否明确使用“伪造”“篡改”有关，这使调查方法本身成为解释结果的关键。",
+          "anchor": "〔Fanelli2009: s4/p[1]; s4/p[2]; s4/p[5]〕",
+          "codepoints": 333
+        },
+        {
+          "body": "首先，问卷如何界定行为，会改变承认比例的含义。该综述将伪造、篡改和修改结果与其他可疑研究行为分开，但作者承认，这条界线并不明确：修改数据未必就是篡改，凭直觉删除数据点或不发表与以往研究相矛盾的数据，却可能构成篡改。作者把欺骗意图视为关键；在这一理解下，直接承认“伪造”或“篡改”，明确表达了歪曲结果的意图，而“为改善结果而修改数据”可能被不同受访者作不同理解。作者认为，这种歧义可能解释后一类问题为何得到较高的承认比例。因此，不能仅凭某种问法得到更高比例，就认定它更接近真实情况。不过，即使只保留限制最严格的自我报告问题，平均承认比例仍超过1%。对不端行为的承认并未随问法收紧而消失，但明确的措辞仍不能保证受访者愿意如实回答。",
+          "anchor": "〔Fanelli2009: s4/p[6]〕",
+          "codepoints": 313
+        },
+        {
+          "body": "作者认为，诚实与客观的声誉对科研职业生涯至关重要，实施过不端的人可能隐瞒经历，甚至拒绝参加调查；相反，承认自己未曾实施的不端行为很不可能。因此，作者判断自我报告会系统性低估实际发生情况，但这不等于已经测得漏报幅度。调查方式的比较也说明，回收率本身不足以判断回答是否准确。邮寄问卷得到的不端报告比例低于现场发放的问卷，尽管前者常借助催复信等方式取得更高回收率。作者提出，直接发放和交回问卷可能更能使受访者相信匿名与保密，因此不能排除现场问卷回答更准确的可能。综述转述的一项现场调查在部分样本中使用随机回答法：受访者掷硬币决定回答问题还是直接勾选“是”，研究者仍可估算总体承认比例，却无法辨别个人的“是”源于经历还是随机安排。该方法的回收率和承认比例均未高于直接回答法，作者将其视为该项调查可能不存在无应答偏倚的线索；它并不能证明现场发放普遍更准确。",
+          "anchor": "〔Fanelli2009: s4/p[4]; s4/p[7]; s4/p[8]〕",
+          "codepoints": 373
+        },
+        {
+          "body": "同事报告则不能直接用来校正自我报告，因为其偏倚方向更不确定。受访者可能为维护本领域声誉而少报，也可能因特别熟悉不端事件、报告动机更强而积极报告。同事报告还有重复计数的问题：同一事件可能被多人报告，较高的报告者比例并不代表发生了同样多的独立事件。作者转述的一项研究为减少重复，只请每个部门的一名研究者报告过去三年在本部门观察到的事件；其中5.2%的受访者见过伪造或篡改，低于此前其他同事报告的比例。但每部门只询问一人，又会遗漏此人不知道的事件，作者因而将这一结果视为保守估计。这个例子显示，避免重复报告与充分发现事件之间存在取舍，较低比例也可能来自观察范围受限。综合这些证据与解释，作者认为自我报告低估了实际发生情况，伪造和篡改比多数以往估计显示的更普遍；同事报告则难以给出确定解释。两类调查之间的差距不能直接等同于隐瞒程度，也无法据此还原科研不端的确切发生频率。",
+          "anchor": "〔Fanelli2009: s4/p[4]; s4/p[9]; s4/p[10]〕",
+          "codepoints": 381
+        }
+      ],
+      "codepoints": 1400,
+      "within_range": true
+    }
+  },
+  "raw_blind_review": {
+    "by_version": {
+      "A": {
+        "dimensions": {
+          "within_paragraph_argument": {
+            "verdict": "pass",
+            "reason": "第1段以「“至少一次”把仅发生一次与反复发生的情况记为同一类」说明为何不能换算事件或文献比例，前提与结论对应（s4/p[5]）。第2段分别用问法歧义和坦承意愿解释承认率，且以「意愿与既往行为是不同指标」限制推论（s4/p[6]、s4/p[7]）。第3段以「更多人作答，并不自动意味着敏感问题答得更真实」引出匿名感与回答准确性的区别（s4/p[8]）。第4段把重复报告和个人知情不全分别对应估计偏高与偏保守，论证成立（s4/p[9]、s4/p[10]）。"
+          },
+          "cross_paragraph_continuity": {
+            "verdict": "pass",
+            "reason": "全文沿统计单位、行为定义与坦承意愿、调查方式、同事报告及综合判断推进。「除了统计单位」承接第1段的测量限制；「这种坦承意愿」承接第2段的自报机制；「转而询问同事」转入另一种报告来源。最后以「作者认为自报会系统性低估科研不端」回答实际发生情况的问题，形成共同论证，而非独立摘要。关系分别有s4/p[5]至s4/p[8]、s4/p[9]至s4/p[10]及s4/p[4]支持。"
+          },
+          "terminology_and_measurement": {
+            "verdict": "pass",
+            "reason": "「平均约2%」「平均超过14%」分别附着于承认自身行为和报告观察同事行为的受访者，三分之一与72%也保留最高比例的含义（s4/p[1]）。「修改数据未必就是篡改」保留修改、篡改与可疑研究行为的区别（s4/p[6]）。「过去三年在本系观察到的案例，5.2%的受访者报告见过篡改或捏造」保留时间、范围和分母（s4/p[10]）。应答率、承认率和文献比例未被混用。"
+          },
+          "natural_chinese": {
+            "verdict": "pass",
+            "reason": "「理解这些数字，首先要分清统计的是人、事件还是文献」直接交代阅读数字的关键，准确展开s4/p[5]的测量问题；「但更多人作答，并不自动意味着敏感问题答得更真实」自然表达s4/p[8]的比较。第2段虽同时讨论定义与坦承意愿，但「自报还取决于是否愿意坦承」明确标示层次，指代清楚，无须为统一风格而改写。"
+          },
+          "necessary_qualifications": {
+            "verdict": "pass",
+            "reason": "「他援引科学史材料认为重复实施更可能，但这不是对纳入调查中行为次数的直接测量」保留引述证据与调查测量的区别（s4/p[5]）；「不能用前者补算实际发生率」避免把意愿当成既往行为（s4/p[7]）；「不足以证明这种方式普遍更准确」将随机回答结果限定在所引调查（s4/p[8]）。结尾「并不等于已经得到一个校正后的实际发生率」准确限制作者关于低估的判断（s4/p[4]）。"
+          },
+          "source_fidelity": {
+            "verdict": "pass",
+            "reason": "「作者承认这条界线带有一定任意性」及欺骗意图的说明对应s4/p[6]；「受访者可能为维护本领域声誉而少报」与某些群体更愿报告的解释对应s4/p[9]，没有把动机统一为单向偏差。随机回答研究和每系一人的调查均以「论文转述」或「论文引述」呈现，对应s4/p[8]、s4/p[10]，未冒充独立核验。结尾关于系统性低估及既往估计的判断明确归于作者，符合s4/p[4]。"
+          }
+        },
+        "transitions": [
+          {
+            "from_paragraph": 1,
+            "to_paragraph": 2,
+            "relation": "从计数单位的限制推进到被计数行为的定义及自报条件",
+            "verdict": "pass",
+            "reason": "第1段「不能直接换算为不端事件或受影响文献的比例」解决统计单位问题；第2段「除了统计单位，问题划定的行为边界也会改变数字的含义」进一步解释同一受访者比例所涵盖的行为。两项限制分别来自s4/p[5]、s4/p[6]，是互补关系，没有增添因果前提。"
+          },
+          {
+            "from_paragraph": 2,
+            "to_paragraph": 3,
+            "relation": "从坦承意愿推进到调查方式可能影响坦承的机制",
+            "verdict": "pass",
+            "reason": "第2段「维护诚实与客观的职业声誉，可能使实施过不端的人隐瞒经历或拒绝参与」对应s4/p[7]；第3段以「这种坦承意愿也使调查方式成为解释的一部分」承接，并用受访者对匿名性、保密性的判断说明联系（s4/p[8]）。机制保持为作者提出的可能解释。"
+          },
+          {
+            "from_paragraph": 3,
+            "to_paragraph": 4,
+            "relation": "从自报调查方式的解释转向同事报告的不同偏差机制，并综合回答",
+            "verdict": "pass",
+            "reason": "第3段「不足以证明这种方式普遍更准确」限定调查方式比较；第4段「转而询问同事，也不能把较高的观察比例直接当作实际发生率」引出社会期待、重复报告与知情范围（s4/p[8]至s4/p[10]）。结尾再区分作者对自报低估的判断与实际发生率的精确校正，落实s4/p[4]的主问题。"
+          }
+        ]
+      },
+      "B": {
+        "dimensions": {
+          "within_paragraph_argument": {
+            "verdict": "pass",
+            "reason": "第1段以「分别统计承认实施过行为的人和观察到行为的人」明确分母，再用至少一次的计数限制说明为何须区分人员、事件与文献（s4/p[1]、s4/p[5]）。第2段用「修改数据未必就是篡改」和欺骗意图解释问法差异（s4/p[6]）。第3段把声誉压力与作者的低估判断相连，同时用匿名感解释调查方式差异（s4/p[4]、s4/p[7]、s4/p[8]）。第4段以动机差异、重复计数和知情不全支撑「同事报告则不能直接用来校正自我报告」，结论有据（s4/p[9]、s4/p[10]）。"
+          },
+          "cross_paragraph_continuity": {
+            "verdict": "pass",
+            "reason": "第1段「这使调查方法本身成为解释结果的关键」建立后文主线；第2段「首先，问卷如何界定行为」展开问法，第3段承接「明确的措辞仍不能保证受访者愿意如实回答」，讨论自报与调查方式；第4段「同事报告则不能直接用来校正自我报告」转入另一报告来源。顺序落实s4/p[2]列出的方法因素，并通过s4/p[4]、s4/p[6]至s4/p[10]形成综合回答。"
+          },
+          "terminology_and_measurement": {
+            "verdict": "pass",
+            "reason": "「都以受访者为分母，因此不能把后者理解成实施不端者的比例」准确限定2%与超过14%的比较（s4/p[1]）；「无法区分同一人多次实施与仅实施一次」保留至少一次的测量含义（s4/p[5]）。「伪造、篡改和修改结果」及「其他可疑研究行为」在行为定义讨论中保持区分（s4/p[6]）。5.2%明确对应每部门一名受访者、过去三年、本部门观察经历（s4/p[10]）。「回收率」在问卷语境中可成立，且与承认比例保持区别（s4/p[8]）。"
+          },
+          "natural_chinese": {
+            "verdict": "pass",
+            "reason": "「判断调查是否低估实际情况，须先分清所讨论的是实施者、事件，还是文献中受影响的数据」按读者理解顺序展开s4/p[5]的问题；「但明确的措辞仍不能保证受访者愿意如实回答」自然连接定义与作答意愿（s4/p[6]、s4/p[7]）。「同事报告还有重复计数的问题」随后明确解释同一事件被多人报告，术语并未代替说明（s4/p[10]）。整体语言清楚，无须强制换用A的措辞。"
+          },
+          "necessary_qualifications": {
+            "verdict": "pass",
+            "reason": "「作者判断自我报告会系统性低估实际发生情况，但这不等于已经测得漏报幅度」区分作者解释与测量结果（s4/p[4]、s4/p[7]）。「不能排除现场问卷回答更准确的可能」及「它并不能证明现场发放普遍更准确」保留调查方式解释和单项随机回答研究的范围（s4/p[8]）。「两类调查之间的差距不能直接等同于隐瞒程度」也与同事报告的多种机制相容（s4/p[9]、s4/p[10]）。未采用意愿百分比，不构成缺失必要前提。"
+          },
+          "source_fidelity": {
+            "verdict": "pass",
+            "reason": "「研究间结果的一大部分差异，与询问本人还是同事、问卷如何发放及是否明确使用“伪造”“篡改”有关」对应s4/p[2]，未将方法关联写成已证实的单一因果作用。「作者认为，这种歧义可能解释后一类问题为何得到较高的承认比例」对应s4/p[6]。两项具体调查均以「综述转述」或「作者转述」引入（s4/p[8]、s4/p[10]）；结尾「比多数以往估计显示的更普遍」准确归于作者（s4/p[4]）。"
+          }
+        },
+        "transitions": [
+          {
+            "from_paragraph": 1,
+            "to_paragraph": 2,
+            "relation": "从方法差异的总体框架推进到问法与行为定义",
+            "verdict": "pass",
+            "reason": "第1段列出「询问本人还是同事、问卷如何发放及是否明确使用“伪造”“篡改”」，第2段以「首先，问卷如何界定行为，会改变承认比例的含义」具体展开其中一项。总体因素与具体解释分别对应s4/p[2]、s4/p[6]，承接明确。"
+          },
+          {
+            "from_paragraph": 2,
+            "to_paragraph": 3,
+            "relation": "从问题是否明确推进到受访者是否坦承及调查方式的影响",
+            "verdict": "pass",
+            "reason": "第2段末「明确的措辞仍不能保证受访者愿意如实回答」提出下一个解释层次；第3段以「诚实与客观的声誉对科研职业生涯至关重要」说明作者为何预期隐瞒或拒答，再讨论匿名感。该推进分别依据s4/p[6]、s4/p[7]、s4/p[8]，不存在以措辞明确直接推出漏报的跳跃。"
+          },
+          {
+            "from_paragraph": 3,
+            "to_paragraph": 4,
+            "relation": "从自报可能低估转向同事报告为何不能充当直接校正依据",
+            "verdict": "pass",
+            "reason": "第3段「不等于已经测得漏报幅度」保留校正问题；第4段「同事报告则不能直接用来校正自我报告，因为其偏倚方向更不确定」承接，并分别补出少报动机、积极报告、重复计数和知情不全的依据（s4/p[9]、s4/p[10]）。最后区分自报低估与同事报告难以确定解释，符合s4/p[4]。"
+          }
+        ]
+      }
+    },
+    "comparisons": {
+      "overall_argument": "tie",
+      "language": "tie",
+      "terminology": "tie",
+      "qualifications": "tie",
+      "rationale": "两版均说明调查能提供有相应经历或报告经历的受访者比例，并解释其与实际事件、文献受影响程度之间的距离。A用「不能直接换算为不端事件或受影响文献的比例」明确限定推论；B用「不能把后者理解成实施不端者的比例」突出同事报告的分母，均符合s4/p[1]、s4/p[5]。A保留意愿比较并说明「不能用前者补算实际发生率」（s4/p[7]）；B以「这使调查方法本身成为解释结果的关键」组织后文（s4/p[2]），两种安排均有效。A的「捏造」与B的「伪造」、A的「应答率」与B的「回收率」在各自语境中可保留。两版都把随机回答推论限定于所引调查，也都解释同事报告的重复与知情范围（s4/p[8]至s4/p[10]）。B省略可疑研究行为的比例和意愿例子，A省略方法因素的集中列举，均未损害其现有结论所需的前提；未发现必须修复的含义或论证问题。"
+    },
+    "issues": [],
+    "scope": "same configured model in a separate context; not human or disciplinary acceptance"
+  },
+  "input_recovery": {
+    "receipt": {
+      "packet": "/tmp/qiongli-zh-connected-20261106-2m1clugm/review/writing-packet.json",
+      "sha256": "c4c2240e4e64fc4b23bf9592e158e4106e0d8a1de9466b08b2859c642b3bbc04"
+    },
+    "recovery": {
+      "packet_sha256": "c4c2240e4e64fc4b23bf9592e158e4106e0d8a1de9466b08b2859c642b3bbc04",
+      "status": "bindings_current",
+      "files": {
+        "source": {
+          "path": "/tmp/qiongli-zh-connected-20261106-2m1clugm/sources/packet.txt",
+          "sha256": "73c1bc0f2cf76d6f81a7b551a7b3b74a4aa16500a8af885e29eb1a87f3840b39",
+          "bytes": 10784
+        },
+        "task": {
+          "path": "/tmp/qiongli-zh-connected-20261106-2m1clugm/review/task.txt",
+          "sha256": "5c45ecb97ef54c1175a87789394c34a42de602e7b2bd1a8acc47ffbfceea46df",
+          "bytes": 1581
+        },
+        "review_criteria": {
+          "path": "/tmp/qiongli-zh-connected-20261106-2m1clugm/review/criteria.json",
+          "sha256": "38b6bc59652b93569b6c650c1fef1421c6fd07a9c5833a81c78cc571ead970d3",
+          "bytes": 3105
+        },
+        "anonymous": {
+          "path": "/tmp/qiongli-zh-connected-20261106-2m1clugm/review/anonymous-comparison.md",
+          "sha256": "29f55cfba169e5a90e4a71a126e329707843275d04fb7d654cce8c9767db1ec8",
+          "bytes": 9984
+        },
+        "review_prompt": {
+          "path": "/tmp/qiongli-zh-connected-20261106-2m1clugm/review-inputs/prompt.txt",
+          "sha256": "c4215c2b64454051a58078dcc837cb86be9ad4e4e894d4bdaee36062168e86b3",
+          "bytes": 45087
+        },
+        "A": {
+          "path": "/tmp/qiongli-zh-connected-20261106-2m1clugm/runs/baseline/answer.md",
+          "sha256": "419a23c0f7e29d6788ffa2042254b2463d6a5d570f36733db8863049a62d1ce5",
+          "bytes": 4705
+        },
+        "B": {
+          "path": "/tmp/qiongli-zh-connected-20261106-2m1clugm/runs/current/answer.md",
+          "sha256": "d471787c1028b3920c5f21d1f6186b39449e204df47f590261a58ad7e702958d",
+          "bytes": 4374
+        }
+      },
+      "scope": "Input recovery only; no semantic verdict or approval to save a manuscript."
+    }
+  },
+  "human_review": {
+    "status": "received",
+    "scope": "One anonymous pair of connected four-paragraph Chinese sections.",
+    "response": "整体的效果和语言还是B更好一些，但是在描述细节的时候A的细节把控更好一些",
+    "actual_elapsed_time": null,
+    "anonymous_file": "anonymous-comparison.md",
+    "anonymous_file_sha256": "0f1e9c81e7b18e59308ba0499a676091fe64404bd3fe519bd3d51549f04bc437",
+    "blinding": {
+      "anonymous_file_sha256": "29f55cfba169e5a90e4a71a126e329707843275d04fb7d654cce8c9767db1ec8",
+      "key_displayed_before_response": false,
+      "model_judgments_displayed_before_response": false,
+      "automatic_review_complete_when_response_received": false,
+      "scope": "Key and model judgments withheld from coordinator visible outputs through this reply. No assumption about human reading time, expert status or source verification."
+    },
+    "reviewer": "human user in current conversation",
+    "question": "请看[本轮匿名对照](/home/hermes/repos/jxpeng98/qiongli/evals/research_journey/writing-quality/observations/chinese-connected-2026-11-06/anonymous-comparison.md)，将每版的四段连起来读：整体更偏好 A、B、持平，还是各有优点？也可以指出值得保留的词句或最不自然的衔接。本轮 A/B 已重新随机分配，与上一轮标签无关。",
+    "overall_preference": "B",
+    "retain_from_A": "detail handling; no exact preferred span supplied",
+    "per_dimension_scores": null,
+    "specific_span_preferences": null,
+    "combined_text_approval": null,
+    "question_binding": {
+      "question": "请看本轮匿名对照，将每版的四段连起来读：整体更偏好 A、B、持平，还是各有优点？也可以指出值得保留的词句或最不自然的衔接。本轮 A/B 已重新随机分配，与上一轮标签无关。",
+      "comparison_sha256": "29f55cfba169e5a90e4a71a126e329707843275d04fb7d654cce8c9767db1ec8",
+      "comparison_file": "evals/research_journey/writing-quality/observations/chinese-connected-2026-11-06/anonymous-comparison.md",
+      "status": "pending",
+      "review_unit": "whole four-paragraph section, two newly randomized labels",
+      "model_judgments_visible": false,
+      "identity_key_visible": false,
+      "question_format": "plain-text transcription; full issued question is stored in human_review.question"
+    },
+    "question_plain_text": "请看本轮匿名对照，将每版的四段连起来读：整体更偏好 A、B、持平，还是各有优点？也可以指出值得保留的词句或最不自然的衔接。本轮 A/B 已重新随机分配，与上一轮标签无关。",
+    "recorded_at_utc": "2026-11-06T10:41:36.771028+00:00",
+    "issued_comparison": {
+      "text": "# 连续多段中文写作：匿名对照\n\n下面两版均根据 Fanelli（2009）论文 Discussion 的连续十段撰写为四段中文综述。两版使用相同原文、任务和模型配置，A/B 为本轮重新随机分配的标签，与前轮标签没有对应关系。不是论文的官方译文。\n\n来源：Daniele Fanelli, [How Many Scientists Fabricate and Falsify Research?](https://doi.org/10.1371/journal.pone.0005738)，PLOS ONE，CC BY。来源标记为出版方 XML 的章节及段落定位，不是页码。\n\n请把每版作为一节连续正文阅读，比较：段落之间是否接得上，术语和论证是否准确完整，中文是否自然，必要限定是否妥当。可以整体偏好某一版，也可以指出各版值得保留的句子。\n\n## 版本 A\n\nFanelli（2009）汇总的调查中，平均约2%的受访科研人员承认曾至少一次捏造、篡改或修改数据或结果，其他可疑研究行为的承认比例最高达三分之一；询问同事行为时，平均超过14%的受访者表示观察到过前一类行为，其他可疑研究行为的观察比例最高达72%。理解这些数字，首先要分清统计的是人、事件还是文献：这些比例表示有过相应经历的受访者占比，并不表示不端事件占全部研究活动的比例，也不表示含有问题数据的文献比例。“至少一次”把仅发生一次与反复发生的情况记为同一类，无法揭示行为次数及其涉及的研究产出。作者指出，若行为仅发生一次，这类比例可能高估文献中有偏差或遭篡改数据的普遍程度；他援引科学史材料认为重复实施更可能，但这不是对纳入调查中行为次数的直接测量。调查结果因而只能作为理解实际发生情况的起点，不能直接换算为不端事件或受影响文献的比例。\n〔Fanelli2009: s4/p[1]; s4/p[5]〕\n\n除了统计单位，问题划定的行为边界也会改变数字的含义。该综述将捏造、篡改和修改结果与其他可疑研究行为分开，但作者承认这条界线带有一定任意性：修改数据未必就是篡改，而凭直觉删除数据点、不发表与既往研究相矛盾的数据，也可能构成篡改。按作者的解释，关键在于欺骗意图；直接承认“捏造”或“篡改”，意味着承认歪曲结果的意图，“为改善结果而修改数据”则有更大的理解空间。这种含混可能解释后一类问法为何得到较高承认率，不能把差异全部当作真实行为差异。不过，即使只保留最严格的自报问法，平均承认率仍超过1%。自报还取决于是否愿意坦承：作者认为，维护诚实与客观的职业声誉，可能使实施过不端的人隐瞒经历或拒绝参与。在他引述的一个博士后样本中，表示愿意为改善结果而选择或删去数据者，比承认曾修改数据者更多。这为作者的漏报解释提供了线索，但意愿与既往行为是不同指标，不能用前者补算实际发生率。\n〔Fanelli2009: s4/p[6]; s4/p[7]〕\n\n这种坦承意愿也使调查方式成为解释的一部分。邮寄调查得到的不端报告比例低于当面发放的调查，前者又常借助催复信等办法获得较高应答率；但更多人作答，并不自动意味着敏感问题答得更真实。作者据其引用的研究指出，回答的准确性与应答率未必同步，而与受访者如何判断匿名性和保密性密切相关。他提出，直接发放并回收问卷可能比邮寄或电子邮件更能让人相信身份不会暴露，因此不能仅因应答率较低就认定其结果更差。论文转述的一项当面发放调查还在部分样本中采用随机回答技术：受访者通过掷硬币决定回答问题，还是直接填“是”，使研究者能够估计承认率，却无法判定某个“是”来自对问题的回答还是随机安排。该调查中，随机回答并未比直接回答带来更高的应答率或承认率。作者将此视为该调查不存在无应答偏差的提示；它支持当面发放结果可能较准确的解释，却不足以证明这种方式普遍更准确。\n〔Fanelli2009: s4/p[8]〕\n\n转而询问同事，也不能把较高的观察比例直接当作实际发生率。受访者可能为维护本领域声誉而少报，某些受访群体则可能具有相关经验，并更愿意报告；作者因此认为，这类调查中社会期待的影响方向更难判断。观察比例还受报告是否重叠、个人能看见多少事件的共同影响：多人可能报告同一件事，推高估计；限制报告者人数又可能漏掉他们不知道的事。论文引述的一项调查仅从每个系选择一名研究人员，询问其过去三年在本系观察到的案例，5.2%的受访者报告见过篡改或捏造。这一比例低于此前同事报告调查的结果，但作者认为，单个研究人员难以知悉所有案例，因此这一估计仍偏保守。它说明，减少重复报告与扩大事件覆盖之间存在取舍，较低或较高的数字本身都不能裁定何者更接近真实。作者认为自报会系统性低估科研不端，并据此判断捏造与篡改比既往估计更普遍；这一判断来自对问法、坦承意愿及调查方式的综合解释，并不等于已经得到一个校正后的实际发生率。\n〔Fanelli2009: s4/p[4]; s4/p[6]; s4/p[7]; s4/p[8]; s4/p[9]; s4/p[10]〕\n\n## 版本 B\n\nFanelli（2009）的元分析发现，平均约2%的受访科研人员承认至少一次伪造、篡改或修改过数据或结果；在询问同事行为的调查中，平均超过14%的受访者表示见过这类行为。这两组数字分别统计承认实施过行为的人和观察到行为的人，都以受访者为分母，因此不能把后者理解成实施不端者的比例。综述将调查数据统一为回忆起至少一次事件的受访者比例，也无法区分同一人多次实施与仅实施一次。作者提醒，若实施者只做过一次，调查中的人员比例还可能高估文献中偏倚或伪造数据的比例。判断调查是否低估实际情况，须先分清所讨论的是实施者、事件，还是文献中受影响的数据。研究间结果的一大部分差异，与询问本人还是同事、问卷如何发放及是否明确使用“伪造”“篡改”有关，这使调查方法本身成为解释结果的关键。  \n〔Fanelli2009: s4/p[1]; s4/p[2]; s4/p[5]〕\n\n首先，问卷如何界定行为，会改变承认比例的含义。该综述将伪造、篡改和修改结果与其他可疑研究行为分开，但作者承认，这条界线并不明确：修改数据未必就是篡改，凭直觉删除数据点或不发表与以往研究相矛盾的数据，却可能构成篡改。作者把欺骗意图视为关键；在这一理解下，直接承认“伪造”或“篡改”，明确表达了歪曲结果的意图，而“为改善结果而修改数据”可能被不同受访者作不同理解。作者认为，这种歧义可能解释后一类问题为何得到较高的承认比例。因此，不能仅凭某种问法得到更高比例，就认定它更接近真实情况。不过，即使只保留限制最严格的自我报告问题，平均承认比例仍超过1%。对不端行为的承认并未随问法收紧而消失，但明确的措辞仍不能保证受访者愿意如实回答。  \n〔Fanelli2009: s4/p[6]〕\n\n作者认为，诚实与客观的声誉对科研职业生涯至关重要，实施过不端的人可能隐瞒经历，甚至拒绝参加调查；相反，承认自己未曾实施的不端行为很不可能。因此，作者判断自我报告会系统性低估实际发生情况，但这不等于已经测得漏报幅度。调查方式的比较也说明，回收率本身不足以判断回答是否准确。邮寄问卷得到的不端报告比例低于现场发放的问卷，尽管前者常借助催复信等方式取得更高回收率。作者提出，直接发放和交回问卷可能更能使受访者相信匿名与保密，因此不能排除现场问卷回答更准确的可能。综述转述的一项现场调查在部分样本中使用随机回答法：受访者掷硬币决定回答问题还是直接勾选“是”，研究者仍可估算总体承认比例，却无法辨别个人的“是”源于经历还是随机安排。该方法的回收率和承认比例均未高于直接回答法，作者将其视为该项调查可能不存在无应答偏倚的线索；它并不能证明现场发放普遍更准确。  \n〔Fanelli2009: s4/p[4]; s4/p[7]; s4/p[8]〕\n\n同事报告则不能直接用来校正自我报告，因为其偏倚方向更不确定。受访者可能为维护本领域声誉而少报，也可能因特别熟悉不端事件、报告动机更强而积极报告。同事报告还有重复计数的问题：同一事件可能被多人报告，较高的报告者比例并不代表发生了同样多的独立事件。作者转述的一项研究为减少重复，只请每个部门的一名研究者报告过去三年在本部门观察到的事件；其中5.2%的受访者见过伪造或篡改，低于此前其他同事报告的比例。但每部门只询问一人，又会遗漏此人不知道的事件，作者因而将这一结果视为保守估计。这个例子显示，避免重复报告与充分发现事件之间存在取舍，较低比例也可能来自观察范围受限。综合这些证据与解释，作者认为自我报告低估了实际发生情况，伪造和篡改比多数以往估计显示的更普遍；同事报告则难以给出确定解释。两类调查之间的差距不能直接等同于隐瞒程度，也无法据此还原科研不端的确切发生频率。  \n〔Fanelli2009: s4/p[4]; s4/p[9]; s4/p[10]〕\n\n## 反馈（尚未填写）\n\n整体偏好：A / B / 持平 / 各有优点\n\n更值得保留的词句，或最需要调整的衔接：____\n\n实际阅读或修改用时（如有）：____\n",
+      "sha256": "29f55cfba169e5a90e4a71a126e329707843275d04fb7d654cce8c9767db1ec8",
+      "external_file": "/tmp/qiongli-zh-connected-20261106-2m1clugm/review/anonymous-comparison.md"
+    },
+    "archived_comparison": {
+      "file": "anonymous-comparison.md",
+      "sha256": "0f1e9c81e7b18e59308ba0499a676091fe64404bd3fe519bd3d51549f04bc437",
+      "transformation": "Trim four Markdown line-end hard-break space pairs for repository whitespace checks. Words, order and citation anchors are unchanged. Exact issued packet bytes remain in observation.json human_review.issued_comparison and the external frozen packet.",
+      "reason": "Initial staged git diff --check rejected the four trailing-space pairs. No writer output, reviewer input or human response is rewritten."
+    }
+  },
+  "verification": {
+    "frozen_inputs_preserved": true,
+    "all_three_exact_prompts_delivered": true,
+    "all_three_turns_completed": true,
+    "no_model_override": true,
+    "user_config_preserved": true,
+    "temporary_auth_links_removed": true,
+    "review_issue_quotes_literal": true,
+    "each_section_four_paragraphs": true,
+    "both_lengths_within_bounds": true,
+    "source_paragraphs_consecutive_and_exact": true,
+    "packet_recovered_current": true,
+    "archive_preserves_non_whitespace_text": true
+  },
+  "limitations": [
+    "One generation per guidance arm does not separate guidance effects from sampling variation.",
+    "The same-model reviewer and coordinator are not independent disciplinary experts.",
+    "Source-first-use is limited to the searched repository paths at the recorded revision, not model training data.",
+    "The latest fluency/terminology/completeness preference is common to both tasks; earlier A/B passages are not supplied."
+  ],
+  "coordinator_review": {
+    "kind": "coordinator source and task review after raw comparison and human feedback",
+    "raw_passages": "No required factual, terminology, continuity or qualification repairs found. The reviewer likewise returns no issues; retain both original outputs.",
+    "scope_check": "The task permits omitting optional examples, statistics and trends. The omission of willingness examples or QRP rates from one version does not remove a premise required by its argument. No score override is needed.",
+    "defensive_writing": "This selected Discussion examines measurement and interpretation limits. Negative or conditional sentences that distinguish respondents, incidents and papers, or prevent an unsupported calibration, perform necessary reasoning. Their count alone is not excessive caution. Both versions state findings directly and explain limits where needed.",
+    "human_feedback": "Human prefers B overall and values A detail. No exact A spans or editing time supplied; specific elaborations chosen by coordinator. Human response preceded any visible key or automatic review disclosure.",
+    "selection_review": "Two B-based insertions checked against s4/p[5] and s4/p[7]; attribution, denominator, uncertainty and source anchors preserved. Paragraphs 2 and 4 remain unchanged apart from trailing whitespace. Selected wording is an editorial proposal, not newly human reviewed.",
+    "canonical_decision": "Existing scholarly-voice and G4/J2 contracts already require these distinctions and pass this bounded check. No canonical writing-rule, native, helper-code or content-pack modification is warranted."
+  },
+  "selection": {
+    "base_label": "B",
+    "basis": "Human overall preference for B and detail handling in A. Exact spans chosen by coordinator, not claimed as the user's phrase choices.",
+    "file": "selected.md",
+    "file_sha256": "f9d4bbb2f6eb142b3bd241d9e20da53adbfdba993b42b1acc473beba78e3906b",
+    "paragraphs": [
+      {
+        "body": "Fanelli（2009）的元分析发现，平均约2%的受访科研人员承认至少一次伪造、篡改或修改过数据或结果；在询问同事行为的调查中，平均超过14%的受访者表示见过这类行为。这两组数字分别统计承认实施过行为的人和观察到行为的人，都以受访者为分母，因此不能把后者理解成实施不端者的比例。综述将调查数据统一为回忆起至少一次事件的受访者比例，也无法区分同一人多次实施与仅实施一次。作者提醒，若实施者只做过一次，调查中的人员比例还可能高估文献中偏倚或伪造数据的比例。他援引科学史材料认为，重复实施更可能，但这并不是对纳入调查中行为次数的直接测量。判断调查是否低估实际情况，须先分清所讨论的是实施者、事件，还是文献中受影响的数据。研究间结果的一大部分差异，与询问本人还是同事、问卷如何发放及是否明确使用“伪造”“篡改”有关，这使调查方法本身成为解释结果的关键。",
+        "anchor": "〔Fanelli2009: s4/p[1]; s4/p[2]; s4/p[5]〕",
+        "codepoints": 373
+      },
+      {
+        "body": "首先，问卷如何界定行为，会改变承认比例的含义。该综述将伪造、篡改和修改结果与其他可疑研究行为分开，但作者承认，这条界线并不明确：修改数据未必就是篡改，凭直觉删除数据点或不发表与以往研究相矛盾的数据，却可能构成篡改。作者把欺骗意图视为关键；在这一理解下，直接承认“伪造”或“篡改”，明确表达了歪曲结果的意图，而“为改善结果而修改数据”可能被不同受访者作不同理解。作者认为，这种歧义可能解释后一类问题为何得到较高的承认比例。因此，不能仅凭某种问法得到更高比例，就认定它更接近真实情况。不过，即使只保留限制最严格的自我报告问题，平均承认比例仍超过1%。对不端行为的承认并未随问法收紧而消失，但明确的措辞仍不能保证受访者愿意如实回答。",
+        "anchor": "〔Fanelli2009: s4/p[6]〕",
+        "codepoints": 313
+      },
+      {
+        "body": "作者认为，诚实与客观的声誉对科研职业生涯至关重要，实施过不端的人可能隐瞒经历，甚至拒绝参加调查；相反，承认自己未曾实施的不端行为很不可能。作者据此判断自我报告会系统性低估实际发生情况。他引述的一个博士后样本中，表示愿意为改善结果而选择或删去数据者，比承认曾修改数据者更多。这为漏报解释提供了线索，但意愿与既往行为是不同指标，不能据此补算漏报幅度。调查方式的比较也说明，回收率本身不足以判断回答是否准确。邮寄问卷得到的不端报告比例低于现场发放的问卷，尽管前者常借助催复信等方式取得更高回收率。作者提出，直接发放和交回问卷可能更能使受访者相信匿名与保密，因此不能排除现场问卷回答更准确的可能。综述转述的一项现场调查在部分样本中使用随机回答法：受访者掷硬币决定回答问题还是直接勾选“是”，研究者仍可估算总体承认比例，却无法辨别个人的“是”源于经历还是随机安排。该方法的回收率和承认比例均未高于直接回答法，作者将其视为该项调查可能不存在无应答偏倚的线索；它并不能证明现场发放普遍更准确。",
+        "anchor": "〔Fanelli2009: s4/p[4]; s4/p[7]; s4/p[8]〕",
+        "codepoints": 439
+      },
+      {
+        "body": "同事报告则不能直接用来校正自我报告，因为其偏倚方向更不确定。受访者可能为维护本领域声誉而少报，也可能因特别熟悉不端事件、报告动机更强而积极报告。同事报告还有重复计数的问题：同一事件可能被多人报告，较高的报告者比例并不代表发生了同样多的独立事件。作者转述的一项研究为减少重复，只请每个部门的一名研究者报告过去三年在本部门观察到的事件；其中5.2%的受访者见过伪造或篡改，低于此前其他同事报告的比例。但每部门只询问一人，又会遗漏此人不知道的事件，作者因而将这一结果视为保守估计。这个例子显示，避免重复报告与充分发现事件之间存在取舍，较低比例也可能来自观察范围受限。综合这些证据与解释，作者认为自我报告低估了实际发生情况，伪造和篡改比多数以往估计显示的更普遍；同事报告则难以给出确定解释。两类调查之间的差距不能直接等同于隐瞒程度，也无法据此还原科研不端的确切发生频率。",
+        "anchor": "〔Fanelli2009: s4/p[4]; s4/p[9]; s4/p[10]〕",
+        "codepoints": 381
+      }
+    ],
+    "codepoints": 1506,
+    "edits": [
+      {
+        "paragraph": 1,
+        "old": "作者提醒，若实施者只做过一次，调查中的人员比例还可能高估文献中偏倚或伪造数据的比例。",
+        "new": "作者提醒，若实施者只做过一次，调查中的人员比例还可能高估文献中偏倚或伪造数据的比例。他援引科学史材料认为，重复实施更可能，但这并不是对纳入调查中行为次数的直接测量。",
+        "source_locator": "s4/p[5]",
+        "reason": "Retain A's distinction between the author's historical argument and an actual measurement in the included surveys.",
+        "kind": "optional source-backed elaboration chosen by coordinator after general human preference"
+      },
+      {
+        "paragraph": 3,
+        "old": "因此，作者判断自我报告会系统性低估实际发生情况，但这不等于已经测得漏报幅度。",
+        "new": "作者据此判断自我报告会系统性低估实际发生情况。他引述的一个博士后样本中，表示愿意为改善结果而选择或删去数据者，比承认曾修改数据者更多。这为漏报解释提供了线索，但意愿与既往行为是不同指标，不能据此补算漏报幅度。",
+        "source_locator": "s4/p[7]",
+        "reason": "Retain A's concrete example and the distinction between willingness and prior behavior, without treating the former as observed misconduct.",
+        "kind": "optional source-backed elaboration chosen by coordinator after general human preference"
+      }
+    ],
+    "status": "Post-feedback editorial selection. No new human judgment or model trial of combined text.",
+    "meaning_review": "Coordinator compares both insertions against s4/p[5] and s4/p[7]. Attribution and actual-measurement/interpretation distinction remain. Source anchors unchanged; other paragraphs remain identical apart from trailing spaces."
+  }
+}

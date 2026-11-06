@@ -54,22 +54,27 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — November 6, 2026
 
-The current bounded increment compares the preceding Chinese guidance on two
-locally first-use Traag2016 passages. The existing
-[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-6--unseen-chinese-paragraphs-and-human-selection)
-records two same-model writing turns, one anonymous model review and the user's
-preference for B's fluency with useful wording/completeness from A. Preserve the
-original comparison and prepare a source-checked B-based selection. Correct a
-review check that made optional context mandatory, retaining the raw partial
-score and separate scope adjudication. Record the exposure of the key/automatic
-judgments in tool output; this human feedback is not claimed as strictly blinded.
-Future review keeps that information withheld until the response is recorded.
-Canonical writing guidance, content pack, configured models and native write/CAS
-owners remain unchanged. Integrate locally into `2.x` without push, publication
-or acceptance promotion. Next validate a new connected passage while preserving
-human-review blinding; the combined wording, English and whole-manuscript quality
-and actual editing time remain outside this feedback. One sample per arm does
-not establish general or causal quality gains.
+The current bounded increment validates connected Chinese prose against ten
+consecutive Discussion paragraphs from a locally first-use public paper. The
+[execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-6--connected-chinese-prose-and-blinded-feedback)
+records two four-paragraph outputs and a fresh identity-blinded model review.
+Both outputs pass six content dimensions and all paragraph transitions; model
+preferences tie. The human prefers B's overall language and A's detail handling,
+with the key and automatic judgments withheld through the response. Preserve the
+raw comparison and exact feedback. A source-checked B-based selection adds two
+useful explanations from A, without treating optional detail as a missing premise.
+The combined wording is not newly human reviewed. No canonical-rule, content-pack,
+native or helper-code repair is warranted by this sample. Integrate locally into
+`2.x` without push, publication or acceptance promotion. Later evaluation needs
+new material; English, whole-manuscript and disciplinary judgments remain open.
+One generation per arm does not establish a general or causal guidance effect.
+
+The preceding Traag2016 increment compares two independent Chinese paragraphs.
+Its raw partial score, separate scope adjudication and human preference remain
+preserved. Review criteria now distinguish missing premises from optional context
+and withhold keys/automatic judgments during human review. That earlier trial's
+visible-output exposure remains recorded; this increment does not retroactively
+repair its blinding.
 
 The preceding human-feedback increment adds a bilingual example to shared G4/J2
 guidance after the user prefers B for one Chinese Discussion paragraph. Its
