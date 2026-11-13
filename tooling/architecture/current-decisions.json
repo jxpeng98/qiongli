@@ -289,6 +289,13 @@
       "title": "Unified Native Provider Setup",
       "path": "docs/architecture/decisions/0241-unified-native-provider-setup.md",
       "status": "Accepted"
+    },
+    {
+      "task_id": "CLI-410",
+      "adr_number": "0242",
+      "title": "Explicit Candidate CI Scheduling",
+      "path": "docs/architecture/decisions/0242-explicit-candidate-ci-scheduling.md",
+      "status": "Accepted"
     }
   ]
 }

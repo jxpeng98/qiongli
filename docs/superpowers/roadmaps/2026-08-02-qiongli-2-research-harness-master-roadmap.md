@@ -60,8 +60,11 @@ records observed duplicate distribution/Cargo runs, explicit candidate schedulin
 Linux reporting for non-runtime PRs and CLI/full manual profiles. Preserve runtime
 PR and release target coverage, required contexts and publication authority. Repair
 the release-test fixture issue found by focused checks and integrate locally into
-`2.x`. Next qualify the final release source across advertised targets after remote
-synchronization is authorized. Local checks are not hosted-run or billing evidence.
+`2.x`. The maintainer subsequently authorizes stable-main push, immutable `v2.6.0`
+and release-task dispatch, then no progress tracking. ADR 0242 supersedes only the
+old main-push scheduling. Complete local qualification and hand off exact-tag
+four-target verification/publication to the existing workflow; stop on accepted
+dispatch. Local checks or dispatch do not establish completed publication.
 
 The preceding bounded increment records ordinary-reader feedback on the complete
 bilingual example and prepares 2.6.0 locally. The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#ordinary-reader-feedback-and-verified-unsealing)

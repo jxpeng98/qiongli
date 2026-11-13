@@ -4626,3 +4626,24 @@ synchronization followed by final-source hosted checks and the existing
 immutable-tag four-target distribution/publication workflow. No hosted run was
 started, so the revised scheduling and aggregate savings still need observation
 on GitHub. Published bytes, user data, models and remote protection are unchanged.
+
+### Authorized 2.6.0 publication handoff
+
+The maintainer now explicitly authorizes remote push and publication, then no
+further release-progress tracking. This covers reviewed stable-main fast-forward,
+the new immutable `v2.6.0` tag and the existing post-mode Release Automation
+dispatch. End the task as soon as that dispatch is accepted; do not poll release
+runs, uploads or registries afterward, or claim completion from dispatch alone.
+
+Remote inspection finds `main` at `2081a033` with no divergent commits and no
+existing `v2.6.0` tag/release. Use the established stable-main path; no protected
+`2.x` rewrite, ruleset change or unrelated branch push is needed. ADR 0242 now
+explicitly supersedes ADR 0227's old main-push build scheduling while preserving
+its stable-source and publication gates. Historical ADRs remain unchanged.
+
+Qualify the clean local candidate with the existing Linux ARM64/glibc 2.35
+release owner, reusing the offline CI Rust 1.97 environment and cache. Review the
+actual artifacts, extracted installs and source/checksum bindings before pushing.
+The final tag's four-target distribution, public-download and registry gates
+remain delegated to the existing workflow. Record the local result below without
+promoting program acceptance or claiming unobserved hosted/publication outcomes.

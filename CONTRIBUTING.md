@@ -95,7 +95,8 @@ preserves its existing package, lifecycle and exact-source promotion gates;
 it is not needed for a CLI release.
 
 `native-cli-distribution.yml` and Cargo qualification no longer run on branch
-pushes. Dispatch an explicit candidate when its packages are needed. Release
+pushes ([ADR 0242](docs/architecture/decisions/0242-explicit-candidate-ci-scheduling.md)).
+Dispatch an explicit candidate when its packages are needed. Release
 Automation dispatches the immutable tag's complete four-target distribution;
 Cargo still qualifies every target before publication and verifies public installs
 afterward. This avoids building the same source on both `main` push and release
