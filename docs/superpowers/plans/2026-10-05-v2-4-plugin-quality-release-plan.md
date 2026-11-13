@@ -1,6 +1,6 @@
 # Qiongli 2.4.0 — traceable research, substantive writing and Plugin reliability
 
-Current work continues in [the October 8 / 2.5.0 increment](#october-8--writing-contract-alignment-and-250-release). Earlier sections retain their historical candidate identities and decisions.
+Current work continues in [the November 13 CI increment](#november-13--ci-scheduling-and-260-release-preparation). Earlier sections retain their historical candidate identities and decisions.
 
 - Status: the maintainer authorizes continued development through release
   readiness on October 5, then confirms isolated AGY login and remote source
@@ -4544,3 +4544,85 @@ dependencies and accepted evidence stay unchanged. Next: review any requested
 local refinement and qualify the exact release source across the advertised
 targets under appropriate release authority. No push, publication, general model
 ranking, expert acceptance or measured efficiency improvement is claimed.
+
+## November 13 — CI scheduling and 2.6.0 release preparation
+
+The maintainer requests lower CI usage, especially macOS, before considering the
+next release. The bounded outcome is local scheduling and artifact-retention
+changes; keep hosted platform coverage, exact-source publication checks and the
+existing five required status names. This retains ADRs 0220/0221/0231/0232 rather
+than returning to local-only macOS acceptance. No remote rules, push, workflow
+dispatch, tag or publication is authorized by this increment.
+
+Read-only GitHub inspection confirms a public repository. Standard hosted runner
+compute is free for public repositories under the current
+[GitHub billing documentation](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
+Runtime totals below are measured job durations, not billing amounts. Artifact
+and cache storage are separate usage categories; no account invoice was inspected.
+
+The last published 2.5.3 source, `2081a0335d3784dd00708ecc8223fea4a0127b42`, ran
+the full distribution both on
+[main push](https://github.com/jxpeng98/qiongli/actions/runs/37923886144) and
+[immutable-tag dispatch](https://github.com/jxpeng98/qiongli/actions/runs/37923921959).
+The push also ran
+[Cargo qualification](https://github.com/jxpeng98/qiongli/actions/runs/37923886149).
+Removing that push-triggered copy would avoid 13 successful jobs in this historical
+example: 3,761 aggregate runner-seconds (62m41s), including 950 macOS seconds
+(15m50s). This is a bounded counterfactual from one source, not measured savings
+from the unpushed changes or a forecast of monthly costs.
+
+Changes:
+
+- Distribution runs only by explicit dispatch; Release Automation already
+  dispatches the immutable tag. Cargo retains manual qualification and published
+  release entry points, plus its pre-publication and public-install target matrices.
+- Runtime PRs still test Linux/macOS/Windows. Documentation-only and failed-boundary
+  native contexts run lightweight reporting on Linux without allocating macOS or
+  Windows runners. The boundary failure itself remains required and blocking.
+- Manual Native CI defaults to `profile=cli`. `profile=full` explicitly enables
+  desktop consumers on all platforms, capacity, desktop packaging, candidate
+  lifecycle, packaged-product acceptance and the existing Community Alpha chain.
+  PR-scoped Linux desktop checks remain unchanged.
+- Temporary distribution/Cargo artifacts retain seven days; published release
+  assets and valid build caches are untouched. No cache deletion or new large
+  cache is introduced. Candidate installation has a 20-minute limit.
+- Evaluation Truth runs the inexpensive routing/publication/target policy tests
+  on PRs. Canonical product/content/model settings and frozen legacy code are
+  unchanged. Contributor commands and the pending 2.6.0 notes describe the new
+  scheduling; no additional version bump is needed for an unpublished candidate.
+
+Focused validation:
+
+- Actionlint 1.7.12 validates the four edited workflows, including expression and
+  job/output references. Its official Linux ARM64 archive checksum is verified;
+  optional ShellCheck/Pyflakes integrations are not installed or claimed.
+- The actual command extracted from Evaluation Truth's new policy step passes
+  36 tests. Release automation/version checks pass 59; the separate asset checks
+  pass three and program-ledger checks pass seven: 105 distinct Python tests in
+  total, including wrong-main/tag/source, failed-CI/assets, local-publication
+  refusal, frozen paths, unknown changes and complete target rosters.
+- An initial test command cannot import PyYAML in the default Python. Reusing
+  system Python 3.12.3/PyYAML 6.0.1 resolves that environment issue without changing
+  project dependencies. CI retains its pinned Python 3.12/PyYAML 6.0.3 setup.
+- The broader release check exposes a pre-existing failure: two Alpha-only Rust
+  tests introduced in `ecbf55e42` use the historical `2.0.0-alpha.1` literal, which
+  the active-release scanner correctly refuses. Use a synthetic
+  `2.0.0-alpha.999` fixture instead; retain Alpha behavior, assertions and the
+  unchanged scanner. Both complete examples pass (8 + 2 tests) under CI Rust
+  1.97 in the existing offline Ubuntu 22.04 container with current source mounted
+  read-only. Cache reuse completes compilation and tests in 90.1 seconds; no
+  release artifact is rebuilt or overwritten.
+- Rust format, the old-literal scan, 2.6.0 version/channel/content agreement and
+  final diff checks pass. The read-only cache-budget check passes with about
+  50.7 GB free before compilation. The 249 task identities/states/dependencies
+  and accepted evidence remain unchanged; only CLI-410 progress/date and its
+  generated projection change.
+
+Release readiness: **Not ready for publication**. The earlier Linux ARM64 packet
+remains qualified at `1a1b6164`; it does not stand in for a new final-source run.
+This increment completes local CI optimization and release-note preparation.
+After local fast-forward integration, the next increment is authorized remote
+synchronization followed by final-source hosted checks and the existing
+immutable-tag four-target distribution/publication workflow. No hosted run was
+started, so the revised scheduling and aggregate savings still need observation
+on GitHub. Published bytes, user data, models and remote protection are unchanged.

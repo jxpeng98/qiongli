@@ -83,8 +83,25 @@ CI remains available with these scopes, but is not a local merge prerequisite:
   desktop consumer tests and Clippy. Dedicated CLI/MCP paths skip the renderer.
 - Lite: changes to Lite, its shared runtime dependencies or unknown/tooling
   inputs add compatibility tests; CLI app-only work skips the separate package.
-- Non-runtime docs/process/evidence use lightweight native contexts. Unknown,
+- Non-runtime docs/process/evidence use lightweight Linux jobs under the same
+  required native context names; their logs explicitly report skipped native
+  work, rather than claiming macOS/Windows test evidence. Unknown,
   workflow, fixture and empty changes conservatively include desktop and Lite.
+
+Manual `native-ci.yml` dispatch defaults to `profile=cli`: headless tests on
+Linux, macOS and Windows, plus Lite compatibility. Select `-f profile=full` only
+for the retained desktop/capacity/Community Alpha qualification. The full profile
+preserves its existing package, lifecycle and exact-source promotion gates;
+it is not needed for a CLI release.
+
+`native-cli-distribution.yml` and Cargo qualification no longer run on branch
+pushes. Dispatch an explicit candidate when its packages are needed. Release
+Automation dispatches the immutable tag's complete four-target distribution;
+Cargo still qualifies every target before publication and verifies public installs
+afterward. This avoids building the same source on both `main` push and release
+dispatch. Distribution packages and install receipts expire from Actions after
+seven days; rerun an expired candidate rather than treating missing artifacts as
+evidence. Published GitHub Release assets are unaffected.
 
 The remote ruleset and context names remain unchanged; local merges do not
 trigger them. Do not open a PR or change remote protection merely to complete
@@ -135,8 +152,9 @@ The existing npm/PyPI workflows publish native assets on a published GitHub
 Release after exact-source CI checks; npm prereleases use `next`, and PyPI uses
 PEP 440 aN/bN versions. Stable tags must equal the frozen remote `main` head;
 the same verified pipeline publishes a non-prerelease GitHub Release, npm
-`latest`, and the matching stable PyPI/Cargo version. A main push only qualifies
-builds; it does not publish. The frozen Python package is never a native PyPI
+`latest`, and the matching stable PyPI/Cargo version. A main push neither builds
+distribution packages nor publishes; the explicit tag dispatch owns qualification.
+The frozen Python package is never a native PyPI
 input. Native CLI-local and Marketplace Plugin identities follow the release channel
 (ADRs 0228/0229): the 2.0.1 transition retains Next identities and the public
 source-status v1 interface. The planned 2.1 cutoff uses qiongli for stable and

@@ -1,8 +1,8 @@
 name: Cargo CLI distribution
 
 on:
-  push:
-    branches: ['main', '2.x']
+  # Keep four-target crate qualification for explicit candidates/publication,
+  # rather than repeating it on each development or main push.
   workflow_dispatch:
     inputs:
       publish_release:
@@ -49,6 +49,7 @@ jobs:
           name: cargo-check-${{ matrix.os }}
           path: ${{ runner.temp }}/cargo-install-check/install-check.json
           if-no-files-found: error
+          retention-days: 7
 
   publish:
     needs: qualify
@@ -122,3 +123,4 @@ jobs:
           name: cargo-public-${{ matrix.os }}
           path: ${{ runner.temp }}/cargo-public-check/install-check.json
           if-no-files-found: error
+          retention-days: 7

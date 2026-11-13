@@ -5,6 +5,12 @@ on:
     branches: ["main", "2.x"]
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
+    inputs:
+      profile:
+        description: CLI checks, or full retained desktop/capacity/Community Alpha qualification
+        type: choice
+        options: [cli, full]
+        default: cli
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -68,8 +74,18 @@ jobs:
           github.event.pull_request.draft == false
         )
       }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 120 || 60 }}
+    # Preserve the three required check names without allocating macOS/Windows
+    # runners for documentation-only PRs or a failed boundary. These jobs report
+    # skipped native work; they do not claim platform test evidence.
+    runs-on: >-
+      ${{
+        needs.native-change-boundary.result == 'success' &&
+        (
+          github.event_name == 'workflow_dispatch' ||
+          needs.native-change-boundary.outputs.native-matrix-required == 'true'
+        ) && matrix.os || 'ubuntu-latest'
+      }}
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && inputs.profile == 'full' && 120 || 60 }}
     env:
       CARGO_BUILD_RUSTC_WRAPPER: ""
       CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
@@ -88,8 +104,9 @@ jobs:
         }}
       RUN_DESKTOP_CHECK: >-
         ${{
-          github.event_name == 'workflow_dispatch' ||
+          (github.event_name == 'workflow_dispatch' && inputs.profile == 'full') ||
           (
+            github.event_name == 'pull_request' &&
             matrix.platform == 'Linux' &&
             needs.native-change-boundary.outputs.desktop-check-required == 'true'
           )
@@ -176,7 +193,7 @@ jobs:
         run: bash tooling/scripts/native_ci_test.sh --manifest-path packages/qiongli-native/Cargo.toml -p qiongli -p qiongli-ui --all-targets --all-features --locked
 
       - name: Measure opt-in platform capacity baseline
-        if: github.event_name == 'workflow_dispatch' && env.RUN_NATIVE_MATRIX == 'true'
+        if: github.event_name == 'workflow_dispatch' && inputs.profile == 'full' && env.RUN_NATIVE_MATRIX == 'true'
         env:
           QIONGLI_CAPACITY_OUTPUT_DIR: ${{ runner.temp }}/qiongli-capacity
           QIONGLI_CAPACITY_SOURCE_COMMIT: ${{ github.sha }}
@@ -184,7 +201,7 @@ jobs:
         run: bash tooling/scripts/native_ci_test.sh --manifest-path packages/qiongli-native/Cargo.toml --workspace --lib --release --locked platform_capacity_baseline -- --ignored --test-threads=1
 
       - name: Upload platform capacity receipt
-        if: github.event_name == 'workflow_dispatch' && env.RUN_NATIVE_MATRIX == 'true'
+        if: github.event_name == 'workflow_dispatch' && inputs.profile == 'full' && env.RUN_NATIVE_MATRIX == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: qiongli-capacity-${{ matrix.platform }}-${{ github.sha }}
@@ -196,7 +213,7 @@ jobs:
 
   desktop-package-assembly:
     name: Non-publishing desktop package (${{ matrix.platform }})
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/2.x'
+    if: github.event_name == 'workflow_dispatch' && inputs.profile == 'full' && github.ref == 'refs/heads/2.x'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -453,7 +470,7 @@ jobs:
 
   packaged-product-acceptance:
     name: Packaged product control acceptance (macOS)
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/2.x'
+    if: github.event_name == 'workflow_dispatch' && inputs.profile == 'full' && github.ref == 'refs/heads/2.x'
     runs-on: macos-latest
     timeout-minutes: 35
     steps:
@@ -627,7 +644,7 @@ jobs:
 
   lite-alpha-candidate-acceptance:
     name: Candidate installation lifecycle (${{ matrix.platform }})
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/2.x'
+    if: github.event_name == 'workflow_dispatch' && inputs.profile == 'full' && github.ref == 'refs/heads/2.x'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -704,6 +721,7 @@ jobs:
       ${{
         success() &&
         github.event_name == 'workflow_dispatch' &&
+        inputs.profile == 'full' &&
         github.ref == 'refs/heads/2.x'
       }}
     runs-on: ubuntu-latest

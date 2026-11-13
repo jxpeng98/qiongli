@@ -1,8 +1,8 @@
 name: Native CLI distribution
 
 on:
-  push:
-    branches: ['main', '2.x', 'codex/cli-distribution-*']
+  # Candidate-only: release-automation dispatches the immutable tag. Branch
+  # pushes must not rebuild the same four-target packet before that dispatch.
   workflow_dispatch:
 
 permissions:
@@ -52,6 +52,7 @@ jobs:
           name: ${{ matrix.target }}
           path: ${{ runner.temp }}/cli-candidate/assets
           if-no-files-found: error
+          retention-days: 7
 
   build-linux:
     name: Build and install (${{ matrix.target }})
@@ -115,6 +116,7 @@ jobs:
           name: ${{ matrix.target }}
           path: ${{ runner.temp }}/cli-candidate/assets
           if-no-files-found: error
+          retention-days: 7
 
   assemble:
     needs: [build, build-linux]
@@ -147,11 +149,13 @@ jobs:
           name: cli-release-assets
           path: ${{ runner.temp }}/combined/assets
           if-no-files-found: error
+          retention-days: 7
 
   install:
     name: Verify combined package (${{ matrix.os }})
     needs: assemble
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -192,6 +196,7 @@ jobs:
         if: always()
         with:
           name: install-${{ matrix.os }}
+          retention-days: 7
           path: |
             ${{ runner.temp }}/install-check/install-check.json
             ${{ runner.temp }}/upgrade-check/registry-upgrade-check.json

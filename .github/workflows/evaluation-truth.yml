@@ -45,6 +45,15 @@ jobs:
       - name: Install evaluation dependency
         run: python -m pip install PyYAML==6.0.3
 
+      - name: Check CI routing and release gates
+        env:
+          PYTHONPATH: packages/python-qiongli/src
+        run: >-
+          python -m unittest tests.test_branch_policy tests.test_native_change_boundary
+          tests.test_native_release_publish
+          tests.test_native_registry_packages.NativeRegistryPackagesTests.test_host_target_and_distribution_jobs_cover_every_supported_pair
+          -q
+
       - name: Run canonical evaluation suite
         run: python evals/runner/run_suite.py
 

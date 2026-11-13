@@ -50,7 +50,10 @@ class BranchPolicyTests(unittest.TestCase):
         for name in ('native-cli-distribution.yml', 'publish-cargo.yml'):
             workflow = yaml.safe_load(read('.github/workflows/' + name))
             events = workflow.get('on', workflow.get(True))
-            self.assertTrue({'main', '2.x'} <= set(events['push']['branches']))
+            self.assertNotIn('push', events)
+            self.assertNotIn('pull_request', events)
+            self.assertNotIn('schedule', events)
+            self.assertIn('workflow_dispatch', events)
         testpypi = yaml.safe_load(read('.github/workflows/publish-testpypi.yml'))
         guard = testpypi['jobs']['build-and-publish']['if']
         self.assertIn("github.ref_name == 'release/1.x-python'", guard)
@@ -286,11 +289,12 @@ class BranchPolicyTests(unittest.TestCase):
 
         manual_capacity_condition = (
             "if: github.event_name == 'workflow_dispatch' && "
+            "inputs.profile == 'full' && "
             "env.RUN_NATIVE_MATRIX == 'true'"
         )
         self.assertEqual(job.count(manual_capacity_condition), 2)
         self.assertIn(
-            "timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 120 || 60 }}",
+            "timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && inputs.profile == 'full' && 120 || 60 }}",
             job,
         )
         self.assertIn("name: Measure opt-in platform capacity baseline", job)
@@ -332,6 +336,57 @@ class BranchPolicyTests(unittest.TestCase):
         )
         self.assertIn("github.event_name == 'workflow_dispatch'", lite_job)
         self.assertIn("needs.native-change-boundary.outputs.lite-check-required == 'true'", lite_job)
+
+    def test_native_ci_keeps_required_names_and_routes_no_build_jobs_to_linux(self) -> None:
+        workflow = yaml.safe_load(read('.github/workflows/native-ci.yml'))
+        events = workflow.get('on', workflow.get(True))
+        # A default manual dispatch runs CLI checks, not the retained desktop,
+        # capacity and Community Alpha chain. PRs have no dispatch input.
+        profile = events['workflow_dispatch']['inputs']['profile']
+        self.assertEqual(profile['default'], 'cli')
+        self.assertEqual(profile['options'], ['cli', 'full'])
+        self.assertEqual(profile['type'], 'choice')
+        jobs = workflow['jobs']
+        foundation = jobs['rust-native-foundation']
+        self.assertEqual(foundation['name'], 'Rust native foundation (${{ matrix.platform }})')
+        self.assertEqual(
+            {row['platform'] for row in foundation['strategy']['matrix']['include']},
+            {'Linux', 'macOS', 'Windows'},
+        )
+        # Keep this fallback tied to the actual build gate. A missing/failed
+        # boundary must neither allocate an expensive runner nor start Rust.
+        gate = ' '.join(foundation['env']['RUN_NATIVE_MATRIX'].split())[3:-3].strip()
+        runner = ' '.join(foundation['runs-on'].split())
+        self.assertEqual(runner, '${{ ' + gate + " && matrix.os || 'ubuntu-latest' }}")
+        self.assertIn("needs.native-change-boundary.result == 'success'", gate)
+        desktop = foundation['env']['RUN_DESKTOP_CHECK']
+        self.assertIn("github.event_name == 'workflow_dispatch' && inputs.profile == 'full'", desktop)
+        self.assertIn("github.event_name == 'pull_request' &&", desktop)
+        self.assertIn("matrix.platform == 'Linux'", desktop)
+        for job in ('desktop-package-assembly', 'packaged-product-acceptance',
+                    'lite-alpha-candidate-acceptance', 'dispatch-community-alpha-promotion'):
+            with self.subTest(job=job):
+                self.assertIn("inputs.profile == 'full'", jobs[job]['if'])
+                self.assertIn("github.event_name == 'workflow_dispatch'", jobs[job]['if'])
+                self.assertIn("github.ref == 'refs/heads/2.x'", jobs[job]['if'])
+
+    def test_release_artifacts_expire_without_relaxing_target_checks(self) -> None:
+        for name in ('native-cli-distribution.yml', 'publish-cargo.yml'):
+            workflow = yaml.safe_load(read('.github/workflows/' + name))
+            for job in workflow['jobs'].values():
+                self.assertNotIn('continue-on-error', job)
+                for step in job['steps']:
+                    if step.get('uses') == 'actions/upload-artifact@v4':
+                        with self.subTest(workflow=name, artifact=step['with']['name']):
+                            self.assertEqual(step['with']['retention-days'], 7)
+        distribution = yaml.safe_load(read('.github/workflows/native-cli-distribution.yml'))
+        events = distribution.get('on', distribution.get(True))
+        self.assertEqual(set(events), {'workflow_dispatch'})
+        # Every dispatched packet is still complete; a cheap Linux-only run
+        # must never satisfy publishers' successful-distribution requirement.
+        for name in ('build', 'build-linux', 'assemble', 'install'):
+            self.assertNotIn('if', distribution['jobs'][name])
+        self.assertEqual(distribution['jobs']['install']['needs'], 'assemble')
 
     def test_linux_desktop_setup_bounds_apt_mirror_failures(self) -> None:
         content = read(".github/actions/setup-qiongli-desktop/action.yml")
@@ -450,6 +505,7 @@ class BranchPolicyTests(unittest.TestCase):
                 job = content[start:end]
                 self.assertIn(
                     "    if: github.event_name == 'workflow_dispatch' && "
+                    "inputs.profile == 'full' && "
                     "github.ref == 'refs/heads/2.x'",
                     job,
                 )

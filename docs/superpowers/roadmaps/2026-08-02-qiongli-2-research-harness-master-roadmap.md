@@ -52,9 +52,18 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — November 6, 2026
+## Current execution horizon — November 13, 2026
 
-The current bounded increment records ordinary-reader feedback on the complete
+The current bounded increment reduces CI usage before the pending 2.6.0 release.
+The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-13--ci-scheduling-and-260-release-preparation)
+records observed duplicate distribution/Cargo runs, explicit candidate scheduling,
+Linux reporting for non-runtime PRs and CLI/full manual profiles. Preserve runtime
+PR and release target coverage, required contexts and publication authority. Repair
+the release-test fixture issue found by focused checks and integrate locally into
+`2.x`. Next qualify the final release source across advertised targets after remote
+synchronization is authorized. Local checks are not hosted-run or billing evidence.
+
+The preceding bounded increment records ordinary-reader feedback on the complete
 bilingual example and prepares 2.6.0 locally. The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#ordinary-reader-feedback-and-verified-unsealing)
 binds the saved-style recovery repair, two configured-model continuations and the
 Host-labelled Antigravity return. The reader slightly prefers N (the original),
