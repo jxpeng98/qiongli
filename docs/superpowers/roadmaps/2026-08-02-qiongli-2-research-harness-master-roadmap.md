@@ -54,21 +54,28 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — November 13, 2026
 
-The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-13--installed-plugin-recovery-and-default-directory-repair)
-now records actual installed Codex Full Plugin recovery after the preceding direct
-CLI reading/save journey. The released v2.6.1 native export, official manager and
-effective read-tool policy are identified. MCP document reads plus the installed
-CLI context fallback deliver the full synthetic source, saved original and current
-handoff; fingerprints remain unchanged. This is one Linux ARM64 observation with
-explicit routing cues, not MCP-only recovery or an academic-quality comparison.
+The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-13--three-arm-protocol-and-calibration-preparation)
+now freezes the direct-Host / guidance / full-tooling comparison protocol and two
+new synthetic calibration tasks. Shared outcomes preserve A/B's normal read/write
+and recovery abilities; historical three-case baseline scoring stays unchanged.
+The offline preparation binds six units and nine planned fresh sessions, without
+launching models or claiming runtime readiness. Calibration is excluded from
+effect estimates; the six-task main cohort remains unselected.
 
-Installation exposes a default-directory mismatch: CLI previews accept Host
-suffixes that local bundle composition rejects. The existing Codex/Claude owners
-now agree, with lifecycle and signed-boundary checks; published bytes are unchanged.
-Next freeze the direct-Host / guidance / full-tooling comparison protocol and
-calibration inputs, preserving normal Host capabilities, configured models and
-historical baseline semantics. Keep used synthetic material in the regression set.
-Broader expansion remains behind demonstrated need.
+Next bind actual configured Host/model, identical B/C research guidance, installed
+tool identity, effective access policy and timing/cost records, then run calibration
+in the frozen order. Check producer isolation from review criteria, later inputs
+and other arms. Preserve all failures and coordinator interventions; choose main
+cost/benefit thresholds before main outputs. Independent review and actual billing
+remain evidence gaps, not inferred successes.
+
+The preceding installed Codex Full Plugin observation uses released v2.6.1 MCP
+reads plus installed CLI context fallback to recover complete synthetic source,
+original and handoff bytes without mutation. The observed local Host-directory
+mismatch is repaired in existing Codex/Claude composers. These bounded engineering
+results do not establish MCP-only recovery, academic quality or other-platform
+acceptance. Keep used fixtures as regression material; broader expansion remains
+behind demonstrated need.
 Integrate locally into `2.x`; this round grants no push or publication authority
 and does not promote any program task to accepted.
 

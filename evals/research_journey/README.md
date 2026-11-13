@@ -1,5 +1,20 @@
 # Bounded research evidence journey
 
+## Same-Host three-arm comparison
+
+The [comparison protocol](three-arm/README.md) separates direct Host use, frozen
+research guidance, and guidance plus native tools/state. Its two new synthetic
+calibration tasks produce six planned units spanning nine fresh sessions; they
+are excluded from main-cohort effect estimates. Common outcomes do not require
+Qiongli files or calls from A/B, and historical three-case scores remain unchanged.
+
+`python3 -m evals.research_journey.comparison check` verifies the explicit frozen
+selection. `prepare /absolute/new-calibration --seed 20261113` copies it and binds
+the shuffled schedule through the existing writing-packet owner. Preparation runs
+no model, grants no file access and supplies neither runtime readiness nor results.
+Bind actual guidance, runtime and effective policy before calibration; the protocol
+retains source, cost, failure and independent-review gaps for subsequent decisions.
+
 ## Long-material delivery and fresh recovery
 
 The [November 13 observation](long-material/observations/2026-11-13/README.md)

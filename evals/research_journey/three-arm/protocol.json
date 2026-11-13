@@ -1,0 +1,48 @@
+{
+  "kind": "qiongli-three-arm-protocol/v1",
+  "status": "calibration-materials-only",
+  "arms": ["A", "B", "C"],
+  "calibration_repeats": 1,
+  "calibration_cases": [
+    {
+      "id": "reading",
+      "method": "synthetic quantitative education reports",
+      "checkpoints": [
+        {"id": "initial", "files": ["calibration/reading/initial/task.md", "calibration/reading/initial/sources.md"]}
+      ],
+      "coordinator_files": [],
+      "review_files": ["review/reading.md"]
+    },
+    {
+      "id": "continuity",
+      "method": "synthetic qualitative workplace interviews",
+      "checkpoints": [
+        {"id": "initial", "files": ["calibration/continuity/initial/task.md", "calibration/continuity/initial/source.md", "calibration/continuity/initial/original.md"]},
+        {"id": "followup", "files": ["calibration/continuity/followup/task.md", "calibration/continuity/followup/correction.md"]}
+      ],
+      "coordinator_files": ["coordinator/continuity-save.md"],
+      "review_files": ["review/continuity.md"]
+    }
+  ],
+  "shared_files": ["README.md", "selection.md", "records.md", "review/rubric.md"],
+  "calibration_policy": {
+    "fresh_session_per_checkpoint": true,
+    "timeout_seconds_per_session": 1200,
+    "network": "disabled for source/tool access in all arms; authenticated model transport remains Host-owned",
+    "max_environment_restarts_per_unit": 1,
+    "quality_rerolls": 0,
+    "coaching_during_turn": false,
+    "runtime_identity": null,
+    "model_calls_executed": 0
+  },
+  "main_cohort": {
+    "status": "unselected-not-authorized-by-preparation",
+    "task_packages": 6,
+    "repeats_per_arm": 3,
+    "planned_units": 54,
+    "cost_ceiling": null,
+    "worthwhile_benefit_thresholds": null,
+    "reviewer_assignments": null,
+    "formal_results": null
+  }
+}

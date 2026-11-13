@@ -5065,3 +5065,65 @@ context endpoint, research store, Host/model setting or write authority is neede
 for this increment. All 249 task states, dependencies and accepted bindings stay
 unchanged; only CLI-410 progress advances. Integrate locally into `2.x`, without
 push, publication or a claim of other-platform/Host or program acceptance.
+
+
+## November 13 — three-arm protocol and calibration preparation
+
+The maintainer continues from `581fbe9c`. The bounded outcome is a frozen same-Host,
+same-configured-model comparison design and reproducible calibration preparation.
+Canonical materials live in `evals/research_journey/three-arm/`; the parent journey
+README links them. A retains normal Host tools, files and persistence; B adds
+frozen research guidance; C adds native tools/state and their necessary routing.
+B/C receive the same available research-guidance bytes. C-specific source wrappers,
+ingestion, schemas and coordinator work are recorded rather than hidden from cost.
+Common outcomes never require A/B to use Qiongli files, receipts or calls.
+
+Two new explicitly fictional calibration tasks cover quantitative multi-report
+reasoning and faithful bilingual editing followed by a source correction in a
+fresh session. Each runs once per arm: six units, nine sessions, with dependent
+continuity sessions kept together. Original/candidate/source versions and local
+style decisions remain distinct. Review criteria and later checkpoint inputs are
+separate from producer inputs. Blind IDs use a different private key from the
+public run-order seed; actual isolation must be checked before model execution.
+
+The protocol separates facts, coverage, citation support, reasoning, meaning,
+expression, recovery, human effort and actual execution cost. It retains failed
+units, initial attempts and limited environment retries, and distinguishes
+coordinator/model review from independent expertise. No combined quality score is
+defined. The six-task, three-repeat main cohort is still unselected: its actual
+sources, reviewer assignments, cost ceiling and worthwhile-benefit thresholds must
+be frozen before main outputs. Used calibration/regression material cannot become
+unseen evidence through renaming. The historical three-case baseline and scoring
+owners are unchanged.
+
+`comparison.py` checks the explicit 15-file frozen selection, copies it to a new
+external directory and creates the schedule and unready preparation record. It
+reuses existing selected-file binding and writing-packet freeze/recovery owners;
+it adds no runner, model call, scorer, research store or project-write authority.
+Changed/missing inputs, checkpoint leakage, path escapes, links, duplicate selection,
+invalid seeds and overwrite attempts are refused. It does not enforce Host
+permissions: exposing the whole preparation directory would leak review criteria.
+
+An actual offline preparation at `/tmp/qiongli-three-arm-calibration-20261113`
+uses seed `20261113` and recovers all 18 bound files. Its packet SHA-256 is
+`665677b067ef940218dc23aaf16214336ea3047dd2a639df924f5091cb9e9e97`.
+All six units and nine sessions remain not started; model calls are zero, runtime
+identity unknown, and runtime/main-cohort readiness false. The preparation root
+has mode 0700. This verifies input identity and scheduling, not model delivery or
+academic outcomes.
+
+Validation: seven new preparation tests, 31 existing writing/journey tests,
+24 historical Plugin baseline tests and seven ledger tests pass (69 total).
+Frozen-material check, ledger/index freshness and whitespace checks pass; the
+documentation site builds in 51.03 seconds with its existing env/gitignore
+highlighting and bundle-size warnings. Final review finds no blocking issue in
+this preparation scope. No live calibration or independent quality review ran.
+
+Next bind actual installed guidance, configured runtime, effective policy and
+per-arm permitted files, then execute this calibration in its retained order.
+Record raw attempts, actual delivered material, timing and interventions; preserve
+unknown human minutes/billing and independent-review gaps. Main-study selection
+and effect claims follow calibration, not preparation. No user model/configuration,
+research data or public package changes. Only CLI-410 blocker progress advances;
+all 249 task states, dependencies and accepted bindings stay unchanged. Integrate
+locally into `2.x` without push or publication.
