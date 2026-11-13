@@ -2867,8 +2867,9 @@ mod tests {
     #[test]
     fn release_notes_bind_the_exact_current_target_and_limitations() {
         // This retained acceptance owner only renders community-alpha notes.
+        // Use a synthetic Alpha fixture, independent of historical release tags.
         let artifact =
-            current_target_native_artifact_identity("2.0.0-alpha.1", ReleaseChannel::Alpha)
+            current_target_native_artifact_identity("2.0.0-alpha.999", ReleaseChannel::Alpha)
                 .expect("current target must be supported");
         let artifact_id = native_artifact_id(&artifact).expect("artifact ID must be valid");
         let archive_name =

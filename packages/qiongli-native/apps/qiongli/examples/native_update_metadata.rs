@@ -1133,7 +1133,8 @@ mod tests {
 
     #[test]
     fn external_signing_workflow_verifies_without_publication_authority() {
-        let release = ReleaseIdentity::new("2.0.0-alpha.1");
+        // Use a synthetic Alpha fixture, independent of historical release tags.
+        let release = ReleaseIdentity::new("2.0.0-alpha.999");
         let root = test_root();
         fs::create_dir(&root).unwrap();
         let artifact_dir = root.join("artifact");
