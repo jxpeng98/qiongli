@@ -4647,3 +4647,36 @@ actual artifacts, extracted installs and source/checksum bindings before pushing
 The final tag's four-target distribution, public-download and registry gates
 remain delegated to the existing workflow. Record the local result below without
 promoting program acceptance or claiming unobserved hosted/publication outcomes.
+
+### Local qualification before the authorized push
+
+Clean candidate `1b3cc16ec8ecb6e71f3fe26a05ac3baa5d178eb1` passes
+`release_ready.sh --cli-github --version 2.6.0` on Linux ARM64/glibc 2.35,
+using the retained offline Ubuntu 22.04 environment and CI Rust 1.97 cache.
+The 182.6-second run passes version/channel/content alignment, format, strict
+Clippy, 47 release CLI tests and nine MCP tests, extracted empty-PATH execution,
+clean npm/wheel installation and both native Host Plugin checks. Independent
+inspection verifies all five asset sizes/hashes and the checksum list. The
+highest required GLIBC symbol is 2.34, within the advertised 2.35 baseline.
+
+The evidence root is `/tmp/qiongli-260-publication-20261113-cfinceas`, with the
+complete `qualification.log`, `result.json` and independent `artifact-audit.json`.
+The binary SHA-256 is
+`7b5f84454d926271f3c82079466c0c99bca2055143a6e4334a8f89008b5a57c3`;
+the release manifest is
+`76a4714ce1144836ed5517cca8e6771bc7928c0146f2a1cd914a2b2c482ec386`;
+`SHA256SUMS` is
+`b99708e8e458a66b254761d02ef4bdcc3f7dd640b965077bb9110b1814c4cce2`.
+The content pack remains `b73a4c0349ef98b3d1fc02a330effdcf9a6b54b947dafd238dc8ccd0b9fb04c1`.
+Thirty affected ADR/frozen-baseline/program tests pass, the generated index is
+current, and final diff and frozen-source checks pass. A bounded scan of the
+213 changed files finds no private-key or credential-token pattern matches;
+it is not a comprehensive security audit.
+
+The final bookkeeping changes only this plan and CLI-410's progress projection;
+reuse the unchanged local checks. Atomically push the reviewed main fast-forward
+and immutable `v2.6.0`, then dispatch the existing post-mode Release Automation
+at that tag. The workflow rebuilds and qualifies the exact tag across all four
+targets before publishing; this local packet does not replace that gate. This
+is ready for the authorized handoff, not evidence of completed publication.
+Stop on accepted dispatch with no subsequent run, release or registry polling.
