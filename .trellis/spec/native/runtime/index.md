@@ -50,6 +50,13 @@ No Graph projection, catalog lock, derived-state rebuild or project/config write
 is required. This CLI-only route adds no MCP tool or persistence schema; saved
 summaries and source packets keep their separate receipt/hash-bound readers.
 
+The project help page exposes `document`. `project document --help` and scoped
+`list`/`read`/`search` help (including `help ...` and `-h`) reuse the saved-document
+owner's syntax, revision/digest requirements and continuation limits. `help all`
+includes the same reference. Help returns before configuration or project access;
+unknown topics and incomplete read requests still refuse. No reader, tool inventory
+or approval semantics change.
+
 `project document list` and Full-only `qiongli_project_document_list` share
 `ProjectStateService::list_saved_documents`. The strict request requires registered
 `project_id` and `expected_project_revision`; `offset` defaults to 0 and `limit`

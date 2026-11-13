@@ -517,6 +517,59 @@ fn installation_review_rejects_redirected_input_without_writes() {
 }
 
 #[test]
+fn saved_document_help_is_discoverable_without_project_or_config_access() {
+    let fixture = Fixture::new("saved-document-help");
+    // A non-directory config root catches accidental service/config loading.
+    fs::write(&fixture.config_root, b"help must not inspect configuration").unwrap();
+    let project = run_configured(&fixture, &["project", "--help"]);
+    assert!(project.status.success());
+    assert!(public_output(&project).contains("document"));
+    for (operation, binding) in [
+        ("list", "--expected-bindings-sha256"),
+        ("read", "--offset-bytes"),
+        ("search", "--context-bytes <4..512>"),
+    ] {
+        let output = run_configured(&fixture, &["project", "document", operation, "--help"]);
+        assert!(output.status.success(), "{}", public_output(&output));
+        assert!(public_output(&output).contains(binding));
+        assert!(public_output(&output).contains("--expected-project-revision"));
+        assert_eq!(
+            output.stdout,
+            run_configured(&fixture, &["help", "project", "document", operation]).stdout
+        );
+        assert_eq!(
+            output.stdout,
+            run_configured(&fixture, &["project", "document", operation, "-h"]).stdout
+        );
+        assert_eq!(
+            run_configured(&fixture, &["project", "document", operation])
+                .status
+                .code(),
+            Some(2)
+        );
+    }
+    for args in [vec!["project", "document", "--help"], vec!["help", "all"]] {
+        let output = run_configured(&fixture, &args);
+        assert!(output.status.success(), "{}", public_output(&output));
+        for operation in ["list", "read", "search"] {
+            assert!(
+                public_output(&output).contains(&format!("qiongli project document {operation}"))
+            );
+        }
+    }
+    assert_eq!(
+        run_configured(&fixture, &["project", "document", "unknown", "--help"])
+            .status
+            .code(),
+        Some(2)
+    );
+    assert_eq!(
+        fs::read(&fixture.config_root).unwrap(),
+        b"help must not inspect configuration"
+    );
+}
+
+#[test]
 fn short_queries_output_modes_and_scoped_help_preserve_script_contracts() {
     let fixture = Fixture::new("cli-presentation");
     for (short, old) in [

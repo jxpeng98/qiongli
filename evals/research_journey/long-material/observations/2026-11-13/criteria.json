@@ -1,0 +1,15 @@
+{
+  "kind": "synthetic-long-recovery-review/v1",
+  "checks": [
+    "80 participants versus 160 response records",
+    "14 versus 12 on 20-point scale; 2 points not 2 percent",
+    "nonrandom classes and absent pretest do not identify causal improvement",
+    "assisted immediate test; unaided and four-week retention unmeasured",
+    "F1 image unprovided; no claim of visual verification",
+    "source S01 S12 S22 and T1 actually delivered",
+    "second session recovers saved default, scoped override, unresolved issue and source identity",
+    "project/config content unchanged throughout read-only model turns",
+    "all attempts and truncations retained"
+  ],
+  "source_sha256": "7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968"
+}

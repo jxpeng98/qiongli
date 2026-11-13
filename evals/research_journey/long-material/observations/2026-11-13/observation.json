@@ -1,0 +1,196 @@
+{
+  "kind": "qiongli-long-material-observation/v1",
+  "date": "2026-11-13",
+  "scope": "direct CLI with extracted release Plugin guidance; no installed Plugin or MCP qualification",
+  "source_commit": "25b6bf36f06b2f2ddb1b2395a88bb5dcd9b9cdb3",
+  "version": "2.6.1",
+  "codex_version": "0.167.0",
+  "cli_sha256": "89a0ed40f92d70c13a5b900e1cc25251f13f6aada95cb22e4db9a337aca3198c",
+  "content_pack_sha256": "8d9c74c592b8a9fcc9245a5d6229f13e8f5f0fc1ea4de36f6c7fcb08e859ee00",
+  "release_url": "https://github.com/jxpeng98/qiongli/releases/tag/v2.6.1",
+  "assets": [
+    {
+      "name": "qiongli-2.6.1-aarch64-unknown-linux-gnu.tar.gz",
+      "size": 8615070,
+      "digest": "sha256:0726e6a8845b4af1a187441ed3549f950a174697a31f98709274de31099aa750",
+      "browser_download_url": "https://github.com/jxpeng98/qiongli/releases/download/v2.6.1/qiongli-2.6.1-aarch64-unknown-linux-gnu.tar.gz"
+    },
+    {
+      "name": "qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu.tar.gz",
+      "size": 9307329,
+      "digest": "sha256:8e38c5443c048612b91a2b9daa1bb9fda011786b1b4e7e2f7e120233d2238fc9",
+      "browser_download_url": "https://github.com/jxpeng98/qiongli/releases/download/v2.6.1/qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu.tar.gz"
+    },
+    {
+      "name": "release-manifest.json",
+      "size": 21974,
+      "digest": "sha256:33103cdf6cf8c280a07cbc7f81d2767789de54520989a54ce9c3d1e9e32eb736",
+      "browser_download_url": "https://github.com/jxpeng98/qiongli/releases/download/v2.6.1/release-manifest.json"
+    },
+    {
+      "name": "SHA256SUMS",
+      "size": 2150,
+      "digest": "sha256:0eb1866fffe752ef3538e94c0131048ee0e6d41d730671e9c9c9d2ece6020529",
+      "browser_download_url": "https://github.com/jxpeng98/qiongli/releases/download/v2.6.1/SHA256SUMS"
+    }
+  ],
+  "guidance": {
+    "SKILL.md": "69526958804b1308590e209faaea9bd8fc3381f07c42cbcf2b50ab4978b2cfee",
+    "workflows/paper-read.md": "83d7c40be164eae9a3f33dc0213e1ae29f09ba0b202ba0f9a9c4fa1f40a623ec"
+  },
+  "runs": {
+    "draft": {
+      "thread_id": "01a1d667-bc31-73f2-9ec4-a1b10d888e2d",
+      "elapsed_seconds": 97.47003092290834,
+      "termination_reason": "completed",
+      "model_contexts": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "project_config_and_guidance_unchanged": true,
+      "calls": 12,
+      "failed_calls": 2,
+      "usage": {
+        "input_tokens": 215696,
+        "cached_input_tokens": 180992,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 3295,
+        "reasoning_output_tokens": 1447
+      },
+      "actual_billed_cost": null,
+      "human_minutes": null,
+      "interventions_during_turn": 0,
+      "outer_delivery": {
+        "rollout_sha256": "88bf4cbd2178ad1812e3720bbb7586f7e11e5c1b2f98dbb0b380ee81716a68c6",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 7,
+        "truncation_warnings": 0,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "whole_source_received": true,
+      "raw_events_sha256": "f47752c4579c3772ad719523ad0d6518b4667725c44f4ea7672d2e6f61890b5a",
+      "answer_sha256": "bf99910b54efa1f6a7c512088f216bc44da260a032a9f8198bd0a32f3f53411d"
+    },
+    "resume": {
+      "thread_id": "01a1d66b-15b4-7652-ad43-0556dd7360bd",
+      "elapsed_seconds": 216.95288980589248,
+      "termination_reason": "completed",
+      "model_contexts": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "project_config_and_guidance_unchanged": true,
+      "calls": 34,
+      "failed_calls": 4,
+      "usage": {
+        "input_tokens": 660722,
+        "cached_input_tokens": 603136,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 7822,
+        "reasoning_output_tokens": 3108
+      },
+      "actual_billed_cost": null,
+      "human_minutes": null,
+      "interventions_during_turn": 0,
+      "outer_delivery": {
+        "rollout_sha256": "0ddec7ba876122b779ba4efa0bc6ace83f86878b922e97d6a5f60262e61983a8",
+        "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+        "exec_output_count": 14,
+        "truncation_warnings": 1,
+        "script_failures": 0,
+        "unclassified_outputs": 0,
+        "unmatched_outputs": 0,
+        "pending_exec_calls": []
+      },
+      "whole_source_received": false,
+      "raw_events_sha256": "dc95113ef94a8ebe58f1419d88db7d80da2aa4542ec6f80b6e997d476e6cc53c",
+      "answer_sha256": "ba99523356cc72ef8a093149d2c80a60d207213f83d29919a6cdd86a49c9c39d"
+    }
+  },
+  "source_bytes": 39667,
+  "saved_handoff_bytes": 23351,
+  "save_operator": "coordinator reviewed previews and applied explicit filesystem/academic approvals; model turns were read-only",
+  "reviewer": "coordinator model, not independent expert",
+  "setup_failures": [
+    "Public release web-cache miss; sandboxed network DNS refused; host download verified asset digests and SHA256SUMS.",
+    "Default Python lacks PyYAML; system Python uses existing dependency.",
+    "Nested sandbox preflight socket-mode refusal; unchanged read-only/no-network preflight passes in host context.",
+    "Coverage-audit script first looked for saved-document fields on context-artifact output; corrected to artifactPath/contentDigest and reran. No model turn repeated or product behavior changed."
+  ],
+  "redaction": "Tool-only rollout events retained; reasoning, session messages, authentication and unselected config excluded. Only observation root and Codex executable path replaced by placeholders. Raw original hashes bind local evidence; exported-file hashes bind this sanitized view.",
+  "driver_raw_sha256": "192a3741555d24102cb07efb914d16a8b3e03b749a5757594f697c17728aa1ec",
+  "frozen_input_manifest_sha256": "7c77da5e3e99b03bf4c6cab048356b7ad09fb8f07e6e63bd710ba88c574c0ec0",
+  "limits": [
+    "Synthetic single journey, no real-paper quality or net-value claim.",
+    "No installed Plugin/MCP, online retrieval or other platform qualification.",
+    "Help fix checked separately with candidate CLI tests, not a repeated model comparison.",
+    "Human time and actual billing unavailable."
+  ],
+  "files": {
+    "criteria.json": "27f6ec501e0d66fe4f7751d1ef8acf9c4f71a0cf351c4d07d9a8aac88713d931",
+    "current-handoff.md": "114556c688af02ff13e138b1ea5eccb697531f59dfd65624a9e524108e10e699",
+    "draft-commands.json": "1e44cfdecbbd7b0a6bdb48a1ebddca2f49d7394a257f31d8134b9c2f25be79fd",
+    "draft-policy.json": "4dade30731c05fc5c246762d692f5072afc3c0a5bfe10f6d65bc148a05a1204b",
+    "draft-preservation.json": "faec47edbfe4d9a77269b9ea178b7626ac28ac41c07d4ebcd079b3f7d94d8224",
+    "draft-read-delivery.json": "6a2c00bea9275d192785ccff06a77d368a23e1a6043106ccfaf338fafd70fa35",
+    "draft-review.json": "4dd270c02468c19959904134349222b4868f99b17eb3717bc8ba2883b2c12828",
+    "draft-task.md": "73d47a0d60ce8d39afe7bd1b07512173216367e80e9834666a7d840640221ee8",
+    "draft-tools.jsonl": "33f360d667bbbb04bec0b82b9fa20d042bafc283941d229707c5ec3354f70d6e",
+    "draft.md": "bf99910b54efa1f6a7c512088f216bc44da260a032a9f8198bd0a32f3f53411d",
+    "history-handoff.md": "978d408eaaf4a7afe69a45771b14c138a7e753b1f9494f2d1876c5d17f8ce078",
+    "negative-checks.json": "c63a8e48ee610945ca11e70a43d86dd61242b5a3052d194add49925be9ceedb0",
+    "preflight.json": "b1a7e3e603f4443349278028d77d3dca3b533b2d2b8e7034231ea2646834356c",
+    "result-save-apply.json": "9a909f5b0ad7e71223a898639c3025f083291f295442361da39611cdb78137d1",
+    "result-save-preview.json": "84c5e2aa5d442af997d18879b4f1806448828873a6b2e3fc69ae829cff911ad0",
+    "resume-commands.json": "25a4baede30f6b93c32a302ad9c7db0664f180e6187bc5434f9b74c9f506a7c9",
+    "resume-coverage.json": "0003ff23904262edcbed2cf8bdaa3c44e7cecd69c555b249cb14e7051241f692",
+    "resume-policy.json": "6f84b7afa2c407c28964697e3b5bd2cdecd3995841149019d25858c78454d293",
+    "resume-preservation.json": "06139750091b4bd5af227998d30254785ab7d55d4daf822b70d1e38712e880bd",
+    "resume-read-delivery.json": "3600f90396cf19e5f9ba186d25a05381ba1c1acf03b71225cd0a39d3a6b4181f",
+    "resume-task.md": "cc53febc9f2e5b6199a018632ced269558bd6b6d0e7f801676b119ea997511ea",
+    "resume-tools.jsonl": "e7775868de73ea0c13410ed0deaeca2448d7ac797cd4953f25e40f17280b2c23",
+    "resume.md": "ba99523356cc72ef8a093149d2c80a60d207213f83d29919a6cdd86a49c9c39d",
+    "source-change-check.json": "60153fa2982adc67cd970429696e4f94104ce61aa928eb227edceedd3883fe1b",
+    "source-packet.json": "7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968",
+    "source-save-apply.json": "3f5dad8e59a4c28dfb2745c579e4576ee4ef9391cf45634fdfc2b2eb477bf6c4",
+    "source-save-preview.json": "96573a2e5939fe9df04c5cdc37431c707521d0011dec69577b73165e4a363150",
+    "stale-save-digest.json": "8372c88e51c6bee658c862f00a4639e719f2c57adae0460e0f8e7a6c0f60ca5f"
+  },
+  "checks": {
+    "native_cli_integration_tests": {
+      "passed": 2,
+      "names": [
+        "saved_document_help_is_discoverable_without_project_or_config_access",
+        "short_queries_output_modes_and_scoped_help_preserve_script_contracts"
+      ]
+    },
+    "strict_clippy": "passed: CLI lib/bin/integration test, Rust 1.97 offline Linux ARM64",
+    "tool_delivery_helper_tests": 4,
+    "negative_cases": [
+      "stale project revision",
+      "wrong source hash",
+      "unapproved save",
+      "wrong preview digest",
+      "source changes between pages"
+    ],
+    "candidate_source_sha256": {
+      "packages/qiongli-native/apps/qiongli/src/cli_help.rs": "35b5f0018ab97c2fa08b68318150568ce82ed20313c22f0b1db8d092694818db",
+      "packages/qiongli-native/apps/qiongli/tests/cli.rs": "3700639d667365ac84ec337b58b0619101190585c62ddf6ef3702f14d320afea"
+    },
+    "program_ledger_tests": 7,
+    "docs_build": {
+      "passed": true,
+      "seconds": 51.37,
+      "warnings": "existing env/gitignore highlighting fallback and large bundle"
+    }
+  },
+  "content_root_sha256": "e087f8014b41baa0c513946eb0569dc92540c67a8c55d8f6ea38f30924fcad91",
+  "plugin_bundled_binary_matches_cli": true
+}

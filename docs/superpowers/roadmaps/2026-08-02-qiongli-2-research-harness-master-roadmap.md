@@ -54,17 +54,19 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — November 13, 2026
 
-The maintainer requests the next step after stable installation entries were
-aligned with published v2.6.1. The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-13--task-readiness-display)
-now clarifies task capabilities using existing installation/session/provider
-states. Preserve actionable session checks even when local registration is ready;
-distinguish Full/Lite saving, missing settings and untested online retrieval.
-The presentation owner preserves machine contracts and existing write authority.
+The maintainer requests the next step after stable installation and readiness
+presentation. The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-13--long-material-delivery-and-fresh-session-recovery)
+now records two actual configured-model Codex sessions on the public v2.6.1 Linux
+ARM64 package: long synthetic source reading, approved saving and fresh recovery.
+Native/outer truncation remains visible and is recovered with existing readers.
+Actual failed help requests motivate a narrow document-help repair in its current
+owner. No reader, persistence, model or write-approval boundary changes.
 
-Next reproduce one bounded long-material and fresh-session recovery journey on
-an identified current package. Keep the same Host/model comparison protocol
-separate from historical quality baselines. Reuse existing services and evidence
-owners; broader architecture expansion remains behind demonstrated user need.
+Next verify actual tool discovery and current-context recovery through an isolated
+installed Codex Plugin on an identified candidate, retaining the existing CLI
+fallback. Direct CLI success does not establish installed-MCP readiness. Keep
+same-Host/model quality comparison separate from this engineering observation and
+historical baselines; broader expansion remains behind demonstrated need.
 Integrate locally into `2.x`; this round grants no push or publication authority
 and does not promote any program task to accepted.
 

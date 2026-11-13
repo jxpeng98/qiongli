@@ -1,0 +1,74 @@
+[
+  {
+    "id": "item_1",
+    "command": "/bin/zsh -lc 'cat ${OBSERVATION_ROOT}/plugin/qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu/plugins/qiongli-linux-arm64/skills/qiongli-workflow/SKILL.md'",
+    "exit_code": 0,
+    "output_sha256": "69526958804b1308590e209faaea9bd8fc3381f07c42cbcf2b50ab4978b2cfee"
+  },
+  {
+    "id": "item_3",
+    "command": "/bin/zsh -lc 'cat ${OBSERVATION_ROOT}/plugin/qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu/plugins/qiongli-linux-arm64/skills/qiongli-workflow/workflows/paper-read.md'",
+    "exit_code": 0,
+    "output_sha256": "83d7c40be164eae9a3f33dc0213e1ae29f09ba0b202ba0f9a9c4fa1f40a623ec"
+  },
+  {
+    "id": "item_4",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project --help'",
+    "exit_code": 0,
+    "output_sha256": "7483d7268cd2fd48ebc660489130ead4e671a47fb819161f3467f363db81d455"
+  },
+  {
+    "id": "item_5",
+    "command": "/bin/zsh -lc 'cat ${OBSERVATION_ROOT}/plugin/qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu/plugins/qiongli-linux-arm64/skills/qiongli-workflow/references/platform-routing.md'",
+    "exit_code": 0,
+    "output_sha256": "aa7db2f4165cd58588ba0ac0827e83a1b0293c500a4fb8b2a3aac543fa29338d"
+  },
+  {
+    "id": "item_6",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project show prj_e30ece5db0ad8c39ad93bdfbf6412334'",
+    "exit_code": 0,
+    "output_sha256": "915121ef40dead370765ee7adbdb90ee73a9b03e2e93ec495bea6b794b0a6f7f"
+  },
+  {
+    "id": "item_7",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document list --help'",
+    "exit_code": 2,
+    "output_sha256": "2a97b930db5ae9fcd87e5ebfdbe74b5eeeb667b94ea25264c20c78c638f08f15"
+  },
+  {
+    "id": "item_8",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document --help'",
+    "exit_code": 2,
+    "output_sha256": "2a97b930db5ae9fcd87e5ebfdbe74b5eeeb667b94ea25264c20c78c638f08f15"
+  },
+  {
+    "id": "item_9",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document list --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 2'",
+    "exit_code": 0,
+    "output_sha256": "f96ecbb41cb1b6bfba683a499f19a7ecfad02ffaa59489a40faaebc4e43ad3e3"
+  },
+  {
+    "id": "item_10",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document read --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 2 --relative-path sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json --expected-sha256 7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968 --offset-bytes 0 --max-bytes 14000'",
+    "exit_code": 0,
+    "output_sha256": "b77417c8e49fba579d92b05b5a8a8bca3a040939c9a64af358ce836dd07f05f6"
+  },
+  {
+    "id": "item_11",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document read --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 2 --relative-path sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json --expected-sha256 7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968 --offset-bytes 13999 --max-bytes 14000'",
+    "exit_code": 0,
+    "output_sha256": "17fb0801f83e79840e19872da93a13a7e1f102a1ecf345b3f9a1e2d2e8bc2bbc"
+  },
+  {
+    "id": "item_12",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document search --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 2 --relative-path sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json --expected-sha256 7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968 --search-text 限制 --context-bytes 160'",
+    "exit_code": 0,
+    "output_sha256": "a4678f6fa6fdf9472d84d3e5a28b6f67563d303c5e19b66af73f7764b4ce24af"
+  },
+  {
+    "id": "item_14",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document read --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 2 --relative-path sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json --expected-sha256 7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968 --offset-bytes 27998 --max-bytes 14000'",
+    "exit_code": 0,
+    "output_sha256": "1db04315c7d3a4d13dc79c9c298d70bef1bcf0635df015f58fc168dd015e13b6"
+  }
+]

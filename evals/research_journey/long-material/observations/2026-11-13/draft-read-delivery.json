@@ -1,0 +1,50 @@
+[
+  {
+    "call_id": "call_5122f6080c7d4dbe9b4215d13b858b81",
+    "schemaVersion": 1,
+    "documentKind": "qiongli-saved-document-view",
+    "projectId": "prj_e30ece5db0ad8c39ad93bdfbf6412334",
+    "projectRevision": 2,
+    "relativePath": "sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json",
+    "sha256": "7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968",
+    "sourceSizeBytes": 39667,
+    "contentSizeBytes": 13999,
+    "offsetBytes": 0,
+    "nextOffsetBytes": 13999,
+    "truncatedBefore": false,
+    "truncatedAfter": true,
+    "content_sha256": "553e9283fcad72c8d42f988bd34f7e5bc7f5017c7da9fac53ee421514329089f"
+  },
+  {
+    "call_id": "call_ea8ad8bba7a94bf38ffa3b1e60eadabb",
+    "schemaVersion": 1,
+    "documentKind": "qiongli-saved-document-view",
+    "projectId": "prj_e30ece5db0ad8c39ad93bdfbf6412334",
+    "projectRevision": 2,
+    "relativePath": "sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json",
+    "sha256": "7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968",
+    "sourceSizeBytes": 39667,
+    "contentSizeBytes": 13999,
+    "offsetBytes": 13999,
+    "nextOffsetBytes": 27998,
+    "truncatedBefore": true,
+    "truncatedAfter": true,
+    "content_sha256": "57b24a06077b6d3772e3f381924bc3269cf3051876bde7c58857558b45c4b178"
+  },
+  {
+    "call_id": "call_b18a301ad68e4683b1acedb4d6576ba4",
+    "schemaVersion": 1,
+    "documentKind": "qiongli-saved-document-view",
+    "projectId": "prj_e30ece5db0ad8c39ad93bdfbf6412334",
+    "projectRevision": 2,
+    "relativePath": "sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json",
+    "sha256": "7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968",
+    "sourceSizeBytes": 39667,
+    "contentSizeBytes": 11669,
+    "offsetBytes": 27998,
+    "nextOffsetBytes": null,
+    "truncatedBefore": true,
+    "truncatedAfter": false,
+    "content_sha256": "ef8b21896756acc4850c60726e09dd39adcaef677e3c0a74cef104d5f84ad12c"
+  }
+]

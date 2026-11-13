@@ -1,0 +1,53 @@
+{
+  "kind": "qiongli-delivered-material-review/v1",
+  "method": "Decode actual untruncated outer tool outputs; compare received source/body strings with frozen source and saved preview bytes. This does not infer coverage from native success alone.",
+  "handoff": {
+    "prefix_call": "call_a449dfe830414f92a5e7717a101e706f",
+    "prefix_bytes": 16384,
+    "native_truncated_after": true,
+    "tail_call": "call_53c4cb0279df4caf8ddc39b70d582558",
+    "tail_first_line": 275,
+    "tail_offset_bytes": 16231,
+    "total_bytes": 23351,
+    "overlapping_ranges_cover_whole": true,
+    "sha256": "129cc2988b89484b2fe96e690cac58a80fdb9def19bd9c6cbb13fa6fdfe5c062",
+    "project_revision": 3
+  },
+  "summary": {
+    "call_id": "call_acf28531985249d49e396d0f35fee966",
+    "bytes": 3014,
+    "exact_saved_body_received": true
+  },
+  "source": {
+    "S01": "call_9a7f18279ff145c88019133822485089",
+    "S12": {
+      "call_id": "call_73a18395d38548d8a212bc2ae51137ad",
+      "decoded_byte_range": [
+        1337,
+        1945
+      ]
+    },
+    "S22": "call_73a18395d38548d8a212bc2ae51137ad",
+    "T1_and_F1": "call_73a18395d38548d8a212bc2ae51137ad",
+    "required_frozen_checks_received": true,
+    "other_appendix_sections_fully_reviewed": false
+  },
+  "failed_help_and_successful_siblings_in_same_outer_result": {
+    "call_d64fd0e929d14a9ea461fa9c810abfb1": [
+      0,
+      0,
+      2,
+      0
+    ],
+    "call_b65a0be7748348f28d80a94d8cfe4485": [
+      0,
+      2,
+      2,
+      2,
+      0,
+      0
+    ]
+  },
+  "reviewer": "coordinator model; not independent human/expert",
+  "resume_meaning_review": "Scoped preference and override, immutable original, current versus historical revision, and all frozen limits retained; no substantive repair required."
+}

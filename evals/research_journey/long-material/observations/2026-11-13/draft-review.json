@@ -1,0 +1,8 @@
+{
+  "reviewer": "coordinator model; not independent or expert",
+  "source_checks": "All frozen numeric, causal, measurement and missing-image checks retained in candidate; no prose repair required.",
+  "candidate_sha256": "bf99910b54efa1f6a7c512088f216bc44da260a032a9f8198bd0a32f3f53411d",
+  "selected": "unchanged candidate",
+  "human_time_minutes": null,
+  "actual_billed_cost": null
+}

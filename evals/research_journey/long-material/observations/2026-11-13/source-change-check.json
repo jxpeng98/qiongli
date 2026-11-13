@@ -1,0 +1,10 @@
+{
+  "scope": "coordinator CLI negative test after both model turns; isolated synthetic file restored byte-for-byte",
+  "first_page_bytes": 1024,
+  "first_page_sha256": "7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968",
+  "continuation_offset": 1024,
+  "changed_sha256": "d1ed3016e2dc66e0d8cbf3c33dc2d551daec350ddbb01c5ce4dd0e2aa0f681f8",
+  "exit_code": 1,
+  "stderr": "error: project-revision-conflict\n",
+  "post_restore_project_and_config_equal": true
+}

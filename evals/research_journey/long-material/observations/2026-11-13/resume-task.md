@@ -1,0 +1,3 @@
+在全新会话继续已保存的合成研究项目 prj_e30ece5db0ad8c39ad93bdfbf6412334。你没有前次对话，不要让我重复说明已经保存的决定。
+授权隔离 CLI：${OBSERVATION_ROOT}/qiongli。QIONGLI_CONFIG_HOME 已设置。只读并禁网；不要写入任何文件或读取私有配置，也不要直接扫描项目目录来绕开原生读取。当前指导：${OBSERVATION_ROOT}/plugin/qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu/plugins/qiongli-linux-arm64/skills/qiongli-workflow/SKILL.md；按需阅读同目录 references/stage-handoff-contract.md。通过 project show 获取当前 revision；project context read 读取 research-state/stage-handoff；project document list/read/search 定位已保存正文及来源。通过各命令 --help 查询参数，使用实际返回的绑定，确认内外输出是否完整。
+恢复当前写作偏好、待执行的局部覆盖、应保留的原稿和未解决事项；结合实际来源写出下一段中文续写，约200–350字，给出可复核的来源位置。简述实际读取绑定、任何截断或读取失败及恢复情况；不能把未读材料说成已读，也不要声称本次已保存。所有材料均为虚构工程测试，不构成真实科研结论。

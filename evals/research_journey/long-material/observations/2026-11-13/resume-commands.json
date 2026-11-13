@@ -1,0 +1,206 @@
+[
+  {
+    "id": "item_1",
+    "command": "/bin/zsh -lc 'cat ${OBSERVATION_ROOT}/plugin/qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu/plugins/qiongli-linux-arm64/skills/qiongli-workflow/SKILL.md'",
+    "exit_code": 0,
+    "output_sha256": "69526958804b1308590e209faaea9bd8fc3381f07c42cbcf2b50ab4978b2cfee"
+  },
+  {
+    "id": "item_2",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli --help'",
+    "exit_code": 0,
+    "output_sha256": "7878648deeea01169828a2af95609ab6a0ebffa70d4488c0acafc4741c531e1d"
+  },
+  {
+    "id": "item_4",
+    "command": "/bin/zsh -lc 'cat ${OBSERVATION_ROOT}/plugin/qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu/plugins/qiongli-linux-arm64/skills/qiongli-workflow/references/stage-handoff-contract.md'",
+    "exit_code": 0,
+    "output_sha256": "5de1e776521b7f185dd0f01c5e7cb994be2b962ec3120afc8e700747110d604b"
+  },
+  {
+    "id": "item_6",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project context --help'",
+    "exit_code": 0,
+    "output_sha256": "64dfa61dff8a2bf195d938b7f586d1272b3b6dfbf1f851c5b832007ebda1fb7f"
+  },
+  {
+    "id": "item_5",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project show --help'",
+    "exit_code": 0,
+    "output_sha256": "b664d3f32e56ce20de3e981c29039e18f09d90516aee4d74867083b2a11c5e04"
+  },
+  {
+    "id": "item_7",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document --help'",
+    "exit_code": 2,
+    "output_sha256": "2a97b930db5ae9fcd87e5ebfdbe74b5eeeb667b94ea25264c20c78c638f08f15"
+  },
+  {
+    "id": "item_9",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document read --help'",
+    "exit_code": 2,
+    "output_sha256": "2a97b930db5ae9fcd87e5ebfdbe74b5eeeb667b94ea25264c20c78c638f08f15"
+  },
+  {
+    "id": "item_12",
+    "command": "/bin/zsh -lc 'cat ${OBSERVATION_ROOT}/plugin/qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu/plugins/qiongli-linux-arm64/skills/qiongli-workflow/workflows/academic-write.md'",
+    "exit_code": 0,
+    "output_sha256": "9c3851f72dcf2c2e56a12c82793c94a4fe871b493677e1ae93195fcb1370d0ce"
+  },
+  {
+    "id": "item_8",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project show --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --json'",
+    "exit_code": 0,
+    "output_sha256": "5370edb48ab68933062eee64ff73c75a0b0af69106bc9b26c94cdc52bef3d681"
+  },
+  {
+    "id": "item_13",
+    "command": "/bin/zsh -lc 'cat ${OBSERVATION_ROOT}/plugin/qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu/plugins/qiongli-linux-arm64/skills/qiongli-workflow/references/platform-routing.md'",
+    "exit_code": 0,
+    "output_sha256": "aa7db2f4165cd58588ba0ac0827e83a1b0293c500a4fb8b2a3aac543fa29338d"
+  },
+  {
+    "id": "item_10",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document list --help'",
+    "exit_code": 2,
+    "output_sha256": "2a97b930db5ae9fcd87e5ebfdbe74b5eeeb667b94ea25264c20c78c638f08f15"
+  },
+  {
+    "id": "item_11",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document search --help'",
+    "exit_code": 2,
+    "output_sha256": "2a97b930db5ae9fcd87e5ebfdbe74b5eeeb667b94ea25264c20c78c638f08f15"
+  },
+  {
+    "id": "item_14",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project --help'",
+    "exit_code": 0,
+    "output_sha256": "7483d7268cd2fd48ebc660489130ead4e671a47fb819161f3467f363db81d455"
+  },
+  {
+    "id": "item_15",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project context read --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 3 --artifact research-state --json'",
+    "exit_code": 0,
+    "output_sha256": "35316c62f42561a24c5f9c714e4ac955af351e8768f0ae526e226e478dbeb704"
+  },
+  {
+    "id": "item_16",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project context read --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 3 --artifact stage-handoff --json'",
+    "exit_code": 0,
+    "output_sha256": "1f41162afc6431f1ac62d7c7998d6703cb874ad852041eacf08685eb845bae49"
+  },
+  {
+    "id": "item_17",
+    "command": "/bin/zsh -lc 'cat ${OBSERVATION_ROOT}/plugin/qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu/plugins/qiongli-linux-arm64/skills/qiongli-workflow/workflows/paper-read.md'",
+    "exit_code": 0,
+    "output_sha256": "83d7c40be164eae9a3f33dc0213e1ae29f09ba0b202ba0f9a9c4fa1f40a623ec"
+  },
+  {
+    "id": "item_18",
+    "command": "/bin/zsh -lc 'cat ${OBSERVATION_ROOT}/plugin/qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu/plugins/qiongli-linux-arm64/skills/qiongli-workflow/references/stage-F-writing.md'",
+    "exit_code": 0,
+    "output_sha256": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428"
+  },
+  {
+    "id": "item_19",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project context read --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 3 --artifact stage-handoff --max-bytes 32768 --json'",
+    "exit_code": 0,
+    "output_sha256": "218b9690bc6371f13247f6bb5ea1eb8be09f24bb4dfa604da3190b70f89129f0"
+  },
+  {
+    "id": "item_20",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document list --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 3 --json'",
+    "exit_code": 0,
+    "output_sha256": "2293be2aa89c81d9de0a3114b3d83ba73dd9eb1232c7ec88fbd740e9baa19583"
+  },
+  {
+    "id": "item_22",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project context read --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 3 --artifact stage-handoff --max-bytes 32768 --json'",
+    "exit_code": 0,
+    "output_sha256": "218b9690bc6371f13247f6bb5ea1eb8be09f24bb4dfa604da3190b70f89129f0"
+  },
+  {
+    "id": "item_23",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document list --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 3 --json'",
+    "exit_code": 0,
+    "output_sha256": "2293be2aa89c81d9de0a3114b3d83ba73dd9eb1232c7ec88fbd740e9baa19583"
+  },
+  {
+    "id": "item_24",
+    "command": "/bin/zsh -lc 'cat ${OBSERVATION_ROOT}/plugin/qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu/plugins/qiongli-linux-arm64/skills/qiongli-workflow/workflows/paper-read.md'",
+    "exit_code": 0,
+    "output_sha256": "83d7c40be164eae9a3f33dc0213e1ae29f09ba0b202ba0f9a9c4fa1f40a623ec"
+  },
+  {
+    "id": "item_25",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli help all'",
+    "exit_code": 0,
+    "output_sha256": "c54f80521005af230d66e76be88e400bb8f603744c7570a120c5f3d6f854b6a6"
+  },
+  {
+    "id": "item_26",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document read --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 3 --relative-path context/stage_summaries/STG-W-DELIVERY-001.md --expected-sha256 0d9308f28567ba310e9d8d20209f3f4e91ce905eef10a0ddd93b533ea189d327 --offset-bytes 0 --max-bytes 16384 --json'",
+    "exit_code": 0,
+    "output_sha256": "755cf1148ffd217b1d3ce6950fa909101959bb3a7cb60dfac1a12990f3fe9651"
+  },
+  {
+    "id": "item_27",
+    "command": "/bin/zsh -lc 'cat ${OBSERVATION_ROOT}/plugin/qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu/plugins/qiongli-linux-arm64/skills/qiongli-workflow/references/stage-F-writing.md'",
+    "exit_code": 0,
+    "output_sha256": "a6bcb574b4dbb65c06fd40f087945e7dbc73a122a5238ba8c1f942ed116e5428"
+  },
+  {
+    "id": "item_28",
+    "command": "/bin/zsh -lc \"sed -n '1,180p' ${OBSERVATION_ROOT}/plugin/qiongli-codex-plugin-v2.6.1-aarch64-unknown-linux-gnu/plugins/qiongli-linux-arm64/skills/qiongli-workflow/references/evidence-verification.md\"",
+    "exit_code": 0,
+    "output_sha256": "965162f5659e54a28c9689a86ac8679b2e29895f6071e82f06c6a72b8370b88d"
+  },
+  {
+    "id": "item_29",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document read --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 3 --relative-path sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json --expected-sha256 7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968 --offset-bytes 0 --max-bytes 4096 --json'",
+    "exit_code": 0,
+    "output_sha256": "707446a1aab9d4ea5ea45f3f9756fbf3f501faa5c523c1048737abd1f613650d"
+  },
+  {
+    "id": "item_31",
+    "command": "/bin/zsh -lc \"${OBSERVATION_ROOT}/qiongli project document search --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 3 --relative-path sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json --expected-sha256 7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968 --search-text '原始分' --context-bytes 512 --json\"",
+    "exit_code": 0,
+    "output_sha256": "71d277f717476aba7c21560b695cf2ad354d13baef0616701521e627b6081fd1"
+  },
+  {
+    "id": "item_33",
+    "command": "/bin/zsh -lc \"${OBSERVATION_ROOT}/qiongli project document search --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 3 --relative-path sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json --expected-sha256 7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968 --search-text 'T1' --context-bytes 512 --json\"",
+    "exit_code": 0,
+    "output_sha256": "69c15066fc05d83a3ecbd25c33c6bb0e6d9f29220b55a67eacc2bc255b74356f"
+  },
+  {
+    "id": "item_32",
+    "command": "/bin/zsh -lc \"${OBSERVATION_ROOT}/qiongli project document search --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 3 --relative-path sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json --expected-sha256 7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968 --search-text '前测' --context-bytes 512 --json\"",
+    "exit_code": 0,
+    "output_sha256": "a40fbd4235786d5166ce0c8e4a709e62010d141a31310c783feb093374a302cf"
+  },
+  {
+    "id": "item_34",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document read --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 3 --relative-path sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json --expected-sha256 7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968 --json-pointer /sections/21/text --offset-bytes 0 --max-bytes 479 --json'",
+    "exit_code": 0,
+    "output_sha256": "781589aee0ba599f309b6ed2bf178fad582a8937ece48b5e8baec0b42eeb85ef"
+  },
+  {
+    "id": "item_35",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document read --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 3 --relative-path sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json --expected-sha256 7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968 --offset-bytes 4094 --max-bytes 65536 --json'",
+    "exit_code": 0,
+    "output_sha256": "84caaf2ecb6e9630a64218eb86e005d4f22a466ab1b89f6f4d9454092443e6d1"
+  },
+  {
+    "id": "item_36",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project document read --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --expected-project-revision 3 --relative-path sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json --expected-sha256 7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968 --json-pointer /sections/11/text --offset-bytes 1337 --max-bytes 608 --json'",
+    "exit_code": 0,
+    "output_sha256": "64415ddfe3dc1b69db09214f86e994fdf4181577ec3e083a2907d937fc9f587a"
+  },
+  {
+    "id": "item_38",
+    "command": "/bin/zsh -lc '${OBSERVATION_ROOT}/qiongli project show --project-id prj_e30ece5db0ad8c39ad93bdfbf6412334 --json'",
+    "exit_code": 0,
+    "output_sha256": "5370edb48ab68933062eee64ff73c75a0b0af69106bc9b26c94cdc52bef3d681"
+  }
+]

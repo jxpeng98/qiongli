@@ -1,0 +1,40 @@
+{
+  "model": "gpt-6-astra",
+  "model_reasoning_effort": "xhigh",
+  "approval_policy": "never",
+  "web_search": "disabled",
+  "default_permissions": "public_zh_read",
+  "permissions": {
+    "public_zh_read": {
+      "description": null,
+      "extends": null,
+      "workspace_roots": null,
+      "filesystem": {
+        "glob_scan_max_depth": null,
+        "${CODEX_BINARY}": "read",
+        "${OBSERVATION_ROOT}/config": "read",
+        "${OBSERVATION_ROOT}/draft-inputs": "read",
+        "${OBSERVATION_ROOT}/plugin": "read",
+        "${OBSERVATION_ROOT}/qiongli": "read",
+        "${OBSERVATION_ROOT}/work/project": "read",
+        ":minimal": "read"
+      },
+      "network": {
+        "enabled": false,
+        "proxy_url": null,
+        "enable_socks5": null,
+        "socks_url": null,
+        "enable_socks5_udp": null,
+        "allow_upstream_proxy": null,
+        "dangerously_allow_non_loopback_proxy": null,
+        "dangerously_allow_all_unix_sockets": null,
+        "mode": null,
+        "domains": null,
+        "unix_sockets": null,
+        "allow_local_binding": null,
+        "mitm": null
+      }
+    }
+  },
+  "mcp_servers": {}
+}

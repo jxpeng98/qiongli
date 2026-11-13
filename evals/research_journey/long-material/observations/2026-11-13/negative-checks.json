@@ -1,0 +1,20 @@
+[
+  {
+    "name": "stale-revision",
+    "exit_code": 1,
+    "unchanged": true,
+    "stderr": "error: project-revision-conflict\n"
+  },
+  {
+    "name": "wrong-source-hash",
+    "exit_code": 1,
+    "unchanged": true,
+    "stderr": "error: project-revision-conflict\n"
+  },
+  {
+    "name": "unapproved-save",
+    "exit_code": 2,
+    "unchanged": true,
+    "stderr": "error: capture consolidation apply requires review timestamp, plan digest, academic approval, and filesystem approval\n\nRun `qiongli project --help` for usage.\n"
+  }
+]

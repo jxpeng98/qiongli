@@ -1,0 +1,54 @@
+{
+  "before": {
+    "${OBSERVATION_ROOT}/draft-inputs": {
+      "prompt.txt": "12de7d505fde3cd5c2cd4bbef6ea06f4b6c4fb33fc8b52e8cf47017a4ab8c2f7"
+    },
+    "${OBSERVATION_ROOT}/config": {
+      "v2/research-library/.library.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "v2/research-library/library.json": "58363b1409785835af51723b1d07f78994901373ec1ae82c37d499410f582c3b"
+    },
+    "${OBSERVATION_ROOT}/work/project": {
+      ".qiongli/.capture-history.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      ".qiongli/.consolidation.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "context/captures/cap_11e77700055b5d620ad496ccd8453844ba840ce229b22191fa399ff3d48625e7.json": "d8de87e61db78da37e93fb232237b64969faa239d0d85be864713b6aae13fb19",
+      "context/consolidations/cap_11e77700055b5d620ad496ccd8453844ba840ce229b22191fa399ff3d48625e7.json": "9c17eee8fa677e75dcfd1f780b94962f63f471e987ec3b8717618d62c234c8bc",
+      "context/project_manifest.json": "4653019aa6bc7969aae508f79a6fa9c7334d34b33f3ed2d4a61f1aedd8cc0afd",
+      "context/research_state.md": "98ffac5078d810049517594c7d40ab17ab9fcace898a59b8e773d4804c6134a2",
+      "context/stage_handoff.md": "6419485b1dd8aa4fb3b93643ff70cec3da8404bfb92adde5cecb6af6c90f12eb",
+      "sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json": "7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968"
+    },
+    "${OBSERVATION_ROOT}/qiongli": {
+      "file": "89a0ed40f92d70c13a5b900e1cc25251f13f6aada95cb22e4db9a337aca3198c"
+    },
+    "${OBSERVATION_ROOT}/plugin": {
+      "file_count": 469,
+      "complete_file_hash_map_sha256": "a92ccdbcae8482de534c8233bf3987b90abfb3ba6524bec4c0f71650eaa4faeb"
+    }
+  },
+  "after": {
+    "${OBSERVATION_ROOT}/draft-inputs": {
+      "prompt.txt": "12de7d505fde3cd5c2cd4bbef6ea06f4b6c4fb33fc8b52e8cf47017a4ab8c2f7"
+    },
+    "${OBSERVATION_ROOT}/config": {
+      "v2/research-library/.library.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "v2/research-library/library.json": "58363b1409785835af51723b1d07f78994901373ec1ae82c37d499410f582c3b"
+    },
+    "${OBSERVATION_ROOT}/work/project": {
+      ".qiongli/.capture-history.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      ".qiongli/.consolidation.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "context/captures/cap_11e77700055b5d620ad496ccd8453844ba840ce229b22191fa399ff3d48625e7.json": "d8de87e61db78da37e93fb232237b64969faa239d0d85be864713b6aae13fb19",
+      "context/consolidations/cap_11e77700055b5d620ad496ccd8453844ba840ce229b22191fa399ff3d48625e7.json": "9c17eee8fa677e75dcfd1f780b94962f63f471e987ec3b8717618d62c234c8bc",
+      "context/project_manifest.json": "4653019aa6bc7969aae508f79a6fa9c7334d34b33f3ed2d4a61f1aedd8cc0afd",
+      "context/research_state.md": "98ffac5078d810049517594c7d40ab17ab9fcace898a59b8e773d4804c6134a2",
+      "context/stage_handoff.md": "6419485b1dd8aa4fb3b93643ff70cec3da8404bfb92adde5cecb6af6c90f12eb",
+      "sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json": "7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968"
+    },
+    "${OBSERVATION_ROOT}/qiongli": {
+      "file": "89a0ed40f92d70c13a5b900e1cc25251f13f6aada95cb22e4db9a337aca3198c"
+    },
+    "${OBSERVATION_ROOT}/plugin": {
+      "file_count": 469,
+      "complete_file_hash_map_sha256": "a92ccdbcae8482de534c8233bf3987b90abfb3ba6524bec4c0f71650eaa4faeb"
+    }
+  }
+}

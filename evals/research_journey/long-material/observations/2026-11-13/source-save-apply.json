@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "command": "project-capture-consolidate-apply",
+  "commit": {
+    "schemaVersion": 1,
+    "captureId": "cap_11e77700055b5d620ad496ccd8453844ba840ce229b22191fa399ff3d48625e7",
+    "projectId": "prj_e30ece5db0ad8c39ad93bdfbf6412334",
+    "disposition": "unresolved-candidate",
+    "libraryRevision": 2,
+    "semanticRevision": 2,
+    "artifactsUpdated": [
+      "research-state",
+      "source-packet",
+      "stage-handoff"
+    ],
+    "receiptEntry": "context/consolidations/cap_11e77700055b5d620ad496ccd8453844ba840ce229b22191fa399ff3d48625e7.json",
+    "acknowledgement": "ack_b78b331d0bb22cf30507493c18c8e86c55f7badefea4e790702652b61e752e62",
+    "indexRebuildRequired": true
+  }
+}

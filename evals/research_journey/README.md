@@ -1,5 +1,14 @@
 # Bounded research evidence journey
 
+## Long-material delivery and fresh recovery
+
+The [November 13 observation](long-material/observations/2026-11-13/README.md)
+uses the public v2.6.1 Linux ARM64 CLI and extracted release guidance. It retains
+actual tool-only traces, two-layer truncation and recovery, approved synthetic
+saving, delivered-coverage checks and the observed document-help defect. This is
+a direct CLI engineering observation, separate from installed-Plugin baselines
+and any same-model quality comparison.
+
 ## Installed manuscript continuity
 
 `installed-trace/` supplies a separate invented two-source writing/recovery task.

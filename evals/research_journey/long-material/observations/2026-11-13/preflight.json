@@ -1,0 +1,80 @@
+{
+  "preflight": {
+    "status": "blocked",
+    "blocker": "sandbox",
+    "model_calls": 0,
+    "authentication_path_absent": true,
+    "config_unchanged": true,
+    "guidance_unchanged": true,
+    "checks": [
+      {
+        "name": "version",
+        "passed": true,
+        "termination_reason": "completed",
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        }
+      },
+      {
+        "name": "sandbox",
+        "passed": false,
+        "termination_reason": "nonzero-exit",
+        "process_cleanup": {
+          "exit_code": 1,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        }
+      }
+    ],
+    "raw_receipt_sha256": "1d4b4caedafd438d3e17dd9f575827fbe2ba5ac94685f9906fe6528a9d9c5603",
+    "sandbox_stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"${OBSERVATION_ROOT}/preflight/codex-home\"))\nerror building bubblewrap command: app-server socket directory must be a user-owned directory with mode 0700\n"
+  },
+  "preflight-host": {
+    "status": "passed",
+    "blocker": null,
+    "model_calls": 0,
+    "authentication_path_absent": true,
+    "config_unchanged": true,
+    "guidance_unchanged": true,
+    "checks": [
+      {
+        "name": "version",
+        "passed": true,
+        "termination_reason": "completed",
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        }
+      },
+      {
+        "name": "sandbox",
+        "passed": true,
+        "termination_reason": "completed",
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        }
+      },
+      {
+        "name": "guidance-0",
+        "passed": true,
+        "termination_reason": "completed",
+        "process_cleanup": {
+          "exit_code": 0,
+          "method": "already-exited",
+          "reaped": true,
+          "group_gone": true
+        }
+      }
+    ],
+    "raw_receipt_sha256": "f61d0b1f5de31b41e8bef2f4de4328ad74c1a417ef5853c220496e3e7277bd86"
+  }
+}

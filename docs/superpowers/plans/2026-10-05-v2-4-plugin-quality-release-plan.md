@@ -1,6 +1,6 @@
 # Qiongli 2.4.0 — traceable research, substantive writing and Plugin reliability
 
-Current work continues in [the November 13 readiness increment](#november-13--task-readiness-display). Earlier sections retain their historical candidate identities and decisions.
+Current work continues in [the November 13 long-material observation](#november-13--long-material-delivery-and-fresh-session-recovery). Earlier sections retain their historical candidate identities and decisions.
 
 - Status: the maintainer authorizes continued development through release
   readiness on October 5, then confirms isolated AGY login and remote source
@@ -4906,3 +4906,79 @@ presentation checks do not establish live Host/session readiness, successful
 online research, macOS Keychain access or academic-quality gains. Keep CLI-410
 progress separate from accepted evidence; local integration does not authorize
 remote synchronization or publication.
+
+
+## November 13 — long-material delivery and fresh-session recovery
+
+The maintainer requests the next step after readiness presentation. Starting from
+`29573774`, reproduce one actual Codex reading/save/recovery journey and repair
+only demonstrated friction. Downloaded public v2.6.1 Linux ARM64 CLI and Codex
+Plugin archives match their GitHub asset digests and the same SHA256SUMS. The
+release manifest binds native source `25b6bf36f06b2f2ddb1b2395a88bb5dcd9b9cdb3`;
+the embedded content digest is
+`8d9c74c592b8a9fcc9245a5d6229f13e8f5f0fc1ea4de36f6c7fcb08e859ee00`.
+Do not substitute the retained pre-publication 2.6.1 candidate.
+
+The canonical observation is
+`evals/research_journey/long-material/observations/2026-11-13/README.md`.
+It retains frozen synthetic source/criteria, both tasks and full answers,
+sanitized actual tool calls/results, policy/preservation records, preview/apply
+receipts and a byte-level delivered-coverage audit. Raw captures and setup/check
+logs remain under `/tmp/qiongli-long-recovery-20261113`; exported evidence is
+hash-bound and excludes rollout reasoning and credentials. This reuses the
+existing research-journey execution/delivery owners and leaves historical
+three-case baseline scoring unchanged.
+
+Codex 0.167.0 retains configured `gpt-6-astra` / `xhigh` in two fresh isolated
+read-only, tool-network-disabled profiles, with effective app-server readback.
+The 39,667-byte invented source places important limitations after long Chinese
+and escaped-JSON appendices. Drafting completes in 97.47 seconds: 12 native/shell
+calls, two failed help requests, no outer truncation. All three source pages are
+actually delivered; the coordinator source review retains the candidate unchanged.
+The coordinator then reviews and approves its revision-3 summary/handoff save
+through the existing native owners. A fresh project-ID-only continuation receives
+no previous prose/preferences inline and completes in 216.95 seconds: 34 calls,
+four failed help requests and one outer truncation, with no wrapper script failure.
+
+Recovery correctly distinguishes the saved original's historical revision-2 text
+from its revision-3 receipt, recovers the concise default and next-paragraph-only
+explanatory override, and preserves unresolved pretest, unaided/retention and F1
+image limitations. The 23,351-byte handoff first truncates at the native 16 KiB
+window; increasing the limit and batching long guidance then truncates the outer
+return. A separate tail read overlaps the original prefix and completes delivery.
+The 3,014-byte summary and required source fields are delivered. Other appendix
+bodies are parsed inside the wrapper but not all returned for model review; the
+answer preserves that distinction. Successful sibling outputs survive failed help
+requests. Both turns preserve project/config/input/package bytes and require no
+Graph rebuild or coordinator intervention during the turn. Human time and actual
+billing are unknown; token usage is retained without converting it to cost.
+
+### Repair, checks and next increment
+
+Both actual sessions expose missing `project document` help routes. The existing
+`cli_help.rs` owner now lists document commands and serves scoped list/read/search
+help, reusing the saved-document syntax and including it in `help all`. Two CLI
+integration tests pass, including an unusable config root, all help aliases,
+unknown-topic refusal and incomplete-read errors. Strict Rust 1.97 Clippy, format,
+diff checks, four delivery-helper tests and seven ledger tests pass. The documentation
+site builds in 51.37 seconds with its existing highlighting/bundle-size warnings.
+Negative native checks reject stale revision, wrong source hash, missing save approvals,
+wrong preview digest and a changed source between pages without accepting writes
+or mixed versions. The synthetic source is restored byte-for-byte after the last
+negative check. Reader/MCP/schema/model/write authority is unchanged.
+
+Setup/audit failures are retained: public web-cache/DNS access, missing PyYAML in
+the default Python, nested sandbox socket-mode refusal, initial formatting, and a
+coverage-audit field-name assumption. System Python, a host-context preflight
+with the same inner read-only/no-network policy, formatting, and actual context
+artifact field names resolve those attempts. The two model turns are not rerun or
+replaced. The small help repair has local CLI evidence, not a new model comparison.
+
+This is one synthetic **direct CLI** journey with extracted release guidance;
+it does not qualify an installed Plugin/MCP, real-paper quality, online providers,
+other platforms or net benefit. Next verify an isolated installed Codex Plugin's
+actual tool discovery and current-context recovery path on an identified candidate,
+retaining native CLI fallback and the observed two-layer delivery limits. Keep the
+three-arm quality experiment separate. All 249 task states/dependencies and accepted
+evidence/commit/run bindings remain unchanged; only CLI-410 progress advances.
+Integrate locally into `2.x`; no remote synchronization or publication is authorized.

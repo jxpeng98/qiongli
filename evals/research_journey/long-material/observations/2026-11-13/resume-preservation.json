@@ -1,0 +1,60 @@
+{
+  "before": {
+    "${OBSERVATION_ROOT}/resume-inputs": {
+      "prompt.txt": "31a6ac5736274d23b8d11b7add39cf1093a8533a1040b4a906bc3ed515baa5d1"
+    },
+    "${OBSERVATION_ROOT}/config": {
+      "v2/research-library/.library.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "v2/research-library/library.json": "dd563ce58dfb63ff9eb0beff70032ba5f397df81d717cf30f799165d58b82071"
+    },
+    "${OBSERVATION_ROOT}/work/project": {
+      ".qiongli/.capture-history.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      ".qiongli/.consolidation.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "context/captures/cap_11e77700055b5d620ad496ccd8453844ba840ce229b22191fa399ff3d48625e7.json": "d8de87e61db78da37e93fb232237b64969faa239d0d85be864713b6aae13fb19",
+      "context/captures/cap_e3baf744c9688739eefea41f92d5a321c5d6fe910b7c997b1771c4fe85f26e0c.json": "fe268adcf548dafa55771a2334c8d90f3f2e01fe062c9cd363392688546db9d5",
+      "context/consolidations/cap_11e77700055b5d620ad496ccd8453844ba840ce229b22191fa399ff3d48625e7.json": "9c17eee8fa677e75dcfd1f780b94962f63f471e987ec3b8717618d62c234c8bc",
+      "context/consolidations/cap_e3baf744c9688739eefea41f92d5a321c5d6fe910b7c997b1771c4fe85f26e0c.json": "15f78f18a449cc50e0bc3d5db92743528e50e4d7cc09eb930cf2e6a77f154f78",
+      "context/project_manifest.json": "4c215e1f7869f21194be1d8b1e07c2e67fee3dcd5cba86021e902b392dbb4d80",
+      "context/research_state.md": "b086c2bdf55a210b21b9380398f27ab2a0f8da99a2bbe018d544863d6a92bad0",
+      "context/stage_handoff.md": "129cc2988b89484b2fe96e690cac58a80fdb9def19bd9c6cbb13fa6fdfe5c062",
+      "context/stage_summaries/STG-W-DELIVERY-001.md": "0d9308f28567ba310e9d8d20209f3f4e91ce905eef10a0ddd93b533ea189d327",
+      "sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json": "7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968"
+    },
+    "${OBSERVATION_ROOT}/qiongli": {
+      "file": "89a0ed40f92d70c13a5b900e1cc25251f13f6aada95cb22e4db9a337aca3198c"
+    },
+    "${OBSERVATION_ROOT}/plugin": {
+      "file_count": 469,
+      "complete_file_hash_map_sha256": "a92ccdbcae8482de534c8233bf3987b90abfb3ba6524bec4c0f71650eaa4faeb"
+    }
+  },
+  "after": {
+    "${OBSERVATION_ROOT}/resume-inputs": {
+      "prompt.txt": "31a6ac5736274d23b8d11b7add39cf1093a8533a1040b4a906bc3ed515baa5d1"
+    },
+    "${OBSERVATION_ROOT}/config": {
+      "v2/research-library/.library.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "v2/research-library/library.json": "dd563ce58dfb63ff9eb0beff70032ba5f397df81d717cf30f799165d58b82071"
+    },
+    "${OBSERVATION_ROOT}/work/project": {
+      ".qiongli/.capture-history.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      ".qiongli/.consolidation.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "context/captures/cap_11e77700055b5d620ad496ccd8453844ba840ce229b22191fa399ff3d48625e7.json": "d8de87e61db78da37e93fb232237b64969faa239d0d85be864713b6aae13fb19",
+      "context/captures/cap_e3baf744c9688739eefea41f92d5a321c5d6fe910b7c997b1771c4fe85f26e0c.json": "fe268adcf548dafa55771a2334c8d90f3f2e01fe062c9cd363392688546db9d5",
+      "context/consolidations/cap_11e77700055b5d620ad496ccd8453844ba840ce229b22191fa399ff3d48625e7.json": "9c17eee8fa677e75dcfd1f780b94962f63f471e987ec3b8717618d62c234c8bc",
+      "context/consolidations/cap_e3baf744c9688739eefea41f92d5a321c5d6fe910b7c997b1771c4fe85f26e0c.json": "15f78f18a449cc50e0bc3d5db92743528e50e4d7cc09eb930cf2e6a77f154f78",
+      "context/project_manifest.json": "4c215e1f7869f21194be1d8b1e07c2e67fee3dcd5cba86021e902b392dbb4d80",
+      "context/research_state.md": "b086c2bdf55a210b21b9380398f27ab2a0f8da99a2bbe018d544863d6a92bad0",
+      "context/stage_handoff.md": "129cc2988b89484b2fe96e690cac58a80fdb9def19bd9c6cbb13fa6fdfe5c062",
+      "context/stage_summaries/STG-W-DELIVERY-001.md": "0d9308f28567ba310e9d8d20209f3f4e91ce905eef10a0ddd93b533ea189d327",
+      "sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json": "7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968"
+    },
+    "${OBSERVATION_ROOT}/qiongli": {
+      "file": "89a0ed40f92d70c13a5b900e1cc25251f13f6aada95cb22e4db9a337aca3198c"
+    },
+    "${OBSERVATION_ROOT}/plugin": {
+      "file_count": 469,
+      "complete_file_hash_map_sha256": "a92ccdbcae8482de534c8233bf3987b90abfb3ba6524bec4c0f71650eaa4faeb"
+    }
+  }
+}
