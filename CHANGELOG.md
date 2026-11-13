@@ -4,11 +4,14 @@
 
 ## [Unreleased]
 
-- Add one native provider setup page shared by CLI and its Lite/Full MCP, with explicit
-  confirmation, selected-provider settings CAS and OS credential storage. Add
-  offline provider status/doctor and an explicitly approved bounded connection
-  test. Refresh native MCP configuration on revision changes; retain unavailable
-  secure-store limits and redirect raw-secret MCP saves to the page.
+## [2.6.0]
+
+详细说明见 [2.6.0 发布说明](tooling/release/v2.6.0.md)。
+
+- 明确 G4/J2 中语言润色与含义复核的分工，改善连续段落、跨章节和中英文表达；保留正确原文、术语、论证与必要限定，支持简洁、展开和自定义写作风格。
+- 增加只读 `project context read`，恢复已保存的研究状态和阶段交接时不再要求重建 Graph；完善来源摘录、阶段总结读取和写作评测的跨会话恢复。
+- CLI 与 Lite/Full MCP 共用原生文献服务配置页面，保留明确确认、设置版本校验和系统凭据存储；提供离线状态诊断与需批准的连接测试。
+- 完整 CLI/Cargo 打包改为候选或发布时明确调度，避免分支推送重复构建；保留运行时代码的三平台测试和四目标发布验证，临时产物保留七天。
 
 ## [2.5.3]
 
