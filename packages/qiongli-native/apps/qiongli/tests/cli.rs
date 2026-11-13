@@ -412,10 +412,51 @@ fn guided_installation_requires_a_terminal_and_local_mcp_checks_do_not_claim_hos
         assert_eq!(checked["host_session"], "not-checked");
         assert_eq!(checked["provider_connectivity"], "not-checked");
         assert!(!output_contains_path(&result, &fixture.home));
+        let text = run_configured(&fixture, &["mcp", "check", "--profile", profile, "--text"]);
+        assert!(text.status.success());
+        let text = public_output(&text);
+        assert!(text.contains("Host session: not checked"));
+        assert!(text.contains(if profile == "lite" {
+            "Saving: unavailable in Lite"
+        } else {
+            "saving was not exercised"
+        }));
     }
     assert!(!fixture.config_root.exists());
     assert!(!fixture.home.join("qiongli-next").exists());
     assert!(!fixture.home.join(".qiongli-skills").exists());
+}
+
+#[test]
+fn readiness_text_keeps_offline_queries_read_only_and_json_compatible() {
+    let fixture = Fixture::new("readiness-text-private-canary");
+    for words in [
+        vec!["provider", "status"],
+        vec!["doctor"],
+        vec!["install", "inventory"],
+    ] {
+        let raw = run_configured(&fixture, &words);
+        let mut flags = words.clone();
+        flags.push("--json");
+        let structured = run_configured(&fixture, &flags);
+        assert_eq!(raw.stdout, structured.stdout);
+        flags.pop();
+        flags.push("--text");
+        let text = run_configured(&fixture, &flags);
+        assert_eq!(text.status.code(), raw.status.code());
+        assert!(!output_contains_path(&text, &fixture.root));
+        if words[0] == "provider" {
+            assert_eq!(parse_json(&raw)["online_connection"], "not-tested");
+            assert!(public_output(&text).contains("offline configuration check"));
+            if !cfg!(target_os = "macos") {
+                assert!(public_output(&text).contains("cannot save or access keys"));
+            }
+        } else {
+            assert!(public_output(&text).contains("Saving in the Host: not checked"));
+        }
+    }
+    assert!(!fixture.config_root.exists());
+    assert_eq!(fs::read_dir(&fixture.home).unwrap().count(), 0);
 }
 
 #[test]
@@ -6026,6 +6067,11 @@ fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
                 check(&parse_json(&doctor))["code"],
                 "local-host-registered-session-unchecked"
             );
+            let text = public_output(&inspect(&["doctor", "--text"]));
+            assert!(text.contains("local-host-registered-session-unchecked"));
+            assert!(text.contains(
+                "Start a new Host session; list Qiongli tools and call qiongli_config_status"
+            ));
             let inventory = parse_json(&inspect(&["install", "inventory"]));
             let observed = &inventory["inventory"]["clients"][if codex { 0 } else { 1 }];
             assert_eq!(observed["readiness"], "current");
@@ -6033,10 +6079,19 @@ fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
                 observed["installed_plugin_version"],
                 env!("CARGO_PKG_VERSION")
             );
+            assert!(
+                public_output(&inspect(&["install", "inventory", "--text"]))
+                    .contains("Full MCP is installed locally")
+            );
             fs::write(cache.join("user-notes.txt"), "retain cache note").unwrap();
             assert_eq!(
                 check(&parse_json(&inspect(&["doctor", "--json"])))["code"],
                 "local-host-observation-unavailable"
+            );
+            assert!(
+                public_output(&inspect(&["install", "inventory", "--text"])).contains(
+                    "Observation unavailable; installed capabilities cannot be confirmed"
+                )
             );
             assert_eq!(
                 fs::read_to_string(cache.join("user-notes.txt")).unwrap(),

@@ -52,4 +52,16 @@ Choose Plugin and your Host, review the file plan and registration, and confirm 
 
 Open a new Host session. Ask it to list Qiongli tools and call `qiongli_config_status`. `mcp check` checks only the local protocol. Then try a research request from the [quickstart](../quickstart.md).
 
+To see what still needs checking, run `qiongli doctor`, `qiongli install inventory`,
+or `qiongli provider status`. Terminal summaries distinguish local installation,
+provider configuration and untested session capabilities. Use `--text` when
+capturing readable output; `--json` keeps the structured diagnostics.
+
+Full MCP provides project saving, which still requires a preview and your approval;
+Lite does not provide project saving. Provider status is offline. A configured
+provider is not yet a verified connection: an optional
+`qiongli provider test <provider> --confirm-network-request` makes one online
+request. Platforms without credential storage cannot save API keys; public
+settings remain configurable.
+
 See [Plugin setup](../advanced/plugin-installation.md) for Host selection, language, hooks and DeepSeek profiles. Already installed? Follow the [upgrade guide](upgrade.md).

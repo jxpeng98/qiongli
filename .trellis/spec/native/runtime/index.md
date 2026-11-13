@@ -659,6 +659,16 @@ execution. Explicit output flags are rejected for interactive/streaming commands
 MCP stdout never includes human presentation. Error exit status and path redaction
 are preserved. Text escapes terminal controls, retains complete mutation preview
 fields and digest values, and summarizes only designated read-only overviews.
+Readiness summaries describe the scope of existing observations: local Plugin
+registration does not verify the active Host session, provider metadata does not
+verify credential access or connectivity, and a local MCP check does not exercise
+project saving. Ready checks retain actionable session remediation. Inventory
+distinguishes refresh, conflict and unavailable observations before suggesting
+next steps; an unknown profile never implies Full MCP. Lite explicitly lacks
+project saving. Provider status keeps disabled, missing key, missing public
+setting and unavailable secure storage distinct; public settings remain usable
+without key storage. These are presentation projections, with no new probe,
+stored health state, JSON field, automatic repair or approval path.
 Embedded resource, release authority and Companion checks always run in the
 build script. CLI-only compilation is not standalone package qualification.
 

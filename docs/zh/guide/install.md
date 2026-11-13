@@ -52,4 +52,13 @@ qiongli mcp check
 
 新开 Host 会话，请它列出穷理工具并调用 `qiongli_config_status`。`mcp check` 只检查本地协议。接着按[快速开始](../quickstart.md)提出研究请求。
 
+运行 `qiongli doctor`、`qiongli install inventory` 或 `qiongli provider status`，
+可查看还需检查什么。终端摘要区分本地安装、文献服务配置和未经验证的会话能力。
+重定向时使用 `--text` 保留易读输出；`--json` 保留结构化诊断。
+
+Full MCP 提供项目保存，仍需预览和你的批准；Lite 不提供项目保存。
+Provider 状态检查不联网，已配置也不代表连接正常。如需测试，可主动运行
+`qiongli provider test <provider> --confirm-network-request` 发起一次在线请求。
+缺少凭据存储支持的平台不能保存 API 密钥，但仍可配置公开设置。
+
 指定 Host、语言、Hook 或 DeepSeek profile，见 [Plugin 配置](../advanced/plugin-installation.md)。已安装用户见[升级指南](upgrade.md)。

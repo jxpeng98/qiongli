@@ -1,6 +1,6 @@
 # Qiongli 2.4.0 — traceable research, substantive writing and Plugin reliability
 
-Current work continues in [the November 13 installation increment](#november-13--published-installation-entry-consistency). Earlier sections retain their historical candidate identities and decisions.
+Current work continues in [the November 13 readiness increment](#november-13--task-readiness-display). Earlier sections retain their historical candidate identities and decisions.
 
 - Status: the maintainer authorizes continued development through release
   readiness on October 5, then confirms isolated AGY login and remote source
@@ -4847,3 +4847,62 @@ reader or adapter fix. A frozen same-Host/same-model three-arm protocol follows
 separately; do not relabel old observations or launch a large experiment as part
 of this documentation repair. Local integration is authorized; push and
 publication remain outside this round.
+
+## November 13 — task readiness display
+
+The maintainer requests the next step after the installation-page repair at
+`50a6b326e4358b1d241092852397b46726523579`. The bounded outcome is an understandable
+account of local capabilities and untested research tasks, using the existing
+CLI presentation owner. No new probe, health database or schema is needed.
+
+`doctor` already receives the reason `local-host-registered-session-unchecked`
+and a session-check remediation, but its text renderer hides both when the local
+check is `ready`. A focused regression first fails on the missing reason, then
+passes after retaining actionable remediation on ready checks. Installation
+inventory, local MCP checking and provider status already contain the required
+underlying distinctions; their structured results remain unchanged.
+
+The terminal/`--text` summaries now explain retrieval and saving before diagnostic
+details. Local Full MCP installation is distinct from saving in the active Host;
+Lite lacks project saving, and an unknown profile does not imply Full. Current,
+refresh-required, conflicting and unavailable installation observations retain
+their existing states and version/reason details. Refresh guidance asks users to
+compare CLI and Plugin versions before updating. Missing keys, missing public
+settings, disabled providers and unsupported credential storage stay distinct.
+Configured providers retain untested credential/connectivity status; failed online
+results preserve their reason and exit code. Installation completion keeps Hook
+trust/session checks pending and retains exact source/cache locations.
+
+The native runtime contract and bilingual installation guide explain these
+boundaries. Redirected JSON, approval previews, project preview/approval/CAS,
+credential ownership, models, client settings and all write paths are unchanged.
+
+### Validation and remaining work
+
+Nine presentation tests, four affected CLI integration tests, 27 installation/
+distribution documentation tests and seven ledger tests pass. Strict Clippy for
+the CLI library, binary and integration test passes, as do formatting, diff and
+generated-index checks. The documentation site builds with dead-link checks
+enabled; its existing highlighting fallbacks and bundle-size warning remain.
+A baseline comparison preserves all 249 task states,
+dependencies and accepted evidence/commit/run bindings; only CLI-410 progress
+and its index projection change.
+
+Native validation uses the existing offline Linux ARM64/Rust 1.97 container and
+build cache. The first CLI batch passes three tests but the Plugin lifecycle
+fixture refuses before JSON output. Independent reproduction reports
+`insecure-materialization-parent` for the group-writable checkout path. A
+byte-identical private source copy with directory mode 700 passes the remaining
+test in 21.79 seconds, retaining approval rejection, drift detection and user-file
+preservation. No product guard is weakened. The initial failed regression,
+three-pass/one-failure batch, diagnosis and private retry remain in
+`/tmp/qiongli-readiness-20261113`. Temporary driver corrections for image lookup
+and the minimal container's missing Python preceded actual test/diagnosis
+execution; neither is counted as a product test result.
+
+The next increment should capture one long-material/save/fresh-session journey
+using an identified current package and the user's configured Host/model. These
+presentation checks do not establish live Host/session readiness, successful
+online research, macOS Keychain access or academic-quality gains. Keep CLI-410
+progress separate from accepted evidence; local integration does not authorize
+remote synchronization or publication.

@@ -228,9 +228,17 @@ fn readable_output(output: CliOutput) -> CliOutput {
         }
         "doctor" => {
             text.push_str(&format!(
-                "Installation health: {}\n\n",
+                "Local installation checks: {}\n\n",
                 scalar(&value["overall"])
             ));
+            pending_research_checks(&mut text);
+            if let Some(store) = array(&value["checks"])
+                .iter()
+                .find(|c| c["id"] == "secure-store")
+            {
+                credential_storage(&mut text, store["state"].as_str());
+            }
+            text.push_str("\nLocal diagnostics\n");
             for check in array(&value["checks"]) {
                 // The legacy wire check concerns in-process execution, not Full MCP.
                 if check["id"] == "full-runtime"
@@ -249,15 +257,19 @@ fn readable_output(output: CliOutput) -> CliOutput {
                         ""
                     }
                 ));
-                if check["state"] != "ready" {
+                let next = check["remediation"]
+                    .as_str()
+                    .filter(|v| !v.is_empty() && *v != "none");
+                if check["state"] != "ready" || next.is_some() {
                     row(&mut text, "    Reason", &check["code"]);
-                    if check["remediation"]
-                        .as_str()
-                        .is_some_and(|value| value != "none")
-                    {
+                    if let Some(next) = next {
                         text.push_str(&format!(
                             "      Next: {}\n",
-                            label(check["remediation"].as_str().unwrap_or_default())
+                            match next {
+                                "restart-host-to-check-live-tools" => "Start a new Host session; list Qiongli tools and call qiongli_config_status.".into(),
+                                "upgrade-local-plugin" => "Compare CLI and Plugin versions with qiongli install inventory before refreshing the Plugin.".into(),
+                                _ => label(next),
+                            }
                         ));
                     }
                 }
@@ -270,14 +282,15 @@ fn readable_output(output: CliOutput) -> CliOutput {
             }
         }
         "install-inventory" => {
-            installations(&mut text, &value["cli"]);
-            text.push_str("\nHost discovery\n");
+            text.push_str("Research in your Host (local installation only)\n\n");
+            pending_research_checks(&mut text);
             for client in array(&value["inventory"]["clients"]) {
                 text.push_str(&format!(
                     "\n  {}: {}\n",
                     scalar(&client["client"]),
                     scalar(&client["readiness"])
                 ));
+                host_tasks(&mut text, client);
                 row(&mut text, "    Host", &client["host_presence"]);
                 row(
                     &mut text,
@@ -286,7 +299,47 @@ fn readable_output(output: CliOutput) -> CliOutput {
                 );
                 row(&mut text, "    Reason", &client["reason_code"]);
             }
+            installations(&mut text, &value["cli"]);
             text.push_str("\nInstall or update content: qiongli install\nReview CLI versions: qiongli setup  |  qiongli install list --paths exact\n");
+        }
+        "mcp-check" => {
+            text.push_str("Local MCP protocol check\n\n");
+            text.push_str("  Online retrieval: not checked; inspect qiongli provider status.\n");
+            match value["profile"].as_str() {
+                Some("full") => text.push_str("  Saving: Full MCP includes project tools; saving was not exercised. A save still requires preview and approval.\n"),
+                Some("lite") => text.push_str("  Saving: unavailable in Lite; use Full MCP for project tools.\n"),
+                _ => text.push_str("  Saving: profile not known; project tools are not confirmed.\n"),
+            }
+            text.push_str("  Host session: not checked by this local test.\n\nProtocol details\n");
+            fields(&mut text, &value, 0);
+        }
+        "provider-status" => {
+            text.push_str("Literature retrieval (offline configuration check)\n\n");
+            for provider in array(&value["providers"]) {
+                let name = provider["provider"].as_str().unwrap_or("unknown");
+                let needs_key = matches!(name, "openalex" | "semantic_scholar" | "pubmed");
+                let state = if provider["enabled"] == false {
+                    "disabled"
+                } else {
+                    match provider["readiness"].as_str() {
+                        Some("ready") if needs_key && value["secure_store"] == "unavailable" => {
+                            "configured, but credential storage is unavailable on this platform"
+                        }
+                        Some("ready") => "configured; online retrieval not checked",
+                        Some("needs_secret") => "API key missing; configure this provider",
+                        Some("needs_public_setting") => {
+                            "public setting missing; configure this provider"
+                        }
+                        Some("secret_store_unavailable") => "credential storage unavailable",
+                        Some("disabled") => "disabled",
+                        _ => "configuration not known; inspect the structured diagnostics",
+                    }
+                };
+                text.push_str(&format!("  {}: {state}\n", safe(name)));
+            }
+            credential_storage(&mut text, value["secure_store"].as_str());
+            text.push_str("\nNext: qiongli provider setup <provider>\nOptional online check: qiongli provider test <provider> --confirm-network-request\nThis sends one request only when you explicitly run it.\n\nDiagnostics\n");
+            fields(&mut text, &value, 0);
         }
         "project-list" => {
             let library = &value["library"];
@@ -340,6 +393,45 @@ fn readable_output(output: CliOutput) -> CliOutput {
     }
     text.push_str("\nUse --json for the complete structured result.\n");
     output.with_stdout(text)
+}
+
+fn pending_research_checks(text: &mut String) {
+    text.push_str("  Online retrieval: not checked; inspect qiongli provider status.\n  Saving in the Host: not checked; requires Full MCP, preview and approval.\n  After installation or refresh, start a new Host session; list Qiongli tools and call qiongli_config_status.\n");
+}
+
+fn credential_storage(text: &mut String, state: Option<&str>) {
+    text.push_str(match state {
+        Some("unavailable") => "  API key storage: cannot save or access keys on this platform. Public settings remain configurable.\n",
+        Some("ready" | "available") => "  API key storage: supported; actual credential access has not been tested.\n",
+        _ => "  API key storage: availability not confirmed.\n",
+    });
+}
+
+fn host_tasks(text: &mut String, client: &Value) {
+    let readiness = client["readiness"].as_str();
+    let reason = client["reason_code"].as_str();
+    let summary = match (readiness, reason) {
+        (Some("unavailable"), _) | (_, Some("local-host-observation-unavailable")) => {
+            "Observation unavailable; installed capabilities cannot be confirmed. Inspect Host inventory before changing anything."
+        }
+        (Some("resolve-conflict"), _) => {
+            "Resolve the reported local conflict before using this integration."
+        }
+        (Some("repair-ready"), _) | (_, Some("local-host-refresh-required")) => {
+            "Refresh required; compare CLI and Plugin versions before updating, then start a new session."
+        }
+        (Some("current"), _) if client["components"]["full_mcp"] == "ready" => {
+            "Full MCP is installed locally; research and saving in the active session are not verified."
+        }
+        (Some("current"), _) => {
+            "Full MCP is not confirmed; Lite and standalone Skills do not provide project saving tools."
+        }
+        (Some("install-ready" | "inspect-only"), _) => {
+            "Integration not confirmed; review installation with qiongli install."
+        }
+        _ => "Capabilities not confirmed; inspect the structured diagnostics.",
+    };
+    text.push_str(&format!("    {summary}\n"));
 }
 
 fn installations(text: &mut String, inventory: &Value) {
@@ -408,7 +500,7 @@ pub(crate) fn plugin_install_summary(
         ),
     };
     let mut text = format!(
-        "\nQiongli Plugin installed — {host}\n\n  Version   {}\n  Plugin    {}\n  Source    {}\n  Cache     {}\n\n  Verified  registration, enabled state and cached files\n  Includes  Skills + Full MCP (35 tools)\n  Pending   session tools{}\n\nNext steps\n",
+        "\nQiongli Plugin installed — {host}\n\n  Research  Skills and Full MCP are installed locally; open a new Host session.\n  Retrieve  Provider connectivity has not been checked.\n  Save      Full MCP includes project tools; saving is untested and requires preview and approval.\n\n  Version   {}\n  Plugin    {}\n  Source    {}\n  Cache     {}\n\n  Verified  registration, enabled state and cached files\n  Includes  Skills + Full MCP (35 tools)\n  Pending   session tools{}\n\nNext steps\n",
         env!("CARGO_PKG_VERSION"),
         safe(plugin),
         safe(&source.destination.to_string_lossy()),
@@ -519,6 +611,176 @@ mod tests {
     use super::*;
 
     #[test]
+    fn locally_ready_doctor_keeps_the_session_check_visible() {
+        let output = readable_output(CliOutput::success_text(
+            serde_json::json!({
+                "command":"doctor", "overall":"ready", "checks":[{
+                    "id":"codex-local", "state":"ready", "blocking":false,
+                    "code":"local-host-registered-session-unchecked",
+                    "remediation":"restart-host-to-check-live-tools"
+                }]
+            })
+            .to_string(),
+        ));
+        assert!(
+            output
+                .stdout()
+                .contains("local-host-registered-session-unchecked")
+        );
+        assert!(output.stdout().contains("qiongli_config_status"));
+        assert!(output.stdout().contains("Online retrieval: not checked"));
+        assert!(output.stdout().contains("Saving in the Host: not checked"));
+        assert_eq!(output.exit_code(), 0);
+    }
+
+    #[test]
+    fn inventory_distinguishes_current_refresh_conflict_and_unknown_capabilities() {
+        for (state, reason, full, expected) in [
+            (
+                "current",
+                "local-host-registered-session-unchecked",
+                "ready",
+                "Full MCP is installed locally",
+            ),
+            (
+                "repair-ready",
+                "local-host-refresh-required",
+                "ready",
+                "compare CLI and Plugin versions",
+            ),
+            (
+                "unavailable",
+                "local-host-observation-unavailable",
+                "ready",
+                "Observation unavailable",
+            ),
+            (
+                "resolve-conflict",
+                "conflict",
+                "ready",
+                "Resolve the reported local conflict",
+            ),
+            (
+                "current",
+                "current",
+                "unavailable",
+                "Full MCP is not confirmed",
+            ),
+            (
+                "install-ready",
+                "missing",
+                "missing",
+                "Integration not confirmed",
+            ),
+            ("unknown", "unknown", "ready", "Capabilities not confirmed"),
+        ] {
+            let output = readable_output(CliOutput::success_text(
+                serde_json::json!({
+                    "command":"install-inventory", "inventory":{"clients":[{
+                        "client":"codex", "readiness":state,"reason_code":reason,
+                        "installed_plugin_version":"2.5.1", "components":{"full_mcp":full}
+                    }]}, "cli":{"installations":[]}
+                })
+                .to_string(),
+            ));
+            let text = output.stdout();
+            assert!(text.contains(expected), "{text}");
+            assert!(text.contains("2.5.1") && text.contains(reason));
+            assert!(text.contains("Saving in the Host: not checked"));
+            assert_eq!(
+                text.contains("Full MCP is installed locally"),
+                state == "current" && full == "ready"
+            );
+            assert!(text.find(expected).unwrap() < text.find("CLI installations").unwrap());
+        }
+    }
+
+    #[test]
+    fn provider_summary_preserves_missing_settings_and_unchecked_credentials() {
+        for store in ["available", "unavailable", "unknown"] {
+            let output = readable_output(CliOutput::success_text(
+                serde_json::json!({
+                    "command":"provider-status", "secure_store":store,
+                    "credential_access":"not-tested", "online_connection":"not-tested",
+                    "providers":[
+                        {"provider":"openalex","enabled":true,"readiness":"ready"},
+                        {"provider":"semantic_scholar","enabled":true,"readiness":"needs_secret"},
+                        {"provider":"crossref","enabled":true,"readiness":"needs_public_setting"},
+                        {"provider":"pubmed","enabled":false,"readiness":"disabled"},
+                        {"provider":"arxiv","enabled":true,"readiness":"ready"},
+                        {"provider":"unknown\u{001b}[2J","enabled":true,"readiness":"unknown"}
+                    ]
+                })
+                .to_string(),
+            ));
+            let text = output.stdout();
+            assert!(text.contains("semantic_scholar: API key missing"));
+            assert!(text.contains("crossref: public setting missing"));
+            assert!(text.contains("pubmed: disabled"));
+            assert!(text.contains("arxiv: configured; online retrieval not checked"));
+            assert!(text.contains("configuration not known"));
+            assert!(text.contains("not-tested") && text.contains("--confirm-network-request"));
+            assert!(!text.contains('\u{001b}'));
+            assert_eq!(
+                text.contains("cannot save or access keys"),
+                store == "unavailable"
+            );
+            assert_eq!(
+                text.contains("openalex: configured, but credential storage is unavailable"),
+                store == "unavailable"
+            );
+            assert_eq!(
+                text.contains("availability not confirmed"),
+                store == "unknown"
+            );
+        }
+    }
+
+    #[test]
+    fn mcp_summary_distinguishes_lite_full_and_unknown_without_a_save_claim() {
+        for (profile, expected) in [
+            ("lite", "Saving: unavailable in Lite"),
+            ("full", "saving was not exercised"),
+            ("unknown", "profile not known"),
+        ] {
+            let output = readable_output(CliOutput::success_text(
+                serde_json::json!({
+                    "command":"mcp-check", "profile":profile,
+                    "scope":"local-in-process-protocol", "initialize":"passed",
+                    "host_session":"not-checked", "provider_connectivity":"not-checked"
+                })
+                .to_string(),
+            ));
+            let text = output.stdout();
+            assert!(text.contains(expected));
+            assert!(text.contains("Online retrieval: not checked"));
+            assert!(text.contains("Host session: not checked"));
+            assert!(text.contains("local-in-process-protocol"));
+            assert_eq!(
+                text.contains("Full MCP includes project tools"),
+                profile == "full"
+            );
+        }
+    }
+
+    #[test]
+    fn failed_online_provider_result_is_not_replaced_by_configuration_readiness() {
+        let output = readable_output(
+            CliOutput::success_text(
+                serde_json::json!({
+                    "command":"provider-test", "provider":"arxiv", "status":"failed",
+                    "online_connection":"failed", "reason_code":"transport_error"
+                })
+                .to_string(),
+            )
+            .with_exit_code(1),
+        );
+        assert_eq!(output.exit_code(), 1);
+        assert!(output.stdout().contains("failed") && output.stdout().contains("transport_error"));
+        assert!(!output.stdout().contains("configured"));
+    }
+
+    #[test]
     fn plugin_summary_keeps_session_and_hook_checks_pending_and_escapes_paths() {
         use crate::managed_operation::ManagedIntegrationTargetV1;
         let mut source = crate::plugin_source::contract_source();
@@ -536,6 +798,9 @@ mod tests {
                     std::path::Path::new("/example/\u{202e}cache"),
                 );
                 assert!(text.contains("Pending   session tools"));
+                assert!(text.contains("Provider connectivity has not been checked"));
+                assert!(text.contains("saving is untested and requires preview and approval"));
+                assert!(text.find("Research  ").unwrap() < text.find("Version   ").unwrap());
                 assert!(text.contains(&format!("qiongli install plugin --target {target}")));
                 assert!(text.contains("qiongli_config_status"));
                 assert_eq!(text.contains("/hooks"), hooks);
