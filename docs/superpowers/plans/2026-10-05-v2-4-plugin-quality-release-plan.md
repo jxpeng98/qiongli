@@ -4753,3 +4753,25 @@ dispatch post-mode Release Automation at that tag. Verify that the replacement
 macOS runner starts the previously blocked build. Exact-tag four-target, public
 download and registry gates remain with that workflow; no local result or
 accepted dispatch is reported as completed publication.
+
+### Observed recovery dispatch
+
+Reviewed source `25b6bf36f06b2f2ddb1b2395a88bb5dcd9b9cdb3` is merged locally
+into `2.x` and stable main, then atomically pushed to remote main with new tag
+v2.6.1. Remote v2.6.0 remains bound to `a8ea20be`; protected remote `2.x` and
+remote rules are unchanged. The final source differs from qualified `0e49c688`
+only in the four roadmap/plan/ledger/index files.
+
+[Release Automation 43420568339](https://github.com/jxpeng98/qiongli/actions/runs/43420568339)
+accepts the post-mode dispatch and starts
+[distribution 43420598962](https://github.com/jxpeng98/qiongli/actions/runs/43420598962)
+at the exact v2.6.1 source. At 11:53 UTC, macOS job `131869330081` has a
+`macos-15` runner and successful setup, checkout, Python, Node, Rust 1.97 and cache
+steps. Its native build/package/install step is in progress. This directly
+resolves the original unsupported-runner startup failure; it does not yet prove
+the full macOS build, combined installs or publication successful.
+
+Stop further remote tracking after this bounded failure-path check, preserving
+the maintainer's prior handoff preference. The existing workflow owns complete
+four-target qualification, public-download verification and registry dispatch.
+This final local evidence update does not move the tagged source or any tag.
