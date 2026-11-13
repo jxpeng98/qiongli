@@ -118,6 +118,31 @@ runtime, signing, installer, or release acceptance.
 
 ## Releases
 
+Current installation pages follow the **published stable release**, independently
+of the development workspace version. After publication, update the English and
+Chinese README, documentation home and installation guide together. Keep the
+four archive links, `SHA256SUMS`, release-note links and pinned npm/pip/Cargo
+examples on that release. Do not update historical release notes or point these
+pages at unpublished candidates. The legacy download-section updater does not
+maintain the native CLI pages.
+
+Run `npm run docs:check-install` to compare these six pages with GitHub's latest
+published stable release and its checksum list. Evaluation Truth runs the same
+read-only check, fetching the API metadata with its read-only GitHub token;
+unavailable metadata fails rather than reporting success.
+This checks public asset metadata and checksum coverage, not binary execution,
+registry installation or Host readiness. For an offline replay, retain the full
+GitHub release API JSON and original `SHA256SUMS` bytes, then run:
+
+```sh
+python3 tooling/scripts/check_native_install_docs.py \
+  --release-json <saved-release.json> --checksums <saved-SHA256SUMS>
+```
+
+An offline pass covers that supplied release snapshot, not the current latest
+release. Supplying only `--release-json` still downloads its checksum list.
+All modes leave source, user settings and release state unchanged.
+
 `main` carries the integrated native product and is the stable release source.
 `2.x` remains the development and prerelease source. An authorized main cutover
 integrates the reviewed 2.x tree, then checks the merged product. Do not merge

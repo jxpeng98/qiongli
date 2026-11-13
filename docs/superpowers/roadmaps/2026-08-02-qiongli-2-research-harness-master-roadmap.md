@@ -54,7 +54,23 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — November 13, 2026
 
-The maintainer reports failed release CI and requests diagnosis and repair.
+The maintainer requests the next improvement round after the v2.6.1 external
+review. The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-13--published-installation-entry-consistency)
+starts with consistent published installation entry points: bilingual README,
+documentation home and install guide, checked against public release metadata
+and its checksum list. Public v2.6.1 is now directly observed; previous dispatch
+records retain their original observation boundary. Local documentation checks
+do not qualify installation, Host readiness or academic quality.
+
+Next clarify task capabilities using existing installation/session/provider
+states, then reproduce one bounded long-material and fresh-session recovery
+journey on the current package. Keep the same Host/model comparison protocol
+separate from historical quality baselines. Reuse existing services and evidence
+owners; broader architecture expansion remains behind demonstrated user need.
+Integrate locally into `2.x`; this round grants no push or publication authority
+and does not promote any program task to accepted.
+
+The preceding release-repair increment follows the maintainer's failed-CI report.
 The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-13--repair-retired-macos-release-runners)
 binds the failed v2.6.0 distribution to GitHub's retired macOS 14 runner.
 Move all four release/Cargo macOS stages to the supported macOS 15 ARM64 image,

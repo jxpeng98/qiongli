@@ -28,6 +28,7 @@
     "desktop:macos:acceptance:host-prepare": "bash scripts/prepare_macos_acceptance_host.sh",
     "docs:dev": "vitepress dev docs --host",
     "docs:build": "vitepress build docs",
+    "docs:check-install": "python3 tooling/scripts/check_native_install_docs.py",
     "docs:preview": "vitepress preview docs --host"
   },
   "devDependencies": {

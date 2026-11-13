@@ -11,7 +11,8 @@ Cargo 发布 Rust 源码包。GitHub Release 压缩包则包含可执行文件�
 例如，`2.0.0-beta.6` 在 Python 中写作 `2.0.0b6`，正式版 `2.0.0` 在各渠道保持同一版本。
 预发布来自 `2.x`，使用 npm 的 `next` 和 crates.io 的预发布版本；
 正式版来自审阅后的 `main`，使用 npm 的 `latest`。Cargo 没有 `next` 标签。
-当前源码版本为 `2.3.0`；发布需要下述绑定标签的工作流，合入 main 本身不会发布。
+从该文件读取候选版本；发布需要下述绑定标签的工作流，合入 main 本身不会发布。
+公开安装页跟随已经发布的稳定版，可能与候选版本不同。
 
 ## Beta 通道策略
 
@@ -30,11 +31,11 @@ Beta 并非每次正式发布的必经步骤。正式版推进 npm `latest`，`n
 本地原生 CLI 发布检查沿用现有入口：
 
 ```sh
-bash scripts/release_ready.sh --version 2.3.0 --cli-github \
-  --staging-dir /tmp/qiongli-2.3.0-qualified
+bash scripts/release_ready.sh --version <version> --cli-github \
+  --staging-dir <new-external-directory>
 ```
 
-准备新版本时替换为目标版本，使用仓库之外尚不存在的暂存目录，完成所需检查并获得明确发布授权后，再创建不可改写的标签。
+将两个占位符替换为目标版本和仓库之外尚不存在的暂存目录，完成所需检查并获得明确发布授权后，再创建不可改写的标签。
 仅推送标签不会发布原生包。需要调度 **Release Automation**（`release-automation.yml`），
 设置 `mode=post`、准确的 `v2.*` 标签及 `create_release=true`。
 其中的原生发布器验证指定源码，并将核验后的产物交给 Release 和各渠道发布工作流。

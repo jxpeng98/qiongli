@@ -45,6 +45,14 @@ jobs:
       - name: Install evaluation dependency
         run: python -m pip install PyYAML==6.0.3
 
+      - name: Check published installation entry points
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m unittest tests.test_native_install_docs -q
+          gh api repos/jxpeng98/qiongli/releases/latest > "$RUNNER_TEMP/qiongli-stable-release.json"
+          python tooling/scripts/check_native_install_docs.py --release-json "$RUNNER_TEMP/qiongli-stable-release.json"
+
       - name: Check CI routing and release gates
         env:
           PYTHONPATH: packages/python-qiongli/src

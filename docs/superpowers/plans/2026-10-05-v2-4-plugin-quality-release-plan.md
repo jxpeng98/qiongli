@@ -1,6 +1,6 @@
 # Qiongli 2.4.0 — traceable research, substantive writing and Plugin reliability
 
-Current work continues in [the November 13 CI increment](#november-13--ci-scheduling-and-260-release-preparation). Earlier sections retain their historical candidate identities and decisions.
+Current work continues in [the November 13 installation increment](#november-13--published-installation-entry-consistency). Earlier sections retain their historical candidate identities and decisions.
 
 - Status: the maintainer authorizes continued development through release
   readiness on October 5, then confirms isolated AGY login and remote source
@@ -3604,7 +3604,7 @@ regenerable caches and 8 GiB free, with explicit overrides and no deletion.
 The native atomic update uses the supported API under the existing Rust 1.97
 minimum; ordering and overflow refusal are unchanged.
 
-The [frozen observation](../../../evals/research_journey/writing-quality/observations/roundtrip-2026-10-20/README.md)
+The [frozen observation](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/roundtrip-2026-10-20/README.md)
 retains exact inputs, all eight original process captures, anonymous reviewer
 output, identity key, K/L answers and a separately labelled repair. Both baseline
 and candidate pass 2/2 existing synthetic long-form tasks across all six review
@@ -3672,7 +3672,7 @@ or publication status is promoted by this work.
 The maintainer authorizes the first public-paper round: source extraction with
 figures/tables, literature-review writing, fresh-session recovery, fixes and
 recorded results, followed by local integration into `2.x` without publication.
-The [public-visual observation](../../../evals/research_journey/public-visual/README.md)
+The [public-visual observation](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/public-visual/README.md)
 owns source versions, frozen tasks/criteria, five original attempts, separate
 follow-ups and reviewed outcomes. It uses Kestin and Bastani public education
 papers, six rendered pages and the affiliation-only Bastani correction. No
@@ -3747,7 +3747,7 @@ comparison and private-manuscript review remain separately scoped.
 
 ## October 22 — Attention diagrams and bounded reads
 
-The [public attention follow-up](../../../evals/research_journey/public-visual/attention/README.md)
+The [public attention follow-up](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/public-visual/attention/README.md)
 adds one computer-science study in proceedings/arXiv v7 versions, four original
 page renders, an attention-link diagram, comparison/ablation tables and three
 fresh project-ID-only recoveries. It preserves inter-version and within-v7 score
@@ -3806,7 +3806,7 @@ that the latest instruction increases overall speed.
 
 ## October 22 — Guidance delivery and unavailable-image recovery
 
-The [delivery follow-up](../../../evals/research_journey/public-visual/delivery/README.md)
+The [delivery follow-up](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/public-visual/delivery/README.md)
 records four fresh configured-model observations and offline inspection of the
 three preceding attention rollouts. The latter expose 3/1/3 outer truncations and
 0/1/1 script failures omitted by simplified exec JSON. Existing evaluation code
@@ -3863,7 +3863,7 @@ measurements, a behavior check of search help and author/subject-expert review.
 ## October 23 — Evidence-led writing quality
 
 The maintainer prioritizes content quality over overall startup speed. The
-[quality observation](../../../evals/research_journey/writing-quality/observations/content-2026-10-23/README.md)
+[quality observation](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/content-2026-10-23/README.md)
 compares two fresh writer processes on the same saved public education papers
 and the existing fictional cluster-randomized error-identification record.
 Each produces a bilingual literature-review unit and a separate Chinese
@@ -3926,7 +3926,7 @@ separate bounded work. The pilot does not establish broad language-quality gains
 
 The maintainer asks for longer public-paper passages in additional disciplines,
 prioritizing content quality and local integration without publication. The
-[long-form observation](../../../evals/research_journey/writing-quality/observations/longform-2026-10-23/README.md)
+[long-form observation](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/longform-2026-10-23/README.md)
 uses Hallmann2017 ecology and Dwyer2023 social policy. Two fresh configured-model
 writers produce four bilingual task outputs (eight language sections), all within
 1100–1500 Chinese characters / 700–900 English words. Source e406ce8c narrowly
@@ -3959,7 +3959,7 @@ discovery and optional PDF rendering remain separate bounded work.
 
 ## October 23 — First-use qualitative writing
 
-The [qualitative observation](../../../evals/research_journey/writing-quality/observations/interpretive-2026-10-23/README.md)
+The [qualitative observation](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/interpretive-2026-10-23/README.md)
 freezes existing 997ea931 guidance on Mitter2019, an 18-page public qualitative
 paper not used in preceding local adjustments. The 1672-character Chinese and
 925-word English discussions pass all seven independent review dimensions.
@@ -3989,7 +3989,7 @@ Ostrom source, single qualitative sample and same-model reviews limit coverage.
 
 ## October 23 — First-use theoretical writing
 
-The [theoretical observation](../../../evals/research_journey/writing-quality/observations/theory-2026-10-23/README.md)
+The [theoretical observation](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/theory-2026-10-23/README.md)
 uses the complete 17-page publisher PDF of Anderies2004, absent from preceding
 local writing adjustments. Guidance, source, question, seven review dimensions
 and six editing cases are frozen at e21d4581 before execution. The anonymous
@@ -4018,7 +4018,7 @@ judgment and proof-based theory, beyond this single conceptual-framework paper.
 
 ## October 23 — Cross-section writing and external polish
 
-The [cross-section observation](../../../evals/research_journey/writing-quality/observations/cross-section-2026-10-23/README.md)
+The [cross-section observation](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/cross-section-2026-10-23/README.md)
 uses the complete nine-page Doshi/Hauser2024 public paper and Figures 1–4, absent
 from prior local adjustments. It freezes guidance, question, eight-section
 bilingual layout, counting contract and seven review dimensions at 01b20b08.
@@ -4054,7 +4054,7 @@ same-model reviewer cannot establish general gains or named-model superiority.
 
 ## October 23 — Multi-paper writing and recovered language review
 
-The [three-study observation](../../../evals/research_journey/writing-quality/observations/multipaper-2026-10-23/README.md)
+The [three-study observation](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/multipaper-2026-10-23/README.md)
 uses complete first-use Kazemitabaar2023, Prather2024 and Shen2026 public versions.
 One configured Codex writer, one real Antigravity edit and one fresh Codex review
 complete. The reviewer recovers current source/manuscript/task/guidance bindings
@@ -4095,7 +4095,7 @@ quality gains or choosing the next content regression.
 ## November 6 — Scoped human feedback and Chinese expression
 
 The user prefers B for the single Chinese Discussion paragraph shown in the
-[first-pass follow-up](../../../evals/research_journey/writing-quality/observations/multipaper-2026-10-23/README.md#november-6--human-preference-for-one-chinese-paragraph),
+[first-pass follow-up](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/multipaper-2026-10-23/README.md#november-6--human-preference-for-one-chinese-paragraph),
 while finding further room for improvement. Preserve the exact question, three
 labelled excerpts and manuscript/request hashes. A/C are identical at this scope;
 the submitted body equals B, with one added line whose intended placement is
@@ -4137,7 +4137,7 @@ and actual editing time remain open.
 
 ## November 6 — Unseen Chinese paragraphs and human selection
 
-The [new Chinese observation](../../../evals/research_journey/writing-quality/observations/chinese-holdout-2026-11-06/README.md)
+The [new Chinese observation](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/chinese-holdout-2026-11-06/README.md)
 uses two previously unused passages from Traag's 2016 PLOS ONE paper. Complete
 publisher HTML/XML/PDF and exact JATS paragraph locators are preserved. The two
 writers receive identical sources/tasks and the user's configured model; their
@@ -4184,7 +4184,7 @@ review; combined-text, English and whole-manuscript judgments remain open.
 
 ## November 6 — Connected Chinese prose and blinded feedback
 
-The [connected Chinese observation](../../../evals/research_journey/writing-quality/observations/chinese-connected-2026-11-06/README.md)
+The [connected Chinese observation](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/chinese-connected-2026-11-06/README.md)
 uses the first ten consecutive Discussion paragraphs from Fanelli's 2009 PLOS
 ONE paper, locally unused at `53de04a6`. Complete publisher HTML/XML/PDF and exact
 JATS locators are retained. Both writers receive the same 1,281-word source and
@@ -4234,7 +4234,7 @@ source; English, longer manuscripts and disciplinary judgments remain open.
 
 ## November 6 — Chinese writing across acoustics sections
 
-The [cross-section Chinese observation](../../../evals/research_journey/writing-quality/observations/chinese-crosssection-2026-11-06/README.md)
+The [cross-section Chinese observation](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/chinese-crosssection-2026-11-06/README.md)
 uses Tarlao, Steele and Guastavino's 2022 environmental-acoustics paper, locally
 unused at `7616f636`. Complete publisher HTML/XML/PDF are retained. The continuous
 Methods–Results–Discussion–Conclusions packet includes 69 paragraphs, lists, nine
@@ -4262,7 +4262,7 @@ snapshot reference; the key, raw automatic judgments and indirect identity
 mapping in recovered paths are withheld. The private snapshot retains all three
 complete runs for disclosure after feedback.
 
-The [X/Y anonymous comparison](../../../evals/research_journey/writing-quality/observations/chinese-crosssection-2026-11-06/anonymous-comparison.md)
+The [X/Y anonymous comparison](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/chinese-crosssection-2026-11-06/anonymous-comparison.md)
 is issued with fresh whole-manuscript labels. This time trailing whitespace is
 normalized before presentation, so the repository display remains byte-identical
 to the questioned packet. The user has not yet supplied a preference. Do not
@@ -4310,7 +4310,7 @@ and Y as the earlier baseline; retain that result without claiming a candidate
 win or inferring a general guidance effect. X/Y body counts are 3338/3368, so the
 human's conciseness preference is not a claim that Y contains fewer characters.
 
-The [selected text](../../../evals/research_journey/writing-quality/observations/chinese-crosssection-2026-11-06/selected.md)
+The [selected text](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/chinese-crosssection-2026-11-06/selected.md)
 retains Y's two sections and eight paragraphs with zero wording, citation or
 ordering changes. Only trailing whitespace and the terminal newline are normalized.
 No optional X detail is added: no missing premise or meaning error justifies it.
@@ -4333,7 +4333,7 @@ outside this observation.
 ## November 6 — Selectable writing styles
 
 The user additionally asks to retain or refine X and save several writing styles
-in Qiongli. The [style observation](../../../evals/research_journey/writing-quality/observations/writing-styles-2026-11-06/README.md)
+in Qiongli. The [style observation](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/writing-styles-2026-11-06/README.md)
 retains original X, a separate three-sentence refinement and unchanged selected Y.
 Canonical `writing-styles.md`, routed conditionally from `scholarly-voice.md`,
 offers concise/explanatory choices and scoped custom samples. Meaning integrity
@@ -4376,7 +4376,7 @@ requested project save; use a new source for further held-out quality assessment
 
 The user requests completion of the three writing evidence gaps, preparation of
 new release content and cleanup of regenerable build caches. The
-[closeout observation](../../../evals/research_journey/writing-quality/observations/release-closeout-2026-11-06/README.md)
+[closeout observation](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/release-closeout-2026-11-06/README.md)
 binds a real isolated native save, two fresh configured-model recoveries, a
 Host-labelled Antigravity return and a complete anonymous bilingual example.
 The existing owners remain responsible for source review, project writes and
@@ -4523,7 +4523,7 @@ reader and describes M's English as slightly more formal, N's as relatively more
 informal. Actual reading/editing time is unreported; it remains unknown.
 
 The original packet and all seven file bindings verify. N is the original; M is
-the Host-confirmed Antigravity return. The [human review](../../../evals/research_journey/writing-quality/observations/release-closeout-2026-11-06/human-review.md)
+the Host-confirmed Antigravity return. The [human review](https://github.com/jxpeng98/qiongli/blob/v2.6.1/evals/research_journey/writing-quality/observations/release-closeout-2026-11-06/human-review.md)
 retains the verbatim feedback, disclosure order, unsealed model review and
 coordinator source-text adjudication. No required scientific repair is found.
 Mechanical checks separately expose M's 2458 Chinese code points against a 2400
@@ -4775,3 +4775,75 @@ Stop further remote tracking after this bounded failure-path check, preserving
 the maintainer's prior handoff preference. The existing workflow owns complete
 four-target qualification, public-download verification and registry dispatch.
 This final local evidence update does not move the tagged source or any tag.
+
+## November 13 — published installation entry consistency
+
+The maintainer supplies the external v2.6.1 review and requests the next round.
+The first bounded outcome is a consistent route to the published stable CLI.
+Start from local `2.x` at `cd980b11a116646339d7eef03c65c637849a2db0`; retain
+existing models, runtime behavior, historical observations and acceptance gates.
+
+### Diagnosis and change
+
+The native release path delegates before the legacy download updater runs;
+native version synchronization updates package inputs but not these pages.
+Both README and install guides still recommend 2.5.1, while both documentation
+home pages describe 2.3.0. npm's floating `latest` also differs from the pinned
+pip/Cargo recommendations. The legacy updater targets retired page headings and
+Desktop/MCPB structure and cannot maintain the current native installation path.
+
+On November 13, read-only public API inspection directly observes
+[v2.6.1](https://github.com/jxpeng98/qiongli/releases/tag/v2.6.1), published at
+12:04:35 UTC with 20 assets. The local immutable tag resolves to
+`25b6bf36f06b2f2ddb1b2395a88bb5dcd9b9cdb3`. This updates the publication fact
+without rewriting earlier records that stopped at runner startup.
+
+Align all six entry pages to 2.6.1, including notes, four platform archives,
+SHA256SUMS and pinned npm/pip/Cargo examples. The new read-only
+`tooling/scripts/check_native_install_docs.py` checks against published stable
+metadata, independently of the development Cargo version. It validates official
+asset URLs, positive sizes, published digests, the checksum file's own digest,
+archive coverage and platform-to-link mapping. No binaries are downloaded or
+executed. Missing metadata, stale pages and mismatches fail explicitly.
+
+Expose the check through `npm run docs:check-install` and the existing Evaluation
+Truth job with its read-only GitHub token; no remote rule or runtime CI changes.
+Saved release API JSON plus original SHA256SUMS allow an explicitly labelled
+offline replay, which cannot establish that the snapshot is still latest.
+CONTRIBUTING documents stable-versus-candidate ownership. The bilingual publisher
+guides use explicit candidate/staging placeholders rather than another stale
+hardcoded version.
+
+### Validation and remaining work
+
+The live checker first rejects the original pages, then passes all six corrected
+pages against public v2.6.1 metadata and checksum bytes. Seventy-six distinct
+Python tests pass across installation docs, distribution docs, branch policy,
+native change boundary, native release publisher, version contract and version
+sync. Installation cases cover stale agreeing pages, individual language drift,
+wrong/missing/duplicate assets, swapped platforms, unpinned commands, unpublished
+releases, checksum changes, network failure and read-only offline replay.
+Actionlint 1.7.12 passes the changed workflow without ShellCheck/Pyflakes
+integrations. `npm run docs:build` passes with dead-link checking enabled.
+
+Initial checks exposed two existing publisher-guide subtest failures from 2.3.0
+examples and 19 site-external observation links in this plan. Correct the examples
+and use immutable v2.6.1 GitHub links for those observations; every target exists
+in that tag. Preserve observation bodies and original results. The site retains
+nonfatal syntax-highlighting fallbacks and a bundle-size warning.
+
+Update only CLI-410 progress and regenerate the current index; retain all 249
+task states, dependencies and accepted evidence/commit/run bindings. All seven
+ledger tests and the generated-index check pass; a direct baseline comparison
+confirms those bindings are unchanged. Local checks
+and integration do not establish installed-Host readiness, registry installation,
+minimum macOS runtime compatibility or improved academic quality. No product
+schema, project data, credentials, model settings, release tags or assets change.
+
+The next bounded increment should clarify existing installation/session/provider
+states in task terms, preserving unknown and unchecked results. Then capture one
+current-package long-material/save/fresh-session journey before adding a targeted
+reader or adapter fix. A frozen same-Host/same-model three-arm protocol follows
+separately; do not relabel old observations or launch a large experiment as part
+of this documentation repair. Local integration is authorized; push and
+publication remain outside this round.
