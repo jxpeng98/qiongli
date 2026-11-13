@@ -4680,3 +4680,76 @@ at that tag. The workflow rebuilds and qualifies the exact tag across all four
 targets before publishing; this local packet does not replace that gate. This
 is ready for the authorized handoff, not evidence of completed publication.
 Stop on accepted dispatch with no subsequent run, release or registry polling.
+
+## November 13 — repair retired macOS release runners
+
+The maintainer reports failed release CI and requests diagnosis and repair,
+reopening inspection of the preceding handoff. Continue the already authorized
+publication through the existing owner; preserve immutable tags and full target
+gates. The repair is scoped to the failed macOS path, not ongoing registry
+progress tracking or a new program acceptance claim.
+
+### Failure and repair
+
+[Release Automation 43413326499](https://github.com/jxpeng98/qiongli/actions/runs/43413326499)
+fails when [distribution 43413369010](https://github.com/jxpeng98/qiongli/actions/runs/43413369010)
+returns cancelled for source `a8ea20bed24b805b766b784679e1b4bd405f205f` / `v2.6.0`.
+The macOS ARM64 job `131845128303` is cancelled before any steps. Its check
+annotation says: `The configuration 'macos-14-arm64-us-default' is not supported`.
+Windows x64 and Linux x64/ARM64 builds succeed, while assembly and combined
+installs are skipped. Release Automation stops before release creation or registry
+dispatch; the API still lists v2.5.3 as the latest published release.
+
+GitHub's [official retirement notice](https://github.blog/changelog/2026-10-01-github-actions-macos-14-runner-image-retirement/)
+removes macOS 14 runners on November 2, 2026 and lists `macos-15` as an ARM64
+replacement. Update all four affected matrix entries: CLI build, combined install,
+Cargo qualification and public Cargo install. Retain target-native execution,
+all four targets, Linux glibc baseline, upgrade checks, credential environments
+and exact-source publication gates. No other workflow scheduling changes.
+
+The existing target-roster test now requires the supported macOS build image,
+matches the combined installer roster to builders, and checks both Cargo stages.
+It fails against the retired configuration and passes after the repair. This is
+a regression check for the known retirement, not automatic discovery of future
+GitHub image retirements.
+
+Preserve v2.6.0; a rerun at that immutable tag would retain the broken workflow.
+Use the version synchronization owner for 2.6.1 and regenerate the embedded pack
+from canonical source `30749f75b3507fa20489536cb7a66b99bf5e4a02`. The nine metadata
+files differ only in Qiongli versions; dependency versions and writing rules are
+unchanged. The pack has 447 entries and SHA-256
+`8d9c74c592b8a9fcc9245a5d6229f13e8f5f0fc1ea4de36f6c7fcb08e859ee00`.
+
+### Validation and recovery handoff
+
+Ninety distinct Python tests pass: branch policy, release publisher, registry
+packages, Marketplace Plugins, release assets, CLI packaging, version contract,
+program ledger and native change boundary. Actionlint 1.7.12 passes both changed
+workflows (without ShellCheck/Pyflakes integrations). The v2.6.1 version guard,
+diff checks and frozen-source boundary pass. All 249 task states, dependencies,
+accepted evidence and commit/run bindings remain unchanged; only CLI-410 progress
+and the generated index change.
+
+The clean Linux ARM64/glibc 2.35 candidate is
+`0e49c6886749be18f7d63b1f0c02b9189dc47156`. Its canonical release qualification
+passes in 488.7 seconds in the retained offline Ubuntu 22.04 / Rust 1.97 environment
+with existing build caches. The owner passes format, strict Clippy, 47 release CLI
+tests and nine MCP tests, extracted empty-PATH execution, isolated npm/wheel installs
+and native Codex/Claude Plugin checks. Independent audit matches all five asset
+sizes/hashes and SHA256SUMS; the highest required GLIBC symbol remains 2.34.
+
+Evidence root: `/tmp/qiongli-261-publication-20261113-m08fuhno`, including
+`qualification.log`, `result.json` and `artifact-audit.json`. Binary SHA-256:
+`4ad953995af03861dcf3c40d08bbf91973a0645c7ef4b6e96dc12bbda559c82d`;
+manifest SHA-256:
+`326f0e643cf4fb84de03db16ac1e7ce2e434fde9d9cf1213936339f9e6838371`;
+SHA256SUMS SHA-256:
+`1365fc0583205eba923a5dd9f42c011e651defd48b962588da8ffc75f59e65ac`.
+
+Final bookkeeping changes only the roadmap, this plan and CLI-410's progress
+projection; qualification inputs are unchanged. Integrate locally into `2.x`,
+fast-forward stable main and push the new immutable v2.6.1 tag atomically, then
+dispatch post-mode Release Automation at that tag. Verify that the replacement
+macOS runner starts the previously blocked build. Exact-tag four-target, public
+download and registry gates remain with that workflow; no local result or
+accepted dispatch is reported as completed publication.

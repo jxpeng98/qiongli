@@ -54,7 +54,16 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — November 13, 2026
 
-The current bounded increment reduces CI usage before the pending 2.6.0 release.
+The maintainer reports failed release CI and requests diagnosis and repair.
+The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-13--repair-retired-macos-release-runners)
+binds the failed v2.6.0 distribution to GitHub's retired macOS 14 runner.
+Move all four release/Cargo macOS stages to the supported macOS 15 ARM64 image,
+retain complete target and publication gates, and qualify a fresh 2.6.1 patch
+without rewriting the immutable v2.6.0 tag. Continue the authorized release and
+check the repaired failure path; registry progress remains with the existing
+workflow. No program acceptance follows from local checks or dispatch.
+
+The preceding bounded increment reduces CI usage before the 2.6.0 release attempt.
 The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-13--ci-scheduling-and-260-release-preparation)
 records observed duplicate distribution/Cargo runs, explicit candidate scheduling,
 Linux reporting for non-runtime PRs and CLI/full manual profiles. Preserve runtime
