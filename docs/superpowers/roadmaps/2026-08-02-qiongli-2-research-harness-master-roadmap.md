@@ -54,19 +54,21 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
 
 ## Current execution horizon — November 13, 2026
 
-The maintainer requests the next step after stable installation and readiness
-presentation. The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-13--long-material-delivery-and-fresh-session-recovery)
-now records two actual configured-model Codex sessions on the public v2.6.1 Linux
-ARM64 package: long synthetic source reading, approved saving and fresh recovery.
-Native/outer truncation remains visible and is recovered with existing readers.
-Actual failed help requests motivate a narrow document-help repair in its current
-owner. No reader, persistence, model or write-approval boundary changes.
+The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-13--installed-plugin-recovery-and-default-directory-repair)
+now records actual installed Codex Full Plugin recovery after the preceding direct
+CLI reading/save journey. The released v2.6.1 native export, official manager and
+effective read-tool policy are identified. MCP document reads plus the installed
+CLI context fallback deliver the full synthetic source, saved original and current
+handoff; fingerprints remain unchanged. This is one Linux ARM64 observation with
+explicit routing cues, not MCP-only recovery or an academic-quality comparison.
 
-Next verify actual tool discovery and current-context recovery through an isolated
-installed Codex Plugin on an identified candidate, retaining the existing CLI
-fallback. Direct CLI success does not establish installed-MCP readiness. Keep
-same-Host/model quality comparison separate from this engineering observation and
-historical baselines; broader expansion remains behind demonstrated need.
+Installation exposes a default-directory mismatch: CLI previews accept Host
+suffixes that local bundle composition rejects. The existing Codex/Claude owners
+now agree, with lifecycle and signed-boundary checks; published bytes are unchanged.
+Next freeze the direct-Host / guidance / full-tooling comparison protocol and
+calibration inputs, preserving normal Host capabilities, configured models and
+historical baseline semantics. Keep used synthetic material in the regression set.
+Broader expansion remains behind demonstrated need.
 Integrate locally into `2.x`; this round grants no push or publication authority
 and does not promote any program task to accepted.
 

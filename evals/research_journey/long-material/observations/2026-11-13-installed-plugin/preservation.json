@@ -1,0 +1,54 @@
+{
+  "before": {
+    "${OBSERVATION_ROOT}/config": {
+      "file_count": 3,
+      "fingerprint_sha256": "0ebc3a71b48c1d818665965d4c8662329a99a4f3432bf497b3b45a9cf79741fe"
+    },
+    "${OBSERVATION_ROOT}/work/project": {
+      "file_count": 11,
+      "fingerprint_sha256": "b889bee151dd55b7326933a9acf7c7e115afdb72180437449905c2c9a5ae419c"
+    },
+    "${OBSERVATION_ROOT}/inputs": {
+      "file_count": 1,
+      "fingerprint_sha256": "5e527f311a2f3a077cbcb86888a1943b228dc350636f69f009afe7a4196d3d22"
+    },
+    "${PRIVATE_INSTALL_ROOT}/codex-home/plugins/cache/qiongli-cli-local/qiongli/2.6.1": {
+      "file_count": 470,
+      "fingerprint_sha256": "51ac3a491633963c2fb12b919a4409d235fb4e3e05d7f7dba92778eebc2ed1f3"
+    },
+    "${PRIVATE_INSTALL_ROOT}/qiongli": {
+      "file_count": 470,
+      "fingerprint_sha256": "51ac3a491633963c2fb12b919a4409d235fb4e3e05d7f7dba92778eebc2ed1f3"
+    },
+    "${PRIVATE_INSTALL_ROOT}/codex-home/config.toml": {
+      "file_count": 1,
+      "fingerprint_sha256": "25a21042af1f2b00f6cda9735dfa1bb70209e00fd911b8c0c3e77dc7e475d98b"
+    }
+  },
+  "after": {
+    "${OBSERVATION_ROOT}/config": {
+      "file_count": 3,
+      "fingerprint_sha256": "0ebc3a71b48c1d818665965d4c8662329a99a4f3432bf497b3b45a9cf79741fe"
+    },
+    "${OBSERVATION_ROOT}/work/project": {
+      "file_count": 11,
+      "fingerprint_sha256": "b889bee151dd55b7326933a9acf7c7e115afdb72180437449905c2c9a5ae419c"
+    },
+    "${OBSERVATION_ROOT}/inputs": {
+      "file_count": 1,
+      "fingerprint_sha256": "5e527f311a2f3a077cbcb86888a1943b228dc350636f69f009afe7a4196d3d22"
+    },
+    "${PRIVATE_INSTALL_ROOT}/codex-home/plugins/cache/qiongli-cli-local/qiongli/2.6.1": {
+      "file_count": 470,
+      "fingerprint_sha256": "51ac3a491633963c2fb12b919a4409d235fb4e3e05d7f7dba92778eebc2ed1f3"
+    },
+    "${PRIVATE_INSTALL_ROOT}/qiongli": {
+      "file_count": 470,
+      "fingerprint_sha256": "51ac3a491633963c2fb12b919a4409d235fb4e3e05d7f7dba92778eebc2ed1f3"
+    },
+    "${PRIVATE_INSTALL_ROOT}/codex-home/config.toml": {
+      "file_count": 1,
+      "fingerprint_sha256": "25a21042af1f2b00f6cda9735dfa1bb70209e00fd911b8c0c3e77dc7e475d98b"
+    }
+  }
+}

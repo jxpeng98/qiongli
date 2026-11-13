@@ -1057,8 +1057,11 @@ Host-owned. The existing Codex receipt wire bytes retain their previous form.
 `plugin_source.rs` owns the bounded local source export, routed through
 `app plan plugin-source-install|plugin-source-update|plugin-source-remove` and the
 existing `app apply` owner. `app plugin-source-status` is read-only. Both require
-`--target codex|claude --destination <absolute-path>` ending in `qiongli` or
-`qiongli-next`, under an existing secure parent. Host roots and `.qiongli` paths are reserved for their existing
+`--target codex|claude --destination <absolute-path>` under an existing secure
+parent. Local exports accept `qiongli` / `qiongli-next` and their matching Host
+suffixes (`-codex` or `-claude`), including the guided installer's default directory.
+Both channel names remain reusable on update; the receipt selects Plugin identity.
+Signed bundle naming is unchanged. Host roots and `.qiongli` paths are reserved for their existing
 owners. Plans bind source binary, content, workflow variant, path, receipt and
 the optional `context_hooks` choice (omitted false preserves legacy digest bytes);
 apply retains expiry, exact digest, filesystem approval, Home/config exclusion

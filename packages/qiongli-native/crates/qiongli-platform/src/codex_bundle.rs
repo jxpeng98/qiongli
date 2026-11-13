@@ -547,6 +547,8 @@ fn compose_codex_plugin_bundle_internal(
     // Keep verified source directories reusable when switching release channels.
     if leaf != Some(plugin_name)
         && !(kind.is_local() && matches!(leaf, Some("qiongli" | "qiongli-next")))
+        && !(kind == CodexPluginBundleKind::UserLocalHostFullMcp
+            && matches!(leaf, Some("qiongli-codex" | "qiongli-next-codex")))
         && !(target.host == LocalBundleHost::Antigravity && leaf == Some("qiongli-antigravity"))
         && !(target.host == LocalBundleHost::Pi && leaf == Some("qiongli-pi"))
     {

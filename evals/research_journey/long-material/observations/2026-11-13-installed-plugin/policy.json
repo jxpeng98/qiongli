@@ -1,0 +1,76 @@
+{
+  "model": "gpt-6-astra",
+  "model_reasoning_effort": "xhigh",
+  "approval_policy": "never",
+  "web_search": "disabled",
+  "default_permissions": "installed_read",
+  "permissions": {
+    "installed_read": {
+      "description": null,
+      "extends": null,
+      "workspace_roots": null,
+      "filesystem": {
+        "glob_scan_max_depth": null,
+        "${CODEX_BINARY}": "read",
+        "${PRIVATE_INSTALL_ROOT}/codex-home/plugins/cache/qiongli-cli-local/qiongli/2.6.1": "read",
+        "${OBSERVATION_ROOT}/config": "read",
+        "${OBSERVATION_ROOT}/inputs": "read",
+        "${OBSERVATION_ROOT}/work/project": "read",
+        ":minimal": "read"
+      },
+      "network": {
+        "enabled": false,
+        "proxy_url": null,
+        "enable_socks5": null,
+        "socks_url": null,
+        "enable_socks5_udp": null,
+        "allow_upstream_proxy": null,
+        "dangerously_allow_non_loopback_proxy": null,
+        "dangerously_allow_all_unix_sockets": null,
+        "mode": null,
+        "domains": null,
+        "unix_sockets": null,
+        "allow_local_binding": null,
+        "mitm": null
+      }
+    }
+  },
+  "mcp_servers": {},
+  "plugins": {
+    "qiongli@qiongli-cli-local": {
+      "enabled": true,
+      "mcp_servers": {
+        "qiongli": {
+          "enabled": true,
+          "default_tools_approval_mode": "prompt",
+          "enabled_tools": [
+            "qiongli_project_read",
+            "qiongli_project_document_list",
+            "qiongli_project_document_read"
+          ],
+          "tools": {
+            "qiongli_project_document_list": {
+              "approval_mode": "approve"
+            },
+            "qiongli_project_read": {
+              "approval_mode": "approve"
+            },
+            "qiongli_project_document_read": {
+              "approval_mode": "approve"
+            }
+          }
+        }
+      }
+    }
+  },
+  "marketplaces": {
+    "qiongli-cli-local": {
+      "last_updated": null,
+      "last_revision": null,
+      "source_type": "local",
+      "source": "${PRIVATE_INSTALL_ROOT}/qiongli",
+      "ref": null,
+      "sparse_paths": null
+    }
+  }
+}

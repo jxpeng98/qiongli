@@ -526,18 +526,23 @@ fn composition_conflicts_fail_closed_without_overwriting_existing_data() {
 
     let invalid_parent = fixture.root.join("invalid-bundle");
     create_private_directory(&invalid_parent);
-    let invalid_target = approve_codex_plugin_bundle_target(invalid_parent.join("not-qiongli"))
-        .expect("portable verification target must approve");
-    assert_eq!(
-        compose_codex_plugin_bundle(
-            content.pack(),
-            &grant.verified,
-            &fixture.source_binary,
-            &invalid_target,
-        )
-        .unwrap_err(),
-        CodexPluginBundleError::InvalidTarget
-    );
+    // Host-specific names belong only to user-local exports, never signed bundles.
+    for name in ["not-qiongli", "qiongli-codex", "qiongli-next-codex"] {
+        let path = invalid_parent.join(name);
+        let invalid_target = approve_codex_plugin_bundle_target(&path)
+            .expect("portable verification target must approve");
+        assert_eq!(
+            compose_codex_plugin_bundle(
+                content.pack(),
+                &grant.verified,
+                &fixture.source_binary,
+                &invalid_target,
+            )
+            .unwrap_err(),
+            CodexPluginBundleError::InvalidTarget
+        );
+        assert!(!path.exists());
+    }
 
     let target_path = fixture.standalone_target();
     let target = approve_codex_plugin_bundle_target(&target_path).unwrap();

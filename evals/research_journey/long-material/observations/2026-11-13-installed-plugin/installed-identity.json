@@ -1,0 +1,55 @@
+{
+  "plugin_id": "qiongli@qiongli-cli-local",
+  "receipt_sha256": "23a3176aa7ced47408b98247fa084f6c36601eeb89bf4713df17f45cb367571d",
+  "receipt": {
+    "artifact": {
+      "arch": "aarch64",
+      "channel": "stable",
+      "installer_kind": "plugin-bundle",
+      "os": "linux",
+      "product": "qiongli",
+      "profile": "lite",
+      "version": "2.6.1"
+    },
+    "binary_path": "bin/qiongli",
+    "binary_sha256": "89a0ed40f92d70c13a5b900e1cc25251f13f6aada95cb22e4db9a337aca3198c",
+    "content_version": "2.6.1",
+    "manifest_sha256": "b71f9e4ee3f59c1283ece2dee5defe42125dcc8a98718b85ecd27b073af9c8e7",
+    "mcp_profile": "full",
+    "mcp_sha256": "e5c932a544c3452f21b2ae85907bdb0a8be84430eea6c57fbff2030ad46e8b23",
+    "pack_id": "qiongli-core",
+    "package_content_root_sha256": "ea31e5e5d038b1a0fa5ad2f94be515ba608c2395aed3e12fe5d9d97d8258d9c8",
+    "package_kind": "user-local-host-full-mcp",
+    "profile": "marketplace-lite",
+    "resource_content_root_sha256": "e087f8014b41baa0c513946eb0569dc92540c67a8c55d8f6ea38f30924fcad91",
+    "resource_pack_sha256": "8d9c74c592b8a9fcc9245a5d6229f13e8f5f0fc1ea4de36f6c7fcb08e859ee00",
+    "schema_version": 4,
+    "signed_grant_payload_sha256": "",
+    "skill_language": "en",
+    "source_commit": "30749f75b3507fa20489536cb7a66b99bf5e4a02"
+  },
+  "entry_count": 469,
+  "installed_skill_sha256": "054121d3b0e5d7de98743cc98f8272f8cd850b9fd78c374bf182ff89c33b78cd",
+  "source_and_cache_receipts_identical": true,
+  "mcp_manifest": {
+    "mcpServers": {
+      "qiongli": {
+        "args": [
+          "mcp",
+          "serve",
+          "--profile",
+          "full",
+          "--transport",
+          "stdio"
+        ],
+        "command": "./bin/qiongli",
+        "cwd": ".",
+        "env_vars": [
+          "QIONGLI_CONFIG_HOME"
+        ],
+        "startup_timeout_sec": 20,
+        "tool_timeout_sec": 60
+      }
+    }
+  }
+}

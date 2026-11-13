@@ -1,0 +1,54 @@
+{
+  "basis": "Parsed actual untruncated outer tool returns, not only inner process logs",
+  "revision": 3,
+  "source": {
+    "path": "sources/SyntheticDelivery2026/7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968.json",
+    "sha256": "7f27a00c6d8d9d08970b5f467d4d8479cc4a42b20b2ff9bcd5be8b37a9eec968",
+    "bytes": 39667,
+    "offsets": [
+      0,
+      10000,
+      19999,
+      29999
+    ],
+    "call_ids": [
+      "call_1032c494a8f94e8597423b98d4071451",
+      "call_412b8b5189aa4e3cad51287d5b909701",
+      "call_d1d7996e38cf43eda775046a7ed91306",
+      "call_97aa9881f7824f8fbaed3e0805fa00ab"
+    ],
+    "whole_file_received": true
+  },
+  "complete_artifacts": {
+    "context/research_state.md": {
+      "size_bytes": 1534,
+      "sha256": "b086c2bdf55a210b21b9380398f27ab2a0f8da99a2bbe018d544863d6a92bad0",
+      "received_in": [
+        "call_d2fdfa29612e465cb10248634ce9158f"
+      ]
+    },
+    "context/stage_handoff.md": {
+      "size_bytes": 23351,
+      "sha256": "129cc2988b89484b2fe96e690cac58a80fdb9def19bd9c6cbb13fa6fdfe5c062",
+      "received_in": [
+        "call_d2fdfa29612e465cb10248634ce9158f",
+        "call_96c954d5540b429d8f7a168d6aa9adf1"
+      ]
+    },
+    "context/stage_summaries/STG-W-DELIVERY-001.md": {
+      "size_bytes": 3014,
+      "sha256": "0d9308f28567ba310e9d8d20209f3f4e91ce905eef10a0ddd93b533ea189d327",
+      "received_in": [
+        "call_4cb944217bef44e39ccd685ecf198c2d"
+      ]
+    }
+  },
+  "initial_context_truncations": [
+    {
+      "call_id": "call_d2fdfa29612e465cb10248634ce9158f",
+      "path": "context/stage_handoff.md",
+      "received_bytes": 16384,
+      "source_bytes": 23351
+    }
+  ]
+}

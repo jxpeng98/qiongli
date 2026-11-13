@@ -1,0 +1,40 @@
+{
+  "build_environment": "Offline Linux ARM64/glibc2.35, Rust1.97, CARGO_INCREMENTAL=0, byte-identical private source snapshot",
+  "candidate_base": "775b94aa1b7838c2613dedb73b169362247027ef",
+  "candidate_cli_sha256": "98541bf5f0166894371803893cd166d49395056a16599912463d30fd6d3ef861",
+  "source_files": {
+    "packages/qiongli-native/crates/qiongli-platform/src/codex_bundle.rs": "e75517787ab10d5dda90904ec5c71a530e93565290dbc76d1f6e9832fb24847f",
+    "packages/qiongli-native/crates/qiongli-platform/src/claude_bundle.rs": "f41c2768088034ee5e9acc8ff8c9dfd9649b12e7a864d627f7745623b9192d2a",
+    "packages/qiongli-native/apps/qiongli/tests/cli.rs": "e0e58b81e72fc9f248dc00026b6a66fc1c8185a95dfc3ebebfe10c09780b4b49",
+    "packages/qiongli-native/apps/qiongli/tests/codex_plugin_bundle.rs": "a2484876d2180935a844402747191eb5d1dacd7bcc42f29d30fc192b3d8e6b6b",
+    "packages/qiongli-native/apps/qiongli/tests/claude_plugin_bundle.rs": "a88165dfb51ea8be46554e093575385c144dc3c785bd32319c09d9c8345c8658"
+  },
+  "logs": {
+    "tests.log": {
+      "raw_sha256": "74ab174357927de7e934331568f8a87d49e1a27d1268c35a01208e5d85104a86",
+      "output": "   Compiling qiongli-platform v2.6.1 (${BUILD_SOURCE}/packages/qiongli-native/crates/qiongli-platform)\n   Compiling qiongli v2.6.1 (${BUILD_SOURCE}/packages/qiongli-native/apps/qiongli)\n    Finished `release` profile [optimized] target(s) in 2m 17s\n     Running tests/cli.rs (${CARGO_TARGET_DIR}/aarch64-unknown-linux-gnu/release/deps/cli-aab53995dce4df31)\n\nrunning 1 test\ntest local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift has been running for over 60 seconds\ntest local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 67.13s\n\n"
+    },
+    "bundles.log": {
+      "raw_sha256": "8b949212565c81aac847322a0f9a39ab09bad3dfe7dec649233ca6740ab0ac07",
+      "output": "   Compiling qiongli v2.6.1 (${BUILD_SOURCE}/packages/qiongli-native/apps/qiongli)\n    Finished `release` profile [optimized] target(s) in 9.48s\n     Running tests/claude_plugin_bundle.rs (${CARGO_TARGET_DIR}/aarch64-unknown-linux-gnu/release/deps/claude_plugin_bundle-09b73b805e1984d6)\n\nrunning 2 tests\ntest composition_conflicts_fail_closed_without_overwriting_existing_data ... ok\ntest user_local_source_cannot_be_adopted_as_signed_and_binds_update_receipts ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 16.42s\n\n     Running tests/codex_plugin_bundle.rs (${CARGO_TARGET_DIR}/aarch64-unknown-linux-gnu/release/deps/codex_plugin_bundle-75c4fa64e7a7832a)\n\nrunning 2 tests\ntest composition_conflicts_fail_closed_without_overwriting_existing_data ... ok\ntest user_local_source_cannot_be_adopted_as_signed_and_binds_update_receipts ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 14.73s\n\n"
+    },
+    "clippy.log": {
+      "raw_sha256": "d65778d08c0b53e1044788ce4226c53cfbff46ac2322ceacd1b52316df2520ca",
+      "output": "   Compiling qiongli-platform v2.6.1 (${BUILD_SOURCE}/packages/qiongli-native/crates/qiongli-platform)\n   Compiling qiongli v2.6.1 (${BUILD_SOURCE}/packages/qiongli-native/apps/qiongli)\n    Finished `release` profile [optimized] target(s) in 32.82s\n"
+    }
+  },
+  "checks": [
+    "CLI lifecycle passes one regression across six Host/directory combinations.",
+    "Four focused signed/local bundle conflict and receipt tests pass.",
+    "Strict Clippy passes for qiongli-platform library and qiongli library/binary/CLI test.",
+    "cargo fmt --all -- --check and git diff --check pass.",
+    "Original qiongli-codex failure reproducer now applies and reports source-current.",
+    "Seven program-ledger tests pass; only CLI-410 blocker changes and generated index is current.",
+    "Documentation site build exits 0 with existing env/gitignore highlighting and bundle-size warnings."
+  ],
+  "non_claims": [
+    "No live Claude session, Windows/macOS execution, signed release rebuild or publication.",
+    "Released model run remains bound to source25b6; candidate fix is separate."
+  ],
+  "docs_build_log_sha256": "c9f5f67afe2ef53927737d207167370e28862b5cc44ab5d56b44e09f5548e352"
+}

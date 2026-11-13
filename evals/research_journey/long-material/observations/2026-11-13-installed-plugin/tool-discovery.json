@@ -1,0 +1,182 @@
+{
+  "id": 3,
+  "result": {
+    "data": [
+      {
+        "name": "qiongli",
+        "runtimeStatus": null,
+        "pluginId": "qiongli@qiongli-cli-local",
+        "httpOrigin": null,
+        "serverInfo": {
+          "name": "qiongli",
+          "title": null,
+          "version": "2.6.1",
+          "description": null,
+          "icons": null,
+          "websiteUrl": null
+        },
+        "serverCapabilities": {
+          "tools": {}
+        },
+        "toolListMeta": null,
+        "tools": {
+          "qiongli_project_document_read": {
+            "name": "qiongli_project_document_read",
+            "description": "Read or search one explicitly selected saved paper note, source packet, retrieval_manifest.csv or context/stage_summaries/STG-*.md summary. Requires the expected project revision and whole-file SHA-256 from authorized binding evidence. Without search_text, read a bounded UTF-8 window; optional json_pointer selects an observed saved packet string and offsets address decoded text. With search_text, find literal, case-sensitive, non-overlapping matches within each decoded packet string value (including metadata), one selected string, or raw note/manifest/summary text. No normalization, cross-field match or full-paper coverage is implied. Search returns bounded contexts and exact readArguments; context_bytes defaults to 128 and accepts 4..512 bytes per side. For longer passages, use returned readArguments in read mode. Continuation retains query/scope/page settings plus searchSha256. Read controls offset_bytes/max_bytes and search controls are mutually exclusive. Recheck source identity on every call. This local snapshot is not source-support verification, Graph authority or write permission. This tool is part of plugin `Qiongli`.",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "project_id",
+                "expected_project_revision",
+                "relative_path",
+                "expected_sha256"
+              ],
+              "properties": {
+                "project_id": {
+                  "type": "string",
+                  "pattern": "^prj_[0-9a-f]{32}$"
+                },
+                "expected_project_revision": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "relative_path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Only notes/<citekey>.md, sources/<citekey>/<sha256>.json, retrieval_manifest.csv, or context/stage_summaries/STG-*.md; never an absolute path."
+                },
+                "expected_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "json_pointer": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096,
+                  "pattern": "^/",
+                  "description": "Optional JSON Pointer into sources/<citekey>/<sha256>.json, selecting a string. At most 4096 UTF-8 bytes; escape ~ as ~0 and / as ~1 within keys. Missing/non-string targets, duplicate JSON keys, control characters and invalid escapes refuse. Observe the pointer from actual packet structure; never guess an original paper page from byte offsets."
+                },
+                "offset_bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0
+                },
+                "max_bytes": {
+                  "type": "integer",
+                  "minimum": 4,
+                  "maximum": 65536,
+                  "default": 16384
+                },
+                "search_text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512,
+                  "description": "Select search mode. Exact non-whitespace-only query of 1..512 UTF-8 bytes; no NUL. Literal case-sensitive matches do not overlap or span packet string values."
+                },
+                "match_offset": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0,
+                  "description": "Search mode only. Zero-based match cursor in deterministic pointer order; values above zero require expected_search_sha256."
+                },
+                "max_matches": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 16,
+                  "default": 8,
+                  "description": "Search mode only. Maximum matches returned per page."
+                },
+                "context_bytes": {
+                  "type": "integer",
+                  "minimum": 4,
+                  "maximum": 512,
+                  "default": 128,
+                  "description": "Search mode only. Up to this many UTF-8 bytes on each side of each match, rounded inward to character boundaries."
+                },
+                "expected_search_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$",
+                  "description": "Search mode only. Required for match_offset > 0; use searchSha256 from the preceding page. Binds source identity, revision, query, pointer, context and page size."
+                }
+              },
+              "additionalProperties": false
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          },
+          "qiongli_project_read": {
+            "name": "qiongli_project_read",
+            "description": "Read one registered article-project summary by stable project identity without returning its filesystem path. This tool is part of plugin `Qiongli`.",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "project_id"
+              ],
+              "properties": {
+                "project_id": {
+                  "type": "string",
+                  "pattern": "^prj_[0-9a-f]{32}$"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "qiongli_project_document_list": {
+            "name": "qiongli_project_document_list",
+            "description": "List saved paper-note, source-packet, retrieval-manifest and stage-summary bindings from validated consolidation receipts in one registered project. Read the current project revision first. Omit limit for the default page size of 32; an explicit limit must be 1–64. Only current entries supply readArguments for qiongli_project_document_read; missing, changed or unavailable files require review, never a substituted hash. Pages are sorted by relative path; continuation requires the same revision and bindingsSha256. This is bounded local history, not remote verification, a file scan or write permission. This tool is part of plugin `Qiongli`.",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "project_id",
+                "expected_project_revision"
+              ],
+              "properties": {
+                "project_id": {
+                  "type": "string",
+                  "pattern": "^prj_[0-9a-f]{32}$"
+                },
+                "expected_project_revision": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64,
+                  "default": 32
+                },
+                "expected_bindings_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$",
+                  "description": "Required for offset > 0. Use bindingsSha256 from the preceding list page; binds the complete saved receipt/capture set, not current file bytes."
+                }
+              },
+              "additionalProperties": false
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          }
+        },
+        "toolsError": null,
+        "resources": [],
+        "resourceTemplates": [],
+        "authStatus": "unsupported"
+      }
+    ],
+    "nextCursor": null
+  }
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "attempt": "plugin-plan",
+    "reason": "insecure-materialization-parent",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "fd089ce5e7582de98306218a1a033ce7f648728215d7ddf71b2ba1e2cade899f",
+    "stderr": "error: insecure-materialization-parent\n"
+  },
+  {
+    "attempt": "plugin-plan-host",
+    "reason": "insecure-materialization-parent",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "fd089ce5e7582de98306218a1a033ce7f648728215d7ddf71b2ba1e2cade899f",
+    "stderr": "error: insecure-materialization-parent\n"
+  },
+  {
+    "attempt": "plugin-apply",
+    "reason": "managed-root-unsafe",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "b398b0875df68d3af53f6c7b17a126f349ce5aa57400a72a6afbb6311b84b096",
+    "stderr": "error: managed-root-unsafe\n"
+  },
+  {
+    "attempt": "plugin-apply-home",
+    "reason": "codex-plugin-bundle-target-invalid",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "7388a8919f70ce62e75dec14a31aed9898b32d16be2e5855ec7835efe1b60b30",
+    "stderr": "error: codex-plugin-bundle-target-invalid\n"
+  },
+  {
+    "attempt": "plugin-add",
+    "reason": "wrong driver marketplace ID",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "2a6f47a1d733dc4f36af5b452df4cf5e48ad62bda95a82aa2bb2e1cfa0a385c7",
+    "stderr": "Error: plugin `qiongli` was not found in marketplace `qiongli`\n"
+  }
+]

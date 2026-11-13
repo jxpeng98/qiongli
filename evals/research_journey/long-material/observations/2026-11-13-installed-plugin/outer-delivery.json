@@ -1,0 +1,117 @@
+{
+  "rollout_path": "${PRIVATE_INSTALL_ROOT}/codex-home/sessions/2026/11/13/rollout-2026-11-13T22-25-45-01a1d704-4cb1-71c1-9246-52bc7431ca5a.jsonl",
+  "rollout_sha256": "b66c0ae02dc1647448026ae79c75c9fa435909a60d3e8cdfa5a7e8081e7f3f1b",
+  "scope": "outer exec output delivery only; not resource coverage or all nested calls",
+  "outputs": [
+    {
+      "call_id": "call_97135c3879f849d3a0d1f4a25d14eb89",
+      "input_sha256": "16519ba805685ecfea32bd2167d8a9d944815279b92d878a13c60d7b996faf40",
+      "output_sha256": "d1ab51eea2f44a4a663691f5214bb75983d3f3afdc224993eef4592fd009dcf2",
+      "recognized_envelope": true,
+      "truncation_warning": false,
+      "script_failed": false
+    },
+    {
+      "call_id": "call_caf3a6999b2344d581b2e0434b0bb5e4",
+      "input_sha256": "0d3777c6b7c0137905dd9d1ec50d3abc8faaf89002872bc940e3bf705f257c94",
+      "output_sha256": "366a1c7dfa0ce3a78f55d93c9276b4183e6f2df9258b18db6dda54e30989808a",
+      "recognized_envelope": true,
+      "truncation_warning": false,
+      "script_failed": false
+    },
+    {
+      "call_id": "call_a55bd5ff013b4c7e8abf00af803efdd6",
+      "input_sha256": "8f539d2d958a9beeecf9b122b3ebce377acddaae4c9379797356b370dc272571",
+      "output_sha256": "c947e93264904902dc2977edad8c1ca642d0c20822cd49bc90c775e9ba558584",
+      "recognized_envelope": true,
+      "truncation_warning": false,
+      "script_failed": false
+    },
+    {
+      "call_id": "call_4cb944217bef44e39ccd685ecf198c2d",
+      "input_sha256": "2f1f71faf26d2d858aa886612e0f2185a107bda5683abebec489ba3a58e51bf4",
+      "output_sha256": "017ad8109b21c00932d70117f712c3b31c1dd31c0e6ac441ed72fe45ae045fca",
+      "recognized_envelope": true,
+      "truncation_warning": false,
+      "script_failed": false
+    },
+    {
+      "call_id": "call_d2fdfa29612e465cb10248634ce9158f",
+      "input_sha256": "2818e84360a29c6d61a47c0af41375e6f97eb350b4d7bde3bbafe55491d69230",
+      "output_sha256": "e84c09474c1b2411c7be3561f056f5523dd50a5dd249d1bfe0f742940331fb05",
+      "recognized_envelope": true,
+      "truncation_warning": false,
+      "script_failed": false
+    },
+    {
+      "call_id": "call_96c954d5540b429d8f7a168d6aa9adf1",
+      "input_sha256": "1e18da0d30cae35919bc41f457cd3dc22e41d8f44d9d903234d75278ad1fb506",
+      "output_sha256": "a17b45541fea2f858281a487d9e037bb0d7809e53c0d78758bbf9d031af653b1",
+      "recognized_envelope": true,
+      "truncation_warning": false,
+      "script_failed": false
+    },
+    {
+      "call_id": "call_1032c494a8f94e8597423b98d4071451",
+      "input_sha256": "febd6cb01b8f881706b6f7c6373d9c6828b492252734e3f9b2e668120079e975",
+      "output_sha256": "50f74d2188ae8e57e114adf86a79a4132b8f50d667bf61a0f7d8f36f837b3bea",
+      "recognized_envelope": true,
+      "truncation_warning": false,
+      "script_failed": false
+    },
+    {
+      "call_id": "call_486e010a757748d6ac3384af55830c6d",
+      "input_sha256": "4d07ffc4c6f05a4e9428b8ea8dd2a81eecdfc6f1359253459fa5ba7722710e5f",
+      "output_sha256": "85e5b4b3b3de641bf003aa1a1150ea3c406ec4935120de3eb9030d255704826c",
+      "recognized_envelope": true,
+      "truncation_warning": false,
+      "script_failed": false
+    },
+    {
+      "call_id": "call_412b8b5189aa4e3cad51287d5b909701",
+      "input_sha256": "d1d2dff07ca7cef731ebd9535dd64a2c48c164a1d6afb110fb76ac374c348d01",
+      "output_sha256": "b5cc3d77f9651055b49d7718b9436c371df965c4a8b4ac24c95722e4e4928a83",
+      "recognized_envelope": true,
+      "truncation_warning": false,
+      "script_failed": false
+    },
+    {
+      "call_id": "call_d1d7996e38cf43eda775046a7ed91306",
+      "input_sha256": "2549292aeecdf652fa503027646b4955d5dbed5c87ed00aa6a539a9f83355ed8",
+      "output_sha256": "5b1e1ac90260db5282b4dff4a56690e54acf810c98d74e6827ee0fca3f70a15a",
+      "recognized_envelope": true,
+      "truncation_warning": false,
+      "script_failed": false
+    },
+    {
+      "call_id": "call_97aa9881f7824f8fbaed3e0805fa00ab",
+      "input_sha256": "68639dedb01aca6e446fcbf2c2f8b453c840fb848233f5deea93b73279015a38",
+      "output_sha256": "9ea3196bb81ca3aa8e2a73f388f6466016237486904f8776e14dffd1dc80a0a9",
+      "recognized_envelope": true,
+      "truncation_warning": false,
+      "script_failed": false
+    },
+    {
+      "call_id": "call_a11e54c08ec5410b9171613fec0e3410",
+      "input_sha256": "37bf61a49f4c6e30ad19caebc6c03af59369d1a900a29d712c334ae5d2cf5f9e",
+      "output_sha256": "260530d569882d66026b422b1701bb2da04c0a5dd2bad3801a5db7180871a8d0",
+      "recognized_envelope": true,
+      "truncation_warning": false,
+      "script_failed": false
+    },
+    {
+      "call_id": "call_fb1b3c6c7b4c485ab2a3b967ee696076",
+      "input_sha256": "391679948ba13421b3e96ca789555de9f3dbacbffb23e914d5fc81292652d314",
+      "output_sha256": "6c10b4d31cce59e18ef92e9d84f0a9fa7e5adea2c7a406057f6f196dc20c75fc",
+      "recognized_envelope": true,
+      "truncation_warning": false,
+      "script_failed": false
+    }
+  ],
+  "exec_output_count": 13,
+  "truncation_warnings": 0,
+  "script_failures": 0,
+  "unclassified_outputs": 0,
+  "unmatched_outputs": 0,
+  "pending_exec_calls": []
+}

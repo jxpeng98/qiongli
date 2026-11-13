@@ -1,0 +1,10 @@
+{
+  "command": "app-apply",
+  "operation": "plugin-source",
+  "receipt_sha256": "23a3176aa7ced47408b98247fa084f6c36601eeb89bf4713df17f45cb367571d",
+  "result": "source-ready-host-action-required",
+  "schema_version": 1,
+  "targets": [
+    "${PRIVATE_INSTALL_ROOT}/qiongli"
+  ]
+}

@@ -481,7 +481,10 @@ fn compose_claude_plugin_bundle_internal(
     // Keep verified source directories reusable when switching release channels.
     if leaf != Some(plugin_name)
         && !(kind == ClaudePluginBundleKind::UserLocalHostFullMcp
-            && matches!(leaf, Some("qiongli" | "qiongli-next")))
+            && matches!(
+                leaf,
+                Some("qiongli" | "qiongli-next" | "qiongli-claude" | "qiongli-next-claude")
+            ))
     {
         return Err(ClaudePluginBundleError::InvalidTarget);
     }

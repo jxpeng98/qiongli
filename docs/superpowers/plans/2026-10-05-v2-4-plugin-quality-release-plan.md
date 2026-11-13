@@ -4982,3 +4982,86 @@ retaining native CLI fallback and the observed two-layer delivery limits. Keep t
 three-arm quality experiment separate. All 249 task states/dependencies and accepted
 evidence/commit/run bindings remain unchanged; only CLI-410 progress advances.
 Integrate locally into `2.x`; no remote synchronization or publication is authorized.
+
+
+## November 13 — installed Plugin recovery and default directory repair
+
+The maintainer continues from `775b94aa`. The bounded outcome is actual discovery
+and fresh-session recovery through an isolated installed Codex Plugin, retaining
+the existing CLI context fallback. The preceding synthetic revision-3 project is
+copied byte-for-byte and registered without replacing its manifest. No private
+research is accessed. The exact public v2.6.1 Linux ARM64 binary from source
+`25b6bf36f06b2f2ddb1b2395a88bb5dcd9b9cdb3` exports a Full local Plugin through
+reviewed native preview/apply; the official Codex manager installs
+`qiongli@qiongli-cli-local`. Source/cache receipts and binary hashes match.
+This is not the separately downloaded Lite marketplace archive.
+
+The canonical observation is
+`evals/research_journey/long-material/observations/2026-11-13-installed-plugin/README.md`.
+It retains installation previews/receipts, effective policy, actual tool discovery,
+task/criteria, the complete answer, tool-only rollout export, received byte-coverage
+proof, fingerprint preservation, setup failures and focused repair checks. Raw
+captures and scratch drivers remain in `/tmp/qiongli-installed-recovery-20261113`;
+the persistent isolated source/profile live under the private
+`/home/hermes/qiongli-installed-recovery-20261113` root. Published evidence replaces
+these paths with placeholders and excludes credentials, reasoning and unrelated
+configuration. The temporary authentication link is removed after the turn.
+
+Codex 0.167.0 preserves the configured `gpt-6-astra` / `xhigh`. App-server policy
+readback confirms three approved installed project read tools, no direct MCP
+override, and a read-only, tool-network-disabled shell profile. Actual discovery
+binds those tools to the installed Plugin and has no tool error. The request gives
+the project ID and routing constraints, with no saved preferences, prose, revision
+or source hash. Explicit guidance/routing cues limit any discovery claim.
+
+The fresh turn finishes in 182.75 seconds: 7 successful MCP and 13 successful shell
+calls, zero outer truncations and zero wrapper failures. It recovers the concise
+default, next-paragraph-only explanatory override, preserved original and missing
+pretest, unaided/retention and F1 checks. MCP delivers the 3,014-byte summary and
+39,667-byte source in four contiguous UTF-8 ranges. CLI context reads deliver
+research state and the 23,351-byte handoff. The first 16,384-byte handoff window
+truncates; a larger native read verifies the prefix and sends only the remaining
+6,967 bytes to the model. The archive verifies the actual received prefix plus
+tail, not merely the successful inner read. Project/config/source/cache/input
+fingerprints remain equal; no Graph rebuild or mutation occurs. Coordinator source
+review finds no substantive repair necessary. Human minutes and billed cost remain
+unknown, and one synthetic run establishes no net quality or efficiency gain.
+
+### Demonstrated repair and validation
+
+The release and current tree accept `qiongli-codex` in an install preview, and the
+guided installer selects that default, but the bundle composer rejects apply as
+`codex-plugin-bundle-target-invalid`. Claude has the same CLI/composer mismatch.
+The two existing platform bundle owners now accept their matching `-codex` or
+`-claude` stable/prerelease names for local exports. Legacy directory reuse,
+receipt-selected Plugin identity, signed naming and security checks remain.
+The released observation succeeds through the supported legacy `qiongli` leaf;
+the fixed candidate is separately applied at the originally rejected path and
+reports `source-current`, without being substituted into the observed Plugin.
+
+The CLI lifecycle regression passes across six Host/directory combinations,
+retaining missing-approval, tampered-plan, update/remove, drift, linked/reserved
+path and user-file negative checks. Four focused Codex/Claude signed/local bundle
+tests pass; signed composition explicitly refuses the new local-only names.
+Rust 1.97 strict Clippy passes for the platform library and CLI library/binary/test,
+as do format/diff checks and seven ledger tests. The documentation site builds
+with its existing env/gitignore highlighting and bundle-size warnings. The offline private build snapshot
+is byte-identical to tracked sources; no product directory guard is weakened.
+
+Setup failures remain distinct: persistent exports and managed HOME under `/tmp`
+are refused; private ancestors resolve these. The observation driver initially
+uses the wrong marketplace ID and an unnecessary standalone search-tool name;
+manager/live-tool readback supplies the declared ID and actual three-tool policy
+before the model turn. The export audit initially expects a complete handoff in
+one outer result, then correctly accounts for its explicit tail-only delivery.
+A scratch build-copy attempt names a nonexistent directory before switching to
+the actual tracked-file list. These attempts do not replace any model run.
+
+The next increment freezes the same-Host/model direct-use / guidance / full-tooling
+protocol and calibration inputs, including normal Host read/write capabilities,
+shared outcome metrics and independent quality-review gaps. Keep this used fixture
+as regression evidence and preserve historical three-case scoring. No new MCP
+context endpoint, research store, Host/model setting or write authority is needed
+for this increment. All 249 task states, dependencies and accepted bindings stay
+unchanged; only CLI-410 progress advances. Integrate locally into `2.x`, without
+push, publication or a claim of other-platform/Host or program acceptance.

@@ -1,0 +1,91 @@
+{
+  "kind": "qiongli-codex-sandbox-preflight/v1",
+  "status": "passed",
+  "scope": "sandbox execution and public-file access only",
+  "effective_plugin_policy": "not-checked",
+  "model_calls": 0,
+  "codex_sha256": "2fe94d848540ff2a6868c7ebcc494126a974aa409711676d14fa0379e49e6143",
+  "config_sha256": "2b363c52f507fd8355f591bd2a7f55f2353f2e217be3f0cc7f5b0c85395f0a10",
+  "guidance": {
+    "${PRIVATE_INSTALL_ROOT}/codex-home/plugins/cache/qiongli-cli-local/qiongli/2.6.1/skills/qiongli-workflow/SKILL.md": "054121d3b0e5d7de98743cc98f8272f8cd850b9fd78c374bf182ff89c33b78cd"
+  },
+  "checks": [
+    {
+      "name": "version",
+      "command": [
+        "${CODEX_BINARY}",
+        "--version"
+      ],
+      "passed": true,
+      "termination_reason": "completed",
+      "driver_error": null,
+      "process_cleanup": {
+        "exit_code": 0,
+        "method": "already-exited",
+        "reaped": true,
+        "group_gone": true
+      },
+      "elapsed_seconds": 0.008033510996028781,
+      "timeout_seconds": 20,
+      "events_sha256": "ff63aca76f41814af0725bba286b7311709b1cfd7fbb17df9e17d18eaa3c5e62",
+      "stderr_sha256": "3d77a2eeb7e3458681ab9967da7f093373284d08965a632ca8655e0d39acf751"
+    },
+    {
+      "name": "sandbox",
+      "command": [
+        "${CODEX_BINARY}",
+        "sandbox",
+        "--permission-profile",
+        "qiongli_public_read",
+        "--cd",
+        "${OBSERVATION_ROOT}/preflight/work",
+        "--",
+        "/usr/bin/true"
+      ],
+      "passed": true,
+      "termination_reason": "completed",
+      "driver_error": null,
+      "process_cleanup": {
+        "exit_code": 0,
+        "method": "already-exited",
+        "reaped": true,
+        "group_gone": true
+      },
+      "elapsed_seconds": 0.03222028608433902,
+      "timeout_seconds": 20,
+      "events_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "3d77a2eeb7e3458681ab9967da7f093373284d08965a632ca8655e0d39acf751"
+    },
+    {
+      "name": "guidance-0",
+      "command": [
+        "${CODEX_BINARY}",
+        "sandbox",
+        "--permission-profile",
+        "qiongli_public_read",
+        "--cd",
+        "${OBSERVATION_ROOT}/preflight/work",
+        "--",
+        "/usr/bin/cat",
+        "--",
+        "${PRIVATE_INSTALL_ROOT}/codex-home/plugins/cache/qiongli-cli-local/qiongli/2.6.1/skills/qiongli-workflow/SKILL.md"
+      ],
+      "passed": true,
+      "termination_reason": "completed",
+      "driver_error": null,
+      "process_cleanup": {
+        "exit_code": 0,
+        "method": "already-exited",
+        "reaped": true,
+        "group_gone": true
+      },
+      "elapsed_seconds": 0.03208876494318247,
+      "timeout_seconds": 20,
+      "events_sha256": "054121d3b0e5d7de98743cc98f8272f8cd850b9fd78c374bf182ff89c33b78cd",
+      "stderr_sha256": "3d77a2eeb7e3458681ab9967da7f093373284d08965a632ca8655e0d39acf751"
+    }
+  ],
+  "guidance_unchanged": true,
+  "config_unchanged": true,
+  "authentication_path_absent": true
+}

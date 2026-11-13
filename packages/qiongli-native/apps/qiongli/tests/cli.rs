@@ -5929,8 +5929,15 @@ fn native_activation_public_entry_refuses_source_authority_without_writes() {
 fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
     let plugin_name = qiongli_platform::native_plugin_name(env!("CARGO_PKG_VERSION")).unwrap();
     let plugin_id = format!("{plugin_name}@qiongli-cli-local");
-    for host in ["codex", "claude"] {
-        let fixture = Fixture::new(&format!("plugin-source {host} space"));
+    for (host, directory) in [
+        ("codex", "qiongli-next"),
+        ("codex", "qiongli-codex"),
+        ("codex", "qiongli-next-codex"),
+        ("claude", "qiongli-next"),
+        ("claude", "qiongli-claude"),
+        ("claude", "qiongli-next-claude"),
+    ] {
+        let fixture = Fixture::new(&format!("plugin-source {host} {directory} space"));
         // Cargo may hard-link its build outputs. Exercise an installed copy,
         // while the source-bundle owner keeps rejecting hard-linked binaries.
         let executable = fixture
@@ -5954,7 +5961,7 @@ fn local_plugin_source_cli_lifecycle_requires_approval_and_preserves_drift() {
                 .output()
                 .unwrap()
         };
-        let destination = destination_parent.join("qiongli-next");
+        let destination = destination_parent.join(directory);
         let path = destination.to_str().unwrap();
         let status = || {
             run(&[

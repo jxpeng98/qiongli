@@ -1,0 +1,26 @@
+{
+  "approvals_required": [
+    "filesystem-write"
+  ],
+  "content_pack_sha256": "8d9c74c592b8a9fcc9245a5d6229f13e8f5f0fc1ea4de36f6c7fcb08e859ee00",
+  "content_root_sha256": "e087f8014b41baa0c513946eb0569dc92540c67a8c55d8f6ea38f30924fcad91",
+  "created_at_unix": 1794608434,
+  "document_kind": "qiongli-managed-operation-plan",
+  "expires_at_unix": 1794609034,
+  "operation": {
+    "kind": "plugin-source",
+    "source": {
+      "action": "install",
+      "binary_sha256": "89a0ed40f92d70c13a5b900e1cc25251f13f6aada95cb22e4db9a337aca3198c",
+      "destination": "${PRIVATE_INSTALL_ROOT}/qiongli-codex",
+      "expected_receipt_sha256": null,
+      "skill_language": "en",
+      "target": "codex",
+      "workflow_variant_sha256": null
+    }
+  },
+  "plan_digest_sha256": "ea2b6755a7760c1451068d1654ab3be0c65f6e5661b4cd660a74ad83cb94e2ea",
+  "product_version": "2.6.1",
+  "schema_version": 2,
+  "semantic_digest_sha256": "a236662fcf8e8343fe975f497676d8e429ef74194bd0c154c9673faa6709452b"
+}

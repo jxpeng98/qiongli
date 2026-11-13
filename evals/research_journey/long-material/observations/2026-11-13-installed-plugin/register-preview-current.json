@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "command": "project-register-preview",
+  "preview": {
+    "schemaVersion": 1,
+    "planDigest": "d04e1b546e9ff45b3d2bfa24dea55866c8f6c2257772bb0f6677d9890f9906c1",
+    "operation": "register",
+    "effect": "register-existing-manifest",
+    "projectId": "prj_e30ece5db0ad8c39ad93bdfbf6412334",
+    "displayName": "Synthetic long-material recovery",
+    "projectKind": "article",
+    "stage": "writing",
+    "expectedLibraryRevision": 0,
+    "expectedProjectRevision": 3,
+    "rootLabel": "project",
+    "manifestAction": "preserve-existing",
+    "missingContinuityArtifacts": [
+      "decision-log",
+      "literature-map",
+      "claim-evidence-ledger",
+      "manuscript-claim-map"
+    ],
+    "approvalsRequired": [
+      "filesystem-write"
+    ]
+  }
+}

@@ -473,18 +473,23 @@ fn composition_conflicts_fail_closed_without_overwriting_existing_data() {
 
     let invalid_parent = fixture.root.join("invalid-bundle");
     create_private_directory(&invalid_parent);
-    let invalid_target = approve_claude_plugin_bundle_target(invalid_parent.join("not-qiongli"))
-        .expect("portable verification target must approve");
-    assert_eq!(
-        compose_claude_plugin_bundle(
-            content.pack(),
-            &grant.verified,
-            &fixture.source_binary,
-            &invalid_target,
-        )
-        .unwrap_err(),
-        ClaudePluginBundleError::InvalidTarget
-    );
+    // Host-specific names belong only to user-local exports, never signed bundles.
+    for name in ["not-qiongli", "qiongli-claude", "qiongli-next-claude"] {
+        let path = invalid_parent.join(name);
+        let invalid_target = approve_claude_plugin_bundle_target(&path)
+            .expect("portable verification target must approve");
+        assert_eq!(
+            compose_claude_plugin_bundle(
+                content.pack(),
+                &grant.verified,
+                &fixture.source_binary,
+                &invalid_target,
+            )
+            .unwrap_err(),
+            ClaudePluginBundleError::InvalidTarget
+        );
+        assert!(!path.exists());
+    }
 
     let target_path = fixture.standalone_target();
     let target = approve_claude_plugin_bundle_target(&target_path).unwrap();

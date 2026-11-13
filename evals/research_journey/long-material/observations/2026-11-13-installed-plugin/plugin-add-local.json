@@ -1,0 +1,8 @@
+{
+  "pluginId": "qiongli@qiongli-cli-local",
+  "name": "qiongli",
+  "marketplaceName": "qiongli-cli-local",
+  "version": "2.6.1",
+  "installedPath": "${PRIVATE_INSTALL_ROOT}/codex-home/plugins/cache/qiongli-cli-local/qiongli/2.6.1",
+  "authPolicy": "ON_INSTALL"
+}

@@ -1,0 +1,23 @@
+{
+  "installed": [
+    {
+      "pluginId": "qiongli@qiongli-cli-local",
+      "name": "qiongli",
+      "marketplaceName": "qiongli-cli-local",
+      "version": "2.6.1",
+      "installed": true,
+      "enabled": true,
+      "source": {
+        "source": "local",
+        "path": "${PRIVATE_INSTALL_ROOT}/qiongli"
+      },
+      "marketplaceSource": {
+        "sourceType": "local",
+        "source": "${PRIVATE_INSTALL_ROOT}/qiongli"
+      },
+      "installPolicy": "AVAILABLE",
+      "authPolicy": "ON_INSTALL"
+    }
+  ],
+  "available": []
+}

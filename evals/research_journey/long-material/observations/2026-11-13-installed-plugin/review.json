@@ -1,0 +1,13 @@
+{
+  "reviewer": "coordinator model; not independent expert",
+  "criteria_frozen_before_model": true,
+  "source_support": "No substantive repair required: group gap versus change/causality, two points versus percent, baseline comparability, retention/unaided scope and missing figure are preserved.",
+  "continuity": "Concise default, one-paragraph explanatory override, preserved original and partial/unresolved status recovered.",
+  "delivery": "All saved source bytes and required context/summary actually delivered; coverage.json records prefix/tail handoff delivery.",
+  "errors_or_limits": [
+    "One synthetic run with explicit routing cues; not a comparative quality score.",
+    "No known failed model call or outer truncation in this run; setup failures retained separately."
+  ],
+  "candidate_retained_unchanged": true,
+  "answer_raw_sha256": "09e84c0310b3324d60da3169c41b0d0769617b610fa94058b13dae13fd0afe29"
+}

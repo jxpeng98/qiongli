@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "command": "project-register-apply",
+  "commit": {
+    "schemaVersion": 1,
+    "operation": "register",
+    "projectId": "prj_e30ece5db0ad8c39ad93bdfbf6412334",
+    "libraryRevision": 1,
+    "semanticRevision": 3,
+    "indexRebuildRequired": true
+  }
+}

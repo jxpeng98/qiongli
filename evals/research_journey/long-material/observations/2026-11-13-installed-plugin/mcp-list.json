@@ -1,0 +1,27 @@
+[
+  {
+    "name": "qiongli",
+    "enabled": true,
+    "disabled_reason": null,
+    "transport": {
+      "type": "stdio",
+      "command": "./bin/qiongli",
+      "args": [
+        "mcp",
+        "serve",
+        "--profile",
+        "full",
+        "--transport",
+        "stdio"
+      ],
+      "env": null,
+      "env_vars": [
+        "QIONGLI_CONFIG_HOME"
+      ],
+      "cwd": "${PRIVATE_INSTALL_ROOT}/codex-home/plugins/cache/qiongli-cli-local/qiongli/2.6.1/."
+    },
+    "startup_timeout_sec": 20.0,
+    "tool_timeout_sec": 60.0,
+    "auth_status": "unsupported"
+  }
+]
