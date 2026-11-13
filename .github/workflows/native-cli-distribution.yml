@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {os: macos-14, target: aarch64-apple-darwin}
+          - {os: macos-15, target: aarch64-apple-darwin}
           - {os: windows-2022, target: x86_64-pc-windows-msvc}
     steps:
       - uses: actions/checkout@v4
@@ -159,7 +159,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, ubuntu-24.04, windows-2022, ubuntu-24.04-arm]
+        os: [macos-15, ubuntu-24.04, windows-2022, ubuntu-24.04-arm]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

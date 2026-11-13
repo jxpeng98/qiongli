@@ -78,6 +78,9 @@ class NativeRegistryPackagesTests(unittest.TestCase):
         linux_build = workflow['jobs']['build-linux']['strategy']['matrix']['include']
         all_build = build + linux_build
         self.assertEqual({row['target'] for row in all_build}, set(packages.TARGETS))
+        # macOS 14 was retired from GitHub Actions on 2026-11-02. Keep the
+        # ARM64 builder and every install stage on the supported pinned image.
+        self.assertIn({'os': 'macos-15', 'target': 'aarch64-apple-darwin'}, build)
         self.assertEqual(workflow['jobs']['build-linux']['container'], 'ubuntu:22.04')
         self.assertIn({'os': 'ubuntu-24.04-arm', 'target': 'aarch64-unknown-linux-gnu'}, linux_build)
         self.assertEqual(set(workflow['jobs']['assemble']['needs']), {'build', 'build-linux'})
@@ -86,7 +89,7 @@ class NativeRegistryPackagesTests(unittest.TestCase):
         cargo = yaml.safe_load((packages.ROOT / '.github/workflows/publish-cargo.yml').read_text())
         for job in ('qualify', 'public-install'):
             self.assertEqual(set(cargo['jobs'][job]['strategy']['matrix']['os']),
-                             {'macos-14', 'ubuntu-22.04', 'windows-2022', 'ubuntu-22.04-arm'})
+                             {'macos-15', 'ubuntu-22.04', 'windows-2022', 'ubuntu-22.04-arm'})
 
     def test_npm_launcher_selects_each_architecture_and_rejects_unsupported_pairs(self):
         # Exercise the emitted launcher in Node while replacing only process/child IO.
