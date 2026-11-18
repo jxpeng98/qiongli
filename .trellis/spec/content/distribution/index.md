@@ -384,6 +384,10 @@ reports the requested configuration method and returns after the timeout even
 if a helper retains a pipe. A failed write requires state inspection before
 retrying. Claude reports detected enabled Qiongli identities and scopes, and
 offers a targeted manual command for known user-scope entries.
+Interactive Codex registration allows 75 seconds for each full Plugin list
+because that command can await the Host's 60-second account inventory. It keeps
+all returned entries for conflict detection. Marketplace lists, Claude commands,
+Codex writes and the separate read-only status probes keep their existing limits.
 Optional local context hooks are projected inline into the selected Host manifest
 and bound to its receipt and native binary. Installation previews the configuration
 and preserves the choice on updates. No Python/Node wrapper, global settings edit

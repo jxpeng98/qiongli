@@ -5202,3 +5202,36 @@ profile/cache guards. The same binary passes with umask 077. The focused tests
 cover timed-out inventory without raw output, inherited pipe timeout and scoped
 Claude remediation. Integrate locally into `2.x`; record the remaining macOS
 evidence gap without changing program acceptance or publishing a new version.
+
+### Codex 0.169.0 inventory deadline
+
+The maintainer's later shell output identifies Codex CLI 0.169.0. Both manual
+commands return JSON for seven marketplaces and 26 installed entries. The enabled
+Qiongli entry is `qiongli@qiongli-cli-local` 2.5.1. The output includes remote
+account entries and no timings. It confirms that the existing registration
+remains available and does not identify the earlier Mac command's elapsed time.
+
+Codex [v0.169.0's CLI source](https://github.com/openai/codex/blob/rust-v0.169.0/codex-rs/cli/src/plugin_cmd.rs)
+shows the full list waiting on remote inventory. The [remote client](https://github.com/openai/codex/blob/rust-v0.169.0/codex-rs/core-plugins/src/remote.rs)
+allows 60 seconds across installed pages. An isolated official Linux ARM64
+0.169.0 binary with synthetic credentials and a loopback service returns two
+installed pages at 17 seconds each. The marketplace list completes in 0.12
+seconds and makes no mock requests. The full list times out at 30.10 seconds
+under the old bound and returns valid JSON at 34.06 seconds under 75 seconds.
+The published Qiongli 2.6.1 installer produces `host-command-timeout` before
+preview in the same delayed scenario at 31.07 seconds.
+
+Allow 75 seconds for the full Codex list in interactive installation and use the
+same limit for approval rechecks and registration verification. Keep all returned
+entries for conflict checks. The market list, Claude, registration mutations,
+Codex configuration RPC and fast status probes keep their existing limits. Five
+focused Rust tests pass, including a delayed list that retains a remote Qiongli
+conflict and a timeout that identifies the failed command without captured text.
+
+The fixed installer reaches the file approval prompt in the same terminal
+fixture, exits successfully after the explicit decline, and creates no Plugin
+source. The full test takes 55.93 seconds including local plan generation. A
+first run with an unstripped 285 MB debug binary exceeds the outer test harness
+deadline while generating the plan. Strip debug sections only from the temporary
+fixture copy for the successful retry. This does not establish a completed Mac
+upgrade or live session readiness. Integrate into local `2.x` for a future release.

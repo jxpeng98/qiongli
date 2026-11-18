@@ -85,7 +85,9 @@ DSH 的原始输出。
 
 如果 Codex 在文件预览之前超时，请在同一配置下检查 `codex --version`、
 `codex plugin marketplace list --json` 和 `codex plugin list --json`。安装器会显示
-失败的清单命令及其时限。如果已批准的 Codex 配置迁移报错，请先确认当前启用的
+失败的清单命令及其时限。安装时，Codex 完整的 Plugin 清单可能包含账户插件。
+Qiongli 给这一步最多 75 秒，覆盖 Codex 自身 60 秒的远端库存请求。市场清单和
+注册命令仍各自最多等待 30 秒。如果已批准的 Codex 配置迁移报错，请先确认当前启用的
 Plugin，再重试。已发送的配置请求可能已生效。
 
 Claude Code 报 `local-host-other-qiongli-enabled` 时，安装器会列出插件 ID 和作用域。

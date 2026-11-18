@@ -98,6 +98,10 @@ Review it and retained files before retrying. Qiongli does not save DSH output.
 If Codex times out before the file preview, check `codex --version`,
 `codex plugin marketplace list --json` and `codex plugin list --json` in the same
 profile. The installer reports which inventory command failed and its time limit.
+During installation, Codex's full Plugin list can include the account inventory.
+Qiongli allows it up to 75 seconds, giving Codex time to finish its own 60-second
+remote inventory request. The marketplace list and registration commands keep
+their 30-second limits.
 If a Codex migration request fails after approval, check the enabled Plugin
 entries before retrying because an already sent request may have taken effect.
 

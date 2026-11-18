@@ -20,6 +20,10 @@ use crate::managed_operation::ManagedIntegrationTargetV1;
 use crate::plugin_source::{PluginSourcePlan, plugin_id, plugin_name};
 
 const MARKETPLACE: &str = "qiongli-cli-local";
+const INSTALL_INVENTORY_TIMEOUT: Duration = Duration::from_secs(30);
+// Codex 0.169's full inventory can await paginated remote installations for
+// 60 seconds. Leave room for Host startup and local inventory processing too.
+const CODEX_PLUGIN_LIST_TIMEOUT: Duration = Duration::from_secs(75);
 
 pub(crate) mod antigravity;
 mod codex_config;
@@ -109,12 +113,8 @@ pub(crate) fn register(
                 writer,
                 "Previous Qiongli Plugins: disabled; cached versions retained. If the following registration fails, retry install plugin. To switch back, export the previous CLI Plugin and re-enable its ID in Codex.\n",
             )?;
-            let (_, plugins) = read_inventory(
-                environment,
-                &plan.executable,
-                Duration::from_secs(30),
-                Some(writer),
-            )?;
+            let (_, plugins) =
+                read_install_inventory(environment, &plan.executable, source.target, writer)?;
             if !enabled_conflicts(source.target, &plugins)?.is_empty() {
                 return Err("local-host-migration-not-verified");
             }
@@ -262,8 +262,8 @@ fn inspect_registration(
         }
     }
     let (executable, root) = host_context(environment, target)?;
-    let (marketplaces, plugins) =
-        read_inventory(environment, &executable, Duration::from_secs(5), None)?;
+    let timeout = Duration::from_secs(5);
+    let (marketplaces, plugins) = read_inventory(environment, &executable, timeout, timeout, None)?;
     let codex = target == ManagedIntegrationTargetV1::Codex;
     let entries = if codex {
         &plugins["installed"]
@@ -308,13 +308,34 @@ fn inspect_registration(
     )))
 }
 
+fn read_install_inventory(
+    environment: &CommandEnvironment,
+    executable: &Path,
+    target: ManagedIntegrationTargetV1,
+    writer: &mut impl Write,
+) -> Result<(Value, Value), &'static str> {
+    let plugin_timeout = if target == ManagedIntegrationTargetV1::Codex {
+        CODEX_PLUGIN_LIST_TIMEOUT
+    } else {
+        INSTALL_INVENTORY_TIMEOUT
+    };
+    read_inventory(
+        environment,
+        executable,
+        INSTALL_INVENTORY_TIMEOUT,
+        plugin_timeout,
+        Some(writer),
+    )
+}
+
 fn read_inventory(
     environment: &CommandEnvironment,
     executable: &Path,
-    timeout: Duration,
+    marketplace_timeout: Duration,
+    plugin_timeout: Duration,
     mut diagnostics: Option<&mut dyn Write>,
 ) -> Result<(Value, Value), &'static str> {
-    let mut read = |args: &[&str]| {
+    let mut read = |args: &[&str], timeout: Duration| {
         let result = crate::desktop::bounded_host_os_command_with_timeout(
             environment,
             executable,
@@ -338,8 +359,11 @@ fn read_inventory(
         result
     };
     Ok((
-        read(&["plugin", "marketplace", "list", "--json"])?,
-        read(&["plugin", "list", "--json"])?,
+        read(
+            &["plugin", "marketplace", "list", "--json"],
+            marketplace_timeout,
+        )?,
+        read(&["plugin", "list", "--json"], plugin_timeout)?,
     ))
 }
 
@@ -412,12 +436,8 @@ fn prepare(
     {
         return Err("local-host-source-not-current");
     }
-    let (marketplaces, plugins) = read_inventory(
-        environment,
-        &executable,
-        Duration::from_secs(30),
-        Some(writer),
-    )?;
+    let (marketplaces, plugins) =
+        read_install_inventory(environment, &executable, source.target, writer)?;
     let conflicts = enabled_conflicts(source.target, &plugins)?;
     let migration = if source.target == ManagedIntegrationTargetV1::Codex {
         codex_config::PluginMigration::read(
@@ -473,12 +493,11 @@ pub(crate) fn installation_source(
     writer: &mut impl Write,
 ) -> Result<Option<PathBuf>, &'static str> {
     let (executable, root) = host_context(environment, target)?;
-    let (marketplaces, plugins) = read_inventory(
-        environment,
-        &executable,
-        Duration::from_secs(30),
-        Some(writer),
-    )?;
+    if target == ManagedIntegrationTargetV1::Codex {
+        line(writer, "Checking the Codex Plugin inventory…\n")?;
+        writer.flush().map_err(|_| "installation-output-failed")?;
+    }
+    let (marketplaces, plugins) = read_install_inventory(environment, &executable, target, writer)?;
     let destination = registered_destination(target, &marketplaces)?;
     if let (Some(requested), Some(registered)) = (requested, &destination)
         && requested != registered
@@ -1073,26 +1092,42 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn inventory_timeout_names_the_failed_command_without_printing_captured_output() {
+    fn slow_codex_inventory_keeps_conflicts_and_safe_timeout_diagnostics() {
         use std::os::unix::fs::PermissionsExt;
 
         let root = std::env::temp_dir().join(format!("qiongli-inventory-{}", std::process::id()));
         std::fs::create_dir(&root).unwrap();
         let executable = root.join("fake codex");
-        std::fs::write(&executable, "#!/bin/sh\nif [ \"$2\" = marketplace ]; then echo '{}'; exit 0; fi\necho private-data >&2\nexec sleep 3\n").unwrap();
+        std::fs::write(
+            &executable,
+            r#"#!/bin/sh
+if [ "$2" = marketplace ]; then echo '{"marketplaces":[]}'; exit 0; fi
+echo private-data >&2
+sleep 2
+echo '{"installed":[{"pluginId":"qiongli@openai-curated-remote","enabled":true}]}'
+"#,
+        )
+        .unwrap();
         std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
         let environment = CommandEnvironment::with_paths(None, Some(root.clone()), None);
         let mut buffer = Vec::new();
-        let result = read_inventory(
-            &environment,
-            &executable,
-            Duration::from_secs(1),
-            Some(&mut buffer),
-        );
-        std::fs::remove_dir_all(root).unwrap();
+        let short = Duration::from_secs(1);
+        let result = read_inventory(&environment, &executable, short, short, Some(&mut buffer));
         assert_eq!(result, Err("host-command-timeout"));
         let output = String::from_utf8(buffer).unwrap();
         assert!(output.contains("plugin list --json"));
         assert!(!output.contains("marketplace list") && !output.contains("private-data"));
+        let (_, plugins) = read_install_inventory(
+            &environment,
+            &executable,
+            ManagedIntegrationTargetV1::Codex,
+            &mut Vec::new(),
+        )
+        .unwrap();
+        std::fs::remove_dir_all(root).unwrap();
+        assert_eq!(
+            enabled_conflicts(ManagedIntegrationTargetV1::Codex, &plugins).unwrap(),
+            vec!["qiongli@openai-curated-remote"],
+        );
     }
 }
