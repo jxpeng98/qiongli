@@ -81,6 +81,17 @@ qiongli install plugin --target deepseek
 现在直接显示在退出状态与重试命令之前，先查看它和保留文件再重试。Qiongli 不保存
 DSH 的原始输出。
 
+### Codex 与 Claude Code 安装诊断
+
+如果 Codex 在文件预览之前超时，请在同一配置下检查 `codex --version`、
+`codex plugin marketplace list --json` 和 `codex plugin list --json`。安装器会显示
+失败的清单命令及其时限。如果已批准的 Codex 配置迁移报错，请先确认当前启用的
+Plugin，再重试。已发送的配置请求可能已生效。
+
+Claude Code 报 `local-host-other-qiongli-enabled` 时，安装器会列出插件 ID 和作用域。
+在 `/plugin` 中按作用域停用列出的旧条目。对于用户级条目，安装器会提供对应的
+`claude plugin disable <ID> --scope user` 命令。停用后仍可重新启用旧插件。
+
 ### DeepSeek 分步诊断
 
 十二项依次为：定位命令、检查版本、选择 profile、计划与最新版本查询、确认授权、

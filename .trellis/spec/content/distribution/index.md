@@ -377,6 +377,13 @@ fail closed. A failed subsequent registration leaves a disclosed disabled previo
 Plugin that the user can re-enable; no automatic deletion or rollback edits are
 performed. Claude keeps its manual conflict handling. Lower-level source plan/apply commands
 still only export files. CLI package updates stay with the original installer.
+
+Terminal registration reports which official inventory command failed. Output
+is limited to the command, failure reason and time limit. Codex migration
+reports the requested configuration method and returns after the timeout even
+if a helper retains a pipe. A failed write requires state inspection before
+retrying. Claude reports detected enabled Qiongli identities and scopes, and
+offers a targeted manual command for known user-scope entries.
 Optional local context hooks are projected inline into the selected Host manifest
 and bound to its receipt and native binary. Installation previews the configuration
 and preserves the choice on updates. No Python/Node wrapper, global settings edit

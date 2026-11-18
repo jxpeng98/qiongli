@@ -53,7 +53,7 @@ pub(crate) fn register(
         writer,
         "\nPlugin files are ready. Checking official Host registration…\n",
     )?;
-    let plan = prepare(environment, content, source)?;
+    let plan = prepare(environment, content, source, writer)?;
     if !plan.commands.is_empty() || plan.migration.is_some() {
         let bytes =
             serde_json_canonicalizer::to_vec(&plan).map_err(|_| "local-host-plan-invalid")?;
@@ -100,17 +100,21 @@ pub(crate) fn register(
         // Reuse the cross-process content guard while the Host consumes this source.
         let root = crate::command::config_root(environment).map_err(|e| e.reason_code())?;
         let _guard = crate::update_reconcile::acquire_managed_write_guard(&plan.home, root)?;
-        if prepare(environment, content, source)? != plan {
+        if prepare(environment, content, source, writer)? != plan {
             return Err("local-host-precondition-changed");
         }
         if let Some(migration) = &plan.migration {
-            migration.apply(environment, &plan.executable)?;
+            migration.apply(environment, &plan.executable, writer)?;
             line(
                 writer,
                 "Previous Qiongli Plugins: disabled; cached versions retained. If the following registration fails, retry install plugin. To switch back, export the previous CLI Plugin and re-enable its ID in Codex.\n",
             )?;
-            let (_, plugins) =
-                read_inventory(environment, &plan.executable, Duration::from_secs(30))?;
+            let (_, plugins) = read_inventory(
+                environment,
+                &plan.executable,
+                Duration::from_secs(30),
+                Some(writer),
+            )?;
             if !enabled_conflicts(source.target, &plugins)?.is_empty() {
                 return Err("local-host-migration-not-verified");
             }
@@ -135,7 +139,7 @@ pub(crate) fn register(
             )?;
         }
     }
-    let verified = prepare(environment, content, source)?;
+    let verified = prepare(environment, content, source, writer)?;
     if !verified.commands.is_empty() || verified.migration.is_some() {
         return Err("local-host-registration-not-verified");
     }
@@ -258,7 +262,8 @@ fn inspect_registration(
         }
     }
     let (executable, root) = host_context(environment, target)?;
-    let (marketplaces, plugins) = read_inventory(environment, &executable, Duration::from_secs(5))?;
+    let (marketplaces, plugins) =
+        read_inventory(environment, &executable, Duration::from_secs(5), None)?;
     let codex = target == ManagedIntegrationTargetV1::Codex;
     let entries = if codex {
         &plugins["installed"]
@@ -307,16 +312,30 @@ fn read_inventory(
     environment: &CommandEnvironment,
     executable: &Path,
     timeout: Duration,
+    mut diagnostics: Option<&mut dyn Write>,
 ) -> Result<(Value, Value), &'static str> {
-    let read = |args: &[&str]| {
-        let output = crate::desktop::bounded_host_os_command_with_timeout(
+    let mut read = |args: &[&str]| {
+        let result = crate::desktop::bounded_host_os_command_with_timeout(
             environment,
             executable,
             &args.iter().map(OsString::from).collect::<Vec<_>>(),
             timeout,
         )
-        .map_err(|e| e.reason_code())?;
-        serde_json::from_str(&output).map_err(|_| "local-host-inventory-invalid")
+        .map_err(|e| e.reason_code())
+        .and_then(|output| {
+            serde_json::from_str(&output).map_err(|_| "local-host-inventory-invalid")
+        });
+        if let (Err(code), Some(writer)) = (&result, diagnostics.as_deref_mut()) {
+            let command =
+                installation_command::display_command(&executable.to_string_lossy(), &words(args));
+            writeln!(
+                writer,
+                "Host inventory check failed ({code}, limit {}s).\n  Command: {command}",
+                timeout.as_secs()
+            )
+            .map_err(|_| "installation-output-failed")?;
+        }
+        result
     };
     Ok((
         read(&["plugin", "marketplace", "list", "--json"])?,
@@ -377,6 +396,7 @@ fn prepare(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
     source: &PluginSourcePlan,
+    writer: &mut impl Write,
 ) -> Result<HostPlan, &'static str> {
     check_context_hook_support(environment, source)?;
     let home = environment
@@ -392,14 +412,25 @@ fn prepare(
     {
         return Err("local-host-source-not-current");
     }
-    let (marketplaces, plugins) =
-        read_inventory(environment, &executable, Duration::from_secs(30))?;
+    let (marketplaces, plugins) = read_inventory(
+        environment,
+        &executable,
+        Duration::from_secs(30),
+        Some(writer),
+    )?;
     let conflicts = enabled_conflicts(source.target, &plugins)?;
     let migration = if source.target == ManagedIntegrationTargetV1::Codex {
-        codex_config::PluginMigration::read(environment, &executable, &config_root, conflicts)?
+        codex_config::PluginMigration::read(
+            environment,
+            &executable,
+            &config_root,
+            conflicts,
+            writer,
+        )?
     } else if conflicts.is_empty() {
         None
     } else {
+        report_claude_conflicts(&plugins, &conflicts, writer)?;
         return Err("local-host-other-qiongli-enabled");
     };
     let mut after_migration = plugins.clone();
@@ -442,8 +473,12 @@ pub(crate) fn installation_source(
     writer: &mut impl Write,
 ) -> Result<Option<PathBuf>, &'static str> {
     let (executable, root) = host_context(environment, target)?;
-    let (marketplaces, plugins) =
-        read_inventory(environment, &executable, Duration::from_secs(30))?;
+    let (marketplaces, plugins) = read_inventory(
+        environment,
+        &executable,
+        Duration::from_secs(30),
+        Some(writer),
+    )?;
     let destination = registered_destination(target, &marketplaces)?;
     if let (Some(requested), Some(registered)) = (requested, &destination)
         && requested != registered
@@ -457,29 +492,72 @@ pub(crate) fn installation_source(
     }
     let conflicts = enabled_conflicts(target, &plugins)?;
     if !conflicts.is_empty() {
-        show_json(
-            writer,
-            &serde_json::json!({"enabled_qiongli_plugins":conflicts}).to_string(),
-        )?;
         if target == ManagedIntegrationTargetV1::Codex {
-            codex_config::PluginMigration::read(environment, &executable, &root, conflicts)?;
+            show_json(
+                writer,
+                &serde_json::json!({"enabled_qiongli_plugins":conflicts}).to_string(),
+            )?;
+            codex_config::PluginMigration::read(
+                environment,
+                &executable,
+                &root,
+                conflicts,
+                writer,
+            )?;
             line(
                 writer,
                 "An earlier Qiongli Plugin identity or source is enabled. Continue to preview migration to the CLI-bundled Plugin. Only the previewed source files will change; previous caches will be kept. Disabling the old identity requires the separate Host confirmation below.\n",
             )?;
             return Ok(destination);
         }
-        line(
-            writer,
-            "Installation is not complete. Another Qiongli Plugin is enabled. No source files have been changed by this attempt.\n",
-        )?;
-        line(
-            writer,
-            "Disable the listed Plugin through Claude Code's Plugin manager, then rerun qiongli install plugin --target claude. Keep its files if you want to switch back.\n",
-        )?;
+        report_claude_conflicts(&plugins, &conflicts, writer)?;
         return Err("local-host-other-qiongli-enabled");
     }
     Ok(destination)
+}
+
+fn report_claude_conflicts(
+    plugins: &Value,
+    conflicts: &[String],
+    writer: &mut impl Write,
+) -> Result<(), &'static str> {
+    line(
+        writer,
+        "Claude Code already has these Qiongli Plugins enabled:\n",
+    )?;
+    for plugin in plugins.as_array().ok_or("local-host-inventory-invalid")? {
+        let Some(id) = plugin["id"]
+            .as_str()
+            .filter(|id| conflicts.iter().any(|other| other == id))
+        else {
+            continue;
+        };
+        if plugin["enabled"] != true {
+            continue;
+        }
+        let scope = match plugin["scope"].as_str() {
+            Some(scope @ ("user" | "project" | "local" | "managed")) => scope,
+            _ => "unknown",
+        };
+        line(writer, &format!("  {id:?} (scope: {scope})\n"))?;
+        if scope == "user"
+            && id
+                .split_once('@')
+                .is_some_and(|(_, market)| !market.is_empty() && !market.contains('@'))
+            && id
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || b"@._-".contains(&byte))
+        {
+            line(
+                writer,
+                &format!("  Disable this user entry: claude plugin disable {id} --scope user\n"),
+            )?;
+        }
+    }
+    line(
+        writer,
+        "Review the listed entries in Claude Code's /plugin menu at their reported scope. Disable only the conflicting Qiongli entries, then retry installation.\n",
+    )
 }
 
 fn registered_destination(
@@ -973,5 +1051,48 @@ mod tests {
                 "local-host-plugin-scope-conflict"
             );
         }
+    }
+
+    #[test]
+    fn claude_conflicts_name_scope_and_target_only_enabled_user_entries() {
+        let plugins = json!([
+            {"id":"qiongli-next@qiongli-local", "enabled":true, "scope":"user"},
+            {"id":"qiongli@project-market", "enabled":true, "scope":"project"},
+            {"id":"qiongli@disabled", "enabled":false, "scope":"user"},
+            {"id":"unrelated@personal", "enabled":true, "scope":"user"}
+        ]);
+        let ids = enabled_conflicts(ManagedIntegrationTargetV1::ClaudeCode, &plugins).unwrap();
+        let mut buffer = Vec::new();
+        report_claude_conflicts(&plugins, &ids, &mut buffer).unwrap();
+        let output = String::from_utf8(buffer).unwrap();
+        assert!(output.contains("claude plugin disable qiongli-next@qiongli-local --scope user"));
+        assert!(output.contains("\"qiongli@project-market\" (scope: project)"));
+        assert_eq!(output.matches("claude plugin disable ").count(), 1);
+        assert!(!output.contains("qiongli@disabled") && !output.contains("unrelated@personal"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn inventory_timeout_names_the_failed_command_without_printing_captured_output() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = std::env::temp_dir().join(format!("qiongli-inventory-{}", std::process::id()));
+        std::fs::create_dir(&root).unwrap();
+        let executable = root.join("fake codex");
+        std::fs::write(&executable, "#!/bin/sh\nif [ \"$2\" = marketplace ]; then echo '{}'; exit 0; fi\necho private-data >&2\nexec sleep 3\n").unwrap();
+        std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let environment = CommandEnvironment::with_paths(None, Some(root.clone()), None);
+        let mut buffer = Vec::new();
+        let result = read_inventory(
+            &environment,
+            &executable,
+            Duration::from_secs(1),
+            Some(&mut buffer),
+        );
+        std::fs::remove_dir_all(root).unwrap();
+        assert_eq!(result, Err("host-command-timeout"));
+        let output = String::from_utf8(buffer).unwrap();
+        assert!(output.contains("plugin list --json"));
+        assert!(!output.contains("marketplace list") && !output.contains("private-data"));
     }
 }

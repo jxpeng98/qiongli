@@ -93,6 +93,19 @@ qiongli install plugin --target deepseek
 cause. DSH's error is now visible above its exit status and exact retry command.
 Review it and retained files before retrying. Qiongli does not save DSH output.
 
+### Codex and Claude Code diagnostics
+
+If Codex times out before the file preview, check `codex --version`,
+`codex plugin marketplace list --json` and `codex plugin list --json` in the same
+profile. The installer reports which inventory command failed and its time limit.
+If a Codex migration request fails after approval, check the enabled Plugin
+entries before retrying because an already sent request may have taken effect.
+
+For `local-host-other-qiongli-enabled`, Claude Code reports the exact Plugin ID
+and scope. Use `/plugin` to disable the listed entry in that scope. For a user
+entry, the installer shows the equivalent `claude plugin disable <ID> --scope user`
+command. Disabling keeps the previous installation available for re-enabling.
+
 ### Detailed DeepSeek steps
 
 The twelve stages are executable, version, profile, plan/latest lookup, approval,

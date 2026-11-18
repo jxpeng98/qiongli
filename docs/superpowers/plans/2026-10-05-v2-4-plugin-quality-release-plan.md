@@ -5165,3 +5165,40 @@ failure. Two batch tests pass. The real repack passes the Rust content check and
 the terminal fixture passes under a real PTY, for 30 distinct Rust passes.
 Packaging/release tests pass 52 checks. Preserve the current v2.6.1 tag and
 package. Integrate the fix locally for future releases.
+
+### Full five-Host installation log
+
+The maintainer supplies the complete macOS `qiongli update all` output. Codex
+times out before any source preview or conflict listing, narrowing the observed
+failure to `plugin marketplace list --json` or `plugin list --json`. The old
+installer omits the specific failed probe. The two probes and configuration read
+pass on isolated Linux Codex CLI 0.167.0. The user's CLI version, failing command
+and underlying wait on macOS still require a same-profile observation.
+
+Show the failing read-only inventory command, reason and limit without replaying
+captured output. Report the specific Codex migration request and remove a
+separate unbounded I/O thread join after the app-server timeout. The fixture
+holds a helper's inherited pipe open and checks that installation returns by its
+deadline. A delayed initialization cannot start a configuration request after
+the deadline. If an approved write was already sent, inspect enabled entries
+before retrying. Keep existing approvals and the 30-second limit.
+
+Claude Code's exact conflict is `qiongli-next@qiongli-local`. Report enabled
+conflicts with their scope, and print a manual disable command only for known
+user entries. Claude Code 2.1.318 verifies the scoped command on a synthetic
+plugin with the same ID in an isolated profile. Readback confirms it is disabled
+and its original installation path remains. The maintainer's scope is unknown.
+
+The log confirms DeepSeek upgraded its package files from 2.5.1 to 2.6.1 before
+pnpm 11.28.5 rejected the optional script. With the exact pnpm version in an
+isolated Linux reproduction, the published tarball exits 1 and still contains
+2.6.1. The preceding script-free repack exits 0 under the same strict policy.
+Antigravity and Pi pass registration in the supplied log. Session readiness
+remains a separate check for all five Hosts.
+
+Rust 1.97 passes 29 Host tests with two existing opt-in tests skipped. A first
+attempt using the shell's default group-writable umask is refused by the private
+profile/cache guards. The same binary passes with umask 077. The focused tests
+cover timed-out inventory without raw output, inherited pipe timeout and scoped
+Claude remediation. Integrate locally into `2.x`; record the remaining macOS
+evidence gap without changing program acceptance or publishing a new version.

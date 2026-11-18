@@ -1,13 +1,15 @@
 //! A confirmed Plugin migration uses Codex's version-checked configuration API.
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
-use std::time::Duration;
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use serde_json::{Value, json};
 
 use crate::command::CommandEnvironment;
+
+const RPC_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Eq, PartialEq, Serialize)]
 pub(super) struct PluginMigration {
@@ -23,6 +25,7 @@ impl PluginMigration {
         executable: &Path,
         root: &Path,
         plugins: Vec<String>,
+        writer: &mut impl Write,
     ) -> Result<Option<Self>, &'static str> {
         let file = root.join("config.toml");
         let metadata = match std::fs::symlink_metadata(&file) {
@@ -41,6 +44,7 @@ impl PluginMigration {
             executable,
             "config/read",
             json!({"includeLayers": true}),
+            writer,
         )?;
         Self::from_config(file, plugins, &response, file_sha256)
     }
@@ -155,6 +159,7 @@ impl PluginMigration {
         &self,
         environment: &CommandEnvironment,
         executable: &Path,
+        writer: &mut impl Write,
     ) -> Result<(), &'static str> {
         if self.file_sha256 != crate::cli_install::regular_file_sha256(&self.file)? {
             return Err("local-host-precondition-changed");
@@ -164,6 +169,7 @@ impl PluginMigration {
             executable,
             "config/batchWrite",
             self.request()["params"].clone(),
+            writer,
         )?;
         if response["status"] != "ok" || !super::same_path(&self.file, &response["filePath"]) {
             return Err("local-host-migration-not-verified");
@@ -177,23 +183,56 @@ fn rpc(
     executable: &Path,
     method: &'static str,
     params: Value,
+    writer: &mut impl Write,
 ) -> Result<Value, &'static str> {
-    let mut command = crate::desktop::official_host_command(
+    let args = ["app-server", "--listen", "stdio://"];
+    let result = crate::desktop::official_host_command(
         environment,
         executable,
-        &["app-server".into(), "--listen".into(), "stdio://".into()],
+        &args.map(std::ffi::OsString::from),
     )
-    .map_err(|error| error.reason_code())?;
+    .map_err(|error| error.reason_code())
+    .and_then(|command| run_rpc(command, method, params, RPC_TIMEOUT));
+    if let Err(code) = result {
+        let command = super::installation_command::display_command(
+            &executable.to_string_lossy(),
+            &super::words(&args),
+        );
+        crate::cli_content::line(
+            writer,
+            &format!(
+                "Codex Plugin migration check failed at {method} ({code}, limit {}s).\n  Command: {command}\n",
+                RPC_TIMEOUT.as_secs(),
+            ),
+        )?;
+        if method == "config/batchWrite" {
+            crate::cli_content::line(
+                writer,
+                "Check which Qiongli Plugins are enabled in Codex before retrying. The configuration request may already have taken effect.\n",
+            )?;
+        }
+    }
+    result
+}
+
+fn run_rpc(
+    mut command: Command,
+    method: &'static str,
+    params: Value,
+    timeout: Duration,
+) -> Result<Value, &'static str> {
     // Only the resolved official Host is launched. No model/session request is sent.
     let mut child = command
         .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
         .map_err(|_| "local-host-migration-config-unavailable")?;
     let input = child.stdin.take().expect("configured piped stdin");
     let output = child.stdout.take().expect("configured piped stdout");
     let (sender, receiver) = std::sync::mpsc::sync_channel(1);
-    let worker = std::thread::spawn(move || {
+    let deadline = Instant::now() + timeout;
+    std::thread::spawn(move || {
         let mut input = input;
         let mut output = BufReader::new(output.take(2 * 1024 * 1024));
         let result = (|| {
@@ -204,20 +243,32 @@ fn rpc(
                 "initialize",
                 json!({"clientInfo":{"name":"qiongli-plugin-install","version":env!("CARGO_PKG_VERSION")}}),
             )?;
+            if Instant::now() >= deadline {
+                return Err("host-command-timeout");
+            }
             input
                 .write_all(b"{\"method\":\"initialized\"}\n")
                 .map_err(|_| "local-host-migration-config-unavailable")?;
+            if Instant::now() >= deadline {
+                return Err("host-command-timeout");
+            }
             exchange(&mut output, &mut input, 2, method, params)
         })();
         let _ = sender.send(result);
     });
-    let result = receiver
-        .recv_timeout(Duration::from_secs(30))
-        .map_err(|_| "host-command-timeout");
+    let result = match receiver.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+        Ok(result) => result,
+        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Err("host-command-timeout"),
+        Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+            Err("local-host-migration-config-unavailable")
+        }
+    };
     let _ = child.kill();
     let _ = child.wait();
-    let _ = worker.join();
-    result?
+    // A helper process can retain a pipe after the direct app-server child
+    // stops. Let the I/O worker finish when the pipe closes, without blocking
+    // the installer or sending a late migration request after the deadline.
+    result
 }
 
 fn exchange(
@@ -260,6 +311,28 @@ fn exchange(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    #[allow(
+        clippy::disallowed_methods,
+        reason = "fixed synthetic app-server process"
+    )]
+    fn rpc_timeout_returns_while_a_helper_still_holds_the_pipe() {
+        let mut command = Command::new("/bin/sh");
+        command.args(["-c", "(sleep 3) & IFS= read -r request; wait"]);
+        let start = Instant::now();
+        assert_eq!(
+            run_rpc(
+                command,
+                "config/read",
+                json!({}),
+                Duration::from_millis(250)
+            ),
+            Err("host-command-timeout")
+        );
+        assert!(start.elapsed() < Duration::from_secs(2));
+    }
 
     #[test]
     fn migration_rejects_unowned_entries_injection_duplicates_and_stale_config() {
