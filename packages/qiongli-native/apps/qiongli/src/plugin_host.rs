@@ -554,10 +554,10 @@ fn report_claude_conflicts(
         if plugin["enabled"] != true {
             continue;
         }
-        let scope = match plugin["scope"].as_str() {
-            Some(scope @ ("user" | "project" | "local" | "managed")) => scope,
-            _ => "unknown",
-        };
+        let scope = plugin["scope"]
+            .as_str()
+            .filter(|scope| matches!(*scope, "user" | "project" | "local" | "managed"))
+            .unwrap_or("unknown");
         line(writer, &format!("  {id:?} (scope: {scope})\n"))?;
         if scope == "user"
             && id
@@ -1077,6 +1077,7 @@ mod tests {
         let plugins = json!([
             {"id":"qiongli-next@qiongli-local", "enabled":true, "scope":"user"},
             {"id":"qiongli@project-market", "enabled":true, "scope":"project"},
+            {"id":"qiongli@unknown-scope", "enabled":true, "scope":"unrecognized scope text"},
             {"id":"qiongli@disabled", "enabled":false, "scope":"user"},
             {"id":"unrelated@personal", "enabled":true, "scope":"user"}
         ]);
@@ -1086,6 +1087,8 @@ mod tests {
         let output = String::from_utf8(buffer).unwrap();
         assert!(output.contains("claude plugin disable qiongli-next@qiongli-local --scope user"));
         assert!(output.contains("\"qiongli@project-market\" (scope: project)"));
+        assert!(output.contains("\"qiongli@unknown-scope\" (scope: unknown)"));
+        assert!(!output.contains("unrecognized scope text"));
         assert_eq!(output.matches("claude plugin disable ").count(), 1);
         assert!(!output.contains("qiongli@disabled") && !output.contains("unrelated@personal"));
     }
