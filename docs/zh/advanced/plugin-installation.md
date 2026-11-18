@@ -127,6 +127,12 @@ npm 的 `latest` 变化，也不会改变命令；查询失败则停止当前客
 不会升级该 CLI 本身。安装后核验注册、选定包版本和重构的来源内容，不再要求与
 旧 CLI 内嵌资源相同；下载完整性仍由官方管理器负责。
 
+安装 `qiongli@2.6.1` 时若出现 `ERR_PNPM_IGNORED_BUILDS`，说明 pnpm 拒绝执行
+可选的安装迁移向导。此时桌面版的版本页面仍可能显示 2.6.1。请在同一个 profile
+中新开会话，确认能加载穷理 Skills，并调用 `qiongli_config_status` 检查 MCP。
+CLI 命令失败时会跳过本次请求的语言偏好。修复后的 npm 包已移除自动向导，如需迁移，
+可以在终端运行 `qiongli install migrate --interactive`。
+
 单独安装 DSH 时，直接复用所选 profile 保存的语言；首次使用系统语言，省去
 单独询问。`--language zh`、`en` 或 `auto` 可以覆盖。损坏的偏好文件会在修改前
 拒绝。模型设置保留。

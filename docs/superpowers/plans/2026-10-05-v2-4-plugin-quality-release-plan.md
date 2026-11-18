@@ -5127,3 +5127,41 @@ and effect claims follow calibration, not preparation. No user model/configurati
 research data or public package changes. Only CLI-410 blocker progress advances;
 all 249 task states, dependencies and accepted bindings stay unchanged. Integrate
 locally into `2.x` without push or publication.
+
+## November 18 — DeepSeek npm install under pnpm script policy
+
+The maintainer reports that the Desktop manager returns
+`ERR_PNPM_IGNORED_BUILDS` at step 8 for `qiongli@2.6.1`, while Desktop's Versions
+panel reports 2.6.1. The CLI never reached its language preference write.
+
+Verify the public npm tarball against registry integrity. In a fresh Linux
+workspace with pnpm 11.7.0 and `strictDepBuilds: true`, an offline add returns
+the same error while leaving the package and its DSH entry on disk. The package
+declares `postinstall: node bin/install.mjs`, which only starts the optional
+terminal migration review. The package already includes the Plugin entry and
+prebuilt executables. The official manager owns registration.
+
+Remove the automatic launcher from new native npm outputs and document the
+existing explicit migration command. The verifier still recognizes the exact
+historical hook through 2.6.1. Keep the official DSH command and script policy.
+After a nonzero package exit, reuse the existing profile, exact-version and
+content checks with no writes. A verified existing state gets a distinct
+diagnostic alongside the original manager failure. A missing or damaged bundle
+keeps the original failure, and interruption keeps its existing behavior.
+
+Repack the same four published binaries and DSH files with the canonical packer
+for a local A/B check. The native/DSH payload remains byte-identical. The same
+pnpm version and policy install the repack successfully, with both CLI shims,
+22 Skill entries and 35 Full MCP tools observed on Linux ARM64. The released
+tarball, pnpm logs and provider check are in `/tmp/qiongli-dsh-pnpm.xklHbY`.
+This local repack isolates the packaging change. The macOS Desktop session
+still needs a live check after a future version ships.
+
+The original workspace test run hit group-writable ancestor and loopback
+restrictions. A private source snapshot with Rust 1.97 and loopback passes 26
+Host tests. The read-only recovery fixture covers a verified existing bundle,
+a damaged receipt and interruption, keeping the language file untouched on
+failure. Two batch tests pass. The real repack passes the Rust content check and
+the terminal fixture passes under a real PTY, for 30 distinct Rust passes.
+Packaging/release tests pass 52 checks. Preserve the current v2.6.1 tag and
+package. Integrate the fix locally for future releases.

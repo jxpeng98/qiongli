@@ -128,6 +128,7 @@ class NativeMarketplacePluginsTests(unittest.TestCase):
                 archive.extractall(self.root / 'installed', filter='data')
             self.assertEqual(metadata['main'], 'dsh/index.mjs')
             self.assertEqual(metadata['dsh'], {'bundle': {'patch': './dsh/cordis.patch.yml'}})
+            self.assertNotIn('scripts', metadata)
             self.assertEqual(plugins.verify_deepseek_npm(files, VERSION, COMMIT, BINARIES),
                              {'pack_sha256': self.metadata['pack_sha256'], 'skills': 22})
             from tooling.scripts.native_registry_install_check import check_deepseek_npm

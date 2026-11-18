@@ -385,7 +385,7 @@ pub(super) fn run_deepseek_terminal(
     line(
         writer,
         &format!(
-            "Official manager exit: {code}\nRetry after reviewing the DSH error above: {}\n",
+            "Official manager exit: {code}\nManager command: {}\n",
             display_command(&executable.to_string_lossy(), args)
         ),
     )?;

@@ -1,6 +1,8 @@
 import hashlib
+import io
 import json
 from pathlib import Path
+import tarfile
 import tempfile
 import unittest
 import zipfile
@@ -8,10 +10,28 @@ from unittest.mock import patch
 
 from tooling.scripts.native_cli_release import archive_cli
 from tooling.scripts.native_registry_packages import TARGETS, LEGACY_TARGETS, wheel
-from tooling.scripts.native_release_assets import assemble, verify, packet_targets
+from tooling.scripts.native_release_assets import (
+    LEGACY_NPM_INSTALL_REVIEW, assemble, packet_targets, verify, verify_npm_install_policy,
+)
 
 
 class NativeReleaseAssetsTests(unittest.TestCase):
+    def test_legacy_npm_review_is_only_allowed_in_historical_releases(self):
+        data = io.BytesIO()
+        with tarfile.open(fileobj=data, mode='w') as packet:
+            entry = tarfile.TarInfo('package/bin/install.mjs')
+            entry.size = len(LEGACY_NPM_INSTALL_REVIEW)
+            packet.addfile(entry, io.BytesIO(LEGACY_NPM_INSTALL_REVIEW))
+        data.seek(0)
+        with tarfile.open(fileobj=data) as packet:
+            metadata = {'scripts': {'postinstall': 'node bin/install.mjs'}}
+            verify_npm_install_policy(packet, metadata, '2.6.1')
+            with self.assertRaisesRegex(ValueError, 'unexpected npm install scripts'):
+                verify_npm_install_policy(packet, metadata, '2.6.2')
+            with patch('tooling.scripts.native_release_assets.LEGACY_NPM_INSTALL_REVIEW', b'changed'):
+                with self.assertRaisesRegex(ValueError, 'installation review bytes'):
+                    verify_npm_install_policy(packet, metadata, '2.6.1')
+
     def test_legacy_roster_is_limited_to_immutable_historical_versions(self):
         self.assertEqual(packet_targets({}, '2.1.1'), LEGACY_TARGETS)
         self.assertEqual(packet_targets({'schema_version': 2}, '2.1.2'), TARGETS)
@@ -90,9 +110,6 @@ class NativeReleaseAssetsTests(unittest.TestCase):
                 assemble(root / 'targets', root / 'wrong-source', version, 'b' * 40)
             assemble(root / 'targets', root / 'assets', version, commit)
             manifest, npm, wheels = verify(root / 'assets', version, commit)
-            with patch('tooling.scripts.native_release_assets.NPM_INSTALL_REVIEW', 'unexpected script'):
-                with self.assertRaisesRegex(ValueError, 'installation review bytes'):
-                    verify(root / 'assets', version, commit)
             with patch('tooling.scripts.native_release_assets.NPM_LAUNCHER', 'incomplete target dispatch'):
                 with self.assertRaisesRegex(ValueError, 'supported target dispatch'):
                     verify(root / 'assets', version, commit)

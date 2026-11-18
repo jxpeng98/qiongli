@@ -13,12 +13,37 @@ import zipfile
 
 try:
     from .native_registry_install_check import require_transition, validate_tool_counts
-    from .native_registry_packages import NPM_INSTALL_REVIEW, NPM_LAUNCHER, TARGETS, LEGACY_TARGETS, LINUX_WHEEL_TAGS, host_target, npm_package, parse_release_version, regular_bytes, validate_binary, requires_deepseek_npm
+    from .native_registry_packages import NPM_LAUNCHER, TARGETS, LEGACY_TARGETS, LINUX_WHEEL_TAGS, host_target, npm_package, parse_release_version, regular_bytes, validate_binary, requires_deepseek_npm
     from .native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive, read_plugin_content, verify_deepseek_npm
 except ImportError:
     from native_registry_install_check import require_transition, validate_tool_counts
-    from native_registry_packages import NPM_INSTALL_REVIEW, NPM_LAUNCHER, TARGETS, LEGACY_TARGETS, LINUX_WHEEL_TAGS, host_target, npm_package, parse_release_version, regular_bytes, validate_binary, requires_deepseek_npm
+    from native_registry_packages import NPM_LAUNCHER, TARGETS, LEGACY_TARGETS, LINUX_WHEEL_TAGS, host_target, npm_package, parse_release_version, regular_bytes, validate_binary, requires_deepseek_npm
     from native_marketplace_plugins import PLATFORMS, archive_name, verify_archive, check_plugins, find_archive, read_plugin_content, verify_deepseek_npm
+
+
+# Historical release archives may contain this exact terminal-only helper.
+LEGACY_NPM_INSTALL_REVIEW = b"""import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+if (process.stdin.isTTY && process.stdout.isTTY) {
+  const result = spawnSync(process.execPath, [fileURLToPath(new URL('./qiongli.mjs', import.meta.url)), 'install', 'migrate', '--interactive'], { stdio: 'inherit' });
+  if (result.error || result.status !== 0) console.error('Installation review was skipped or cancelled. Run the installed Qiongli with install migrate --interactive to review later.');
+}
+"""
+
+
+def verify_npm_install_policy(packet, metadata, version):
+    members = packet.getnames()
+    if 'package/binding.gyp' in members:
+        raise ValueError('unexpected npm install scripts')
+    if 'scripts' not in metadata:
+        return
+    base = tuple(map(int, version.split('-')[0].split('.')))
+    if base > (2, 6, 1) or metadata['scripts'] != {'postinstall': 'node bin/install.mjs'}:
+        raise ValueError('unexpected npm install scripts')
+    launcher = 'package/bin/install.mjs'
+    if (launcher not in members or not packet.getmember(launcher).isfile()
+            or packet.extractfile(launcher).read() != LEGACY_NPM_INSTALL_REVIEW):
+        raise ValueError('unexpected npm installation review bytes')
 
 
 def checked_assets(root, manifest):
@@ -175,12 +200,7 @@ def verify(root, version, commit):
             raise ValueError('unexpected npm package')
         if manifest.get('schema_version') == 2 and packet.extractfile('package/bin/qiongli.mjs').read() != NPM_LAUNCHER.encode():
             raise ValueError('npm launcher does not match the supported target dispatch')
-        scripts = metadata.get('scripts')
-        if scripts:
-            if scripts != {'postinstall': 'node bin/install.mjs'}:
-                raise ValueError('unexpected npm install scripts')
-            if packet.extractfile('package/bin/install.mjs').read() != NPM_INSTALL_REVIEW.encode():
-                raise ValueError('unexpected npm installation review bytes')
+        verify_npm_install_policy(packet, metadata, identity.version)
         for target, (_, _, binary) in targets.items():
             data = packet.extractfile(f'package/native/{target}/{binary}').read()
             validate_binary(data, target)

@@ -118,15 +118,6 @@ def stage_cargo(out: Path, version: str) -> Path:
     return workspace
 
 
-NPM_INSTALL_REVIEW = """import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-if (process.stdin.isTTY && process.stdout.isTTY) {
-  const result = spawnSync(process.execPath, [fileURLToPath(new URL('./qiongli.mjs', import.meta.url)), 'install', 'migrate', '--interactive'], { stdio: 'inherit' });
-  if (result.error || result.status !== 0) console.error('Installation review was skipped or cancelled. Run the installed Qiongli with install migrate --interactive to review later.');
-}
-"""
-
-
 NPM_LAUNCHER = '''#!/usr/bin/env node
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -221,9 +212,9 @@ npm install --global qiongli@{identity.npm_version}
 ```
 
 To follow the {identity.npm_dist_tag} channel, use `npm install --global qiongli@{identity.npm_dist_tag}`.
-The optional installation review needs a terminal. Allow it for one invocation
-with `--allow-scripts=qiongli --foreground-scripts`, or use `--ignore-scripts`
-and run `qiongli setup` afterward. Skipping this review does not disable the CLI.
+Run `qiongli setup` after installation to review other CLI copies visible on this
+computer. For the optional interactive migration review, run
+`qiongli install migrate --interactive` in a terminal.
 Use `npm uninstall --global qiongli` to remove this package.
 """,
         'pypi': f"""Requires Python 3.9+. The wheel includes the native executable and a small
@@ -327,7 +318,6 @@ def npm_package(out: Path, binaries: dict[str, Path], version: str,
     (npm / 'bin').mkdir(parents=True)
     (npm / 'bin/qiongli.mjs').write_text(NPM_LAUNCHER)
     (npm / 'bin/qiongli.mjs').chmod(0o755)
-    (npm / 'bin/install.mjs').write_text(NPM_INSTALL_REVIEW)
     for target, binary in binaries.items():
         data = regular_bytes(binary)
         validate_binary(data, target)
@@ -337,14 +327,13 @@ def npm_package(out: Path, binaries: dict[str, Path], version: str,
         dest.chmod(0o755)
     (npm / 'README.md').write_text(package_readme(version, 'npm') if readme is None else readme)
     shutil.copyfile(ROOT / 'LICENSE', npm / 'LICENSE')
-    # Bundle target binaries in one package; no postinstall executable downloads.
+    # DSH installs the same prebuilt package under pnpm's build-script policy.
     manifest = {
         'name': 'qiongli', 'version': identity.npm_version, 'description': cli_description(),
         'type': 'module', 'license': 'MIT',
         'repository': {'type': 'git', 'url': 'git+https://github.com/jxpeng98/qiongli.git'},
         'bin': {'qiongli': 'bin/qiongli.mjs', 'ql': 'bin/qiongli.mjs'},
         'os': sorted({TARGETS[t][0] for t in binaries}), 'cpu': sorted({TARGETS[t][1] for t in binaries}),
-        'scripts': {'postinstall': 'node bin/install.mjs'},
         'engines': {'node': '>=18'}, 'files': ['bin/', 'native/', 'README.md', 'LICENSE'],
         'publishConfig': {'access': 'public', 'tag': identity.npm_dist_tag},
     }

@@ -633,7 +633,10 @@ fn install_batch<W: InstallWriter>(
                 ),
             )?,
         }
-        if !matches!(result, Ok(true)) {
+        if !matches!(
+            result,
+            Ok(true) | Err("deepseek-package-present-manager-failed")
+        ) {
             line(
                 writer,
                 &format!("    Retry: {}\n", plugin_retry_command(*host, options)),
@@ -995,6 +998,9 @@ fn installation_hint(code: &str) -> &'static str {
         }
         "deepseek-install-not-verified" => {
             "DSH returned, but the installed registration/version/content did not verify. Review the failed step and selected profile before retrying; existing files were retained."
+        }
+        "deepseek-package-present-manager-failed" => {
+            "The selected profile lists the verified package. Check Skills and qiongli_config_status in a new DSH session and review the manager error before retrying."
         }
         "deepseek-desktop-profile-unavailable" => {
             "Open DeepSeek Desktop once to initialize its profile, or choose a CLI profile."

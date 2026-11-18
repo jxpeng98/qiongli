@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+- 移除原生 npm 包的可选 `postinstall` 向导，修复 DeepSeek Harness 严格检查安装脚本时的报错。迁移向导可从 CLI 手动启动。
+- DeepSeek 安装命令报错后，只读核对所选 profile。已有注册、版本和内容校验通过时，明确报告已核验的状态，并保留管理器失败结果。
+
 ## [2.6.1]
 
 详细说明见 [2.6.1 发布说明](tooling/release/v2.6.1.md)。

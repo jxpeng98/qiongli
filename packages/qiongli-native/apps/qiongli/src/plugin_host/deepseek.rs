@@ -11,7 +11,7 @@ use sha2::{Digest, Sha256};
 
 use crate::cli_content::{confirm, line, show_json};
 use crate::command::CommandEnvironment;
-use crate::install_output::InstallWriter;
+use crate::install_output::{DisplayOptions, InstallOutput, InstallWriter};
 
 #[derive(Eq, PartialEq, Serialize)]
 struct InstallPlan {
@@ -314,7 +314,7 @@ fn review(
         } else {
             InstallStep::Initialize
         };
-        step(writer, phase, |writer| {
+        let result = step(writer, phase, |writer| {
             if matches!(phase, InstallStep::Package) {
                 super::installation_command::run_deepseek_terminal(
                     environment,
@@ -334,7 +334,31 @@ fn review(
                 )
                 .map(|_| ())
             }
-        })?;
+        });
+        if matches!(phase, InstallStep::Package) && result == Err("host-command-nonzero-exit") {
+            // pnpm can leave a package on disk even when its policy rejects the
+            // operation. Read back the exact profile without writing preferences
+            // or treating an existing bundle as a successful installation.
+            let mut quiet = InstallOutput::terminal(
+                std::io::sink(),
+                DisplayOptions {
+                    plain: true,
+                    verbose: false,
+                },
+            );
+            if verify_installed(&plan.profile_directory, &plan.package_version, &mut quiet).is_ok()
+            {
+                line(
+                    writer,
+                    &format!(
+                        "Profile {} lists qiongli@{}. Package metadata and content receipt verified. The manager error stopped the language preference update.\n",
+                        plan.profile, plan.package_version
+                    ),
+                )?;
+                return Err("deepseek-package-present-manager-failed");
+            }
+        }
+        result?;
     }
     verify_installed(&plan.profile_directory, &plan.package_version, writer)?;
     if let Some(language) = &plan.skill_language {
@@ -554,6 +578,8 @@ fn verify_installed(
     writer: &mut impl InstallWriter,
 ) -> Result<(), &'static str> {
     step(writer, InstallStep::Registration, |_| {
+        qiongli_content::approve_materialization_target(directory)
+            .map_err(|_| "deepseek-profile-unsafe")?;
         let profile = read_json(&directory.join("package.json"))?;
         if !profile["dsh"]["profile"]["bundles"]
             .as_array()
@@ -724,7 +750,9 @@ mod tests {
             assert!(!output.contains(&format!("[DSH {later}/12]")));
             fs::write(file, original).unwrap();
         }
-        fs::write(package.join("dsh/.qiongli-marketplace.json"), "{}").unwrap();
+        let receipt_path = package.join("dsh/.qiongli-marketplace.json");
+        let receipt = fs::read(&receipt_path).unwrap();
+        fs::write(&receipt_path, "{}").unwrap();
         let mut verification_output = Vec::new();
         assert_eq!(
             verify_installed(&directory, version, &mut verification_output).unwrap_err(),
@@ -751,6 +779,41 @@ mod tests {
         assert!(failure_output.contains("[DSH 8/12] FAILED"));
         assert!(!failure_output.contains("[DSH 9/12]"));
         assert!(failure_output.contains("Official manager exit: 1"));
+        assert!(!failure_output.contains("content receipt verified"));
+
+        fs::write(receipt_path, receipt).unwrap();
+        let mut plan = prepare(&executable, &dsh_root, "probe", version).unwrap();
+        plan.skill_language = Some("en".into());
+        let mut present_output = Vec::new();
+        assert_eq!(
+            review(
+                &environment,
+                &dsh_root,
+                plan,
+                &mut "y\n".as_bytes(),
+                &mut present_output
+            )
+            .unwrap_err(),
+            "deepseek-package-present-manager-failed"
+        );
+        let present_output = String::from_utf8(present_output).unwrap();
+        assert!(present_output.contains("Official manager exit: 1"));
+        assert!(present_output.contains("Profile probe lists qiongli@2.99.0"));
+        assert!(present_output.contains("content receipt verified"));
+        assert!(!directory.join(".qiongli-skill-language.json").exists());
+
+        fs::write(&executable, "#!/bin/sh\nexit 130\n").unwrap();
+        assert_eq!(
+            review(
+                &environment,
+                &dsh_root,
+                prepare(&executable, &dsh_root, "probe", version).unwrap(),
+                &mut "y\n".as_bytes(),
+                &mut Vec::new(),
+            )
+            .unwrap_err(),
+            "installation-input-failed"
+        );
         fs::remove_dir_all(home).unwrap();
     }
 }

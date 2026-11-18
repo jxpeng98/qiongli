@@ -458,12 +458,18 @@ version and all qualified immutable distributions; existing alpha.8 refs and
 assets remain unchanged. No signed grant, managed activation, Host registration,
 private research access or model configuration change is implied by an archive.
 
-Beta.2 permits exactly one npm `postinstall` script: the canonical terminal-only
-installation review launcher. Asset verification checks its command and bytes;
-arbitrary scripts remain rejected. It performs no download or cleanup, tolerates
-cancellation, and skips non-terminal streams. `--ignore-scripts` remains supported.
-Python wheels and Cargo retain standard installation; the installed native CLI
-owns their subsequent interactive review.
+New native npm packages contain prebuilt executables and no install scripts or
+implicit `node-gyp` build. After installation, use `qiongli setup` or explicitly
+run `qiongli install migrate --interactive`. Asset verification still accepts the
+exact historical terminal review launcher through 2.6.1. Future versions refuse
+it and arbitrary package scripts.
+
+When the official DSH package command exits with an error, a read-only check may
+confirm that the selected profile lists Qiongli and contains the approved exact
+version, declared entry points and a valid content receipt. Report those facts
+with the manager's failure. Keep the failure result, skip preference writes and
+leave session checks to a new DSH session. DSH continues to own package and script
+policy.
 
 An explicit `release-automation.yml` post dispatch at an immutable native
 release tag qualifies the same tag through Native CLI distribution, verifies

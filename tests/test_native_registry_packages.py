@@ -185,16 +185,6 @@ const spawn = (command, args, options) => {
                 packages.stage_cargo(out, '2.0.0-beta.999')
             self.assertEqual(list(out.iterdir()), [])
 
-    def test_install_review_skips_noninteractive_installation(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            (root / 'install.mjs').write_text(packages.NPM_INSTALL_REVIEW)
-            (root / 'qiongli.mjs').write_text("throw new Error('must not launch without a terminal');")
-            node = subprocess.check_output(['node', '-p', 'process.execPath'], text=True).strip()
-            result = subprocess.run([node, str(root / 'install.mjs')], input='', capture_output=True, text=True, timeout=10)
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(result.stdout + result.stderr, '')
-
     def test_cargo_publication_requires_ci_token_without_exposing_it(self):
         workflow = yaml.safe_load((packages.ROOT / '.github/workflows/publish-cargo.yml').read_text())
         publish = workflow['jobs']['publish']
@@ -267,8 +257,8 @@ const spawn = (command, args, options) => {
                 self.assertFalse(any('qiongli_native/' in name or name.endswith('.py')
                                      for name in archive.getnames()))
                 self.assertEqual(manifest['publishConfig']['tag'], 'next')
-                self.assertEqual(manifest['scripts'], {'postinstall': 'node bin/install.mjs'})
-                self.assertEqual(archive.extractfile('package/bin/install.mjs').read(), packages.NPM_INSTALL_REVIEW.encode())
+                self.assertNotIn('scripts', manifest)
+                self.assertNotIn('package/bin/install.mjs', archive.getnames())
                 self.assertEqual(set(manifest['os']), {'darwin', 'linux', 'win32'})
                 for target, data in binary_data.items():
                     self.assertEqual(archive.extractfile(f'package/native/{target}/{packages.TARGETS[target][2]}').read(), data)

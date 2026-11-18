@@ -144,6 +144,13 @@ this does not update that CLI. Postchecks verify registration, the selected pack
 version and reconstructed source content rather than the CLI's embedded pack.
 Registry download integrity remains the official manager's responsibility.
 
+If installing `qiongli@2.6.1` reports `ERR_PNPM_IGNORED_BUILDS`, pnpm has blocked
+the optional installation review. The Desktop Versions panel can still show
+2.6.1. Open a new session in the same profile and check that the Qiongli Skills
+appear and `qiongli_config_status` responds. A failed CLI install skips the
+requested language preference. Native npm packages built with the fix omit the
+automatic review. To open it yourself, use `qiongli install migrate --interactive`.
+
 A DSH-only install reuses the selected profile's saved language or the system
 locale without asking separately. Use `--language zh`, `en` or `auto` to override.
 Corrupt saved preferences refuse before changes. Model settings stay configured.
