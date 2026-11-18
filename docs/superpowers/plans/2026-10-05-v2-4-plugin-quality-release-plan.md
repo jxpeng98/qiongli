@@ -5235,3 +5235,67 @@ first run with an unstripped 285 MB debug binary exceeds the outer test harness
 deadline while generating the plan. Strip debug sections only from the temporary
 fixture copy for the successful retry. This does not establish a completed Mac
 upgrade or live session readiness. Integrate into local `2.x` for a future release.
+
+## November 18 — v2.6.2 release qualification
+
+The maintainer authorizes preflight, stable-main push, immutable `v2.6.2` and the
+existing release task. Stop after dispatch. The maintainer owns the follow-up
+macOS upgrade checks. Use the reviewed integrated `2.x` tree for the stable
+cutover. The release notes cover the three Host fixes, the default Codex and
+Claude source directories, and the already integrated CLI status and help fixes.
+The accompanying evaluation changes document synthetic or public-source trials
+and prepare calibration, without promoting program acceptance.
+
+The stable target roster remains macOS ARM64, Windows x64 and Linux x64/ARM64.
+Publication uses the exact-tag workflow and existing npm, PyPI and Cargo gates.
+Six public install pages still pin published v2.6.1 and pass against its release
+API metadata and checksum list. The published-link check requires publication
+before those pins advance. Rollback uses the prior CLI in its original package
+channel and the Host's Plugin controls. Retain research files, settings and
+source backups when changing CLI or Plugin versions.
+
+The canonical version owner synchronizes nine metadata files and the content
+generator rebuilds all 447 entries. The locked content pack SHA-256 is
+`848391102ca4464664269f062bd8865a63ffe4e15f71f1fde2b62b361de3ca49`.
+Focused validation passes 135 Python tests across release contracts, package
+projection, install documentation, CI policy, program index and evaluation
+fixtures. A bounded scan of 130 release-change files finds no private-key,
+known credential token, JWT or personal attachment pattern. The pre-existing
+synthetic URL credential in an output redaction test is excluded from the count.
+This scan is limited to the checked patterns.
+
+The first Ubuntu 22.04/Rust 1.97 preflight at `26a4750e` stops under strict
+Clippy on manual `Option::unwrap_or` in Claude's scope display. Preserve
+allowlisted scope labels by filtering before fallback. The targeted regression
+checks that unknown scope text stays out of the output. The corrected clean
+candidate is `25b096dd6a2d93e7c8b955dc237c73a692287eef`. Keep the original
+failure log alongside the retry in `/tmp/qiongli-262-release.upVpA6`.
+
+The corrected `25b096dd` candidate passes the canonical release preflight in
+807.3 seconds on offline Ubuntu 22.04 / Rust 1.97 / Linux ARM64. Format, strict
+Clippy, 49 release CLI and nine MCP tests pass. Extracted empty-PATH execution,
+isolated npm/wheel installation and Codex/Claude Plugin checks pass. Nine focused
+Host regressions also pass, including the unknown-scope negative case. Independent
+audit verifies sizes and hashes for all five packaged assets plus the manifest
+and `SHA256SUMS` coverage. The highest required GLIBC symbol is 2.34.
+
+The official published 2.6.1 npm and PyPI packages both upgrade to the candidate
+and retain all three research/settings fixtures byte for byte. Under pnpm
+11.28.5 with `strictDepBuilds: true`, the actual candidate installs in a fresh
+workspace and upgrades a workspace left by the 2.6.1 script refusal. Both
+`qiongli` and `ql` report 2.6.2 and the Linux DeepSeek Plugin exposes 22 Skills
+and 35 Full MCP tools. The candidate package contains no install scripts, review
+launcher or implicit node-gyp input. Evidence is in `qualification.log`,
+`artifact-audit.json`, `upgrade-from-261/registry-upgrade-check.json` and
+`strict-pnpm-check.json` under the release evidence root above.
+
+- Binary SHA-256: `231cd53c828d363d9363f69979f96497d7ab9a96bba7a8df0cf9979a116fac2a`.
+- npm SHA-256: `67b71413c4084f2407df358e6e78eeff39aa92a135fb20195b491343cec96301`.
+- Manifest SHA-256: `7b3812d82f4b6eb85e2fff62d80503fd939fb5df9615b19e623fa2b60a61efdb`.
+- `SHA256SUMS` SHA-256: `c589af6faac0c6f8c674aed3bde8950b2f58833b0e84cd88bba66800820a3479`.
+
+The final commit records evidence in the plan, roadmap, ledger and derived index
+only. Merge locally into `2.x` and stable main, push reviewed main and the new
+immutable tag atomically, then dispatch Release Automation in post mode. Stop
+at the dispatch acknowledgement. Hosted tests and publication remain owned by
+the workflow. The maintainer will verify macOS upgrades after publication.

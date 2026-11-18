@@ -52,10 +52,17 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — November 13, 2026
+## Current execution horizon — November 18, 2026
 
-The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-13--three-arm-protocol-and-calibration-preparation)
-now freezes the direct-Host / guidance / full-tooling comparison protocol and two
+The maintainer authorizes v2.6.2 qualification, a stable-main push and release
+dispatch, with no follow-up tracking. The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-18--v262-release-qualification)
+combines the Codex inventory and migration timeout repairs, scoped Claude Code
+conflict guidance and script-free DeepSeek npm installation. Use the reviewed
+local `2.x` tree and existing all-target release workflow. The maintainer will
+verify actual macOS upgrades. Keep the release and program evidence distinct.
+
+The preceding [plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-13--three-arm-protocol-and-calibration-preparation)
+freezes the direct-Host / guidance / full-tooling comparison protocol and two
 new synthetic calibration tasks. Shared outcomes preserve A/B's normal read/write
 and recovery abilities; historical three-case baseline scoring stays unchanged.
 The offline preparation binds six units and nine planned fresh sessions, without
