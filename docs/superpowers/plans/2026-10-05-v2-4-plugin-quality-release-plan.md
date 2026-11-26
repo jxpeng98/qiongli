@@ -5299,3 +5299,78 @@ only. Merge locally into `2.x` and stable main, push reviewed main and the new
 immutable tag atomically, then dispatch Release Automation in post mode. Stop
 at the dispatch acknowledgement. Hosted tests and publication remain owned by
 the workflow. The maintainer will verify macOS upgrades after publication.
+
+## November 26 — GPT-6.2 Skills audit
+
+Start from the published v2.6.2 source at `c7d8b6ba`. OpenAI describes Astra's
+shorter default prose and its tendency to pause on underspecified tasks. For
+Qiongli this affects how a workflow requests evidence, finishes supported work
+and writes for the eventual reader. Under ADR 0218 the Host owns Responses API
+messages, tool transport, reasoning effort and model choice. Qiongli supplies
+research guidance and project services. [OpenAI GPT-6.2 guide](https://developers.openai.com/zh-Hans/api/docs/guides/latest-model)
+
+### Coverage and changes
+
+| Audited surface | Finding and disposition |
+|---|---|
+| Public discovery and routing | The bilingual catalog has 22 names, covering the main entry, reply-only and 20 Codex shortcuts. The 21 workflow files include the unified router. That router had a second, divergent intent table. It now uses the root table, which includes G-stage compliance. |
+| Research guidance | The registry resolves 82 core cards across 14 stage groups. The compatibility scan included the 8 subject cards, 24 subject overlays, 14 domain profiles, shared references and role guidance. Registry model-family labels and Host-specific transport instructions supply no API model pin. The collaboration card now names the active Host as coordinator. |
+| Research outputs and stopping | G, D and H2 could ask for a folder or repeat intake even when a supplied passage was sufficient. Direct requests now produce the specified text. Formal tasks retain their prerequisites, paths and approval flow. D1 distinguishes risks from an institutional decision. H2 aligns its matrix/letter with the registry and templates, and verifies changes before describing them as completed. |
+| Other model guidance | Stage I already scopes code, diagnostics and verification to the research task. Stage K now follows the requested output and drops a blanket execution directive. Gap discovery uses the available literature route. Existing language-style choices and the user's Host settings still apply. |
+
+### Behavioral evidence
+
+Codex CLI 0.167.0 ran fresh read-only sessions with synthetic material and the
+existing evaluation resource reader. Astra used the configured
+`gpt-6.2-astra` at `xhigh`. A temporary replay selected `gpt-6.2-sol` at the
+same effort, using the identical requests, skill bytes and reader. The catalog
+now has four more English/Chinese pairs, for 84 requests in total. Six selected
+requests per model cover the following outcomes.
+
+| Request | Observed on both models |
+|---|---|
+| Compare conflicting sample counts (Chinese) | Identified the 64/60 discrepancy and left the actual analysis count for verification. |
+| Draft a data statement (English) | Located aggregate tables in the supplement and preserved the prohibition on sharing individual records, including on request. |
+| Reply to a reviewer (Chinese) | Explained 50 versus 47 from three missing follow-ups. Described the agreed table note in the future tense. |
+| Draft an ethics application paragraph (English) | Explained quotation-based re-identification risk and distinguished receipt on 10 March from a determination. |
+| Reply only about a fictional venue rule (English) | Answered from the supplied rule with zero resource reads. |
+| Apply a stale approval (Chinese) | Reported the blocked write, preserved the intervening change and required approval of a fresh preview. No project write tool was exposed. |
+
+On the first stale-approval trial Sol gave a safe answer, but requested three
+nonexistent resources and returned an invalid primary route. That trace failed.
+The platform reference now owns the operation and gives its stopping condition.
+A fresh replay on each model read the one real platform reference and passed.
+The initial selection passed 6/6 on Astra and 5/6 on Sol. After the repair,
+12/12 model-case combinations meet the routing, scope, action and validated-read
+expectations. For reused observations, the prompt, expected labels and every
+resource actually read match the final source bytes. Content review of the
+answers was by the implementing agent.
+
+Local captures are under `/tmp/qiongli-62-{astra,sol}-nov26`,
+`/tmp/qiongli-62-{astra,sol}-boundaries-nov26` and
+`/tmp/qiongli-62-{astra,sol}-write-route-nov26`. Keep the first failure with
+the replays. These cases exercise supplied guidance and a read-only test MCP.
+Installed automatic discovery, live project mutation, cross-Host behavior and
+a comparative improvement in research quality require separate observations.
+
+### Integration checks
+
+All 22 generated or canonical Codex entry manifests pass Skill quick validation
+and agree with the catalog. The portable package's resource links resolve.
+The focused routing, card/registry, negative-case, domain and Marketplace
+suites pass 95 checks. Two stale boundary assertions reproduced at v2.6.2.
+The synthesis workflow now points to its formal decision record, and the
+attribution test checks the published funnel name. Test subprocesses use the
+Python installation with PyYAML and the existing Node/npm executables.
+The strict card audit still reports the same 70/82 as v2.6.2. Its 12 flags
+include named-input headings, literal evidence phrases and Host-specific
+transport examples. Preserve those findings separately from runtime outcomes.
+
+Content source `2f780da0809d6e9da41564faff6b63532f9db29c` binds 447 entries
+with pack SHA-256 `a59f97b72a3181a3b59d7057cfe459be3cd8e7f3b309b321e34eb2a0915e45bb`.
+The intermediate build correctly refused a changed source after the write-routing
+repair. After regenerating the lock, the Rust 1.97 native CLI embedded-pack test
+passes. Seven roadmap/ledger checks pass and the 249-task index is current.
+The next qualification is an installed-Plugin journey on new material with the
+intended Host and access policy bound. Program acceptance and release remain
+separate decisions.

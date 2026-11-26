@@ -52,10 +52,17 @@ Typed Kernel、Evidence/Reproducibility 和机构级科研治理扩张。
   checklist marks in this file are presentation only；
 - 旧路线图和计划保留为历史设计与验收记录，不再通过追加“当前状态”来控制未来队列。
 
-## Current execution horizon — November 18, 2026
+## Current execution horizon — November 26, 2026
 
-The maintainer authorizes v2.6.2 qualification, a stable-main push and release
-dispatch, with no follow-up tracking. The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-18--v262-release-qualification)
+The post-v2.6.2 Skills audit follows the [existing execution plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-26--gpt-62-skills-audit).
+Integrate the shared routing and research-output fixes into local `2.x`.
+The plan records the Astra and Sol observations, including a failed resource
+lookup and its targeted replay. Installed-Plugin activation and longer research
+journeys still need separate evidence. Resume the planned calibration when its
+Host, policy and cost bindings are available.
+
+The preceding November 18 increment authorized v2.6.2 qualification, a stable-main
+push and release dispatch, with no follow-up tracking. The [existing plan](../plans/2026-10-05-v2-4-plugin-quality-release-plan.md#november-18--v262-release-qualification)
 combines the Codex inventory and migration timeout repairs, scoped Claude Code
 conflict guidance and script-free DeepSeek npm installation. Use the reviewed
 local `2.x` tree and existing all-target release workflow. The maintainer will
