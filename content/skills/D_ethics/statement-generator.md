@@ -4,16 +4,16 @@ stage: D_ethics
 description: "Generate standardized ethics, data availability, and conflict-of-interest statements for manuscript inclusion."
 inputs:
   - type: EthicsPackage
-    description: "Approved IRB and ethics materials"
+    description: "Documented ethics decision or current review status, when relevant"
   - type: DataManagementPlan
     description: "Data governance and sharing plan"
 outputs:
   - type: Manuscript
     artifact: "manuscript/manuscript.md"
 constraints:
-  - "Must strictly adhere to ICMJE statement guidelines"
+  - "Follow the applicable venue's declaration requirements"
   - "Must clearly state IRB approval numbers if applicable"
-  - "Data availability statements must include repository links or reasons for restriction"
+  - "Describe evidenced data access conditions and include a verified link when applicable"
 failure_modes:
   - "Using generic 'data available upon request' statements when prohibited by the journal"
   - "Omitting secondary data source citations in the ethics statement"
@@ -24,7 +24,8 @@ domain_aware: true
 
 # Statement Generator Skill
 
-Generate boilerplate and standardized compliance statements required for journal submissions, translating complex ethics and data management packages into concise, journal-ready text.
+Draft the requested manuscript declaration from the documented status and
+access conditions. Use the D2 section of `references/stage-D-ethics.md`.
 
 ## Purpose
 
@@ -45,9 +46,11 @@ Generate standardized ethics, data availability, and conflict-of-interest statem
 
 ## Inputs
 
-- `EthicsPackage`: Approved IRB and ethics materials
-- `DataManagementPlan`: Data governance and sharing plan
-- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
+- Use the ethics decision, governance plan or author disclosure relevant to
+  the requested statement. One availability paragraph can stand alone.
+- If a missing input prevents a declaration, identify it and draft
+  the supported text. Use `RESEARCH/[topic]/context/gap_notes.md` for formal
+  project gaps. Unreported approval, consent, access and conflicts stay unknown.
 - Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
 
 ## Process
@@ -57,14 +60,14 @@ Generate standardized ethics, data availability, and conflict-of-interest statem
 - Review the `DataManagementPlan` to identify where data and code are hosted, or constraints preventing sharing.
 
 ### Step 2: Information Synthesis
-Extract and explicitly address:
+For each requested or venue-required declaration, check the relevant facts:
 1. **Ethical Approval**: Did an IRB approve it? What is the protocol number? Was informed consent obtained?
 2. **Data Availability**: Is data public? If so, what is the DOI/link? If not, under what conditions can it be accessed?
 3. **Code Availability**: Are analysis scripts published?
 4. **Conflicts of Interest**: Are there any financial or non-financial conflicts to declare?
 
 ### Step 3: Drafting Statements
-Generate standardized paragraphs for:
+Select the applicable paragraphs:
 - **Ethics Statement**
 - **Data Availability Statement**
 - **Code Availability Statement**
@@ -82,10 +85,11 @@ Format the output as Markdown paragraphs, ready to be appended to the 'Declarati
 
 ## Quality Bar
 
-- [ ] All required statements (Ethics, Data, Code, COI) are present.
+- [ ] The requested declarations cover the applicable requirements.
 - [ ] Contains specific institutional names and protocol numbers, avoiding placeholders if data exists.
 - [ ] Data availability statement clearly delineates public vs. restricted data.
-- [ ] Language is highly formal, objective, and aligns with ICMJE standards.
+- [ ] The wording conveys the documented status to a manuscript reader. Apply
+      ICMJE guidance when the venue requires it.
 
 ## Common Pitfalls
 

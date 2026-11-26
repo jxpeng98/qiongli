@@ -1,11 +1,14 @@
 # Codex routing intent probe
 
-Codex is the primary development and verification Host. The corpus contains 30
-paired English/Chinese requests (60 cases), covering applicability, adjacent
+Codex is the primary development and verification Host. The corpus contains 42
+paired English/Chinese requests (84 cases), covering applicability, adjacent
 intents, bounded scope and continuation. Inputs are synthetic and require neither
-private research nor Host registration. The current corpus retains the previous
-48 requests and adds twelve reply-only cases: supplied/unseen material, continuation,
-quoted non-triggers, explicit resumption and the named `no-qiongli` entry.
+private research nor Host registration. It covers reply-only, venue selection,
+review and cross-Host boundaries. Four pairs exercise direct deliverables from
+partial material. They cover a reporting discrepancy, a restricted-data
+statement, a reviewer reply about a pending edit and an ethics application
+awaiting a decision. Inspect their actual answers for counts, permitted access
+and decision status as well as scoring route and scope.
 Reply-only cases require zero resource
 reads; quoted labels and resumed execution retain normal routing. Historical
 snapshots retain their original requests and scores.
@@ -45,7 +48,7 @@ automatic retries; unattempted selected cases stay in the denominator.
 # Offline checks; no model calls.
 .venv/bin/python -m unittest tests.test_skill_routing_probe tests.test_academic_quality_evals
 
-# Always use new capture/report directories. Omit --case to capture all 60.
+# Always use new capture/report directories. Omit --case to capture the full corpus.
 .venv/bin/python evals/skill_routing/probe.py capture /private/tmp/qiongli-intents \
   --case results-interpretation-boundary-en --case results-interpretation-boundary-zh
 

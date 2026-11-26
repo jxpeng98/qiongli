@@ -25,6 +25,20 @@ REGISTRY = RepoLayout(REPO_ROOT).skills / "registry.yaml"
 
 
 class SkillContractAlignmentTests(unittest.TestCase):
+    def test_rebuttal_outputs_match_registry_types_and_template_destinations(self) -> None:
+        entries = yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))["skills"]
+        entry = next(item for item in entries if item["id"] == "rebuttal-assistant")
+        card = (REPO_ROOT / "content" / entry["file"]).read_text(encoding="utf-8")
+        outputs = yaml.safe_load(card.split("---", 2)[1])["outputs"]
+        templates = {"ResponseToReviewers": "rebuttal-response-matrix.md",
+                     "ResponseLetter": "rebuttal-letter.md"}
+        self.assertCountEqual([item["type"] for item in outputs], entry["outputs"])
+        for item in outputs:
+            path = REPO_ROOT / "content" / "templates" / templates[item["type"]]
+            with self.subTest(artifact=item["type"]):
+                self.assertIn(f"Save to: RESEARCH/[topic]/{item['artifact']}",
+                              path.read_text(encoding="utf-8"))
+
     def test_interpretation_cards_match_f3_output_paths_and_registry_types(self) -> None:
         contract = yaml.safe_load(WORKFLOW_CONTRACT.read_text(encoding="utf-8"))
         registry = yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))

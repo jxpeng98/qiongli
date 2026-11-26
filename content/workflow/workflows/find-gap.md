@@ -36,7 +36,8 @@ Use the **question-refiner** skill to:
 ### Step 2: Literature Landscape Mapping
 
 Use the **academic-searcher** skill to:
-1. Search Semantic Scholar for recent publications
+1. Use the available search route in `references/literature-provider-routing.md`
+   for recent publications, or work within the supplied corpus when requested.
 2. Identify seminal/highly-cited papers
 3. Find recent review articles in the area
 4. Map key authors and research groups

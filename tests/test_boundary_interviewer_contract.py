@@ -223,7 +223,7 @@ class BoundaryInterviewerContractTests(unittest.TestCase):
 
         self.assertIn("Matt Pocock", readme)
         self.assertIn("grill-me", readme)
-        self.assertIn("academic idea-discovery", readme)
+        self.assertIn("Academic Idea Funnel", readme)
 
     def test_boundary_skill_documents_downstream_continuation(self) -> None:
         content = SKILL.read_text(encoding="utf-8")

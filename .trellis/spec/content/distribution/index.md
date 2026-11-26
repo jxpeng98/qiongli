@@ -80,8 +80,13 @@ It does not expose the generated Codex workflow wrappers as separate public
 Skills. The canonical pack, other Host entry policies and receipt readers for
 older AGY layouts remain unchanged.
 
-The root Skill selects the requested outcome and relevant resources. It also
-owns bounded guidance delivery: recover missing output ranges after
+The root Skill selects the requested outcome and relevant resources. The unified
+workflow entry uses its route table. Supplied passages can
+support a direct G-stage finding, D-stage declaration or H2 reviewer reply.
+These routes retain formal prerequisites, output paths and the established
+write transaction for requested project work. In reviewer-facing text, verify
+completed edits against the manuscript version and identify agreed future work.
+The root Skill governs bounded guidance delivery: recover missing output ranges after
 Host truncation or script failure, retaining the version and received context.
 File-read success alone does not establish that the guidance reached the model.
 Stage F writing workflows, cards and roles reference

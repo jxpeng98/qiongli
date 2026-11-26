@@ -2,46 +2,36 @@
 description: "Prepare research ethics documents, including consent, recruitment, data security, and ethics statements."
 ---
 
-# Ethics / IRB Pack
+# Research ethics and disclosure
 
-Prepare ethics-ready documentation for a study. This is organizational support, not legal advice.
+Use the requested part of `references/stage-D-ethics.md`. A question about a
+consent passage or a request for one availability statement can be answered
+from supplied material in chat.
 
-Canonical Task ID (from the globally installed `qiongli-workflow` skill):
-- `D1` ethics pack
-
-## Project
+## Request
 
 $ARGUMENTS
 
-## Workflow
+## Select the deliverable
 
-## Academic Boundary Review
+- **D1, ethics pack.** Use `ethics-irb-helper` and `templates/ethics-irb-pack.md`
+  for `RESEARCH/[topic]/ethics_irb.md`. Check the relevant population, recruitment,
+  compensation, data types, consent, withdrawal, storage, retention and sharing
+  against the protocol. Include consent or recruitment drafts in `instruments/`
+  and update `data_management_plan.md` when the pack calls for them.
+- **D2, manuscript statement.** Use `statement-generator` for the requested
+  declaration. Write the supported status and access conditions in language the
+  manuscript reader can use. The formal destination is
+  `RESEARCH/[topic]/manuscript/manuscript.md`.
+- **D3, de-identification plan.** Use `deidentification-planner` for the actual
+  identifiers, linkage and sharing setting. The formal output is
+  `RESEARCH/[topic]/compliance/deidentification_plan.md`.
 
-Before drafting this stage's checkpoint outputs, use `boundary-interviewer` when `context/boundary_review.md` is missing, stale, or contradicted by the current task. Continue within the locked boundary when the artifact already answers the stage question. Narrowing is allowed; broadening requires a new boundary review entry with a revisit trigger.
+## Formal checkpoint
 
-For ethics work, lock consent, privacy, governance, vulnerable-group, deidentification, data-sharing, and disclosure boundaries before drafting approvals.
-
-### Step 0: Select Project Folder
-
-Ask the user:
-> "Which `RESEARCH/[topic]/` folder should receive the ethics pack?"
-
-### Step 1: Collect Ethics Inputs
-
-Ask:
-1. Participant population + any vulnerable groups
-2. Data types (PII/sensitive, audio/video, identifiers)
-3. Recruitment method + compensation
-4. Consent procedure (online/in-person) + withdrawal policy
-5. Data storage/encryption + retention schedule
-6. Data sharing plan (open/restricted/none)
-
-### Step 2: Generate Ethics Pack
-
-Use **ethics-irb-helper** with `templates/ethics-irb-pack.md` to produce:
-- `RESEARCH/[topic]/ethics_irb.md`
-- (if applicable) `RESEARCH/[topic]/instruments/consent_form.md`
-- (if applicable) `RESEARCH/[topic]/instruments/recruitment_script.md`
-- Update `RESEARCH/[topic]/data_management_plan.md` if needed
-
-Begin ethics pack drafting now.
+Reuse the selected project and its locked boundary in `context/boundary_review.md`.
+Use `boundary-interviewer` when an unresolved or changed population, use or
+destination affects consent or governance. Carry documented decisions forward.
+Leave approval, exemption and sharing permissions unresolved where evidence is
+missing, and continue supported drafting. Save requested project outputs through
+preview, explicit approval and revision-checked apply.

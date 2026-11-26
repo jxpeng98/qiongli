@@ -26,8 +26,8 @@ domain_aware: false
 Coordinate bounded independent review of literature, writing, qualitative coding,
 statistics, analysis code or rebuttals. Match roles to the actual available
 capabilities and evidence needs, not to model or Host brand stereotypes. The
-active GPT/Codex operator coordinates dispatch, collection and synthesis; Qiongli
-validates the submitted candidate and does not spawn collaborators.
+coordinating Host dispatches the work, collects results and synthesizes them.
+Qiongli validates the submitted candidate.
 
 ## When to Use
 

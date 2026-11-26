@@ -9,11 +9,10 @@ Save to: RESEARCH/[topic]/revision/response_letter.md
 
 Dear [Editor/Reviewers],
 
-Thank you for the thoughtful and constructive feedback on our manuscript, **"[Title]"**. We have revised the paper accordingly and summarize the major changes below.
+Thank you for reviewing our manuscript, **"[Title]"**.
 
 ## Summary of Major Revisions
-1. 
-2. 
+[Summarize verified revisions, if any. Omit this section for a clarification alone.]
 
 ---
 
@@ -22,14 +21,14 @@ Thank you for the thoughtful and constructive feedback on our manuscript, **"[Ti
 ### Editor
 **Comment E1:** [quote]
 
-**Response:** [what changed + where]
+**Response:** [answer and supporting reason, with the location of any verified change]
 
 ---
 
 ### Reviewer 1
 **Comment R1.1:** [quote]
 
-**Response:** [response + change location]
+**Response:** [answer and supporting reason, with the location of any verified change]
 
 ---
 

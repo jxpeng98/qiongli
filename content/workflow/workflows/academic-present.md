@@ -4,8 +4,6 @@ description: "Prepare an academic talk: plan the content, design the slides, and
 
 # Academic Presentation Workflow
 
-// turbo-all
-
 ## Overview
 
 从已完成的论文或研究成果出发，准备一个学术报告演示文稿。
@@ -24,6 +22,9 @@ For presentation work, lock audience, slide-evidence, oral-claim, and disclosure
 ## Steps
 
 ### 1. Talk Planning（报告规划）
+
+按请求选择规划、页面设计或成稿。复用已有的时长、受众、模板和格式要求。结合
+`references/stage-K-presentation.md` 检查证据和可读性。仅请求提纲时，交付提纲即可。
 
 使用 `presentation-planner` skill：
 

@@ -4,58 +4,33 @@ description: "Check reporting requirements, research integrity, and writing styl
 
 # Compliance Check Workflow (G-Stage)
 
-Run a thorough compliance and polish pass on a complete or near-complete manuscript. This ensures the study adheres to field-specific reporting guidelines, maintains logical consistency, and adopts the correct academic tone.
+Check the part of the manuscript the user identifies. For a question about a
+supplied passage, return the assessment or requested wording in chat. Describe
+the sections actually checked. A passage can establish a local inconsistency
+even when whole-manuscript reporting completeness remains unknown.
 
-Canonical Task IDs from the `qiongli-workflow` skill:
-- `G1` Reporting completeness
-- `G2` PRISMA compliance
-- `G3` Cross-section integrity
-- `G4` Tone & Style Normalization
-
-## Project Context
+## Request
 
 $ARGUMENTS
 
-## Workflow Steps
+## Select the check
 
-## Academic Boundary Review
+Use the relevant section of `references/stage-G-compliance.md`. Reuse the study
+design, manuscript version and any checklist already supplied. If more than one
+check fits, use the user's desired result to decide which are needed.
 
-Before drafting this stage's checkpoint outputs, use `boundary-interviewer` when `context/boundary_review.md` is missing, stale, or contradicted by the current task. Continue within the locked boundary when the artifact already answers the stage question. Narrowing is allowed; broadening requires a new boundary review entry with a revisit trigger.
+| Task | What to check | Formal project output |
+|---|---|---|
+| G1 | Applicable reporting items against manuscript locations with `reporting-checker` | `RESEARCH/[topic]/reporting_checklist.md` |
+| G2 | Applicable PRISMA items and counts against the review records with `prisma-checker` | `RESEARCH/[topic]/prisma_checklist.md` |
+| G3 | Research question, methods, results and claims across the supplied sections with `manuscript-architect` | `RESEARCH/[topic]/manuscript/claims_evidence_map.md` |
+| G4 | Actual overclaiming, qualifications and tone in context with `tone-normalizer` | `RESEARCH/[topic]/compliance/tone_normalization.md` |
 
-For compliance work, lock reporting checklist fit, claim-evidence mismatches, and disclosure boundaries before sign-off.
+## Formal checkpoint
 
-### Step 0: Select Project Folder
-Ask the user:
-> "Which `RESEARCH/[topic]/` folder contains the manuscript we are checking?"
-
-### Step 1: Select Checking Scope
-Ask the user what kind of compliance checks they want to run (they can pick multiple):
-
-1. **G1 Reporting Completeness Check**
-   - Matches study type (e.g., RCT → CONSORT, Observational → STROBE, Qualitative → SRQR).
-   - *Requires*: `manuscript/manuscript.md`
-   - *Uses skill*: `reporting-checker`
-
-2. **G2 PRISMA Compliance (Systematic Reviews Only)**
-   - Item-by-item PRISMA 2020 verification.
-   - *Requires*: `search_log.md`, `extraction_table.md`, `manuscript/manuscript.md`
-   - *Uses skill*: `prisma-checker`
-
-3. **G3 Cross-Section Integrity Check**
-   - Verifies that RQs match Methods, and Methods match Results (claim-evidence mapping).
-   - *Requires*: `manuscript/manuscript.md`
-   - *Uses skill*: `manuscript-architect`
-
-4. **G4 Tone & Style Normalization**
-   - Strips subjective fluff, fixes over-claiming, and applies an objective academic voice.
-   - *Requires*: `manuscript/manuscript.md`
-   - *Uses skill*: `tone-normalizer`
-
-### Step 2: Execution & Output
-For each selected check, run the associated skill and output into the canonical paths:
-- G1 → `RESEARCH/[topic]/reporting_checklist.md`
-- G2 → `RESEARCH/[topic]/prisma_checklist.md`
-- G3 → `RESEARCH/[topic]/manuscript/claims_evidence_map.md`
-- G4 → `RESEARCH/[topic]/compliance/tone_normalization.md`
-
-Begin execution by asking for the project topic and desired checks.
+Reuse the selected project and its locked boundary in `context/boundary_review.md`.
+Use `boundary-interviewer` for an unresolved or contradicted choice that affects
+checklist fit, claim strength or disclosure. For sign-off, verify each required
+item against the relevant manuscript and records. Mark missing evidence and
+complete the checks it does not affect. Save requested project outputs through
+preview, explicit approval and revision-checked apply.

@@ -37,8 +37,9 @@ tool lock or a way to override higher-priority instructions or stop Host hooks.
 
 1. Reuse the supplied materials, conversation decisions and selected project.
    Infer the task internally; do not ask the user to learn a Task ID or choose a
-   paper type already evident from context. Ask one focused question only when
-   the missing answer changes the result, destination or permitted action.
+   paper type already evident from context. Make reversible presentation choices
+   from the request and audience. Ask one focused question when a missing fact
+   changes the research conclusion, requested deliverable or permitted action.
 2. Choose the smallest route below and read its workflow or skill card. Do not
    load the whole catalog, all stage playbooks or `skills-core.md` by default.
    Use `skills-summary.md` only when the appropriate card is unclear; the full
@@ -47,8 +48,10 @@ tool lock or a way to override higher-priority instructions or stop Host hooks.
    can be answered in chat. A formal task or saved artifact uses the canonical
    paths and gates in `references/workflow-contract.md`. Do not turn a quick
    answer into a whole project, or call it a completed formal task.
-4. Report the result, evidence limits and any actual saved artifact. Ask for
-   input only on the blocked portion while continuing useful authorized work.
+4. Deliver the supported work now, including when one part is blocked. Write for
+   the intended reader: include the evidence, assumptions and limits they need
+   to understand the result without the chat history. For a text-only deliverable,
+   put those details where they belong in the text. Report actual saves separately.
 
 Use complete guidance already supplied by the Host without rereading it. When a
 route's body is absent, resolve its path relative to this installed package and
@@ -136,6 +139,7 @@ general entry; skill cards, references and templates are loaded only as needed.
 | Interpret results or effect sizes | `skills/F_writing/analysis-interpreter.md` or `skills/F_writing/effect-size-interpreter.md` |
 | Build, debug or review analysis code | `workflows/code-build.md` (tasks I1–I9) |
 | Proofread scholarly prose | `workflows/proofread.md` (J); preserve meaning, citations and required disclosure |
+| Check reporting completeness, PRISMA, cross-section consistency or academic tone | `workflows/compliance-check.md` (G); use the requested check and available material |
 | Submission package or rebuttal | `workflows/submission-prep.md` or `workflows/rebuttal.md` (H) |
 | Explore venues early or adapt to a chosen journal/conference | `skills/A_framing/venue-analyzer.md` (A5) |
 | Recommend a journal from an existing draft | `skills/H_submission/journal-fit-recommender.md` (H5) |
@@ -182,7 +186,8 @@ For adjacent intents, select by the requested output and supplied material:
 - On continuation, reuse `context/research_state.md`, `context/decision_log.md`
   and `context/stage_handoff.md` when present. Revalidate live revision/digests
   through the owning tools; remembered values and compressed summaries do not
-  establish freshness. Explain only what changed or remains unresolved.
+  establish freshness. For progress updates, focus on changes and unresolved
+  decisions. A requested final artifact must stand on its own.
 
 ## Tools and persistence
 

@@ -1,4 +1,4 @@
-# Codex supplied-entry routing-intent probe: 36 bilingual groups, 72 requests.
+# Codex supplied-entry routing-intent probe. Each group has English and Chinese requests.
 # All studies, drafts, project states and prior results below are synthetic.
 # This does not test real Host activation, tool availability or execution.
 # Expected lists enumerate acceptable labels, not a sequence of required routes.
@@ -819,6 +819,80 @@
       运行。能否把它们算作两份已完成的独立审查，并应用建议？请说明下一步。
   expected:
     route: [skills/Z_cross_cutting/model-collaborator.md]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]
+
+- id: local-reporting-discrepancy
+  category: scope
+  required_reads: [route]
+  request:
+    en: >-
+      Check these two manuscript excerpts for cross-section consistency. Methods:
+      "We included 64 responses and excluded four duplicates before analysis."
+      Results: "All 64 responses contributed to the final estimate." Give me the
+      finding for the authors in English. These excerpts are all I have.
+    zh: >-
+      检查这两段稿件的跨章节一致性。方法写道：“纳入64份答卷，分析前排除了4份重复答卷。”
+      结果写道：“全部64份答卷都用于最终估计。”我手头只有这两段，请用中文给作者写出检查结果。
+  expected:
+    route: [workflows/compliance-check.md, references/stage-G-compliance.md]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]
+
+- id: restricted-data-declaration
+  category: scope
+  required_reads: [route]
+  request:
+    en: >-
+      Draft the data availability statement for our manuscript in English. Our
+      agreement permits sharing aggregate tables in the supplement. It prohibits
+      depositing or distributing the individual records, including on request.
+      The supplement contains the tables. Give me the paragraph.
+    zh: >-
+      请用中文为稿件写出数据可用性声明。协议允许在补充材料中分享汇总表，禁止存储到公共库
+      或分发个体记录，也禁止依申请提供。汇总表已列入补充材料。请给我可放进稿件的段落。
+  expected:
+    route: [workflows/ethics-check.md, skills/D_ethics/statement-generator.md, references/stage-D-ethics.md]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]
+
+- id: reviewer-clarification-pending-edit
+  category: scope
+  required_reads: [route]
+  request:
+    en: >-
+      Draft our English reply to this reviewer comment: "Why does Table 2 use
+      47 observations when Table 1 lists 50?" Three records lack the follow-up
+      measure. Table 1 describes all enrolled participants and Table 2 reports
+      paired changes. We have agreed to clarify the Table 2 note in the next
+      revision. The note hasn't been edited yet. I need the reply for the reviewer.
+    zh: >-
+      请给审稿人写一段中文回复。审稿意见是：“为什么表1列出50人，表2只有47人？”
+      3人缺少随访测量，表1描述所有入组者，表2报告配对变化。我们已决定在下一版澄清
+      表2的表注，目前还没改。请直接给我写给审稿人的回复。
+  expected:
+    route: [workflows/rebuttal.md, skills/H_submission/rebuttal-assistant.md]
+    resource_route: [none]
+    scope: [direct]
+    next_action: [answer]
+
+- id: ethics-application-pending-decision
+  category: scope
+  required_reads: [route]
+  request:
+    en: >-
+      Draft the risk and review-status paragraph of our ethics application. We
+      propose quoting public forum posts without usernames. Searching a quote
+      may still identify its author. The university office acknowledged receipt
+      on 10 March and has given no determination. Use these facts for the draft.
+    zh: >-
+      请为我们的伦理申请草拟风险与审查状态这一段。我们计划引用公开论坛发言，不显示用户名，
+      但搜索原句仍可能识别作者。学校办公室于3月10日确认收件，尚未作出决定。请按这些事实起草。
+  expected:
+    route: [workflows/ethics-check.md, skills/D_ethics/ethics-irb-helper.md, references/stage-D-ethics.md]
     resource_route: [none]
     scope: [direct]
     next_action: [answer]

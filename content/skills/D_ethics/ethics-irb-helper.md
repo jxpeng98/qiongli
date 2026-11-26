@@ -9,8 +9,8 @@ outputs:
   - type: EthicsPackage
     artifact: "ethics_irb.md"
 constraints:
-  - "Must classify risk level (exempt / expedited / full board)"
-  - "Must generate consent document appropriate to risk level"
+  - "Document study risks and the evidenced institutional review status"
+  - "Draft consent materials when applicable to the protocol"
   - "Must address applicable data governance frameworks (GDPR, HIPAA, etc.)"
   - "Must document any deception, sensitive topics, or vulnerable populations"
 failure_modes:
@@ -24,7 +24,7 @@ domain_aware: false
 
 # Ethics & IRB Helper Skill
 
-Prepare a complete ethics/IRB application package: risk classification, informed consent, recruitment materials, data governance, and required disclosure statements.
+Prepare the requested parts of an ethics application from the protocol and documented decisions.
 
 ## Purpose
 
@@ -53,36 +53,25 @@ Prepare IRB-ready materials: risk assessment, consent, recruitment, data governa
 
 ## Process
 
-### Step 1: Determine Whether Ethics Review is Required
+### Step 1: Establish the review status
 
-| Research Activity | Review Required? | Typical Level |
-|------------------|-----------------|---------------|
-| Primary data collection (surveys, interviews, experiments) | ✅ Yes | Expedited or Full |
-| Observation of public behavior (no interaction) | ⚠️ Usually exempt | Exempt |
-| Secondary analysis of de-identified public datasets | ⚠️ Depends on original consent | Exempt or Not required |
-| Text/document analysis (no human subjects) | Usually no | N/A |
-| Analysis of publicly available social media | ⚠️ Contested — check institutional policy | Varies |
+Use `references/stage-D-ethics.md` to match the proposed population, data,
+activity and destination to the governing decision. Reuse its issuing body,
+scope, date and reference when supplied. If a determination is missing, draft
+the study description and flag the open determination for the responsible body.
 
-> **When in doubt**: Err on the side of submitting. An "exempt" determination from the IRB is still a formal record that protects you.
+### Step 2: Assess risks and mitigations
 
-### Step 2: Classify Risk Level
-
-| Level | Criteria | Typical Studies |
-|-------|----------|-----------------|
-| **Exempt** | Minimal risk; normal educational/survey/interview settings; de-identified data | Anonymous surveys, public observation, secondary data |
-| **Expedited** | No more than minimal risk; some identifiable data; standard procedures | Recorded interviews, identifiable surveys, low-risk behavioral tasks |
-| **Full Board** | More than minimal risk; vulnerable populations; deception; sensitive topics | Clinical interventions, children, prisoners, deception studies |
-
-**Risk factors that upgrade classification**:
-- Minors (<18) or other vulnerable groups → typically Full Board
-- Financial/legal jeopardy if data disclosed → at least Expedited
-- Deception involved → Full Board (most institutions)
-- Physiological measurements or interventions → Full Board
-- Cross-cultural research with different vulnerability standards → consult both IRBs
+Describe how the procedures, identifiability, sensitive information or dependency
+relationships create risk for these participants. Match each material risk to a
+specific mitigation. Use the applicable institutional criteria to prepare a
+review request. An activity label, an anonymous survey or public access alone
+cannot establish exemption, an approval or a review category.
 
 ### Step 3: Prepare Consent Document
 
-Generate a consent form containing all required elements:
+Use the governing protocol and institutional requirements to select and verify
+the applicable consent elements.
 
 #### Informed Consent Required Elements
 
@@ -104,10 +93,10 @@ Generate a consent form containing all required elements:
 | **Contact for questions** | PI + independent contact (ombudsperson/IRB office) | All |
 | **Signature/consent mechanism** | Physical signature, electronic consent, or verbal consent documentation | All |
 
-**For online/survey research**, adapt:
-- Use checkbox consent (not wet signature)
+**For online/survey research**, check the actual procedures:
+- Describe the approved consent mechanism, such as a checkbox if applicable
 - Include data collection technology disclosure (cookies, IP logging)
-- Specify right to delete data and deadline for withdrawal
+- State the supported withdrawal and deletion options, including limits after anonymization
 
 **For interview research**, add:
 - Recording consent (audio/video separately)
@@ -142,46 +131,32 @@ Generate a consent form containing all required elements:
 | **Transfer** | Rules for sharing with collaborators, especially cross-border |
 | **Breach protocol** | Steps if data is compromised |
 
-**Regulatory frameworks to address** (if applicable):
+Identify applicable governance requirements from the actual institution,
+jurisdiction, data agreement and planned use. Record the source and any
+unresolved question alongside the affected procedure.
 
-| Framework | Applies When | Key Requirements |
-|-----------|-------------|-----------------|
-| GDPR | EU/EEA participants or researchers | Lawful basis, DPO, DPIA, data subject rights |
-| HIPAA | US health data | De-identification standard (Safe Harbor or Expert Determination) |
-| FERPA | US student records | Consent or directory exception |
-| COPPA | US, children under 13 online | Parental consent, data minimization |
-| TCPS2 | Canadian research | Tri-Council policy compliance |
-| Local/institutional | Always | Check your institution's specific requirements |
+### Step 6: Manuscript disclosures
 
-### Step 6: Required Statements for Manuscript
-
-Draft the following for inclusion in the manuscript (→ feeds into H1 submission package):
-
-```
-Ethics statement:
-"This study was approved by [Institution] IRB (protocol #[number], approved [date]).
-All participants provided [written/verbal/electronic] informed consent prior to participation."
-
-Data availability statement:
-"De-identified data are available at [repository/DOI] / upon reasonable request to the corresponding author / cannot be shared due to [IRB restrictions/participant privacy]."
-
-AI disclosure statement (increasingly required):
-"[AI tool] was used for [specific purpose]. All AI-assisted outputs were reviewed and verified by the authors. The authors take full responsibility for the content."
-```
+Use `statement-generator` for requested manuscript declarations. Report approval,
+consent, sharing conditions and author verification only when the supplied
+records support them. If review is pending, use that status in the draft.
 
 ## Output Contract
 
 - `EthicsPackage`: write `RESEARCH/[topic]/ethics_irb.md`.
+- When the pack includes participant materials, use
+  `RESEARCH/[topic]/instruments/consent_form.md` and
+  `RESEARCH/[topic]/instruments/recruitment_script.md` for the applicable drafts.
 - Separate finding, interpretation, and implication in the final artifact.
 - Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
 - Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
 
 ## Quality Bar
 
-An ethics package is **ready** when:
+For a complete application draft, check the following against the protocol:
 
-- [ ] Risk level classified with justification
-- [ ] Consent document contains ALL required elements for the risk level
+- [ ] Study risks and mitigations are documented, with institutional review status evidenced or identified as pending
+- [ ] Consent materials cover the applicable protocol and institutional requirements
 - [ ] Recruitment materials are non-coercive and IRB-appropriate
 - [ ] Data governance plan covers storage, access, retention, and destruction
 - [ ] Applicable regulatory frameworks identified and addressed
@@ -194,40 +169,12 @@ An ethics package is **ready** when:
 | Pitfall | Problem | Fix |
 |---------|---------|-----|
 | "No human subjects" assumption for online data | Social media users may be identifiable | Check institutional policy on internet research |
-| Consent form too technical | Participants don't understand risks | Write at 8th-grade reading level |
-| Missing cross-border considerations | GDPR applies to EU participants regardless of researcher location | Address data transfer mechanisms (SCCs, adequacy decisions) |
-| Forgetting to IRB-approve recruitment materials | All participant-facing materials need approval | Include flyers, emails, scripts in submission |
+| Consent form too technical | Participants don't understand risks | Use language participants can understand and check the institution’s requirements |
+| Missing cross-border considerations | The destination may introduce additional obligations | Verify applicable institutional and transfer requirements for the proposed use |
+| Using a draft recruitment script as approved | Its status may differ from the protocol | Check the decision and identify which participant materials it covers |
 | Not planning for incidental findings | Sensitive data may reveal concerning information | Pre-specify what constitutes a reportable finding and the response protocol |
 
-## Minimal Output Format
+## Formal pack template
 
-```markdown
-# Ethics / IRB Package
-
-## Risk Classification
-- Level: [Exempt / Expedited / Full Board]
-- Justification: ...
-- Special considerations: [vulnerable populations / deception / sensitive data]
-
-## Informed Consent Document
-[Full consent form with all required elements]
-
-## Recruitment Materials
-- [Recruitment email/script]
-- [Flyer/posting]
-
-## Data Governance
-| Aspect | Plan |
-|--------|------|
-| Storage | ... |
-| Access | ... |
-| De-identification | ... |
-| Retention | ... |
-| Destruction | ... |
-| Regulatory frameworks | ... |
-
-## Manuscript Statements
-- Ethics statement: ...
-- Data availability: ...
-- AI disclosure: ...
-```
+Use `templates/ethics-irb-pack.md` for the formal pack. Record the basis and
+status of any institutional decision alongside the risk assessment.

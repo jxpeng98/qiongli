@@ -30,8 +30,9 @@ Inspect the relevant extraction, quality assessment and source notes. Missing
 files are missing evidence, not an instruction to create completed upstream work.
 Identify which decision the gap affects and what source/check could resolve it.
 Continue supported inventory, planning or bounded synthesis while that branch is
-unresolved. Use `boundary-interviewer` only for a consequential unresolved or
-changed boundary; reuse settled decisions.
+unresolved. For formal synthesis, reuse the locked boundary in
+`context/boundary_review.md`. Use `boundary-interviewer` only for a consequential
+unresolved or changed boundary.
 
 ## Select and execute the supported synthesis
 

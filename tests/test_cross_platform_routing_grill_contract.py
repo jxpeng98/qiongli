@@ -254,7 +254,8 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
                     canonical = (LAYOUT.workflow if relative.startswith("references/")
                                  else REPO_ROOT / "content") / relative
                     self.assertEqual((plugin_skill / relative).read_bytes(), canonical.read_bytes())
-            for source in ("qiongli.md", "paper-read.md", "academic-write.md", "paper-write.md"):
+            for source in ("qiongli.md", "paper-read.md", "academic-write.md", "paper-write.md",
+                           "ethics-check.md", "compliance-check.md", "rebuttal.md"):
                 with self.subTest(workflow=source):
                     self.assertEqual(
                         read(plugin_skill / "workflows" / source),
