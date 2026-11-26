@@ -5,13 +5,26 @@ commands are helpful shortcuts, but Qiongli routing does not require explicit
 `$qiongli`, `/qiongli`, `/paper`, `/lit-review`, or slash-command invocation when the user is
 doing academic research lifecycle work.
 
-## Cross-Platform Trigger Contract
-
 The shared Skill's reply-only choice takes precedence over the routing and
 connection checks here: answer from visible conversation material without tools,
 resource reads, agents or files. A request to explain installation checks in
 reply-only mode is not permission to run them. Do not turn missing evidence into
 a claimed connection, search, review or write result.
+
+## Apply an already drafted project edit
+
+This reference owns routing for an existing edit awaiting application. Use the
+visible project read, preview and apply tools. If the revision or digest changed
+since approval, inspect the current target and intervening edits. If the change
+is still needed, preview it against the current bytes, obtain approval for that
+preview and apply with its revision and digest. Verify the result.
+
+If the required project tools are unavailable, report the blocked operation
+and what would allow it to resume. A package resource reader can read guidance
+only. The write decision is fully described here; opening manuscript workflows
+or guessing additional resource paths cannot supply the current project state.
+
+## Cross-Platform Trigger Contract
 
 When the user asks to verify a new installation, inspect the Qiongli tools
 actually visible in this Host session and call `qiongli_config_status` once.
