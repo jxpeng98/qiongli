@@ -5374,3 +5374,47 @@ passes. Seven roadmap/ledger checks pass and the 249-task index is current.
 The next qualification is an installed-Plugin journey on new material with the
 intended Host and access policy bound. Program acceptance and release remain
 separate decisions.
+
+## November 27 — v2.6.3 release
+
+The maintainer requested a checked stable release of the November 26 Skills
+changes. The v2.6.3 tag and the stable-main cutover both identify
+`fa33112081e90fc9532eb02a55d644bd4ca15ca7`. The content lock binds 447
+entries to pack SHA-256
+`3e3e198fd81b899815affe44828ca45225e4f74e557f6fbce353fcd2076887ee`.
+
+Before tagging, 103 focused tests and 40 release and CI contract tests passed.
+The academic-quality suite passed all 12 cases. The install-page fixture now
+normalizes release-note filenames when constructing a synthetic release. The
+six real install pages were checked against the v2.6.2 public metadata and
+checksum list before cutover.
+
+The ARM64 Ubuntu 22.04 container used glibc 2.35 and Rust 1.97. Its first
+attempt rejected a group-writable test checkout in three CLI cases. Restricting
+the private checkout's directory permissions and repeating the full gate on the
+same commit yielded 49 passing CLI and 9 passing MCP tests, strict Clippy,
+staged npm and wheel installs, and successful Codex and Claude Plugin startup.
+All five package checksums and the release-manifest checksum passed. The
+extracted CLI reported `qiongli 2.6.3`.
+
+The [four-target distribution run](https://github.com/jxpeng98/qiongli/actions/runs/45980021183)
+passed native builds, combined-package installs and upgrades on macOS ARM64,
+Windows x64, Linux x64 and Linux ARM64.
+[Release Automation](https://github.com/jxpeng98/qiongli/actions/runs/45979987773)
+published [v2.6.3](https://github.com/jxpeng98/qiongli/releases/tag/v2.6.3)
+at 10:23:57 UTC. An independent download of all 20 GitHub assets passed the
+repository verifier against the tagged commit and successful distribution run.
+The six installation pages passed the live check and the documentation site built.
+
+The [npm publisher](https://github.com/jxpeng98/qiongli/actions/runs/45981785649)
+reported success while the public package index still returned 2.6.2. Once
+the public `latest` resolved to 2.6.3, an exact-version npm install succeeded.
+The [PyPI publisher](https://github.com/jxpeng98/qiongli/actions/runs/45981789902)
+uploaded four wheels. Fresh public npm and PyPI installs on Linux ARM64
+reported 2.6.3 and served 15 Lite and 35 Full MCP tools. The public npm
+SHA-512 and all four PyPI wheel SHA-256 digests match the GitHub files.
+
+The [Cargo distribution run](https://github.com/jxpeng98/qiongli/actions/runs/45981793709)
+published the workspace. Fresh installs from crates.io passed CLI and MCP
+checks on all four targets. The public registry lists 2.6.3 as available.
+The next research check remains an installed-Plugin journey on fresh material.
