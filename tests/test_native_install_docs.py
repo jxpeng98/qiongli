@@ -45,8 +45,10 @@ class NativeInstallDocsTests(unittest.TestCase):
         for name in checker.PAGES:
             path = self.root / name
             path.parent.mkdir(parents=True, exist_ok=True)
-            text = checker.VERSION.sub(lambda m: m[0].replace(m[1], "2.6.1"), (ROOT / name).read_text())
-            path.write_text(text)
+            text = (ROOT / name).read_text()
+            page_version = checker.VERSION.search(text).group(1)
+            # Include filenames such as v2.6.2.md as well as visible version pins.
+            path.write_text(text.replace(page_version, "2.6.1"))
         notes = self.root / "tooling/release/v2.6.1.md"
         notes.parent.mkdir(parents=True)
         notes.write_text("Synthetic release notes\n")
